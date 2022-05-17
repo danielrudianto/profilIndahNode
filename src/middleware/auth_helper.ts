@@ -1,0 +1,67 @@
+import { NextFunction, Request, Response } from "express";
+import { verify } from "jsonwebtoken";
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
+
+export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    let tokenHeader = req.headers['authorization']?.toString();
+    if (!tokenHeader || tokenHeader.split(' ')[0] !== 'Bearer') {
+        return res.status(401).json({
+            auth: false,
+            message: "Incorrect token format",
+        });
+    }
+
+    let token = tokenHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({
+            auth: false,
+            message: "No token provided",
+        });
+    }
+
+    verify(token, process.env.TOKEN_KEY!.toString(), (error, decoded) => {
+        if(!error){
+            const decodedData = decoded as any;
+                prisma.user.findFirst({
+                where: {
+                    id: decodedData.data.id,
+                    is_active: true,
+                }
+            }).then(user => {
+                // If user is still active, then proceed
+                req.body.userId = decodedData.data.id;
+                next();
+            }).catch(e => {
+                res.status(401).send("User not authorized");
+            })
+        } else {
+            res.status(401).send("User not authorized");
+        }
+    });
+}
+
+export const SupervisorAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    const userId = req.body.userId;
+    prisma.user_position.findFirst({
+        where:{
+            user_id: userId,
+            user_userTouser_position_user_id:{
+                is_active: true
+            }
+        },
+        orderBy: {
+            id: "desc"
+        },
+    }).then(result => {
+        if(result == null || result.position! < 2){
+            res.status(405).send("Not allowed")
+        } else {
+            next();
+        }
+    }).catch(error => {
+        res.status(401).send(error);
+    })
+};

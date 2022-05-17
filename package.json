@@ -1,0 +1,31 @@
+{
+  "name": "profilindahnode",
+  "version": "1.0.0",
+  "description": "Backend Node Typescript for Toko Profil Indah project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon src/app.ts"
+  },
+  "author": "xunny.id",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^3.14.0",
+    "@types/bcrypt": "^5.0.0",
+    "@types/express": "^4.17.13",
+    "bcrypt": "^5.0.1",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.1",
+    "express": "^4.18.1",
+    "jsonwebtoken": "^8.5.1",
+    "mysql2": "^2.3.3"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cors": "^2.8.12",
+    "@types/jsonwebtoken": "^8.5.8",
+    "nodemon": "^2.0.16",
+    "prisma": "^3.14.0"
+  }
+}
