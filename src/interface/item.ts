@@ -1,4 +1,5 @@
 import { bill } from "./bill";
+import { item_brand } from "./brand";
 import { purchase_order } from "./purchase_order";
 import { user } from "./user";
 
@@ -6,8 +7,11 @@ export interface item {
     id?: number;
     reference: string;
     description: string;
+    item_brand_id?: number;
     created_by?: number;
     created_at?: Date;
+
+    item_brand?: item_brand;
     user?: user;
     bill?: bill[];
     user_item_deleted_byTouser?: user;

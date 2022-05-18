@@ -151,14 +151,16 @@ model item {
   id                         Int              @id @default(autoincrement())
   reference                  String           @unique(map: "reference_UNIQUE") @db.VarChar(45)
   description                String           @db.VarChar(500)
+  minimum_stock              Decimal          @default(0.0000) @db.Decimal(50, 4)
   created_by                 Int?
   created_at                 DateTime         @default(now()) @db.DateTime(0)
   is_delete                  Boolean?         @default(false)
   deleted_by                 Int?
   deleted_at                 DateTime?        @db.DateTime(0)
-  minimum_stock              Decimal          @default(0.0000) @db.Decimal(50, 4)
+  item_brand_id              Int
   user                       user?            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
   user_item_deleted_byTouser user?            @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
+  item_brand                 item_brand       @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
   bill                       bill[]
   item_price                 item_price[]
   purchase_order             purchase_order[]
@@ -166,6 +168,7 @@ model item {
   @@index([created_by], map: "item_ibfk_1_idx")
   @@index([deleted_by], map: "item_ibfk_2_idx")
   @@index([reference, description], map: "item_fulltext")
+  @@index([item_brand_id], map: "item_ibfk_3_idx")
 }
 
 model payment_method {
@@ -242,10 +245,10 @@ model user {
   nik                                    String                @unique(map: "nik_UNIQUE") @db.VarChar(45)
   username                               String                @unique(map: "username_UNIQUE") @db.VarChar(45)
   password                               String                @db.VarChar(45)
-  created_by                             Int
-  created_at                             DateTime              @db.DateTime(0)
+  created_by                             Int?
+  created_at                             DateTime              @default(now()) @db.DateTime(0)
   is_active                              Boolean               @default(true)
-  user                                   user                  @relation("userTouser_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
+  user                                   user?                 @relation("userTouser_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
   bill_code_confirmed_byTouser           bill_code[]           @relation("bill_code_confirmed_byTouser")
   bill_code_created_byTouser             bill_code[]           @relation("bill_code_created_byTouser")
   company                                company[]
@@ -258,6 +261,7 @@ model user {
   good_receipt_code_created_byTouser     good_receipt_code[]   @relation("good_receipt_code_created_byTouser")
   item                                   item[]
   item_item_deleted_byTouser             item[]                @relation("item_deleted_byTouser")
+  item_brand                             item_brand[]
   payment_method_created_byTouser        payment_method[]      @relation("payment_method_created_byTouser")
   payment_method_deleted_byTouser        payment_method[]      @relation("payment_method_deleted_byTouser")
   purchase_order_code_confirmed_byTouser purchase_order_code[] @relation("purchase_order_code_confirmed_byTouser")
@@ -316,4 +320,16 @@ model item_price_purchase {
   item_id   Int
   price     Decimal @db.Decimal(50, 4)
   is_delete Boolean @default(false)
+}
+
+model item_brand {
+  id         Int      @id
+  name       String   @unique(map: "name_UNIQUE") @db.VarChar(45)
+  created_by Int
+  created_at DateTime @default(now()) @db.DateTime(0)
+  user       user     @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_1")
+  item       item[]
+
+  @@index([name], map: "item_brand_fulltext")
+  @@index([created_by], map: "item_brand_ibfk_1_idx")
 }
