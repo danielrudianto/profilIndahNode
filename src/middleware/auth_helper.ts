@@ -22,23 +22,28 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
         });
     }
 
-    verify(token, process.env.TOKEN_KEY!.toString(), (error, decoded) => {
+    verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
         if(!error){
             const decodedData = decoded as any;
                 prisma.user.findFirst({
                 where: {
-                    id: decodedData.data.id,
+                    id: decodedData.id,
                     is_active: true,
                 }
             }).then(user => {
                 // If user is still active, then proceed
-                req.body.userId = decodedData.data.id;
+                if(user == null || !user.is_active){
+                    return res.status(401).send("User not authorized");
+                }
+
+                req.body.userId = decodedData.id;
                 next();
-            }).catch(e => {
-                res.status(401).send("User not authorized");
+                
+            }).catch(() => {
+                return res.status(401).send("User not authorized");
             })
         } else {
-            res.status(401).send("User not authorized");
+            return res.status(401).send("User not authorized");
         }
     });
 }

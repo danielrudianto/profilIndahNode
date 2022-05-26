@@ -1,64 +1,90 @@
 import { PrismaClient } from "@prisma/client";
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import { compareSync } from 'bcryptjs';
 import { sign } from "jsonwebtoken";
-import {authMiddleware} from '../middleware/auth_helper';
+import { authMiddleware } from '../middleware/auth_helper';
+import { body, validationResult  } from 'express-validator';
+import { compare } from "bcrypt";
 
 const prisma = new PrismaClient()
 const router = Router();
 
-router.post("/login", (req, res, next) => {
-    const username = req.body.username;
-    const password = req.body.password;
-    prisma.user.findUnique({
-        select:{
-            id: true,
-            name: true,
-            password: true,
-            is_active: true,
-            user_position: {
-                select: {
-                    position: true,
-                    name: true
-                },
-                orderBy: {
-                    created_at: "desc"
-                },
-                take: 1
-            },
-            user_department: {
-                select: {
-                    departments: true,
-                },
-                where:{
-                    is_delete: false
-                }
-            }
-        },
-        where:{
-            username: username
+router.post("/login", 
+    [
+        body("username").not().isEmpty(),
+        body("password").not().isEmpty()
+    ], 
+    (req: Request, res: Response) => {
+        const errors = validationResult(req);
+        if(errors.array().length > 0){
+            return res.status(500).send("Please fill in the correct format.")
         }
-    }).then(user => {
-        if(!compareSync(password, user!.password!) || !user?.is_active) {
-            res.status(401).send("Incorrect password or username");
-        } else {
-            const jwtToken = sign({
-                exp: Math.floor(Date.now() / 1000 + (60 * 60 * 6)),
-                data: user,
-            }, process.env.TOKEN_KEY!.toString());
 
-            user!.password = '';
-            const response = {
-                ...user,
-                token: jwtToken,
+        const username = req.body.username;
+        const password = req.body.password;
+        prisma.user.findUnique({
+            select:{
+                id: true,
+                name: true,
+                password: true,
+                is_active: true,
+                user_position: {
+                    select: {
+                        position: true,
+                        name: true
+                    },
+                    orderBy: {
+                        created_at: "desc"
+                    },
+                    take: 1
+                },
+                user_department: {
+                    select: {
+                        departments: true,
+                    },
+                    where:{
+                        is_delete: false
+                    }
+                }
+            },
+            where:{
+                username: username
+            }
+        }).then(user => {
+            if(!user || !user.is_active){
+                return res.status(401).send("Incorrect password or username");
             }
 
-            res.status(200).send(response);
-        } 
-    }).catch(e => {
-        res.status(401).send("Incorrect password or username");
-    })
-});
+            compare(password, user.password).then(result => {
+                if(!result){
+                    return res.status(401).send("Incorrect password or username");
+                }
+
+                const expired = Math.floor(Date.now() / 1000 + (60 * 60 * 6))
+                const jwtToken = sign({
+                    exp: expired,
+                    id: user.id,
+                }, process.env.TOKEN_KEY!.toString());
+
+                const userObject = {
+                    name: user.name,
+                    position: user.user_position.length == 0 ? null : user.user_position[0].name,
+                    department: user.user_department
+                }
+
+                const response = {
+                    user: userObject,
+                    token: jwtToken,
+                    expire: expired
+                }
+
+                return res.status(200).send(response);
+            })            
+        }).catch(e => {
+            return res.status(401).send("Incorrect password or username");
+        })
+    }
+);
 
 router.get("/", authMiddleware, (req, res, next) => {
     res.status(200).send({

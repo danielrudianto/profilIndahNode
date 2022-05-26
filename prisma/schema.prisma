@@ -47,17 +47,22 @@ model bill_code {
 }
 
 model company {
-  id                  Int                   @id
-  code_name           String                @unique(map: "code_UNIQUE") @db.VarChar(2)
-  name                String                @db.VarChar(50)
-  address             String                @db.Text
-  npwp                String?               @db.VarChar(45)
-  created_by          Int
-  created_at          DateTime              @default(now()) @db.DateTime(0)
-  user                user                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_1")
-  purchase_order_code purchase_order_code[]
+  id                            Int                   @id @default(autoincrement())
+  code_name                     String                @db.VarChar(3)
+  name                          String                @db.VarChar(50)
+  address                       String                @db.Text
+  npwp                          String?               @db.VarChar(45)
+  created_by                    Int
+  created_at                    DateTime              @default(now()) @db.DateTime(0)
+  is_delete                     Boolean?              @default(false)
+  deleted_by                    Int?
+  deleted_at                    DateTime?             @db.DateTime(0)
+  user                          user                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_1")
+  user_company_deleted_byTouser user?                 @relation("company_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_2")
+  purchase_order_code           purchase_order_code[]
 
   @@index([created_by], map: "company_ibfk_1_idx")
+  @@index([deleted_by], map: "company_ibfk_2_idx")
 }
 
 model customer {
@@ -149,16 +154,16 @@ model good_receipt_code {
 
 model item {
   id                         Int              @id @default(autoincrement())
-  reference                  String           @unique(map: "reference_UNIQUE") @db.VarChar(45)
+  reference                  String           @db.VarChar(50)
   description                String           @db.VarChar(500)
   minimum_stock              Decimal          @default(0.0000) @db.Decimal(50, 4)
-  created_by                 Int?
+  created_by                 Int
   created_at                 DateTime         @default(now()) @db.DateTime(0)
   is_delete                  Boolean?         @default(false)
   deleted_by                 Int?
   deleted_at                 DateTime?        @db.DateTime(0)
   item_brand_id              Int
-  user                       user?            @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
+  user                       user             @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
   user_item_deleted_byTouser user?            @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
   item_brand                 item_brand       @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
   bill                       bill[]
@@ -226,25 +231,12 @@ model purchase_order_code {
   @@index([supplier_id], map: "purchase_order_code_ibfk_4_idx")
 }
 
-model supplier {
-  id                  Int                   @id @default(autoincrement())
-  name                String                @db.VarChar(100)
-  npwp                String?               @db.VarChar(45)
-  address             String?               @db.Text
-  created_by          Int
-  created_at          DateTime?             @default(now()) @db.DateTime(0)
-  user                user                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "supplier_ibfk_1")
-  purchase_order_code purchase_order_code[]
-
-  @@index([created_by], map: "supplier_ibfk_1_idx")
-}
-
 model user {
   id                                     Int                   @id @default(autoincrement())
   name                                   String                @db.VarChar(45)
   nik                                    String                @unique(map: "nik_UNIQUE") @db.VarChar(45)
   username                               String                @unique(map: "username_UNIQUE") @db.VarChar(45)
-  password                               String                @db.VarChar(45)
+  password                               String                @db.VarChar(100)
   created_by                             Int?
   created_at                             DateTime              @default(now()) @db.DateTime(0)
   is_active                              Boolean               @default(true)
@@ -252,6 +244,7 @@ model user {
   bill_code_confirmed_byTouser           bill_code[]           @relation("bill_code_confirmed_byTouser")
   bill_code_created_byTouser             bill_code[]           @relation("bill_code_created_byTouser")
   company                                company[]
+  company_company_deleted_byTouser       company[]             @relation("company_deleted_byTouser")
   customer_created_byTouser              customer[]            @relation("customer_created_byTouser")
   customer_deleted_byTouser              customer[]            @relation("customer_deleted_byTouser")
   expense_created_byTouser               expense[]             @relation("expense_created_byTouser")
@@ -262,6 +255,7 @@ model user {
   item                                   item[]
   item_item_deleted_byTouser             item[]                @relation("item_deleted_byTouser")
   item_brand                             item_brand[]
+  item_brand_item_brand_deleted_byTouser item_brand[]          @relation("item_brand_deleted_byTouser")
   payment_method_created_byTouser        payment_method[]      @relation("payment_method_created_byTouser")
   payment_method_deleted_byTouser        payment_method[]      @relation("payment_method_deleted_byTouser")
   purchase_order_code_confirmed_byTouser purchase_order_code[] @relation("purchase_order_code_confirmed_byTouser")
@@ -304,13 +298,15 @@ model user_department {
 }
 
 model item_price {
-  id               Int      @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   item_id          Int
-  price            Decimal  @db.Decimal(50, 4)
-  discount         Decimal  @db.Decimal(50, 4)
-  discount_project Decimal? @db.Decimal(50, 4)
-  is_delete        Boolean? @default(false)
-  item             item     @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
+  price            Decimal   @db.Decimal(50, 4)
+  discount         Decimal   @db.Decimal(50, 4)
+  discount_project Decimal?  @db.Decimal(50, 4)
+  is_delete        Boolean?  @default(false)
+  effective_date   DateTime? @db.Date
+  created_at       DateTime? @default(now()) @db.DateTime(0)
+  item             item      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
 
   @@index([item_id], map: "item_price_ibfk_1_idx")
 }
@@ -323,13 +319,34 @@ model item_price_purchase {
 }
 
 model item_brand {
-  id         Int      @id
-  name       String   @unique(map: "name_UNIQUE") @db.VarChar(45)
-  created_by Int
-  created_at DateTime @default(now()) @db.DateTime(0)
-  user       user     @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_1")
-  item       item[]
+  id                               Int       @id @default(autoincrement())
+  name                             String    @unique(map: "name_UNIQUE") @db.VarChar(45)
+  created_by                       Int
+  created_at                       DateTime  @default(now()) @db.DateTime(0)
+  is_delete                        Boolean?  @default(false)
+  deleted_by                       Int?
+  deleted_at                       DateTime? @db.DateTime(0)
+  user                             user      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_1")
+  user_item_brand_deleted_byTouser user?     @relation("item_brand_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_2")
+  item                             item[]
 
   @@index([name], map: "item_brand_fulltext")
   @@index([created_by], map: "item_brand_ibfk_1_idx")
+  @@index([deleted_by], map: "item_brand_ibfk_2_idx")
+}
+
+model supplier {
+  id                  Int                   @id @default(autoincrement())
+  name                String                @db.VarChar(100)
+  npwp                String?               @db.VarChar(45)
+  address             String?               @db.Text
+  created_by          Int
+  created_at          DateTime?             @default(now()) @db.DateTime(0)
+  is_delete           Boolean?              @default(false)
+  deleted_by          Int?
+  deleted_at          DateTime?             @db.DateTime(0)
+  user                user                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "supplier_ibfk_1")
+  purchase_order_code purchase_order_code[]
+
+  @@index([created_by], map: "supplier_ibfk_1_idx")
 }

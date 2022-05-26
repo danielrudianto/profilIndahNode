@@ -1,25 +1,68 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
-import { purchaseOrderNameHelper } from "../middleware/name_helper";
 
 const prisma = new PrismaClient()
 const router = Router();
 
-router.get("/autocomplete", (req, res, next) => {
-    const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
-    if(keyword == ""){
-        prisma.supplier.findMany({
-            where:{
-                is_delete: false,
+router.post("/", async (req, res, next) => {
+    const code_name = req.body.code_name;
+    const name = req.body.name;
+    const address = req.body.address;
+    const npwp = (req.body.npwp.toString().length == 15) ? req.body.npwp : null;
+
+    const companyCount = await prisma.company.count({
+        where:{
+            code_name: code_name,
+            is_delete: false
+        }
+    });
+
+    if(companyCount == 0){
+        prisma.company.create({
+            data: {
+                name: name,
+                code_name: code_name,
+                address: address,
+                npwp: npwp,
+                created_by: req.body.userId
             },
             select: {
                 id: true,
                 name: true,
+                code_name: true,
                 address: true,
-                npwp: true
+                npwp: true,
+                user: {
+                    select: {
+                        name: true
+                    }
+                },
+                user_company_deleted_byTouser: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        }).then(result => {
+            res.status(201).send(result);
+        }).catch(error => {
+            res.status(500).send(error);
+        })
+    } else {
+        res.status(400).send("Duplicate code name.")
+    }
+    
+});
+
+router.get("/autocomplete", (req, res, next) => {
+    const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
+    if(keyword == ""){
+        prisma.company.findMany({
+            where:{
+                is_delete: false,
             },
             orderBy: {
-                name: "asc"
+                name: 'asc'
             },
             take: 5,
             skip: 0
@@ -29,70 +72,55 @@ router.get("/autocomplete", (req, res, next) => {
             res.status(500).send(error);
         })
     } else {
-        prisma.supplier.findMany({
+        prisma.company.findMany({
             where:{
                 is_delete: false,
                 OR: [
                     {
                         name: {
                             contains: keyword
-                        },
+                        }
+                    },
+                    {
                         address: {
                             contains: keyword
                         }
                     }
                 ]
-            },
-            select: {
-                id: true,
-                name: true,
-                address: true,
-                npwp: true
-            },
-            orderBy: {
-                name: "asc"
-            },
-            take: 5,
-            skip: 0
+            }
         }).then(result => {
             res.status(200).send(result);
         }).catch(error => {
             res.status(500).send(error);
         })
+
     }
 })
 
 router.get("/", (req, res, next) => {
+    const page = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
     const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
-    const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page.toString()));
-    const limit = parseInt(process.env.LIMIT!);
-    const offset = (page - 1) * limit;
-
     if(keyword == ""){
         prisma.$transaction([
-            prisma.supplier.findMany({
+            prisma.company.findMany({
                 where:{
                     is_delete: false
-                },
-                orderBy: {
-                    name: "asc"
                 },
                 select: {
                     id: true,
                     name: true,
                     address: true,
+                    code_name: true,
                     npwp: true,
                     user: {
                         select: {
                             name: true
                         }
                     },
-                    created_at: true
-                },
-                take: limit,
-                skip: offset
+                    created_at: true,
+                }
             }),
-            prisma.supplier.count({
+            prisma.company.count({
                 where:{
                     is_delete: false
                 }
@@ -107,17 +135,18 @@ router.get("/", (req, res, next) => {
         })
     } else {
         prisma.$transaction([
-            prisma.supplier.findMany({
+            prisma.company.findMany({
                 where:{
                     is_delete: false,
                     OR: [
                         {
                             name: {
                                 contains: keyword
-                            }
-                        },
-                        {
+                            },
                             address: {
+                                contains: keyword
+                            },
+                            code_name: {
                                 contains: keyword
                             }
                         }
@@ -127,31 +156,28 @@ router.get("/", (req, res, next) => {
                     id: true,
                     name: true,
                     address: true,
+                    code_name: true,
                     npwp: true,
                     user: {
                         select: {
                             name: true
                         }
                     },
-                    created_at: true
-                },
-                orderBy: {
-                    name: "asc"
-                },
-                take: limit,
-                skip: offset
+                    created_at: true,
+                }
             }),
-            prisma.supplier.count({
+            prisma.company.count({
                 where:{
                     is_delete: false,
                     OR: [
                         {
                             name: {
                                 contains: keyword
-                            }
-                        },
-                        {
+                            },
                             address: {
+                                contains: keyword
+                            },
+                            code_name: {
                                 contains: keyword
                             }
                         }
@@ -167,70 +193,6 @@ router.get("/", (req, res, next) => {
             res.status(500).send(error);
         })
     }
-})
-
-router.post("/", (req, res, next) => {
-    const name = req.body.name;
-    const address = req.body.address;
-    const npwp = (req.body.npwp.toString().length == 15) ? req.body.npwp : null;
-
-    prisma.supplier.create({
-        data: {
-            name: name,
-            address: address,
-            npwp: npwp,
-            created_by: req.body.userId
-        },
-        select: {
-            id: true,
-            name: true,
-            address: true,
-            npwp: true,
-            user: {
-                select: {
-                    name: true
-                }
-            },
-            created_at: true
-        }
-    }).then(result => {
-        res.status(201).send(result)
-    }).catch(error => {
-        res.status(500).send(error);
-    })
-})
-
-router.put("/", async(req, res, next) => {
-    const id = req.body.id;
-    const name = req.body.name;
-    const address = req.body.address;
-    const npwp = (req.body.npwp.toString().length == 15) ? req.body.npwp : null;
-
-    const supplier = await prisma.supplier.findUnique({
-        where:{
-            id: id
-        }
-    });
-
-    if(supplier == null || supplier.is_delete){
-        return res.status(404).send("Data not found.");
-    } else {
-        prisma.supplier.update({
-            where:{
-                id: id
-            },
-            data: {
-                name: name,
-                address: address,
-                npwp: npwp
-            }
-        }).then(result => {
-            return res.status(201).send(result);
-        }).catch(error => {
-            return res.status(500).send(error);
-        })
-    }
-    
 })
 
 export default router;
