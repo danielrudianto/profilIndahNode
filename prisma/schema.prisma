@@ -129,49 +129,53 @@ model good_receipt {
   good_receipt_code_id Int
   price                Decimal           @db.Decimal(50, 4)
   good_receipt_code    good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_1")
+  item                 item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_2")
 
-  @@index([good_receipt_code_id], map: "good_receipt_ibfk_2_idx")
+  @@index([good_receipt_code_id], map: "good_receipt_ibfk_1_idx")
+  @@index([item_id], map: "good_receipt_ibfk_2")
 }
 
 model good_receipt_code {
-  id                                       Int            @id @default(autoincrement())
-  name                                     String         @db.VarChar(100)
-  date                                     DateTime       @db.Date
-  created_by                               Int
-  created_at                               DateTime       @default(now()) @db.DateTime(0)
-  is_confirm                               Boolean        @default(false)
-  is_delete                                Boolean        @default(false)
-  confimed_by                              Int?
-  confirmed_at                             DateTime?      @db.DateTime(0)
-  supplier_id                              Int
-  company_id                               Int
-  company                                  company        @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_4")
-  user_good_receipt_code_confimed_byTouser user?          @relation("good_receipt_code_confimed_byTouser", fields: [confimed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_2")
-  user_good_receipt_code_created_byTouser  user           @relation("good_receipt_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_1")
-  supplier                                 supplier       @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_3")
-  good_receipt                             good_receipt[]
+  id                                        Int                @id @default(autoincrement())
+  name                                      String             @db.VarChar(100)
+  date                                      DateTime           @db.Date
+  created_by                                Int
+  created_at                                DateTime           @default(now()) @db.DateTime(0)
+  is_confirm                                Boolean            @default(false)
+  is_delete                                 Boolean            @default(false)
+  confirmed_by                              Int?
+  confirmed_at                              DateTime?          @db.DateTime(0)
+  supplier_id                               Int
+  company_id                                Int
+  company                                   company            @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_4")
+  user_good_receipt_code_confirmed_byTouser user?              @relation("good_receipt_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_2")
+  user_good_receipt_code_created_byTouser   user               @relation("good_receipt_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_1")
+  supplier                                  supplier           @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_3")
+  good_receipt                              good_receipt[]
+  purchase_invoice                          purchase_invoice[]
 
   @@index([created_by], map: "good_receipt_code_ibfk_1_idx")
-  @@index([confimed_by], map: "good_receipt_code_ibfk_2_idx")
+  @@index([confirmed_by], map: "good_receipt_code_ibfk_2_idx")
   @@index([supplier_id], map: "good_receipt_code_ibfk_3_idx")
   @@index([company_id], map: "good_receipt_code_ibfk_4_idx")
 }
 
 model item {
-  id                         Int          @id @default(autoincrement())
-  reference                  String       @db.VarChar(50)
-  description                String       @db.VarChar(500)
-  minimum_stock              Decimal      @default(0.0000) @db.Decimal(50, 4)
+  id                         Int            @id @default(autoincrement())
+  reference                  String         @db.VarChar(50)
+  description                String         @db.VarChar(500)
+  minimum_stock              Decimal        @default(0.0000) @db.Decimal(50, 4)
   created_by                 Int
-  created_at                 DateTime     @default(now()) @db.DateTime(0)
-  is_delete                  Boolean?     @default(false)
+  created_at                 DateTime       @default(now()) @db.DateTime(0)
+  is_delete                  Boolean?       @default(false)
   deleted_by                 Int?
-  deleted_at                 DateTime?    @db.DateTime(0)
+  deleted_at                 DateTime?      @db.DateTime(0)
   item_brand_id              Int
-  user                       user         @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
-  user_item_deleted_byTouser user?        @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
-  item_brand                 item_brand   @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
+  user                       user           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
+  user_item_deleted_byTouser user?          @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
+  item_brand                 item_brand     @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
   bill                       bill[]
+  good_receipt               good_receipt[]
   item_price                 item_price[]
 
   @@index([created_by], map: "item_ibfk_1_idx")
@@ -198,38 +202,41 @@ model payment_method {
 }
 
 model user {
-  id                                     Int                 @id @default(autoincrement())
-  name                                   String              @db.VarChar(45)
-  nik                                    String              @unique(map: "nik_UNIQUE") @db.VarChar(45)
-  username                               String              @unique(map: "username_UNIQUE") @db.VarChar(45)
-  password                               String              @db.VarChar(100)
-  created_by                             Int?
-  created_at                             DateTime            @default(now()) @db.DateTime(0)
-  is_active                              Boolean             @default(true)
-  user                                   user?               @relation("userTouser_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
-  bill_code_confirmed_byTouser           bill_code[]         @relation("bill_code_confirmed_byTouser")
-  bill_code_created_byTouser             bill_code[]         @relation("bill_code_created_byTouser")
-  company                                company[]
-  company_company_deleted_byTouser       company[]           @relation("company_deleted_byTouser")
-  customer_created_byTouser              customer[]          @relation("customer_created_byTouser")
-  customer_deleted_byTouser              customer[]          @relation("customer_deleted_byTouser")
-  expense_created_byTouser               expense[]           @relation("expense_created_byTouser")
-  expense_deleted_byTouser               expense[]           @relation("expense_deleted_byTouser")
-  expense_type                           expense_type[]
-  good_receipt_code_confimed_byTouser    good_receipt_code[] @relation("good_receipt_code_confimed_byTouser")
-  good_receipt_code_created_byTouser     good_receipt_code[] @relation("good_receipt_code_created_byTouser")
-  item                                   item[]
-  item_item_deleted_byTouser             item[]              @relation("item_deleted_byTouser")
-  item_brand                             item_brand[]
-  item_brand_item_brand_deleted_byTouser item_brand[]        @relation("item_brand_deleted_byTouser")
-  payment_method_created_byTouser        payment_method[]    @relation("payment_method_created_byTouser")
-  payment_method_deleted_byTouser        payment_method[]    @relation("payment_method_deleted_byTouser")
-  supplier                               supplier[]
-  user_created_byTouser                  user[]              @relation("userTouser_created_by")
-  user_department_created_byTouser       user_department[]   @relation("userTouser_department_created_by")
-  user_department                        user_department[]   @relation("userTouser_department_user_id")
-  user_position_created_byTouser         user_position[]     @relation("userTouser_position_created_by")
-  user_position                          user_position[]     @relation("userTouser_position_user_id")
+  id                                                     Int                 @id @default(autoincrement())
+  name                                                   String              @db.VarChar(45)
+  nik                                                    String              @unique(map: "nik_UNIQUE") @db.VarChar(45)
+  username                                               String              @unique(map: "username_UNIQUE") @db.VarChar(45)
+  password                                               String              @db.VarChar(100)
+  created_by                                             Int?
+  created_at                                             DateTime            @default(now()) @db.DateTime(0)
+  is_active                                              Boolean             @default(true)
+  user                                                   user?               @relation("userTouser_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
+  bill_code_confirmed_byTouser                           bill_code[]         @relation("bill_code_confirmed_byTouser")
+  bill_code_created_byTouser                             bill_code[]         @relation("bill_code_created_byTouser")
+  company                                                company[]
+  company_company_deleted_byTouser                       company[]           @relation("company_deleted_byTouser")
+  customer_created_byTouser                              customer[]          @relation("customer_created_byTouser")
+  customer_deleted_byTouser                              customer[]          @relation("customer_deleted_byTouser")
+  expense_created_byTouser                               expense[]           @relation("expense_created_byTouser")
+  expense_deleted_byTouser                               expense[]           @relation("expense_deleted_byTouser")
+  expense_type                                           expense_type[]
+  good_receipt_code_good_receipt_code_confirmed_byTouser good_receipt_code[] @relation("good_receipt_code_confirmed_byTouser")
+  good_receipt_code_created_byTouser                     good_receipt_code[] @relation("good_receipt_code_created_byTouser")
+  item                                                   item[]
+  item_item_deleted_byTouser                             item[]              @relation("item_deleted_byTouser")
+  item_brand                                             item_brand[]
+  item_brand_item_brand_deleted_byTouser                 item_brand[]        @relation("item_brand_deleted_byTouser")
+  item_price                                             item_price[]
+  payment_method_created_byTouser                        payment_method[]    @relation("payment_method_created_byTouser")
+  payment_method_deleted_byTouser                        payment_method[]    @relation("payment_method_deleted_byTouser")
+  purchase_invoice_purchase_invoice_confirmed_byTouser   purchase_invoice[]  @relation("purchase_invoice_confirmed_byTouser")
+  purchase_invoice_purchase_invoice_created_byTouser     purchase_invoice[]  @relation("purchase_invoice_created_byTouser")
+  supplier                                               supplier[]
+  user_created_byTouser                                  user[]              @relation("userTouser_created_by")
+  user_department_created_byTouser                       user_department[]   @relation("userTouser_department_created_by")
+  user_department                                        user_department[]   @relation("userTouser_department_user_id")
+  user_position_created_byTouser                         user_position[]     @relation("userTouser_position_created_by")
+  user_position                                          user_position[]     @relation("userTouser_position_user_id")
 
   @@index([created_by], map: "user_ibfk_1_idx")
 }
@@ -262,24 +269,30 @@ model user_department {
 }
 
 model item_price {
-  id               Int       @id @default(autoincrement())
+  id               Int      @id @default(autoincrement())
   item_id          Int
-  price            Decimal   @db.Decimal(50, 4)
-  discount         Decimal   @db.Decimal(50, 4)
-  discount_project Decimal?  @db.Decimal(50, 4)
-  is_delete        Boolean?  @default(false)
-  effective_date   DateTime? @db.Date
-  created_at       DateTime? @default(now()) @db.DateTime(0)
-  item             item      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
+  price            Decimal  @db.Decimal(50, 4)
+  discount         Decimal  @db.Decimal(50, 4)
+  discount_project Decimal  @db.Decimal(50, 4)
+  is_delete        Boolean  @default(false)
+  effective_date   DateTime @db.Date
+  created_by       Int
+  created_at       DateTime @default(now()) @db.DateTime(0)
+  user             user     @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_2")
+  item             item     @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
 
   @@index([item_id], map: "item_price_ibfk_1_idx")
+  @@index([created_by], map: "item_price_ibfk_2_idx")
 }
 
 model item_price_purchase {
-  id        Int     @id @default(autoincrement())
-  item_id   Int
-  price     Decimal @db.Decimal(50, 4)
-  is_delete Boolean @default(false)
+  id             Int      @id @default(autoincrement())
+  item_id        Int
+  price          Decimal  @db.Decimal(50, 4)
+  is_delete      Boolean  @default(false)
+  created_by     Int
+  created_at     DateTime @default(now()) @db.DateTime(0)
+  effective_date DateTime @db.Date
 }
 
 model item_brand {
@@ -313,4 +326,25 @@ model supplier {
   good_receipt_code good_receipt_code[]
 
   @@index([created_by], map: "supplier_ibfk_1_idx")
+}
+
+model purchase_invoice {
+  id                                       Int                @id @default(autoincrement())
+  name                                     String?            @db.VarChar(45)
+  date                                     DateTime?          @db.Date
+  discount                                 Decimal?           @default(0.0000) @db.Decimal(50, 4)
+  good_receipt_code_id                     Int?
+  created_by                               Int
+  created_at                               DateTime           @default(now()) @db.DateTime(0)
+  is_delete                                Boolean            @default(false)
+  is_confirm                               Boolean            @default(false)
+  confirmed_by                             Int?
+  confirmed_at                             DateTime?          @db.DateTime(0)
+  user_purchase_invoice_confirmed_byTouser user?              @relation("purchase_invoice_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_3")
+  user_purchase_invoice_created_byTouser   user               @relation("purchase_invoice_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_1")
+  good_receipt_code                        good_receipt_code? @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_2")
+
+  @@index([created_by], map: "purchase_invoice_ibfk_1_idx")
+  @@index([good_receipt_code_id], map: "purchase_invoice_ibfk_2_idx")
+  @@index([confirmed_by], map: "purchase_invoice_ibfk_3_idx")
 }

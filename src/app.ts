@@ -9,6 +9,7 @@ import itemPriceRoutes from './routes/item_price_route';
 import brandRoutes from './routes/brand_route';
 import supplierRoutes from './routes/supplier_route';
 import companyRoutes from './routes/company_route';
+import goodReceiptRoutes from './routes/good_receipt_route';
 
 
 const allowedOrigins = ['http://localhost:4200', 'https://app.profilindah.id'];
@@ -27,6 +28,7 @@ app.use("/itemPrice", authMiddleware, itemPriceRoutes);
 app.use("/brand", authMiddleware, brandRoutes);
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/company", authMiddleware, companyRoutes);
+app.use("/good_receipt", authMiddleware, goodReceiptRoutes);
 
 app.listen(5000, () => {
     console.log("Application running on port 5000");

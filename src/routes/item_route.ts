@@ -44,14 +44,26 @@ router.post("/", async(req, res, next) => {
     prisma.item.create({
         data: item as any
     }).then(async(result) => {
-        prisma.item_price.create({
-            data: {
-                item_id: result.id,
-                price: req.body.price,
-                discount: req.body.discount,
-                discount_project: req.body.discount_project
-            }
-        }).then(item_price_result => {
+        prisma.$transaction([
+            prisma.item_price.create({
+                data: {
+                    item_id: result.id,
+                    price: req.body.price,
+                    discount: req.body.discount,
+                    discount_project: req.body.discount_project,
+                    effective_date: new Date()
+                }
+            }),
+            prisma.item_price_purchase.create({
+                data: {
+                    item_id: result.id,
+                    price: req.body.purchase_price,
+                    effective_date: new Date(),
+                    created_by: req.body.userId
+                }
+            })
+        ])
+        .then(item_price_result => {
             const item_object = {
                 ...item,
                 item_price: item_price_result
@@ -61,7 +73,6 @@ router.post("/", async(req, res, next) => {
             res.status(500).send(error);
         })
     }).catch(error => {
-        console.log(error);
         res.status(500).send(error);
     })
 })
@@ -76,11 +87,12 @@ router.delete("/:itemReference", async(req, res, next) => {
         select: {
             reference: true,
             id: true,
-            bill: true
+            bill: true,
+            good_receipt: true
         }
     });
 
-    if(item != null && item.bill.length == 0){
+    if(item != null && item.bill.length == 0 && item.good_receipt.length == 0){
         prisma.item.update({
             where:{
                 id: item.id
@@ -147,51 +159,66 @@ router.put("/", async(req, res, next) => {
     })
 });
 
-router.get("/autocomplete", (req, res, next) => {
-    
-})
-
 router.get("/:reference", (req, res, next) => {
     const reference = req.params.reference;
     const date = new Date();
     date.setDate(date.getDate() + 1);
     date.setHours(0, 0, 0);
 
-    prisma.item.findFirst({
-        where:{
-            reference: reference,
-            is_delete: false
-        },
-        select: {
-            id: true,
-            reference: true,
-            description: true,
-            item_brand: {
-                select: {
-                    name: true
-                }
+    prisma.$transaction([
+        prisma.item.findFirst({
+            where:{
+                reference: reference,
+                is_delete: false
             },
-            minimum_stock: true,
-            item_price: {
-                select: {
-                    price: true,
-                    discount: true,
-                    discount_project: true
-                },
-                orderBy: {
-                    effective_date: "desc"
-                },
-                where: {
-                    effective_date: {
-                        lt: date
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true
                     }
                 },
-                take: 1,
-                skip: 0
+                minimum_stock: true,
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true
+                    },
+                    orderBy: {
+                        effective_date: "desc"
+                    },
+                    where: {
+                        effective_date: {
+                            lt: date
+                        }
+                    },
+                    take: 1,
+                    skip: 0
+                },
             }
-        }
-    }).then(result => {
-        res.status(200).send(result);
+        }),
+        prisma.good_receipt.count({
+            where:{
+                item: {
+                    reference: reference
+                }
+            }
+        }),
+        prisma.bill.count({
+            where:{
+                item: {
+                    reference: reference
+                }
+            }
+        })
+    ]).then(result => {
+        res.status(200).send({
+            ...result[0],
+            can_delete: (result[1] + result[2] == 0) ? true : false
+        });
     }).catch(error => {
         res.status(500).send(error);
     })
@@ -215,6 +242,7 @@ router.get("/", (req, res, next) => {
                 skip: offset,
                 take: limit,
                 select: {
+                    id: true,
                     reference: true,
                     description: true,
                     created_at: true,
