@@ -51,7 +51,8 @@ router.post("/", async(req, res, next) => {
                     price: req.body.price,
                     discount: req.body.discount,
                     discount_project: req.body.discount_project,
-                    effective_date: new Date()
+                    effective_date: new Date(),
+                    created_by: req.body.userId
                 }
             }),
             prisma.item_price_purchase.create({

@@ -269,17 +269,19 @@ model user_department {
 }
 
 model item_price {
-  id               Int      @id @default(autoincrement())
+  id               Int       @id @default(autoincrement())
   item_id          Int
-  price            Decimal  @db.Decimal(50, 4)
-  discount         Decimal  @db.Decimal(50, 4)
-  discount_project Decimal  @db.Decimal(50, 4)
-  is_delete        Boolean  @default(false)
-  effective_date   DateTime @db.Date
+  price            Decimal   @db.Decimal(50, 4)
+  discount         Decimal   @db.Decimal(50, 4)
+  discount_project Decimal   @db.Decimal(50, 4)
+  effective_date   DateTime  @db.Date
   created_by       Int
-  created_at       DateTime @default(now()) @db.DateTime(0)
-  user             user     @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_2")
-  item             item     @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
+  created_at       DateTime  @default(now()) @db.DateTime(0)
+  is_delete        Boolean   @default(false)
+  deleted_by       Int?
+  deleted_at       DateTime? @db.DateTime(0)
+  user             user      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_2")
+  item             item      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
 
   @@index([item_id], map: "item_price_ibfk_1_idx")
   @@index([created_by], map: "item_price_ibfk_2_idx")

@@ -22,6 +22,39 @@ router.get("/autocomplete", (req, res, next) => {
     })
 })
 
+router.get("/:id", async(req, res, next) => {
+    const id = parseInt(req.params.id);
+    const count = await prisma.item.count({
+        where:{
+            item_brand_id: id,
+            is_delete: false
+        }
+    });
+
+    prisma.item_brand.findUnique({
+        where:{
+            id: id
+        },
+        select: {
+            id: true,
+            name: true,
+            user: {
+                select: {
+                    name: true
+                }
+            },
+            created_at: true
+        }
+    }).then(result => {
+        res.status(200).send({
+            ...result,
+            can_delete: (count == 0) ? true : false
+        });
+    }).catch(error => {
+        res.status(500).send(error);
+    })
+})
+
 router.get("/", (req, res, next) => {
     const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page.toString()));
     const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
@@ -102,6 +135,42 @@ router.get("/", (req, res, next) => {
             res.status(500).send(error);
         })
     }
+})
+
+router.put("/", (req, res, next) => {
+    const id = req.body.id;
+    prisma.$transaction([
+        prisma.item.count({
+            where:{
+                item_brand_id: id,
+                is_delete: false
+            }
+        }),
+        prisma.item_brand.findUnique({
+            where:{
+                id: id
+            }
+        })
+    ]).then(result => {
+        if(result[0] == 0 && result[1]?.is_delete == false){
+            prisma.item_brand.update({
+                where:{
+                    id: id
+                },
+                data: {
+                    name: req.body.name
+                }
+            }).then(result => {
+                res.status(201).send(result);
+            }).catch(error => {
+                res.status(500).send(error);
+            })
+        } else if(result[0] == 0) {
+            res.status(500).send("Terdapat data barang yang menggunakan merek ini.");
+        } else {
+            res.status(404).send("Data tidak ditemukan.");
+        }
+    })
 })
 
 router.post("/", async(req, res, next) => {

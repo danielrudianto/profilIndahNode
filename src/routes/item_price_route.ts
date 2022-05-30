@@ -96,7 +96,9 @@ router.get("/", (req, res, next) => {
                 },
                 orderBy: {
                     reference: "asc"
-                }
+                },
+                take: limit,
+                skip: offset
             }),
             prisma.item.count({
                 where:{
@@ -159,7 +161,9 @@ router.get("/", (req, res, next) => {
                 },
                 orderBy: {
                     reference: "asc"
-                }
+                },
+                take: limit,
+                skip: offset
             }),
             prisma.item.count({
                 where:{
@@ -187,6 +191,41 @@ router.get("/", (req, res, next) => {
             res.status(500).send(error);
         })
     }
+})
+
+router.post("/", (req, res, next) => {
+    const item_id = req.body.item_id;
+    const discount = req.body.discount;
+    const discount_project = req.body.discount_project;
+    const price = req.body.price;
+
+    prisma.$transaction([
+        prisma.item_price.updateMany({
+            where:{
+                item_id: item_id
+            },
+            data: {
+                is_delete: true,
+                deleted_by: req.body.userId,
+                deleted_at: new Date()
+            }
+        }),
+        prisma.item_price.create({
+            data: {
+                item_id: item_id,
+                price: price,
+                discount: discount,
+                discount_project: discount_project,
+                effective_date: new Date(),
+                created_at: new Date(),
+                created_by: req.body.userId
+            }
+        })
+    ]).then(result => {
+        res.status(200).send(result[1])
+    }).catch(error => {
+        res.status(500).send(error);
+    })
 })
 
 export default router;
