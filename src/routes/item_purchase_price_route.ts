@@ -4,61 +4,14 @@ import { Router } from 'express';
 const prisma = new PrismaClient();
 const router = Router();
 
-router.get("/bulk", (req, res, next) => {
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    date.setHours(0, 0, 0);
-
-    prisma.item.findMany({
-        where:{
-            is_delete: false   
-        },
-        select: {
-            reference: true,
-            description: true,
-            item_brand: {
-                select: {
-                    name: true
-                }
-            },
-            item_price: {
-                select: {
-                    price: true,
-                    discount: true,
-                    discount_project: true
-                },
-                where:{
-                    is_delete: false,
-                    effective_date: {
-                        lt: date
-                    }
-                },
-                orderBy: {
-                    effective_date: "desc"
-                },
-                take: 1,
-                skip: 0
-            }
-        },
-        orderBy: {
-            reference: "asc"
-        }
-    }).then(result => {
-        res.status(200).send(result);
-    }).catch(error => {
-        res.status(500).send(error);
-    })
-})
-
 router.get("/", (req, res, next) => {
-    const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
-    const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page.toString()));
-    const limit = parseInt(process.env.LIMIT!);
+    const page = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = 10;
     const offset = (page - 1) * limit;
-
+    const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
     const date = new Date();
-    date.setDate((new Date()).getDate() + 1);
     date.setHours(0, 0, 0);
+    date.setDate(date.getDate() + 1);
 
     if(keyword == ""){
         prisma.$transaction([
@@ -67,6 +20,7 @@ router.get("/", (req, res, next) => {
                     is_delete: false
                 },
                 select: {
+                    id: true,
                     reference: true,
                     description: true,
                     item_brand: {
@@ -74,32 +28,29 @@ router.get("/", (req, res, next) => {
                             name: true
                         }
                     },
-                    item_price: {
+                    item_price_purchase: {
                         select: {
                             price: true,
-                            discount: true,
-                            discount_project: true,
-                            created_at: true,
                             effective_date: true
                         },
                         where: {
-                            is_delete: false,
                             effective_date: {
                                 lt: date
-                            }
+                            },
+                            is_delete: false
                         },
                         orderBy: {
                             effective_date: "desc"
                         },
-                        take: limit,
-                        skip: offset
+                        take: 1,
+                        skip: 0
                     }
                 },
                 orderBy: {
                     reference: "asc"
                 },
-                take: limit,
-                skip: offset
+                skip: offset,
+                take: limit
             }),
             prisma.item.count({
                 where:{
@@ -129,10 +80,11 @@ router.get("/", (req, res, next) => {
                             description: {
                                 contains: keyword
                             }
-                        },
+                        }
                     ]
                 },
                 select: {
+                    id: true,
                     reference: true,
                     description: true,
                     item_brand: {
@@ -140,31 +92,29 @@ router.get("/", (req, res, next) => {
                             name: true
                         }
                     },
-                    item_price: {
+                    item_price_purchase: {
                         select: {
                             price: true,
-                            discount: true,
-                            discount_project: true,
-                            created_at: true,
+                            effective_date: true
                         },
                         where: {
-                            is_delete: false,
                             effective_date: {
                                 lt: date
-                            }
+                            },
+                            is_delete: false
                         },
                         orderBy: {
                             effective_date: "desc"
                         },
-                        take: limit,
-                        skip: offset
+                        take: 1,
+                        skip: 0
                     }
                 },
                 orderBy: {
                     reference: "asc"
                 },
-                take: limit,
-                skip: offset
+                skip: offset,
+                take: limit
             }),
             prisma.item.count({
                 where:{
@@ -179,7 +129,7 @@ router.get("/", (req, res, next) => {
                             description: {
                                 contains: keyword
                             }
-                        },
+                        }
                     ]
                 }
             })
@@ -192,41 +142,6 @@ router.get("/", (req, res, next) => {
             res.status(500).send(error);
         })
     }
-})
-
-router.post("/", (req, res, next) => {
-    const item_id = req.body.item_id;
-    const discount = req.body.discount;
-    const discount_project = req.body.discount_project;
-    const price = req.body.price;
-
-    prisma.$transaction([
-        prisma.item_price.updateMany({
-            where:{
-                item_id: item_id
-            },
-            data: {
-                is_delete: true,
-                deleted_by: req.body.userId,
-                deleted_at: new Date()
-            }
-        }),
-        prisma.item_price.create({
-            data: {
-                item_id: item_id,
-                price: price,
-                discount: discount,
-                discount_project: discount_project,
-                effective_date: new Date(),
-                created_at: new Date(),
-                created_by: req.body.userId
-            }
-        })
-    ]).then(result => {
-        res.status(200).send(result[1])
-    }).catch(error => {
-        res.status(500).send(error);
-    })
 })
 
 export default router;

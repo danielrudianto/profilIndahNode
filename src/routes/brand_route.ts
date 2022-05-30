@@ -22,33 +22,35 @@ router.get("/autocomplete", (req, res, next) => {
     })
 })
 
-router.get("/:id", async(req, res, next) => {
+router.get("/:id", (req, res, next) => {
     const id = parseInt(req.params.id);
-    const count = await prisma.item.count({
-        where:{
-            item_brand_id: id,
-            is_delete: false
-        }
-    });
 
-    prisma.item_brand.findUnique({
-        where:{
-            id: id
-        },
-        select: {
-            id: true,
-            name: true,
-            user: {
-                select: {
-                    name: true
-                }
+    prisma.$transaction([
+        prisma.item_brand.findUnique({
+            where:{
+                id: id
             },
-            created_at: true
-        }
-    }).then(result => {
+            select: {
+                id: true,
+                name: true,
+                user: {
+                    select: {
+                        name: true
+                    }
+                },
+                created_at: true
+            }
+        }),
+        prisma.item.count({
+            where:{
+                item_brand_id: id,
+                is_delete: false
+            }
+        })
+    ]).then(result => {
         res.status(200).send({
             ...result,
-            can_delete: (count == 0) ? true : false
+            can_delete: (result[1] == 0) ? true : false
         });
     }).catch(error => {
         res.status(500).send(error);
@@ -183,7 +185,7 @@ router.post("/", async(req, res, next) => {
     });
 
     if(count > 0){
-        res.status(500).send("Please insert unique name");
+        res.status(500).send("Mohon input nama unik.");
         return;
     } else {
         prisma.item_brand.create({
@@ -198,6 +200,52 @@ router.post("/", async(req, res, next) => {
             res.status(500).send(error);
         })
     }
+})
+
+router.delete("/:id", async(req, res, next) => {
+    const id = parseInt(req.params.id);
+
+    prisma.$transaction([
+        prisma.item.count({
+            where:{
+                item_brand_id: id,
+                is_delete: false
+            }
+        }),
+        prisma.item_brand.findUnique({
+            where:{
+                id: id
+            }
+        })
+    ]).then(result => {
+        if(result[0] > 0){
+            return res.status(500).send("Masih terdapat barang yang menggunakan merek ini. Tidak dapat menghapus merek.")
+        }
+
+        if(result[1]?.is_delete){
+            return res.status(404).send("Merek sudah dihapus sebelumnya.");
+        }
+
+        prisma.item_brand.update({
+            where:{
+                id: id
+            },
+            data: {
+                is_delete: true,
+                deleted_by: req.body.userId
+            },
+            select: {
+                id: true,
+                name: true
+            }
+        }).then(result => {
+            return res.status(201).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    }).catch(error => {
+        return res.status(500).send(error);
+    });    
 })
 
 export default router;
