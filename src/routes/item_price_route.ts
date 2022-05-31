@@ -194,6 +194,43 @@ router.get("/", (req, res, next) => {
     }
 })
 
+router.post("/bulk", (req, res, next) => {
+    const effective_date = new Date(req.body.effective_date);
+    const items = req.body.items as any[];
+    const references: string[] = [];
+    let count: number = 0;
+    const price_object: any[] = [];
+
+    items.forEach(x => {
+        const reference = x.reference;
+        const price = x.price;
+        const discount = x.discount;
+        const discount_project = x.discount_project;
+
+        references.push(reference);
+        price_object[count] = {
+            price: parseFloat(price),
+            discount: parseFloat(discount),
+            discount_project: parseFloat(discount_project)
+        }
+        count++
+    });
+
+    prisma.item.count({
+        where:{
+            reference: {
+                in: references
+            }
+        }
+    }).then(_count => {
+        if(_count != count){
+            res.status(500).send("")
+        }
+    })
+
+    res.status(201).send();
+})
+
 router.post("/", (req, res, next) => {
     const item_id = req.body.item_id;
     const discount = req.body.discount;
