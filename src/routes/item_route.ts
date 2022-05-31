@@ -59,7 +59,6 @@ router.post("/", async(req, res, next) => {
                 data: {
                     item_id: result.id,
                     price: req.body.purchase_price,
-                    effective_date: new Date(),
                     created_by: req.body.userId
                 }
             })

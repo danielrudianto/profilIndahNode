@@ -216,19 +216,64 @@ router.post("/bulk", (req, res, next) => {
         count++
     });
 
-    prisma.item.count({
+    prisma.item.findMany({
         where:{
             reference: {
                 in: references
-            }
+            },
+            is_delete: false
+        },
+        select: {
+            id: true,
+            reference: true
         }
-    }).then(_count => {
-        if(_count != count){
-            res.status(500).send("")
-        }
-    })
+    }).then(items => {
+        if(items.length != count){
+            res.status(500).send(`${(items.length - count)} barang tidak terdefinisi. Mohon cek kembali input anda`)
+        } else {
+            const transactions: any[] = [];
+            references.forEach((reference, index) => {
+                transactions.push(
+                    prisma.item_price.create({
+                        data: {
+                            item_id: items.filter(x => x.reference == reference)[0].id,
+                            price: price_object[index].price,
+                            discount: price_object[index].discount,
+                            discount_project: price_object[index].discount_project,
+                            created_by: req.body.userId,
+                            effective_date: effective_date
+                        }
+                    })
+                );
 
-    res.status(201).send();
+                transactions.push(
+                    prisma.item_price.updateMany({
+                        where:{
+                            item_id: items.filter(x => x.reference == reference)[0].id,
+                            NOT: {
+                                effective_date: {
+                                    gte: effective_date
+                                },
+                            },
+                            is_delete: false
+                        },
+                        data: {
+                            is_delete: true,
+                            deleted_by: req.body.userId
+                        }
+                    })
+                );
+            })
+
+            prisma.$transaction(transactions).then(result => {
+                res.status(201).send(result);
+            }).catch(error => {
+                res.status(500).send(error);
+            })
+        }
+    }).catch(error => {
+        res.status(500).send(error);
+    })
 })
 
 router.post("/", (req, res, next) => {

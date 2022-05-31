@@ -297,7 +297,6 @@ model item_price_purchase {
   id                                        Int       @id @default(autoincrement())
   item_id                                   Int
   price                                     Decimal   @db.Decimal(50, 4)
-  effective_date                            DateTime  @db.Date
   created_by                                Int
   created_at                                DateTime  @default(now()) @db.DateTime(0)
   is_delete                                 Boolean   @default(false)

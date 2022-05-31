@@ -20,6 +20,7 @@ router.post("/", (req, res, next) => {
         }
     }).then(result => {
         const good_receipt_items: any[] = [];
+        const transactions: any[] = [];
         good_receipt.forEach(x => {
             good_receipt_items.push({
                 item_id: x.item_id,
@@ -27,6 +28,35 @@ router.post("/", (req, res, next) => {
                 quantity: x.quantity,
                 good_receipt_code_id: result.id,
             })
+
+            transactions.push(prisma.item.findUnique({
+                where:{
+                    id: x.item_id
+                },
+                select: {
+                    item_price_purchase: {
+                        select: {
+                            price: true
+                        },
+                        where: {
+                            is_delete: false
+                        },
+                        orderBy: {
+                            id: "desc"
+                        },
+                        take: 1,
+                        skip: 0
+                    },
+                    id: true
+                }
+            }))
+        });
+
+        prisma.$transaction(transactions).then(rs => {
+            rs.forEach((r, index) => {
+                const price = (r.item_price_purchase.length == 0) ? 0 : parseFloat(r.item_price_purchase[0].price);
+                good_receipt_items[index].price = price;
+            });
         });
 
         prisma.$transaction([
@@ -49,11 +79,9 @@ router.post("/", (req, res, next) => {
                 good_receipt: good_receipt_items
             })
         }).catch(error => {
-            console.log(error);
             res.status(500).send(error);
         })
     }).catch(error => {
-        console.log(error);
         res.status(500).send(error);
     })
 })
@@ -83,7 +111,9 @@ router.get("/archives/:year", (req, res, next) => {
 })
 
 router.get("/archives/:year/:month", (req, res, next) => {
-
+    const page = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = parseInt(process.env.LIMIT!.toString());
+    const offset = (page - 1) * limit;
 })
 
 export default router;
