@@ -345,20 +345,20 @@ model supplier {
 }
 
 model purchase_invoice {
-  id                                       Int                @id @default(autoincrement())
-  name                                     String?            @db.VarChar(45)
-  date                                     DateTime?          @db.Date
-  discount                                 Decimal?           @default(0.0000) @db.Decimal(50, 4)
-  good_receipt_code_id                     Int?
+  id                                       Int               @id @default(autoincrement())
+  name                                     String?           @db.VarChar(45)
+  date                                     DateTime?         @db.Date
+  discount                                 Decimal?          @default(0.0000) @db.Decimal(50, 4)
+  good_receipt_code_id                     Int
   created_by                               Int
-  created_at                               DateTime           @default(now()) @db.DateTime(0)
-  is_delete                                Boolean            @default(false)
-  is_confirm                               Boolean            @default(false)
+  created_at                               DateTime          @default(now()) @db.DateTime(0)
+  is_delete                                Boolean           @default(false)
+  is_confirm                               Boolean           @default(false)
   confirmed_by                             Int?
-  confirmed_at                             DateTime?          @db.DateTime(0)
-  user_purchase_invoice_confirmed_byTouser user?              @relation("purchase_invoice_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_3")
-  user_purchase_invoice_created_byTouser   user               @relation("purchase_invoice_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_1")
-  good_receipt_code                        good_receipt_code? @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_2")
+  confirmed_at                             DateTime?         @db.DateTime(0)
+  user_purchase_invoice_confirmed_byTouser user?             @relation("purchase_invoice_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_3")
+  user_purchase_invoice_created_byTouser   user              @relation("purchase_invoice_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_1")
+  good_receipt_code                        good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "purchase_invoice_ibfk_2")
 
   @@index([created_by], map: "purchase_invoice_ibfk_1_idx")
   @@index([good_receipt_code_id], map: "purchase_invoice_ibfk_2_idx")
