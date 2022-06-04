@@ -60,7 +60,7 @@ router.post("/login",
                     return res.status(401).send("Incorrect password or username");
                 }
 
-                const expired = Math.floor(Date.now() / 1000 + (60 * 60 * 6))
+                const expired = (new Date()).getTime() + (60 * 60 * 6 * 1000)
                 const jwtToken = sign({
                     exp: expired,
                     id: user.id,
