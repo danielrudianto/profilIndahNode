@@ -48,7 +48,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     });
 }
 
-export const SupervisorAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const AdministratorAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const userId = req.body.userId;
     prisma.user_position.findFirst({
         where:{
