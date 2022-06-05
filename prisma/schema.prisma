@@ -211,6 +211,7 @@ model user {
   created_by                                               Int?
   created_at                                               DateTime              @default(now()) @db.DateTime(0)
   is_active                                                Boolean               @default(true)
+  is_admin                                                 Boolean?              @default(false)
   user                                                     user?                 @relation("userTouser_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
   bill_code_confirmed_byTouser                             bill_code[]           @relation("bill_code_confirmed_byTouser")
   bill_code_created_byTouser                               bill_code[]           @relation("bill_code_created_byTouser")
