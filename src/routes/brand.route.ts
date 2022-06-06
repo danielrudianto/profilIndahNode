@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Router } from 'express';
+import { io } from '../middleware/socket.helper';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -49,7 +50,7 @@ router.get("/:id", (req, res, next) => {
         })
     ]).then(result => {
         res.status(200).send({
-            ...result,
+            ...result[0],
             can_delete: (result[1] == 0) ? true : false
         });
     }).catch(error => {
@@ -163,14 +164,15 @@ router.put("/", (req, res, next) => {
                     name: req.body.name
                 }
             }).then(result => {
-                res.status(201).send(result);
+                io.emit("updateBrand", result);
+                return res.status(201).send(result);
             }).catch(error => {
                 res.status(500).send(error);
             })
         } else if(result[0] == 0) {
-            res.status(500).send("Terdapat data barang yang menggunakan merek ini.");
+            return res.status(500).send("Terdapat data barang yang menggunakan merek ini.");
         } else {
-            res.status(404).send("Data tidak ditemukan.");
+            return res.status(404).send("Data tidak ditemukan.");
         }
     })
 })

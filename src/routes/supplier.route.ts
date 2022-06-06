@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
-import { purchaseOrderNameHelper } from "../middleware/name_helper";
 
 const prisma = new PrismaClient()
 const router = Router();

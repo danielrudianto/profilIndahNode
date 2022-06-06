@@ -1,16 +1,18 @@
 import express from 'express';
 import cors from 'cors';
 
-import { authMiddleware } from './middleware/auth_helper';
+import { authMiddleware } from './middleware/auth.helper';
 
-import authRoutes from './routes/auth_route';
-import itemRoutes from './routes/item_route';
-import itemPriceRoutes from './routes/item_price_route';
-import itemPurchaseRoutes from './routes/item_purchase_price_route';
-import brandRoutes from './routes/brand_route';
-import supplierRoutes from './routes/supplier_route';
-import companyRoutes from './routes/company_route';
-import goodReceiptRoutes from './routes/good_receipt_route';
+import authRoutes from './routes/auth.route';
+import itemRoutes from './routes/item.route';
+import itemPriceRoutes from './routes/item_price.route';
+import itemPurchaseRoutes from './routes/item_purchase_price.route';
+import brandRoutes from './routes/brand.route';
+import supplierRoutes from './routes/supplier.route';
+import companyRoutes from './routes/company.route';
+import goodReceiptRoutes from './routes/good_receipt.route';
+import purchaseDocumentRoutes from './routes/purchase_document.route';
+import { server } from './middleware/socket.helper';
 
 
 const allowedOrigins = ['http://localhost:4200', 'https://app.profilindah.id'];
@@ -30,8 +32,14 @@ app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
 app.use("/brand", authMiddleware, brandRoutes);
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/company", authMiddleware, companyRoutes);
+
 app.use("/good_receipt", authMiddleware, goodReceiptRoutes);
+app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
 
 app.listen(5000, () => {
     console.log("Application running on port 5000");
 });
+
+server.listen(5274, () => {});
+
+export default app;

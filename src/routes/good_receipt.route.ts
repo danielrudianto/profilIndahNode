@@ -23,69 +23,66 @@ router.post("/", (req, res, next) => {
         }
     }).then(result => {
         const good_receipt_items: any[] = [];
+        const prices: number[] = [];
         const transactions: any[] = [];
         good_receipt.forEach(x => {
-            good_receipt_items.push({
-                item_id: x.item_id,
-                price: 0,
-                quantity: x.quantity,
-                good_receipt_code_id: result.id,
-            })
-
-            transactions.push(prisma.item.findUnique({
-                where:{
-                    id: x.item_id
+            transactions.push(prisma.item_price_purchase.findFirst({
+                where: {
+                    is_delete: false,
+                    item_id: x.item_id
+                },
+                orderBy: {
+                    id: "desc"
                 },
                 select: {
-                    item_price_purchase: {
-                        select: {
-                            price: true
-                        },
-                        where: {
-                            is_delete: false
-                        },
-                        orderBy: {
-                            id: "desc"
-                        },
-                        take: 1,
-                        skip: 0
-                    },
-                    id: true
+                    price: true
                 }
             }))
         });
 
         prisma.$transaction(transactions).then(rs => {
             rs.forEach((r, index) => {
-                const price = (r.item_price_purchase.length == 0) ? 0 : parseFloat(r.item_price_purchase[0].price);
-                good_receipt_items[index].price = price;
+                const price = (r == null) ? "0" : r.price;
+                prices[index] = price;
             });
-        });
 
-        prisma.$transaction([
-            prisma.good_receipt.createMany({
-                data: good_receipt_items
-            }),
-            prisma.purchase_invoice.create({
-                data: {
-                    name: req.body.purchase_invoice.name,
-                    date: date,
-                    created_at: new Date(),
-                    created_by: req.body.userId,
-                    discount: req.body.discount,
-                    good_receipt_code_id: result.id
-                }
-            })
-        ]).then(good_receipt_items => {
-            res.status(201).send({
-                ...result,
-                good_receipt: good_receipt_items
+            good_receipt.forEach((y, index) => {
+                good_receipt_items.push({
+                    item_id: y.item_id,
+                    quantity: y.quantity,
+                    good_receipt_code_id: result.id,
+                    price: prices[index]
+                })
+            });
+    
+            prisma.$transaction([
+                prisma.good_receipt.createMany({
+                    data: good_receipt_items
+                }),
+                prisma.purchase_invoice.create({
+                    data: {
+                        name: req.body.purchase_invoice.name,
+                        date: date,
+                        created_at: new Date(),
+                        created_by: req.body.userId,
+                        discount: req.body.discount,
+                        good_receipt_code_id: result.id
+                    }
+                })
+            ]).then(good_receipt_items => {
+                return res.status(201).send({
+                    ...result,
+                    good_receipt: good_receipt_items
+                })
+            }).catch(error => {
+                return res.status(500).send(error);
             })
         }).catch(error => {
-            res.status(500).send(error);
+            return res.status(500).send(error);
         })
     }).catch(error => {
-        res.status(500).send(error);
+        console.log(error);
+        return res.status(500).send(error);
     })
 })
 
