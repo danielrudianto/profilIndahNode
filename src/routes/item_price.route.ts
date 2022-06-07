@@ -58,8 +58,7 @@ router.get("/", (req, res, next) => {
 
     const date = new Date();
     date.setDate((new Date()).getDate() + 1);
-    date.setHours(0, 0, 0, 0);
-    console.log(date);
+    date.setHours(0, 0, 0, 0);;
 
     if(keyword == ""){
         prisma.$transaction([

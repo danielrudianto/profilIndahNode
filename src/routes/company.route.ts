@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
+import { io } from "../middleware/socket.helper";
 
 const prisma = new PrismaClient()
 const router = Router();
@@ -193,6 +194,44 @@ router.get("/", (req, res, next) => {
             res.status(500).send(error);
         })
     }
+})
+
+router.delete("/:companyId", async(req, res, next) => {
+    const id = parseInt(req.params.companyId);
+    const company = await prisma.company.findUnique({
+        where:{
+            id: id
+        }
+    });
+
+    if(company == null || company?.is_delete){
+        return res.status(404).send("Perusahaan tidak ditemukan atau sudah dihapus.")
+    }
+
+    prisma.company.update({
+        where:{
+            id: id
+        },
+        data: {
+            is_delete: true,
+            deleted_by: req.body.userId
+        }
+    }).then(async(result) => {
+        const count = await prisma.company.count({
+            where:{
+                is_delete: false
+            }
+        });
+
+        io.emit("deleteCompany", {
+            id: result.id,
+            count: count
+        });
+
+        res.status(201).send(result);
+    }).catch(error => {
+        res.status(500).send(error);
+    })
 })
 
 export default router;

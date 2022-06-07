@@ -143,7 +143,17 @@ router.delete("/:itemReference", async(req, res, next) => {
                 is_delete: true,
                 deleted_by: req.body.userId
             }
-        }).then(result => {
+        }).then(async(result) => {
+            const count = await prisma.item.count({
+                where: {
+                    is_delete: false
+                }
+            });
+
+            io.emit("deleteItem", {
+                id: item.id,
+                count: count
+            });
             res.status(201).send(result);
         }).catch(error => {
             res.status(500).send(error);
@@ -196,7 +206,6 @@ router.put("/", async(req, res, next) => {
     }).then(result => {
         res.status(201).send(result);
     }).catch(error => {
-        console.log(error);
         res.status(500).send(error);
     })
 });

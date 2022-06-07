@@ -266,7 +266,7 @@ router.delete("/:id", async(req, res, next) => {
                 }
             });
             io.emit("deleteBrand", {
-                data: result,
+                id: result.id,
                 count: count
             });
             return res.status(201).send(result);

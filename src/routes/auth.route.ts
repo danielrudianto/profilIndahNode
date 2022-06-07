@@ -62,9 +62,10 @@ router.post("/login",
 
                 const expired = (new Date()).getTime() + (60 * 60 * 6 * 1000)
                 const jwtToken = sign({
-                    exp: expired,
                     id: user.id,
-                }, process.env.TOKEN_KEY!.toString());
+                }, process.env.TOKEN_KEY!.toString(), {
+                    expiresIn:'6h'
+                });
 
                 const userObject = {
                     name: user.name,
@@ -75,7 +76,6 @@ router.post("/login",
                 const response = {
                     user: userObject,
                     token: jwtToken,
-                    expire: expired
                 }
 
                 return res.status(200).send(response);
