@@ -142,26 +142,28 @@ router.get("/", (req, res, next) => {
 
 router.put("/", (req, res, next) => {
     const id = req.body.id;
-    prisma.$transaction([
-        prisma.item.count({
-            where:{
-                item_brand_id: id,
-                is_delete: false
-            }
-        }),
-        prisma.item_brand.findUnique({
-            where:{
-                id: id
-            }
-        })
-    ]).then(result => {
-        if(result[0] == 0 && result[1]?.is_delete == false){
+    prisma.item_brand.findUnique({
+        where:{
+            id: id
+        }
+    }).then(result => {
+        if(result?.is_delete == false){
             prisma.item_brand.update({
                 where:{
                     id: id
                 },
                 data: {
                     name: req.body.name
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    created_at: true,
+                    user: {
+                        select: {
+                            name: true
+                        }
+                    }
                 }
             }).then(result => {
                 io.emit("updateBrand", result);
@@ -169,8 +171,6 @@ router.put("/", (req, res, next) => {
             }).catch(error => {
                 res.status(500).send(error);
             })
-        } else if(result[0] == 0) {
-            return res.status(500).send("Terdapat data barang yang menggunakan merek ini.");
         } else {
             return res.status(404).send("Data tidak ditemukan.");
         }
@@ -194,8 +194,27 @@ router.post("/", async(req, res, next) => {
             data: {
                 name: name,
                 created_by: req.body.userId
+            },
+            select: {
+                id: true,
+                name: true,
+                created_at: true,
+                user: {
+                    select: {
+                        name: true
+                    }
+                }
             }
-        }).then(result => {
+        }).then(async(result) => {
+            const count = await prisma.item_brand.count({
+                where:{
+                    is_delete: false
+                }
+            })
+            io.emit("createBrand", {
+                data: result,
+                count: count
+            });
             res.status(201).send(result);
         }).catch(error => {
             console.log(error);
@@ -240,7 +259,16 @@ router.delete("/:id", async(req, res, next) => {
                 id: true,
                 name: true
             }
-        }).then(result => {
+        }).then(async(result) => {
+            const count = await prisma.item_brand.count({
+                where:{
+                    is_delete: false
+                }
+            });
+            io.emit("deleteBrand", {
+                data: result,
+                count: count
+            });
             return res.status(201).send(result);
         }).catch(error => {
             return res.status(500).send(error);

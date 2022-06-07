@@ -58,7 +58,8 @@ router.get("/", (req, res, next) => {
 
     const date = new Date();
     date.setDate((new Date()).getDate() + 1);
-    date.setHours(0, 0, 0);
+    date.setHours(0, 0, 0, 0);
+    console.log(date);
 
     if(keyword == ""){
         prisma.$transaction([
@@ -85,14 +86,14 @@ router.get("/", (req, res, next) => {
                         where: {
                             is_delete: false,
                             effective_date: {
-                                lt: date
+                                lte: date
                             }
                         },
                         orderBy: {
                             effective_date: "desc"
                         },
-                        take: limit,
-                        skip: offset
+                        take: 1,
+                        skip: 0
                     }
                 },
                 orderBy: {
@@ -150,14 +151,14 @@ router.get("/", (req, res, next) => {
                         where: {
                             is_delete: false,
                             effective_date: {
-                                lt: date
+                                lte: date
                             }
                         },
                         orderBy: {
                             effective_date: "desc"
                         },
-                        take: limit,
-                        skip: offset
+                        take: 1,
+                        skip: 0
                     }
                 },
                 orderBy: {

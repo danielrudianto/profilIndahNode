@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import { item } from "../interface/item";
+import { io } from "../middleware/socket.helper";
 
 const prisma = new PrismaClient()
 const router = Router();
@@ -42,7 +43,23 @@ router.post("/", async(req, res, next) => {
     }
     
     prisma.item.create({
-        data: item as any
+        data: item as any,
+        select: {
+            id: true,
+            reference: true,
+            description: true,
+            created_at: true,
+            user: {
+                select: {
+                    name: true
+                }
+            },
+            item_brand:{
+                select: {
+                    name: true
+                }
+            }
+        }
     }).then(async(result) => {
         prisma.$transaction([
             prisma.item_price.create({
@@ -53,6 +70,17 @@ router.post("/", async(req, res, next) => {
                     discount_project: req.body.discount_project,
                     effective_date: new Date(),
                     created_by: req.body.userId
+                },
+                select: {
+                    price: true,
+                    discount: true,
+                    discount_project: true,
+                    is_delete: true,
+                    user: {
+                        select: {
+                            name: true
+                        }
+                    }
                 }
             }),
             prisma.item_price_purchase.create({
@@ -60,14 +88,28 @@ router.post("/", async(req, res, next) => {
                     item_id: result.id,
                     price: req.body.purchase_price,
                     created_by: req.body.userId
+                },
+                select: {
+                    price: true,
+                    is_delete: true,
+                    user: {
+                        select: {
+                            name: true
+                        }
+                    }
                 }
             })
         ])
         .then(item_price_result => {
             const item_object = {
-                ...item,
-                item_price: item_price_result
+                ...result,
+                item_price: [item_price_result[0]],
+                item_price_purchase: [item_price_result[1]]
             }
+
+            io.emit("createItem", {
+                data: item_object
+            })
             res.status(201).send(item_object);
         }).catch(error => {
             res.status(500).send(error);
