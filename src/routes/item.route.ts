@@ -98,6 +98,11 @@ router.post("/", async(req, res, next) => {
                         }
                     }
                 }
+            }),
+            prisma.item.count({
+                where:{
+                    is_delete: false
+                }
             })
         ])
         .then(item_price_result => {
@@ -108,7 +113,8 @@ router.post("/", async(req, res, next) => {
             }
 
             io.emit("createItem", {
-                data: item_object
+                data: item_object,
+                count: item_price_result[2]
             })
             res.status(201).send(item_object);
         }).catch(error => {
@@ -152,6 +158,7 @@ router.delete("/:itemReference", async(req, res, next) => {
 
             io.emit("deleteItem", {
                 id: item.id,
+                reference: item.reference,
                 count: count
             });
             res.status(201).send(result);

@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Router } from 'express';
+import { io } from '../middleware/socket.helper';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -282,10 +283,17 @@ router.post("/", (req, res, next) => {
     const discount_project = req.body.discount_project;
     const price = req.body.price;
 
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    date.setHours(0, 0, 0, 0);
+
     prisma.$transaction([
         prisma.item_price.updateMany({
             where:{
-                item_id: item_id
+                item_id: item_id,
+                effective_date: {
+                    lte: date
+                }
             },
             data: {
                 is_delete: true,
@@ -299,12 +307,49 @@ router.post("/", (req, res, next) => {
                 price: price,
                 discount: discount,
                 discount_project: discount_project,
-                effective_date: new Date(),
+                effective_date: new Date(req.body.effective_date),
                 created_at: new Date(),
                 created_by: req.body.userId
-            }
+            },
         })
-    ]).then(result => {
+    ]).then(async(result) => {
+        const item = await prisma.item.findUnique({
+            where:{
+                id: result[1].item_id
+            },
+            select: {
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true
+                    }
+                },
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true,
+                        created_at: true,
+                        effective_date: true
+                    },
+                    where: {
+                        is_delete: false,
+                        effective_date: {
+                            lte: date
+                        }
+                    },
+                    orderBy: {
+                        effective_date: "desc",
+                        id: 'desc'
+                    },
+                    take: 1,
+                    skip: 0
+                }
+            },
+        })
+
+        io.emit("updatePrice", item);
         res.status(200).send(result[1])
     }).catch(error => {
         res.status(500).send(error);

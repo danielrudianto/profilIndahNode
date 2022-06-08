@@ -44,13 +44,24 @@ router.post("/", async (req, res, next) => {
                     }
                 }
             }
-        }).then(result => {
-            res.status(201).send(result);
+        }).then(async(result) => {
+            const count = await prisma.company.count({
+                where:{
+                    is_delete: false
+                }
+            });
+
+            io.emit("createCompany", {
+                data: result,
+                count: count
+            });
+            
+            return res.status(201).send(result);
         }).catch(error => {
-            res.status(500).send(error);
+            return res.status(500).send(error);
         })
     } else {
-        res.status(400).send("Duplicate code name.")
+        return res.status(500).send("Kode perusahaan sudah ada, mohon pastikan kode perusahaan unik.")
     }
     
 });
@@ -98,9 +109,34 @@ router.get("/autocomplete", (req, res, next) => {
     }
 })
 
+router.get("/:id", (req, res, next) => {
+    const id = parseInt(req.params.id);
+    prisma.$transaction([
+        prisma.company.findUnique({
+            where:{
+                id: id
+            }
+        }),
+        prisma.good_receipt_code.count({
+            where:{
+                company_id: id
+            }
+        })
+    ]).then(result => {
+        res.status(200).send({
+            ...result[0],
+            can_delete: result[1] == 0 ? true : false
+        })
+    }).catch(error => {
+        res.status(500).send(error);
+    })
+})
+
 router.get("/", (req, res, next) => {
     const page = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
     const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
     if(keyword == ""){
         prisma.$transaction([
             prisma.company.findMany({
@@ -119,7 +155,9 @@ router.get("/", (req, res, next) => {
                         }
                     },
                     created_at: true,
-                }
+                },
+                take: limit,
+                skip: offset
             }),
             prisma.company.count({
                 where:{
@@ -165,7 +203,9 @@ router.get("/", (req, res, next) => {
                         }
                     },
                     created_at: true,
-                }
+                },
+                take: limit,
+                skip: offset
             }),
             prisma.company.count({
                 where:{
@@ -228,9 +268,65 @@ router.delete("/:companyId", async(req, res, next) => {
             count: count
         });
 
-        res.status(201).send(result);
+        return res.status(201).send(result);
     }).catch(error => {
         res.status(500).send(error);
+    })
+})
+
+router.put("/", async(req, res, next) => {
+    const id = req.body.id;
+    const name = req.body.name;
+    const code_name = req.body.code_name;
+    const address = req.body.address;
+    const npwp = (req.body.npwp == null || req.body.toString().length != 15) ? null : req.body.npwp;
+
+    const companyCount = await prisma.company.count({
+        where:{
+            code_name: code_name,
+            is_delete: false,
+            id: {
+                not: id
+            }
+        }
+    });
+
+    if(companyCount > 0){
+        return res.status(500).send("Kode perusahaan sudah ada, mohon pastikan kode perusahaan unik.")
+    }
+
+    prisma.company.update({
+        where:{
+            id: id
+        },
+        data: {
+            name: name,
+            address: address,
+            code_name: code_name,
+            npwp: npwp,
+        },
+        select: {
+            id: true,
+            name: true,
+            code_name: true,
+            address: true,
+            npwp: true,
+            user: {
+                select: {
+                    name: true
+                }
+            },
+            user_company_deleted_byTouser: {
+                select: {
+                    name: true
+                }
+            }
+        }
+    }).then(result => {
+        io.emit("updateCompany", result);
+        return res.status(201).send(result);
+    }).catch(error => {
+        return res.status(500).send(error);
     })
 })
 

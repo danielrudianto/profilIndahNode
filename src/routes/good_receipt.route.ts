@@ -4,12 +4,30 @@ import { Router } from "express";
 const prisma = new PrismaClient()
 const router = Router();
 
-router.post("/", (req, res, next) => {
+router.post("/", async(req, res, next) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
     const company_id = req.body.company_id;
     const supplier_id = req.body.supplier_id;
     const good_receipt = req.body.good_receipt as any[];
+
+    const validation = await prisma.$transaction([
+        prisma.company.findUnique({
+            where:{
+                id: company_id
+            }
+        }),
+        prisma.supplier.findUnique({
+            where:{
+                id: supplier_id
+            }
+        })
+    ]);
+
+    if(validation[0] == null || validation[0].is_delete || validation[1] == null || validation[1] == null){
+        return res.status(500).send("Perusahaan atau supplier tidak ditemukan.");
+    }
+    
     prisma.good_receipt_code.create({
         data: {
             name: name,
