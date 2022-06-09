@@ -288,6 +288,10 @@ router.get("/", (req, res, next) => {
     const offset = (page - 1) * limit;
     const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
 
+    const date = new Date();
+    date.setDate((new Date()).getDate() + 1);
+    date.setHours(0, 0, 0, 0);
+
     if(keyword == ""){
         prisma.$transaction([
             prisma.item.findMany({
@@ -312,6 +316,28 @@ router.get("/", (req, res, next) => {
                     item_brand:{
                         select: {
                             name: true
+                        }
+                    },
+                    item_price_purchase: {
+                        select: {
+                            price: true
+                        },
+                        orderBy: {
+                            id: "desc"
+                        },
+                        take: 1,
+                        skip: 0
+                    },
+                    item_price: {
+                        select: {
+                            price: true,
+                            discount: true,
+                            discount_project: true
+                        },
+                        where:{
+                            effective_date: {
+                                lte: date
+                            }
                         }
                     }
                 }

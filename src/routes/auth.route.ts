@@ -76,6 +76,7 @@ router.post("/login",
                 const response = {
                     user: userObject,
                     token: jwtToken,
+                    expire: expired
                 }
 
                 return res.status(200).send(response);

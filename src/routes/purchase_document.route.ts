@@ -29,6 +29,7 @@ router.get("/:id", (req, res, next) => {
             is_delete: true,
             company: {
                 select: {
+                    id: true,
                     name: true,
                     address: true,
                     npwp: true
@@ -36,6 +37,7 @@ router.get("/:id", (req, res, next) => {
             },
             supplier: {
                 select: {
+                    id: true,
                     name: true,
                     address: true,
                     npwp: true
@@ -43,8 +45,10 @@ router.get("/:id", (req, res, next) => {
             },
             good_receipt: {
                 select: {
+                    id: true,
                     item: {
                         select: {
+                            id: true,
                             reference: true,
                             description: true
                         }
