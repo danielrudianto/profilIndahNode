@@ -12,6 +12,8 @@ import supplierRoutes from './routes/supplier.route';
 import companyRoutes from './routes/company.route';
 import goodReceiptRoutes from './routes/good_receipt.route';
 import purchaseDocumentRoutes from './routes/purchase_document.route';
+import userRoutes from './routes/user.route';
+
 import { server } from './middleware/socket.helper';
 
 
@@ -35,6 +37,8 @@ app.use("/company", authMiddleware, companyRoutes);
 
 app.use("/good_receipt", authMiddleware, goodReceiptRoutes);
 app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
+
+app.use("/user", authMiddleware, userRoutes);
 
 app.listen(5000, () => {
     console.log("Application running on port 5000");

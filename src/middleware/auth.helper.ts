@@ -48,25 +48,50 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     });
 }
 
-export const AdministratorAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const userId = req.body.userId;
-    prisma.user_position.findFirst({
-        where:{
-            user_id: userId,
-            user_userTouser_position_user_id:{
-                is_active: true
-            }
-        },
-        orderBy: {
-            id: "desc"
-        },
-    }).then(result => {
-        if(result == null || result.position! < 2){
-            res.status(405).send("Not allowed")
+export const administratorAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    let tokenHeader = req.headers['authorization']?.toString();
+    if (!tokenHeader || tokenHeader.split(' ')[0] !== 'Bearer') {
+        return res.status(401).json({
+            auth: false,
+            message: "Incorrect token format",
+        });
+    }
+
+    let token = tokenHeader.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({
+            auth: false,
+            message: "No token provided",
+        });
+    }
+
+    verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
+        if(!error){
+            const decodedData = decoded as any;
+                prisma.user.findFirst({
+                where: {
+                    id: decodedData.id,
+                    is_active: true,
+                }
+            }).then(user => {
+                // If user is still active, then proceed
+                if(user == null || !user.is_active){
+                    return res.status(401).send("User not authorized");
+                }
+
+                req.body.userId = decodedData.id;
+                next();
+                
+            }).catch(() => {
+                return res.status(401).send("User not authorized");
+            })
         } else {
-            next();
+            return res.status(401).send("User not authorized");
         }
-    }).catch(error => {
-        res.status(401).send(error);
-    })
-};
+    });
+}
+
+export const purchasingAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+
+}

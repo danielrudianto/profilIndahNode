@@ -28,16 +28,6 @@ router.post("/login",
                 name: true,
                 password: true,
                 is_active: true,
-                user_position: {
-                    select: {
-                        position: true,
-                        name: true
-                    },
-                    orderBy: {
-                        created_at: "desc"
-                    },
-                    take: 1
-                },
                 user_department: {
                     select: {
                         departments: true,
@@ -69,7 +59,6 @@ router.post("/login",
 
                 const userObject = {
                     name: user.name,
-                    position: user.user_position.length == 0 ? null : user.user_position[0].name,
                     department: user.user_department
                 }
 

@@ -238,39 +238,19 @@ model user {
   purchase_invoice_purchase_invoice_created_byTouser       purchase_invoice[]    @relation("purchase_invoice_created_byTouser")
   supplier                                                 supplier[]
   user_created_byTouser                                    user[]                @relation("userTouser_created_by")
-  user_department_created_byTouser                         user_department[]     @relation("userTouser_department_created_by")
   user_department                                          user_department[]     @relation("userTouser_department_user_id")
-  user_position_created_byTouser                           user_position[]       @relation("userTouser_position_created_by")
-  user_position                                            user_position[]       @relation("userTouser_position_user_id")
 
   @@index([created_by], map: "user_ibfk_1_idx")
 }
 
-model user_position {
-  id                                  Int      @id @default(autoincrement())
-  user_id                             Int
-  name                                String?  @db.VarChar(45)
-  position                            Int
-  created_by                          Int
-  created_at                          DateTime @default(now()) @db.DateTime(0)
-  user_userTouser_position_created_by user     @relation("userTouser_position_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_position_ibfk_2")
-  user_userTouser_position_user_id    user     @relation("userTouser_position_user_id", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_position_ibfk_1")
-
-  @@index([user_id], map: "user_position_ibfk_1_idx")
-  @@index([created_by], map: "user_position_ibfk_2_idx")
-}
-
 model user_department {
-  id                                    Int      @id @default(autoincrement())
-  departments                           Int?
-  user_id                               Int?
-  is_delete                             Boolean? @default(true)
-  created_by                            Int?
-  user_userTouser_department_created_by user?    @relation("userTouser_department_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_department_ibfk_2")
-  user_userTouser_department_user_id    user?    @relation("userTouser_department_user_id", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_department_ibfk_1")
+  id                                 Int      @id @default(autoincrement())
+  departments                        Int?
+  user_id                            Int?
+  is_delete                          Boolean? @default(false)
+  user_userTouser_department_user_id user?    @relation("userTouser_department_user_id", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_department_ibfk_1")
 
   @@index([user_id], map: "user_department_ibfk_1_idx")
-  @@index([created_by], map: "user_department_ibfk_2_idx")
 }
 
 model item_price {
