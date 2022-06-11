@@ -48,7 +48,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     });
 }
 
-export const administratorAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+export const salesAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
     let tokenHeader = req.headers['authorization']?.toString();
     if (!tokenHeader || tokenHeader.split(' ')[0] !== 'Bearer') {
         return res.status(401).json({
@@ -73,11 +73,28 @@ export const administratorAuthMiddleware = (req: Request, res: Response, next: N
                 where: {
                     id: decodedData.id,
                     is_active: true,
+                },
+                select: {
+                    id: true,
+                    is_active: true,
+                    user_department: {
+                        where: {
+                            is_delete: false
+                        },
+                        select: {
+                            departments: true
+                        }
+                    }
                 }
             }).then(user => {
                 // If user is still active, then proceed
                 if(user == null || !user.is_active){
                     return res.status(401).send("User not authorized");
+                }
+
+                // If user is administrator or sales, they can access this route
+                if(user.user_department != null && user.user_department.includes(1) || user.user_department.includes(3)){
+                    return res.status(40)
                 }
 
                 req.body.userId = decodedData.id;
@@ -94,4 +111,8 @@ export const administratorAuthMiddleware = (req: Request, res: Response, next: N
 
 export const purchasingAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
 
+}
+
+export const administratorMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    
 }
