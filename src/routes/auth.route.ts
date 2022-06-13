@@ -82,4 +82,51 @@ router.get("/", authMiddleware, (req, res, next) => {
     })
 });
 
+router.post("/token", authMiddleware, async(req, res, next) => {
+    const token = req.body.token;
+    const user = await prisma.user_token.findUnique({
+        where:{
+            token: token
+        }
+    });
+
+    // If there is no one using this token
+    // Then register this token to this user
+    if(user == null){
+        prisma.user_token.create({
+            data: {
+                token: token,
+                user_id: req.body.userId
+            }
+        }).then(result => {
+            return res.status(201).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    } else if(user.id != req.body.userId){
+        prisma.$transaction([
+            prisma.user_token.delete({
+                where:{
+                    token: token
+                }
+            }),
+            prisma.user_token.create({
+                data: {
+                    user_id: req.body.userId,
+                    token: token
+                },
+                select: {
+                    token: true
+                }
+            })
+        ]).then(result => {
+            return res.status(200).send(result[1]);
+        })
+    } else {
+        return res.status(200).send({
+            token: token
+        })
+    }
+})
+
 export default router;

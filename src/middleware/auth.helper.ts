@@ -93,9 +93,6 @@ export const salesAuthMiddleware = (req: Request, res: Response, next: NextFunct
                 }
 
                 // If user is administrator or sales, they can access this route
-                if(user.user_department != null && user.user_department.includes(1) || user.user_department.includes(3)){
-                    return res.status(40)
-                }
 
                 req.body.userId = decodedData.id;
                 next();
