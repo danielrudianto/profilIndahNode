@@ -30,10 +30,7 @@ router.post("/login",
                 is_active: true,
                 user_department: {
                     select: {
-                        departments: true,
-                    },
-                    where:{
-                        is_delete: false
+                        role: true
                     }
                 }
             },
@@ -59,7 +56,7 @@ router.post("/login",
 
                 const userObject = {
                     name: user.name,
-                    department: user.user_department
+                    role: user.user_department
                 }
 
                 const response = {
@@ -121,6 +118,8 @@ router.post("/token", authMiddleware, async(req, res, next) => {
             })
         ]).then(result => {
             return res.status(200).send(result[1]);
+        }).catch(error => {
+            return res.status(500).send(error);
         })
     } else {
         return res.status(200).send({

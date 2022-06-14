@@ -264,6 +264,7 @@ router.delete("/:companyId", async(req, res, next) => {
         });
 
         io.emit("deleteCompany", {
+            name: result.name,
             id: result.id,
             count: count
         });

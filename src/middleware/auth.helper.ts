@@ -48,68 +48,6 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
     });
 }
 
-export const salesAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    let tokenHeader = req.headers['authorization']?.toString();
-    if (!tokenHeader || tokenHeader.split(' ')[0] !== 'Bearer') {
-        return res.status(401).json({
-            auth: false,
-            message: "Incorrect token format",
-        });
-    }
-
-    let token = tokenHeader.split(' ')[1];
-
-    if (!token) {
-        return res.status(401).json({
-            auth: false,
-            message: "No token provided",
-        });
-    }
-
-    verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
-        if(!error){
-            const decodedData = decoded as any;
-                prisma.user.findFirst({
-                where: {
-                    id: decodedData.id,
-                    is_active: true,
-                },
-                select: {
-                    id: true,
-                    is_active: true,
-                    user_department: {
-                        where: {
-                            is_delete: false
-                        },
-                        select: {
-                            departments: true
-                        }
-                    }
-                }
-            }).then(user => {
-                // If user is still active, then proceed
-                if(user == null || !user.is_active){
-                    return res.status(401).send("User not authorized");
-                }
-
-                // If user is administrator or sales, they can access this route
-
-                req.body.userId = decodedData.id;
-                next();
-                
-            }).catch(() => {
-                return res.status(401).send("User not authorized");
-            })
-        } else {
-            return res.status(401).send("User not authorized");
-        }
-    });
-}
-
-export const purchasingAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-
-}
-
 export const administratorMiddleware = (req: Request, res: Response, next: NextFunction) => {
     
 }

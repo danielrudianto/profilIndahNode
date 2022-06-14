@@ -209,8 +209,25 @@ router.put("/", async(req, res, next) => {
             description: description,
             item_brand_id: brand.id,
             minimum_stock: minimum_stock
+        },
+        select: {
+            id: true,
+            reference: true,
+            description: true,
+            created_at: true,
+            user: {
+                select: {
+                    name: true
+                }
+            },
+            item_brand:{
+                select: {
+                    name: true
+                }
+            }
         }
     }).then(result => {
+        io.emit("updateItem", result)
         res.status(201).send(result);
     }).catch(error => {
         res.status(500).send(error);

@@ -29,9 +29,11 @@ app.use(express.json());
 
 app.use("/auth", authRoutes);
 app.use("/item", authMiddleware, itemRoutes);
+app.use("/brand", authMiddleware, brandRoutes);
+
 app.use("/itemPrice", authMiddleware, itemPriceRoutes);
 app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
-app.use("/brand", authMiddleware, brandRoutes);
+
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/company", authMiddleware, companyRoutes);
 

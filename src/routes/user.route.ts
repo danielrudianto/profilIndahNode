@@ -1,11 +1,64 @@
 import { PrismaClient } from "@prisma/client";
 import { hashSync } from "bcryptjs";
 import { Router } from "express";
-import { customer } from "../interface/customer";
-import { user } from "../interface/user";
 
 const prisma = new PrismaClient()
 const router = Router();
+const roles = [
+    {
+        id: 1,
+        name: "Pembelian",
+        available: true
+    }, 
+    {
+        id: 2,
+        name: "Penjualan",
+        available: false
+    }, 
+    {
+        id: 3,
+        name: "Akuntansi",
+        available: false
+    },
+    {
+        id: 4,
+        name: "Keuangan",
+        available: false
+    }, 
+    {
+        id: 5,
+        name: "Administrator",
+        available: true
+    }
+];
+
+router.get("/roles", (req, res, next) => {
+    return res.status(200).send(roles.filter(x => x.available));
+});
+
+router.get("/:id", (req, res, next) => {
+    const id = parseInt(req.params.id);
+    prisma.user.findUnique({
+        where:{
+            id: id
+        },
+        select: {
+            id: true,
+            name: true,
+            username: true,
+            nik: true,
+            user_department: {
+                select: {
+                    role: true
+                }
+            }
+        }
+    }).then(result => {
+        res.status(200).send(result);
+    }).catch(error => {
+        res.status(500).send(error);
+    })
+})
 
 router.get("/", (req, res, next) => {
     const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page?.toString()));
@@ -104,23 +157,34 @@ router.get("/", (req, res, next) => {
 
 router.post("/", async(req, res, next) => {
     
+    const roleId = parseInt(req.body.role);
+    const role = roles.filter(x => x.id == roleId);
+    if(role.length == 0 || !role[0].available){
+        return res.status(500).send("Peran tidak ditemukan.");
+    }
+
     const count = await prisma.user.count({
         where:{
-            username: req.body.username
+            OR: [
+                {
+                    username: req.body.username
+                },
+                {
+                    nik: req.body.nik
+                }
+            ]
         }
     });
 
     if(count > 0){
-        return res.status(500).send("Mohon masukan username unik.");
+        return res.status(500).send("Mohon masukan username / NIK unik.");
     }
 
     let password = "";
     const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for(var i = 0; i < 8; i++){
-        password += characters[Math.floor(Math.random()) * (characters.length - 1)];
+        password += characters[Math.floor(Math.random() * (characters.length - 1))];
     }
-
-    console.log(password);
 
     prisma.user.create({
         data: {
@@ -130,14 +194,24 @@ router.post("/", async(req, res, next) => {
             password: hashSync(password, 12)
         }
     }).then(result => {
-        res.status(201).send({
-            name: result.name,
-            nik: result.nik,
-            username: result.username,
-            password: password
-        });
+        prisma.user_department.create({
+            data: {
+                user_id: result.id,
+                role: roleId
+            }
+        }).then(selectedRole => {
+            return res.status(201).send({
+                name: result.name,
+                nik: result.nik,
+                username: result.username,
+                password: password,
+                role: roles.filter(x => x.id == selectedRole.role)[0]
+            });
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
     }).catch(error => {
-        res.status(500).send(error);
+        return res.status(500).send(error);
     })
 });
 
@@ -186,6 +260,10 @@ router.put("/", (req, res, next) => {
     }).catch(error => {
         res.status(500).send(error);
     })
+})
+
+router.put("/status", (req, res, next) => {
+    // Route to accomodate user status changes
 })
 
 export default router;

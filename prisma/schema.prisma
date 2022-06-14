@@ -237,18 +237,17 @@ model user {
   purchase_invoice_purchase_invoice_created_byTouser       purchase_invoice[]    @relation("purchase_invoice_created_byTouser")
   supplier                                                 supplier[]
   user_created_byTouser                                    user[]                @relation("userTouser_created_by")
-  user_department                                          user_department[]     @relation("userTouser_department_user_id")
+  user_department                                          user_department?
   user_token                                               user_token[]
 
   @@index([created_by], map: "user_ibfk_1_idx")
 }
 
 model user_department {
-  id                                 Int      @id @default(autoincrement())
-  departments                        Int?
-  user_id                            Int?
-  is_delete                          Boolean? @default(false)
-  user_userTouser_department_user_id user?    @relation("userTouser_department_user_id", fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_department_ibfk_1")
+  id      Int  @id @default(autoincrement())
+  role    Int
+  user_id Int  @unique(map: "user_id_UNIQUE")
+  user    user @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_department_ibfk_1")
 
   @@index([user_id], map: "user_department_ibfk_1_idx")
 }
@@ -349,7 +348,7 @@ model purchase_invoice {
 model user_token {
   id      Int    @id @default(autoincrement())
   user_id Int
-  token   String @unique(map: "token_UNIQUE") @db.VarChar(45)
+  token   String @unique(map: "token_UNIQUE") @db.VarChar(255)
   user    user   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_token_ibfk_1")
 
   @@index([user_id], map: "user_token_ibfk_1_idx")

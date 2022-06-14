@@ -68,6 +68,7 @@ router.get("/", (req, res, next) => {
                     is_delete: false
                 },
                 select: {
+                    id: true,
                     reference: true,
                     description: true,
                     item_brand: {
@@ -134,6 +135,7 @@ router.get("/", (req, res, next) => {
                     ]
                 },
                 select: {
+                    id: true,
                     reference: true,
                     description: true,
                     item_brand: {
@@ -233,7 +235,10 @@ router.post("/bulk", (req, res, next) => {
             res.status(500).send(`${(items.length - count)} barang tidak terdefinisi. Mohon cek kembali input anda`)
         } else {
             const transactions: any[] = [];
+            const item_ids: number[] = [];
+
             references.forEach((reference, index) => {
+                item_ids.push(items.filter(x => x.reference == reference)[0].id);
                 transactions.push(
                     prisma.item_price.create({
                         data: {
@@ -246,33 +251,32 @@ router.post("/bulk", (req, res, next) => {
                         }
                     })
                 );
+            });
 
-                transactions.push(
-                    prisma.item_price.updateMany({
-                        where:{
-                            item_id: items.filter(x => x.reference == reference)[0].id,
-                            NOT: {
-                                effective_date: {
-                                    gte: effective_date
-                                },
-                            },
-                            is_delete: false
-                        },
-                        data: {
-                            is_delete: true,
-                            deleted_by: req.body.userId
-                        }
-                    })
-                );
-            })
-
-            prisma.$transaction(transactions).then(result => {
-                res.status(201).send(result);
+            prisma.item_price.updateMany({
+                where:{
+                    item_id: {
+                        in: item_ids
+                    }
+                },
+                data: {
+                    is_delete: true,
+                    deleted_by: req.body.userId
+                }
+            }).then(() => {
+                prisma.$transaction(transactions).then(result => {
+                    res.status(201).send(result);
+                }).catch(error => {
+                    res.status(500).send(error);
+                })
             }).catch(error => {
                 res.status(500).send(error);
             })
+
+            
         }
     }).catch(error => {
+        console.log(error);
         res.status(500).send(error);
     })
 })
