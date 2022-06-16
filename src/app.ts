@@ -14,7 +14,7 @@ import goodReceiptRoutes from './routes/good_receipt.route';
 import purchaseDocumentRoutes from './routes/purchase_document.route';
 import userRoutes from './routes/user.route';
 
-import { server } from './middleware/socket.helper';
+import { server } from './helper/socket.connection.helper';
 
 
 const allowedOrigins = ['http://localhost:4200', 'https://app.profilindah.id'];

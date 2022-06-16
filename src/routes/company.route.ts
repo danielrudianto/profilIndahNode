@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
-import { io } from "../middleware/socket.helper";
+import { io } from "../helper/socket.connection.helper";
 
 const prisma = new PrismaClient()
 const router = Router();
