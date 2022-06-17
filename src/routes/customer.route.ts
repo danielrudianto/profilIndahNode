@@ -1,27 +1,12 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
+import CustomerController from "../controller/customer.controller";
 import { customer } from "../interface/customer";
 
 const prisma = new PrismaClient()
 const router = Router();
 
-router.post("/", (req, res, next) => {
-    const customer: customer = {
-        name: req.body.name,
-        address: req.body.address,
-        pic: req.body.pic,
-        phone_number: req.body.phone_number,
-        npwp: req.body.npwp,
-        created_by: req.body.userId,
-    }
-    prisma.customer.create({
-        data: customer as any
-    }).then(async(result) => {
-        res.status(201).send(result);
-    }).catch(error => {
-        res.status(500).send(error);
-    })
-})
+router.post("/", CustomerController.create);
 
 router.delete("/:id", async(req, res, next) => {
     const customerId = parseInt(req.params.id.toString());

@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 
-import { authMiddleware } from './middleware/auth.helper';
+import { authMiddleware } from './helper/auth.helper';
 
 import authRoutes from './routes/auth.route';
 import itemRoutes from './routes/item.route';

@@ -114,4 +114,13 @@ export class ItemModel {
             }
         });        
     }
+
+    static countByBrandId(brand_id: number){
+        return prisma.item.count({
+            where:{
+                item_brand_id: brand_id,
+                is_delete: false
+            }
+        })
+    }
 }
