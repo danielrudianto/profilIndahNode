@@ -1,10 +1,20 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
+import { body } from "express-validator";
 
 const prisma = new PrismaClient()
 const router = Router();
 
-router.post("/", async(req, res, next) => {
+router.post(
+    "/", 
+    body("date").not().isEmpty().withMessage("Tanggal wajib diisi."),
+    body("name").not().isEmpty().withMessage("Nama dokumen wajib diisi."),
+    body("company_id").not().isEmpty().withMessage("Perusahaan wajib diisi."),
+    body("supplier_id").not().isEmpty().withMessage("Supplier wajib diisi."),
+    body("purchase_invoice_name").not().isEmpty().withMessage("Nama dokumen pembelian wajib diisi."),
+    body("discount").not().isEmpty().withMessage("Nominal potongan harga pembelian wajib diisi."),
+    body("discount").isNumeric().withMessage("Nominal potongan harga pembelian wajib diisi."),
+    async(req, res, next) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
     const company_id = req.body.company_id;

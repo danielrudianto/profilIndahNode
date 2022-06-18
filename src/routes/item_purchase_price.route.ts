@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Router } from 'express';
+import { io } from '../helper/socket.connection.helper';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -306,8 +307,45 @@ router.post("/", (req, res, next) => {
                 is_delete: true,
                 deleted_by: req.body.userId
             }
-        }).then(() => {
-            res.status(201).send(result);
+        }).then(async() => {
+            const date = new Date();
+            date.setDate(date.getDate() + 1);
+            date.setHours(0, 0, 0, 0);
+
+            const item = await prisma.item.findUnique({
+                where:{
+                    id: item_id
+                },
+                select: {
+                    id: true,
+                    reference: true,
+                    description: true,
+                    item_brand: {
+                        select: {
+                            name: true
+                        }
+                    },
+                    item_price_purchase: {
+                        select: {
+                            price: true,
+                            created_at: true,
+                        },
+                        where: {
+                            is_delete: false,
+                        },
+                        orderBy: [
+                            {
+                                id: "desc"
+                            }
+                        ],
+                        take: 1,
+                        skip: 0
+                    }
+                },
+            });
+
+            io.emit("updatePurchasingPrice", item);
+            return res.status(201).send(item);
         }).catch(() => {
             res.status(500).send("Failed to delete previous data.");
         })

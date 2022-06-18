@@ -212,6 +212,14 @@ class SupplierModel {
             ])
         }
     }
+    
+    static getById(id: number){
+        return prisma.supplier.findUnique({
+            where:{
+                id: id
+            }
+        });
+    }
 }
 
 export default SupplierModel;

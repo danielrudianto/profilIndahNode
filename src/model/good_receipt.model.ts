@@ -45,6 +45,12 @@ class GoodReceiptModel {
         });
     }
 
+    static insertItems(items: any[]){
+        return prisma.good_receipt.createMany({
+            data: items
+        });
+    }
+
     static getById(id: number){
         return prisma.good_receipt_code.findUnique({
             where:{

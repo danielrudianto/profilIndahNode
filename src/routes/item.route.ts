@@ -102,12 +102,17 @@ router.get("/:reference", (req, res, next) => {
                         discount: true,
                         discount_project: true
                     },
-                    orderBy: {
-                        effective_date: "desc"
-                    },
+                    orderBy: [
+                        {
+                            effective_date: "desc"
+                        },
+                        {
+                            id: "desc"
+                        }
+                    ],
                     where: {
                         effective_date: {
-                            lt: date
+                            lte: date
                         }
                     },
                     take: 1,

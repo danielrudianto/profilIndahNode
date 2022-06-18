@@ -1,9 +1,15 @@
 import { Request, Response } from "express";
+import { validationResult } from "express-validator";
 import SocketHelper from "../helper/socket.helper";
 import CustomerModel from "../model/customer.model";
 
 class CustomerController {
     static create = (req: Request, res: Response) => {
+        const validation_result = validationResult(req);
+        if (validation_result.isEmpty()) {
+            return res.status(500).send(validation_result.array()[0].msg);
+        }
+
         const name = req.body.name;
         const address = req.body.address;
         const pic = req.body.pic;
@@ -14,6 +20,78 @@ class CustomerController {
         customer.create().then(result => {
             const socket = new SocketHelper("createCustomer", result);
             socket.create();
+
+            return res.status(201).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    }
+
+    static update = (req: Request, res: Response) => {
+        const validation_result = validationResult(req);
+        if (validation_result.isEmpty()) {
+            return res.status(500).send(validation_result.array()[0].msg);
+        }
+
+        const id = req.body.id;
+        const name = req.body.name;
+        const address = req.body.address;
+        const npwp = req.body.npwp;
+        const pic = req.body.pic;
+        const phone_number = req.body.phone_number;
+
+        const customer = new CustomerModel(name, address, npwp, pic, phone_number, req.body.userId, id);
+        customer.update().then(result => {
+            const socket = new SocketHelper("updateCustomer", result);
+            socket.create();
+
+            return res.status(201).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    }
+
+    static delete = (req: Request, res: Response) => {
+        const validation_result = validationResult(req);
+        if (validation_result.isEmpty()) {
+            return res.status(500).send(validation_result.array()[0].msg);
+        }
+
+        const id = parseInt(req.params.id.toString());
+        const validation = CustomerModel.checkDeleteById(id);
+        if (validation) {
+            CustomerModel.delete(id, req.body.userId).then(customer => {
+                const socket = new SocketHelper("deleteCustomer", customer);
+                socket.create();
+
+                return res.status(201).send(customer);
+            }).catch(error => {
+                return res.status(500).send(error);
+            })
+        }
+    }
+
+    static fetchAutocomplete = (req: Request, res: Response) => {
+        const validation_result = validationResult(req);
+        if (validation_result.isEmpty()) {
+            return res.status(500).send(validation_result.array()[0].msg);
+        }
+
+        const keyword = req.query.keyword!.toString();
+        CustomerModel.fetchAutocomplete(keyword).then(result => {
+            return res.status(200).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    }
+
+    static fetch = (req: Request, res: Response) => {
+        const page: number = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
+        const limit = 10;
+        const offset = (page - 1) * limit;
+        const keyword = (!req.query.keyword) ? "" : req.query.keyword?.toString();
+
+        CustomerModel.fetch(keyword, offset, limit).then(result => {
             return res.status(201).send(result);
         }).catch(error => {
             return res.status(500).send(error);

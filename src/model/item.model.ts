@@ -34,6 +34,49 @@ export class ItemModel {
         });
     }
 
+    static getById(id: number, date: Date){
+        return prisma.item.findUnique({
+            where:{
+                id: id
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true
+                    }
+                },
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true,
+                        created_at: true,
+                        effective_date: true
+                    },
+                    where: {
+                        is_delete: false,
+                        effective_date: {
+                            lte: date
+                        }
+                    },
+                    orderBy: [
+                        {
+                            effective_date: "desc",
+                        },
+                        {
+                            id: "desc"
+                        }
+                    ],
+                    take: 1,
+                    skip: 0
+                }
+            },
+        })
+    }
+
     static getByReference(reference: string){
         return prisma.item.findFirst({
             where:{
@@ -54,6 +97,60 @@ export class ItemModel {
                 created_at: true
             }
         });
+    }
+
+    static getByReferences(references: string[]){
+        return prisma.item.findMany({
+            where:{
+                reference: {
+                    in: references
+                },
+                is_delete: false
+            },
+            select: {
+                id: true,
+                reference: true
+            }
+        });
+    }
+
+    static fetchAll(date: Date){
+        return prisma.item.findMany({
+            where:{
+                is_delete: false   
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true
+                    }
+                },
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true
+                    },
+                    where:{
+                        is_delete: false,
+                        effective_date: {
+                            lt: date
+                        }
+                    },
+                    orderBy: {
+                        effective_date: "desc"
+                    },
+                    take: 1,
+                    skip: 0
+                }
+            },
+            orderBy: {
+                reference: "asc"
+            }
+        })
     }
 
     static checkDeleteByReference(reference: string){

@@ -35,6 +35,15 @@ class ItemPurchasePriceModel{
             }
         });
     }
+
+    static getByItemId(id: number){
+        return prisma.item_price_purchase.findFirst({
+            where:{
+                item_id: id,
+                is_delete: false
+            }
+        });
+    }
 }
 
 export default ItemPurchasePriceModel;
