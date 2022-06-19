@@ -112,6 +112,16 @@ class GoodReceiptModel {
             }
         })
     }
+
+    static countItemByReference(reference: string){
+        return prisma.good_receipt.count({
+            where:{
+                item:{
+                    reference: reference
+                }
+            }
+        });
+    }
 }
 
 export default GoodReceiptModel;

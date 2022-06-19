@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
+import BillModel from "../model/bill.model";
 import { BrandModel } from "../model/brand.model";
+import GoodReceiptModel from "../model/good_receipt.model";
 import { ItemModel } from "../model/item.model";
 import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
@@ -95,7 +97,77 @@ class ItemController {
   }
 
   static update = (req: Request, res: Response) => {
+    const id = req.body.id;
+    const reference = req.body.reference;
+    const description = req.body.description;
+    const brand_name = req.body.brand;
+    const minimum_stock = req.body.minimum_stock;
 
+    BrandModel.getByName(brand_name).then(brand => {
+      if(brand == null || brand.is_delete){
+        return res.status(404).send("Merek tidak ditemukan.");
+      } else {
+        ItemModel.getById(id, new Date()).then(item => {
+          if(item == null || item.is_delete){
+            return res.status(404).send("Barang tidak ditemukan.");
+          } else {
+            const item_model = new ItemModel(reference, description, minimum_stock, brand!.id, req.body.userId, id);
+            item_model.update().then(result => {
+              return res.status(200).send(result)
+            }).catch(error => {
+              return res.status(500).send(error);
+            })
+          }
+        })
+      }
+    }).catch(error => {
+      return res.status(500).send(error);
+    });
+  }
+
+  static fetch = (req: Request, res: Response) => {
+    const page: number = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = 10;
+    const offset = (page - 1) * limit;
+    const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
+
+    const date = new Date();
+    date.setDate((new Date()).getDate() + 1);
+    date.setHours(0, 0, 0, 0);
+
+    ItemModel.fetch(keyword, date, offset, limit).then(result => {
+      return res.status(200).send({
+        data: result[0],
+        count: result[1]
+      })
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
+  
+  static getByReference = (req: Request, res: Response) => {
+    const reference = req.params.reference;
+    const date = new Date();
+    date.setDate(date.getDate() + 1);
+    date.setHours(0, 0, 0);
+
+    const item = ItemModel.getByReference(reference);
+    const good_receipt_count = GoodReceiptModel.countItemByReference(reference);
+    const bill_code = BillModel.countItemByReference(reference);
+
+    const transaction = new QueryTransactionHelper();
+    transaction.create([
+      item,
+      good_receipt_count,
+      bill_code
+    ]).then(result => {
+      res.status(200).send({
+        ...result[0],
+        can_delete: (result[1] + result[2] == 0) ? true : false
+      });
+    }).catch(error => {
+      res.status(500).send(error);
+    })
   }
 }
 
