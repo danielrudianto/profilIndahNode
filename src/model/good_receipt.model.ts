@@ -100,7 +100,6 @@ class GoodReceiptModel {
                             }
                         },
                         quantity: true,
-                        price: true
                     }
                 },
                 purchase_invoice: {
@@ -121,6 +120,14 @@ class GoodReceiptModel {
                 }
             }
         });
+    }
+
+    static getArchiveYears(){
+        return prisma.$queryRaw`SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year FROM good_receipt_code ORDER BY good_receipt_code.date ASC`;
+    }
+
+    static getArchiveCountByYear(){
+        return prisma.$queryRaw`SELECT COUNT(good_receipt_code.id) AS count, YEAR(good_receipt_code.date) AS year FROM good_receipt_code GROUP BY YEAR(good_receipt_code.date)`;
     }
 }
 

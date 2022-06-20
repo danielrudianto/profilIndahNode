@@ -37,7 +37,7 @@ app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/company", authMiddleware, companyRoutes);
 
-app.use("/good_receipt", authMiddleware, goodReceiptRoutes);
+app.use("/goodReceipt", authMiddleware, goodReceiptRoutes);
 app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
 
 app.use("/user", authMiddleware, userRoutes);

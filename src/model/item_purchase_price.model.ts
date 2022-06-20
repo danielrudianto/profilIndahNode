@@ -36,6 +36,12 @@ class ItemPurchasePriceModel{
         });
     }
 
+    static insertItems(item_price: any[]){
+        return prisma.item_price_purchase.createMany({
+            data: item_price
+        })
+    }
+
     static getByItemId(id: number){
         return prisma.item_price_purchase.findFirst({
             where:{

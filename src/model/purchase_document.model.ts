@@ -69,6 +69,75 @@ class PurchaseDocumentModel {
             }
         })
     }
+
+    static fetchById(id: number){
+        return prisma.good_receipt_code.findUnique({
+            where:{
+                id: id
+            },
+            select:{
+                name: true,
+                date: true,
+                user_good_receipt_code_created_byTouser: {
+                    select: {
+                        name: true
+                    }
+                },
+                created_at: true,
+                user_good_receipt_code_confirmed_byTouser: {
+                    select: {
+                        name: true
+                    }
+                },
+                confirmed_at: true,
+                is_confirm: true,
+                is_delete: true,
+                company: {
+                    select: {
+                        id: true,
+                        name: true,
+                        address: true,
+                        npwp: true
+                    }
+                },
+                supplier: {
+                    select: {
+                        id: true,
+                        name: true,
+                        address: true,
+                        npwp: true
+                    }
+                },
+                good_receipt: {
+                    select: {
+                        id: true,
+                        item: {
+                            select: {
+                                id: true,
+                                reference: true,
+                                description: true
+                            }
+                        },
+                        quantity: true,
+                        price: true
+                    }
+                },
+                purchase_invoice: {
+                    select: {
+                        name: true,
+                        date: true,
+                        discount: true,
+                        user_purchase_invoice_created_byTouser: {
+                            select: {
+                                name: true
+                            }
+                        }
+                    }
+                }
+            }
+        })
+    }
+
 }
 
 export default PurchaseDocumentModel;

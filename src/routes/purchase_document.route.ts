@@ -1,8 +1,9 @@
 import { Router } from "express";
-import GoodReceiptController from "../controller/good_receipt.controller";
+import PurchaseDocumentController from "../controller/purchase_document.controller";
 
 const router = Router();
 
-router.get("/:id", GoodReceiptController.getById);
+router.get("/:id", PurchaseDocumentController.fetchById);
+router.post("/", PurchaseDocumentController.create);
 
 export default router;

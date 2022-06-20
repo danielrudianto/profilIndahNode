@@ -7,17 +7,6 @@ import PurchaseDocumentModel from "../model/purchase_document.model";
 import SupplierModel from "../model/supplier.model";
 
 class GoodReceiptController {
-  static getById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    GoodReceiptModel.getById(id)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
   static create = (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
@@ -25,7 +14,7 @@ class GoodReceiptController {
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt as any[];
 
-    const purchase_invoice = req.body.purchase_invoice as any;
+    const purchase_invoice = (req.body.purchase_invoice as any[])[0];
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
 
@@ -52,33 +41,40 @@ class GoodReceiptController {
           supplier_id,
           company_id
         );
+
         good_receipt
           .create()
           .then((good_receipt_result) => {
             const prices: number[] = [];
             const transactions: any[] = [];
-            good_receipt_items.forEach((x) => {
-              transactions.push(ItemPurchasePriceModel.getByItemId(x.item_id));
-            });
+            for (let i = 0; i < good_receipt_items.length; i++) {
+              transactions.push(
+                ItemPurchasePriceModel.getByItemId(
+                  good_receipt_items[i].item_id
+                )
+              );
+            }
 
             const transaction = new QueryTransactionHelper();
             transaction.create(transactions).then((result) => {
               result.forEach((item, index) => {
-                const price = item == null ? "0" : item.price;
+                const price = item == null ? 0 : item.price;
                 prices[index] = price;
               });
 
-              good_receipt_items.forEach((y, index) => {
-                good_receipt_items.push({
-                  item_id: y.item_id,
-                  quantity: y.quantity,
+              const good_receipt_items_input: any[] = [];
+              for (let idx = 0; idx < good_receipt_items.length; idx++) {
+                good_receipt_items_input.push({
+                  item_id: good_receipt_items[idx].item_id,
+                  quantity: good_receipt_items[idx].quantity,
                   good_receipt_code_id: good_receipt_result.id,
-                  price: prices[index],
+                  price: prices[idx],
                 });
-              });
+              }
 
-              const insert_item =
-                GoodReceiptModel.insertItems(good_receipt_items);
+              const insert_item = GoodReceiptModel.insertItems(
+                good_receipt_items_input
+              );
               const purchase_document = new PurchaseDocumentModel(
                 purchase_invoice_name,
                 date,
@@ -97,6 +93,7 @@ class GoodReceiptController {
                   });
                 })
                 .catch((error) => {
+                  console.log(error);
                   return res.status(500).send(error);
                 });
             });
@@ -108,6 +105,45 @@ class GoodReceiptController {
       .catch((error) => {
         return res.status(500).send(error);
       });
+  };
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    GoodReceiptModel.getById(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchArchive = (req: Request, res: Response) => {
+    const year = req.params.year;
+    const month = req.params.month;
+    console.log(year);
+    console.log(month);
+    if (year == null && month == null) {
+      const archive_years = GoodReceiptModel.getArchiveYears();
+      const count_archive_years = GoodReceiptModel.getArchiveCountByYear();
+
+      const transaction = new QueryTransactionHelper();
+      transaction
+        .create([archive_years, count_archive_years])
+        .then((result) => {
+          const response: any[] = [];
+          (result[0] as any[]).forEach((item) => {
+            response.push({
+              year: item.year,
+              count: (result[1] as any[]).filter((x) => x.year == item.year)[0]
+                .count,
+            });
+          });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    }
   };
 }
 
