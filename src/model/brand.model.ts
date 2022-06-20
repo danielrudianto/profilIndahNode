@@ -8,7 +8,10 @@ export class BrandModel {
     created_by: number;
     created_at?: Date;
 
-    constructor(name: string, created_by: number) {
+    constructor(name: string, created_by: number, id: number | null = null) {
+        if(id != null){
+            this.id = id;
+        }
         this.name = name;
         this.created_by = created_by;
         this.created_at = new Date();
@@ -53,7 +56,7 @@ export class BrandModel {
         });
     }
 
-    static getById(id: number) {
+    static fetchById(id: number) {
         return prisma.item_brand.findUnique({
             where: {
                 id: id

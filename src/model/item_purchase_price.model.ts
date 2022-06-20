@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, PrismaPromise } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -37,10 +37,25 @@ class ItemPurchasePriceModel{
     }
 
     static insertItems(item_price: any[]){
-        
-        return prisma.item_price_purchase.createMany({
+        const transactions: PrismaPromise<any>[] = [];
+        item_price.forEach(x => {
+            const item_id = x.item_id;
+            transactions.push(prisma.item_price_purchase.updateMany({
+                where:{
+                    item_id: item_id
+                },
+                data: {
+                    deleted_at: new Date(),
+                    is_delete: true
+                }
+            }));
+        });
+
+        transactions.push(prisma.item_price_purchase.createMany({
             data: item_price
-        })
+        }));
+
+        return transactions;
     }
 
     static getByItemId(id: number){

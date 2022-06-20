@@ -14,12 +14,12 @@ class BrandController {
         })
     }
 
-    static getById = (req: Request, res: Response) => {
+    static fetchById = (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
 
         const transaction = new QueryTransactionHelper();
         transaction.create([
-            BrandModel.getById(id),
+            BrandModel.fetchById(id),
             ItemModel.countByBrandId(id)
         ]).then(result => {
             return res.status(200).send({
@@ -70,18 +70,19 @@ class BrandController {
         const id = req.body.id;
         const name = req.body.name;
 
-        BrandModel.getById(id).then(brand => {
-            if(brand == null || !brand.is_delete){
+        BrandModel.fetchById(id).then(brand => {
+            if(brand == null || brand.is_delete){
                 return res.status(404).send("Data tidak ditemukan.");
             }
 
-            const update_brand = new BrandModel(name, brand.created_by);
+            const update_brand = new BrandModel(name, brand.created_by, id);
             update_brand.update().then(result => {
                 const socket = new SocketHelper("updateBrand", result);
                 socket.create();
 
                 return res.status(201).send(result);
             }).catch(error => {
+                console.log(error);
                 return res.status(500).send(error);
             })
         }).catch(error => {

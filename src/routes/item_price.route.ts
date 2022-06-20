@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.get("/bulk", ItemPriceController.fetchAll);
+router.get("/:reference", ItemPriceController.fetchByReference);
 router.get("/", ItemPriceController.fetch)
 
 router.post("/bulk", ItemPriceController.createBulk);

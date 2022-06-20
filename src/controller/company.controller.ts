@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../helper/socket.connection.helper";
 import CompanyModel from "../model/company.model";
 
@@ -71,7 +72,7 @@ class CompanyController {
       .then((result) => {
         // There is another company
         // Using this code name
-        if (result.filter((x) => x.id == id).length > 0) {
+        if (result.filter((x) => x.id != id).length > 0) {
           return res
             .status(500)
             .send(
@@ -137,11 +138,18 @@ class CompanyController {
       });
   };
 
-  static getById = (req: Request, res: Response) => {
+  static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    CompanyModel.fetchById(id)
-      .then((result) => {
-        return res.status(200).send(result);
+    const transaction = new QueryTransactionHelper();
+    transaction.create([
+      CompanyModel.fetchById(id),
+      CompanyModel.checkDeleteById(id)
+    ])
+    .then((result) => {
+        return res.status(200).send({
+          ...result[0],
+          can_delete: result[1] == 0 ? true : false
+        });
       })
       .catch((error) => {
         return res.status(500).send(error);

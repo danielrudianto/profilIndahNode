@@ -49,7 +49,8 @@ class CompanyModel {
                     select: {
                         name: true
                     }
-                }
+                },
+                created_at: true
             }
         });
     }
@@ -89,6 +90,14 @@ class CompanyModel {
         return prisma.company.findUnique({
             where:{
                 id: id
+            }
+        });
+    }
+
+    static checkDeleteById(id: number){
+        return prisma.good_receipt_code.count({
+            where:{
+                company_id: id
             }
         });
     }

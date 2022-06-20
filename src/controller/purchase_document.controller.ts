@@ -68,7 +68,7 @@ class PurchaseDocumentController {
                   good_receipt_code_id: good_receipt_result.id,
                   price: good_receipt_items[idx].price,
                 });
-                console.log(good_receipt_items[idx].save);
+
                 if (good_receipt_items[idx].save == true) {
                   const purchase_price = new ItemPurchasePriceModel(
                     parseFloat(good_receipt_items[idx].price),
@@ -98,7 +98,7 @@ class PurchaseDocumentController {
               const insert_purchase_document = purchase_document.create();
 
               transaction
-                .create([insert_item, insert_purchase_document, save_price])
+                .create([...save_price, insert_item, insert_purchase_document])
                 .then((insert_transaction) => {
                   return res.status(201).send({
                     ...good_receipt_result,
@@ -106,11 +106,13 @@ class PurchaseDocumentController {
                   });
                 })
                 .catch((error) => {
+                  console.log(error);
                   return res.status(500).send(error);
                 });
             });
           })
           .catch((error) => {
+            console.log(error);
             return res.status(500).send(error);
           });
       })

@@ -169,6 +169,9 @@ export class ItemModel {
                             orderBy: {
                                 id: "desc"
                             },
+                            where:{
+                                is_delete: false
+                            },
                             take: 1,
                             skip: 0
                         },
@@ -181,8 +184,19 @@ export class ItemModel {
                             where:{
                                 effective_date: {
                                     lte: date
+                                },
+                                is_delete: false
+                            },
+                            orderBy: [
+                                {
+                                    effective_date: "desc"
+                                },
+                                {
+                                    id: "desc"
                                 }
-                            }
+                            ],
+                            take: 1,
+                            skip: 0
                         }
                     }
                 }),

@@ -181,6 +181,52 @@ class ItemPriceModel {
         
     }
 
+    static fetchByReference(reference: string, date: Date){
+        return prisma.item.findFirst({
+            where:{
+                reference: reference,
+                is_delete: false
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true
+                    }
+                },
+                user: {
+                    select: {
+                        name: true
+                    }
+                },
+                created_at: true,
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true
+                    },
+                    where: {
+                        is_delete: false,
+                        effective_date: {
+                            lte: date
+                        }
+                    },
+                    orderBy: [
+                        {
+                            effective_date: "desc"
+                        },
+                        {
+                            id: "desc"
+                        }
+                    ]
+                }
+            }
+        })
+    }
+
     static deleteById(item_id: number, created_by: number){
         return prisma.item_price.updateMany({
             where:{

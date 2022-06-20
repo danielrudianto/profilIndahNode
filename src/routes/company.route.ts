@@ -5,7 +5,7 @@ const router = Router();
 
 router.post("/", CompanyController.create);
 router.get("/autocomplete", CompanyController.getAutocomplete);
-router.get("/:id", CompanyController.getById);
+router.get("/:id", CompanyController.fetchById);
 router.get("/", CompanyController.get);
 router.delete("/:companyId", CompanyController.delete);
 router.put("/", CompanyController.update);

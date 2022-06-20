@@ -123,6 +123,19 @@ class ItemPriceController {
             return res.status(500).send(error);
         })
     }
+
+    static fetchByReference = (req: Request, res: Response) => {
+        const reference = req.params.reference;
+        const date = new Date();
+        date.setDate((new Date()).getDate() + 1);
+        date.setHours(0, 0, 0, 0);
+
+        ItemPriceModel.fetchByReference(reference, date).then(result => {
+            return res.status(200).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    }
 }
 
 export default ItemPriceController;

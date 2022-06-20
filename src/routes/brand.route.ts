@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.get("/autocomplete", BrandController.getAutocomplete)
-router.get("/:id", BrandController.getById)
+router.get("/:id", BrandController.fetchById)
 router.get("/", BrandController.get)
 router.put("/", BrandController.update)
 router.post("/", BrandController.create)
