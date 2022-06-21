@@ -121,8 +121,7 @@ class GoodReceiptController {
   static fetchArchive = (req: Request, res: Response) => {
     const year = req.params.year;
     const month = req.params.month;
-    console.log(year);
-    console.log(month);
+
     if (year == null && month == null) {
       const archive_years = GoodReceiptModel.getArchiveYears();
       const count_archive_years = GoodReceiptModel.getArchiveCountByYear();
@@ -143,6 +142,14 @@ class GoodReceiptController {
         .catch((error) => {
           return res.status(500).send(error);
         });
+    }
+
+    if(year != null && month == null){
+
+    }
+
+    if(year != null && month != null){
+      
     }
   };
 }

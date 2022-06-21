@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { Router, Request, Response } from "express";
-import { compareSync } from 'bcryptjs';
 import { sign } from "jsonwebtoken";
 import { authMiddleware } from '../helper/auth.helper';
 import { body, validationResult  } from 'express-validator';
