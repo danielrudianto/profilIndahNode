@@ -34,15 +34,29 @@ class ExpenseController {
     // If parent ID is null, then also calculate children count
     if(parent_id == null){
       const fetch_expenses = ExpenseTypeModel.fetch(parent_id);
-      const fetch_expenses_children = ExpenseTypeModel.countChild();
+      const fetch_expenses_children = ExpenseTypeModel.fetchChild();
 
       const transaction = new QueryTransactionHelper();
       transaction.create([
         fetch_expenses,
         fetch_expenses_children
       ]).then(result => {
-        console.log(result);
-        return res.status(200).send(result);
+        const expense_type: any[] = [];
+        (result[0] as any[]).forEach((item, index) => {
+          const id = item.id;
+          const name = item.name;
+          const description = item.description;
+
+          expense_type.push({
+            id: id,
+            name: name,
+            description: description,
+            children: (result[1] as any[]).filter(x => x.parent_id == id)
+          });
+
+        })
+        
+        return res.status(200).send(expense_type);
       }).catch(error => {
         return res.status(500).send(error);
       })

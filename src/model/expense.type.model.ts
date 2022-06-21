@@ -140,17 +140,21 @@ class ExpenseTypeModel {
         })
     }
 
-    static countChild(){
-        return prisma.expense_type.groupBy({
-            by: ["parent_id"],
+    static fetchChild(){
+        return prisma.expense_type.findMany({
             where:{
+                is_delete: false,
                 parent_id: {
                     not: null
-                },
-                is_delete: false
+                }
             },
-            _count: true
-        });
+            select: {
+                id: true,
+                name: true,
+                description: true,
+                parent_id: true
+            }
+        })
     }
 }
 
