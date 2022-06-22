@@ -126,6 +126,61 @@ class ExpenseTypeModel {
         }
     }
 
+    static fetchItemAutocomplete(keyword: string){
+        if(keyword == ""){
+            return prisma.expense_type.findMany({
+                where:{
+                    is_delete: false,
+                    parent_id: {
+                        not: null
+                    }
+                },
+                orderBy: {
+                    name: "asc"
+                },
+                take: 5,
+                skip: 0,
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    expense_type: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            })
+        } else {
+            return prisma.expense_type.findMany({
+                where:{
+                    is_delete: false,
+                    parent_id: {
+                        not: null
+                    },
+                    name: {
+                        contains: keyword
+                    }
+                },
+                orderBy: {
+                    name: "asc"
+                },
+                take: 5,
+                skip: 0,
+                select: {
+                    id: true,
+                    name: true,
+                    description: true,
+                    expense_type: {
+                        select: {
+                            name: true
+                        }
+                    }
+                }
+            })
+        }
+    }
+
     static fetch(parent_id: number | null){
         return prisma.expense_type.findMany({
             where:{
@@ -153,6 +208,14 @@ class ExpenseTypeModel {
                 name: true,
                 description: true,
                 parent_id: true
+            }
+        })
+    }
+
+    static fetchById(id: number){
+        return prisma.expense_type.findUnique({
+            where:{
+                id: id
             }
         })
     }

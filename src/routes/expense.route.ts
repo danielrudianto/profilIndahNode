@@ -5,6 +5,7 @@ import ExpenseController from "../controller/expense.controller";
 const router = Router();
 
 router.get("/parentAutocomplete", ExpenseController.parentAutocomplete);
+router.get("/itemAutocomplete", ExpenseController.itemAutocomplete);
 router.get("/type", ExpenseController.fetchType);
 router.get("/type/:parentId", ExpenseController.fetchType);
 router.post(
@@ -19,5 +20,6 @@ router.post(
     .withMessage("Mohon isikan deskripsi tipe pengeluaran."),
   ExpenseController.createType
 );
+router.post("/", ExpenseController.create)
 
 export default router;

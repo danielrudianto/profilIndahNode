@@ -1,9 +1,31 @@
 import { Request, Response } from "express";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../helper/socket.connection.helper";
+import ExpenseModel from "../model/expense.model";
 import ExpenseTypeModel from "../model/expense.type.model";
 
 class ExpenseController {
+  static create = (req: Request, res: Response) => {
+    const description = req.body.description;
+    const date = req.body.date;
+    const type_id = req.body.expense_type_id;
+    const value = req.body.value;
+
+    ExpenseTypeModel.fetchById(type_id).then(type => {
+      if(type == null || type.is_delete){
+        return res.status(404).send("Tipe pengeluaran tidak ditemukan.");
+      }
+
+      const expense = new ExpenseModel(value, description, date, type_id, req.body.userId);
+      expense.create().then(result => {
+        io.emit("createExpense", result);
+        return res.status(201).send(result);
+      }).catch(error => {
+        return res.status(500).send(error);
+      })
+    })
+  }
+
   static parentAutocomplete = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     ExpenseTypeModel.fetchAutocomplete(keyword, null)
@@ -14,6 +36,25 @@ class ExpenseController {
         return res.status(500).send(error);
       });
   };
+
+  static itemAutocomplete = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    ExpenseTypeModel.fetchItemAutocomplete(keyword)
+      .then((result) => {
+        const response: any[] = [];
+        result.forEach(item => {  
+          response.push({
+            id: item.id,
+            name: `${item.expense_type?.name}/${item.name}`,
+            description: item.description
+          })
+        })
+        return res.status(200).send(response);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  }
 
   static createType = (req: Request, res: Response) => {
     const name = req.body.name;

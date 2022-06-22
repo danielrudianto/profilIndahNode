@@ -75,7 +75,7 @@ class UserModel {
         });
     }
 
-    static find(keyword: string, offset: number, limit: number){
+    static fetch(keyword: string, offset: number, limit: number){
         if(keyword == ""){
             return prisma.$transaction([
                 prisma.user.findMany({
@@ -87,6 +87,7 @@ class UserModel {
                     },
                     select: {
                         id: true,
+                        name: true,
                         username: true,
                         user_department: {
                             select: {
@@ -132,6 +133,7 @@ class UserModel {
                     },
                     select: {
                         id: true,
+                        name: true,
                         username: true,
                         user_department: {
                             select: {
@@ -169,7 +171,7 @@ class UserModel {
         }
     }
 
-    static getById(id: number){
+    static fetchById(id: number){
         return prisma.user.findUnique({
             where:{
                 id: id

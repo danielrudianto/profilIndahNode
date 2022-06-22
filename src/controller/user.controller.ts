@@ -1,5 +1,5 @@
 import { hash } from "bcryptjs";
-import e, { Request, Response } from "express";
+import { Request, Response } from "express";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import UserModel from "../model/user.model";
@@ -66,28 +66,44 @@ class UserController {
         })
     }
 
-    static getById = (req: Request, res: Response) => {
+    static fetchById = (req: Request, res: Response) => {
         const id = parseInt(req.params.id);
-        UserModel.getById(id).then(user => {
+        UserModel.fetchById(id).then(user => {
             if(user == null){
                 return res.status(404).send("Pengguna tidak ditemukan.");
             }
 
-            return res.status(200).send(user);
+            const response = {
+                ...user,
+                role: UserModel.roles.filter(y => y.id == user.user_department?.role)[0].name
+            }
+
+            return res.status(200).send(response);
         }).catch(error => {
             return res.status(500).send(error);
         })
     };
 
-    static get = (req: Request, res: Response) => {
+    static fetch = (req: Request, res: Response) => {
         const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page?.toString()));
         const keyword = (!req.query.keyword) ? "" : req.query.keyword?.toString();
         const limit = parseInt(process.env.LIMIT!.toString());
         const offset = (page - 1) * limit;
 
-        UserModel.find(keyword, offset, limit).then(result => {
+        UserModel.fetch(keyword, offset, limit).then(result => {
+            const response: any[] = [];
+            result[0].forEach(x => {
+                response.push({
+                    id: x.id,
+                    nik: x.nik,
+                    name: x.name,
+                    username: x.username,
+                    user_department: x.user_department,
+                    role: UserModel.roles.filter(y => y.id == x.user_department?.role)[0].name
+                })
+            })
             return res.status(200).send({
-                data: result[0],
+                data: response,
                 count: result[1]
             })
         }).catch(error => {
@@ -107,7 +123,7 @@ class UserController {
             return res.status(500).send("Peran tidak ditemukan.");
         }
 
-        UserModel.getById(id).then(user => {
+        UserModel.fetchById(id).then(user => {
             hash(password, 12).then(hashedPassword => {
                 const userRoleModel = new UserRoleModel(id, role[0].id);
                 new QueryTransactionHelper().create([
@@ -139,8 +155,8 @@ class UserController {
     }
 
     static toggleActive = (req: Request, res: Response) => {
-        const id = parseInt(req.body.id);
-        UserModel.getById(id).then(user => {
+        const id = parseInt(req.params.id);
+        UserModel.fetchById(id).then(user => {
             if(user == null){
                 return res.status(404).send("Pengguna tidak ditemukan.");
             }
