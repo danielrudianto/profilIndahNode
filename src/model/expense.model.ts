@@ -50,6 +50,90 @@ class ExpenseModel {
             }
         });
     }
+
+    static fetch(year: number, month: number, offset: number, limit: number){
+        const date = new Date(year, month, 1, 0, 0, 0, 0);
+        const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
+        return prisma.expense.findMany({
+            where:{
+                is_delete: false,
+                AND: [
+                    {
+                        date: {
+                            gte: date
+                        }
+                    },
+                    {
+                        date: {
+                            lt: max_date
+                        }
+                    }
+                ]
+            },
+            orderBy: {
+                date: "asc"
+            },
+            take: limit,
+            skip: offset,
+            select: {
+                description: true,
+                date: true,
+                user_expense_created_byTouser: {
+                    select: {
+                        name: true
+                    }
+                },
+                created_at: true,
+                id: true,
+                expense_type: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
+        })
+    }
+
+    static count(year: number, month: number){
+        const date = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        const max_date = new Date(year, month, 1, 0, 0, 0, 0);
+        return prisma.expense.count({
+            where:{
+                is_delete: false,
+                AND: [
+                    {
+                        date: {
+                            gte: date
+                        }
+                    },
+                    {
+                        date: {
+                            lt: max_date
+                        }
+                    }
+                ]
+            },
+        })
+    }
+
+    static countByType(expense_type_id: number){
+        return prisma.expense.count({
+            where:{
+                is_delete: false,
+                expense_type_id: expense_type_id
+            }
+        });
+    }
+
+    static countByTypeGroup(){
+        return prisma.expense.groupBy({
+            by: ["expense_type_id"],
+            _count: true,
+            where: {
+                is_delete: false
+            }
+        })
+    }
 }
 
 export default ExpenseModel;

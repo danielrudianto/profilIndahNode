@@ -6,8 +6,11 @@ const router = Router();
 
 router.get("/parentAutocomplete", ExpenseController.parentAutocomplete);
 router.get("/itemAutocomplete", ExpenseController.itemAutocomplete);
-router.get("/type", ExpenseController.fetchType);
-router.get("/type/:parentId", ExpenseController.fetchType);
+
+router.get("/type/getById/:id", ExpenseController.fetchTypeById);
+router.get("/type/getByParentId", ExpenseController.fetchType);
+router.get("/type/getByParentId/:parentId", ExpenseController.fetchType);
+
 router.post(
   "/type",
   body("name")
@@ -20,6 +23,11 @@ router.post(
     .withMessage("Mohon isikan deskripsi tipe pengeluaran."),
   ExpenseController.createType
 );
-router.post("/", ExpenseController.create)
+
+router.put("/type", ExpenseController.updateType);
+router.delete("/type/:id", ExpenseController.deleteType);
+
+router.get("/:year/:month", ExpenseController.fetch);
+router.post("/", ExpenseController.create);
 
 export default router;
