@@ -109,7 +109,7 @@ class GoodReceiptController {
 
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    GoodReceiptModel.getById(id)
+    GoodReceiptModel.fetchById(id)
       .then((result) => {
         return res.status(200).send(result);
       })
@@ -119,12 +119,12 @@ class GoodReceiptController {
   };
 
   static fetchArchive = (req: Request, res: Response) => {
-    const year = req.params.year;
-    const month = req.params.month;
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
 
     if (year == null && month == null) {
-      const archive_years = GoodReceiptModel.getArchiveYears();
-      const count_archive_years = GoodReceiptModel.getArchiveCountByYear();
+      const archive_years = GoodReceiptModel.fetchArchiveYears();
+      const count_archive_years = GoodReceiptModel.countArchiveByYear();
 
       const transaction = new QueryTransactionHelper();
       transaction
@@ -144,12 +144,42 @@ class GoodReceiptController {
         });
     }
 
-    if(year != null && month == null){
+    if (year != null && month == null) {
+      const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      GoodReceiptModel.countArchiveByMonth(year).then((counts) => {
+        (counts as any[]).forEach((x) => {
+          const month = x.month;
+          const num = x.count;
 
+          count[month - 1] = num;
+        });
+
+        return res.status(200).send(count);
+      });
     }
 
-    if(year != null && month != null){
-      
+    if (year != null && month != null) {
+      const page = !req.query.page
+        ? 1
+        : Math.max(parseInt(req.query.page.toString()), 1);
+      const limit = parseInt(process.env.LIMIT!.toString());
+      const offset = (page - 1) * limit;
+
+      const year = parseInt(req.params.year);
+      const month = parseInt(req.params.month);
+
+      const transaction = new QueryTransactionHelper();
+      transaction.create([
+        GoodReceiptModel.fetchArchive(year, month, offset, limit),
+        GoodReceiptModel.countArchive(year, month)
+      ]).then(result => {
+        return res.status(200).send({
+          data: result[0],
+          count: result[1],
+        });
+      }).catch(error => {
+        return res.status(500).send(error);
+      })
     }
   };
 }

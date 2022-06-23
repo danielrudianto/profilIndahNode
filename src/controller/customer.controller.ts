@@ -87,12 +87,14 @@ class CustomerController {
 
     static fetch = (req: Request, res: Response) => {
         const page: number = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
-        const limit = 10;
+        const limit = parseInt(process.env.LIMIT!);
         const offset = (page - 1) * limit;
         const keyword = (!req.query.keyword) ? "" : req.query.keyword?.toString();
 
         CustomerModel.fetch(keyword, offset, limit).then(result => {
-            return res.status(201).send(result);
+            return res.status(201).send({
+                
+            });
         }).catch(error => {
             return res.status(500).send(error);
         })

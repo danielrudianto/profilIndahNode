@@ -24,7 +24,7 @@ class ItemPriceController {
             item_price_create,
             item_price_update
         ]).then(result => {
-            ItemModel.getById(result[1].item_id, date).then(item => {
+            ItemModel.fetchById(result[1].item_id, date).then(item => {
                 io.emit("updatePrice", item);
                 return res.status(200).send(result[1])
             })
@@ -53,7 +53,7 @@ class ItemPriceController {
             count++
         });
 
-        ItemModel.getByReferences(references).then(items => {
+        ItemModel.fetchByReferences(references).then(items => {
             if(items.length != count){
                 res.status(500).send(`${(items.length - count)} barang tidak terdefinisi. Mohon cek kembali input anda`)
             } else {

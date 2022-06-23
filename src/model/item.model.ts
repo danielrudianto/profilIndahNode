@@ -54,7 +54,7 @@ export class ItemModel {
         });
     }
 
-    static getById(id: number, date: Date){
+    static fetchById(id: number, date: Date){
         return prisma.item.findUnique({
             where:{
                 id: id
@@ -98,7 +98,7 @@ export class ItemModel {
         })
     }
 
-    static getByReference(reference: string){
+    static fetchByReference(reference: string){
         return prisma.item.findFirst({
             where:{
                 reference: reference,
@@ -120,7 +120,7 @@ export class ItemModel {
         });
     }
 
-    static getByReferences(references: string[]){
+    static fetchByReferences(references: string[]){
         return prisma.item.findMany({
             where:{
                 reference: {

@@ -39,11 +39,10 @@ class ExpenseController {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const page = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
-    const limit = 10;
+    const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
 
     const start_date = new Date(year, month, 1);
-    console.log(start_date);
 
     const expense = ExpenseModel.fetch(year, month, offset, limit);
     const count = ExpenseModel.count(year, month);

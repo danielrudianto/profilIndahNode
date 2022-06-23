@@ -22,7 +22,7 @@ class ItemController {
           return res.status(404).send("Merek tidak ditemukan.");
         }
 
-        ItemModel.getByReference(reference)
+        ItemModel.fetchByReference(reference)
           .then((itemCheck) => {
             // There is an item exist with the same reference
             if (itemCheck != null) {
@@ -75,7 +75,7 @@ class ItemController {
     const reference = req.params.itemReference;
     const validation = ItemModel.checkDeleteByReference(reference);
 
-    ItemModel.getByReference(reference).then(item => {
+    ItemModel.fetchByReference(reference).then(item => {
       if (item == null || item.is_delete) {
         return res.status(404).send("Barang tidak ditemukan.");
       }
@@ -107,7 +107,7 @@ class ItemController {
       if(brand == null || brand.is_delete){
         return res.status(404).send("Merek tidak ditemukan.");
       } else {
-        ItemModel.getById(id, new Date()).then(item => {
+        ItemModel.fetchById(id, new Date()).then(item => {
           if(item == null || item.is_delete){
             return res.status(404).send("Barang tidak ditemukan.");
           } else {
@@ -127,7 +127,7 @@ class ItemController {
 
   static fetch = (req: Request, res: Response) => {
     const page: number = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
-    const limit = 10;
+    const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
     const keyword = (!req.query.keyword) ? "" : req.query.keyword.toString();
 
@@ -145,13 +145,13 @@ class ItemController {
     })
   }
   
-  static getByReference = (req: Request, res: Response) => {
+  static fetchByReference = (req: Request, res: Response) => {
     const reference = req.params.reference;
     const date = new Date();
     date.setDate(date.getDate() + 1);
     date.setHours(0, 0, 0);
 
-    const item = ItemModel.getByReference(reference);
+    const item = ItemModel.fetchByReference(reference);
     const good_receipt_count = GoodReceiptModel.countItemByReference(reference);
     const bill_code = BillModel.countItemByReference(reference);
 

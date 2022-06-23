@@ -9,6 +9,7 @@ import itemPriceRoutes from './routes/item_price.route';
 import itemPurchaseRoutes from './routes/item_purchase_price.route';
 import brandRoutes from './routes/brand.route';
 import supplierRoutes from './routes/supplier.route';
+import customerRoutes from './routes/customer.route';
 import companyRoutes from './routes/company.route';
 import goodReceiptRoutes from './routes/good_receipt.route';
 import purchaseDocumentRoutes from './routes/purchase_document.route';
@@ -35,6 +36,7 @@ app.use("/brand", authMiddleware, brandRoutes);
 app.use("/itemPrice", authMiddleware, itemPriceRoutes);
 app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
 
+app.use("/customer", authMiddleware, customerRoutes)
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/company", authMiddleware, companyRoutes);
 

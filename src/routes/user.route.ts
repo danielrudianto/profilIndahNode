@@ -5,11 +5,13 @@ import UserController from "../controller/user.controller";
 
 const router = Router();
 
-router.get("/roles", AuthController.getRoles);
+router.get("/roles", AuthController.fetchRoles);
+router.get("/profile", AuthController.fetchProfile);
 router.get("/fetchById/:id", UserController.fetchById)
 router.get("/", UserController.fetch);
 
 router.post("/", UserController.create);
+
 router.put("/", UserController.update);
 
 router.delete("/:id", UserController.toggleActive);
