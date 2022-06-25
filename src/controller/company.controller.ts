@@ -141,14 +141,12 @@ class CompanyController {
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const transaction = new QueryTransactionHelper();
-    transaction.create([
-      CompanyModel.fetchById(id),
-      CompanyModel.checkDeleteById(id)
-    ])
-    .then((result) => {
+    transaction
+      .create([CompanyModel.fetchById(id), CompanyModel.checkDeleteById(id)])
+      .then((result) => {
         return res.status(200).send({
           ...result[0],
-          can_delete: result[1] == 0 ? true : false
+          can_delete: result[1] == 0 ? true : false,
         });
       })
       .catch((error) => {

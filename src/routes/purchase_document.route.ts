@@ -5,5 +5,6 @@ const router = Router();
 
 router.get("/:id", PurchaseDocumentController.fetchById);
 router.post("/", PurchaseDocumentController.create);
+router.put("/", PurchaseDocumentController.update);
 
 export default router;

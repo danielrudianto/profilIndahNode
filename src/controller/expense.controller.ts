@@ -38,7 +38,9 @@ class ExpenseController {
   static fetch = (req: Request, res: Response) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
-    const page = (!req.query.page) ? 1 : Math.max(parseInt(req.query.page.toString()), 1);
+    const page = !req.query.page
+      ? 1
+      : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
 
@@ -47,18 +49,18 @@ class ExpenseController {
     const expense = ExpenseModel.fetch(year, month, offset, limit);
     const count = ExpenseModel.count(year, month);
     const transaction = new QueryTransactionHelper();
-    transaction.create([
-      expense,
-      count
-    ]).then(result => {
-      return res.status(200).send({
-        data: result[0],
-        count: result[1]
+    transaction
+      .create([expense, count])
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0],
+          count: result[1],
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
       });
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+  };
 
   static parentAutocomplete = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
@@ -138,53 +140,67 @@ class ExpenseController {
 
   static deleteType = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    ExpenseTypeModel.fetchById(id).then((expense) => {
-      if (expense == null || expense.is_delete) {
-        return res.status(404).send("Data pengeluaran tidak ditemukan.");
-      }
+    ExpenseTypeModel.fetchById(id)
+      .then((expense) => {
+        if (expense == null || expense.is_delete) {
+          return res.status(404).send("Data pengeluaran tidak ditemukan.");
+        }
 
-      if (expense.parent_id == null) {
-        // Data is a parent
-        // Check whether there is still class that uses that parent
-        ExpenseTypeModel.fetch(expense.id).then((children) => {
-          if (children.length == 0) {
-            ExpenseTypeModel.delete(expense.id, req.body.userId)
-              .then((result_delete) => {
-                io.emit("deleteExpenseType", result_delete);
-                return res.status(201).send(result_delete);
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          } else {
-            return res.status(500).send("Data tidak dapat dihapus karena ada jenis pengeluaran yang menggunakan data ini.");
-          }
-        }).catch(error => {
-          return res.status(500).send(error);
-        })
-      } else {
-        // Data is a child
-        // Check whether there is still expense data that uses this type
-        ExpenseModel.countByType(expense.id).then(expenses => {
-          if(expenses == 0){
-            ExpenseTypeModel.delete(expense.id, req.body.userId)
-              .then((result_delete) => {
-                io.emit("deleteExpenseType", result_delete);
-                return res.status(201).send(result_delete);
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          } else {
-            return res.status(500).send("Data tidak dapat dihapus karena ada pengeluaran yang menggunakan data ini.");
-          }
-        }).catch(error => {
-          return res.status(500).send(error);
-        })
-      }
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
+        if (expense.parent_id == null) {
+          // Data is a parent
+          // Check whether there is still class that uses that parent
+          ExpenseTypeModel.fetch(expense.id)
+            .then((children) => {
+              if (children.length == 0) {
+                ExpenseTypeModel.delete(expense.id, req.body.userId)
+                  .then((result_delete) => {
+                    io.emit("deleteExpenseType", result_delete);
+                    return res.status(201).send(result_delete);
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
+                  });
+              } else {
+                return res
+                  .status(500)
+                  .send(
+                    "Data tidak dapat dihapus karena ada jenis pengeluaran yang menggunakan data ini."
+                  );
+              }
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        } else {
+          // Data is a child
+          // Check whether there is still expense data that uses this type
+          ExpenseModel.countByType(expense.id)
+            .then((expenses) => {
+              if (expenses == 0) {
+                ExpenseTypeModel.delete(expense.id, req.body.userId)
+                  .then((result_delete) => {
+                    io.emit("deleteExpenseType", result_delete);
+                    return res.status(201).send(result_delete);
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
+                  });
+              } else {
+                return res
+                  .status(500)
+                  .send(
+                    "Data tidak dapat dihapus karena ada pengeluaran yang menggunakan data ini."
+                  );
+              }
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static fetchType = (req: Request, res: Response) => {

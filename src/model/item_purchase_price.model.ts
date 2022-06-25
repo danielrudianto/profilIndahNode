@@ -243,18 +243,18 @@ class ItemPurchasePriceModel {
     });
   }
 
-  static deleteItems(item_ids: number[], created_by: number){
+  static deleteItems(item_ids: number[], created_by: number) {
     return prisma.item_price_purchase.updateMany({
-        where:{
-            item_id: {
-                in: item_ids
-            }
+      where: {
+        item_id: {
+          in: item_ids,
         },
-        data: {
-            is_delete: true,
-            deleted_by: created_by
-        }
-    })
+      },
+      data: {
+        is_delete: true,
+        deleted_by: created_by,
+      },
+    });
   }
 }
 

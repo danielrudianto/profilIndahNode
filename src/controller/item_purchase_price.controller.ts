@@ -41,32 +41,40 @@ class ItemPurchasePriceController {
       });
     });
   };
-  
+
   static create = (req: Request, res: Response) => {
     const item_id = req.body.item_id;
     const price = req.body.price;
     const created_by = req.body.userId;
 
-    const item_purchase_price = new ItemPurchasePriceModel(price, item_id, created_by);
+    const item_purchase_price = new ItemPurchasePriceModel(
+      price,
+      item_id,
+      created_by
+    );
     const create_item = item_purchase_price.create();
-    const delete_item = ItemPurchasePriceModel.deleteItems([item_id], created_by);
+    const delete_item = ItemPurchasePriceModel.deleteItems(
+      [item_id],
+      created_by
+    );
     const select_item = ItemModel.fetchById(item_id, new Date());
 
     const transaction = new QueryTransactionHelper();
-    transaction.create([
-        create_item,
-        delete_item,
-        select_item
-    ]).then(result => {
-        ItemPurchasePriceModel.fetchByReference(result[2].reference).then(item_purchase => {
+    transaction
+      .create([create_item, delete_item, select_item])
+      .then((result) => {
+        ItemPurchasePriceModel.fetchByReference(result[2].reference)
+          .then((item_purchase) => {
             io.emit("updatePurchasingPrice", item_purchase);
             return res.status(201).send(item_purchase);
-        }).catch(error => {
+          })
+          .catch((error) => {
             return res.status(500).send(error);
-        })
-    }).catch(error => {
+          });
+      })
+      .catch((error) => {
         return res.status(500).send(error);
-    })
+      });
   };
 
   static createBulk = (req: Request, res: Response) => {
@@ -86,39 +94,50 @@ class ItemPurchasePriceController {
       count++;
     });
 
-    ItemModel.fetchByReferences(references).then((items) => {
-      if (items.length != count) {
-        res
-          .status(500)
-          .send(
-            `${
-              items.length - count
-            } barang tidak terdefinisi. Mohon cek kembali input anda`
-          );
-      } else {
-        const transactions: any[] = [];
-        const item_ids: number[] = [];
+    ItemModel.fetchByReferences(references)
+      .then((items) => {
+        if (items.length != count) {
+          res
+            .status(500)
+            .send(
+              `${
+                items.length - count
+              } barang tidak terdefinisi. Mohon cek kembali input anda`
+            );
+        } else {
+          const transactions: any[] = [];
+          const item_ids: number[] = [];
 
-        references.forEach((reference, index) => {
-          item_ids.push(items.filter((x) => x.reference == reference)[0].id);
-          const create_item_purchase_price = new ItemPurchasePriceModel(price_object[index].price, items.filter((x) => x.reference == reference)[0].id, req.body.userId);
-          transactions.push(create_item_purchase_price.create());
-        });
+          references.forEach((reference, index) => {
+            item_ids.push(items.filter((x) => x.reference == reference)[0].id);
+            const create_item_purchase_price = new ItemPurchasePriceModel(
+              price_object[index].price,
+              items.filter((x) => x.reference == reference)[0].id,
+              req.body.userId
+            );
+            transactions.push(create_item_purchase_price.create());
+          });
 
-        ItemPurchasePriceModel.deleteItems(item_ids, req.body.userId).then(() => {
-            const transaction = new QueryTransactionHelper();
-            transaction.create(transactions).then(result => {
-                return res.status(201).send(result);
-            }).catch(error => {
-                return res.status(500).send(error);
+          ItemPurchasePriceModel.deleteItems(item_ids, req.body.userId)
+            .then(() => {
+              const transaction = new QueryTransactionHelper();
+              transaction
+                .create(transactions)
+                .then((result) => {
+                  return res.status(201).send(result);
+                })
+                .catch((error) => {
+                  return res.status(500).send(error);
+                });
             })
-        }).catch(error => {
-            return res.status(500).send(error);
-        })
-      }
-    }).catch(error => {
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
         return res.status(500).send(error);
-    })
+      });
   };
 }
 

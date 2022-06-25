@@ -2,12 +2,11 @@ import { Router } from "express";
 import AuthController from "../controller/auth.controller";
 import UserController from "../controller/user.controller";
 
-
 const router = Router();
 
 router.get("/roles", AuthController.fetchRoles);
 router.get("/profile", AuthController.fetchProfile);
-router.get("/fetchById/:id", UserController.fetchById)
+router.get("/fetchById/:id", UserController.fetchById);
 router.get("/", UserController.fetch);
 
 router.post("/", UserController.create);
