@@ -24,6 +24,17 @@ export class BrandModel {
         created_by: this.created_by,
         created_at: this.created_at,
       },
+      select: {
+        id: true,
+        name: true,
+        created_by: true,
+        created_at: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
   }
 
@@ -34,11 +45,46 @@ export class BrandModel {
       },
       data: {
         name: this.name,
+        updated_at: this.created_at,
+        updated_by: this.created_by,
       },
       select: {
         id: true,
         name: true,
         created_at: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+        updated_at: true,
+        updated_by: true,
+        user_item_brand_updated_byTouser: {
+          select: {
+            name: true,
+          },
+        },
+      },
+    });
+  }
+
+  static delete(id: number, created_by: number) {
+    return prisma.item_brand.update({
+      where: {
+        id: id,
+      },
+      data: {
+        deleted_at: new Date(),
+        deleted_by: created_by,
+        is_delete: true,
+      },
+      include: {
+        user_item_brand_deleted_byTouser: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         user: {
           select: {
             name: true,
@@ -49,33 +95,35 @@ export class BrandModel {
   }
 
   static getByName(name: string) {
-    return prisma.item_brand.findUnique({
+    return prisma.item_brand.findFirst({
       where: {
         name: name,
+        is_delete: false,
       },
     });
   }
 
   static fetchById(id: number) {
-    return prisma.item_brand.findUnique({
-      where: {
-        id: id,
-      },
-      select: {
-        id: true,
-        name: true,
-        created_by: true,
-        user: {
-          select: {
-            name: true,
+    return prisma.$transaction([
+      prisma.item_brand.findUnique({
+        where: {
+          id: id,
+        },
+        include: {
+          user: {
+            select: {
+              name: true,
+            },
           },
         },
-        created_at: true,
-        is_delete: true,
-        deleted_by: true,
-        deleted_at: true,
-      },
-    });
+      }),
+      prisma.item.count({
+        where:{
+          item_brand_id: id,
+          is_delete: false
+        }
+      })
+    ]);
   }
 
   static getAutocomplete(keyword: string) {
@@ -103,15 +151,12 @@ export class BrandModel {
           },
           take: limit,
           skip: offset,
-          select: {
-            id: true,
-            name: true,
-            created_at: true,
+          include: {
             user: {
               select: {
                 name: true,
               },
-            },
+            }
           },
         }),
         prisma.item_brand.count({
@@ -134,13 +179,15 @@ export class BrandModel {
           },
           take: limit,
           skip: offset,
-          select: {
-            id: true,
-            name: true,
-            created_at: true,
+          include: {
             user: {
               select: {
                 name: true,
+              },
+            },
+            _count: {
+              select: {
+                item: true,
               },
             },
           },

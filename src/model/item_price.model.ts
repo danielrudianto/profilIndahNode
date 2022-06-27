@@ -47,9 +47,15 @@ class ItemPriceModel {
         is_delete: true,
         user: {
           select: {
+            id: true,
             name: true,
           },
         },
+        item: {
+          select: {
+            reference: true
+          }
+        }
       },
     });
   }

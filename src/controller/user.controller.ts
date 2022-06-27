@@ -1,5 +1,6 @@
 import { hash } from "bcryptjs";
 import { Request, Response } from "express";
+import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import UserModel from "../model/user.model";
@@ -54,13 +55,20 @@ class UserController {
                     password: password,
                     role: UserModel.roles.filter(
                       (x) => x.id == user_role_create.role
-                    )[0],
+                    )[0].name,
+                    user: user_create.user,
                   };
 
-                  const socket = new SocketHelper("createUser", {
-                    data: user_object,
-                  });
+                  const socket = new SocketHelper("createUser", user_object);
                   socket.create();
+
+                  LogHelper.log(
+                    new Date(),
+                    "info",
+                    `${user_create.user?.name} created user with username ${user_create.username} (ID: ${user_create.id})`,
+                    "User - Create",
+                    req.body.userId
+                  );
 
                   return res.status(201).send({
                     name: user_create.name,
@@ -73,10 +81,26 @@ class UserController {
                   });
                 })
                 .catch((error) => {
+                  LogHelper.log(
+                    new Date(),
+                    "error",
+                    error,
+                    "User - Create",
+                    req.body.userId
+                  );
+
                   return res.status(500).send(error);
                 });
             })
             .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                error,
+                "User - Create",
+                req.body.userId
+              );
+
               return res.status(500).send(error);
             });
         })
@@ -163,7 +187,7 @@ class UserController {
           const userRoleModel = new UserRoleModel(id, role[0].id);
           new QueryTransactionHelper()
             .create([
-              UserModel.update(id, name, hashedPassword),
+              UserModel.update(id, name, hashedPassword, req.body.userId),
               userRoleModel.update(),
             ])
             .then((result) => {
@@ -201,24 +225,46 @@ class UserController {
           return res.status(404).send("Pengguna tidak ditemukan.");
         }
 
-        UserModel.toggleActive(user.id, !user.is_active)
-          .then(() => {
+        UserModel.delete(user.id, !user.is_active, req.body.userId)
+          .then((user_delete) => {
             // If user was active and no longer active
             // Log him / her out from our system immidiately
             if (user.is_active) {
-              const socket = new SocketHelper("userInactive", {
-                username: user.username,
-              });
+              LogHelper.log(
+                new Date(),
+                "info",
+                `${user_delete.user_userTouser_deleted_by?.name} deleted user with username ${user_delete.username} (ID: ${user_delete.id})`,
+                "User - Delete",
+                req.body.userId
+              );
+
+              const socket = new SocketHelper("deleteUser", user_delete);
               socket.create();
             }
 
-            return res.status(201).send("Status berhasil dirubah.");
+            return res.status(201).send(user_delete);
           })
           .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "User - Delete",
+              req.body.userId
+            );
+
             return res.status(500).send(error);
           });
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "User - Delete",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };

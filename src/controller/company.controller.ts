@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
+import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../helper/socket.connection.helper";
 import CompanyModel from "../model/company.model";
+import GoodReceiptModel from "../model/good_receipt.model";
 
 class CompanyController {
-  static get = (req: Request, res: Response) => {
+  static fetch = (req: Request, res: Response) => {
     const page = !req.query.page
       ? 1
       : Math.max(parseInt(req.query.page.toString()), 1);
@@ -14,12 +16,46 @@ class CompanyController {
 
     CompanyModel.fetch(keyword, offset, limit)
       .then((result) => {
-        return res.status(200).send({
-          data: result[0],
-          count: result[1],
-        });
+        GoodReceiptModel.countByCompanyIds(
+          result[0].map((x) => {
+            return x.id;
+          })
+        )
+          .then((counts) => {
+            return res.status(200).send({
+              data: result[0].map((x) => {
+                return {
+                  ...x,
+                  can_delete:
+                    counts.filter((count) => count.company_id == x.id).length ==
+                    0
+                      ? true
+                      : counts.filter((count) => count.company_id == x.id)[0]
+                          ._count == 0,
+                };
+              }),
+              count: result[1],
+            });
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Company - Fetch",
+              req.body.userId
+            );
+          });
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Company - Fetch",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -37,25 +73,57 @@ class CompanyController {
 
   static delete = (req: Request, res: Response) => {
     const id = parseInt(req.params.companyId);
-    CompanyModel.fetchById(id).then((company) => {
-      if (company == null || company?.is_delete) {
-        return res
-          .status(404)
-          .send("Perusahaan tidak ditemukan atau sudah dihapus.");
-      }
+    CompanyModel.fetchById(id)
+      .then((company) => {
+        if (company == null || company?.is_delete) {
+          return res
+            .status(404)
+            .send("Perusahaan tidak ditemukan atau sudah dihapus.");
+        }
 
-      CompanyModel.delete(id, req.body.userId).then((company_result) => {
-        CompanyModel.count()?.then((company_count) => {
-          io.emit("deleteCompany", {
-            name: company_result.name,
-            id: company_result.id,
-            count: company_count,
+        CompanyModel.delete(id, req.body.userId)
+          .then((company_result) => {
+            CompanyModel.count()?.then((company_count) => {
+              LogHelper.log(
+                new Date(),
+                "info",
+                `${company_result.user_company_deleted_byTouser?.name} deleted company with the name ${company_result.name} (ID: ${company_result.id})`,
+                "Company - Delete",
+                req.body.userId
+              );
+
+              io.emit("deleteCompany", {
+                name: company_result.name,
+                id: company_result.id,
+                count: company_count,
+              });
+
+              return res.status(201).send(company_result);
+            });
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              `${error}`,
+              `Item - Delete`,
+              req.body.userId
+            );
+
+            return res.status(500).send(error);
           });
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          `${error}`,
+          `Item - Delete`,
+          req.body.userId
+        );
 
-          return res.status(201).send(company_result);
-        });
+        return res.status(500).send(error);
       });
-    });
   };
 
   static update = (req: Request, res: Response) => {
@@ -91,15 +159,38 @@ class CompanyController {
         company
           .update()
           .then((company_result) => {
+            LogHelper.log(
+              new Date(),
+              "info",
+              `${company_result.user_company_updated_byTouser?.name} updated company with the name ${company_result.name} (ID: ${company_result}`,
+              "Company - Update",
+              req.body.userId
+            );
             io.emit("updateCompany", company_result);
 
             return res.status(201).send(company_result);
           })
           .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Company - Update",
+              req.body.userId
+            );
+
             return res.status(500).send(error);
           });
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Company - Update",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -120,20 +211,27 @@ class CompanyController {
     company
       .create()
       .then((result) => {
-        CompanyModel.count()
-          .then((count) => {
-            io.emit("createCompany", {
-              data: result,
-              count: count,
-            });
+        LogHelper.log(
+          new Date(),
+          "info",
+          `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`,
+          "Company - Create",
+          req.body.userId
+        );
 
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
+        io.emit("createCompany", { ...result, can_delete: true });
+
+        return res.status(201).send(result);
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Company - Create",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -150,6 +248,14 @@ class CompanyController {
         });
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Company - Fetch by ID",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };

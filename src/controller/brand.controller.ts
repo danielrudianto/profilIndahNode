@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
+import LogHelper from "../helper/log.helper";
 import SocketHelper from "../helper/socket.helper";
 import { BrandModel } from "../model/brand.model";
 import { ItemModel } from "../model/item.model";
 
 class BrandController {
-  static getAutocomplete = (req: Request, res: Response) => {
+  static fetchAutocomplete = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     BrandModel.getAutocomplete(keyword)
       .then((result) => {
@@ -19,9 +19,7 @@ class BrandController {
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
 
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([BrandModel.fetchById(id), ItemModel.countByBrandId(id)])
+    BrandModel.fetchById(id)
       .then((result) => {
         return res.status(200).send({
           ...result[0],
@@ -33,7 +31,7 @@ class BrandController {
       });
   };
 
-  static get = (req: Request, res: Response) => {
+  static fetch = (req: Request, res: Response) => {
     const page = !req.query.page
       ? 1
       : Math.max(1, parseInt(req.query.page.toString()));
@@ -43,12 +41,47 @@ class BrandController {
 
     BrandModel.get(keyword, offset, limit)
       .then((result) => {
-        return res.status(200).send({
-          data: result[0],
-          count: result[1],
-        });
+        ItemModel.countByBrandIds(
+          result[0].map((x) => {
+            return x.id;
+          })
+        )
+          .then((count) => {
+            return res.status(200).send({
+              data: result[0].map((item) => {
+                return {
+                  ...item,
+                  _count: undefined,
+                  can_delete:
+                    count.filter((x) => x.item_brand_id == item.id).length == 0
+                      ? true
+                      : (count.filter(
+                          (x) => x.item_brand_id == item.id
+                        )[0]._count == 0),
+                };
+              }),
+              count: result[1],
+            });
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Brand - Fetch",
+              req.body.userId
+            );
+          });
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Brand - Fetch",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -57,22 +90,41 @@ class BrandController {
     const name = req.body.name;
     BrandModel.getByName(name).then((brand) => {
       if (brand != null) {
-        return res.status(500).send("Mohon masukkan nama merek unik.");
+        return res.status(400).send("Mohon masukkan nama merek unik.");
+      } else {
+        const brand_object = new BrandModel(name, req.body.userId);
+        brand_object
+          .create()
+          .then((brand_result) => {
+            LogHelper.log(
+              new Date(),
+              "info",
+              `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`,
+              `Brand - Create`,
+              req.body.userId
+            );
+
+            const socket = new SocketHelper("createBrand", {
+              ...brand_result,
+              can_delete: true,
+            });
+            socket.create();
+
+            return res.status(201).send(brand_result);
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              `${error}`,
+              `Brand - Create`,
+              req.body.userId
+            );
+
+            return res.status(500).send(error);
+          });
       }
     });
-
-    const brand_object = new BrandModel(name, req.body.userId);
-    brand_object
-      .create()
-      .then((brand_result) => {
-        const socket = new SocketHelper("createBrand", brand_result);
-        socket.create();
-
-        return res.status(201).send(brand_result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
   };
 
   static update = (req: Request, res: Response) => {
@@ -80,9 +132,10 @@ class BrandController {
     const name = req.body.name;
 
     BrandModel.fetchById(id)
-      .then((brand) => {
+      .then((brand_result) => {
+        const brand = brand_result[0];
         if (brand == null || brand.is_delete) {
-          return res.status(404).send("Data tidak ditemukan.");
+          return res.status(400).send("Data tidak ditemukan.");
         }
 
         const update_brand = new BrandModel(name, brand.created_by, id);
@@ -92,10 +145,25 @@ class BrandController {
             const socket = new SocketHelper("updateBrand", result);
             socket.create();
 
+            LogHelper.log(
+              new Date(),
+              "info",
+              `${result.user_item_brand_updated_byTouser?.name} updated brand with the name ${result.name} (ID: ${result.id})`,
+              `Brand - Create`,
+              req.body.userId
+            );
+
             return res.status(201).send(result);
           })
           .catch((error) => {
-            console.log(error);
+            LogHelper.log(
+              new Date(),
+              "error",
+              `${error}`,
+              `Brand - Update`,
+              req.body.userId
+            );
+
             return res.status(500).send(error);
           });
       })
@@ -106,11 +174,52 @@ class BrandController {
 
   static delete = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const validation = BrandModel.checkDeleteById(id);
-    if (!validation) {
-      return res.status(500).send("Merek tidak dapat dihapus.");
-    } else {
-    }
+    BrandModel.fetchById(id)
+      .then((brand_result) => {
+        const brand = brand_result[0];
+        const count = brand_result[1];
+        if (brand == null || count > 0) {
+          return res.status(500).send("Merek tidak dapat dihapus.");
+        } else {
+          BrandModel.delete(id, req.body.userId)
+            .then((result) => {
+              const socket = new SocketHelper("deleteBrand", result);
+              socket.create();
+
+              LogHelper.log(
+                new Date(),
+                "info",
+                `${result.user_item_brand_deleted_byTouser?.name} deleted brand with the name ${result.name} (ID: ${result.id})`,
+                `Brand - Delete`,
+                req.body.userId
+              );
+
+              return res.status(201).send(result);
+            })
+            .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                `${error})`,
+                `Brand - Delete`,
+                req.body.userId
+              );
+
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          `${error})`,
+          `Brand - Delete`,
+          req.body.userId
+        );
+
+        return res.status(500).send(error);
+      });
   };
 }
 

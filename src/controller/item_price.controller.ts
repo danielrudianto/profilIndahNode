@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../helper/socket.connection.helper";
 import { ItemModel } from "../model/item.model";
@@ -23,19 +24,47 @@ class ItemPriceController {
       req.body.userId
     );
     const item_price_create = item_price.create();
-    const item_price_update = ItemPriceModel.deleteById(
+    const item_price_delete = ItemPriceModel.deleteById(
       item_id,
       req.body.userId
     );
 
     const transaction = new QueryTransactionHelper();
     transaction
-      .create([item_price_create, item_price_update])
+      .create([item_price_create, item_price_delete])
       .then((result) => {
         ItemModel.fetchById(result[1].item_id, date).then((item) => {
+          LogHelper.log(
+            new Date(),
+            "info",
+            `${result[0].user.name} added sales item price for item ${result[0].item.reference} (ID: ${result[0].item.id}) with the price ${result[0].price} and discount (${result[0].discount} / ${result[0].discount_project}`,
+            "Item Price - Create",
+            req.body.userId
+          );
+
           io.emit("updatePrice", item);
           return res.status(200).send(result[1]);
-        });
+        }).catch(error => {
+          LogHelper.log(
+            new Date(),
+            "error",
+            error,
+            "Item Price - Create",
+            req.body.userId
+          );
+
+          return res.status(500).send(error);
+        })
+      }).catch(error => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Item Price - Create",
+          req.body.userId
+        );
+        
+        return res.status(500).send(error);
       });
   };
 

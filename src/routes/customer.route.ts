@@ -9,10 +9,6 @@ router.post(
   body("name").not().isEmpty().withMessage("Nama wajib diisi."),
   body("address").not().isEmpty().withMessage("Alamat wajib diisi."),
   body("pic").not().isEmpty().withMessage("PIC wajib diisi."),
-  body("phone_number")
-    .not()
-    .isEmpty()
-    .withMessage("Nomor telepon wajib diisi."),
   CustomerController.create
 );
 
@@ -22,10 +18,6 @@ router.put(
   body("name").not().isEmpty().withMessage("Nama wajib diisi."),
   body("address").not().isEmpty().withMessage("Alamat wajib diisi."),
   body("pic").not().isEmpty().withMessage("PIC wajib diisi."),
-  body("phone_number")
-    .not()
-    .isEmpty()
-    .withMessage("Nomor telepon wajib diisi."),
   CustomerController.update
 );
 
@@ -36,8 +28,13 @@ router.delete(
 );
 
 router.get(
+  "/:id",
+  param("id").not().isEmpty().withMessage("ID konsumen wajib diisi."),
+  CustomerController.fetchById
+);
+
+router.get(
   "/autocomplete",
-  [query("keyword").not().isEmpty().withMessage("")],
   CustomerController.fetchAutocomplete
 );
 

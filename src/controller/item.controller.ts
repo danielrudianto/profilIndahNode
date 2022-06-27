@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
+import { BrandModel } from "../model/brand.model";
+import { ItemModel } from "../model/item.model";
+
+import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
-import BillModel from "../model/bill.model";
-import { BrandModel } from "../model/brand.model";
-import GoodReceiptModel from "../model/good_receipt.model";
-import { ItemModel } from "../model/item.model";
 import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 
@@ -26,7 +26,7 @@ class ItemController {
           .then((itemCheck) => {
             // There is an item exist with the same reference
             if (itemCheck != null) {
-              return res.status(500).send("Referensi tidak unik.");
+              return res.status(400).send("Referensi tidak unik.");
             }
 
             const item: ItemModel = new ItemModel(
@@ -40,6 +40,14 @@ class ItemController {
             item
               .create()
               .then((result) => {
+                LogHelper.log(
+                  new Date(),
+                  "info",
+                  `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`,
+                  `Item - Create`,
+                  req.body.userId
+                );
+
                 const item_price = new ItemPriceModel(
                   req.body.price,
                   req.body.discount,
@@ -59,55 +67,152 @@ class ItemController {
                     item_purchase_price.create(),
                     ItemModel.count(),
                   ])
-                  .then((result) => {
+                  .then((item_price) => {
                     const item_object = {
                       ...result,
-                      item_price: [result[0]],
-                      item_price_purchase: [result[1]],
+                      item_price: [item_price[0]],
+                      item_price_purchase: [item_price[1]],
                     };
 
-                    const socket = new SocketHelper("createItem", {
-                      data: item_object,
-                      count: result[2],
-                    });
-                    socket.create();
-                    return res.status(201).send(result);
+                    LogHelper.log(
+                      new Date(),
+                      "info",
+                      `${result.user.name} created item sales price for item with reference ${result.reference} (ID: ${result.id})`,
+                      `Item - Create`,
+                      req.body.userId
+                    );
+
+                    LogHelper.log(
+                      new Date(),
+                      "info",
+                      `${result.user.name} created item purchase price for item with reference ${result.reference} (ID: ${result.id})`,
+                      `Item - Create`,
+                      req.body.userId
+                    );
+
+                    const itemSocket = new SocketHelper(
+                      "createItem",
+                      item_object
+                    );
+                    itemSocket.create();
+
+                    ItemModel.countByBrandId(brand.id)
+                      .then((count_brand) => {
+                        const itemSocket = new SocketHelper("createItemBrand", {
+                          brand_id: brand.id,
+                          can_delete: count_brand == 0 ? true : false,
+                        });
+                        itemSocket.create();
+
+                        return res.status(201).send(result);
+                      })
+                      .catch((error) => {
+                        LogHelper.log(
+                          new Date(),
+                          "error",
+                          error,
+                          `Item - Create`,
+                          req.body.userId
+                        );
+                      });
                   });
               })
               .catch((error) => {
+                LogHelper.log(
+                  new Date(),
+                  "error",
+                  `${error}`,
+                  `Item - Create`,
+                  req.body.userId
+                );
+
                 return res.status(500).send(error);
               });
           })
           .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              `${error}`,
+              `Item - Create`,
+              req.body.userId
+            );
+
             return res.status(500).send(error);
           });
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          `${error}`,
+          `Item - Create`,
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
 
   static delete = (req: Request, res: Response) => {
     const reference = req.params.itemReference;
-    const validation = ItemModel.checkDeleteByReference(reference);
 
     ItemModel.fetchByReference(reference).then((item) => {
       if (item == null || item.is_delete) {
         return res.status(404).send("Barang tidak ditemukan.");
-      }
-
-      if (validation) {
-        const count = ItemModel.delete(item!.id, req.body.userId);
-        const socket = new SocketHelper("deleteItem", {
-          id: item.id,
-          reference: item.reference,
-          count: count,
-        });
-        socket.create();
-
-        return res.status(201).send("Hapus barang berhasil.");
       } else {
-        return res.status(500).send("Penghapusan data barang tidak diijinkan.");
+        ItemModel.checkDeleteByReference(reference)
+          .then((count) => {
+            if (count[0] == 0 && count[1] == 0) {
+              ItemModel.delete(item!.id, req.body.userId).then(
+                (delete_result) => {
+                  const socket = new SocketHelper("deleteItem", delete_result);
+                  socket.create();
+
+                  LogHelper.log(
+                    new Date(),
+                    "info",
+                    `${delete_result.user.name} deleted item with reference ${delete_result.reference} (ID: ${delete_result.id})`,
+                    "Item controller - Delete",
+                    req.body.userId
+                  );
+
+                  ItemModel.countByBrandId(delete_result.item_brand_id)
+                    .then((count_brand) => {
+                      const itemSocket = new SocketHelper("deleteItemBrand", {
+                        brand_id: delete_result.item_brand_id,
+                        can_delete: count_brand == 0 ? true : false,
+                      });
+                      itemSocket.create();
+
+                      return res.status(201).send(delete_result);
+                    })
+                    .catch((error) => {
+                      LogHelper.log(
+                        new Date(),
+                        "error",
+                        error,
+                        `Item - Create`,
+                        req.body.userId
+                      );
+                    });
+                }
+              );
+            } else {
+              return res
+                .status(400)
+                .send("Penghapusan data barang tidak diijinkan.");
+            }
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              `Error`,
+              `${error}`,
+              `Item controller - Delete`,
+              req.body.userId
+            );
+          });
       }
     });
   };
@@ -122,30 +227,59 @@ class ItemController {
     BrandModel.getByName(brand_name)
       .then((brand) => {
         if (brand == null || brand.is_delete) {
-          return res.status(404).send("Merek tidak ditemukan.");
+          return res.status(400).send("Merek tidak ditemukan.");
         } else {
-          ItemModel.fetchById(id, new Date()).then((item) => {
-            if (item == null || item.is_delete) {
-              return res.status(404).send("Barang tidak ditemukan.");
-            } else {
-              const item_model = new ItemModel(
-                reference,
-                description,
-                minimum_stock,
-                brand!.id,
-                req.body.userId,
-                id
+          ItemModel.fetchById(id, new Date())
+            .then((item) => {
+              if (item == null || item.is_delete) {
+                return res.status(404).send("Barang tidak ditemukan.");
+              } else {
+                const item_model = new ItemModel(
+                  reference,
+                  description,
+                  minimum_stock,
+                  brand!.id,
+                  req.body.userId,
+                  id
+                );
+                item_model
+                  .update()
+                  .then((result) => {
+                    LogHelper.log(
+                      new Date(),
+                      "info",
+                      `${result.user_item_updated_byTouser?.name} updated item with reference ${result.reference} (ID: ${result.id})`,
+                      `Item - Update`,
+                      req.body.userId
+                    );
+
+                    const socket = new SocketHelper("updateItem", result);
+                    socket.create();
+
+                    return res.status(200).send(result);
+                  })
+                  .catch((error) => {
+                    LogHelper.log(
+                      new Date(),
+                      "error",
+                      `${error}`,
+                      `Item - Update`,
+                      req.body.userId
+                    );
+
+                    return res.status(500).send(error);
+                  });
+              }
+            })
+            .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                `${error}`,
+                `Item - Update`,
+                req.body.userId
               );
-              item_model
-                .update()
-                .then((result) => {
-                  return res.status(200).send(result);
-                })
-                .catch((error) => {
-                  return res.status(500).send(error);
-                });
-            }
-          });
+            });
         }
       })
       .catch((error) => {
@@ -168,7 +302,16 @@ class ItemController {
     ItemModel.fetch(keyword, date, offset, limit)
       .then((result) => {
         return res.status(200).send({
-          data: result[0],
+          data: result[0].map((item) => {
+            return {
+              ...item,
+              _count: undefined,
+              can_delete:
+                item._count.bill > 0 || item._count.good_receipt > 0
+                  ? false
+                  : true,
+            };
+          }),
           count: result[1],
         });
       })
@@ -183,18 +326,21 @@ class ItemController {
     date.setDate(date.getDate() + 1);
     date.setHours(0, 0, 0);
 
-    const item = ItemModel.fetchByReference(reference);
-    const good_receipt_count = GoodReceiptModel.countItemByReference(reference);
-    const bill_code = BillModel.countItemByReference(reference);
-
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([item, good_receipt_count, bill_code])
-      .then((result) => {
-        res.status(200).send({
-          ...result[0],
-          can_delete: result[1] + result[2] == 0 ? true : false,
-        });
+    ItemModel.fetchByReference(reference)
+      .then((item) => {
+        if (item == null) {
+          return res.status(404).send("Barang tidak ditemukan.");
+        } else {
+          res.status(200).send({
+            ...item,
+            _count: undefined,
+            can_delete:
+              (item?._count.bill || 0) > 0 ||
+              (item?._count.good_receipt || 0) > 0
+                ? false
+                : true,
+          });
+        }
       })
       .catch((error) => {
         res.status(500).send(error);

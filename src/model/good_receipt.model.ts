@@ -252,6 +252,32 @@ class GoodReceiptModel {
       },
     });
   }
+
+  static countByCompanyIds(company_ids: number[]){
+    return prisma.good_receipt_code.groupBy({
+      by: ["company_id"],
+      where:{
+        company_id: {
+          in: company_ids
+        },
+        is_delete: false
+      },
+      _count: true
+    });
+  }
+
+  static countBySupplierIds(supplier_ids: number[]){
+    return prisma.good_receipt_code.groupBy({
+      by: ["supplier_id"],
+      where: {
+        supplier_id: {
+          in: supplier_ids
+        },
+        is_delete: false
+      },
+      _count: true
+    })
+  }
 }
 
 export default GoodReceiptModel;

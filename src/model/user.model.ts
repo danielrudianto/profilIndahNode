@@ -63,6 +63,17 @@ class UserModel {
         nik: this.nik,
         created_by: this.created_by,
       },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        nik: true,
+        user: {
+          select: {
+            name: true
+          }
+        }
+      }
     });
   }
 
@@ -197,7 +208,26 @@ class UserModel {
     });
   }
 
-  static update(id: number, name: string, password: string) {
+  static fetchByUsername(username: string) {
+    return prisma.user.findUnique({
+      select: {
+        id: true,
+        name: true,
+        password: true,
+        is_active: true,
+        user_department: {
+          select: {
+            role: true,
+          },
+        },
+      },
+      where: {
+        username: username,
+      },
+    });
+  }
+
+  static update(id: number, name: string, password: string, created_by: number) {
     return prisma.user.update({
       where: {
         id: id,
@@ -205,18 +235,34 @@ class UserModel {
       data: {
         name: name,
         password: password,
+        updated_by: created_by,
+        updated_at: new Date()
       },
     });
   }
 
-  static toggleActive(user_id: number, status: boolean) {
+  static delete(user_id: number, status: boolean, created_by: number) {
     return prisma.user.update({
       where: {
         id: user_id,
       },
       data: {
         is_active: status,
+        deleted_at: new Date(),
+        deleted_by: created_by,
       },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        nik: true,
+        user_userTouser_deleted_by: {
+          select: {
+            name: true,
+            id: true
+          }
+        },
+      }
     });
   }
 }

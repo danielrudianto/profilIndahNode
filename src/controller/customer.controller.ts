@@ -1,6 +1,9 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
+import LogHelper from "../helper/log.helper";
+import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
+import BillModel from "../model/bill.model";
 import CustomerModel from "../model/customer.model";
 
 class CustomerController {
@@ -27,12 +30,31 @@ class CustomerController {
     customer
       .create()
       .then((result) => {
-        const socket = new SocketHelper("createCustomer", result);
+        LogHelper.log(
+          new Date(),
+          "info",
+          `${result.user.name} created customer with the name ${result.name} (ID: ${result.id})`,
+          "Customer - Create",
+          req.body.userId
+        );
+
+        const socket = new SocketHelper("createCustomer", {
+          ...result,
+          can_delete: true,
+        });
         socket.create();
 
         return res.status(201).send(result);
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Customer - Create",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -62,12 +84,27 @@ class CustomerController {
     customer
       .update()
       .then((result) => {
+        LogHelper.log(
+          new Date(),
+          "info",
+          `${result.user_customer_updated_byTouser?.name} updated customer with the name ${result.name} (ID: ${result.id})`,
+          "Customer - Update",
+          req.body.userId
+        );
         const socket = new SocketHelper("updateCustomer", result);
         socket.create();
 
         return res.status(201).send(result);
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Customer - Update",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -79,19 +116,42 @@ class CustomerController {
     }
 
     const id = parseInt(req.params.id.toString());
-    const validation = CustomerModel.checkDeleteById(id);
-    if (validation) {
-      CustomerModel.delete(id, req.body.userId)
-        .then((customer) => {
-          const socket = new SocketHelper("deleteCustomer", customer);
-          socket.create();
+    BillModel.countByCustomerId(id).then((count) => {
+      if (count == 0) {
+        CustomerModel.delete(id, req.body.userId)
+          .then((customer) => {
+            LogHelper.log(
+              new Date(),
+              "info",
+              `${customer.user_customer_deleted_byTouser?.name} deleted customer with the name ${customer.name} (ID: ${customer.id})`,
+              "Customer - Delete",
+              req.body.userId
+            );
 
-          return res.status(201).send(customer);
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    }
+            const socket = new SocketHelper("deleteCustomer", customer);
+            socket.create();
+
+            return res.status(201).send(customer);
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Customer - Delete",
+              req.body.userId
+            );
+
+            return res.status(500).send(error);
+          });
+      } else {
+        return res
+          .status(400)
+          .send(
+            "Konsumen tidak dapat dihapus karena terdapat bon dengan konsumen tersebut."
+          );
+      }
+    });
   };
 
   static fetchAutocomplete = (req: Request, res: Response) => {
@@ -106,6 +166,14 @@ class CustomerController {
         return res.status(200).send(result);
       })
       .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Customer - Fetch autocomplete",
+          req.body.userId
+        );
+
         return res.status(500).send(error);
       });
   };
@@ -120,9 +188,76 @@ class CustomerController {
 
     CustomerModel.fetch(keyword, offset, limit)
       .then((result) => {
-        return res.status(201).send({
-          data: result[0],
-          count: result[1],
+        BillModel.countByCustomerIds(
+          result[0].map((x) => {
+            return x.id;
+          })
+        )
+          .then((count) => {
+            return res.status(201).send({
+              data: result[0].map((item) => {
+                return {
+                  ...item,
+                  can_delete:
+                    count.filter((x) => x.customer_id == item.id).length == 0
+                      ? true
+                      : count.filter((x) => x.customer_id == item.id)[0]
+                          ._count == 0,
+                };
+              }),
+              count: result[1],
+            });
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Customer - Fetch",
+              req.body.userId
+            );
+
+            return res.status(500).send(error);
+          });
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Customer - Fetch",
+          req.body.userId
+        );
+
+        return res.status(500).send(error);
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Customer - Fetch",
+          req.body.userId
+        );
+
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
+    const id = parseInt(req.params.id);
+    const transaction = new QueryTransactionHelper();
+    transaction
+      .create([CustomerModel.fetchById(id), BillModel.countByCustomerId(id)])
+      .then((result) => {
+        return res.status(200).send({
+          ...result[0],
+          can_delete: result[1] == 0 ? true : false,
         });
       })
       .catch((error) => {

@@ -44,8 +44,6 @@ class ExpenseController {
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
 
-    const start_date = new Date(year, month, 1);
-
     const expense = ExpenseModel.fetch(year, month, offset, limit);
     const count = ExpenseModel.count(year, month);
     const transaction = new QueryTransactionHelper();

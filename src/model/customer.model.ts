@@ -45,6 +45,14 @@ class CustomerModel {
         created_by: this.created_by,
         created_at: this.created_at,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     });
   }
 
@@ -59,9 +67,17 @@ class CustomerModel {
         npwp: this.npwp,
         pic: this.pic,
         phone_number: this.phone_number,
-        created_by: this.created_by,
-        created_at: this.created_at,
+        updated_by: this.created_by,
+        updated_at: this.created_at,
       },
+      include: {
+        user_customer_updated_byTouser: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     });
   }
 
@@ -74,32 +90,21 @@ class CustomerModel {
         is_delete: true,
         deleted_by: created_by,
       },
-    });
-  }
-
-  static checkDeleteById(id: number) {
-    let validation = false;
-
-    prisma
-      .$transaction([
-        prisma.bill_code.count({
-          where: {
-            customer_id: id,
-          },
-        }),
-        prisma.customer.findUnique({
-          where: {
-            id: id,
-          },
-        }),
-      ])
-      .then((result) => {
-        if (result[0] == 0 && !result[1]?.is_delete) {
-          validation = true;
+      include: {
+        user: {
+          select: {
+            name: true,
+            id: true
+          }
+        },
+        user_customer_deleted_byTouser: {
+          select: {
+            id: true,
+            name: true
+          }
         }
-      });
-
-    return validation;
+      }
+    });
   }
 
   static fetchAutocomplete(keyword: string) {
@@ -165,7 +170,7 @@ class CustomerModel {
             npwp: true,
             pic: true,
             phone_number: true,
-            user_customer_created_byTouser: {
+            user: {
               select: {
                 name: true,
               },
@@ -254,6 +259,17 @@ class CustomerModel {
         }),
       ]);
     }
+  }
+  
+  static fetchById(id: number){
+    return prisma.customer.findUnique({
+      where:{
+        id: id
+      },
+      include: {
+        user: true
+      }
+    })
   }
 }
 

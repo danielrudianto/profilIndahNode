@@ -50,6 +50,7 @@ class SupplierModel {
         npwp: true,
         user: {
           select: {
+            id: true,
             name: true,
           },
         },

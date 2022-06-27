@@ -42,6 +42,25 @@ export class ItemModel {
         created_at: this.created_at,
         minimum_stock: this.minimum_stock,
       },
+      select: {
+        id: true,
+        reference: true,
+        description: true,
+        item_brand: {
+          select: {
+            name: true,
+          },
+        },
+        item_brand_id: true,
+        created_by: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+        created_at: true,
+        minimum_stock: true,
+      },
     });
   }
 
@@ -54,9 +73,35 @@ export class ItemModel {
         reference: this.reference,
         description: this.description,
         item_brand_id: this.brand_id,
-        created_by: this.created_by,
-        created_at: this.created_at,
+        updated_by: this.created_by,
+        updated_at: this.created_at,
         minimum_stock: this.minimum_stock,
+      },
+      select: {
+        id: true,
+        reference: true,
+        description: true,
+        item_brand: {
+          select: {
+            name: true,
+          },
+        },
+        item_brand_id: true,
+        created_by: true,
+        user: {
+          select: {
+            name: true,
+          },
+        },
+        created_at: true,
+        minimum_stock: true,
+        updated_at: true,
+        user_item_updated_byTouser: {
+          select: {
+            name: true,
+          }
+        },
+        updated_by: true
       },
     });
   }
@@ -111,18 +156,23 @@ export class ItemModel {
         reference: reference,
         is_delete: false,
       },
-      select: {
-        id: true,
-        reference: true,
-        description: true,
+      include: {
         user: {
           select: {
             name: true,
           },
         },
-        is_delete: true,
-        deleted_at: true,
-        created_at: true,
+        item_brand: {
+          select: {
+            name: true,
+          },
+        },
+        _count: {
+          select: {
+            bill: true,
+            good_receipt: true,
+          },
+        },
       },
     });
   }
@@ -154,11 +204,7 @@ export class ItemModel {
           },
           skip: offset,
           take: limit,
-          select: {
-            id: true,
-            reference: true,
-            description: true,
-            created_at: true,
+          include: {
             user: {
               select: {
                 name: true,
@@ -205,6 +251,12 @@ export class ItemModel {
               take: 1,
               skip: 0,
             },
+            _count: {
+              select: {
+                bill: true,
+                good_receipt: true,
+              },
+            },
           },
         }),
         prisma.item.count({
@@ -236,11 +288,7 @@ export class ItemModel {
           },
           skip: offset,
           take: limit,
-          select: {
-            id: true,
-            reference: true,
-            description: true,
-            created_at: true,
+          include: {
             user: {
               select: {
                 name: true,
@@ -249,6 +297,48 @@ export class ItemModel {
             item_brand: {
               select: {
                 name: true,
+              },
+            },
+            item_price_purchase: {
+              select: {
+                price: true,
+              },
+              orderBy: {
+                id: "desc",
+              },
+              where: {
+                is_delete: false,
+              },
+              take: 1,
+              skip: 0,
+            },
+            item_price: {
+              select: {
+                price: true,
+                discount: true,
+                discount_project: true,
+              },
+              where: {
+                effective_date: {
+                  lte: date,
+                },
+                is_delete: false,
+              },
+              orderBy: [
+                {
+                  effective_date: "desc",
+                },
+                {
+                  id: "desc",
+                },
+              ],
+              take: 1,
+              skip: 0,
+            },
+            _count: {
+              select: {
+                bill: true,
+                good_receipt: true,
               },
             },
           },
@@ -314,62 +404,53 @@ export class ItemModel {
   }
 
   static checkDeleteByReference(reference: string) {
-    prisma
-      .$transaction([
-        prisma.bill.count({
-          where: {
-            item: {
-              reference: reference,
-            },
+    return prisma.$transaction([
+      prisma.bill.count({
+        where: {
+          item: {
+            reference: reference,
           },
-        }),
-        prisma.good_receipt.count({
-          where: {
-            item: {
-              reference: reference,
-            },
+        },
+      }),
+      prisma.good_receipt.count({
+        where: {
+          item: {
+            reference: reference,
           },
-        }),
-      ])
-      .then((result) => {
-        const count_bill = result[0];
-        const count_good_receipt = result[1];
-        // If the item has not used in anywhere, you can delete it
-        return count_bill + count_good_receipt > 0 ? false : true;
-      });
-
-    return false;
+        },
+      }),
+    ]);
   }
 
   static delete(id: number, deleted_by: number) {
-    prisma.item
-      .update({
-        where: {
-          id: id,
+    return prisma.item.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        deleted_at: new Date(),
+        deleted_by: deleted_by,
+      },
+      select: {
+        id: true,
+        user: {
+          select: {
+            name: true
+          }
         },
-        data: {
-          is_delete: true,
-          deleted_at: new Date(),
-          deleted_by: deleted_by,
+        reference: true,
+        description: true,
+        deleted_by: true,
+        deleted_at: true,
+        user_item_deleted_byTouser: {
+          select: {
+            name: true
+          }
         },
-      })
-      .then(() => {
-        prisma.item
-          .count({
-            where: {
-              is_delete: false,
-            },
-          })
-          .then((count) => {
-            return count;
-          })
-          .catch(() => {
-            return 0;
-          });
-      })
-      .catch(() => {
-        return 0;
-      });
+        item_brand_id: true
+      }
+    });
   }
 
   static count() {
@@ -387,5 +468,18 @@ export class ItemModel {
         is_delete: false,
       },
     });
+  }
+
+  static countByBrandIds(brand_ids: number[]){
+    return prisma.item.groupBy({
+      by: ["item_brand_id"],
+      where:{
+        item_brand_id: {
+          in: brand_ids
+        },
+        is_delete: false
+      },
+      _count: true
+    })
   }
 }

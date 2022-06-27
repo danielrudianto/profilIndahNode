@@ -11,6 +11,12 @@ class CompanyModel {
   created_at: Date;
   code_name: string;
 
+  deleted_by?: number;
+  deleted_at?: Date;
+
+  updated_by?: number;
+  updated_at?: Date;
+
   constructor(
     name: string,
     address: string,
@@ -47,13 +53,16 @@ class CompanyModel {
         code_name: true,
         address: true,
         npwp: true,
+        created_by: true,
         user: {
           select: {
+            id: true,
             name: true,
           },
         },
         user_company_deleted_byTouser: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -72,6 +81,8 @@ class CompanyModel {
         address: this.address,
         npwp: this.npwp,
         code_name: this.code_name,
+        updated_by: this.created_by,
+        updated_at: this.created_at
       },
       select: {
         id: true,
@@ -79,13 +90,9 @@ class CompanyModel {
         code_name: true,
         address: true,
         npwp: true,
-        user: {
+        user_company_updated_byTouser: {
           select: {
-            name: true,
-          },
-        },
-        user_company_deleted_byTouser: {
-          select: {
+            id: true,
             name: true,
           },
         },
@@ -136,7 +143,7 @@ class CompanyModel {
           where: {
             is_delete: false,
           },
-        }),
+        })
       ]);
     } else {
       return prisma.$transaction([
@@ -266,6 +273,14 @@ class CompanyModel {
         is_delete: true,
         deleted_by: user_id,
       },
+      include: {
+        user_company_deleted_byTouser: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
+      }
     });
   }
 
