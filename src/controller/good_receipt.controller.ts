@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
+import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
+import { io } from "../helper/socket.connection.helper";
+import SocketHelper from "../helper/socket.helper";
 import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
@@ -87,18 +90,39 @@ class GoodReceiptController {
               transaction
                 .create([insert_item, insert_purchase_document])
                 .then((insert_transaction) => {
+                  const socket = new SocketHelper("createGoodReceipt", {
+                    supplier_id: insert_transaction[0].supplier_id,
+                    company_id: insert_transaction[0].company_id,
+                  });
+                  socket.create();
+
                   return res.status(201).send({
                     ...good_receipt_result,
                     good_receipt: insert_transaction[0],
                   });
                 })
                 .catch((error) => {
-                  console.log(error);
+                  LogHelper.log(
+                    new Date(),
+                    "error",
+                    error,
+                    "Good Receipt - Create",
+                    req.body.userId
+                  );
+
                   return res.status(500).send(error);
                 });
             });
           })
           .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Good Receipt - Create",
+              req.body.userId
+            );
+
             return res.status(500).send(error);
           });
       })

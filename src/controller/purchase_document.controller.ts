@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
+import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
+import SocketHelper from "../helper/socket.helper";
 import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
@@ -195,15 +197,30 @@ class PurchaseDocumentController {
               const insert_purchase_document = purchase_document.create();
 
               transaction
-                .create([...save_price, insert_item, insert_purchase_document])
-                .then((insert_transaction) => {
-                  return res.status(201).send({
-                    ...good_receipt_result,
-                    good_receipt: insert_transaction[0],
+                .create([insert_item, ...save_price, insert_purchase_document])
+                .then(() => {
+                  const socket = new SocketHelper("createGoodReceipt", {
+                    supplier_id: good_receipt_result.supplier_id,
+                    company_id: good_receipt_result.company_id,
                   });
+                  socket.create();
+
+                  GoodReceiptModel.fetchById(good_receipt_result.id)
+                    .then((item) => {
+                      return res.status(201).send(item);
+                    })
+                    .catch((error) => {
+                      return res.status(500).send(error);
+                    });
                 })
                 .catch((error) => {
-                  console.log(error);
+                  LogHelper.log(
+                    new Date(),
+                    "error",
+                    error,
+                    "Purchase Document - Create",
+                    req.body.userId
+                  );
                   return res.status(500).send(error);
                 });
             });
