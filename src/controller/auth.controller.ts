@@ -81,7 +81,22 @@ class AuthController {
   static fetchProfile = (req: Request, res: Response) => {
     UserModel.fetchById(req.body.userId)
       .then((result) => {
-        return res.status(200).send(result);
+        if(result == null || !result.is_active){
+          return res.status(404).send("Pengguna tidak ditemukan.");
+        } else {
+          return res.status(200).send(
+            {
+              name: result?.name,
+              username: result?.username,
+              nik: result?.nik,
+              role: UserModel.roles.filter(x => 
+                x.id == result?.user_department?.role
+              )[0],
+              is_active: result?.is_active
+            }
+          );
+        }
+        
       })
       .catch((error) => {
         LogHelper.log(

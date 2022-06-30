@@ -108,49 +108,43 @@ class CustomerModel {
   }
 
   static fetchAutocomplete(keyword: string) {
-    return prisma.$transaction([
-      prisma.customer.findMany({
-        where: {
-          is_delete: false,
-          OR: [
-            {
-              name: {
-                contains: keyword,
-              },
+    return prisma.customer.findMany({
+      where: {
+        is_delete: false,
+        OR: [
+          {
+            name: {
+              contains: keyword,
             },
-            {
-              address: {
-                contains: keyword,
-              },
+          },
+          {
+            address: {
+              contains: keyword,
             },
-            {
-              npwp: {
-                contains: keyword,
-              },
+          },
+          {
+            npwp: {
+              contains: keyword,
             },
-            {
-              pic: {
-                contains: keyword,
-              },
+          },
+          {
+            pic: {
+              contains: keyword,
             },
-            {
-              phone_number: {
-                contains: keyword,
-              },
+          },
+          {
+            phone_number: {
+              contains: keyword,
             },
-          ],
-        },
-        orderBy: {
-          name: "asc",
-        },
-        take: 5,
-      }),
-      prisma.customer.count({
-        where: {
-          is_delete: false,
-        },
-      }),
-    ]);
+          },
+        ],
+      },
+      orderBy: {
+        name: "asc",
+      },
+      take: 5,
+      skip: 0
+    })
   }
 
   static fetch(keyword: string, offset: number, limit: number) {

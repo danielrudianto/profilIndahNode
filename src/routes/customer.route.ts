@@ -28,14 +28,14 @@ router.delete(
 );
 
 router.get(
-  "/:id",
-  param("id").not().isEmpty().withMessage("ID konsumen wajib diisi."),
-  CustomerController.fetchById
+  "/autocomplete",
+  CustomerController.fetchAutocomplete
 );
 
 router.get(
-  "/autocomplete",
-  CustomerController.fetchAutocomplete
+  "/:id",
+  param("id").not().isEmpty().withMessage("ID konsumen wajib diisi."),
+  CustomerController.fetchById
 );
 
 router.get("/", CustomerController.fetch);

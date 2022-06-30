@@ -1,0 +1,459 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.ItemModel = void 0;
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
+class ItemModel {
+    constructor(reference, description, minimum_stock, brand_id, created_by, id = null) {
+        if (id != null) {
+            this.id = id;
+        }
+        this.reference = reference;
+        this.description = description;
+        this.minimum_stock = minimum_stock;
+        this.brand_id = brand_id;
+        this.created_by = created_by;
+        this.created_at = new Date();
+    }
+    create() {
+        return prisma.item.create({
+            data: {
+                reference: this.reference,
+                description: this.description,
+                item_brand_id: this.brand_id,
+                created_by: this.created_by,
+                created_at: this.created_at,
+                minimum_stock: this.minimum_stock,
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true,
+                    },
+                },
+                item_brand_id: true,
+                created_by: true,
+                user: {
+                    select: {
+                        name: true,
+                    },
+                },
+                created_at: true,
+                minimum_stock: true,
+            },
+        });
+    }
+    update() {
+        return prisma.item.update({
+            where: {
+                id: this.id,
+            },
+            data: {
+                reference: this.reference,
+                description: this.description,
+                item_brand_id: this.brand_id,
+                updated_by: this.created_by,
+                updated_at: this.created_at,
+                minimum_stock: this.minimum_stock,
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true,
+                    },
+                },
+                item_brand_id: true,
+                created_by: true,
+                user: {
+                    select: {
+                        name: true,
+                    },
+                },
+                created_at: true,
+                minimum_stock: true,
+                updated_at: true,
+                user_item_updated_byTouser: {
+                    select: {
+                        name: true,
+                    }
+                },
+                updated_by: true
+            },
+        });
+    }
+    static fetchById(id, date) {
+        return prisma.item.findUnique({
+            where: {
+                id: id,
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                is_delete: true,
+                item_brand: {
+                    select: {
+                        name: true,
+                    },
+                },
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true,
+                        created_at: true,
+                        effective_date: true,
+                    },
+                    where: {
+                        is_delete: false,
+                        effective_date: {
+                            lte: date,
+                        },
+                    },
+                    orderBy: [
+                        {
+                            effective_date: "desc",
+                        },
+                        {
+                            id: "desc",
+                        },
+                    ],
+                    take: 1,
+                    skip: 0,
+                },
+            },
+        });
+    }
+    static fetchByReference(reference) {
+        return prisma.item.findFirst({
+            where: {
+                reference: reference,
+                is_delete: false,
+            },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                    },
+                },
+                item_brand: {
+                    select: {
+                        name: true,
+                    },
+                },
+                _count: {
+                    select: {
+                        bill: true,
+                        good_receipt: true,
+                    },
+                },
+            },
+        });
+    }
+    static fetchByReferences(references) {
+        return prisma.item.findMany({
+            where: {
+                reference: {
+                    in: references,
+                },
+                is_delete: false,
+            },
+            select: {
+                id: true,
+                reference: true,
+            },
+        });
+    }
+    static fetch(keyword, date, offset, limit) {
+        if (keyword == "") {
+            return prisma.$transaction([
+                prisma.item.findMany({
+                    where: {
+                        is_delete: false,
+                    },
+                    orderBy: {
+                        reference: "asc",
+                    },
+                    skip: offset,
+                    take: limit,
+                    include: {
+                        user: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        item_brand: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        item_price_purchase: {
+                            select: {
+                                price: true,
+                            },
+                            orderBy: {
+                                id: "desc",
+                            },
+                            where: {
+                                is_delete: false,
+                            },
+                            take: 1,
+                            skip: 0,
+                        },
+                        item_price: {
+                            select: {
+                                price: true,
+                                discount: true,
+                                discount_project: true,
+                            },
+                            where: {
+                                effective_date: {
+                                    lte: date,
+                                },
+                                is_delete: false,
+                            },
+                            orderBy: [
+                                {
+                                    effective_date: "desc",
+                                },
+                                {
+                                    id: "desc",
+                                },
+                            ],
+                            take: 1,
+                            skip: 0,
+                        },
+                        _count: {
+                            select: {
+                                bill: true,
+                                good_receipt: true,
+                            },
+                        },
+                    },
+                }),
+                prisma.item.count({
+                    where: {
+                        is_delete: false,
+                    },
+                }),
+            ]);
+        }
+        else {
+            return prisma.$transaction([
+                prisma.item.findMany({
+                    where: {
+                        is_delete: false,
+                        OR: [
+                            {
+                                reference: {
+                                    contains: keyword,
+                                },
+                            },
+                            {
+                                description: {
+                                    contains: keyword,
+                                },
+                            },
+                        ],
+                    },
+                    orderBy: {
+                        reference: "asc",
+                    },
+                    skip: offset,
+                    take: limit,
+                    include: {
+                        user: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        item_brand: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        item_price_purchase: {
+                            select: {
+                                price: true,
+                            },
+                            orderBy: {
+                                id: "desc",
+                            },
+                            where: {
+                                is_delete: false,
+                            },
+                            take: 1,
+                            skip: 0,
+                        },
+                        item_price: {
+                            select: {
+                                price: true,
+                                discount: true,
+                                discount_project: true,
+                            },
+                            where: {
+                                effective_date: {
+                                    lte: date,
+                                },
+                                is_delete: false,
+                            },
+                            orderBy: [
+                                {
+                                    effective_date: "desc",
+                                },
+                                {
+                                    id: "desc",
+                                },
+                            ],
+                            take: 1,
+                            skip: 0,
+                        },
+                        _count: {
+                            select: {
+                                bill: true,
+                                good_receipt: true,
+                            },
+                        },
+                    },
+                }),
+                prisma.item.count({
+                    where: {
+                        is_delete: false,
+                        OR: [
+                            {
+                                reference: {
+                                    contains: keyword,
+                                },
+                            },
+                            {
+                                description: {
+                                    contains: keyword,
+                                },
+                            },
+                        ],
+                    },
+                }),
+            ]);
+        }
+    }
+    static fetchAll(date) {
+        return prisma.item.findMany({
+            where: {
+                is_delete: false,
+            },
+            select: {
+                id: true,
+                reference: true,
+                description: true,
+                item_brand: {
+                    select: {
+                        name: true,
+                    },
+                },
+                item_price: {
+                    select: {
+                        price: true,
+                        discount: true,
+                        discount_project: true,
+                    },
+                    where: {
+                        is_delete: false,
+                        effective_date: {
+                            lt: date,
+                        },
+                    },
+                    orderBy: {
+                        effective_date: "desc",
+                    },
+                    take: 1,
+                    skip: 0,
+                },
+            },
+            orderBy: {
+                reference: "asc",
+            },
+        });
+    }
+    static checkDeleteByReference(reference) {
+        return prisma.$transaction([
+            prisma.bill.count({
+                where: {
+                    item: {
+                        reference: reference,
+                    },
+                },
+            }),
+            prisma.good_receipt.count({
+                where: {
+                    item: {
+                        reference: reference,
+                    },
+                },
+            }),
+        ]);
+    }
+    static delete(id, deleted_by) {
+        return prisma.item.update({
+            where: {
+                id: id,
+            },
+            data: {
+                is_delete: true,
+                deleted_at: new Date(),
+                deleted_by: deleted_by,
+            },
+            select: {
+                id: true,
+                user: {
+                    select: {
+                        name: true
+                    }
+                },
+                reference: true,
+                description: true,
+                deleted_by: true,
+                deleted_at: true,
+                user_item_deleted_byTouser: {
+                    select: {
+                        name: true
+                    }
+                },
+                item_brand_id: true
+            }
+        });
+    }
+    static count() {
+        return prisma.item.count({
+            where: {
+                is_delete: false,
+            },
+        });
+    }
+    static countByBrandId(brand_id) {
+        return prisma.item.count({
+            where: {
+                item_brand_id: brand_id,
+                is_delete: false,
+            },
+        });
+    }
+    static countByBrandIds(brand_ids) {
+        return prisma.item.groupBy({
+            by: ["item_brand_id"],
+            where: {
+                item_brand_id: {
+                    in: brand_ids
+                },
+                is_delete: false
+            },
+            _count: true
+        });
+    }
+}
+exports.ItemModel = ItemModel;
