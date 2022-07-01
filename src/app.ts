@@ -16,7 +16,7 @@ import purchaseDocumentRoutes from "./routes/purchase_document.route";
 import userRoutes from "./routes/user.route";
 import expenseRoutes from "./routes/expense.route";
 
-import { io, server } from "./helper/socket.connection.helper";
+import { server } from "./helper/socket.connection.helper";
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
@@ -46,7 +46,12 @@ app.use("/user", authMiddleware, userRoutes);
 
 app.use("/expense", authMiddleware, expenseRoutes);
 
-var Io = io.listen(server);
-server.listen(5000);
+app.listen(5000, () => {
+  console.log("Application running on port 5000");
+});
+
+server.listen(5000, () => {
+  console.log("Socket is running on port 5000")
+});
 
 export default app;
