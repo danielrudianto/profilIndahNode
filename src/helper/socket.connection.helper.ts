@@ -5,8 +5,8 @@ import app from "../app";
 export const server = http.createServer(app);
 export const io = new Server(server, {
   cors: {
-    origin: "https://app.profilindah.id",
-    methods: ["GET", "POST"],
+    origin: "*",
+    optionsSuccessStatus: 200
   },
 });
 
