@@ -5,7 +5,7 @@ import app from "../app";
 export const server = http.createServer(app);
 export const io = new Server(server, {
   cors: {
-    origin: "http://localhost:4200",
+    origin: "https://app.profilindah.id",
     methods: ["GET", "POST"],
   },
 });

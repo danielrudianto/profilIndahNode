@@ -10,7 +10,7 @@ const app_1 = __importDefault(require("../app"));
 exports.server = http_1.default.createServer(app_1.default);
 exports.io = new socket_io_1.Server(exports.server, {
     cors: {
-        origin: "http://localhost:4200",
+        origin: "https://app.profilindah.id",
         methods: ["GET", "POST"],
     },
 });

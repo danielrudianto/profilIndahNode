@@ -39,8 +39,6 @@ app.use("/goodReceipt", auth_helper_1.authMiddleware, good_receipt_route_1.defau
 app.use("/purchaseDocument", auth_helper_1.authMiddleware, purchase_document_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
-app.listen(5000, () => {
-    console.log("Application running on port 5000");
-});
-socket_connection_helper_1.server.listen(5274, () => { });
+var Io = socket_connection_helper_1.io.listen(socket_connection_helper_1.server);
+socket_connection_helper_1.server.listen(5000);
 exports.default = app;
