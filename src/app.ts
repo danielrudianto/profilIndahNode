@@ -46,12 +46,6 @@ app.use("/user", authMiddleware, userRoutes);
 
 app.use("/expense", authMiddleware, expenseRoutes);
 
-app.listen(5000, () => {
-  console.log("Application running on port 5000");
-});
-
-server.listen(5274, () => {
-  console.log("Socket is running on port 5000")
-});
+server.listen(5000);
 
 export default app;
