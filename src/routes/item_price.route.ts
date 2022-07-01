@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import ItemPriceController from "../controller/item_price.controller";
-import { io } from "../helper/socket.connection.helper";
+import { io } from "../app";
 
 const prisma = new PrismaClient();
 const router = Router();

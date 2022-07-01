@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const socket_connection_helper_1 = require("../helper/socket.connection.helper");
+const app_1 = require("../app");
 const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 class CompanyController {
@@ -68,7 +68,7 @@ CompanyController.delete = (req, res) => {
             (_a = company_model_1.default.count()) === null || _a === void 0 ? void 0 : _a.then((company_count) => {
                 var _a;
                 log_helper_1.default.log(new Date(), "info", `${(_a = company_result.user_company_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted company with the name ${company_result.name} (ID: ${company_result.id})`, "Company - Delete", req.body.userId);
-                socket_connection_helper_1.io.emit("deleteCompany", {
+                app_1.io.emit("deleteCompany", {
                     name: company_result.name,
                     id: company_result.id,
                     count: company_count,
@@ -109,7 +109,7 @@ CompanyController.update = (req, res) => {
             .then((company_result) => {
             var _a;
             log_helper_1.default.log(new Date(), "info", `${(_a = company_result.user_company_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated company with the name ${company_result.name} (ID: ${company_result}`, "Company - Update", req.body.userId);
-            socket_connection_helper_1.io.emit("updateCompany", company_result);
+            app_1.io.emit("updateCompany", company_result);
             return res.status(201).send(company_result);
         })
             .catch((error) => {
@@ -132,7 +132,7 @@ CompanyController.create = (req, res) => {
         .create()
         .then((result) => {
         log_helper_1.default.log(new Date(), "info", `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`, "Company - Create", req.body.userId);
-        socket_connection_helper_1.io.emit("createCompany", Object.assign(Object.assign({}, result), { can_delete: true }));
+        app_1.io.emit("createCompany", Object.assign(Object.assign({}, result), { can_delete: true }));
         return res.status(201).send(result);
     })
         .catch((error) => {

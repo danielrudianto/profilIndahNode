@@ -3,8 +3,11 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.io = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const http_1 = __importDefault(require("http"));
+const socket_io_1 = require("socket.io");
 const auth_helper_1 = require("./helper/auth.helper");
 const auth_route_1 = __importDefault(require("./routes/auth.route"));
 const item_route_1 = __importDefault(require("./routes/item.route"));
@@ -18,7 +21,6 @@ const good_receipt_route_1 = __importDefault(require("./routes/good_receipt.rout
 const purchase_document_route_1 = __importDefault(require("./routes/purchase_document.route"));
 const user_route_1 = __importDefault(require("./routes/user.route"));
 const expense_route_1 = __importDefault(require("./routes/expense.route"));
-const socket_connection_helper_1 = require("./helper/socket.connection.helper");
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options = {
     origin: allowedOrigins,
@@ -39,5 +41,16 @@ app.use("/goodReceipt", auth_helper_1.authMiddleware, good_receipt_route_1.defau
 app.use("/purchaseDocument", auth_helper_1.authMiddleware, purchase_document_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
-socket_connection_helper_1.server.listen(5000);
-exports.default = app;
+const server = http_1.default.createServer(app);
+server.listen(5000, () => {
+    console.log(`[server]: Listening on port 5000`);
+});
+exports.io = new socket_io_1.Server(server, {
+    cors: {
+        origin: "*",
+        methods: "*"
+    },
+});
+exports.io.on("connection", () => {
+    console.log("A user has connected.");
+});

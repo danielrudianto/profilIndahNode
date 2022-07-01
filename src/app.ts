@@ -1,5 +1,7 @@
 import express from "express";
 import cors from "cors";
+import http from 'http';
+import { Server } from "socket.io";
 
 import { authMiddleware } from "./helper/auth.helper";
 
@@ -15,8 +17,6 @@ import goodReceiptRoutes from "./routes/good_receipt.route";
 import purchaseDocumentRoutes from "./routes/purchase_document.route";
 import userRoutes from "./routes/user.route";
 import expenseRoutes from "./routes/expense.route";
-
-import { server } from "./helper/socket.connection.helper";
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
@@ -45,7 +45,18 @@ app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
 app.use("/user", authMiddleware, userRoutes);
 
 app.use("/expense", authMiddleware, expenseRoutes);
+const server = http.createServer(app);
+server.listen(5000, () => {
+  console.log(`[server]: Listening on port 5000`);
+});
 
-server.listen(5000);
+export const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: "*"
+  },
+});
 
-export default app;
+io.on("connection", () => {
+  console.log("A user has connected.");
+});

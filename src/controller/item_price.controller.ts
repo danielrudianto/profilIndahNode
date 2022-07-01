@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
-import { io } from "../helper/socket.connection.helper";
+import { io } from "../app";
 import { ItemModel } from "../model/item.model";
 import ItemPriceModel from "../model/item_price.model";
 

@@ -1,12 +1,8 @@
-import { PrismaClient } from "@prisma/client";
 import { Router, Request, Response } from "express";
-import { sign } from "jsonwebtoken";
 import { authMiddleware } from "../helper/auth.helper";
 import { body, validationResult } from "express-validator";
-import { compare } from "bcrypt";
 import AuthController from "../controller/auth.controller";
 
-const prisma = new PrismaClient();
 const router = Router();
 
 router.post(

@@ -13,3 +13,6 @@ Thu Jun 30 2022 07:38:55 GMT+0700 (Western Indonesia Time); Error; TypeError: Ca
 Thu Jun 30 2022 07:39:02 GMT+0700 (Western Indonesia Time); Error; TypeError: Cannot read properties of undefined (reading 'name'); Auth controller - Fetch profile; 1
 Thu Jun 30 2022 07:39:22 GMT+0700 (Western Indonesia Time); Error; TypeError: Cannot read properties of undefined (reading 'name'); Auth controller - Fetch profile; 1
 Thu Jun 30 2022 07:39:55 GMT+0700 (Western Indonesia Time); Error; TypeError: Cannot read properties of undefined (reading 'name'); Auth controller - Fetch profile; 1
+Fri Jul 01 2022 22:10:06 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Jul 01 2022 22:15:28 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Jul 01 2022 22:16:05 GMT+0700 (Western Indonesia Time); info; Daniel Tri created company with the name Test (ID: 9); Company - Create; 1

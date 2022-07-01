@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const socket_connection_helper_1 = require("../helper/socket.connection.helper");
+const app_1 = require("../app");
 const expense_model_1 = __importDefault(require("../model/expense.model"));
 const expense_type_model_1 = __importDefault(require("../model/expense.type.model"));
 class ExpenseController {
@@ -22,7 +22,7 @@ ExpenseController.create = (req, res) => {
         expense
             .create()
             .then((result) => {
-            socket_connection_helper_1.io.emit("createExpense", result);
+            app_1.io.emit("createExpense", result);
             return res.status(201).send(result);
         })
             .catch((error) => {
@@ -90,7 +90,7 @@ ExpenseController.createType = (req, res) => {
     expenseType
         .create()
         .then((result) => {
-        socket_connection_helper_1.io.emit("createExpenseType", result);
+        app_1.io.emit("createExpenseType", result);
         return res.status(201).send(result);
     })
         .catch((error) => {
@@ -105,7 +105,7 @@ ExpenseController.updateType = (req, res) => {
     expense_type
         .update()
         .then((result) => {
-        socket_connection_helper_1.io.emit("updateExpenseType", result);
+        app_1.io.emit("updateExpenseType", result);
         return res.status(200).send(result);
     })
         .catch((error) => {
@@ -128,7 +128,7 @@ ExpenseController.deleteType = (req, res) => {
                 if (children.length == 0) {
                     expense_type_model_1.default.delete(expense.id, req.body.userId)
                         .then((result_delete) => {
-                        socket_connection_helper_1.io.emit("deleteExpenseType", result_delete);
+                        app_1.io.emit("deleteExpenseType", result_delete);
                         return res.status(201).send(result_delete);
                     })
                         .catch((error) => {
@@ -153,7 +153,7 @@ ExpenseController.deleteType = (req, res) => {
                 if (expenses == 0) {
                     expense_type_model_1.default.delete(expense.id, req.body.userId)
                         .then((result_delete) => {
-                        socket_connection_helper_1.io.emit("deleteExpenseType", result_delete);
+                        app_1.io.emit("deleteExpenseType", result_delete);
                         return res.status(201).send(result_delete);
                     })
                         .catch((error) => {

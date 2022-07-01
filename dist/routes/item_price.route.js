@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const express_1 = require("express");
 const item_price_controller_1 = __importDefault(require("../controller/item_price.controller"));
-const socket_connection_helper_1 = require("../helper/socket.connection.helper");
+const app_1 = require("../app");
 const prisma = new client_1.PrismaClient();
 const router = (0, express_1.Router)();
 router.get("/bulk", item_price_controller_1.default.fetchAll);
@@ -98,7 +98,7 @@ router.post("/", (req, res, next) => {
                 },
             },
         });
-        socket_connection_helper_1.io.emit("updatePrice", item);
+        app_1.io.emit("updatePrice", item);
         return res.status(200).send(result[1]);
     }))
         .catch((error) => {

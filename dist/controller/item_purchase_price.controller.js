@@ -4,7 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const socket_connection_helper_1 = require("../helper/socket.connection.helper");
+const app_1 = require("../app");
 const item_model_1 = require("../model/item.model");
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
 class ItemPurchasePriceController {
@@ -56,7 +56,7 @@ ItemPurchasePriceController.create = (req, res) => {
         .then((result) => {
         item_purchase_price_model_1.default.fetchByReference(result[2].reference)
             .then((item_purchase) => {
-            socket_connection_helper_1.io.emit("updatePurchasingPrice", item_purchase);
+            app_1.io.emit("updatePurchasingPrice", item_purchase);
             return res.status(201).send(item_purchase);
         })
             .catch((error) => {

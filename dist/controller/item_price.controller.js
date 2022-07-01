@@ -5,7 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const socket_connection_helper_1 = require("../helper/socket.connection.helper");
+const app_1 = require("../app");
 const item_model_1 = require("../model/item.model");
 const item_price_model_1 = __importDefault(require("../model/item_price.model"));
 class ItemPriceController {
@@ -27,7 +27,7 @@ ItemPriceController.create = (req, res) => {
         .then((result) => {
         item_model_1.ItemModel.fetchById(result[1].item_id, date).then((item) => {
             log_helper_1.default.log(new Date(), "info", `${result[0].user.name} added sales item price for item ${result[0].item.reference} (ID: ${result[0].item.id}) with the price ${result[0].price} and discount (${result[0].discount} / ${result[0].discount_project}`, "Item Price - Create", req.body.userId);
-            socket_connection_helper_1.io.emit("updatePrice", item);
+            app_1.io.emit("updatePrice", item);
             return res.status(200).send(result[1]);
         }).catch(error => {
             log_helper_1.default.log(new Date(), "error", error, "Item Price - Create", req.body.userId);

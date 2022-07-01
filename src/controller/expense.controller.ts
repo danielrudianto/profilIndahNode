@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
-import { io } from "../helper/socket.connection.helper";
+import { io } from "../app";
 import ExpenseModel from "../model/expense.model";
 import ExpenseTypeModel from "../model/expense.type.model";
 
