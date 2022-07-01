@@ -42,7 +42,7 @@ app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.listen(5000, () => {
     console.log("Application running on port 5000");
 });
-socket_connection_helper_1.server.listen(5000, () => {
+socket_connection_helper_1.server.listen(5274, () => {
     console.log("Socket is running on port 5000");
 });
 exports.default = app;
