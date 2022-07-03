@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { hashSync } from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -264,6 +265,17 @@ class UserModel {
         },
       }
     });
+  }
+
+  static updatePassword(password: string, userId: number){
+    return prisma.user.update({
+      data: {
+        password: hashSync(password, 12)
+      },
+      where: {
+        id: userId
+      }
+    })
   }
 }
 

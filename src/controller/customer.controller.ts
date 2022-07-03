@@ -3,7 +3,7 @@ import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
-import BillModel from "../model/bill.model";
+import BillModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
 
 class CustomerController {
