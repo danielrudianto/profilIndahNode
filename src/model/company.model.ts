@@ -84,12 +84,7 @@ class CompanyModel {
         updated_by: this.created_by,
         updated_at: this.created_at
       },
-      select: {
-        id: true,
-        name: true,
-        code_name: true,
-        address: true,
-        npwp: true,
+      include: {
         user_company_updated_byTouser: {
           select: {
             id: true,

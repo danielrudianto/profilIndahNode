@@ -85,7 +85,7 @@ class CompanyController {
           .then((company_result) => {
             CompanyModel.count()?.then((company_count) => {
               LogHelper.log(
-                new Date(),
+                company_result.deleted_at!,
                 "info",
                 `${company_result.user_company_deleted_byTouser?.name} deleted company with the name ${company_result.name} (ID: ${company_result.id})`,
                 "Company - Delete",
@@ -160,7 +160,7 @@ class CompanyController {
           .update()
           .then((company_result) => {
             LogHelper.log(
-              new Date(),
+              company_result.updated_at!,
               "info",
               `${company_result.user_company_updated_byTouser?.name} updated company with the name ${company_result.name} (ID: ${company_result}`,
               "Company - Update",
@@ -212,7 +212,7 @@ class CompanyController {
       .create()
       .then((result) => {
         LogHelper.log(
-          new Date(),
+          result.created_at,
           "info",
           `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`,
           "Company - Create",

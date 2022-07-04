@@ -17,6 +17,7 @@ import goodReceiptRoutes from "./routes/good_receipt.route";
 import purchaseDocumentRoutes from "./routes/purchase_document.route";
 import userRoutes from "./routes/user.route";
 import expenseRoutes from "./routes/expense.route";
+import paymentMethodRoutes from './routes/payment_method.route';
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
@@ -43,8 +44,10 @@ app.use("/goodReceipt", authMiddleware, goodReceiptRoutes);
 app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
 
 app.use("/user", authMiddleware, userRoutes);
+app.use("/paymentMethod", authMiddleware, paymentMethodRoutes);
 
 app.use("/expense", authMiddleware, expenseRoutes);
+
 const server = http.createServer(app);
 server.listen(5000, () => {
   console.log(`[server]: Listening on port 5000`);

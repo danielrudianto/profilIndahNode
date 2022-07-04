@@ -90,6 +90,14 @@ class GoodReceiptController {
               transaction
                 .create([insert_item, insert_purchase_document])
                 .then((insert_transaction) => {
+                  LogHelper.log(
+                    good_receipt_result.created_at,
+                    "info",
+                    `${good_receipt_result.user_good_receipt_code_created_byTouser.name} berhasil menambahkan penerimaan barang (ID: ${good_receipt_result.id}) dari ${good_receipt_result.supplier.name} (ID: ${good_receipt_result.id}) untuk perusahaan ${good_receipt_result.company.name} (ID: ${good_receipt_result.company.id})`,
+                    "Good Receipt controller - Create",
+                    good_receipt_result.created_by
+                  );
+
                   const socket = new SocketHelper("createGoodReceipt", {
                     supplier_id: insert_transaction[0].supplier_id,
                     company_id: insert_transaction[0].company_id,

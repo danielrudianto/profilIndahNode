@@ -10,7 +10,7 @@ class CustomerController {
   static create = (req: Request, res: Response) => {
     const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
-      return res.status(500).send(validation_result.array()[0].msg);
+      return res.status(400).send(validation_result.array()[0].msg);
     }
 
     const name = req.body.name;
@@ -31,7 +31,7 @@ class CustomerController {
       .create()
       .then((result) => {
         LogHelper.log(
-          new Date(),
+          result.created_at,
           "info",
           `${result.user.name} created customer with the name ${result.name} (ID: ${result.id})`,
           "Customer - Create",
@@ -62,7 +62,7 @@ class CustomerController {
   static update = (req: Request, res: Response) => {
     const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
-      return res.status(500).send(validation_result.array()[0].msg);
+      return res.status(400).send(validation_result.array()[0].msg);
     }
 
     const id = req.body.id;
@@ -112,7 +112,7 @@ class CustomerController {
   static delete = (req: Request, res: Response) => {
     const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
-      return res.status(500).send(validation_result.array()[0].msg);
+      return res.status(400).send(validation_result.array()[0].msg);
     }
 
     const id = parseInt(req.params.id.toString());
@@ -121,7 +121,7 @@ class CustomerController {
         CustomerModel.delete(id, req.body.userId)
           .then((customer) => {
             LogHelper.log(
-              new Date(),
+              customer.deleted_at!,
               "info",
               `${customer.user_customer_deleted_byTouser?.name} deleted customer with the name ${customer.name} (ID: ${customer.id})`,
               "Customer - Delete",
@@ -157,7 +157,7 @@ class CustomerController {
   static fetchAutocomplete = (req: Request, res: Response) => {
     const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
-      return res.status(500).send(validation_result.array()[0].msg);
+      return res.status(400).send(validation_result.array()[0].msg);
     }
 
     const keyword = req.query.keyword!.toString();

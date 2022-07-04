@@ -49,6 +49,26 @@ class GoodReceiptModel {
         supplier_id: this.supplier_id,
         company_id: this.company_id,
       },
+      include: {
+        user_good_receipt_code_created_byTouser: {
+          select: {
+            id: true,
+            name: true
+          }
+        },
+        supplier: {
+          select: {
+            name: true,
+            id: true
+          }
+        },
+        company: {
+          select: {
+            name: true,
+            id: true
+          }
+        }
+      }
     });
   }
 

@@ -208,15 +208,19 @@ model payment_method {
   description                          String      @db.Text
   created_by                           Int
   created_at                           DateTime    @default(now()) @db.DateTime(0)
+  updated_at                           DateTime?   @db.DateTime(0)
+  updated_by                           Int?
   is_delete                            Boolean     @default(false)
   deleted_by                           Int?
   deleted_at                           DateTime?   @db.DateTime(0)
-  user_payment_method_created_byTouser user        @relation("payment_method_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_1")
+  user                                 user        @relation("payment_method_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_1")
   user_payment_method_deleted_byTouser user?       @relation("payment_method_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_2")
+  user_payment_method_updated_byTouser user?       @relation("payment_method_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_3")
   bill_code                            bill_code[]
 
   @@index([created_by], map: "payment_method_ibfk_1_idx")
   @@index([deleted_by], map: "payment_method_ibfk_2_idx")
+  @@index([updated_by], map: "payment_method_ibfk_3_idx")
 }
 
 model user {
@@ -262,6 +266,7 @@ model user {
   item_price_purchase_item_price_purchase_deleted_byTouser       item_price_purchase[]   @relation("item_price_purchase_deleted_byTouser")
   payment_method_created_byTouser                                payment_method[]        @relation("payment_method_created_byTouser")
   payment_method_deleted_byTouser                                payment_method[]        @relation("payment_method_deleted_byTouser")
+  payment_method_payment_method_updated_byTouser                 payment_method[]        @relation("payment_method_updated_byTouser")
   purchase_invoice_purchase_invoice_confirmed_byTouser           purchase_invoice[]      @relation("purchase_invoice_confirmed_byTouser")
   purchase_invoice_purchase_invoice_created_byTouser             purchase_invoice[]      @relation("purchase_invoice_created_byTouser")
   supplier                                                       supplier[]

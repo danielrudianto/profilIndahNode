@@ -97,7 +97,7 @@ class BrandController {
           .create()
           .then((brand_result) => {
             LogHelper.log(
-              new Date(),
+              brand_result.created_at,
               "info",
               `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`,
               `Brand - Create`,
@@ -146,7 +146,7 @@ class BrandController {
             socket.create();
 
             LogHelper.log(
-              new Date(),
+              result.updated_at!,
               "info",
               `${result.user_item_brand_updated_byTouser?.name} updated brand with the name ${result.name} (ID: ${result.id})`,
               `Brand - Create`,
@@ -187,7 +187,7 @@ class BrandController {
               socket.create();
 
               LogHelper.log(
-                new Date(),
+                result.deleted_at!,
                 "info",
                 `${result.user_item_brand_deleted_byTouser?.name} deleted brand with the name ${result.name} (ID: ${result.id})`,
                 `Brand - Delete`,

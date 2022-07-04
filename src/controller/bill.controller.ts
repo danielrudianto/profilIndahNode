@@ -6,7 +6,7 @@ class BillController {
     create = (req: Request, res: Response) => {
         const validation_result = validationResult(req);
         if (!validation_result.isEmpty()) {
-            return res.status(500).send(validation_result.array()[0].msg);
+            return res.status(400).send(validation_result.array()[0].msg);
         }
 
         const customer_id = req.body.customer_id;

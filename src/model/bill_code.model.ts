@@ -128,6 +128,19 @@ class BillModel {
       }
     });
   }
+
+  static countByPaymentMethodIds(payment_method_ids: number[]){
+    return prisma.bill_code.groupBy({
+      by: ["payment_method_id"],
+      where: {
+        payment_method_id: {
+          in: payment_method_ids
+        },
+        is_delete: false
+      },
+      _count: true
+    })
+  }
 }
 
 export default BillModel;
