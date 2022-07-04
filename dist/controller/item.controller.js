@@ -173,13 +173,17 @@ ItemController.fetch = (req, res) => {
     date.setHours(0, 0, 0, 0);
     item_model_1.ItemModel.fetch(keyword, date, offset, limit)
         .then((result) => {
-        return res.status(200).send({
-            data: result[0].map((item) => {
-                return Object.assign(Object.assign({}, item), { _count: undefined, can_delete: item._count.bill > 0 || item._count.good_receipt > 0
-                        ? false
-                        : true });
-            }),
-            count: result[1],
+        item_model_1.ItemModel.checkCountByIds(result[0].map((x) => x.id))
+            .then((count) => {
+            return res.status(200).send({
+                data: result[0].map((item) => {
+                    return Object.assign(Object.assign({}, item), { _count: undefined, can_delete: count[0] + count[1] ? false : true });
+                }),
+                count: result[1],
+            });
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
         });
     })
         .catch((error) => {

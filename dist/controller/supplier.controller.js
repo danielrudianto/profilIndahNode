@@ -13,7 +13,7 @@ class SupplierController {
 SupplierController.create = (req, res) => {
     const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
-        return res.status(500).send(validation_result.array()[0].msg);
+        return res.status(400).send(validation_result.array()[0].msg);
     }
     const name = req.body.name;
     const address = req.body.address;

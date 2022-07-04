@@ -141,6 +141,15 @@ class BillModel {
       _count: true
     })
   }
+
+  static countByPaymentMethodId(payment_method_id: number){
+    return prisma.bill_code.count({
+      where:{
+        payment_method_id: payment_method_id,
+        is_delete: false
+      }
+    })
+  }
 }
 
 export default BillModel;

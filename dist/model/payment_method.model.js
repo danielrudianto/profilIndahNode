@@ -1,27 +1,18 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 class PaymentMethodModel {
-
-    id?: number;
-    name: string;
-    description: string;
-    created_by: number;
-    created_at: Date;
-
-    constructor(name: string, description: string, created_by: number, id: number | null = null){
-        if(id != null){
+    constructor(name, description, created_by, id = null) {
+        if (id != null) {
             this.id = id;
         }
-
         this.name = name;
-        this.description = description; 
+        this.description = description;
         this.created_by = created_by;
         this.created_at = new Date();
     }
-
-    create(){
+    create() {
         return prisma.payment_method.create({
             data: {
                 name: this.name,
@@ -37,12 +28,11 @@ class PaymentMethodModel {
                     }
                 }
             }
-        })
+        });
     }
-
-    update(){
+    update() {
         return prisma.payment_method.update({
-            where:{
+            where: {
                 id: this.id
             },
             data: {
@@ -59,14 +49,13 @@ class PaymentMethodModel {
                     }
                 }
             }
-        })
+        });
     }
-
-    static fetch(keyword: string, offset: number, limit: number){
-        if(keyword == ""){
+    static fetch(keyword, offset, limit) {
+        if (keyword == "") {
             return prisma.$transaction([
                 prisma.payment_method.findMany({
-                    where:{
+                    where: {
                         is_delete: false
                     },
                     orderBy: {
@@ -84,15 +73,16 @@ class PaymentMethodModel {
                     take: limit
                 }),
                 prisma.payment_method.count({
-                    where:{
+                    where: {
                         is_delete: false
                     }
                 })
             ]);
-        } else {
+        }
+        else {
             return prisma.$transaction([
                 prisma.payment_method.findMany({
-                    where:{
+                    where: {
                         is_delete: false,
                         OR: [
                             {
@@ -122,7 +112,7 @@ class PaymentMethodModel {
                     take: limit
                 }),
                 prisma.payment_method.count({
-                    where:{
+                    where: {
                         is_delete: false,
                         OR: [
                             {
@@ -141,11 +131,10 @@ class PaymentMethodModel {
             ]);
         }
     }
-
-    static fetchAutocomplete(keyword: string){
-        if(keyword == ""){
+    static fetchAutocomplete(keyword) {
+        if (keyword == "") {
             return prisma.payment_method.findMany({
-                where:{
+                where: {
                     is_delete: false
                 },
                 orderBy: {
@@ -153,10 +142,11 @@ class PaymentMethodModel {
                 },
                 take: 5,
                 skip: 0
-            })
-        } else {
+            });
+        }
+        else {
             return prisma.payment_method.findMany({
-                where:{
+                where: {
                     is_delete: false,
                     OR: [
                         {
@@ -176,15 +166,13 @@ class PaymentMethodModel {
                 },
                 take: 5,
                 skip: 0
-            })
+            });
         }
-        
     }
-
-    static fetchById(id: number){
+    static fetchById(id) {
         return prisma.$transaction([
             prisma.payment_method.findUnique({
-                where:{
+                where: {
                     id: id
                 },
                 select: {
@@ -195,17 +183,16 @@ class PaymentMethodModel {
                 }
             }),
             prisma.bill_code.count({
-                where:{
+                where: {
                     is_delete: false,
                     payment_method_id: id
                 }
             })
-        ])
+        ]);
     }
-
-    static delete(id: number, created_by: number){
+    static delete(id, created_by) {
         return prisma.payment_method.update({
-            where:{
+            where: {
                 id: id
             },
             data: {
@@ -221,8 +208,7 @@ class PaymentMethodModel {
                     }
                 }
             }
-        })
+        });
     }
 }
-
-export default PaymentMethodModel;
+exports.default = PaymentMethodModel;

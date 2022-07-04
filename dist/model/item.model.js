@@ -229,12 +229,6 @@ class ItemModel {
                             take: 1,
                             skip: 0,
                         },
-                        _count: {
-                            select: {
-                                bill: true,
-                                good_receipt: true,
-                            },
-                        },
                     },
                 }),
                 prisma.item.count({
@@ -314,12 +308,6 @@ class ItemModel {
                             take: 1,
                             skip: 0,
                         },
-                        _count: {
-                            select: {
-                                bill: true,
-                                good_receipt: true,
-                            },
-                        },
                     },
                 }),
                 prisma.item.count({
@@ -396,6 +384,24 @@ class ItemModel {
                     },
                 },
             }),
+        ]);
+    }
+    static checkCountByIds(id) {
+        return prisma.$transaction([
+            prisma.bill.count({
+                where: {
+                    item_id: {
+                        in: id
+                    }
+                }
+            }),
+            prisma.good_receipt.count({
+                where: {
+                    item_id: {
+                        in: id
+                    }
+                }
+            })
         ]);
     }
     static delete(id, deleted_by) {

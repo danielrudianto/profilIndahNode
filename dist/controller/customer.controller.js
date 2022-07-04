@@ -7,14 +7,14 @@ const express_validator_1 = require("express-validator");
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
-const bill_model_1 = __importDefault(require("../model/bill.model"));
+const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const customer_model_1 = __importDefault(require("../model/customer.model"));
 class CustomerController {
 }
 CustomerController.create = (req, res) => {
     const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
-        return res.status(500).send(validation_result.array()[0].msg);
+        return res.status(400).send(validation_result.array()[0].msg);
     }
     const name = req.body.name;
     const address = req.body.address;
@@ -25,7 +25,7 @@ CustomerController.create = (req, res) => {
     customer
         .create()
         .then((result) => {
-        log_helper_1.default.log(new Date(), "info", `${result.user.name} created customer with the name ${result.name} (ID: ${result.id})`, "Customer - Create", req.body.userId);
+        log_helper_1.default.log(result.created_at, "info", `${result.user.name} created customer with the name ${result.name} (ID: ${result.id})`, "Customer - Create", req.body.userId);
         const socket = new socket_helper_1.default("createCustomer", Object.assign(Object.assign({}, result), { can_delete: true }));
         socket.create();
         return res.status(201).send(result);
@@ -38,7 +38,7 @@ CustomerController.create = (req, res) => {
 CustomerController.update = (req, res) => {
     const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
-        return res.status(500).send(validation_result.array()[0].msg);
+        return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = req.body.id;
     const name = req.body.name;
@@ -64,15 +64,15 @@ CustomerController.update = (req, res) => {
 CustomerController.delete = (req, res) => {
     const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
-        return res.status(500).send(validation_result.array()[0].msg);
+        return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id.toString());
-    bill_model_1.default.countByCustomerId(id).then((count) => {
+    bill_code_model_1.default.countByCustomerId(id).then((count) => {
         if (count == 0) {
             customer_model_1.default.delete(id, req.body.userId)
                 .then((customer) => {
                 var _a;
-                log_helper_1.default.log(new Date(), "info", `${(_a = customer.user_customer_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted customer with the name ${customer.name} (ID: ${customer.id})`, "Customer - Delete", req.body.userId);
+                log_helper_1.default.log(customer.deleted_at, "info", `${(_a = customer.user_customer_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted customer with the name ${customer.name} (ID: ${customer.id})`, "Customer - Delete", req.body.userId);
                 const socket = new socket_helper_1.default("deleteCustomer", customer);
                 socket.create();
                 return res.status(201).send(customer);
@@ -92,7 +92,7 @@ CustomerController.delete = (req, res) => {
 CustomerController.fetchAutocomplete = (req, res) => {
     const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
-        return res.status(500).send(validation_result.array()[0].msg);
+        return res.status(400).send(validation_result.array()[0].msg);
     }
     const keyword = req.query.keyword.toString();
     customer_model_1.default.fetchAutocomplete(keyword)
@@ -114,7 +114,7 @@ CustomerController.fetch = (req, res) => {
     const keyword = !req.query.keyword ? "" : (_a = req.query.keyword) === null || _a === void 0 ? void 0 : _a.toString();
     customer_model_1.default.fetch(keyword, offset, limit)
         .then((result) => {
-        bill_model_1.default.countByCustomerIds(result[0].map((x) => {
+        bill_code_model_1.default.countByCustomerIds(result[0].map((x) => {
             return x.id;
         }))
             .then((count) => {
@@ -150,7 +150,7 @@ CustomerController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
     const transaction = new query_transaction_helper_1.default();
     transaction
-        .create([customer_model_1.default.fetchById(id), bill_model_1.default.countByCustomerId(id)])
+        .create([customer_model_1.default.fetchById(id), bill_code_model_1.default.countByCustomerId(id)])
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
     })

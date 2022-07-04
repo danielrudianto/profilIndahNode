@@ -72,7 +72,7 @@ BrandController.create = (req, res) => {
             brand_object
                 .create()
                 .then((brand_result) => {
-                log_helper_1.default.log(new Date(), "info", `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`, `Brand - Create`, req.body.userId);
+                log_helper_1.default.log(brand_result.created_at, "info", `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`, `Brand - Create`, req.body.userId);
                 const socket = new socket_helper_1.default("createBrand", Object.assign(Object.assign({}, brand_result), { can_delete: true }));
                 socket.create();
                 return res.status(201).send(brand_result);
@@ -100,7 +100,7 @@ BrandController.update = (req, res) => {
             var _a;
             const socket = new socket_helper_1.default("updateBrand", result);
             socket.create();
-            log_helper_1.default.log(new Date(), "info", `${(_a = result.user_item_brand_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated brand with the name ${result.name} (ID: ${result.id})`, `Brand - Create`, req.body.userId);
+            log_helper_1.default.log(result.updated_at, "info", `${(_a = result.user_item_brand_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated brand with the name ${result.name} (ID: ${result.id})`, `Brand - Create`, req.body.userId);
             return res.status(201).send(result);
         })
             .catch((error) => {
@@ -127,7 +127,7 @@ BrandController.delete = (req, res) => {
                 var _a;
                 const socket = new socket_helper_1.default("deleteBrand", result);
                 socket.create();
-                log_helper_1.default.log(new Date(), "info", `${(_a = result.user_item_brand_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted brand with the name ${result.name} (ID: ${result.id})`, `Brand - Delete`, req.body.userId);
+                log_helper_1.default.log(result.deleted_at, "info", `${(_a = result.user_item_brand_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted brand with the name ${result.name} (ID: ${result.id})`, `Brand - Delete`, req.body.userId);
                 return res.status(201).send(result);
             })
                 .catch((error) => {

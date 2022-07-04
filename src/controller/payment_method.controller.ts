@@ -166,6 +166,7 @@ class PaymentMethodController {
             "Payment Method - Update",
             req.body.userId
           ); 
+
           return res.status(500).send(error);
         })
       }
@@ -181,6 +182,28 @@ class PaymentMethodController {
       return res.status(500).send(error);
     })
   };
+
+  static delete = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    BillModel.countByPaymentMethodId(id).then(count => {
+      if(count == 0){
+        PaymentMethodModel.delete(id, req.body.userId).then(result => {
+          LogHelper.log(new Date(), "info", `${result.user_payment_method_deleted_byTouser!.name} berhasil menghapus data metode penjualan dengan nama ${result.name} (ID: ${result.id})`, "Payment method - Delete", req.body.userId);
+
+          const socket = new SocketHelper("deletePaymentMethod", result);
+          socket.create();
+          return res.status(201).send(result);
+        }).catch(error => {
+          LogHelper.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
+        })
+      } else {
+        return res.status(400).send("Data tidak dapat dihapus karena ada penjualan yang menggunakan data ini.")
+      }
+    }).catch(error => {
+      LogHelper.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default PaymentMethodController;

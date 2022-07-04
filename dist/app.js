@@ -21,6 +21,7 @@ const good_receipt_route_1 = __importDefault(require("./routes/good_receipt.rout
 const purchase_document_route_1 = __importDefault(require("./routes/purchase_document.route"));
 const user_route_1 = __importDefault(require("./routes/user.route"));
 const expense_route_1 = __importDefault(require("./routes/expense.route"));
+const payment_method_route_1 = __importDefault(require("./routes/payment_method.route"));
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options = {
     origin: allowedOrigins,
@@ -40,6 +41,7 @@ app.use("/company", auth_helper_1.authMiddleware, company_route_1.default);
 app.use("/goodReceipt", auth_helper_1.authMiddleware, good_receipt_route_1.default);
 app.use("/purchaseDocument", auth_helper_1.authMiddleware, purchase_document_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
+app.use("/paymentMethod", auth_helper_1.authMiddleware, payment_method_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => {

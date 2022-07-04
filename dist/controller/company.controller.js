@@ -67,7 +67,7 @@ CompanyController.delete = (req, res) => {
             var _a;
             (_a = company_model_1.default.count()) === null || _a === void 0 ? void 0 : _a.then((company_count) => {
                 var _a;
-                log_helper_1.default.log(new Date(), "info", `${(_a = company_result.user_company_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted company with the name ${company_result.name} (ID: ${company_result.id})`, "Company - Delete", req.body.userId);
+                log_helper_1.default.log(company_result.deleted_at, "info", `${(_a = company_result.user_company_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted company with the name ${company_result.name} (ID: ${company_result.id})`, "Company - Delete", req.body.userId);
                 app_1.io.emit("deleteCompany", {
                     name: company_result.name,
                     id: company_result.id,
@@ -108,7 +108,7 @@ CompanyController.update = (req, res) => {
             .update()
             .then((company_result) => {
             var _a;
-            log_helper_1.default.log(new Date(), "info", `${(_a = company_result.user_company_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated company with the name ${company_result.name} (ID: ${company_result}`, "Company - Update", req.body.userId);
+            log_helper_1.default.log(company_result.updated_at, "info", `${(_a = company_result.user_company_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated company with the name ${company_result.name} (ID: ${company_result}`, "Company - Update", req.body.userId);
             app_1.io.emit("updateCompany", company_result);
             return res.status(201).send(company_result);
         })
@@ -131,7 +131,7 @@ CompanyController.create = (req, res) => {
     company
         .create()
         .then((result) => {
-        log_helper_1.default.log(new Date(), "info", `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`, "Company - Create", req.body.userId);
+        log_helper_1.default.log(result.created_at, "info", `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`, "Company - Create", req.body.userId);
         app_1.io.emit("createCompany", Object.assign(Object.assign({}, result), { can_delete: true }));
         return res.status(201).send(result);
     })

@@ -15,9 +15,12 @@ router.post(
 );
 
 router.put("/",
-body("id").not().isEmpty().withMessage("Mohon isikan ID metode pembayaran."),
-body("name").not().isEmpty().withMessage("Mohon isikan nama metode pembayaran."),
+  body("id").not().isEmpty().withMessage("Mohon isikan ID metode pembayaran."),
+  body("name").not().isEmpty().withMessage("Mohon isikan nama metode pembayaran."),
   body("description").not().isEmpty().withMessage("Mohon isikan deskripsi metode pembayaran."),
-  PaymentMethodController.update);
+  PaymentMethodController.update
+);
+
+router.delete("/:id", PaymentMethodController.delete);
 
 export default router;

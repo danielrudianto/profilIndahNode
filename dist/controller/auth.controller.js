@@ -105,4 +105,45 @@ AuthController.saveToken = (req, res) => {
         }
     });
 };
+AuthController.updatePassword = (req, res) => {
+    const password = req.body.password;
+    const userId = req.body.userId;
+    user_model_1.default.updatePassword(password, userId).then(result => {
+        log_helper_1.default.log(new Date(), "info", `User ${result.name} update it's password (ID: ${result.id})`, "Auth controller - UPdate Password", req.body.userId);
+        return res.status(201).send(result);
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
+AuthController.resetPassword = (req, res) => {
+    const user_id = parseInt(req.body.user_id);
+    user_model_1.default.fetchById(user_id).then(user => {
+        if (user == null || !user.is_active) {
+            return res.status(404).send("Pengguna tidak ditemukan.");
+        }
+        else {
+            // User is found and it's password will be reseted.
+            let password = "";
+            const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            for (var i = 0; i < 8; i++) {
+                password +=
+                    characters[Math.floor(Math.random() * (characters.length - 1))];
+            }
+            (0, bcrypt_1.hash)(password, 12).then(hashedPassword => {
+                user_model_1.default.update(user === null || user === void 0 ? void 0 : user.id, user === null || user === void 0 ? void 0 : user.name, hashedPassword, req.body.userId).then(result => {
+                    return res.status(201).send(Object.assign(Object.assign({}, result), { password: password }));
+                }).catch(error => {
+                    log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
+                    return res.status(500).send(error);
+                });
+            }).catch(error => {
+                log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
+                return res.status(500).send(error);
+            });
+        }
+    }).catch(error => {
+        log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
+        return res.status(500).send(error);
+    });
+};
 exports.default = AuthController;
