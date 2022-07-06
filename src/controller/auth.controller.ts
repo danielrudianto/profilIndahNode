@@ -10,7 +10,7 @@ class AuthController {
   static login = (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (errors.array().length > 0) {
-      return res.status(400).send("Please fill in the correct format.");
+      return res.status(400).send("Mohon isikan dengan format yang sesuai.");
     }
 
     const username = req.body.username;
@@ -27,12 +27,12 @@ class AuthController {
             0
           );
 
-          return res.status(401).send("Incorrect password or username");
+          return res.status(401).send("Username / kata sandi salah.");
         }
 
         compare(password, user.password).then((result) => {
           if (!result) {
-            return res.status(401).send("Incorrect password or username");
+            return res.status(401).send("Username / kata sandi salah.");
           }
 
           const expired = new Date().getTime() + 60 * 60 * 6 * 1000;

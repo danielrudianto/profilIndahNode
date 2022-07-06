@@ -2,7 +2,7 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-class BillModel {
+class BillCodeModel {
   id?: number;
   name: string;
   customer_id?: number | null;
@@ -56,7 +56,13 @@ class BillModel {
             id: true,
           }
         },
-        customer_id: true
+        customer_id: true,
+        user_bill_code_created_byTouser: {
+          select: {
+            id: true,
+            name: true
+          }
+        }
       }
     })
   }
@@ -152,4 +158,4 @@ class BillModel {
   }
 }
 
-export default BillModel;
+export default BillCodeModel;

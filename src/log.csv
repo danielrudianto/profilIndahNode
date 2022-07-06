@@ -22,3 +22,10 @@ Mon Jul 04 2022 08:54:33 GMT+0700 (Indochina Time); info; Login success for user
 Mon Jul 04 2022 11:42:00 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Mon Jul 04 2022 13:21:50 GMT+0700 (Western Indonesia Time); info; Daniel Tri berhasil menghapus data metode penjualan dengan nama BCA (ID: 1); Payment method - Delete; 1
 Mon Jul 04 2022 13:22:36 GMT+0700 (Western Indonesia Time); info; Daniel Tri berhasil menghapus data metode penjualan dengan nama Nama (ID: 2); Payment method - Delete; 1
+Mon Jul 04 2022 15:13:00 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Mon Jul 04 2022 15:13:18 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Jul 06 2022 09:14:25 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Jul 06 2022 09:19:42 GMT+0700 (Western Indonesia Time); info; Daniel Tri created supplier with the name Test (ID: 4); Supplier - Create; 1
+Wed Jul 06 2022 09:19:52 GMT+0700 (Western Indonesia Time); info; Daniel Tri created supplier with the name Teee (ID: 5); Supplier - Create; 1
+Wed Jul 06 2022 09:21:12 GMT+0700 (Western Indonesia Time); info; Daniel Tri created supplier with the name aaa (ID: 6); Supplier - Create; 1
+Wed Jul 06 2022 09:22:31 GMT+0700 (Western Indonesia Time); info; Daniel Tri berhasil menambahkan metode pembayaran dengan nama Kredit BCA (ID: 14).; Payment Method - Create; 1

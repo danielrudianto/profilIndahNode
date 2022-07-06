@@ -23,6 +23,7 @@ class SupplierController {
       null,
       req.body.userId
     );
+
     supplier
       .create()
       .then((supplier_result) => {
