@@ -11,7 +11,7 @@ class SupplierModel {
             this.id = id;
         }
         if (created_by != null) {
-            this.created_by = this.created_by;
+            this.created_by = created_by;
         }
         this.name = name;
         this.address = address;

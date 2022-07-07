@@ -30,3 +30,5 @@ Wed Jul 06 2022 09:19:52 GMT+0700 (Western Indonesia Time); info; Daniel Tri cre
 Wed Jul 06 2022 09:21:12 GMT+0700 (Western Indonesia Time); info; Daniel Tri created supplier with the name aaa (ID: 6); Supplier - Create; 1
 Wed Jul 06 2022 09:22:31 GMT+0700 (Western Indonesia Time); info; Daniel Tri berhasil menambahkan metode pembayaran dengan nama Kredit BCA (ID: 14).; Payment Method - Create; 1
 Thu Jul 07 2022 08:32:29 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jul 07 2022 08:50:44 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jul 07 2022 09:42:28 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan  (ID: 1); Bill controller - Create; 1

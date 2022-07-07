@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
-class BillModel {
+class BillCodeModel {
     constructor(customer_id, created_by, payment_method_id, discount, delivery, id = null) {
         this.is_delete = false;
         this.is_confirm = true;
@@ -43,7 +43,13 @@ class BillModel {
                         id: true,
                     }
                 },
-                customer_id: true
+                customer_id: true,
+                user_bill_code_created_byTouser: {
+                    select: {
+                        id: true,
+                        name: true
+                    }
+                }
             }
         });
     }
@@ -130,4 +136,4 @@ class BillModel {
         });
     }
 }
-exports.default = BillModel;
+exports.default = BillCodeModel;

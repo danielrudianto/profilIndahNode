@@ -7,7 +7,7 @@ const fs_1 = __importDefault(require("fs"));
 class LogHelper {
     static log(date, type, event, location, done_by) {
         if (type === "error") {
-            fs_1.default.appendFileSync(__dirname + "/../log.csv", `${new Date(date)}; ${type}; ${event.replace(/\n|\r|, /g, ",")}; ${location}; ${done_by}\r\n`);
+            fs_1.default.appendFileSync(__dirname + "/../log.csv", `${new Date(date)}; ${type}; ${event.toString().replace(/(?:\r\n|\r|\n)/g, ",")}; ${location}; ${done_by}\r\n`);
         }
         else {
             fs_1.default.appendFileSync(__dirname + "/../log.csv", `${new Date(date)}; ${type}; ${event}; ${location}; ${done_by}\r\n`);
