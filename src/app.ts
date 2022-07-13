@@ -19,6 +19,7 @@ import userRoutes from "./routes/user.route";
 import expenseRoutes from "./routes/expense.route";
 import paymentMethodRoutes from './routes/payment_method.route';
 import billRoutes from './routes/bill.route';
+import adjustmentCaseRoutes from './routes/adjustment_case.route';
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
@@ -40,6 +41,8 @@ app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
 app.use("/customer", authMiddleware, customerRoutes);
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/company", authMiddleware, companyRoutes);
+
+app.use("/adjustmentCase", authMiddleware, adjustmentCaseRoutes);
 
 app.use("/goodReceipt", authMiddleware, goodReceiptRoutes);
 app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
