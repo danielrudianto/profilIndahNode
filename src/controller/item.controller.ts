@@ -16,7 +16,7 @@ class ItemController {
     const minimum_stock = req.body.minimum_stock;
     const user_id = req.body.userId;
 
-    BrandModel.getByName(brand_name)
+    BrandModel.fetchByName(brand_name)
       .then((brand) => {
         if (brand == null || brand.is_delete) {
           return res.status(404).send("Merek tidak ditemukan.");
@@ -224,7 +224,7 @@ class ItemController {
     const brand_name = req.body.brand;
     const minimum_stock = req.body.minimum_stock;
 
-    BrandModel.getByName(brand_name)
+    BrandModel.fetchByName(brand_name)
       .then((brand) => {
         if (brand == null || brand.is_delete) {
           return res.status(400).send("Merek tidak ditemukan.");
@@ -349,6 +349,31 @@ class ItemController {
         res.status(500).send(error);
       });
   };
+
+  static fetchInsufficient = (req: Request, res: Response) => {
+    const page: number = !req.query.page
+      ? 1
+      : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const blocked_brand = (req.query.blocked_brands == null || req.query.blocked_brands == "" || req.query.blocked_brands == undefined) ? [] : req.query.blocked_brands.toString().split(",");
+
+    ItemModel.fetchInsufficient(keyword, blocked_brand, offset, limit).then(result => {
+      ItemModel.fetchByIds((result[0] as any[]).map(x =>{ return x.id})).then(items => {
+        return res.status(200).send({
+          data: items,
+          count: (result[1] as any[])[0].count
+        });
+      }).catch(error => {
+        LogHelper.log(new Date(), "error", error, "Item Controller - Fetch Insufficient", req.body.userId);
+        return res.status(500).send(error);
+      })
+    }).catch(error => {
+      LogHelper.log(new Date(), "error", error, "Item Controller - Fetch Insufficient", req.body.userId);
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default ItemController;

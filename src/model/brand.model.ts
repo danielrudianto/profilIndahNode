@@ -94,7 +94,7 @@ export class BrandModel {
     });
   }
 
-  static getByName(name: string) {
+  static fetchByName(name: string) {
     return prisma.item_brand.findFirst({
       where: {
         name: name,
@@ -139,7 +139,7 @@ export class BrandModel {
     });
   }
 
-  static get(keyword: string, offset: number, limit: number) {
+  static fetch(keyword: string, offset: number, limit: number) {
     if (keyword == "") {
       return prisma.$transaction([
         prisma.item_brand.findMany({
@@ -219,5 +219,36 @@ export class BrandModel {
       });
 
     return count;
+  }
+
+  static fetchUsed(keyword: string, offset: number, limit: number){
+    return prisma.$transaction([
+      prisma.item_brand.findMany({
+        where:{
+          item:{
+            some: {
+              is_delete: false
+            }
+          },
+        },
+        orderBy: {
+          name: "asc"
+        },
+        take: limit,
+        skip: offset
+      }),
+      prisma.item_brand.count({
+        where:{
+          item:{
+            some: {
+              is_delete: false
+            }
+          },
+          name: {
+            contains: keyword
+          },
+        }
+      }),
+    ])
   }
 }

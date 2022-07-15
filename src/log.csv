@@ -34,3 +34,8 @@ Thu Jul 07 2022 08:50:44 GMT+0700 (Indochina Time); info; Login success for user
 Thu Jul 07 2022 09:42:28 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan  (ID: 1); Bill controller - Create; 1
 Wed Jul 13 2022 13:22:49 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Fri Jul 15 2022 11:16:13 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Jul 15 2022 13:23:30 GMT+0700 (Indochina Time); warn; Login failed for username lani; Auth controller - Login; 0
+Fri Jul 15 2022 13:25:28 GMT+0700 (Indochina Time); warn; Login failed for username lani; Auth controller - Login; 0
+Fri Jul 15 2022 13:27:27 GMT+0700 (Indochina Time); warn; Login failed for username lani; Auth controller - Login; 0
+Fri Jul 15 2022 14:30:25 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Jul 15 2022 17:30:28 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '? ORDER BY reference ASC LIMIT ? OFFSET ?' at line 1`; Item Controller - Fetch Insufficient; 1

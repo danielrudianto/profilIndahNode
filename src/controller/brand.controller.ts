@@ -39,7 +39,7 @@ class BrandController {
     const limit = parseInt(process.env.LIMIT?.toString()!);
     const offset = (page - 1) * limit;
 
-    BrandModel.get(keyword, offset, limit)
+    BrandModel.fetch(keyword, offset, limit)
       .then((result) => {
         ItemModel.countByBrandIds(
           result[0].map((x) => {
@@ -87,7 +87,7 @@ class BrandController {
 
   static create = (req: Request, res: Response) => {
     const name = req.body.name;
-    BrandModel.getByName(name).then((brand) => {
+    BrandModel.fetchByName(name).then((brand) => {
       if (brand != null) {
         return res.status(400).send("Mohon masukkan nama merek unik.");
       } else {
@@ -220,6 +220,25 @@ class BrandController {
         return res.status(500).send(error);
       });
   };
+
+  static fetchUsed = (req: Request, res: Response) => {
+    const page = !req.query.page
+      ? 1
+      : Math.max(1, parseInt(req.query.page.toString()));
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const limit = parseInt(process.env.LIMIT?.toString()!);
+    const offset = (page - 1) * limit;
+
+    BrandModel.fetchUsed(keyword, offset, limit).then(result => {
+      return res.status(200).send({
+        data: result[0],
+        count: result[1]
+      })
+    }).catch(error => {
+      LogHelper.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default BrandController;

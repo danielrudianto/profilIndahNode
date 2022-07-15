@@ -1,4 +1,4 @@
-import { compare, hash } from "bcrypt";
+import { compare, hash, hashSync } from "bcrypt";
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import { sign } from "jsonwebtoken";
