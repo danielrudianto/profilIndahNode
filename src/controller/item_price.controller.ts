@@ -33,29 +33,32 @@ class ItemPriceController {
     transaction
       .create([item_price_create, item_price_delete])
       .then((result) => {
-        ItemModel.fetchById(result[1].item_id, date).then((item) => {
-          LogHelper.log(
-            new Date(),
-            "info",
-            `${result[0].user.name} added sales item price for item ${result[0].item.reference} (ID: ${result[0].item.id}) with the price ${result[0].price} and discount (${result[0].discount} / ${result[0].discount_project}`,
-            "Item Price - Create",
-            req.body.userId
-          );
+        ItemModel.fetchById(result[1].item_id, date)
+          .then((item) => {
+            LogHelper.log(
+              new Date(),
+              "info",
+              `${result[0].user.name} added sales item price for item ${result[0].item.reference} (ID: ${result[0].item.id}) with the price ${result[0].price} and discount (${result[0].discount} / ${result[0].discount_project}`,
+              "Item Price - Create",
+              req.body.userId
+            );
 
-          io.emit("updatePrice", item);
-          return res.status(200).send(result[1]);
-        }).catch(error => {
-          LogHelper.log(
-            new Date(),
-            "error",
-            error,
-            "Item Price - Create",
-            req.body.userId
-          );
+            io.emit("updatePrice", item);
+            return res.status(200).send(result[1]);
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Item Price - Create",
+              req.body.userId
+            );
 
-          return res.status(500).send(error);
-        })
-      }).catch(error => {
+            return res.status(500).send(error);
+          });
+      })
+      .catch((error) => {
         LogHelper.log(
           new Date(),
           "error",
@@ -63,7 +66,7 @@ class ItemPriceController {
           "Item Price - Create",
           req.body.userId
         );
-        
+
         return res.status(500).send(error);
       });
   };

@@ -78,9 +78,11 @@ PaymentMethodController.fetchAutocomplete = (req, res) => {
 };
 PaymentMethodController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
-    payment_method_model_1.default.fetchById(id).then((result) => {
+    payment_method_model_1.default.fetchById(id)
+        .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 }));
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Payment Method - Fetch by ID", req.body.userId);
         return res.status(500).send(error);
     });
@@ -93,43 +95,54 @@ PaymentMethodController.update = (req, res) => {
     const id = parseInt(req.body.id);
     const name = req.body.name;
     const description = req.body.description;
-    payment_method_model_1.default.fetchById(id).then((payment_method) => {
+    payment_method_model_1.default.fetchById(id)
+        .then((payment_method) => {
         if (payment_method[0] == null || payment_method[0].is_delete) {
             return res.status(404).send("Metode pembayaran tidak ditemukan.");
         }
         else {
             const paymentMethod = new payment_method_model_1.default(name, description, req.body.userId, id);
-            paymentMethod.update().then((result) => {
+            paymentMethod
+                .update()
+                .then((result) => {
                 const socket = new socket_helper_1.default("updatePaymentMethod", result);
                 socket.create();
                 return res.status(201).send(result);
-            }).catch(error => {
+            })
+                .catch((error) => {
                 log_helper_1.default.log(new Date(), "error", error, "Payment Method - Update", req.body.userId);
                 return res.status(500).send(error);
             });
         }
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Payment Method - Update", req.body.userId);
         return res.status(500).send(error);
     });
 };
 PaymentMethodController.delete = (req, res) => {
     const id = parseInt(req.params.id);
-    bill_code_model_1.default.countByPaymentMethodId(id).then(count => {
+    bill_code_model_1.default.countByPaymentMethodId(id)
+        .then((count) => {
         if (count == 0) {
-            payment_method_model_1.default.delete(id, req.body.userId).then(result => {
+            payment_method_model_1.default.delete(id, req.body.userId)
+                .then((result) => {
                 log_helper_1.default.log(new Date(), "info", `${result.user_payment_method_deleted_byTouser.name} berhasil menghapus data metode penjualan dengan nama ${result.name} (ID: ${result.id})`, "Payment method - Delete", req.body.userId);
                 const socket = new socket_helper_1.default("deletePaymentMethod", result);
                 socket.create();
                 return res.status(201).send(result);
-            }).catch(error => {
+            })
+                .catch((error) => {
                 log_helper_1.default.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
             });
         }
         else {
-            return res.status(400).send("Data tidak dapat dihapus karena ada penjualan yang menggunakan data ini.");
+            return res
+                .status(400)
+                .send("Data tidak dapat dihapus karena ada penjualan yang menggunakan data ini.");
         }
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
         return res.status(500).send(error);
     });

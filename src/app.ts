@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import http from 'http';
+import http from "http";
 import { Server } from "socket.io";
 
 import { authMiddleware } from "./helper/auth.helper";
@@ -17,9 +17,9 @@ import goodReceiptRoutes from "./routes/good_receipt.route";
 import purchaseDocumentRoutes from "./routes/purchase_document.route";
 import userRoutes from "./routes/user.route";
 import expenseRoutes from "./routes/expense.route";
-import paymentMethodRoutes from './routes/payment_method.route';
-import billRoutes from './routes/bill.route';
-import adjustmentCaseRoutes from './routes/adjustment_case.route';
+import paymentMethodRoutes from "./routes/payment_method.route";
+import billRoutes from "./routes/bill.route";
+import adjustmentCaseRoutes from "./routes/adjustment_case.route";
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
@@ -61,7 +61,7 @@ server.listen(5000, () => {
 export const io = new Server(server, {
   cors: {
     origin: "*",
-    methods: "*"
+    methods: "*",
   },
 });
 

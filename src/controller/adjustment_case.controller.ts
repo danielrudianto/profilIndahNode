@@ -122,6 +122,17 @@ class AdjustmentCaseController {
       return res.status(400).send("Input tidak dikenal.");
     }
   };
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    AdjustmentCaseModel.fetchById(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default AdjustmentCaseController;

@@ -1,4 +1,4 @@
-import { io } from '../app';
+import { io } from "../app";
 
 class SocketHelper {
   event_name: string;

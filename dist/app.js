@@ -23,6 +23,7 @@ const user_route_1 = __importDefault(require("./routes/user.route"));
 const expense_route_1 = __importDefault(require("./routes/expense.route"));
 const payment_method_route_1 = __importDefault(require("./routes/payment_method.route"));
 const bill_route_1 = __importDefault(require("./routes/bill.route"));
+const adjustment_case_route_1 = __importDefault(require("./routes/adjustment_case.route"));
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options = {
     origin: allowedOrigins,
@@ -39,6 +40,7 @@ app.use("/itemPurchasePrice", auth_helper_1.authMiddleware, item_purchase_price_
 app.use("/customer", auth_helper_1.authMiddleware, customer_route_1.default);
 app.use("/supplier", auth_helper_1.authMiddleware, supplier_route_1.default);
 app.use("/company", auth_helper_1.authMiddleware, company_route_1.default);
+app.use("/adjustmentCase", auth_helper_1.authMiddleware, adjustment_case_route_1.default);
 app.use("/goodReceipt", auth_helper_1.authMiddleware, good_receipt_route_1.default);
 app.use("/purchaseDocument", auth_helper_1.authMiddleware, purchase_document_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
@@ -52,7 +54,7 @@ server.listen(5000, () => {
 exports.io = new socket_io_1.Server(server, {
     cors: {
         origin: "*",
-        methods: "*"
+        methods: "*",
     },
 });
 exports.io.on("connection", () => {

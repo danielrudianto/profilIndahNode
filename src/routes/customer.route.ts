@@ -27,10 +27,7 @@ router.delete(
   CustomerController.delete
 );
 
-router.get(
-  "/autocomplete",
-  CustomerController.fetchAutocomplete
-);
+router.get("/autocomplete", CustomerController.fetchAutocomplete);
 
 router.get(
   "/:id",

@@ -34,22 +34,22 @@ class GoodReceiptModel {
                 user_good_receipt_code_created_byTouser: {
                     select: {
                         id: true,
-                        name: true
-                    }
+                        name: true,
+                    },
                 },
                 supplier: {
                     select: {
                         name: true,
-                        id: true
-                    }
+                        id: true,
+                    },
                 },
                 company: {
                     select: {
                         name: true,
-                        id: true
-                    }
-                }
-            }
+                        id: true,
+                    },
+                },
+            },
         });
     }
     update() {
@@ -241,11 +241,11 @@ class GoodReceiptModel {
             by: ["company_id"],
             where: {
                 company_id: {
-                    in: company_ids
+                    in: company_ids,
                 },
-                is_delete: false
+                is_delete: false,
             },
-            _count: true
+            _count: true,
         });
     }
     static countBySupplierIds(supplier_ids) {
@@ -253,11 +253,11 @@ class GoodReceiptModel {
             by: ["supplier_id"],
             where: {
                 supplier_id: {
-                    in: supplier_ids
+                    in: supplier_ids,
                 },
-                is_delete: false
+                is_delete: false,
             },
-            _count: true
+            _count: true,
         });
     }
 }

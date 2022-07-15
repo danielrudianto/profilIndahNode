@@ -55,9 +55,8 @@ class BrandController {
                   can_delete:
                     count.filter((x) => x.item_brand_id == item.id).length == 0
                       ? true
-                      : (count.filter(
-                          (x) => x.item_brand_id == item.id
-                        )[0]._count == 0),
+                      : count.filter((x) => x.item_brand_id == item.id)[0]
+                          ._count == 0,
                 };
               }),
               count: result[1],

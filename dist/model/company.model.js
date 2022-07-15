@@ -58,7 +58,7 @@ class CompanyModel {
                 npwp: this.npwp,
                 code_name: this.code_name,
                 updated_by: this.created_by,
-                updated_at: this.created_at
+                updated_at: this.created_at,
             },
             include: {
                 user_company_updated_byTouser: {
@@ -111,7 +111,7 @@ class CompanyModel {
                     where: {
                         is_delete: false,
                     },
-                })
+                }),
             ]);
         }
         else {
@@ -245,10 +245,10 @@ class CompanyModel {
                 user_company_deleted_byTouser: {
                     select: {
                         id: true,
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
     }
     static getByCodeName(code_name) {

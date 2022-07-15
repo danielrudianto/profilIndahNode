@@ -113,6 +113,7 @@ model bill_code {
   confirmed_at                      DateTime?       @db.DateTime(0)
   discount                          Decimal         @default(0.0000) @db.Decimal(50, 4)
   delivery                          Decimal         @default(0.0000) @db.Decimal(50, 4)
+  date                              DateTime?       @db.Date
   user_bill_code_confirmed_byTouser user?           @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")
   user_bill_code_created_byTouser   user            @relation("bill_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_1")
   customer                          customer?       @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_3")
@@ -275,6 +276,7 @@ model item {
   item_price                 item_price[]
   item_price_purchase        item_price_purchase[]
 
+  stock stock?
   @@index([reference, description], map: "item_fulltext")
   @@index([created_by], map: "item_ibfk_1_idx")
   @@index([deleted_by], map: "item_ibfk_2_idx")
@@ -431,4 +433,10 @@ model adjustment_case_code {
 
   @@index([confirmed_by], map: "adjustment_event_code_ibfK-2_idx")
   @@index([created_by], map: "adjustment_event_code_ibfk_1_idx")
+}
+
+model stock {
+  id    Int     @unique
+  stock Decimal
+  item  item    @relation(fields: [id], references: [id])
 }

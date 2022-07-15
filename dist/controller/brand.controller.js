@@ -47,7 +47,8 @@ BrandController.fetch = (req, res) => {
                 data: result[0].map((item) => {
                     return Object.assign(Object.assign({}, item), { _count: undefined, can_delete: count.filter((x) => x.item_brand_id == item.id).length == 0
                             ? true
-                            : (count.filter((x) => x.item_brand_id == item.id)[0]._count == 0) });
+                            : count.filter((x) => x.item_brand_id == item.id)[0]
+                                ._count == 0 });
                 }),
                 count: result[1],
             });

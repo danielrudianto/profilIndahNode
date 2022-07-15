@@ -71,10 +71,10 @@ class UserModel {
         nik: true,
         user: {
           select: {
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     });
   }
 
@@ -228,7 +228,12 @@ class UserModel {
     });
   }
 
-  static update(id: number, name: string, password: string, created_by: number) {
+  static update(
+    id: number,
+    name: string,
+    password: string,
+    created_by: number
+  ) {
     return prisma.user.update({
       where: {
         id: id,
@@ -237,7 +242,7 @@ class UserModel {
         name: name,
         password: password,
         updated_by: created_by,
-        updated_at: new Date()
+        updated_at: new Date(),
       },
     });
   }
@@ -260,22 +265,22 @@ class UserModel {
         user_userTouser_deleted_by: {
           select: {
             name: true,
-            id: true
-          }
+            id: true,
+          },
         },
-      }
+      },
     });
   }
 
-  static updatePassword(password: string, userId: number){
+  static updatePassword(password: string, userId: number) {
     return prisma.user.update({
       data: {
-        password: hashSync(password, 12)
+        password: hashSync(password, 12),
       },
       where: {
-        id: userId
-      }
-    })
+        id: userId,
+      },
+    });
   }
 }
 

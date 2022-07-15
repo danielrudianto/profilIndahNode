@@ -9,15 +9,28 @@ router.get("/:id", PaymentMethodController.fetchById);
 router.get("/", PaymentMethodController.fetch);
 router.post(
   "/",
-  body("name").not().isEmpty().withMessage("Mohon isikan nama metode pembayaran."),
-  body("description").not().isEmpty().withMessage("Mohon isikan deskripsi metode pembayaran."),
+  body("name")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan nama metode pembayaran."),
+  body("description")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan deskripsi metode pembayaran."),
   PaymentMethodController.submit
 );
 
-router.put("/",
+router.put(
+  "/",
   body("id").not().isEmpty().withMessage("Mohon isikan ID metode pembayaran."),
-  body("name").not().isEmpty().withMessage("Mohon isikan nama metode pembayaran."),
-  body("description").not().isEmpty().withMessage("Mohon isikan deskripsi metode pembayaran."),
+  body("name")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan nama metode pembayaran."),
+  body("description")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan deskripsi metode pembayaran."),
   PaymentMethodController.update
 );
 

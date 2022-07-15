@@ -99,9 +99,9 @@ export class ItemModel {
         user_item_updated_byTouser: {
           select: {
             name: true,
-          }
+          },
         },
-        updated_by: true
+        updated_by: true,
       },
     });
   }
@@ -145,6 +145,11 @@ export class ItemModel {
           ],
           take: 1,
           skip: 0,
+        },
+        stock: {
+          select: {
+            stock: true,
+          },
         },
       },
     });
@@ -251,6 +256,11 @@ export class ItemModel {
               take: 1,
               skip: 0,
             },
+            stock: {
+              select: {
+                stock: true,
+              },
+            },
           },
         }),
         prisma.item.count({
@@ -329,6 +339,11 @@ export class ItemModel {
               take: 1,
               skip: 0,
             },
+            stock: {
+              select: {
+                stock: true,
+              },
+            },
           },
         }),
         prisma.item.count({
@@ -384,6 +399,11 @@ export class ItemModel {
           take: 1,
           skip: 0,
         },
+        stock: {
+          select: {
+            stock: true,
+          },
+        },
       },
       orderBy: {
         reference: "asc",
@@ -413,20 +433,20 @@ export class ItemModel {
   static checkCountByIds(id: number[]) {
     return prisma.$transaction([
       prisma.bill.count({
-        where:{
+        where: {
           item_id: {
-            in: id
-          }
-        }
+            in: id,
+          },
+        },
       }),
       prisma.good_receipt.count({
         where: {
           item_id: {
-            in: id
-          }
-        }
-      })
-    ])
+            in: id,
+          },
+        },
+      }),
+    ]);
   }
 
   static delete(id: number, deleted_by: number) {
@@ -443,8 +463,8 @@ export class ItemModel {
         id: true,
         user: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         reference: true,
         description: true,
@@ -452,11 +472,11 @@ export class ItemModel {
         deleted_at: true,
         user_item_deleted_byTouser: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
-        item_brand_id: true
-      }
+        item_brand_id: true,
+      },
     });
   }
 
@@ -477,16 +497,16 @@ export class ItemModel {
     });
   }
 
-  static countByBrandIds(brand_ids: number[]){
+  static countByBrandIds(brand_ids: number[]) {
     return prisma.item.groupBy({
       by: ["item_brand_id"],
-      where:{
+      where: {
         item_brand_id: {
-          in: brand_ids
+          in: brand_ids,
         },
-        is_delete: false
+        is_delete: false,
       },
-      _count: true
-    })
+      _count: true,
+    });
   }
 }

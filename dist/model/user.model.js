@@ -28,10 +28,10 @@ class UserModel {
                 nik: true,
                 user: {
                     select: {
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
     }
     static countDuplicate(username, nik) {
@@ -190,7 +190,7 @@ class UserModel {
                 name: name,
                 password: password,
                 updated_by: created_by,
-                updated_at: new Date()
+                updated_at: new Date(),
             },
         });
     }
@@ -212,20 +212,20 @@ class UserModel {
                 user_userTouser_deleted_by: {
                     select: {
                         name: true,
-                        id: true
-                    }
+                        id: true,
+                    },
                 },
-            }
+            },
         });
     }
     static updatePassword(password, userId) {
         return prisma.user.update({
             data: {
-                password: (0, bcrypt_1.hashSync)(password, 12)
+                password: (0, bcrypt_1.hashSync)(password, 12),
             },
             where: {
-                id: userId
-            }
+                id: userId,
+            },
         });
     }
 }

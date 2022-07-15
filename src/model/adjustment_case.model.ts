@@ -133,6 +133,37 @@ class AdjustmentCaseModel {
       },
     });
   }
+
+  static fetchById(id: number) {
+    return prisma.adjustment_case_code.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        name: true,
+        id: true,
+        is_confirm: true,
+        is_delete: true,
+        user_adjustment_case_code_created_byTouser: {
+          select: {
+            name: true,
+          },
+        },
+        created_at: true,
+        adjustment_case: {
+          select: {
+            item: {
+              select: {
+                reference: true,
+                description: true,
+              },
+            },
+            quantity: true,
+          },
+        },
+      },
+    });
+  }
 }
 
 export default AdjustmentCaseModel;

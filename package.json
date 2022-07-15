@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "nodemon src/app.ts",
-    "pretty": "npx prettier --write \"**/*.ts\""
+    "pretty": "npx prettier --write \"**/*.ts\"",
+    "build": "tsc"
   },
   "author": "xunny.id",
   "license": "ISC",
@@ -31,6 +32,7 @@
     "@types/jsonwebtoken": "^8.5.8",
     "nodemon": "^2.0.16",
     "prettier": "^2.7.1",
-    "prisma": "^3.14.0"
+    "prisma": "^3.14.0",
+    "typescript": "^4.7.4"
   }
 }

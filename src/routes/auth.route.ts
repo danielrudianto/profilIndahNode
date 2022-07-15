@@ -25,7 +25,12 @@ router.post(
   AuthController.saveToken
 );
 
-router.put("/password", authMiddleware, body("password").not().isEmpty(), AuthController.updatePassword);
+router.put(
+  "/password",
+  authMiddleware,
+  body("password").not().isEmpty(),
+  AuthController.updatePassword
+);
 router.put("/resetPassword", authMiddleware, AuthController.resetPassword);
 
 export default router;

@@ -10,7 +10,19 @@ const router = (0, express_1.Router)();
 router.get("/autocomplete", payment_method_controller_1.default.fetchAutocomplete);
 router.get("/:id", payment_method_controller_1.default.fetchById);
 router.get("/", payment_method_controller_1.default.fetch);
-router.post("/", (0, express_validator_1.body)("name").not().isEmpty().withMessage("Mohon isikan nama metode pembayaran."), (0, express_validator_1.body)("description").not().isEmpty().withMessage("Mohon isikan deskripsi metode pembayaran."), payment_method_controller_1.default.submit);
-router.put("/", (0, express_validator_1.body)("id").not().isEmpty().withMessage("Mohon isikan ID metode pembayaran."), (0, express_validator_1.body)("name").not().isEmpty().withMessage("Mohon isikan nama metode pembayaran."), (0, express_validator_1.body)("description").not().isEmpty().withMessage("Mohon isikan deskripsi metode pembayaran."), payment_method_controller_1.default.update);
+router.post("/", (0, express_validator_1.body)("name")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan nama metode pembayaran."), (0, express_validator_1.body)("description")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan deskripsi metode pembayaran."), payment_method_controller_1.default.submit);
+router.put("/", (0, express_validator_1.body)("id").not().isEmpty().withMessage("Mohon isikan ID metode pembayaran."), (0, express_validator_1.body)("name")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan nama metode pembayaran."), (0, express_validator_1.body)("description")
+    .not()
+    .isEmpty()
+    .withMessage("Mohon isikan deskripsi metode pembayaran."), payment_method_controller_1.default.update);
 router.delete("/:id", payment_method_controller_1.default.delete);
 exports.default = router;

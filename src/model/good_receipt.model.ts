@@ -53,22 +53,22 @@ class GoodReceiptModel {
         user_good_receipt_code_created_byTouser: {
           select: {
             id: true,
-            name: true
-          }
+            name: true,
+          },
         },
         supplier: {
           select: {
             name: true,
-            id: true
-          }
+            id: true,
+          },
         },
         company: {
           select: {
             name: true,
-            id: true
-          }
-        }
-      }
+            id: true,
+          },
+        },
+      },
     });
   }
 
@@ -273,30 +273,30 @@ class GoodReceiptModel {
     });
   }
 
-  static countByCompanyIds(company_ids: number[]){
+  static countByCompanyIds(company_ids: number[]) {
     return prisma.good_receipt_code.groupBy({
       by: ["company_id"],
-      where:{
+      where: {
         company_id: {
-          in: company_ids
+          in: company_ids,
         },
-        is_delete: false
+        is_delete: false,
       },
-      _count: true
+      _count: true,
     });
   }
 
-  static countBySupplierIds(supplier_ids: number[]){
+  static countBySupplierIds(supplier_ids: number[]) {
     return prisma.good_receipt_code.groupBy({
       by: ["supplier_id"],
       where: {
         supplier_id: {
-          in: supplier_ids
+          in: supplier_ids,
         },
-        is_delete: false
+        is_delete: false,
       },
-      _count: true
-    })
+      _count: true,
+    });
   }
 }
 

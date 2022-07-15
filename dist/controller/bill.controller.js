@@ -19,18 +19,24 @@ BillController.create = (req, res) => {
     const discount = parseFloat(req.body.discount);
     const delivery = parseFloat(req.body.delivery);
     const bill = req.body.bill;
-    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery);
-    bill_code.create().then(result => {
-        bill_model_1.default.create(bill.map(x => {
+    const date = new Date(req.body.date);
+    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, date);
+    bill_code
+        .create()
+        .then((result) => {
+        bill_model_1.default.create(bill.map((x) => {
             return Object.assign(Object.assign({}, x), { bill_code_id: result.id });
-        })).then(() => {
+        }))
+            .then(() => {
             log_helper_1.default.log(new Date(), "info", `${result.user_bill_code_created_byTouser.name} berhasil menambahkan faktur penjualan ${result.name} (ID: ${result.id})`, "Bill controller - Create", req.body.userId);
             return res.status(201).send(result);
-        }).catch(error => {
+        })
+            .catch((error) => {
             log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
             return res.status(500).send(error);
         });
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
         return res.status(500).send(error);
     });

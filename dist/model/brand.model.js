@@ -111,9 +111,9 @@ class BrandModel {
             prisma.item.count({
                 where: {
                     item_brand_id: id,
-                    is_delete: false
-                }
-            })
+                    is_delete: false,
+                },
+            }),
         ]);
     }
     static getAutocomplete(keyword) {
@@ -145,7 +145,7 @@ class BrandModel {
                             select: {
                                 name: true,
                             },
-                        }
+                        },
                     },
                 }),
                 prisma.item_brand.count({

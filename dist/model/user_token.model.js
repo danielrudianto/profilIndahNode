@@ -25,12 +25,12 @@ class UserTokenModel {
                     user: {
                         select: {
                             name: true,
-                            id: true
-                        }
+                            id: true,
+                        },
                     },
                     token: true,
-                    user_id: true
-                }
+                    user_id: true,
+                },
             }),
             prisma.user_token.create({
                 data: {

@@ -12,7 +12,7 @@ class BillModel {
     }
     static create(bill) {
         return prisma.bill.createMany({
-            data: bill
+            data: bill,
         });
     }
 }

@@ -30,10 +30,10 @@ class CustomerModel {
                 user: {
                     select: {
                         id: true,
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
     }
     update() {
@@ -54,10 +54,10 @@ class CustomerModel {
                 user_customer_updated_byTouser: {
                     select: {
                         id: true,
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
     }
     static delete(id, created_by) {
@@ -73,16 +73,16 @@ class CustomerModel {
                 user: {
                     select: {
                         name: true,
-                        id: true
-                    }
+                        id: true,
+                    },
                 },
                 user_customer_deleted_byTouser: {
                     select: {
                         id: true,
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
     }
     static fetchAutocomplete(keyword) {
@@ -121,7 +121,7 @@ class CustomerModel {
                 name: "asc",
             },
             take: 5,
-            skip: 0
+            skip: 0,
         });
     }
     static fetch(keyword, offset, limit) {
@@ -235,11 +235,11 @@ class CustomerModel {
     static fetchById(id) {
         return prisma.customer.findUnique({
             where: {
-                id: id
+                id: id,
             },
             include: {
-                user: true
-            }
+                user: true,
+            },
         });
     }
 }

@@ -114,22 +114,24 @@ class PaymentMethodController {
 
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    PaymentMethodModel.fetchById(id).then((result) => {
-      return res.status(200).send({
-        ...result[0],
-        can_delete: result[1] == 0,
-      });
-    }).catch(error => {
-      LogHelper.log(
-        new Date(),
-        "error",
-        error,
-        "Payment Method - Fetch by ID",
-        req.body.userId
-      );
+    PaymentMethodModel.fetchById(id)
+      .then((result) => {
+        return res.status(200).send({
+          ...result[0],
+          can_delete: result[1] == 0,
+        });
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Payment Method - Fetch by ID",
+          req.body.userId
+        );
 
-      return res.status(500).send(error);
-    })
+        return res.status(500).send(error);
+      });
   };
 
   static update = (req: Request, res: Response) => {
@@ -142,68 +144,103 @@ class PaymentMethodController {
     const name = req.body.name;
     const description = req.body.description;
 
-    PaymentMethodModel.fetchById(id).then((payment_method) => {
-      if (payment_method[0] == null || payment_method[0].is_delete) {
-        return res.status(404).send("Metode pembayaran tidak ditemukan.");
-      } else {
-        const paymentMethod = new PaymentMethodModel(
-          name,
-          description,
-          req.body.userId,
-          id
+    PaymentMethodModel.fetchById(id)
+      .then((payment_method) => {
+        if (payment_method[0] == null || payment_method[0].is_delete) {
+          return res.status(404).send("Metode pembayaran tidak ditemukan.");
+        } else {
+          const paymentMethod = new PaymentMethodModel(
+            name,
+            description,
+            req.body.userId,
+            id
+          );
+
+          paymentMethod
+            .update()
+            .then((result) => {
+              const socket = new SocketHelper("updatePaymentMethod", result);
+              socket.create();
+
+              return res.status(201).send(result);
+            })
+            .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                error,
+                "Payment Method - Update",
+                req.body.userId
+              );
+
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Payment Method - Update",
+          req.body.userId
         );
 
-        paymentMethod.update().then((result) => {
-          const socket = new SocketHelper("updatePaymentMethod", result);
-          socket.create();
-
-          return res.status(201).send(result);
-        }).catch(error => {
-          LogHelper.log(
-            new Date(),
-            "error",
-            error,
-            "Payment Method - Update",
-            req.body.userId
-          ); 
-
-          return res.status(500).send(error);
-        })
-      }
-    }).catch(error => {
-      LogHelper.log(
-        new Date(),
-        "error",
-        error,
-        "Payment Method - Update",
-        req.body.userId
-      ); 
-      
-      return res.status(500).send(error);
-    })
+        return res.status(500).send(error);
+      });
   };
 
   static delete = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    BillModel.countByPaymentMethodId(id).then(count => {
-      if(count == 0){
-        PaymentMethodModel.delete(id, req.body.userId).then(result => {
-          LogHelper.log(new Date(), "info", `${result.user_payment_method_deleted_byTouser!.name} berhasil menghapus data metode penjualan dengan nama ${result.name} (ID: ${result.id})`, "Payment method - Delete", req.body.userId);
+    BillModel.countByPaymentMethodId(id)
+      .then((count) => {
+        if (count == 0) {
+          PaymentMethodModel.delete(id, req.body.userId)
+            .then((result) => {
+              LogHelper.log(
+                new Date(),
+                "info",
+                `${
+                  result.user_payment_method_deleted_byTouser!.name
+                } berhasil menghapus data metode penjualan dengan nama ${
+                  result.name
+                } (ID: ${result.id})`,
+                "Payment method - Delete",
+                req.body.userId
+              );
 
-          const socket = new SocketHelper("deletePaymentMethod", result);
-          socket.create();
-          return res.status(201).send(result);
-        }).catch(error => {
-          LogHelper.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
-        })
-      } else {
-        return res.status(400).send("Data tidak dapat dihapus karena ada penjualan yang menggunakan data ini.")
-      }
-    }).catch(error => {
-      LogHelper.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
-      return res.status(500).send(error);
-    })
-  }
+              const socket = new SocketHelper("deletePaymentMethod", result);
+              socket.create();
+              return res.status(201).send(result);
+            })
+            .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                error,
+                "Payment method - Delete",
+                req.body.userId
+              );
+            });
+        } else {
+          return res
+            .status(400)
+            .send(
+              "Data tidak dapat dihapus karena ada penjualan yang menggunakan data ini."
+            );
+        }
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Payment method - Delete",
+          req.body.userId
+        );
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default PaymentMethodController;

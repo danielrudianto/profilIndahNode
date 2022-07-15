@@ -66,8 +66,8 @@ AuthController.fetchProfile = (req, res) => {
                 name: result === null || result === void 0 ? void 0 : result.name,
                 username: result === null || result === void 0 ? void 0 : result.username,
                 nik: result === null || result === void 0 ? void 0 : result.nik,
-                role: user_model_1.default.roles.filter(x => { var _a; return x.id == ((_a = result === null || result === void 0 ? void 0 : result.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0],
-                is_active: result === null || result === void 0 ? void 0 : result.is_active
+                role: user_model_1.default.roles.filter((x) => { var _a; return x.id == ((_a = result === null || result === void 0 ? void 0 : result.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0],
+                is_active: result === null || result === void 0 ? void 0 : result.is_active,
             });
         }
     })
@@ -108,16 +108,19 @@ AuthController.saveToken = (req, res) => {
 AuthController.updatePassword = (req, res) => {
     const password = req.body.password;
     const userId = req.body.userId;
-    user_model_1.default.updatePassword(password, userId).then(result => {
+    user_model_1.default.updatePassword(password, userId)
+        .then((result) => {
         log_helper_1.default.log(new Date(), "info", `User ${result.name} update it's password (ID: ${result.id})`, "Auth controller - UPdate Password", req.body.userId);
         return res.status(201).send(result);
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };
 AuthController.resetPassword = (req, res) => {
     const user_id = parseInt(req.body.user_id);
-    user_model_1.default.fetchById(user_id).then(user => {
+    user_model_1.default.fetchById(user_id)
+        .then((user) => {
         if (user == null || !user.is_active) {
             return res.status(404).send("Pengguna tidak ditemukan.");
         }
@@ -129,19 +132,24 @@ AuthController.resetPassword = (req, res) => {
                 password +=
                     characters[Math.floor(Math.random() * (characters.length - 1))];
             }
-            (0, bcrypt_1.hash)(password, 12).then(hashedPassword => {
-                user_model_1.default.update(user === null || user === void 0 ? void 0 : user.id, user === null || user === void 0 ? void 0 : user.name, hashedPassword, req.body.userId).then(result => {
+            (0, bcrypt_1.hash)(password, 12)
+                .then((hashedPassword) => {
+                user_model_1.default.update(user === null || user === void 0 ? void 0 : user.id, user === null || user === void 0 ? void 0 : user.name, hashedPassword, req.body.userId)
+                    .then((result) => {
                     return res.status(201).send(Object.assign(Object.assign({}, result), { password: password }));
-                }).catch(error => {
+                })
+                    .catch((error) => {
                     log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
                     return res.status(500).send(error);
                 });
-            }).catch(error => {
+            })
+                .catch((error) => {
                 log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
                 return res.status(500).send(error);
             });
         }
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
         return res.status(500).send(error);
     });

@@ -53,9 +53,9 @@ class ItemPriceModel {
         },
         item: {
           select: {
-            reference: true
-          }
-        }
+            reference: true,
+          },
+        },
       },
     });
   }

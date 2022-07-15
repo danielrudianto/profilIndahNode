@@ -118,11 +118,11 @@ export class BrandModel {
         },
       }),
       prisma.item.count({
-        where:{
+        where: {
           item_brand_id: id,
-          is_delete: false
-        }
-      })
+          is_delete: false,
+        },
+      }),
     ]);
   }
 
@@ -156,7 +156,7 @@ export class BrandModel {
               select: {
                 name: true,
               },
-            }
+            },
           },
         }),
         prisma.item_brand.count({
