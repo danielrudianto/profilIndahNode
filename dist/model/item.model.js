@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemModel = void 0;
 const client_1 = require("@prisma/client");
+const runtime_1 = require("@prisma/client/runtime");
 const prisma = new client_1.PrismaClient();
 class ItemModel {
     constructor(reference, description, minimum_stock, brand_id, created_by, id = null) {
@@ -133,6 +134,31 @@ class ItemModel {
                     },
                 },
             },
+        });
+    }
+    static fetchByIds(id) {
+        return prisma.item.findMany({
+            where: {
+                id: {
+                    in: id
+                }
+            },
+            select: {
+                reference: true,
+                description: true,
+                id: true,
+                stock: {
+                    select: {
+                        stock: true
+                    }
+                },
+                minimum_stock: true,
+                item_brand: {
+                    select: {
+                        name: true
+                    }
+                }
+            }
         });
     }
     static fetchByReference(reference) {
@@ -343,6 +369,36 @@ class ItemModel {
                     },
                 }),
             ]);
+        }
+    }
+    static fetchInsufficient(keyword, blocked_brand = [], offset, limit) {
+        if (blocked_brand.length > 0) {
+            if (keyword == "") {
+                return prisma.$transaction([
+                    prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0`
+                ]);
+            }
+            else {
+                return prisma.$transaction([
+                    prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0`
+                ]);
+            }
+        }
+        else {
+            if (keyword == "") {
+                return prisma.$transaction([
+                    prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock`
+                ]);
+            }
+            else {
+                return prisma.$transaction([
+                    prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword}))`
+                ]);
+            }
         }
     }
     static fetchAll(date) {

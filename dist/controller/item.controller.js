@@ -18,7 +18,7 @@ ItemController.create = (req, res) => {
     const brand_name = req.body.brand;
     const minimum_stock = req.body.minimum_stock;
     const user_id = req.body.userId;
-    brand_model_1.BrandModel.getByName(brand_name)
+    brand_model_1.BrandModel.fetchByName(brand_name)
         .then((brand) => {
         if (brand == null || brand.is_delete) {
             return res.status(404).send("Merek tidak ditemukan.");
@@ -124,7 +124,7 @@ ItemController.update = (req, res) => {
     const description = req.body.description;
     const brand_name = req.body.brand;
     const minimum_stock = req.body.minimum_stock;
-    brand_model_1.BrandModel.getByName(brand_name)
+    brand_model_1.BrandModel.fetchByName(brand_name)
         .then((brand) => {
         if (brand == null || brand.is_delete) {
             return res.status(400).send("Merek tidak ditemukan.");
@@ -209,6 +209,29 @@ ItemController.fetchByReference = (req, res) => {
     })
         .catch((error) => {
         res.status(500).send(error);
+    });
+};
+ItemController.fetchInsufficient = (req, res) => {
+    const page = !req.query.page
+        ? 1
+        : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = parseInt(process.env.LIMIT);
+    const offset = (page - 1) * limit;
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const blocked_brand = (req.query.blocked_brands == null || req.query.blocked_brands == "" || req.query.blocked_brands == undefined) ? [] : req.query.blocked_brands.toString().split(",");
+    item_model_1.ItemModel.fetchInsufficient(keyword, blocked_brand, offset, limit).then(result => {
+        item_model_1.ItemModel.fetchByIds(result[0].map(x => { return x.id; })).then(items => {
+            return res.status(200).send({
+                data: items,
+                count: result[1][0].count
+            });
+        }).catch(error => {
+            log_helper_1.default.log(new Date(), "error", error, "Item Controller - Fetch Insufficient", req.body.userId);
+            return res.status(500).send(error);
+        });
+    }).catch(error => {
+        log_helper_1.default.log(new Date(), "error", error, "Item Controller - Fetch Insufficient", req.body.userId);
+        return res.status(500).send(error);
     });
 };
 exports.default = ItemController;

@@ -7,6 +7,7 @@ const express_1 = require("express");
 const brand_controller_1 = __importDefault(require("../controller/brand.controller"));
 const router = (0, express_1.Router)();
 router.get("/autocomplete", brand_controller_1.default.fetchAutocomplete);
+router.get("/used", brand_controller_1.default.fetchUsed);
 router.get("/:id", brand_controller_1.default.fetchById);
 router.get("/", brand_controller_1.default.fetch);
 router.put("/", brand_controller_1.default.update);
