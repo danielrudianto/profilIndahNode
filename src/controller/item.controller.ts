@@ -7,6 +7,7 @@ import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
+import { validationResult } from "express-validator";
 
 class ItemController {
   static create = (req: Request, res: Response) => {
@@ -373,6 +374,42 @@ class ItemController {
       LogHelper.log(new Date(), "error", error, "Item Controller - Fetch Insufficient", req.body.userId);
       return res.status(500).send(error);
     })
+  }
+
+  static fetchStock = (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (errors.array().length > 0) {
+      return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+
+    const reference = req.query.reference?.toString()!;
+    const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page.toString()));
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
+
+    ItemModel.fetchByReference(reference).then(item => {
+      if(item == null){
+        return res.status(404).send("Referensi tidak ditemukan.");
+      } else {
+        ItemModel.fetchStockById(item.id, offset, limit).then(result => {
+          return res.status(200).send({
+            data: {
+              item: item,
+              card: result[0].map(x => {
+                return {
+                  ...x,
+                  quanitty: parseFloat(x.quantity.toString())
+                }
+              })
+            },
+            count: result[1]
+          })
+        }).catch(error => {
+          return res.status(500).send(error);
+        })
+      }
+    })
+
   }
 }
 

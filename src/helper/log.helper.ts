@@ -6,7 +6,7 @@ class LogHelper {
     type: string,
     event: string,
     location: string,
-    done_by: number
+    done_by: number | null = null
   ) {
     if (type === "error") {
       fs.appendFileSync(
