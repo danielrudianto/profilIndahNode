@@ -395,10 +395,11 @@ class ItemController {
           return res.status(200).send({
             data: {
               item: item,
-              card: result[0].map(x => {
+              card: result[0].map((x: any) => {
                 return {
                   ...x,
-                  quanitty: parseFloat(x.quantity.toString())
+                  quantity: parseFloat(x.quantity.toString()),
+                  lead_quantity: parseFloat(x.lead_quantity.toString())
                 }
               })
             },

@@ -184,6 +184,11 @@ class ItemModel {
                         good_receipt: true,
                     },
                 },
+                stock: {
+                    select: {
+                        stock: true
+                    }
+                }
             },
         });
     }
@@ -536,6 +541,75 @@ class ItemModel {
             },
             _count: true,
         });
+    }
+    static fetchStockById(id, offset, limit) {
+        return prisma.$transaction([
+            prisma.stock_card.findMany({
+                where: {
+                    item_id: id,
+                },
+                select: {
+                    good_receipt: {
+                        select: {
+                            id: true,
+                            good_receipt_code: {
+                                select: {
+                                    name: true,
+                                    user_good_receipt_code_created_byTouser: {
+                                        select: {
+                                            name: true,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    adjustment_case: {
+                        select: {
+                            id: true,
+                            adjustment_case_code: {
+                                select: {
+                                    name: true,
+                                    user_adjustment_case_code_created_byTouser: {
+                                        select: {
+                                            name: true,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    bill: {
+                        select: {
+                            id: true,
+                            bill_code: {
+                                select: {
+                                    name: true,
+                                    user_bill_code_created_byTouser: {
+                                        select: {
+                                            name: true
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    date: true,
+                    quantity: true,
+                    lead_quantity: true,
+                },
+                orderBy: {
+                    date: "desc"
+                },
+                take: limit,
+                skip: offset
+            }),
+            prisma.stock_card.count({
+                where: {
+                    item_id: id
+                }
+            })
+        ]);
     }
 }
 exports.ItemModel = ItemModel;

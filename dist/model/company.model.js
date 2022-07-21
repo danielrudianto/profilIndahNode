@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma = new client_1.PrismaClient({
+    log: ["query"]
+});
 class CompanyModel {
     constructor(name, address, npwp, created_by, code_name, id = null) {
         if (id != null) {
@@ -124,13 +126,17 @@ class CompanyModel {
                                 name: {
                                     contains: keyword,
                                 },
+                            },
+                            {
                                 address: {
                                     contains: keyword,
                                 },
+                            },
+                            {
                                 code_name: {
                                     contains: keyword,
                                 },
-                            },
+                            }
                         ],
                     },
                     select: {
@@ -157,13 +163,17 @@ class CompanyModel {
                                 name: {
                                     contains: keyword,
                                 },
+                            },
+                            {
                                 address: {
                                     contains: keyword,
                                 },
+                            },
+                            {
                                 code_name: {
                                     contains: keyword,
                                 },
-                            },
+                            }
                         ],
                     },
                 }),
@@ -198,6 +208,11 @@ class CompanyModel {
                                 contains: keyword,
                             },
                         },
+                        {
+                            code_name: {
+                                contains: keyword,
+                            },
+                        }
                     ],
                 },
             });
@@ -220,13 +235,17 @@ class CompanyModel {
                             name: {
                                 contains: keyword,
                             },
+                        },
+                        {
                             address: {
                                 contains: keyword,
                             },
+                        },
+                        {
                             code_name: {
                                 contains: keyword,
                             },
-                        },
+                        }
                     ],
                 },
             });

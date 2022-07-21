@@ -9,5 +9,8 @@ const bill_controller_1 = __importDefault(require("../controller/bill.controller
 const prisma = new client_1.PrismaClient();
 const router = (0, express_1.Router)();
 router.post("/", bill_controller_1.default.create);
-router.get("/", (req, res, next) => { });
+router.get("/archives", bill_controller_1.default.fetchArchive);
+router.get("/archives/:year", bill_controller_1.default.fetchArchive);
+router.get("/archives/:year/:month", bill_controller_1.default.fetchArchive);
+router.get("/code/:id", bill_controller_1.default.fetchCodeById);
 exports.default = router;

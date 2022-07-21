@@ -205,6 +205,11 @@ export class ItemModel {
             good_receipt: true,
           },
         },
+        stock: {
+          select: {
+            stock: true
+          }
+        }
       },
     });
   }
@@ -619,6 +624,7 @@ export class ItemModel {
           },
           date: true,
           quantity: true,
+          lead_quantity: true,
         },
         orderBy: {
           date: "desc"

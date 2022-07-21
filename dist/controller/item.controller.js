@@ -10,6 +10,7 @@ const query_transaction_helper_1 = __importDefault(require("../helper/query.tran
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const item_price_model_1 = __importDefault(require("../model/item_price.model"));
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
+const express_validator_1 = require("express-validator");
 class ItemController {
 }
 ItemController.create = (req, res) => {
@@ -232,6 +233,37 @@ ItemController.fetchInsufficient = (req, res) => {
     }).catch(error => {
         log_helper_1.default.log(new Date(), "error", error, "Item Controller - Fetch Insufficient", req.body.userId);
         return res.status(500).send(error);
+    });
+};
+ItemController.fetchStock = (req, res) => {
+    var _a;
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (errors.array().length > 0) {
+        return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+    const reference = (_a = req.query.reference) === null || _a === void 0 ? void 0 : _a.toString();
+    const page = (!req.query.page) ? 1 : Math.max(1, parseInt(req.query.page.toString()));
+    const limit = parseInt(process.env.LIMIT);
+    const offset = (page - 1) * limit;
+    item_model_1.ItemModel.fetchByReference(reference).then(item => {
+        if (item == null) {
+            return res.status(404).send("Referensi tidak ditemukan.");
+        }
+        else {
+            item_model_1.ItemModel.fetchStockById(item.id, offset, limit).then(result => {
+                return res.status(200).send({
+                    data: {
+                        item: item,
+                        card: result[0].map((x) => {
+                            return Object.assign(Object.assign({}, x), { quantity: parseFloat(x.quantity.toString()), lead_quantity: parseFloat(x.lead_quantity.toString()) });
+                        })
+                    },
+                    count: result[1]
+                });
+            }).catch(error => {
+                return res.status(500).send(error);
+            });
+        }
     });
 };
 exports.default = ItemController;

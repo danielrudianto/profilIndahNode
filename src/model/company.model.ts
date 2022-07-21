@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  log: ["query"]
+});
 
 class CompanyModel {
   id?: number;
@@ -150,13 +152,17 @@ class CompanyModel {
                 name: {
                   contains: keyword,
                 },
+              },
+              {
                 address: {
                   contains: keyword,
                 },
+              },
+              {
                 code_name: {
                   contains: keyword,
                 },
-              },
+              }
             ],
           },
           select: {
@@ -183,13 +189,17 @@ class CompanyModel {
                 name: {
                   contains: keyword,
                 },
+              },
+              {
                 address: {
                   contains: keyword,
                 },
+              }, 
+              {
                 code_name: {
                   contains: keyword,
                 },
-              },
+              }
             ],
           },
         }),
@@ -224,6 +234,11 @@ class CompanyModel {
                 contains: keyword,
               },
             },
+            {
+              code_name: {
+                contains: keyword,
+              },
+            }
           ],
         },
       });
@@ -246,13 +261,17 @@ class CompanyModel {
               name: {
                 contains: keyword,
               },
+            },
+            {
               address: {
                 contains: keyword,
               },
+            },
+            {
               code_name: {
                 contains: keyword,
               },
-            },
+            }
           ],
         },
       });
