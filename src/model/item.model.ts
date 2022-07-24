@@ -205,6 +205,11 @@ export class ItemModel {
             good_receipt: true,
           },
         },
+        stock: {
+          select: {
+            stock: true
+          }
+        }
       },
     });
   }
@@ -573,5 +578,75 @@ export class ItemModel {
     WHERE bill_code.is_confirm = 1
     AND bill_code.is_delete = 0
     AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}`;
+  }
+  
+  static fetchStockById(id: number, offset: number, limit: number){
+    return prisma.$transaction([
+      prisma.stock_card.findMany({
+        where: {
+          item_id: id,
+        },
+        select: {
+          good_receipt: {
+            select: {
+              id: true,
+              good_receipt_code: {
+                select: {
+                  name: true,
+                  user_good_receipt_code_created_byTouser: {
+                    select: {
+                      name: true,
+                    }
+                  }
+                }
+              }
+            }
+          },
+          adjustment_case: {
+            select: {
+              id: true,
+              adjustment_case_code: {
+                select: {
+                  name: true,
+                  user_adjustment_case_code_created_byTouser: {
+                    select: {
+                      name: true,
+                    }
+                  }
+                }
+              }
+            }
+          },
+          bill: {
+            select: {
+              id: true,
+              bill_code: {
+                select: {
+                  name: true,
+                  user_bill_code_created_byTouser: {
+                    select: {
+                      name: true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          date: true,
+          quantity: true,
+          lead_quantity: true,
+        },
+        orderBy: {
+          date: "desc"
+        },
+        take: limit,
+        skip: offset
+      }),
+      prisma.stock_card.count({
+        where:{
+          item_id: id
+        }
+      })
+    ])
   }
 }

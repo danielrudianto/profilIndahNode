@@ -6,7 +6,10 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.post("/", BillController.create);
+router.get("/archives", BillController.fetchArchive);
+router.get("/archives/:year", BillController.fetchArchive);
+router.get("/archives/:year/:month", BillController.fetchArchive);
 
-router.get("/", (req, res, next) => {});
+router.get("/code/:id", BillController.fetchCodeById);
 
 export default router;

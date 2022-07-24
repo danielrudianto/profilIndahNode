@@ -9,6 +9,7 @@ const router = (0, express_1.Router)();
 router.get("/archives/:year/:month", adjustment_case_controller_1.default.fetchArchives);
 router.get("/archives/:year", adjustment_case_controller_1.default.fetchArchives);
 router.get("/archives", adjustment_case_controller_1.default.fetchArchives);
+router.get("/code/:id", adjustment_case_controller_1.default.fetchCodeById);
 router.get("/:id", adjustment_case_controller_1.default.fetchById);
 router.post("/", adjustment_case_controller_1.default.post);
 exports.default = router;

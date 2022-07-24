@@ -109,4 +109,13 @@ AdjustmentCaseController.fetchById = (req, res) => {
         return res.status(500).send(error);
     });
 };
+AdjustmentCaseController.fetchCodeById = (req, res) => {
+    const id = parseInt(req.params.id.toString());
+    adjustment_case_model_1.default.fetchCodeById(id).then(result => {
+        return res.status(200).send(result === null || result === void 0 ? void 0 : result.adjustment_case_code);
+    }).catch(error => {
+        log_helper_1.default.log(new Date(), 'error', error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
+        return res.status(500).send(error);
+    });
+};
 exports.default = AdjustmentCaseController;

@@ -6,7 +6,7 @@ const router = Router();
 router.get("/archives/:year/:month", AdjustmentCaseController.fetchArchives);
 router.get("/archives/:year", AdjustmentCaseController.fetchArchives);
 router.get("/archives", AdjustmentCaseController.fetchArchives);
-
+router.get("/code/:id", AdjustmentCaseController.fetchCodeById);
 router.get("/:id", AdjustmentCaseController.fetchById);
 router.post("/", AdjustmentCaseController.post);
 

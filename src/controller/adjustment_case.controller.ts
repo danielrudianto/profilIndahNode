@@ -11,6 +11,7 @@ class AdjustmentCaseController {
       new Date(req.body.date),
       req.body.userId
     );
+    
     adjustment_case
       .create()
       .then((result) => {
@@ -133,6 +134,16 @@ class AdjustmentCaseController {
         return res.status(500).send(error);
       });
   };
+
+  static fetchCodeById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    AdjustmentCaseModel.fetchCodeById(id).then(result => {
+      return res.status(200).send(result?.adjustment_case_code);
+    }).catch(error => {
+      LogHelper.log(new Date(), 'error', error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default AdjustmentCaseController;
