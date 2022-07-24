@@ -54,6 +54,9 @@ class BillCodeModel {
         discount: this.discount,
         delivery: this.delivery,
         date: this.date,
+        is_confirm: this.is_confirm,
+        confirmed_by: this.created_by,
+        confirmed_at: this.created_at
       },
       select: {
         id: true,
@@ -79,24 +82,15 @@ class BillCodeModel {
   }
 
   generateName(date: Date = new Date()) {
-    let name = "";
-    this.countByDate(new Date(date.setHours(0, 0, 0, 0)))
-      .then((count) => {
-        // Bill code count on the same date
-        // Pad start 8 digits "0" to the count added by 1
-        name = `${date.getFullYear()}${(date.getMonth() + 1)
-          .toString()
-          .padStart(2, "0")}${date.getDate().toString().padStart(2, "0")}-${(
-          count + 1
-        )
-          .toString()
-          .padStart(8, "0")}`;
-      })
-      .catch((error) => {
-        throw Error(error);
-      });
-
-    return name;
+    return `INV-${date.getFullYear()}-${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}`;
   }
 
   static countItemByReference(reference: string) {
@@ -174,6 +168,15 @@ class BillCodeModel {
         is_delete: false,
       },
     });
+  }
+
+  static fetchByDate(date: Date = new Date()){
+    return prisma.$queryRaw`SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
+    FROM bill
+    JOIN bill_code ON bill.bill_code_id = bill_code.id
+    WHERE bill_code.is_confirm = 1
+    AND bill_code.is_delete = 0
+    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}) a`;
   }
 }
 

@@ -39,3 +39,7 @@ Fri Jul 15 2022 13:25:28 GMT+0700 (Indochina Time); warn; Login failed for usern
 Fri Jul 15 2022 13:27:27 GMT+0700 (Indochina Time); warn; Login failed for username lani; Auth controller - Login; 0
 Fri Jul 15 2022 14:30:25 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Fri Jul 15 2022 17:30:28 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '? ORDER BY reference ASC LIMIT ? OFFSET ?' at line 1`; Item Controller - Fetch Insufficient; 1
+Sun Jul 24 2022 13:00:34 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Sun Jul 24 2022 16:25:26 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan  (ID: 1); Bill controller - Create; 1
+Sun Jul 24 2022 17:22:28 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.bill_code.create()` invocation in,D:\source\repos\profilIndahNode\src\model\bill_code.model.ts:47:29,,  44 },  45 ,  46 create() {,→ 47   return prisma.bill_code.create(,  Unique constraint failed on the constraint: `name_UNIQUE`; Bill controller - Create; 1
+Sun Jul 24 2022 17:23:49 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-83063149 (ID: 3); Bill controller - Create; 1

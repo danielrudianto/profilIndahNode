@@ -564,4 +564,14 @@ export class ItemModel {
       _count: true,
     });
   }
+
+  static fetchSoldByDate(date: Date = new Date()){
+    return prisma.$queryRaw`SELECT COUNT(DISTINCT(item.id)) AS count
+    FROM item
+    JOIN bill ON bill.item_id = item.id
+    JOIN bill_code ON bill.bill_code_id = bill_code.id
+    WHERE bill_code.is_confirm = 1
+    AND bill_code.is_delete = 0
+    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}`;
+  }
 }
