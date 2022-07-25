@@ -48,6 +48,7 @@ class GoodReceiptModel {
         confirmed_at: this.confirmed_at,
         supplier_id: this.supplier_id,
         company_id: this.company_id,
+        is_confirm: this.is_confirm
       },
       include: {
         user_good_receipt_code_created_byTouser: {

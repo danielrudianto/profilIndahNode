@@ -156,12 +156,12 @@ export class ItemModel {
     });
   }
 
-  static fetchByIds(id: number[]){
+  static fetchByIds(id: number[]) {
     return prisma.item.findMany({
-      where:{
+      where: {
         id: {
-          in: id
-        }
+          in: id,
+        },
       },
       select: {
         reference: true,
@@ -169,17 +169,17 @@ export class ItemModel {
         id: true,
         stock: {
           select: {
-            stock: true
-          }
+            stock: true,
+          },
         },
         minimum_stock: true,
         item_brand: {
           select: {
-            name: true
-          }
-        }
-      }
-    })
+            name: true,
+          },
+        },
+      },
+    });
   }
 
   static fetchByReference(reference: string) {
@@ -207,9 +207,9 @@ export class ItemModel {
         },
         stock: {
           select: {
-            stock: true
-          }
-        }
+            stock: true,
+          },
+        },
       },
     });
   }
@@ -399,31 +399,44 @@ export class ItemModel {
     }
   }
 
-  static fetchInsufficient(keyword: string, blocked_brand: string[] = [], offset: number, limit: number){
-    if(blocked_brand.length > 0){
-      if(keyword == ""){
+  static fetchInsufficient(
+    keyword: string,
+    blocked_brand: string[] = [],
+    offset: number,
+    limit: number
+  ) {
+    if (blocked_brand.length > 0) {
+      if (keyword == "") {
         return prisma.$transaction([
-          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0`
+          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(
+            blocked_brand
+          )}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(
+            blocked_brand
+          )}) AND item.is_delete = 0`,
         ]);
       } else {
         return prisma.$transaction([
-          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0`
+          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(
+            blocked_brand
+          )}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(
+            blocked_brand
+          )}) AND item.is_delete = 0`,
         ]);
       }
     } else {
-      if(keyword == ""){
+      if (keyword == "") {
         return prisma.$transaction([
           prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock`
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock`,
         ]);
       } else {
         return prisma.$transaction([
           prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword}))`
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword}))`,
         ]);
-      }  
+      }
     }
   }
 
@@ -570,17 +583,54 @@ export class ItemModel {
     });
   }
 
-  static fetchSoldByDate(date: Date = new Date()){
+  static fetchSoldByDate(date: Date = new Date()) {
     return prisma.$queryRaw`SELECT COUNT(DISTINCT(item.id)) AS count
     FROM item
     JOIN bill ON bill.item_id = item.id
     JOIN bill_code ON bill.bill_code_id = bill_code.id
     WHERE bill_code.is_confirm = 1
     AND bill_code.is_delete = 0
-    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}`;
+    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
+      date.getMonth() + 1
+    } AND DAY(bill_code.date) = ${date.getDate()}`;
   }
-  
-  static fetchStockById(id: number, offset: number, limit: number){
+
+  static fetchChartItems(monthly: boolean, limit: number, offset: number) {
+    const date = new Date();
+    const start_date = new Date();
+
+    if (monthly) {
+      date.setMonth(date.getMonth() - offset);
+      start_date.setMonth(date.getMonth() - limit - offset);
+      return prisma.$queryRawUnsafe(`
+        SELECT 
+        YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, COUNT(bill.item_id) AS count
+        FROM item
+        JOIN bill ON bill.item_id = item.id
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
+        GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`
+      );
+    } else {
+      date.setDate(date.getDate() - offset);
+      start_date.setDate(date.getDate() - limit - offset);
+      return prisma.$queryRawUnsafe(
+        `SELECT 
+        YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, DAY(bill_code.date) AS day, COUNT(bill.item_id) AS count
+        FROM item
+        JOIN bill ON bill.item_id = item.id
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)`
+      );
+    }
+  }
+
+  static fetchStockById(id: number, offset: number, limit: number) {
     return prisma.$transaction([
       prisma.stock_card.findMany({
         where: {
@@ -596,11 +646,11 @@ export class ItemModel {
                   user_good_receipt_code_created_byTouser: {
                     select: {
                       name: true,
-                    }
-                  }
-                }
-              }
-            }
+                    },
+                  },
+                },
+              },
+            },
           },
           adjustment_case: {
             select: {
@@ -611,11 +661,11 @@ export class ItemModel {
                   user_adjustment_case_code_created_byTouser: {
                     select: {
                       name: true,
-                    }
-                  }
-                }
-              }
-            }
+                    },
+                  },
+                },
+              },
+            },
           },
           bill: {
             select: {
@@ -625,28 +675,28 @@ export class ItemModel {
                   name: true,
                   user_bill_code_created_byTouser: {
                     select: {
-                      name: true
-                    }
-                  }
-                }
-              }
-            }
+                      name: true,
+                    },
+                  },
+                },
+              },
+            },
           },
           date: true,
           quantity: true,
           lead_quantity: true,
         },
         orderBy: {
-          date: "desc"
+          date: "desc",
         },
         take: limit,
-        skip: offset
+        skip: offset,
       }),
       prisma.stock_card.count({
-        where:{
-          item_id: id
-        }
-      })
-    ])
+        where: {
+          item_id: id,
+        },
+      }),
+    ]);
   }
 }

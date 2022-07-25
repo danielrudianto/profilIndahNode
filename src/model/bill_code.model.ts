@@ -1,33 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import LogHelper from "../helper/log.helper";
 
-const prisma = new PrismaClient({
-  log: [
-    {
-      emit: 'event',
-      level: 'query',
-    },
-    {
-      emit: 'stdout',
-      level: 'error',
-    },
-    {
-      emit: 'stdout',
-      level: 'info',
-    },
-    {
-      emit: 'stdout',
-      level: 'warn',
-    },
-  ],
-})
-
-
-prisma.$on("query", (e) => {
-  console.log('Query: ' + e.query)
-  console.log('Params: ' + e.params)
-  console.log('Duration: ' + e.duration + 'ms')
-});
+const prisma = new PrismaClient()
 
 class BillCodeModel {
   id?: number;
@@ -195,15 +168,15 @@ class BillCodeModel {
     });
   }
 
-  static fetchByDate(date: Date = new Date()){
+  static fetchByDate(date: Date = new Date()) {
     return prisma.$queryRaw`SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
     FROM bill
     JOIN bill_code ON bill.bill_code_id = bill_code.id
     WHERE bill_code.is_confirm = 1
     AND bill_code.is_delete = 0
-    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}`;
+    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}) AS a`;
   }
-  
+
   static fetchCodeById(id: number) {
     return prisma.bill.findUnique({
       where: {
@@ -333,6 +306,44 @@ class BillCodeModel {
       },
     });
   }
+
+  static fetchChartItems(monthly: boolean, limit: number, offset: number) {
+    const date = new Date();
+    const start_date = new Date();
+
+    if (monthly) {
+      date.setMonth(date.getMonth() - offset);
+      start_date.setMonth(date.getMonth() - limit - offset);
+      return prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value FROM (
+        SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value
+        FROM bill_code
+        JOIN (
+          SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
+        FROM bill
+        GROUP BY bill.bill_code_id
+        ) AS a
+        WHERE bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
+        AND bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)) AS bill_a`);
+    } else {
+      date.setDate(date.getDate() - offset);
+      start_date.setDate(date.getDate() - limit - offset);
+      return prisma.$queryRawUnsafe(`SELECT year, month, day, (delivery + value - discount) AS value FROM (
+        SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, DAY(bill_code.date) as day, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value
+        FROM bill_code
+        JOIN (
+          SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
+        FROM bill
+        GROUP BY bill.bill_code_id
+        ) AS a
+        WHERE bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${(date.getDate()).toString().padStart(2, "0")}'
+        AND bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)) AS bill_a`);
+    }
+
+  };
 }
 
 export default BillCodeModel;
