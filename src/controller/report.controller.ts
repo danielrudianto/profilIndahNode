@@ -43,29 +43,43 @@ class ReportController {
             case 0:
                 // Ambil data penjualan
                 BillCodeModel.fetchChartItems(monthly, limit, shift).then(result => {
-                    const response: any[] = [];
                     if(monthly){
-                        (result as any[]).forEach(x => {
+                        const response: any = {};
+                        response['current'] = [];
+                        response['previous'] = [];
+
+                        ((result as any[])[0] as any[]).forEach(x => {
                             const month = x.month;
                             const year = x.year;
                             const value = x.value;
                             const month_difference = (month - current_month) + (year - current_year) * 12;
-                            response[Math.abs(month_difference)] = value;
+                            response['current'][Math.abs(month_difference)] = value;
+                        });
+
+                        for(var i = 0; i < 10; i++){
+                            response['current'][i] = response['current'][i] | 0;
+                        }
+
+                        ((result as any[])[1] as any[]).forEach(x => {
+                            const month = x.month;
+                            const year = x.year;
+                            const value = x.value;
+                            const month_difference = (month - current_month) + (year + 1 - current_year) * 12;
+                            response['previous'][Math.abs(month_difference)] = value;
                         })
 
                         for(var i = 0; i < 10; i++){
-                            response[i] = response[i] | 0;
+                            response['previous'][i] = response['previous'][i] | 0;
                         }
 
                         return res.status(200).send(response);
                     } else {
+                        const response: any = [];
                         (result as any[]).forEach(x => {
-                            const month = x.month;
-                            const year = x.year;
+                            const diff = x.diff;
                             const value = x.value;
-                            const month_difference = (month - current_month) + (year - current_year) * 12;
-                            response[Math.abs(month_difference)] = value;
-                        })
+                            response[Math.abs(diff)] = value;
+                        });
 
                         for(var i = 0; i < 10; i++){
                             response[i] = response[i] | 0;
@@ -110,7 +124,6 @@ class ReportController {
                 break;
             case 2:
                 ItemModel.fetchChartItems(monthly, limit, shift).then(result => {
-                    console.log(result);
                     return res.status(200).send(result);
                 }).catch(error => {
                     LogHelper.log(new Date(), "error", error, "Report controller - Fetch sales chart", req.body.userId);
