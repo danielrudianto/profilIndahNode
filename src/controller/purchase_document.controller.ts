@@ -226,7 +226,7 @@ class PurchaseDocumentController {
             });
           })
           .catch((error) => {
-            console.log(error);
+            LogHelper.log(new Date(), "error", error, "Purchase Document Controller - Create", req.body.userId);
             return res.status(500).send(error);
           });
       })

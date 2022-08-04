@@ -164,7 +164,7 @@ class UserController {
         });
       })
       .catch((error) => {
-        console.log(error);
+        LogHelper.log(new Date(), "error", error, "User - Update", req.body.userId);
         return res.status(500).send(error);
       });
   };

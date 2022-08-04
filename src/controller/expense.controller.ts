@@ -3,6 +3,7 @@ import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../app";
 import ExpenseModel from "../model/expense.model";
 import ExpenseTypeModel from "../model/expense.type.model";
+import LogHelper from "../helper/log.helper";
 
 class ExpenseController {
   static create = (req: Request, res: Response) => {
@@ -131,7 +132,7 @@ class ExpenseController {
         return res.status(200).send(result);
       })
       .catch((error) => {
-        console.log(error);
+        LogHelper.log(new Date(), "error", error, "Expense Type - Update", req.body.userId);
         return res.status(500).send(error);
       });
   };
@@ -250,7 +251,7 @@ class ExpenseController {
         return res.status(200).send(expense_type);
       })
       .catch((error) => {
-        console.log(error);
+        LogHelper.log(new Date(), "error", error, "Expense Type - Fetch", req.body.userId);
         return res.status(500).send(error);
       });
 

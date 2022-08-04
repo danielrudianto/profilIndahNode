@@ -9,7 +9,8 @@ class AdjustmentCaseController {
     const adjustment_case = new AdjustmentCaseModel(
       name,
       new Date(req.body.date),
-      req.body.userId
+      req.body.userId,
+      req.body.company_id
     );
     
     adjustment_case

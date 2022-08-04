@@ -12,12 +12,14 @@ class AdjustmentCaseModel {
   is_delete: boolean = false;
   confirmed_by?: number;
   confirmed_at?: Date;
+  company_id: number;
 
   constructor(
     name: string,
     date: Date,
     created_by: number,
-    id: number | null = null
+    company_id: number,
+    id: number | null = null,
   ) {
     if (id != null) {
       this.id = id;
@@ -27,6 +29,7 @@ class AdjustmentCaseModel {
     this.date = date;
     this.created_by = created_by;
     this.created_at = new Date();
+    this.company_id = company_id;
   }
 
   create() {
@@ -40,6 +43,7 @@ class AdjustmentCaseModel {
         is_delete: this.is_delete,
         confirmed_by: this.created_by,
         confirmed_at: this.created_at,
+        company_id: this.company_id
       },
     });
   }
@@ -161,6 +165,14 @@ class AdjustmentCaseModel {
             quantity: true,
           },
         },
+        company: {
+          select: {
+            name: true,
+            address: true,
+            npwp: true,
+            code_name: true
+          }
+        }
       },
     });
   }

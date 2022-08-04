@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import ItemPriceController from "../controller/item_price.controller";
 import { io } from "../app";
+import LogHelper from "../helper/log.helper";
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -95,7 +96,7 @@ router.post("/", (req, res, next) => {
       return res.status(200).send(result[1]);
     })
     .catch((error) => {
-      console.log(error);
+      LogHelper.log(new Date(), "error", error, "Item Price - Create", req.body.userId);
       return res.status(500).send(error);
     });
 });

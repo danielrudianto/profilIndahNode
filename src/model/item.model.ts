@@ -401,35 +401,31 @@ export class ItemModel {
 
   static fetchInsufficient(
     keyword: string,
-    blocked_brand: string[] = [],
+    blocked_brands: string[] = [],
     offset: number,
     limit: number
   ) {
+    const blocked_brand = blocked_brands.map(x => {
+      return parseInt(x);
+    })
+
     if (blocked_brand.length > 0) {
       if (keyword == "") {
         return prisma.$transaction([
-          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(
-            blocked_brand
-          )}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(
-            blocked_brand
-          )}) AND item.is_delete = 0`,
+          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0`,
         ]);
       } else {
         return prisma.$transaction([
-          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(
-            blocked_brand
-          )}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(
-            blocked_brand
-          )}) AND item.is_delete = 0`,
+          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${join(blocked_brand)}) AND item.is_delete = 0`,
         ]);
       }
     } else {
       if (keyword == "") {
         return prisma.$transaction([
-          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock`,
+          prisma.$queryRaw`SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+          prisma.$queryRaw`SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.is_delete = 0`,
         ]);
       } else {
         return prisma.$transaction([
@@ -685,6 +681,10 @@ export class ItemModel {
           date: true,
           quantity: true,
           lead_quantity: true,
+          stock: true,
+          bill_id: true,
+          adjustment_case_id: true,
+          good_receipt_id: true
         },
         orderBy: {
           date: "desc",
@@ -698,5 +698,70 @@ export class ItemModel {
         },
       }),
     ]);
+  }
+
+  static fetchStockData(item_id: number, start: string | null = null, end: string | null = null){
+    if(start == null || end == null){
+      return prisma.$queryRawUnsafe(`
+        SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity
+        FROM stock_card
+        LEFT JOIN (
+          SELECT bill_code.name, bill_code.date, bill.id
+          FROM bill
+          JOIN bill_code ON bill_code.id = bill.bill_code_id
+        ) billTable
+        ON stock_card.bill_id = billTable.id
+        LEFT JOIN (
+          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+        ) goodReceiptTable
+        ON stock_card.good_receipt_id = goodReceiptTable.id
+        LEFT JOIN (
+          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+        ) adjustmentTable
+        ON stock_card.adjustment_case_id = adjustmentTable.id
+        WHERE stock_card.item_id = ${item_id}`
+      );
+    } else {
+      console.log(start);
+      console.log(end);
+      const start_date = new Date(start);
+      const end_date = new Date(end); 
+
+      console.log(start_date);
+      console.log(end_date);
+
+      console.log(start_date.getFullYear());
+      console.log(start_date.getMonth());
+      console.log(start_date.getDate());
+
+      return prisma.$queryRawUnsafe(
+        `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity
+        FROM stock_card
+        LEFT JOIN (
+          SELECT bill_code.name, bill_code.date, bill.id
+          FROM bill
+          JOIN bill_code ON bill_code.id = bill.bill_code_id
+        ) billTable
+        ON stock_card.bill_id = billTable.id
+        LEFT JOIN (
+          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+        ) goodReceiptTable
+        ON stock_card.good_receipt_id = goodReceiptTable.id
+        LEFT JOIN (
+          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+        ) adjustmentTable
+        ON stock_card.adjustment_case_id = adjustmentTable.id
+        WHERE stock_card.item_id = ${item_id}
+        AND stock_card.date >= '${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND stock_card.date <= '${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${(end_date.getDate()).toString().padStart(2, "0")}';`
+      );
+    }
   }
 }

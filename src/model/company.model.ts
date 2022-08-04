@@ -23,7 +23,7 @@ class CompanyModel {
     npwp: string | null,
     created_by: number,
     code_name: string,
-    id: number | null = null
+    id: number | null = null,
   ) {
     if (id != null) {
       this.id = id;

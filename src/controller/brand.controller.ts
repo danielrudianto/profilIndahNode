@@ -232,7 +232,7 @@ class BrandController {
     BrandModel.fetchUsed(keyword, offset, limit).then(result => {
       return res.status(200).send({
         data: result[0],
-        count: result[1]
+        count: (result[1] as any[])[0].count
       })
     }).catch(error => {
       LogHelper.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);

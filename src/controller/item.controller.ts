@@ -8,6 +8,7 @@ import SocketHelper from "../helper/socket.helper";
 import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import { validationResult } from "express-validator";
+import StockCardHelper from "../helper/stock_card.helper";
 
 class ItemController {
   static create = (req: Request, res: Response) => {
@@ -410,7 +411,36 @@ class ItemController {
         })
       }
     })
+  }
 
+  static downloadStock = (req: Request, res: Response) => {
+    const start = req.body.start;
+    const end = req.body.end;
+    const format = req.body.format;
+    const reference = req.body.reference;
+
+    ItemModel.fetchByReference(reference).then(item => {
+      if(item == null){
+        return res.status(404).send("Barang tidak ditemukan.");
+      } else {
+        ItemModel.fetchStockData(item.id, start, end).then(result => {
+          switch (format) {
+            case "pdf":
+              StockCardHelper.createPdf(result as any[])
+              break;
+            case "csv":
+              StockCardHelper.createCsv(result as any[]);
+              break;
+            default:
+              return res.status(405).send("Format tidak ditemukan.");
+          }
+          return res.status(200).send(result);
+        })
+      }
+    }).catch(error => {
+      LogHelper.log(new Date(), "error", error, "Item Controller - Download stock", req.body.userId);
+      return res.status(500).send(error);
+    })
   }
 }
 
