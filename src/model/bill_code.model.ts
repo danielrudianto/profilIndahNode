@@ -169,12 +169,23 @@ class BillCodeModel {
   }
 
   static fetchByDate(date: Date = new Date()) {
-    return prisma.$queryRaw`SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
-    FROM bill
-    JOIN bill_code ON bill.bill_code_id = bill_code.id
-    WHERE bill_code.is_confirm = 1
-    AND bill_code.is_delete = 0
-    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}) AS a`;
+    return prisma.$queryRaw`
+      SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
+      FROM bill
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}) AS a`;
+  }
+
+  static fetchMonthlyByDate(date: Date = new Date()){
+    return prisma.$queryRaw`
+      SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
+      FROM bill
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}) AS a`;
   }
 
   static fetchCodeById(id: number) {
@@ -321,8 +332,8 @@ class BillCodeModel {
       start_prev_date.setMonth(date.getMonth() - limit - offset - 12);
       
       return prisma.$transaction([
-        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value FROM (
-          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value
+        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value, diff FROM (
+          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
           FROM bill_code
           JOIN (
             SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
@@ -334,8 +345,8 @@ class BillCodeModel {
           AND bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)) AS bill_a`),
-        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value FROM (
-          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value
+        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value, diff FROM (
+          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
           FROM bill_code
           JOIN (
             SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
@@ -352,7 +363,7 @@ class BillCodeModel {
       date.setDate(date.getDate() - offset);
       start_date.setDate(date.getDate() - limit - offset);
       return prisma.$queryRawUnsafe(`SELECT diff, (delivery + value - discount) AS value FROM (
-        SELECT datediff(curdate(), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(bill_code.date),2,'00')),  '%Y-%m-%d')) AS diff, SUM(a.value) AS value, SUM(delivery) AS delivery, SUM(discount) AS discount
+        SELECT datediff(curdate(), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(bill_code.date),2,'00')), '%Y-%m-%d')) AS diff, SUM(a.value) AS value, SUM(delivery) AS delivery, SUM(discount) AS discount
         FROM bill_code
         JOIN (
           SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id

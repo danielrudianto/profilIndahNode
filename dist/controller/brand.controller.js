@@ -153,7 +153,7 @@ BrandController.fetchUsed = (req, res) => {
     brand_model_1.BrandModel.fetchUsed(keyword, offset, limit).then(result => {
         return res.status(200).send({
             data: result[0],
-            count: result[1]
+            count: result[1][0].count
         });
     }).catch(error => {
         log_helper_1.default.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);

@@ -11,6 +11,7 @@ const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const item_price_model_1 = __importDefault(require("../model/item_price.model"));
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
 const express_validator_1 = require("express-validator");
+const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper"));
 class ItemController {
 }
 ItemController.create = (req, res) => {
@@ -264,6 +265,50 @@ ItemController.fetchStock = (req, res) => {
                 return res.status(500).send(error);
             });
         }
+    });
+};
+ItemController.downloadStock = (req, res) => {
+    const start = req.body.start;
+    const end = req.body.end;
+    const format = req.body.format;
+    const reference = req.body.reference;
+    item_model_1.ItemModel.fetchByReference(reference).then(item => {
+        if (item == null) {
+            return res.status(404).send("Barang tidak ditemukan.");
+        }
+        else {
+            item_model_1.ItemModel.fetchStockData(item.id, start, end).then(result => {
+                switch (format) {
+                    case "pdf":
+                        stock_card_helper_1.default.createPdf(result.map(x => {
+                            return Object.assign(Object.assign({}, x), { date: new Date(x.date), stock: parseFloat(x.stock.toString()), quantity: parseFloat(x.quantity.toString()) });
+                        }), function (binary) {
+                            return res.status(200).send({
+                                data: binary
+                            });
+                        }, function (error) {
+                            return res.status(500).send(error);
+                        });
+                        break;
+                    case "csv":
+                        stock_card_helper_1.default.createCsv(result.map(x => {
+                            return Object.assign(Object.assign({}, x), { date: new Date(x.date), quantity: parseFloat(x.quantity.toString()), stock: parseFloat(x.stock.toString()) });
+                        }), function (array) {
+                            return res.status(200).send({
+                                data: array
+                            });
+                        }, function (error) {
+                            return res.status(500).send(error);
+                        });
+                        break;
+                    default:
+                        return res.status(405).send("Format tidak ditemukan.");
+                }
+            });
+        }
+    }).catch(error => {
+        log_helper_1.default.log(new Date(), "error", error, "Item Controller - Download stock", req.body.userId);
+        return res.status(500).send(error);
     });
 };
 exports.default = ItemController;

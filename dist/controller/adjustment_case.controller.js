@@ -12,7 +12,7 @@ class AdjustmentCaseController {
 _a = AdjustmentCaseController;
 AdjustmentCaseController.post = (req, res) => {
     const name = _a.generateName(new Date(req.body.date));
-    const adjustment_case = new adjustment_case_model_1.default(name, new Date(req.body.date), req.body.userId);
+    const adjustment_case = new adjustment_case_model_1.default(name, new Date(req.body.date), req.body.userId, req.body.company_id);
     adjustment_case
         .create()
         .then((result) => {

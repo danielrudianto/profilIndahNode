@@ -7,6 +7,7 @@ const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const item_controller_1 = __importDefault(require("../controller/item.controller"));
 const router = (0, express_1.Router)();
+router.post("/stock/download", item_controller_1.default.downloadStock);
 router.post("/", item_controller_1.default.create);
 router.delete("/:itemReference", item_controller_1.default.delete);
 router.put("/", item_controller_1.default.update);

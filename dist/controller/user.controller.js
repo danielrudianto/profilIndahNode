@@ -119,7 +119,7 @@ UserController.fetch = (req, res) => {
         });
     })
         .catch((error) => {
-        console.log(error);
+        log_helper_1.default.log(new Date(), "error", error, "User - Update", req.body.userId);
         return res.status(500).send(error);
     });
 };

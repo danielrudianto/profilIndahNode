@@ -29,6 +29,30 @@ class ReportController {
         })
     }
 
+    static fetchMonthlySalesStats = (req: Request, res: Response) => {
+        const date = new Date();
+        const date_before = new Date();
+        date_before.setMonth(date_before.getMonth() - 1);
+
+        Promise.all([
+            BillCodeModel.fetchMonthlyByDate(date),
+            BillCodeModel.fetchMonthlyByDate(date_before),
+            ItemModel.fetchMonthlySoldByDate(date),
+            ItemModel.fetchMonthlySoldByDate(date_before),
+            BillModel.fetchMonthlyQuantitySoldByDate(date),
+            BillModel.fetchMonthlyQuantitySoldByDate(date_before)
+        ]).then(result => {
+            return res.status(200).send({
+                sales: (result[0] as any[])[0].value || 0,
+                prev_sales: (result[1] as any[])[0].value || 0,
+                items: (result[2] as any[])[0].count,
+                prev_items: (result[3] as any[])[0].count,
+                count: (result[4] as any[])[0].quantity || 0,
+                prev_count: (result[5] as any[])[0].quantity || 0
+            });
+        })
+    }
+
     static fetchSalesChart = (req: Request, res: Response) => {
         const shift = parseInt(req.query.shift!.toString());
         const monthly = (req.query.monthly === "false") ? false : (req.query.monthly === "true") ? true : false;
@@ -49,23 +73,19 @@ class ReportController {
                         response['previous'] = [];
 
                         ((result as any[])[0] as any[]).forEach(x => {
-                            const month = x.month;
-                            const year = x.year;
                             const value = x.value;
-                            const month_difference = (month - current_month) + (year - current_year) * 12;
-                            response['current'][Math.abs(month_difference)] = value;
+                            const diff = parseInt(x.diff);
+                            response['current'][Math.abs(diff)] = value;
                         });
 
                         for(var i = 0; i < 10; i++){
-                            response['current'][i] = response['current'][i] | 0;
+                            response['current'][i] = response['current'][i] || 0;
                         }
 
                         ((result as any[])[1] as any[]).forEach(x => {
-                            const month = x.month;
-                            const year = x.year;
                             const value = x.value;
-                            const month_difference = (month - current_month) + (year + 1 - current_year) * 12;
-                            response['previous'][Math.abs(month_difference)] = value;
+                            const diff = parseInt(x.diff);
+                            response['previous'][Math.abs(diff + 12)] = value;
                         })
 
                         for(var i = 0; i < 10; i++){
@@ -97,27 +117,47 @@ class ReportController {
                 ItemModel.fetchChartItems(monthly, limit, shift).then(result => {
                     const response: any[] = [];
                     if(monthly){
-                        (result as any[]).forEach(x => {
-                            const month = x.month;
-                            const year = x.year;
-                            const value = x.value;
-                            const month_difference = (month - current_month) + (year - current_year) * 12;
-                            response[Math.abs(month_difference)] = value;
+                        const response: any = {};
+                        response['current'] = [];
+                        response['previous'] = [];
+
+                        ((result as any[])[0] as any[]).forEach(x => {
+                            const value = x.count;
+                            const diff = parseInt(x.diff);
+                            response['current'][Math.abs(diff)] = value;
+                        });
+
+                        for(var i = 0; i < 10; i++){
+                            response['current'][i] = response['current'][i] || 0;
+                        }
+
+                        ((result as any[])[1] as any[]).forEach(x => {
+                            const value = x.count;
+                            const diff = parseInt(x.diff);
+                            response['previous'][Math.abs(diff + 12)] = value;
                         })
+
+                        for(var i = 0; i < 10; i++){
+                            response['previous'][i] = response['previous'][i] | 0;
+                        }
 
                         return res.status(200).send(response);
                     } else {
+                        const response: any = [];
                         (result as any[]).forEach(x => {
-                            const month = x.month;
-                            const year = x.year;
-                            const value = x.value;
-                            const month_difference = (month - current_month) + (year - current_year) * 12;
-                            response[Math.abs(month_difference)] = value;
-                        })
+                            const diff = x.diff;
+                            const value = x.count;
+                            response[Math.abs(diff)] = value;
+                        });
+
+                        for(var i = 0; i < 10; i++){
+                            response[i] = response[i] | 0;
+                        }
 
                         return res.status(200).send(response);
                     }
                 }).catch(error => {
+                    console.log(error);
                     LogHelper.log(new Date(), "error", error, "Report controller - Fetch sales chart", req.body.userId);
                     return res.status(500).send(error);
                 })

@@ -15,5 +15,27 @@ class BillModel {
             data: bill,
         });
     }
+    static fetchQuantitySoldByDate(date = new Date()) {
+        return prisma.$queryRaw `
+      SELECT SUM(quantity) AS quantity
+      FROM bill
+      JOIN bill_code
+      ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}
+    `;
+    }
+    static fetchMonthlyQuantitySoldByDate(date = new Date()) {
+        return prisma.$queryRaw `
+      SELECT SUM(quantity) AS quantity
+      FROM bill
+      JOIN bill_code
+      ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}
+    `;
+    }
 }
 exports.default = BillModel;

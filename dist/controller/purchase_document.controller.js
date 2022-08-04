@@ -155,7 +155,7 @@ PurchaseDocumentController.create = (req, res) => {
             });
         })
             .catch((error) => {
-            console.log(error);
+            log_helper_1.default.log(new Date(), "error", error, "Purchase Document Controller - Create", req.body.userId);
             return res.status(500).send(error);
         });
     })

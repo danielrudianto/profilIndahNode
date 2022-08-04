@@ -580,15 +580,29 @@ export class ItemModel {
   }
 
   static fetchSoldByDate(date: Date = new Date()) {
-    return prisma.$queryRaw`SELECT COUNT(DISTINCT(item.id)) AS count
-    FROM item
-    JOIN bill ON bill.item_id = item.id
-    JOIN bill_code ON bill.bill_code_id = bill_code.id
-    WHERE bill_code.is_confirm = 1
-    AND bill_code.is_delete = 0
-    AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
-      date.getMonth() + 1
-    } AND DAY(bill_code.date) = ${date.getDate()}`;
+    return prisma.$queryRaw`
+      SELECT COUNT(DISTINCT(item.id)) AS count
+      FROM item
+      JOIN bill ON bill.item_id = item.id
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
+        date.getMonth() + 1
+      } AND DAY(bill_code.date) = ${date.getDate()}
+    `;
+  }
+
+  static fetchMonthlySoldByDate(date: Date = new Date()){
+    return prisma.$queryRaw`
+      SELECT COUNT(DISTINCT(item.id)) AS count
+      FROM item
+      JOIN bill ON bill.item_id = item.id
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}
+    `;
   }
 
   static fetchChartItems(monthly: boolean, limit: number, offset: number) {
@@ -598,29 +612,48 @@ export class ItemModel {
     if (monthly) {
       date.setMonth(date.getMonth() - offset);
       start_date.setMonth(date.getMonth() - limit - offset);
-      return prisma.$queryRawUnsafe(`
-        SELECT 
-        YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, COUNT(bill.item_id) AS count
-        FROM item
-        JOIN bill ON bill.item_id = item.id
-        JOIN bill_code ON bill.bill_code_id = bill_code.id
-        WHERE bill_code.is_confirm = 1
-        AND bill_code.is_delete = 0
-        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
-        GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`
-      );
+
+      const prev_date = new Date();
+      const start_prev_date = new Date();
+      prev_date.setMonth(date.getMonth() - offset - 12);
+      start_prev_date.setMonth(date.getMonth() - limit - offset - 12);
+
+      return prisma.$transaction([
+        prisma.$queryRawUnsafe(`
+          SELECT 
+          YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, COUNT(bill.item_id) AS count, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
+          FROM item
+          JOIN bill ON bill.item_id = item.id
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`
+        ),
+        prisma.$queryRawUnsafe(`
+          SELECT 
+          YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, COUNT(bill.item_id) AS count, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
+          FROM item
+          JOIN bill ON bill.item_id = item.id
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.date BETWEEN '${start_prev_date.getFullYear().toString()}-${(start_prev_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${prev_date.getFullYear().toString()}-${(prev_date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`
+        )
+      ])
     } else {
       date.setDate(date.getDate() - offset);
       start_date.setDate(date.getDate() - limit - offset);
       return prisma.$queryRawUnsafe(
         `SELECT 
-        YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, DAY(bill_code.date) AS day, COUNT(bill.item_id) AS count
+        YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, DAY(bill_code.date) AS day, COUNT(bill.item_id) AS count, datediff(curdate(), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(bill_code.date),2,'00')), '%Y-%m-%d')) AS diff
         FROM item
         JOIN bill ON bill.item_id = item.id
         JOIN bill_code ON bill.bill_code_id = bill_code.id
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
-        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
         GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)`
       );
     }
@@ -703,18 +736,20 @@ export class ItemModel {
   static fetchStockData(item_id: number, start: string | null = null, end: string | null = null){
     if(start == null || end == null){
       return prisma.$queryRawUnsafe(`
-        SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity
+        SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock, COALESCE(billTable.op, goodreceiptTable.op, 'Transaksi Internal') AS op
         FROM stock_card
         LEFT JOIN (
-          SELECT bill_code.name, bill_code.date, bill.id
+          SELECT bill_code.name, bill_code.date, bill.id, COALESCE(customer.name, 'Retail') AS op
           FROM bill
           JOIN bill_code ON bill_code.id = bill.bill_code_id
+          LEFT JOIN customer ON bill_code.customer_id = customer.id
         ) billTable
         ON stock_card.bill_id = billTable.id
         LEFT JOIN (
-          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
+          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id, supplier.name AS op
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
         ) goodReceiptTable
         ON stock_card.good_receipt_id = goodReceiptTable.id
         LEFT JOIN (
@@ -726,20 +761,11 @@ export class ItemModel {
         WHERE stock_card.item_id = ${item_id}`
       );
     } else {
-      console.log(start);
-      console.log(end);
       const start_date = new Date(start);
       const end_date = new Date(end); 
 
-      console.log(start_date);
-      console.log(end_date);
-
-      console.log(start_date.getFullYear());
-      console.log(start_date.getMonth());
-      console.log(start_date.getDate());
-
       return prisma.$queryRawUnsafe(
-        `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity
+        `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock
         FROM stock_card
         LEFT JOIN (
           SELECT bill_code.name, bill_code.date, bill.id
@@ -760,7 +786,7 @@ export class ItemModel {
         ) adjustmentTable
         ON stock_card.adjustment_case_id = adjustmentTable.id
         WHERE stock_card.item_id = ${item_id}
-        AND stock_card.date >= '${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND stock_card.date <= '${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${(end_date.getDate()).toString().padStart(2, "0")}';`
+        AND stock_card.date BETWEEN '${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND '${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${(end_date.getDate()).toString().padStart(2, "0")}';`
       );
     }
   }

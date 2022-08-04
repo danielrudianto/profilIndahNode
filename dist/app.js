@@ -24,6 +24,7 @@ const expense_route_1 = __importDefault(require("./routes/expense.route"));
 const payment_method_route_1 = __importDefault(require("./routes/payment_method.route"));
 const bill_route_1 = __importDefault(require("./routes/bill.route"));
 const adjustment_case_route_1 = __importDefault(require("./routes/adjustment_case.route"));
+const report_route_ts_1 = __importDefault(require("./routes/report.route.ts"));
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options = {
     origin: allowedOrigins,
@@ -47,6 +48,7 @@ app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/paymentMethod", auth_helper_1.authMiddleware, payment_method_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.use("/bill", auth_helper_1.authMiddleware, bill_route_1.default);
+app.use('/report', auth_helper_1.authMiddleware, report_route_ts_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => {
     console.log(`[server]: Listening on port 5000`);

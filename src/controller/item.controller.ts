@@ -426,15 +426,42 @@ class ItemController {
         ItemModel.fetchStockData(item.id, start, end).then(result => {
           switch (format) {
             case "pdf":
-              StockCardHelper.createPdf(result as any[])
+              StockCardHelper.createPdf((result as any[]).map(x => {
+                return {
+                  ...x,
+                  date: new Date(x.date),
+                  stock: parseFloat(x.stock.toString()),
+                  quantity: parseFloat(x.quantity.toString())
+                }
+              }), function(binary: string){
+                return res.status(200).send({
+                  data: binary
+                });
+              }, function(error: any) {
+                return res.status(500).send(error);
+              });
+
               break;
             case "csv":
-              StockCardHelper.createCsv(result as any[]);
+              StockCardHelper.createCsv((result as any[]).map(x => {
+                return {
+                  ...x,
+                  date: new Date(x.date),
+                  quantity: parseFloat(x.quantity.toString()),
+                  stock: parseFloat(x.stock.toString()),
+                }
+              }), function(array: any[]){
+                return res.status(200).send({
+                  data: array
+                });
+              }, function(error: any){
+                return res.status(500).send(error);
+              });
+
               break;
             default:
               return res.status(405).send("Format tidak ditemukan.");
           }
-          return res.status(200).send(result);
         })
       }
     }).catch(error => {

@@ -140,8 +140,8 @@ class ItemModel {
         return prisma.item.findMany({
             where: {
                 id: {
-                    in: id
-                }
+                    in: id,
+                },
             },
             select: {
                 reference: true,
@@ -149,16 +149,16 @@ class ItemModel {
                 id: true,
                 stock: {
                     select: {
-                        stock: true
-                    }
+                        stock: true,
+                    },
                 },
                 minimum_stock: true,
                 item_brand: {
                     select: {
-                        name: true
-                    }
-                }
-            }
+                        name: true,
+                    },
+                },
+            },
         });
     }
     static fetchByReference(reference) {
@@ -186,9 +186,9 @@ class ItemModel {
                 },
                 stock: {
                     select: {
-                        stock: true
-                    }
-                }
+                        stock: true,
+                    },
+                },
             },
         });
     }
@@ -376,32 +376,35 @@ class ItemModel {
             ]);
         }
     }
-    static fetchInsufficient(keyword, blocked_brand = [], offset, limit) {
+    static fetchInsufficient(keyword, blocked_brands = [], offset, limit) {
+        const blocked_brand = blocked_brands.map(x => {
+            return parseInt(x);
+        });
         if (blocked_brand.length > 0) {
             if (keyword == "") {
                 return prisma.$transaction([
                     prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0`
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0`,
                 ]);
             }
             else {
                 return prisma.$transaction([
                     prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0`
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) AND item.item_brand_id NOT IN (${(0, runtime_1.join)(blocked_brand)}) AND item.is_delete = 0`,
                 ]);
             }
         }
         else {
             if (keyword == "") {
                 return prisma.$transaction([
-                    prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock`
+                    prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.is_delete = 0 ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND item.is_delete = 0`,
                 ]);
             }
             else {
                 return prisma.$transaction([
                     prisma.$queryRaw `SELECT item.id FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword})) ORDER BY reference ASC LIMIT ${limit} OFFSET ${offset}`,
-                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword}))`
+                    prisma.$queryRaw `SELECT COUNT(item.id) AS count FROM item LEFT JOIN stock ON item.id = stock.id WHERE stock.stock < item.minimum_stock AND (INSTR(item.reference, ${keyword}) OR INSTR(item.description, ${keyword}))`,
                 ]);
             }
         }
@@ -542,6 +545,75 @@ class ItemModel {
             _count: true,
         });
     }
+    static fetchSoldByDate(date = new Date()) {
+        return prisma.$queryRaw `
+      SELECT COUNT(DISTINCT(item.id)) AS count
+      FROM item
+      JOIN bill ON bill.item_id = item.id
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}
+    `;
+    }
+    static fetchMonthlySoldByDate(date = new Date()) {
+        return prisma.$queryRaw `
+      SELECT COUNT(DISTINCT(item.id)) AS count
+      FROM item
+      JOIN bill ON bill.item_id = item.id
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}
+    `;
+    }
+    static fetchChartItems(monthly, limit, offset) {
+        const date = new Date();
+        const start_date = new Date();
+        if (monthly) {
+            date.setMonth(date.getMonth() - offset);
+            start_date.setMonth(date.getMonth() - limit - offset);
+            const prev_date = new Date();
+            const start_prev_date = new Date();
+            prev_date.setMonth(date.getMonth() - offset - 12);
+            start_prev_date.setMonth(date.getMonth() - limit - offset - 12);
+            return prisma.$transaction([
+                prisma.$queryRawUnsafe(`
+          SELECT 
+          YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, COUNT(bill.item_id) AS count, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
+          FROM item
+          JOIN bill ON bill.item_id = item.id
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`),
+                prisma.$queryRawUnsafe(`
+          SELECT 
+          YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, COUNT(bill.item_id) AS count, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
+          FROM item
+          JOIN bill ON bill.item_id = item.id
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.date BETWEEN '${start_prev_date.getFullYear().toString()}-${(start_prev_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${prev_date.getFullYear().toString()}-${(prev_date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`)
+            ]);
+        }
+        else {
+            date.setDate(date.getDate() - offset);
+            start_date.setDate(date.getDate() - limit - offset);
+            return prisma.$queryRawUnsafe(`SELECT 
+        YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, DAY(bill_code.date) AS day, COUNT(bill.item_id) AS count, datediff(curdate(), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(bill_code.date),2,'00')), '%Y-%m-%d')) AS diff
+        FROM item
+        JOIN bill ON bill.item_id = item.id
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)`);
+        }
+    }
     static fetchStockById(id, offset, limit) {
         return prisma.$transaction([
             prisma.stock_card.findMany({
@@ -558,11 +630,11 @@ class ItemModel {
                                     user_good_receipt_code_created_byTouser: {
                                         select: {
                                             name: true,
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                     adjustment_case: {
                         select: {
@@ -573,11 +645,11 @@ class ItemModel {
                                     user_adjustment_case_code_created_byTouser: {
                                         select: {
                                             name: true,
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                     bill: {
                         select: {
@@ -587,29 +659,87 @@ class ItemModel {
                                     name: true,
                                     user_bill_code_created_byTouser: {
                                         select: {
-                                            name: true
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                                            name: true,
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                     date: true,
                     quantity: true,
                     lead_quantity: true,
+                    stock: true,
+                    bill_id: true,
+                    adjustment_case_id: true,
+                    good_receipt_id: true
                 },
                 orderBy: {
-                    date: "desc"
+                    date: "desc",
                 },
                 take: limit,
-                skip: offset
+                skip: offset,
             }),
             prisma.stock_card.count({
                 where: {
-                    item_id: id
-                }
-            })
+                    item_id: id,
+                },
+            }),
         ]);
+    }
+    static fetchStockData(item_id, start = null, end = null) {
+        if (start == null || end == null) {
+            return prisma.$queryRawUnsafe(`
+        SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock, COALESCE(billTable.op, goodreceiptTable.op, 'Transaksi Internal') AS op
+        FROM stock_card
+        LEFT JOIN (
+          SELECT bill_code.name, bill_code.date, bill.id, COALESCE(customer.name, 'Retail') AS op
+          FROM bill
+          JOIN bill_code ON bill_code.id = bill.bill_code_id
+          LEFT JOIN customer ON bill_code.customer_id = customer.id
+        ) billTable
+        ON stock_card.bill_id = billTable.id
+        LEFT JOIN (
+          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id, supplier.name AS op
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+        ) goodReceiptTable
+        ON stock_card.good_receipt_id = goodReceiptTable.id
+        LEFT JOIN (
+          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+        ) adjustmentTable
+        ON stock_card.adjustment_case_id = adjustmentTable.id
+        WHERE stock_card.item_id = ${item_id}`);
+        }
+        else {
+            const start_date = new Date(start);
+            const end_date = new Date(end);
+            return prisma.$queryRawUnsafe(`SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock
+        FROM stock_card
+        LEFT JOIN (
+          SELECT bill_code.name, bill_code.date, bill.id
+          FROM bill
+          JOIN bill_code ON bill_code.id = bill.bill_code_id
+        ) billTable
+        ON stock_card.bill_id = billTable.id
+        LEFT JOIN (
+          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+        ) goodReceiptTable
+        ON stock_card.good_receipt_id = goodReceiptTable.id
+        LEFT JOIN (
+          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+        ) adjustmentTable
+        ON stock_card.adjustment_case_id = adjustmentTable.id
+        WHERE stock_card.item_id = ${item_id}
+        AND stock_card.date BETWEEN '${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND '${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${(end_date.getDate()).toString().padStart(2, "0")}';`);
+        }
     }
 }
 exports.ItemModel = ItemModel;

@@ -7,6 +7,7 @@ const query_transaction_helper_1 = __importDefault(require("../helper/query.tran
 const app_1 = require("../app");
 const expense_model_1 = __importDefault(require("../model/expense.model"));
 const expense_type_model_1 = __importDefault(require("../model/expense.type.model"));
+const log_helper_1 = __importDefault(require("../helper/log.helper"));
 class ExpenseController {
 }
 ExpenseController.create = (req, res) => {
@@ -109,7 +110,7 @@ ExpenseController.updateType = (req, res) => {
         return res.status(200).send(result);
     })
         .catch((error) => {
-        console.log(error);
+        log_helper_1.default.log(new Date(), "error", error, "Expense Type - Update", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -218,7 +219,7 @@ ExpenseController.fetchType = (req, res) => {
         return res.status(200).send(expense_type);
     })
         .catch((error) => {
-        console.log(error);
+        log_helper_1.default.log(new Date(), "error", error, "Expense Type - Fetch", req.body.userId);
         return res.status(500).send(error);
     });
     expense_type_model_1.default.fetch(parent_id)

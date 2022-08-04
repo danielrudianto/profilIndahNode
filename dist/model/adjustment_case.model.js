@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class AdjustmentCaseModel {
-    constructor(name, date, created_by, id = null) {
+    constructor(name, date, created_by, company_id, id = null) {
         this.is_confirm = true;
         this.is_delete = false;
         if (id != null) {
@@ -13,6 +13,7 @@ class AdjustmentCaseModel {
         this.date = date;
         this.created_by = created_by;
         this.created_at = new Date();
+        this.company_id = company_id;
     }
     create() {
         return prisma.adjustment_case_code.create({
@@ -25,6 +26,7 @@ class AdjustmentCaseModel {
                 is_delete: this.is_delete,
                 confirmed_by: this.created_by,
                 confirmed_at: this.created_at,
+                company_id: this.company_id
             },
         });
     }
@@ -132,6 +134,14 @@ class AdjustmentCaseModel {
                         quantity: true,
                     },
                 },
+                company: {
+                    select: {
+                        name: true,
+                        address: true,
+                        npwp: true,
+                        code_name: true
+                    }
+                }
             },
         });
     }

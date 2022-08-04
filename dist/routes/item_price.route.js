@@ -16,6 +16,7 @@ const client_1 = require("@prisma/client");
 const express_1 = require("express");
 const item_price_controller_1 = __importDefault(require("../controller/item_price.controller"));
 const app_1 = require("../app");
+const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const prisma = new client_1.PrismaClient();
 const router = (0, express_1.Router)();
 router.get("/bulk", item_price_controller_1.default.fetchAll);
@@ -102,7 +103,7 @@ router.post("/", (req, res, next) => {
         return res.status(200).send(result[1]);
     }))
         .catch((error) => {
-        console.log(error);
+        log_helper_1.default.log(new Date(), "error", error, "Item Price - Create", req.body.userId);
         return res.status(500).send(error);
     });
 });
