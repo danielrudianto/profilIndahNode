@@ -3,3 +3,4 @@ node_modules
 .env
 src/log.csv
 src/log.csv
+src/log.csv

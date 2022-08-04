@@ -179,16 +179,18 @@ ItemController.fetch = (req, res) => {
             .then((count) => {
             return res.status(200).send({
                 data: result[0].map((item) => {
-                    return Object.assign(Object.assign({}, item), { _count: undefined, can_delete: count[0] + count[1] ? false : true });
+                    return Object.assign(Object.assign({}, item), { _count: undefined, can_delete: (count[0] + count[1] + count[2] == 0) ? true : false });
                 }),
                 count: result[1],
             });
         })
             .catch((error) => {
+            log_helper_1.default.log(new Date(), "error", error, "Item controller - count", req.body.userId);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
+        log_helper_1.default.log(new Date(), "error", error, "Item controller - fetch", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -204,7 +206,8 @@ ItemController.fetchByReference = (req, res) => {
         }
         else {
             res.status(200).send(Object.assign(Object.assign({}, item), { _count: undefined, can_delete: ((item === null || item === void 0 ? void 0 : item._count.bill) || 0) > 0 ||
-                    ((item === null || item === void 0 ? void 0 : item._count.good_receipt) || 0) > 0
+                    ((item === null || item === void 0 ? void 0 : item._count.good_receipt) || 0) > 0 ||
+                    ((item === null || item === void 0 ? void 0 : item._count.adjustment_case) || 0) > 0
                     ? false
                     : true }));
         }

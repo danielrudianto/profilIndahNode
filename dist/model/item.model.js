@@ -182,6 +182,7 @@ class ItemModel {
                     select: {
                         bill: true,
                         good_receipt: true,
+                        adjustment_case: true
                     },
                 },
                 stock: {
@@ -486,6 +487,13 @@ class ItemModel {
                     },
                 },
             }),
+            prisma.adjustment_case.count({
+                where: {
+                    item_id: {
+                        in: id
+                    }
+                }
+            })
         ]);
     }
     static delete(id, deleted_by) {

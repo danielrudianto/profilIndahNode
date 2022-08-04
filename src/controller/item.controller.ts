@@ -310,17 +310,19 @@ class ItemController {
                 return {
                   ...item,
                   _count: undefined,
-                  can_delete: count[0] + count[1] ? false : true,
+                  can_delete: (count[0] + count[1] + count[2] == 0) ? true : false,
                 };
               }),
               count: result[1],
             });
           })
           .catch((error) => {
+            LogHelper.log(new Date(), "error", error, "Item controller - count", req.body.userId);
             return res.status(500).send(error);
           });
       })
       .catch((error) => {
+        LogHelper.log(new Date(), "error", error, "Item controller - fetch", req.body.userId);
         return res.status(500).send(error);
       });
   };
@@ -341,7 +343,8 @@ class ItemController {
             _count: undefined,
             can_delete:
               (item?._count.bill || 0) > 0 ||
-              (item?._count.good_receipt || 0) > 0
+              (item?._count.good_receipt || 0) > 0 ||
+              (item?._count.adjustment_case || 0) > 0
                 ? false
                 : true,
           });

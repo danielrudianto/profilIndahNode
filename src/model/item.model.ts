@@ -203,6 +203,7 @@ export class ItemModel {
           select: {
             bill: true,
             good_receipt: true,
+            adjustment_case: true
           },
         },
         stock: {
@@ -515,6 +516,13 @@ export class ItemModel {
           },
         },
       }),
+      prisma.adjustment_case.count({
+        where:{
+          item_id: {
+            in: id
+          }
+        }
+      })
     ]);
   }
 
