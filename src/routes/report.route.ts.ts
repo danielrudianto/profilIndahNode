@@ -3,6 +3,9 @@ import ReportController from "../controller/report.controller";
 
 const router = Router();
 
+router.get("/profitloss", ReportController.fetchPLStats);
+
+router.get("/frequent", ReportController.fetchFrequentItems);
 router.get("/sales/monthly", ReportController.fetchMonthlySalesStats);
 router.get("/sales", ReportController.fetchSalesStats);
 router.get("/salesChart", ReportController.fetchSalesChart);

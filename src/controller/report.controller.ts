@@ -164,13 +164,66 @@ class ReportController {
                 break;
             case 2:
                 ItemModel.fetchChartItems(monthly, limit, shift).then(result => {
-                    return res.status(200).send(result);
+                    if(monthly){
+                        const response: any = {};
+                        response['current'] = [];
+                        response['previous'] = [];
+
+                        ((result as any[])[0] as any[]).forEach(x => {
+                            const value = x.count;
+                            const diff = parseInt(x.diff);
+                            response['current'][Math.abs(diff)] = value;
+                        });
+
+                        for(var i = 0; i < 10; i++){
+                            response['current'][i] = response['current'][i] || 0;
+                        }
+
+                        ((result as any[])[1] as any[]).forEach(x => {
+                            const value = x.count;
+                            const diff = parseInt(x.diff);
+                            response['previous'][Math.abs(diff + 12)] = value;
+                        })
+
+                        for(var i = 0; i < 10; i++){
+                            response['previous'][i] = response['previous'][i] | 0;
+                        }
+
+                        return res.status(200).send(response);
+                    } else {
+                        const response: any = [];
+                        (result as any[]).forEach(x => {
+                            const diff = x.diff;
+                            const value = x.count;
+                            response[Math.abs(diff)] = value;
+                        });
+
+                        for(var i = 0; i < 10; i++){
+                            response[i] = response[i] | 0;
+                        }
+
+                        return res.status(200).send(response);
+                    }
                 }).catch(error => {
                     LogHelper.log(new Date(), "error", error, "Report controller - Fetch sales chart", req.body.userId);
                     return res.status(500).send(error);
                 })
                 break;
         }
+    }
+
+    static fetchPLStats = (req: Request, res: Response) => {
+
+    }
+
+    static fetchFrequentItems = (req: Request, res: Response) => {
+        const monthly = (!req.query.monthly) ? false : (req.query.monthly === 'true') ? true : false;
+        ItemModel.fetchFrequentItems(monthly).then(result => {
+            return res.status(200).send(result);
+        }).catch(error => {
+            LogHelper.log(new Date(), "error", error, "Report Controller - Fetch frequent items", req.body.userId);
+            return res.status(500).send(error);
+        })      
     }
 }
 

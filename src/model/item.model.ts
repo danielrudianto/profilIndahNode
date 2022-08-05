@@ -798,4 +798,50 @@ export class ItemModel {
       );
     }
   }
+
+  static fetchFrequentItems(monthly: boolean){
+    const date = new Date();
+    if(monthly){
+      return prisma.$queryRaw`
+        SELECT billCount.quantity, item.reference, item.description
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() +1 }
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `
+    } else {
+      return prisma.$queryRaw`
+        SELECT billCount.quantity, item.reference, item.description
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() +1 } AND DAY(bill_code.date) = ${date.getDate()}
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `
+    }
+    
+  }
 }
