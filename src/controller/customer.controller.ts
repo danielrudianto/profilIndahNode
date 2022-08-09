@@ -3,8 +3,10 @@ import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
+import BillCodeModel from "../model/bill_code.model";
 import BillModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
+import { ItemModel } from "../model/item.model";
 
 class CustomerController {
   static create = (req: Request, res: Response) => {
@@ -264,6 +266,23 @@ class CustomerController {
         return res.status(500).send(error);
       });
   };
+
+  static fetchDetailById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    Promise.all([
+      CustomerModel.fetchById(id),
+      BillCodeModel.fetchByCustomerId(id),
+    ])
+    .then(result => {
+      return res.status(200).send({
+        customer: result[0],
+        value: (result[1] as any[])[0].value,
+        count: (result[1] as any[])[0].count,
+      });
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default CustomerController;

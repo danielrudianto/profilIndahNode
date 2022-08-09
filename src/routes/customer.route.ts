@@ -27,6 +27,12 @@ router.delete(
   CustomerController.delete
 );
 
+router.get(
+  '/detail/:id',
+  param("id").not().isEmpty().withMessage("ID konsumen wajib diisi."),
+  CustomerController.fetchDetailById
+)
+
 router.get("/autocomplete", CustomerController.fetchAutocomplete);
 
 router.get(

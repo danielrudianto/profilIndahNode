@@ -378,6 +378,35 @@ class BillCodeModel {
     }
 
   };
+
+  static fetchByCustomerId(customer_id: number | null){
+    if(customer_id == null){
+      return prisma.$queryRaw`
+        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount) AS value, COUNT(bill_code) AS count
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+          FROM bill
+          GROUP BY bill.bill_code_id
+        ) AS bill_
+        ON bill_code.id = bill_.bill_code_id = bill_code.id
+        WHERE bill_code.customer_id IS NULL
+      `
+    } else {
+      return prisma.$queryRaw`
+        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount) AS value, COUNT(bill_code) AS count
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+          FROM bill
+          GROUP BY bill.bill_code_id
+        ) AS bill_
+        ON bill_code.id = bill_.bill_code_id = bill_code.id
+        WHERE bill_code.customer_id = ${customer_id}
+      `
+    }
+    
+  }
 }
 
 export default BillCodeModel;

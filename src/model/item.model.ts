@@ -12,6 +12,7 @@ export class ItemModel {
   minimum_stock: number;
   created_by: number;
   created_at?: Date;
+  unit: string;
 
   constructor(
     reference: string,
@@ -19,6 +20,7 @@ export class ItemModel {
     minimum_stock: number,
     brand_id: number,
     created_by: number,
+    unit: string,
     id: number | null = null
   ) {
     if (id != null) {
@@ -31,6 +33,7 @@ export class ItemModel {
     this.brand_id = brand_id;
     this.created_by = created_by;
     this.created_at = new Date();
+    this.unit = unit;
   }
 
   create() {
@@ -42,6 +45,7 @@ export class ItemModel {
         created_by: this.created_by,
         created_at: this.created_at,
         minimum_stock: this.minimum_stock,
+        unit: this.unit,
       },
       select: {
         id: true,
@@ -833,6 +837,51 @@ export class ItemModel {
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() +1 } AND DAY(bill_code.date) = ${date.getDate()}
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `
+    }
+    
+  }
+
+  static fetchFrequentItemsByCustomerId(customer_id: number | null){
+    if(customer_id == null){
+      return prisma.$queryRaw`
+        SELECT billCount.quantity, item.reference, item.description
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.customer_id = ${customer_id}
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `
+    } else {
+      return prisma.$queryRaw`
+        SELECT billCount.quantity, item.reference, item.description
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.customer_id IS NULL
           GROUP BY bill.item_id
         ) billCount
         ON item.id = billCount.item_id
