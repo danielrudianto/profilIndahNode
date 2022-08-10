@@ -9,6 +9,7 @@ import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import { validationResult } from "express-validator";
 import StockCardHelper from "../helper/stock_card.helper";
+import ItemUnitModel from "../model/item_unit.model";
 
 class ItemController {
   static create = (req: Request, res: Response) => {
@@ -18,7 +19,7 @@ class ItemController {
     const minimum_stock = req.body.minimum_stock;
     const user_id = req.body.userId;
     const unit = req.body.unit;
-  
+
     const units = req.body.units as any[];
 
     ItemModel.fetchByReference(reference)
@@ -33,7 +34,8 @@ class ItemController {
           description,
           minimum_stock,
           brand_id,
-          user_id
+          user_id,
+          unit
         );
 
         item
@@ -47,6 +49,8 @@ class ItemController {
               req.body.userId
             );
 
+            const item_units = ItemUnitModel.createMany(units, result.id, req.body.userId);
+
             const item_price = new ItemPriceModel(
               req.body.price,
               req.body.discount,
@@ -59,19 +63,28 @@ class ItemController {
               result.id,
               req.body.userId
             );
-            const transaction = new QueryTransactionHelper();
-            transaction
-              .create([
-                item_price.create(),
-                item_purchase_price.create(),
-                ItemModel.count(),
-              ])
+
+            Promise.all([
+              item_price.create(),
+              item_purchase_price.create(),
+              ItemModel.count(),
+              item_units,
+            ])
               .then((item_price) => {
                 const item_object = {
                   ...result,
-                  item_price: [item_price[0]],
-                  item_price_purchase: [item_price[1]],
+                  item_price: item_price[0],
+                  item_price_purchase: item_price[1],
+                  item_units: item_price[2],
                 };
+
+                LogHelper.log(
+                  new Date(),
+                  "info",
+                  `${result.user.name} created item unit for item with reference ${result.reference} (ID: ${result.id})`,
+                  `Item - Create`,
+                  req.body.userId
+                );
 
                 LogHelper.log(
                   new Date(),
@@ -111,6 +124,17 @@ class ItemController {
                       req.body.userId
                     );
                   });
+              })
+              .catch((error) => {
+                LogHelper.log(
+                  new Date(),
+                  "error",
+                  error,
+                  "Item Controller - Create",
+                  req.body.userId
+                );
+
+                return res.status(500).send(error);
               });
           })
           .catch((error) => {
@@ -512,6 +536,44 @@ class ItemController {
         return res.status(500).send(error);
       });
   };
+
+  static fetchUnits = (req: Request, res: Response) => {
+    const reference = req.params.reference;
+    ItemUnitModel.fetchByItemReference(reference).then(result => {
+      if(result == null || result.is_delete){
+        return res.status(404).send("Barang tidak ditemukan.");
+      } else {
+        return res.status(200).send(result);
+      }
+    }).catch(error => {
+      LogHelper.log(new Date(), "error", error, "Item Controller - fetch Units", req.body.userId);
+
+      return res.status(500).send(error);
+    })
+  }
+
+  static updateUnit = (req: Request, res: Response) => {
+    const units = req.body.units as any[];
+    const item_id = req.body.item_id;
+    const new_units = units.filter(x => x.id == '');
+    const update_units = units.filter(x => x.id != '');
+
+    Promise.all([
+      ItemUnitModel.createMany(new_units, item_id, req.body.userId),
+      ItemUnitModel.updateMany(update_units)
+    ]).then(() => {
+      ItemModel.fetchById(item_id, new Date()).then(item => {
+        return res.status(200).send(item);
+      }).catch(error => {
+        return res.status(500).send(error);
+      })
+      
+    }).catch(error => {
+      LogHelper.log(new Date(), "error", error, "Item Controller - Update units", req.body.userId);
+
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default ItemController;

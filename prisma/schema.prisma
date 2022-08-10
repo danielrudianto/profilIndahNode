@@ -71,6 +71,7 @@ model user {
   item_price_purchase_item_price_purchase_created_byTouser     item_price_purchase[]  @relation("item_price_purchase_created_byTouser")
   item_price_purchase_item_price_purchase_deleted_byTouser     item_price_purchase[]  @relation("item_price_purchase_deleted_byTouser")
   item_unit                                                    item_unit[]
+  item_unit_item_unit_deleted_byTouser                         item_unit[]            @relation("item_unit_deleted_byTouser")
   payment_method_payment_method_created_byTouser               payment_method[]       @relation("payment_method_created_byTouser")
   payment_method_payment_method_deleted_byTouser               payment_method[]       @relation("payment_method_deleted_byTouser")
   payment_method_payment_method_updated_byTouser               payment_method[]       @relation("payment_method_updated_byTouser")
@@ -91,16 +92,19 @@ model user {
 model bill {
   id           Int          @id @default(autoincrement())
   item_id      Int
+  item_unit_id Int?
   price        Decimal      @db.Decimal(50, 4)
   discount     Decimal      @db.Decimal(50, 4)
   quantity     Decimal      @db.Decimal(50, 4)
   bill_code_id Int
   bill_code    bill_code    @relation(fields: [bill_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_1")
   item         item         @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_2")
+  item_unit    item_unit?   @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_3")
   stock_card   stock_card[]
 
   @@index([bill_code_id], map: "bill_ibfk_1_idx")
-  @@index([item_id], map: "bill_ibfk_2_idx")
+  @@index([item_unit_id], map: "bill_ibfk_3_idx")
+  @@index([item_id], map: "item_id")
 }
 
 model bill_code {
@@ -225,12 +229,15 @@ model good_receipt {
   quantity             Decimal           @db.Decimal(50, 4)
   good_receipt_code_id Int
   price                Decimal           @db.Decimal(50, 4)
+  item_unit_id         Int?
   good_receipt_code    good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_1")
   item                 item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_2")
-  stock                stock_card[]
+  item_unit            item_unit?        @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_3")
+  stock_card           stock_card[]
 
   @@index([good_receipt_code_id], map: "good_receipt_ibfk_1_idx")
-  @@index([item_id], map: "good_receipt_ibfk_2")
+  @@index([item_id], map: "good_receipt_ibfk_2_idx")
+  @@index([item_unit_id], map: "good_receipt_ibfk_3_idx")
 }
 
 model good_receipt_code {
@@ -271,6 +278,7 @@ model item {
   updated_by                 Int?
   updated_at                 DateTime?             @db.DateTime(0)
   item_brand_id              Int
+  unit                       String                @db.VarChar(45)
   user                       user                  @relation("item_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
   user_item_deleted_byTouser user?                 @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
   item_brand                 item_brand            @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
@@ -281,8 +289,8 @@ model item {
   item_price                 item_price[]
   item_price_purchase        item_price_purchase[]
   item_unit                  item_unit[]
-  stock                      stock?
   stock_card                 stock_card[]
+  stock                      stock?
 
   @@index([reference, description], map: "item_fulltext")
   @@index([created_by], map: "item_ibfk_1_idx")
@@ -417,12 +425,15 @@ model adjustment_case {
   item_id                 Int
   quantity                Decimal              @db.Decimal(50, 2)
   adjustment_case_code_id Int
+  item_unit_id            Int?
   adjustment_case_code    adjustment_case_code @relation(fields: [adjustment_case_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_1")
   item                    item                 @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_2")
-  stock                   stock_card[]
+  item_unit               item_unit?           @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_3")
+  stock_card              stock_card[]
 
   @@index([adjustment_case_code_id], map: "adjustment_case_ibfk_1_idx")
-  @@index([item_id], map: "adjustment_case_ibfk_2")
+  @@index([item_unit_id], map: "adjustment_case_ibfk_3_idx")
+  @@index([item_id], map: "item_id")
 }
 
 model adjustment_case_code {
@@ -447,22 +458,25 @@ model adjustment_case_code {
 }
 
 model item_unit {
-  id               Int        @id @default(autoincrement())
-  item_id          Int
-  name             String     @db.VarChar(45)
-  conversion_value Decimal    @db.Decimal(12, 2)
-  parent_id        Int?       @unique(map: "parent_id_UNIQUE")
-  created_by       Int?
-  created_at       DateTime?  @default(now()) @db.DateTime(0)
-  is_delete        Boolean?   @default(false)
-  user             user?      @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_2")
-  item             item       @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_1")
-  item_unit        item_unit? @relation("item_unitToitem_unit_parent_id", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_3")
-  other_item_unit  item_unit? @relation("item_unitToitem_unit_parent_id")
+  id                              Int               @id @default(autoincrement())
+  item_id                         Int
+  unit                            String            @db.VarChar(45)
+  conversion                      Decimal           @db.Decimal(12, 2)
+  created_by                      Int
+  created_at                      DateTime          @default(now()) @db.DateTime(0)
+  is_delete                       Boolean           @default(false)
+  deleted_at                      DateTime?         @db.DateTime(0)
+  deleted_by                      Int?
+  user                            user              @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_2")
+  user_item_unit_deleted_byTouser user?             @relation("item_unit_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_3")
+  item                            item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_1")
+  adjustment_case                 adjustment_case[]
+  bill                            bill[]
+  good_receipt                    good_receipt[]
 
   @@index([item_id], map: "item_id")
-  @@index([created_by], map: "item_unit_ibfk_2_idx")
-  @@index([parent_id], map: "item_unit_ibfk_3_idx")
+  @@index([deleted_by], map: "deleted_by")
+  @@index([created_by], map: "item_unit_ibfk_2")
 }
 
 model stock {
