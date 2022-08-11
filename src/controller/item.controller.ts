@@ -444,16 +444,13 @@ class ItemController {
         ItemModel.fetchStockById(item.id, offset, limit)
           .then((result) => {
             return res.status(200).send({
-              data: {
-                item: item,
-                card: result[0].map((x: any) => {
-                  return {
-                    ...x,
-                    quantity: parseFloat(x.quantity.toString()),
-                    lead_quantity: parseFloat(x.lead_quantity.toString()),
-                  };
-                }),
-              },
+              data: result[0].map((x: any) => {
+                return {
+                  ...x,
+                  quantity: parseFloat(x.quantity.toString()),
+                  lead_quantity: parseFloat(x.lead_quantity.toString()),
+                };
+              }),
               count: result[1],
             });
           })

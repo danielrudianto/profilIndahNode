@@ -50,6 +50,14 @@ class PurchaseDocumentModel {
         confirmed_by: this.confirmed_by,
         confirmed_at: this.confirmed_at,
       },
+      include: {
+        good_receipt_code: {
+          select: {
+            company_id: true,
+            supplier_id: true,
+          }
+        }
+      }
     });
   }
 

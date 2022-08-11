@@ -213,6 +213,16 @@ export class ItemModel {
             name: true,
           },
         },
+        item_unit: {
+          select: {
+            unit: true,
+            id: true,
+            conversion: true,
+          },
+          where: {
+            is_delete: false
+          }
+        },
         _count: {
           select: {
             bill: true,
@@ -787,6 +797,8 @@ export class ItemModel {
           bill_id: true,
           adjustment_case_id: true,
           good_receipt_id: true,
+          unit: true,
+          conversion: true,
         },
         orderBy: {
           date: "desc",

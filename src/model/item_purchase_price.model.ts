@@ -62,13 +62,25 @@ class ItemPurchasePriceModel {
     return transactions;
   }
 
-  static getByItemId(id: number) {
+  static fetchByItemId(id: number) {
     return prisma.item_price_purchase.findFirst({
       where: {
         item_id: id,
         is_delete: false,
       },
     });
+  }
+  
+
+  static fetchByItemIds(ids: number[]){
+    return prisma.item_price_purchase.findMany({
+      where:{
+        item_id: {
+          in: ids
+        },
+        is_delete: false
+      }
+    })
   }
 
   static fetch(keyword: string, offset: number, limit: number) {

@@ -100,7 +100,7 @@ model bill {
   bill_code    bill_code    @relation(fields: [bill_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_1")
   item         item         @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_2")
   item_unit    item_unit?   @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_3")
-  stock_card   stock_card[]
+  stock_card   stock_card?
 
   @@index([bill_code_id], map: "bill_ibfk_1_idx")
   @@index([item_unit_id], map: "bill_ibfk_3_idx")
@@ -233,7 +233,7 @@ model good_receipt {
   good_receipt_code    good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_1")
   item                 item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_2")
   item_unit            item_unit?        @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_3")
-  stock_card           stock_card[]
+  stock_card           stock_card?
 
   @@index([good_receipt_code_id], map: "good_receipt_ibfk_1_idx")
   @@index([item_id], map: "good_receipt_ibfk_2_idx")
@@ -429,7 +429,7 @@ model adjustment_case {
   adjustment_case_code    adjustment_case_code @relation(fields: [adjustment_case_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_1")
   item                    item                 @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_2")
   item_unit               item_unit?           @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_3")
-  stock_card              stock_card[]
+  stock_card              stock_card?
 
   @@index([adjustment_case_code_id], map: "adjustment_case_ibfk_1_idx")
   @@index([item_unit_id], map: "adjustment_case_ibfk_3_idx")
@@ -495,6 +495,8 @@ model stock_card {
   item_id            Int
   stock              Decimal  @db.Decimal(50, 4)
   lead_quantity      Decimal  @db.Decimal(50, 4)
+  unit               String?
+  conversion         Decimal? @db.Decimal(12, 2)
 
   item            item             @relation(fields: [item_id], references: [id])
   good_receipt    good_receipt?    @relation(fields: [good_receipt_id], references: [id])

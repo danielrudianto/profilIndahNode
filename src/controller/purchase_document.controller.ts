@@ -67,6 +67,7 @@ class PurchaseDocumentController {
                 quantity: good_receipt_items[idx].quantity,
                 good_receipt_code_id: good_receipt_result.id,
                 price: good_receipt_items[idx].price,
+                item_unit_id: good_receipt_items[idx].item_unit_id
               });
             }
 
@@ -166,6 +167,7 @@ class PurchaseDocumentController {
                   quantity: good_receipt_items[idx].quantity,
                   good_receipt_code_id: good_receipt_result.id,
                   price: good_receipt_items[idx].price,
+                  item_unit_id: good_receipt_items[idx].item_unit_id
                 });
 
                 if (good_receipt_items[idx].save == true) {

@@ -48,30 +48,23 @@ class GoodReceiptController {
         good_receipt
           .create()
           .then((good_receipt_result) => {
-            const prices: number[] = [];
-            const transactions: any[] = [];
+            const prices: any[] = [];
+            const item_ids: number[] = [];
             for (let i = 0; i < good_receipt_items.length; i++) {
-              transactions.push(
-                ItemPurchasePriceModel.getByItemId(
-                  good_receipt_items[i].item_id
-                )
-              );
+              item_ids.push(good_receipt_items[i].item_id);
             }
 
-            const transaction = new QueryTransactionHelper();
-            transaction.create(transactions).then((result) => {
-              result.forEach((item, index) => {
-                const price = item == null ? 0 : item.price;
-                prices[index] = price;
-              });
-
+            ItemPurchasePriceModel.fetchByItemIds(item_ids).then(result => {
               const good_receipt_items_input: any[] = [];
               for (let idx = 0; idx < good_receipt_items.length; idx++) {
+                const price = (result.filter(x => x.item_id == good_receipt_items[idx].item_id).length == 0) ? 0 : result.filter(x => x.item_id == good_receipt_items[idx].item_id)[0].price
+                
                 good_receipt_items_input.push({
                   item_id: good_receipt_items[idx].item_id,
+                  item_unit_id: good_receipt_items[idx].item_unit_id,
                   quantity: good_receipt_items[idx].quantity,
                   good_receipt_code_id: good_receipt_result.id,
-                  price: prices[idx],
+                  price: price,
                 });
               }
 
@@ -87,8 +80,7 @@ class GoodReceiptController {
               );
               const insert_purchase_document = purchase_document.create();
 
-              transaction
-                .create([insert_item, insert_purchase_document])
+              Promise.all([insert_item, insert_purchase_document])
                 .then((insert_transaction) => {
                   LogHelper.log(
                     good_receipt_result.created_at,
@@ -99,8 +91,8 @@ class GoodReceiptController {
                   );
 
                   const socket = new SocketHelper("createGoodReceipt", {
-                    supplier_id: insert_transaction[0].supplier_id,
-                    company_id: insert_transaction[0].company_id,
+                    supplier_id: insert_transaction[1].good_receipt_code.supplier_id,
+                    company_id: insert_transaction[1].good_receipt_code.company_id,
                   });
                   socket.create();
 
@@ -120,19 +112,8 @@ class GoodReceiptController {
 
                   return res.status(500).send(error);
                 });
-            });
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              error,
-              "Good Receipt - Create",
-              req.body.userId
-            );
-
-            return res.status(500).send(error);
-          });
+              });
+            })
       })
       .catch((error) => {
         return res.status(500).send(error);
