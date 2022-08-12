@@ -87,3 +87,4 @@ Thu Aug 11 2022 15:44:35 GMT+0700 (Indochina Time); info; Login success for user
 Thu Aug 11 2022 15:56:28 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Thu Aug 11 2022 15:57:02 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-02662600 (ID: 11); Bill controller - Create; 1
 Thu Aug 11 2022 16:06:34 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 49) dari CV Agung Elektrindo (ID: 49) untuk perusahaan CV Karunia Maju Bersamas (ID: 2); Good Receipt controller - Create; 1
+Fri Aug 12 2022 12:13:00 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1

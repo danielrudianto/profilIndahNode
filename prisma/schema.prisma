@@ -446,8 +446,8 @@ model adjustment_case_code {
   is_delete                                    Boolean           @default(false)
   confirmed_by                                 Int?
   confirmed_at                                 DateTime?         @db.DateTime(0)
-  company_id                                   Int
-  company                                      company           @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_3")
+  company_id                                   Int?
+  company                                      company?           @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_3")
   user_adjustment_case_code_confirmed_byTouser user?             @relation("adjustment_case_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_2")
   user_adjustment_case_code_created_byTouser   user              @relation("adjustment_case_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_1")
   adjustment_case                              adjustment_case[]
