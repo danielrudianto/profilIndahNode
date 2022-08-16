@@ -893,13 +893,14 @@ export class ItemModel {
     const date = new Date();
     if (monthly) {
       return prisma.$queryRaw`
-        SELECT billCount.quantity, item.reference, item.description
+        SELECT billCount.quantity, item.reference, item.description, item.unit
         FROM item
         LEFT JOIN (
-          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          SELECT SUM(bill.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, bill.item_id
           FROM bill
           JOIN bill_code
           ON bill.bill_code_id = bill_code.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
@@ -915,13 +916,14 @@ export class ItemModel {
       `;
     } else {
       return prisma.$queryRaw`
-        SELECT billCount.quantity, item.reference, item.description
+        SELECT billCount.quantity, item.reference, item.description, item.unit
         FROM item
         LEFT JOIN (
-          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          SELECT SUM(bill.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, bill.item_id
           FROM bill
           JOIN bill_code
           ON bill.bill_code_id = bill_code.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${

@@ -90,16 +90,16 @@ model user {
 }
 
 model bill {
-  id           Int          @id @default(autoincrement())
+  id           Int         @id @default(autoincrement())
   item_id      Int
   item_unit_id Int?
-  price        Decimal      @db.Decimal(50, 4)
-  discount     Decimal      @db.Decimal(50, 4)
-  quantity     Decimal      @db.Decimal(50, 4)
+  price        Decimal     @db.Decimal(50, 4)
+  discount     Decimal     @db.Decimal(50, 4)
+  quantity     Decimal     @db.Decimal(50, 4)
   bill_code_id Int
-  bill_code    bill_code    @relation(fields: [bill_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_1")
-  item         item         @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_2")
-  item_unit    item_unit?   @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_3")
+  bill_code    bill_code   @relation(fields: [bill_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_1")
+  item         item        @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_2")
+  item_unit    item_unit?  @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_3")
   stock_card   stock_card?
 
   @@index([bill_code_id], map: "bill_ibfk_1_idx")
@@ -234,6 +234,7 @@ model good_receipt {
   item                 item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_2")
   item_unit            item_unit?        @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_3")
   stock_card           stock_card?
+  stock_calculate      stock_calculate[]
 
   @@index([good_receipt_code_id], map: "good_receipt_ibfk_1_idx")
   @@index([item_id], map: "good_receipt_ibfk_2_idx")
@@ -291,6 +292,7 @@ model item {
   item_unit                  item_unit[]
   stock_card                 stock_card[]
   stock                      stock?
+  stock_calculate            stock_calculate[]
 
   @@index([reference, description], map: "item_fulltext")
   @@index([created_by], map: "item_ibfk_1_idx")
@@ -430,6 +432,7 @@ model adjustment_case {
   item                    item                 @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_2")
   item_unit               item_unit?           @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_3")
   stock_card              stock_card?
+  stock_calculate         stock_calculate[]
 
   @@index([adjustment_case_code_id], map: "adjustment_case_ibfk_1_idx")
   @@index([item_unit_id], map: "adjustment_case_ibfk_3_idx")
@@ -447,7 +450,7 @@ model adjustment_case_code {
   confirmed_by                                 Int?
   confirmed_at                                 DateTime?         @db.DateTime(0)
   company_id                                   Int?
-  company                                      company?           @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_3")
+  company                                      company?          @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_3")
   user_adjustment_case_code_confirmed_byTouser user?             @relation("adjustment_case_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_2")
   user_adjustment_case_code_created_byTouser   user              @relation("adjustment_case_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_code_ibfk_1")
   adjustment_case                              adjustment_case[]
@@ -501,5 +504,18 @@ model stock_card {
   item            item             @relation(fields: [item_id], references: [id])
   good_receipt    good_receipt?    @relation(fields: [good_receipt_id], references: [id])
   bill            bill?            @relation(fields: [bill_id], references: [id])
+  adjustment_case adjustment_case? @relation(fields: [adjustment_case_id], references: [id])
+}
+
+model stock_calculate {
+  id                 Int     @id
+  company_id         Int
+  item_id            Int
+  good_receipt_id    Int?
+  adjustment_case_id Int?
+  quantity           Decimal @db.Decimal(36, 6)
+
+  item            item             @relation(fields: [item_id], references: [id])
+  good_receipt    good_receipt?    @relation(fields: [good_receipt_id], references: [id])
   adjustment_case adjustment_case? @relation(fields: [adjustment_case_id], references: [id])
 }

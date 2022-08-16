@@ -55,9 +55,9 @@ class PurchaseDocumentModel {
           select: {
             company_id: true,
             supplier_id: true,
-          }
-        }
-      }
+          },
+        },
+      },
     });
   }
 
@@ -149,6 +149,71 @@ class PurchaseDocumentModel {
         },
       },
     });
+  }
+
+  static fetchPurchaseByQuarter(quarter: number, year: number) {
+    switch (quarter) {
+      case 1:
+        return prisma.$queryRawUnsafe(`
+          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
+          WHERE good_receipt_code.is_confirm = 1
+          AND purchase_invoice.is_confirm = 1
+          AND good_receipt_code.is_delete = 0
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.date <= '${year}-03-31';
+          AND purchase_invoice.date >= '${year}-01-01';
+        `);
+      case 2:
+        return prisma.$queryRawUnsafe(`
+          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
+          WHERE good_receipt_code.is_confirm = 1
+          AND purchase_invoice.is_confirm = 1
+          AND good_receipt_code.is_delete = 0
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.date <= '${year}-06-30'
+          AND purchase_invoice.date >= '${year}-04-01';
+        `);
+      case 3:
+        return prisma.$queryRawUnsafe(`
+          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
+          WHERE good_receipt_code.is_confirm = 1
+          AND purchase_invoice.is_confirm = 1
+          AND good_receipt_code.is_delete = 0
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.date <= '${year}-09-30'
+          AND purchase_invoice.date >= '${year}-07-01';
+        `);
+      case 4:
+        return prisma.$queryRawUnsafe(`
+          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
+          WHERE good_receipt_code.is_confirm = 1
+          AND purchase_invoice.is_confirm = 1
+          AND good_receipt_code.is_delete = 0
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.date <= '${year}-12-31'
+          AND purchase_invoice.date >= '${year}-10-01';
+        `);
+      default:
+        const promise = new Promise((resolve, reject) => {
+          resolve(null);
+        });
+    }
   }
 }
 
