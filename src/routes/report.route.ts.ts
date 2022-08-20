@@ -3,7 +3,7 @@ import ReportController from "../controller/report.controller";
 
 const router = Router();
 
-router.get("/profitloss/:month/:year", ReportController.fetchPLStats);
+router.get("/profitloss/:month/:year/:report", ReportController.fetchPLStats);
 
 router.get("/frequent", ReportController.fetchFrequentItems);
 router.get("/sales/monthly", ReportController.fetchMonthlySalesStats);

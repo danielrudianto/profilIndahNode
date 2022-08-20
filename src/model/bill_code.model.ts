@@ -455,7 +455,7 @@ class BillCodeModel {
     if (month == 0) {
       // Fetch annual sales
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery, bills.value
+        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery
         FROM bill_code
         JOIN (
           SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
@@ -471,7 +471,7 @@ class BillCodeModel {
     } else {
       // Fetch monthly sales
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery, bills.value
+        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery
         FROM bill_code
         JOIN (
           SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id

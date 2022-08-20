@@ -1,5 +1,4 @@
 import pdfPrinter from "pdfmake";
-import { createWriteStream } from "fs";
 import path from "path";
 
 interface stockItem {

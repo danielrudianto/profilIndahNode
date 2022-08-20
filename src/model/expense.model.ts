@@ -141,6 +141,27 @@ class ExpenseModel {
       },
     });
   }
+
+  static fetchSum(month: number, year: number){
+    if(month == 0){
+      return prisma.$queryRawUnsafe(`
+        SELECT SUM(expense.value) AS value, expense_type_id
+        FROM expense
+        WHERE YEAR(expense.date) = ${year}
+        AND is_delete = 0
+        GROUP BY expense_type_id
+      `)
+    } else {
+      return prisma.$queryRawUnsafe(`
+        SELECT SUM(expense.value) AS value, expense_type_id
+        FROM expense
+        WHERE MONTH(expense.date) = ${month}
+        AND YEAR(expense.date) = ${year}
+        AND is_delete = 0
+        GROUP BY expense_type_id
+      `)
+    }
+  }
 }
 
 export default ExpenseModel;

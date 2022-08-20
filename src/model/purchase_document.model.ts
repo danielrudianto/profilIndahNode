@@ -215,6 +215,41 @@ class PurchaseDocumentModel {
         });
     }
   }
+
+  static fetchSum(month: number, year: number) {
+    if (month == 0) {
+      return prisma.$queryRawUnsafe(`
+        SELECT SUM(value) AS value, SUM(discount) AS discount
+        FROM purchase_invoice
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price * COALESCE(item_unit.conversion, 1)) AS value, good_receipt_code_id
+          FROM good_receipt
+          LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+          GROUP BY good_receipt.good_receipt_code_id
+        ) goodReceipt
+        ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
+        AND YEAR(purchase_invoice.date) = ${year}
+        AND purchase_invoice.is_confirm = 1
+        AND purchase_invoice.is_delete = 0
+      `);
+    } else {
+      return prisma.$queryRawUnsafe(`
+        SELECT SUM(value) AS value, SUM(discount) AS discount
+        FROM purchase_invoice
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price * COALESCE(item_unit.conversion, 1)) AS value, good_receipt_code_id
+          FROM good_receipt
+          LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+          GROUP BY good_receipt.good_receipt_code_id
+        ) goodReceipt
+        ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
+        WHERE MONTH(purchase_invoice.date) = ${month}
+        AND YEAR(purchase_invoice.date) = ${year}
+        AND purchase_invoice.is_confirm = 1
+        AND purchase_invoice.is_delete = 0
+      `);
+    }
+  }
 }
 
 export default PurchaseDocumentModel;
