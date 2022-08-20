@@ -5,6 +5,7 @@ import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import { ItemModel } from "../model/item.model";
 import PurchaseDocumentModel from "../model/purchase_document.model";
+import SalesDistributionModel from "../model/sales_distribution.model";
 
 class ReportController {
     static fetchSalesStats = (req: Request, res: Response) => {
@@ -217,26 +218,23 @@ class ReportController {
     static fetchPLStats = (req: Request, res: Response) => {
         const year = parseInt(req.params.year);
         const month = parseInt(req.params.month);
-        const quarter = parseInt(req.params.quarter);
-        const company_id = parseInt(req.params.company_id);
 
-        console.log(req.params);
-
-        if(month == 0 && quarter != 0){
-            // Fetching sales
+        if(month == 0){
+            // Fetch annual report
             Promise.all([
-                BillModel.fetchSoldByQuarter(quarter, year),
-                PurchaseDocumentModel.fetchPurchaseByQuarter(quarter, year),
-            ])
-            .then(result => {
+                BillCodeModel.fetchSum(month, year),
+                SalesDistributionModel.fetchSum(month, year)
+            ]).then(result => {
                 console.log(result);
-            }).catch(error => {
-                return res.status(500).send(error);
             })
-        } else if(month != 0 && quarter == 0){
-            
-        } else if(month == 0 && quarter == 0){
-
+        } else {
+            // Fetch monthly report
+            Promise.all([
+                BillCodeModel.fetchSum(month, year),
+                SalesDistributionModel.fetchSum(month, year)
+            ]).then(result => {
+                console.log(result);
+            })
         }
     }
 
