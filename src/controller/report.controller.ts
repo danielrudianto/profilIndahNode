@@ -399,6 +399,85 @@ class ReportController {
             {},
           ]);
 
+          // Purchase table
+          const purchase_table = [];
+          let total_purchase_value = 0;
+          let total_purchase_discount = 0;
+
+          purchase_table.push([
+            {
+              text: "Perusahaan",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Nominal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Potongan Harga",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Total",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          (result[2] as any[]).forEach(x => {
+            purchase_table.push([
+              {
+                text: `${x.name}`,
+                bold: false,
+                alignment: 'left' as Alignment
+              }, 
+              {
+                text: formatter.format(parseFloat(x.value.toString())),
+                bold: false,
+                alignment: 'left' as Alignment
+              },
+              {
+                text: formatter.format(parseFloat(x.discount.toString())),
+                bold: false,
+                alignment: 'left' as Alignment
+              }, 
+              {
+                text: formatter.format(parseFloat(x.value.toString()) - parseFloat(x.discount.toString())),
+                bold: false,
+                alignment: 'left' as Alignment
+              }
+            ])
+
+            total_purchase_value += parseFloat(x.value.toString());
+            total_purchase_discount += parseFloat(x.discount.toString());
+          });
+
+          purchase_table.push([
+            {
+              text: "Keseluruhan",
+              bold: true,
+              alignment: 'left' as Alignment
+            }, 
+            {
+              text: formatter.format(total_purchase_value),
+              bold: true,
+              alignment: 'left' as Alignment
+            },
+            {
+              text: formatter.format(total_purchase_discount),
+              bold: true,
+              alignment: 'left' as Alignment
+            },
+            {
+              text: formatter.format((total_purchase_value - total_purchase_discount)),
+              bold: true,
+              alignment: 'left' as Alignment
+            }
+          ])
+
           let documentDefinition = {
             pageSize: "A4" as PageSize,
             content: [
@@ -437,8 +516,25 @@ class ReportController {
               {
                 text: "Penjualan tidak teralokasi disebabkan karena adanya ketidakcocokan tingkat ketersediaan dengan penjualan.",
                 fontSize: 10,
-                color: '#333333'
-              }
+                color: '#333333',
+                margin: [0, 0, 0, 20] as Margins
+              },
+              {
+                text: "Pembelian",
+                bold: true,
+                fontSize: 14,
+                alignment: "left" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "auto", "auto", "*"],
+                  body: purchase_table,
+                },
+                margin: [0, 0, 0, 15] as Margins
+              },
             ],
           };
 

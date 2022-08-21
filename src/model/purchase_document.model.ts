@@ -219,7 +219,7 @@ class PurchaseDocumentModel {
   static fetchSum(month: number, year: number) {
     if (month == 0) {
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(value) AS value, SUM(discount) AS discount
+        SELECT SUM(value) AS value, SUM(discount) AS discount, good_receipt_code.company_id, company.name
         FROM purchase_invoice
         JOIN (
           SELECT SUM(good_receipt.quantity * good_receipt.price * COALESCE(item_unit.conversion, 1)) AS value, good_receipt_code_id
@@ -228,13 +228,15 @@ class PurchaseDocumentModel {
           GROUP BY good_receipt.good_receipt_code_id
         ) goodReceipt
         ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
+        JOIN company ON good_receipt_code.company_id = company.id
         AND YEAR(purchase_invoice.date) = ${year}
         AND purchase_invoice.is_confirm = 1
         AND purchase_invoice.is_delete = 0
+        GROUP BY good_receipt_code.company_id
       `);
     } else {
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(value) AS value, SUM(discount) AS discount
+        SELECT SUM(value) AS value, SUM(discount) AS discount, good_receipt_code.company_id, company.name
         FROM purchase_invoice
         JOIN (
           SELECT SUM(good_receipt.quantity * good_receipt.price * COALESCE(item_unit.conversion, 1)) AS value, good_receipt_code_id
@@ -243,10 +245,12 @@ class PurchaseDocumentModel {
           GROUP BY good_receipt.good_receipt_code_id
         ) goodReceipt
         ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
+        JOIN company ON good_receipt_code.company_id = company.id
         WHERE MONTH(purchase_invoice.date) = ${month}
         AND YEAR(purchase_invoice.date) = ${year}
         AND purchase_invoice.is_confirm = 1
         AND purchase_invoice.is_delete = 0
+        GROUP BY good_receipt_code.company_id
       `);
     }
   }
