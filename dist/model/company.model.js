@@ -276,5 +276,25 @@ class CompanyModel {
             },
         });
     }
+    static fetchAvailable() {
+        return prisma.company.findMany({
+            select: {
+                name: true,
+                code_name: true,
+                address: true,
+                id: true,
+            },
+            where: {
+                good_receipt_code: {
+                    some: {
+                        is_delete: false
+                    },
+                }
+            },
+            orderBy: {
+                name: "asc"
+            }
+        });
+    }
 }
 exports.default = CompanyModel;

@@ -56,6 +56,7 @@ PurchaseDocumentController.update = (req, res) => {
                     quantity: good_receipt_items[idx].quantity,
                     good_receipt_code_id: good_receipt_result.id,
                     price: good_receipt_items[idx].price,
+                    item_unit_id: good_receipt_items[idx].item_unit_id
                 });
             }
             const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
@@ -122,6 +123,7 @@ PurchaseDocumentController.create = (req, res) => {
                         quantity: good_receipt_items[idx].quantity,
                         good_receipt_code_id: good_receipt_result.id,
                         price: good_receipt_items[idx].price,
+                        item_unit_id: good_receipt_items[idx].item_unit_id
                     });
                     if (good_receipt_items[idx].save == true) {
                         const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId);

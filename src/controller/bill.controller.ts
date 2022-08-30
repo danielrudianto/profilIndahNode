@@ -77,9 +77,18 @@ class BillController {
   static fetchCodeById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
     BillCodeModel.fetchCodeById(id).then(result => {
-      return res.status(200);
+      return res.status(200).send(result?.bill_code);
     }).catch(error => {
       LogHelper.log(new Date(), "error", error, "Bill controller - Fetch code by ID", req.body.userId);
+      return res.status(500).send(error);
+    })
+  }
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    BillCodeModel.fetchById(id).then(result => {
+      return res.status(200).send(result);
+    }).catch(error => {
       return res.status(500).send(error);
     })
   }

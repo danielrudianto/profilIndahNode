@@ -8,6 +8,7 @@ const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
+const bill_code_model_2 = __importDefault(require("../model/bill_code.model"));
 const customer_model_1 = __importDefault(require("../model/customer.model"));
 class CustomerController {
 }
@@ -67,7 +68,7 @@ CustomerController.delete = (req, res) => {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id.toString());
-    bill_code_model_1.default.countByCustomerId(id).then((count) => {
+    bill_code_model_2.default.countByCustomerId(id).then((count) => {
         if (count == 0) {
             customer_model_1.default.delete(id, req.body.userId)
                 .then((customer) => {
@@ -114,7 +115,7 @@ CustomerController.fetch = (req, res) => {
     const keyword = !req.query.keyword ? "" : (_a = req.query.keyword) === null || _a === void 0 ? void 0 : _a.toString();
     customer_model_1.default.fetch(keyword, offset, limit)
         .then((result) => {
-        bill_code_model_1.default.countByCustomerIds(result[0].map((x) => {
+        bill_code_model_2.default.countByCustomerIds(result[0].map((x) => {
             return x.id;
         }))
             .then((count) => {
@@ -150,11 +151,27 @@ CustomerController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
     const transaction = new query_transaction_helper_1.default();
     transaction
-        .create([customer_model_1.default.fetchById(id), bill_code_model_1.default.countByCustomerId(id)])
+        .create([customer_model_1.default.fetchById(id), bill_code_model_2.default.countByCustomerId(id)])
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
     })
         .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+CustomerController.fetchDetailById = (req, res) => {
+    const id = parseInt(req.params.id);
+    Promise.all([
+        customer_model_1.default.fetchById(id),
+        bill_code_model_1.default.fetchByCustomerId(id),
+    ])
+        .then(result => {
+        return res.status(200).send({
+            customer: result[0],
+            value: result[1][0].value,
+            count: result[1][0].count,
+        });
+    }).catch(error => {
         return res.status(500).send(error);
     });
 };

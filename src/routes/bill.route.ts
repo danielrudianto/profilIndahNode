@@ -11,5 +11,6 @@ router.get("/archives/:year", BillController.fetchArchive);
 router.get("/archives/:year/:month", BillController.fetchArchive);
 
 router.get("/code/:id", BillController.fetchCodeById);
+router.get("/:id", BillController.fetchById);
 
 export default router;

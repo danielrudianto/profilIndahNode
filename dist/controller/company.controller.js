@@ -153,4 +153,12 @@ CompanyController.fetchById = (req, res) => {
         return res.status(500).send(error);
     });
 };
+CompanyController.fetchAvailable = (req, res) => {
+    company_model_1.default.fetchAvailable().then(result => {
+        return res.status(200).send(result);
+    }).catch(error => {
+        log_helper_1.default.log(new Date(), "error", error, "Company controller - Fetch available", req.body.userId);
+        return res.status(500).send(error);
+    });
+};
 exports.default = CompanyController;

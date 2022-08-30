@@ -45,7 +45,7 @@ class BillCodeModel {
                     date: this.date,
                     is_confirm: this.is_confirm,
                     confirmed_by: this.created_by,
-                    confirmed_at: this.created_at
+                    confirmed_at: this.created_at,
                 },
                 select: {
                     id: true,
@@ -107,7 +107,7 @@ class BillCodeModel {
             where: {
                 date: {
                     lte: new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0),
-                    gte: new Date(date.getFullYear(), date.getMonth() + 1, date.getDate(), 0, 0, 0, 0)
+                    gte: new Date(date.getFullYear(), date.getMonth() + 1, date.getDate(), 0, 0, 0, 0),
                 },
             },
         });
@@ -153,7 +153,7 @@ class BillCodeModel {
     static fetchCodeById(id) {
         return prisma.bill.findUnique({
             where: {
-                id: id
+                id: id,
             },
             select: {
                 bill_code: {
@@ -162,16 +162,16 @@ class BillCodeModel {
                         date: true,
                         user_bill_code_created_byTouser: {
                             select: {
-                                name: true
-                            }
+                                name: true,
+                            },
                         },
                         customer: {
                             select: {
                                 name: true,
                                 address: true,
                                 npwp: true,
-                                pic: true
-                            }
+                                pic: true,
+                            },
                         },
                         bill: {
                             select: {
@@ -181,15 +181,51 @@ class BillCodeModel {
                                         description: true,
                                         item_brand: {
                                             select: {
-                                                name: true
-                                            }
-                                        }
-                                    }
+                                                name: true,
+                                            },
+                                        },
+                                    },
                                 },
                                 quantity: true,
-                                id: true
+                                id: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+    static fetchById(id) {
+        return prisma.bill_code.findUnique({
+            where: {
+                id: id,
+            },
+            select: {
+                name: true,
+                date: true,
+                bill: {
+                    select: {
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                                item_unit: true,
                             }
-                        }
+                        },
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true
+                            }
+                        },
+                        quantity: true,
+                        price: true,
+                        discount: true,
+                    },
+                },
+                user_bill_code_created_byTouser: {
+                    select: {
+                        name: true,
                     }
                 }
             }
@@ -229,8 +265,8 @@ class BillCodeModel {
                 date: true,
                 user_bill_code_created_byTouser: {
                     select: {
-                        name: true
-                    }
+                        name: true,
+                    },
                 },
                 created_at: true,
                 is_delete: true,
@@ -287,7 +323,13 @@ class BillCodeModel {
             GROUP BY bill.bill_code_id
           ) AS a
           ON bill_code.id = a.bill_code_id
-          WHERE bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          WHERE bill_code.date BETWEEN '${start_date
+                    .getFullYear()
+                    .toString()}-${(start_date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")}-01' AND LAST_DAY('${date
+                    .getFullYear()
+                    .toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
           AND bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)) AS bill_a`),
@@ -300,7 +342,15 @@ class BillCodeModel {
             GROUP BY bill.bill_code_id
             ) AS a
           ON bill_code.id = a.bill_code_id
-          WHERE bill_code.date BETWEEN '${start_prev_date.getFullYear().toString()}-${(start_prev_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${prev_date.getFullYear().toString()}-${(prev_date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          WHERE bill_code.date BETWEEN '${start_prev_date
+                    .getFullYear()
+                    .toString()}-${(start_prev_date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")}-01' AND LAST_DAY('${prev_date
+                    .getFullYear()
+                    .toString()}-${(prev_date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")}-01')
           AND bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)) AS bill_a`),
@@ -318,12 +368,106 @@ class BillCodeModel {
           GROUP BY bill.bill_code_id
         ) AS a
         ON bill_code.id = a.bill_code_id
-        WHERE bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${(date.getDate()).toString().padStart(2, "0")}'
+        WHERE bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${start_date
+                .getDate()
+                .toString()
+                .padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
         AND bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
         GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)) AS bill_a`);
         }
     }
-    ;
+    static fetchByCustomerId(customer_id) {
+        if (customer_id == null) {
+            return prisma.$queryRaw `
+        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount) AS value, COUNT(bill_code) AS count
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+          FROM bill
+          GROUP BY bill.bill_code_id
+        ) AS bill_
+        ON bill_code.id = bill_.bill_code_id = bill_code.id
+        WHERE bill_code.customer_id IS NULL
+      `;
+        }
+        else {
+            return prisma.$queryRaw `
+        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount) AS value, COUNT(bill_code) AS count
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+          FROM bill
+          GROUP BY bill.bill_code_id
+        ) AS bill_
+        ON bill_code.id = bill_.bill_code_id = bill_code.id
+        WHERE bill_code.customer_id = ${customer_id}
+      `;
+        }
+    }
+    static fetchSum(month = 0, year, company_id = 0) {
+        if (month == 0) {
+            // Fetch annual sales
+            return prisma.$queryRawUnsafe(`
+        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          FROM bill
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          GROUP BY bill.bill_code_id
+        ) bills
+        ON bill_code.id = bills.bill_code_id
+        AND YEAR(bill_code.date) = ${year}
+        AND bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+      `);
+        }
+        else {
+            // Fetch monthly sales
+            return prisma.$queryRawUnsafe(`
+        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          FROM bill
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          GROUP BY bill.bill_code_id
+        ) bills
+        ON bill_code.id = bills.bill_code_id
+        WHERE MONTH(bill_code.date) = ${month}
+        AND YEAR(bill_code.date) = ${year}
+        AND bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+      `);
+        }
+    }
+    static fetchReception(year, month, date) {
+        return prisma.$queryRawUnsafe(`
+      SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value
+      FROM payment_method
+      LEFT JOIN (
+        SELECT SUM(a.value + delivery - discount) AS value, payment_method_id
+        FROM bill_code
+        JOIN (
+          SELECT SUM((bill.price - bill.discount) * bill.quantity * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          FROM bill
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          GROUP BY bill.bill_code_id
+        ) a
+        ON bill_code.id = a.bill_code_id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.date = '${year}-${(month + 1).toString().padStart(2, "0")}-${(date).toString().padStart(2, "0")}'
+        GROUP BY bill_code.payment_method_id
+      ) pm
+      ON payment_method.id = pm.payment_method_id
+      ORDER BY payment_method.id ASC
+    `);
+    }
 }
 exports.default = BillCodeModel;

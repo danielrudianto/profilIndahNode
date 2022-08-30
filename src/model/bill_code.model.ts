@@ -253,6 +253,43 @@ class BillCodeModel {
       },
     });
   }
+  
+  static fetchById(id: number){
+    return prisma.bill_code.findUnique({
+      where:{
+        id: id,
+      },
+      select: {
+        name: true,
+        date: true,
+        bill: {
+          select: {
+            item: {
+              select: {
+                reference: true,
+                description: true,
+                item_unit: true,
+              }
+            },
+            item_unit: {
+              select: {
+                unit: true,
+                conversion: true
+              }
+            },
+            quantity: true,
+            price: true,
+            discount: true,
+          },
+        },
+        user_bill_code_created_byTouser: {
+          select: {
+            name: true,
+          }
+        }
+      }
+    })
+  }
 
   static fetchArchive(
     year: number,
@@ -486,6 +523,31 @@ class BillCodeModel {
         AND bill_code.is_delete = 0
       `);
     }
+  }
+
+  static fetchReception(year: number, month: number, date: number)
+  {
+    return prisma.$queryRawUnsafe(`
+      SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value
+      FROM payment_method
+      LEFT JOIN (
+        SELECT SUM(a.value + delivery - discount) AS value, payment_method_id
+        FROM bill_code
+        JOIN (
+          SELECT SUM((bill.price - bill.discount) * bill.quantity * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          FROM bill
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          GROUP BY bill.bill_code_id
+        ) a
+        ON bill_code.id = a.bill_code_id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.date = '${year}-${(month + 1).toString().padStart(2, "0")}-${(date).toString().padStart(2, "0")}'
+        GROUP BY bill_code.payment_method_id
+      ) pm
+      ON payment_method.id = pm.payment_method_id
+      ORDER BY payment_method.id ASC
+    `);
   }
 }
 

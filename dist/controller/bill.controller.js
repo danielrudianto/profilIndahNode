@@ -47,9 +47,17 @@ BillController.create = (req, res) => {
 BillController.fetchCodeById = (req, res) => {
     const id = parseInt(req.params.id.toString());
     bill_code_model_1.default.fetchCodeById(id).then(result => {
-        return res.status(200);
+        return res.status(200).send(result === null || result === void 0 ? void 0 : result.bill_code);
     }).catch(error => {
         log_helper_1.default.log(new Date(), "error", error, "Bill controller - Fetch code by ID", req.body.userId);
+        return res.status(500).send(error);
+    });
+};
+BillController.fetchById = (req, res) => {
+    const id = parseInt(req.params.id);
+    bill_code_model_1.default.fetchById(id).then(result => {
+        return res.status(200).send(result);
+    }).catch(error => {
         return res.status(500).send(error);
     });
 };

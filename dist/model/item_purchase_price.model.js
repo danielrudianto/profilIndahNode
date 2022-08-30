@@ -47,12 +47,22 @@ class ItemPurchasePriceModel {
         }));
         return transactions;
     }
-    static getByItemId(id) {
+    static fetchByItemId(id) {
         return prisma.item_price_purchase.findFirst({
             where: {
                 item_id: id,
                 is_delete: false,
             },
+        });
+    }
+    static fetchByItemIds(ids) {
+        return prisma.item_price_purchase.findMany({
+            where: {
+                item_id: {
+                    in: ids
+                },
+                is_delete: false
+            }
         });
     }
     static fetch(keyword, offset, limit) {

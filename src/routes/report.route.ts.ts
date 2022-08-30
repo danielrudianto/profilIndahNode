@@ -9,5 +9,6 @@ router.get("/frequent", ReportController.fetchFrequentItems);
 router.get("/sales/monthly", ReportController.fetchMonthlySalesStats);
 router.get("/sales", ReportController.fetchSalesStats);
 router.get("/salesChart", ReportController.fetchSalesChart);
+router.get("/reception/:year/:month/:date", ReportController.fetchReception);
 
 export default router;

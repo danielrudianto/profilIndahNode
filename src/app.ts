@@ -54,7 +54,7 @@ app.use("/paymentMethod", authMiddleware, paymentMethodRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/bill", authMiddleware, billRoutes);
 
-app.use('/report', authMiddleware, reportRoutes);
+app.use('/report', reportRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, () => {

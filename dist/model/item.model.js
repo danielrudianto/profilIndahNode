@@ -5,7 +5,7 @@ const client_1 = require("@prisma/client");
 const runtime_1 = require("@prisma/client/runtime");
 const prisma = new client_1.PrismaClient();
 class ItemModel {
-    constructor(reference, description, minimum_stock, brand_id, created_by, id = null) {
+    constructor(reference, description, minimum_stock, brand_id, created_by, unit, id = null) {
         if (id != null) {
             this.id = id;
         }
@@ -15,6 +15,7 @@ class ItemModel {
         this.brand_id = brand_id;
         this.created_by = created_by;
         this.created_at = new Date();
+        this.unit = unit;
     }
     create() {
         return prisma.item.create({
@@ -25,6 +26,7 @@ class ItemModel {
                 created_by: this.created_by,
                 created_at: this.created_at,
                 minimum_stock: this.minimum_stock,
+                unit: this.unit,
             },
             select: {
                 id: true,
@@ -133,6 +135,16 @@ class ItemModel {
                         stock: true,
                     },
                 },
+                item_unit: {
+                    select: {
+                        id: true,
+                        unit: true,
+                        conversion: true
+                    },
+                    where: {
+                        is_delete: false
+                    }
+                }
             },
         });
     }
@@ -178,11 +190,21 @@ class ItemModel {
                         name: true,
                     },
                 },
+                item_unit: {
+                    select: {
+                        unit: true,
+                        id: true,
+                        conversion: true,
+                    },
+                    where: {
+                        is_delete: false
+                    }
+                },
                 _count: {
                     select: {
                         bill: true,
                         good_receipt: true,
-                        adjustment_case: true
+                        adjustment_case: true,
                     },
                 },
                 stock: {
@@ -271,6 +293,13 @@ class ItemModel {
                                 stock: true,
                             },
                         },
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                id: true,
+                                conversion: true,
+                            }
+                        }
                     },
                 }),
                 prisma.item.count({
@@ -355,6 +384,13 @@ class ItemModel {
                                 stock: true,
                             },
                         },
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                id: true,
+                                conversion: true,
+                            }
+                        }
                     },
                 }),
                 prisma.item.count({
@@ -378,7 +414,7 @@ class ItemModel {
         }
     }
     static fetchInsufficient(keyword, blocked_brands = [], offset, limit) {
-        const blocked_brand = blocked_brands.map(x => {
+        const blocked_brand = blocked_brands.map((x) => {
             return parseInt(x);
         });
         if (blocked_brand.length > 0) {
@@ -490,10 +526,10 @@ class ItemModel {
             prisma.adjustment_case.count({
                 where: {
                     item_id: {
-                        in: id
-                    }
-                }
-            })
+                        in: id,
+                    },
+                },
+            }),
         ]);
     }
     static delete(id, deleted_by) {
@@ -594,7 +630,11 @@ class ItemModel {
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
-          AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
+          AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")}-01' AND LAST_DAY('${date
+                    .getFullYear()
+                    .toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-01')
           GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`),
                 prisma.$queryRawUnsafe(`
           SELECT 
@@ -604,8 +644,16 @@ class ItemModel {
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
-          AND bill_code.date BETWEEN '${start_prev_date.getFullYear().toString()}-${(start_prev_date.getMonth() + 1).toString().padStart(2, "0")}-01' AND LAST_DAY('${prev_date.getFullYear().toString()}-${(prev_date.getMonth() + 1).toString().padStart(2, "0")}-01')
-          GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`)
+          AND bill_code.date BETWEEN '${start_prev_date
+                    .getFullYear()
+                    .toString()}-${(start_prev_date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")}-01' AND LAST_DAY('${prev_date
+                    .getFullYear()
+                    .toString()}-${(prev_date.getMonth() + 1)
+                    .toString()
+                    .padStart(2, "0")}-01')
+          GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)`),
             ]);
         }
         else {
@@ -618,7 +666,14 @@ class ItemModel {
         JOIN bill_code ON bill.bill_code_id = bill_code.id
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
-        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        AND bill_code.date BETWEEN '${start_date.getFullYear().toString()}-${(start_date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${start_date
+                .getDate()
+                .toString()
+                .padStart(2, "0")}' AND '${date.getFullYear().toString()}-${(date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
         GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)`);
         }
     }
@@ -680,7 +735,9 @@ class ItemModel {
                     stock: true,
                     bill_id: true,
                     adjustment_case_id: true,
-                    good_receipt_id: true
+                    good_receipt_id: true,
+                    unit: true,
+                    conversion: true,
                 },
                 orderBy: {
                     date: "desc",
@@ -746,7 +803,108 @@ class ItemModel {
         ) adjustmentTable
         ON stock_card.adjustment_case_id = adjustmentTable.id
         WHERE stock_card.item_id = ${item_id}
-        AND stock_card.date BETWEEN '${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${(start_date.getDate()).toString().padStart(2, "0")}' AND '${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${(end_date.getDate()).toString().padStart(2, "0")}';`);
+        AND stock_card.date BETWEEN '${start_date.getFullYear()}-${(start_date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${start_date
+                .getDate()
+                .toString()
+                .padStart(2, "0")}' AND '${end_date.getFullYear()}-${(end_date.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${end_date
+                .getDate()
+                .toString()
+                .padStart(2, "0")}';`);
+        }
+    }
+    static fetchFrequentItems(monthly) {
+        const date = new Date();
+        if (monthly) {
+            return prisma.$queryRaw `
+        SELECT billCount.quantity, item.reference, item.description, item.unit
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `;
+        }
+        else {
+            return prisma.$queryRaw `
+        SELECT billCount.quantity, item.reference, item.description, item.unit
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1} AND DAY(bill_code.date) = ${date.getDate()}
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `;
+        }
+    }
+    static fetchFrequentItemsByCustomerId(customer_id) {
+        if (customer_id == null) {
+            return prisma.$queryRaw `
+        SELECT billCount.quantity, item.reference, item.description
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.customer_id = ${customer_id}
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `;
+        }
+        else {
+            return prisma.$queryRaw `
+        SELECT billCount.quantity, item.reference, item.description
+        FROM item
+        LEFT JOIN (
+          SELECT SUM(bill.quantity) AS quantity, bill.item_id
+          FROM bill
+          JOIN bill_code
+          ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND bill_code.customer_id IS NULL
+          GROUP BY bill.item_id
+        ) billCount
+        ON item.id = billCount.item_id
+        WHERE billCount.quantity > 0
+        ORDER BY billCount.quantity DESC, item.reference ASC
+        LIMIT 10
+        OFFSET 0
+      `;
         }
     }
 }

@@ -28,11 +28,11 @@ AuthController.login = (req, res) => {
             if (!result) {
                 return res.status(401).send("Username / kata sandi salah.");
             }
-            const expired = new Date().getTime() + 60 * 60 * 6 * 1000;
+            const expired = (new Date()).getTime() + 60 * 60 * 12 * 1000;
             const jwtToken = (0, jsonwebtoken_1.sign)({
                 id: user.id,
             }, process.env.TOKEN_KEY.toString(), {
-                expiresIn: "6h",
+                expiresIn: "12h",
             });
             const userObject = {
                 id: user.id,

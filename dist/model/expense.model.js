@@ -120,5 +120,28 @@ class ExpenseModel {
             },
         });
     }
+    static fetchSum(month, year) {
+        if (month == 0) {
+            return prisma.$queryRawUnsafe(`
+        SELECT SUM(expense.value) AS value, expense_type.id, expense_type.name, expense_type.parent_id
+        FROM expense_type
+        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        WHERE YEAR(expense.date) = ${year}
+        AND expense.is_delete = 0
+        GROUP BY expense_type.id
+      `);
+        }
+        else {
+            return prisma.$queryRawUnsafe(`
+        SELECT SUM(expense.value) AS value, expense_type_id, expense_type.name, expense_type.parent_id
+        FROM expense_type
+        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        WHERE MONTH(expense.date) = ${month}
+        AND YEAR(expense.date) = ${year}
+        AND expense.is_delete = 0
+        GROUP BY expense_type.id
+      `);
+        }
+    }
 }
 exports.default = ExpenseModel;
