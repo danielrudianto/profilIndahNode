@@ -11,8 +11,21 @@ router.post("/", ItemController.create);
 router.put("/unit", ItemController.updateUnit);
 router.put("/", ItemController.update);
 
+router.get(
+  "/dailyStock/:reference",
+  query("start").not().isEmpty().withMessage("Mohon isikan tanggal"),
+  query("end").not().isEmpty().withMessage("Mohon isikan tanggal"),
+  ItemController.fetchDailyStock
+);
 router.get("/insufficient", ItemController.fetchInsufficient);
-router.get("/stock", query("reference").not().isEmpty().withMessage("Referensi barang wajib diisikan."), ItemController.fetchStock);
+router.get(
+  "/stock",
+  query("reference")
+    .not()
+    .isEmpty()
+    .withMessage("Referensi barang wajib diisikan."),
+  ItemController.fetchStock
+);
 router.get("/units/:reference", ItemController.fetchUnits);
 router.get("/:reference", ItemController.fetchByReference);
 router.get("/", ItemController.fetch);

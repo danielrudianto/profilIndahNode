@@ -19,6 +19,7 @@ export class ItemModel {
     description: string,
     minimum_stock: number,
     brand_id: number,
+    type_id: number,
     created_by: number,
     unit: string,
     id: number | null = null
@@ -121,6 +122,8 @@ export class ItemModel {
         reference: true,
         description: true,
         is_delete: true,
+        item_brand_id: true,
+        item_type_id: true,
         item_brand: {
           select: {
             name: true,
@@ -192,6 +195,11 @@ export class ItemModel {
             name: true,
           },
         },
+        item_type: {
+          select: {
+            name: true,
+          }
+        }
       },
     });
   }
@@ -212,6 +220,11 @@ export class ItemModel {
           select: {
             name: true,
           },
+        },
+        item_type: {
+          select: {
+            name: true
+          }
         },
         item_unit: {
           select: {
@@ -276,6 +289,11 @@ export class ItemModel {
               select: {
                 name: true,
               },
+            },
+            item_type: {
+              select: {
+                name: true
+              }
             },
             item_price_purchase: {
               select: {
@@ -366,6 +384,11 @@ export class ItemModel {
               select: {
                 name: true,
               },
+            },
+            item_type: {
+              select: {
+                name: true
+              }
             },
             item_price_purchase: {
               select: {
@@ -845,9 +868,6 @@ export class ItemModel {
         ON stock_card.adjustment_case_id = adjustmentTable.id
         WHERE stock_card.item_id = ${item_id}`);
     } else {
-      const start_date = new Date(start);
-      const end_date = new Date(end);
-
       return prisma.$queryRawUnsafe(
         `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock
         FROM stock_card
@@ -870,21 +890,7 @@ export class ItemModel {
         ) adjustmentTable
         ON stock_card.adjustment_case_id = adjustmentTable.id
         WHERE stock_card.item_id = ${item_id}
-        AND stock_card.date BETWEEN '${start_date.getFullYear()}-${(
-          start_date.getMonth() + 1
-        )
-          .toString()
-          .padStart(2, "0")}-${start_date
-          .getDate()
-          .toString()
-          .padStart(2, "0")}' AND '${end_date.getFullYear()}-${(
-          end_date.getMonth() + 1
-        )
-          .toString()
-          .padStart(2, "0")}-${end_date
-          .getDate()
-          .toString()
-          .padStart(2, "0")}';`
+        AND stock_card.date BETWEEN '${start}' AND '${end}';`
       );
     }
   }

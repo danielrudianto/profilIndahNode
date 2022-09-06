@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 const router = Router();
 
 router.get("/autocomplete", SupplierController.getAutocomplete);
+router.get("/:id", SupplierController.fetchById);
 router.get("/", SupplierController.getItems);
 router.post(
   "/",

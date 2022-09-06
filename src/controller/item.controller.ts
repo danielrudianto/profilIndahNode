@@ -16,6 +16,7 @@ class ItemController {
     const reference = req.body.reference;
     const description = req.body.description;
     const brand_id = req.body.brand;
+    const type_id = req.body.type;
     const minimum_stock = req.body.minimum_stock;
     const user_id = req.body.userId;
     const unit = req.body.unit;
@@ -34,6 +35,7 @@ class ItemController {
           description,
           minimum_stock,
           brand_id,
+          type_id,
           user_id,
           unit
         );
@@ -229,70 +231,64 @@ class ItemController {
     const id = req.body.id;
     const reference = req.body.reference;
     const description = req.body.description;
-    const brand_name = req.body.brand;
+    const brand = parseInt(req.body.brand.toString());
+    const type= parseInt(req.body.type.toString());
     const minimum_stock = req.body.minimum_stock;
 
-    BrandModel.fetchByName(brand_name)
-      .then((brand) => {
-        if (brand == null || brand.is_delete) {
-          return res.status(400).send("Merek tidak ditemukan.");
-        } else {
-          ItemModel.fetchById(id, new Date())
-            .then((item) => {
-              if (item == null || item.is_delete) {
-                return res.status(404).send("Barang tidak ditemukan.");
-              } else {
-                const item_model = new ItemModel(
-                  reference,
-                  description,
-                  minimum_stock,
-                  brand!.id,
-                  req.body.userId,
-                  id
-                );
-                item_model
-                  .update()
-                  .then((result) => {
-                    LogHelper.log(
-                      new Date(),
-                      "info",
-                      `${result.user_item_updated_byTouser?.name} updated item with reference ${result.reference} (ID: ${result.id})`,
-                      `Item - Update`,
-                      req.body.userId
-                    );
+    ItemModel.fetchById(id, new Date())
+    .then((item) => {
+      if (item == null || item.is_delete) {
+        return res.status(404).send("Barang tidak ditemukan.");
+      } else {
+        const item_model = new ItemModel(
+          reference,
+          description,
+          minimum_stock,
+          brand,
+          type,
+          req.body.userId,
+          id
+        );
 
-                    const socket = new SocketHelper("updateItem", result);
-                    socket.create();
+        console.log(item_model);
+        item_model
+          .update()
+          .then((result) => {
+            LogHelper.log(
+              new Date(),
+              "info",
+              `${result.user_item_updated_byTouser?.name} updated item with reference ${result.reference} (ID: ${result.id})`,
+              `Item - Update`,
+              req.body.userId
+            );
 
-                    return res.status(200).send(result);
-                  })
-                  .catch((error) => {
-                    LogHelper.log(
-                      new Date(),
-                      "error",
-                      `${error}`,
-                      `Item - Update`,
-                      req.body.userId
-                    );
+            const socket = new SocketHelper("updateItem", result);
+            socket.create();
 
-                    return res.status(500).send(error);
-                  });
-              }
-            })
-            .catch((error) => {
-              LogHelper.log(
-                new Date(),
-                "error",
-                `${error}`,
-                `Item - Update`,
-                req.body.userId
-              );
-            });
-        }
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            LogHelper.log(
+              new Date(),
+              "error",
+              `${error}`,
+              `Item - Update`,
+              req.body.userId
+            );
+
+            return res.status(500).send(error);
+          });
+      }
+    })
+    .catch((error) => {
+      LogHelper.log(
+        new Date(),
+        "error",
+        `${error}`,
+        `Item - Update`,
+        req.body.userId
+      );
+    });
   };
 
   static fetch = (req: Request, res: Response) => {
@@ -570,6 +566,31 @@ class ItemController {
 
       return res.status(500).send(error);
     })
+  }
+
+  static fetchDailyStock = (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (errors.array().length > 0) {
+      return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+
+    const reference = req.params.reference;
+    const start = req.query.start?.toString();
+
+    ItemModel.fetchByReference(reference)
+      .then((item) => {
+        if (item == null) {
+          return res.status(404).send("Barang tidak ditemukan.");
+        } else {
+          ItemModel.fetchStockData(item.id, start, start).then((result) => {
+            return res.status(200).send(result);
+          }).catch(error => {
+            return res.status(500).send(error);
+          })
+        }
+      }).catch(error => {
+        return res.status(500).send(error);
+      })
   }
 }
 

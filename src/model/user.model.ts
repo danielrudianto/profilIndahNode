@@ -21,7 +21,7 @@ class UserModel {
     {
       id: 2,
       name: "Penjualan",
-      available: false,
+      available: true,
     },
     {
       id: 3,
