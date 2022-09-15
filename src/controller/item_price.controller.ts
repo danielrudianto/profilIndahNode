@@ -3,7 +3,8 @@ import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { ItemModel } from "../model/item.model";
 import ItemPriceModel from "../model/item_price.model";
 import SocketHelper from "../helper/socket.helper";
-import ExcelJS from 'exceljs';
+import ExcelJS from "exceljs";
+import UserModel from "../model/user.model";
 
 class ItemPriceController {
   static createBulk = (req: Request, res: Response) => {
@@ -212,28 +213,87 @@ class ItemPriceController {
       });
   };
 
-  static getXlsx = async(req: Request, res: Response) => {
-    const brand_id = req.body.brand_id as number[];
-    const type_id = req.body.type_id as number[];
+  static getXlsx = async (req: Request, res: Response) => {
+    UserModel.fetchById(req.body.userId).then((user) => {
+      if (user == null) {
+        return res.status(401).send("Pengguna tidak ditemukan.");
+      } else {
+        const brand_id = req.body.brand_id as number[];
+        const type_id = req.body.type_id as number[];
 
-    const workbook = new ExcelJS.Workbook();
-    const sheet = workbook.addWorksheet('Sheet 1');
-    sheet.columns = [
-      { header: 'Id', key: 'id', width: 0 },
-      { header: 'Reference', key: 'reference' },
-      { header: 'Description', key: 'description' }
-    ];
-    sheet.addRow({
-      id: 1,
-      reference: "ABC",
+        const rows:any[] = [];
+        ItemModel.fetchItemByBrandType(brand_id, type_id).then(items => {
+          items.forEach(x => {
+            rows.push([
+              x.id,
+              x.item.reference,
+              x.item.description,
+              (x.item_unit == null) ? x.item.unit : x.item_unit.unit,
+              (x.item_unit == null) ? 1 : x.item_unit.conversion,
+              x.item.unit,
+              x.price,
+              x.discount
+            ])
+          })
+        })
+
+        const workbook = new ExcelJS.Workbook();
+        // Setting up workbook properties
+        workbook.creator = "Toko Profil Indah";
+        workbook.lastModifiedBy = user?.name;
+        workbook.created = new Date();
+
+        const sheet = workbook.addWorksheet("Perubahan Harga Jual");
+        sheet.state = "visible";
+        sheet.addTable({
+          name: "Tabel harga",
+          ref: "A1",
+          headerRow: true,
+          totalsRow: false,
+          style: {
+            theme: "TableStyleLight1",
+            showRowStripes: true,
+            showFirstColumn: true
+          },
+          columns: [
+            {
+              name: "id",
+            },
+            {
+              name: "referensi",
+            },
+            {
+              name: "deskripsi",
+            },
+            {
+              name: "satuan",
+            },
+            {
+              name: "konversi",
+            },
+            {
+              name: "satuan dasar",
+            },
+            {
+              name: "harga",
+            },
+            {
+              name:"potongan harga",
+            }
+          ],
+          rows: rows
+        })
+
+        workbook.xlsx.writeBuffer().then((buffer) => {
+          return res.status(200).send({
+            data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+              buffer
+            ).toString("base64")}`,
+          });
+        });
+      }
     });
-
-    workbook.xlsx.writeBuffer().then(buffer => {
-      return res.status(200).send({
-        data: Buffer([buffer]).toString('base64')
-      });
-    })
-  }
+  };
 }
 
 export default ItemPriceController;
