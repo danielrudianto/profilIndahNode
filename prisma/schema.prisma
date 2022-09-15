@@ -292,6 +292,7 @@ model item {
   item_type_id               Int?
   item_brand_id              Int
   unit                       String                   @db.VarChar(45)
+  is_active                  Boolean                  @default(true)
   user                       user                     @relation("item_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
   user_item_deleted_byTouser user?                    @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
   item_brand                 item_brand               @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
@@ -307,7 +308,6 @@ model item {
   stock                      stock?
   stock_calculate            stock_calculate[]
   stock_out_distribution     stock_out_distribution[]
-
   @@index([reference, description], map: "item_fulltext")
   @@index([created_by], map: "item_ibfk_1_idx")
   @@index([deleted_by], map: "item_ibfk_2_idx")
@@ -338,20 +338,22 @@ model item_brand {
 }
 
 model item_price {
-  id                               Int       @id @default(autoincrement())
-  item_id                          Int
-  price                            Decimal   @db.Decimal(50, 4)
-  discount                         Decimal   @db.Decimal(50, 4)
-  discount_project                 Decimal   @db.Decimal(50, 4)
-  effective_date                   DateTime  @db.Date
-  created_by                       Int
-  created_at                       DateTime  @default(now()) @db.DateTime(0)
-  is_delete                        Boolean   @default(false)
-  deleted_by                       Int?
-  deleted_at                       DateTime? @db.DateTime(0)
-  user                             user      @relation("item_price_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_2")
-  user_item_price_deleted_byTouser user?     @relation("item_price_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_3")
-  item                             item      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
+  id             Int       @id @default(autoincrement())
+  item_id        Int
+  price          Decimal   @db.Decimal(50, 4)
+  discount       Decimal   @db.Decimal(50, 4)
+  effective_date DateTime  @db.Date
+  created_by     Int
+  created_at     DateTime  @default(now()) @db.DateTime(0)
+  is_delete      Boolean   @default(false)
+  deleted_by     Int?
+  deleted_at     DateTime? @db.DateTime(0)
+  item_unit_id   Int?
+
+  user                             user       @relation("item_price_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_2")
+  user_item_price_deleted_byTouser user?      @relation("item_price_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_3")
+  item                             item       @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_1")
+  item_unit                        item_unit? @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_ibfk_4")
 
   @@index([item_id], map: "item_price_ibfk_1_idx")
   @@index([created_by], map: "item_price_ibfk_2_idx")
@@ -359,17 +361,20 @@ model item_price {
 }
 
 model item_price_purchase {
-  id                                        Int       @id @default(autoincrement())
-  item_id                                   Int
-  price                                     Decimal   @db.Decimal(50, 4)
-  created_by                                Int
-  created_at                                DateTime  @default(now()) @db.DateTime(0)
-  is_delete                                 Boolean   @default(false)
-  deleted_by                                Int?
-  deleted_at                                DateTime? @db.DateTime(0)
-  user                                      user      @relation("item_price_purchase_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_purchase_ibfk_2")
-  user_item_price_purchase_deleted_byTouser user?     @relation("item_price_purchase_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_purchase_ibfk_3")
-  item                                      item      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_purchase_ibfk_1")
+  id           Int       @id @default(autoincrement())
+  item_id      Int
+  price        Decimal   @db.Decimal(50, 4)
+  created_by   Int
+  created_at   DateTime  @default(now()) @db.DateTime(0)
+  is_delete    Boolean   @default(false)
+  deleted_by   Int?
+  deleted_at   DateTime? @db.DateTime(0)
+  item_unit_id Int?
+
+  user                                      user       @relation("item_price_purchase_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_purchase_ibfk_2")
+  user_item_price_purchase_deleted_byTouser user?      @relation("item_price_purchase_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_purchase_ibfk_3")
+  item                                      item       @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_price_purchase_ibfk_1")
+  item_unit                                 item_unit? @relation(fields: [item_unit_id], references: [id])
 
   @@index([item_id], map: "item_price_purchase_ibfk_1")
   @@index([created_by], map: "item_price_purchase_ibfk_2")
@@ -451,7 +456,6 @@ model adjustment_case {
   stock_calculate         stock_calculate[]
   stock_out_distribution  stock_out_distribution[]
 
-
   @@index([adjustment_case_code_id], map: "adjustment_case_ibfk_1_idx")
   @@index([item_unit_id], map: "adjustment_case_ibfk_3_idx")
   @@index([item_id], map: "item_id")
@@ -479,22 +483,23 @@ model adjustment_case_code {
 }
 
 model item_unit {
-  id                              Int               @id @default(autoincrement())
+  id                              Int                   @id @default(autoincrement())
   item_id                         Int
-  unit                            String            @db.VarChar(45)
-  conversion                      Decimal           @db.Decimal(12, 2)
+  unit                            String                @db.VarChar(45)
+  conversion                      Decimal               @db.Decimal(12, 2)
   created_by                      Int
-  created_at                      DateTime          @default(now()) @db.DateTime(0)
-  is_delete                       Boolean           @default(false)
-  deleted_at                      DateTime?         @db.DateTime(0)
+  created_at                      DateTime              @default(now()) @db.DateTime(0)
+  is_delete                       Boolean               @default(false)
+  deleted_at                      DateTime?             @db.DateTime(0)
   deleted_by                      Int?
-  user                            user              @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_2")
-  user_item_unit_deleted_byTouser user?             @relation("item_unit_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_3")
-  item                            item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_1")
+  item_price                      item_price[]
+  item_price_purchase             item_price_purchase[]
+  user                            user                  @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_2")
+  user_item_unit_deleted_byTouser user?                 @relation("item_unit_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_3")
+  item                            item                  @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_unit_ibfk_1")
   adjustment_case                 adjustment_case[]
   bill                            bill[]
   good_receipt                    good_receipt[]
-
   @@index([item_id], map: "item_id")
   @@index([deleted_by], map: "deleted_by")
   @@index([created_by], map: "item_unit_ibfk_2")

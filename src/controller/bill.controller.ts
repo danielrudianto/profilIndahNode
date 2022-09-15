@@ -34,7 +34,11 @@ class BillController {
         BillModel.create(
           bill.map((x) => {
             return {
-              ...x,
+              item_id: x.item_id,
+              item_unit_id: x.item_unit_id,
+              price: x.price,
+              discount: x.discount,
+              quantity: x.quantity,
               bill_code_id: result.id,
             };
           })

@@ -8,6 +8,7 @@ export class ItemModel {
   reference: string;
   description: string;
   brand_id: number;
+  type_id: number;
   brand?: string;
   minimum_stock: number;
   created_by: number;
@@ -32,6 +33,7 @@ export class ItemModel {
     this.description = description;
     this.minimum_stock = minimum_stock;
     this.brand_id = brand_id;
+    this.type_id = type_id;
     this.created_by = created_by;
     this.created_at = new Date();
     this.unit = unit;
@@ -43,6 +45,7 @@ export class ItemModel {
         reference: this.reference,
         description: this.description,
         item_brand_id: this.brand_id,
+        item_type_id: this.type_id,
         created_by: this.created_by,
         created_at: this.created_at,
         minimum_stock: this.minimum_stock,
@@ -53,6 +56,12 @@ export class ItemModel {
         reference: true,
         description: true,
         item_brand: {
+          select: {
+            name: true,
+          },
+        },
+        item_type_id: true,
+        item_type: {
           select: {
             name: true,
           },
@@ -79,6 +88,7 @@ export class ItemModel {
         reference: this.reference,
         description: this.description,
         item_brand_id: this.brand_id,
+        item_type_id: this.type_id,
         updated_by: this.created_by,
         updated_at: this.created_at,
         minimum_stock: this.minimum_stock,
@@ -133,7 +143,6 @@ export class ItemModel {
           select: {
             price: true,
             discount: true,
-            discount_project: true,
             created_at: true,
             effective_date: true,
           },
@@ -163,12 +172,12 @@ export class ItemModel {
           select: {
             id: true,
             unit: true,
-            conversion: true
+            conversion: true,
           },
           where: {
-            is_delete: false
-          }
-        }
+            is_delete: false,
+          },
+        },
       },
     });
   }
@@ -198,8 +207,8 @@ export class ItemModel {
         item_type: {
           select: {
             name: true,
-          }
-        }
+          },
+        },
       },
     });
   }
@@ -223,8 +232,8 @@ export class ItemModel {
         },
         item_type: {
           select: {
-            name: true
-          }
+            name: true,
+          },
         },
         item_unit: {
           select: {
@@ -233,8 +242,8 @@ export class ItemModel {
             conversion: true,
           },
           where: {
-            is_delete: false
-          }
+            is_delete: false,
+          },
         },
         _count: {
           select: {
@@ -267,13 +276,86 @@ export class ItemModel {
     });
   }
 
-  static fetch(keyword: string, date: Date, offset: number, limit: number) {
+  static fetchSearch(
+    keyword: string,
+    offset: number,
+    limit: number
+  ) {
+    let mysql_length_string = "";
+    let mysql_where_string = "WHERE ";
+    keyword.split(" ").forEach((x, index) => {
+      if(index > 0){
+        mysql_length_string += "+";
+        mysql_where_string += "OR";
+      }
+      
+      mysql_length_string += `(3 * LENGTH(items.reference) - LENGTH(REPLACE(UPPER(items.reference), UPPER("${x.replace("'", '').replace('"', '')}"), '')))) +  (2 * (LENGTH(items.description) - LENGTH(REPLACE(UPPER(items.description), UPPER("${x.replace("'", '').replace('"', '')}"), '')))) + (LENGTH(items.unit) - LENGTH(REPLACE(UPPER(items.unit), UPPER("${x.replace("'", '').replace('"', '')}"), ''))) + (LENGTH(items.type_name) - LENGTH(REPLACE(UPPER(items.type_name), UPPER("${x.replace("'", '').replace('"', '')}"), ''))) + (LENGTH(items.brand_name) - LENGTH(REPLACE(UPPER(items.brand_name), UPPER("${x.replace("'", '').replace('"', '')}"), ''))`;
+
+      mysql_where_string += `
+        reference LIKE "%${x.replace("'", '').replace('"', '')}%"
+        OR description LIKE "%${x.replace("'", '').replace('"', '')}%"
+        OR unit LIKE "%${x.replace("'", '').replace('"', '')}%"
+        OR type_name LIKE "%${x.replace("'", '').replace('"', '')}%"
+        OR brand_name LIKE "%${x.replace("'", '').replace('"', '')}%"
+      `;
+    });
+
+    let mysql_string = `
+      SELECT DISTINCT(items.id) AS id, 
+      (${mysql_length_string}) AS count
+      FROM (
+        SELECT 
+		    item.id AS id, item_unit.id AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item_unit.unit COLLATE utf8mb4_0900_ai_ci AS unit
+	      FROM item_unit
+        JOIN item ON item_unit.item_id = item.id
+        JOIN item_type ON item.item_type_id = item_type.id
+        JOIN item_brand ON item.item_brand_id = item_brand.id
+        UNION ALL SELECT item.id AS id, NULL AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item.unit COLLATE utf8mb4_0900_ai_ci AS unit
+        FROM item
+        JOIN item_type ON item.item_type_id = item_type.id
+        JOIN item_brand ON item.item_brand_id = item_brand.id
+        WHERE item.is_active = 1
+        AND item.is_delete = 0
+      ) AS items
+      ${mysql_where_string}
+      ORDER BY count DESC, reference ASC
+      LIMIT ${limit} OFFSET ${offset};`;
+
+      const mysql_count_string = `
+      SELECT DISTINCT(items.id) AS id, 
+      (${mysql_length_string}) AS count
+      FROM (
+        SELECT 
+		    item.id AS id, item_unit.id AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item_unit.unit COLLATE utf8mb4_0900_ai_ci AS unit
+	      FROM item_unit
+        JOIN item ON item_unit.item_id = item.id
+        JOIN item_type ON item.item_type_id = item_type.id
+        JOIN item_brand ON item.item_brand_id = item_brand.id
+        UNION ALL SELECT item.id AS id, NULL AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item.unit COLLATE utf8mb4_0900_ai_ci AS unit
+        FROM item
+        JOIN item_type ON item.item_type_id = item_type.id
+        JOIN item_brand ON item.item_brand_id = item_brand.id
+        WHERE item.is_active = 1
+        AND item.is_delete = 0
+      ) AS items
+      ${mysql_where_string}`;
+    
+    return prisma.$transaction([
+      prisma.$queryRawUnsafe(mysql_string),
+      prisma.$queryRawUnsafe(mysql_count_string)
+    ]);
+  }
+
+  static fetch(
+    keyword: string,
+    date: Date,
+    offset: number,
+    limit: number,
+    is_active: boolean = true
+  ) {
     if (keyword == "") {
       return prisma.$transaction([
         prisma.item.findMany({
-          where: {
-            is_delete: false,
-          },
           orderBy: {
             reference: "asc",
           },
@@ -292,8 +374,8 @@ export class ItemModel {
             },
             item_type: {
               select: {
-                name: true
-              }
+                name: true,
+              },
             },
             item_price_purchase: {
               select: {
@@ -310,9 +392,15 @@ export class ItemModel {
             },
             item_price: {
               select: {
+                id: true,
                 price: true,
                 discount: true,
-                discount_project: true,
+                item_unit: {
+                  select: {
+                    unit: true,
+                    conversion: true,
+                  },
+                },
               },
               where: {
                 effective_date: {
@@ -336,41 +424,82 @@ export class ItemModel {
                 stock: true,
               },
             },
-            item_unit: {
-              select: {
-                unit: true,
-                id: true,
-                conversion: true,
-              }
-            }
           },
+          where:{
+            is_delete: false,
+            OR: [
+              {
+                is_active: true,
+              },
+              {
+                is_active: is_active
+              },
+            ]
+          }
         }),
         prisma.item.count({
           where: {
             is_delete: false,
-          },
+            OR: [
+              {
+                is_active: true,
+              },
+              {
+                is_active: is_active
+              },
+            ]
+          }
         }),
       ]);
     } else {
       return prisma.$transaction([
         prisma.item.findMany({
+          orderBy: {
+            reference: "asc",
+          },
           where: {
             is_delete: false,
             OR: [
               {
+                is_active: true,
+              },
+              {
+                is_active: is_active,
+              },
+              {
                 reference: {
-                  contains: keyword,
-                },
+                  search: keyword
+                }
               },
               {
                 description: {
-                  contains: keyword,
-                },
+                  search: keyword
+                }
               },
+              {
+                item_brand: {
+                  name: {
+                    search: keyword
+                  }
+                }
+              },
+              {
+                item_type: {
+                  name: {
+                    search: keyword
+                  }
+                }
+              },
+              {
+                item_unit: {
+                  some: {
+                    unit: {
+                      search: keyword
+                    }
+                  }
+                }
+              }
             ],
-          },
-          orderBy: {
-            reference: "asc",
           },
           skip: offset,
           take: limit,
@@ -387,8 +516,8 @@ export class ItemModel {
             },
             item_type: {
               select: {
-                name: true
-              }
+                name: true,
+              },
             },
             item_price_purchase: {
               select: {
@@ -405,9 +534,15 @@ export class ItemModel {
             },
             item_price: {
               select: {
+                id: true,
                 price: true,
                 discount: true,
-                discount_project: true,
+                item_unit: {
+                  select: {
+                    unit: true,
+                    conversion: true,
+                  },
+                },
               },
               where: {
                 effective_date: {
@@ -431,13 +566,6 @@ export class ItemModel {
                 stock: true,
               },
             },
-            item_unit: {
-              select: {
-                unit: true,
-                id: true,
-                conversion: true,
-              }
-            }
           },
         }),
         prisma.item.count({
@@ -445,15 +573,44 @@ export class ItemModel {
             is_delete: false,
             OR: [
               {
+                is_active: true,
+              },
+              {
+                is_active: is_active
+              },
+              {
                 reference: {
-                  contains: keyword,
-                },
+                  search: keyword
+                }
               },
               {
                 description: {
-                  contains: keyword,
-                },
+                  search: keyword
+                }
               },
+              {
+                item_brand: {
+                  name: {
+                    search: keyword
+                  }
+                }
+              },
+              {
+                item_type: {
+                  name: {
+                    search: keyword
+                  }
+                }
+              },
+              {
+                item_unit: {
+                  some: {
+                    unit: {
+                      search: keyword
+                    }
+                  }
+                }
+              }
             ],
           },
         }),
@@ -524,7 +681,12 @@ export class ItemModel {
           select: {
             price: true,
             discount: true,
-            discount_project: true,
+            item_unit: {
+              select: {
+                unit: true,
+                conversion: true,
+              },
+            },
           },
           where: {
             is_delete: false,
@@ -988,5 +1150,71 @@ export class ItemModel {
         OFFSET 0
       `;
     }
+  }
+
+  static fetchSearchByIds(ids: number[]){
+    return prisma.item.findMany({
+      where:{
+        id: {
+          in: ids
+        },
+        is_active: true,
+        is_delete: false,
+      },
+      select: {
+        id: true,
+        reference: true,
+        description: true,
+        unit: true,
+        item_brand: {
+          select: {
+            name: true,
+          }
+        },
+        item_type: {
+          select: {
+            name: true,
+          }
+        },
+        item_price: {
+          select: {
+            id: true,
+            price: true,
+            discount: true,
+            item_unit: {
+              select: {
+                id: true,
+                unit: true,
+                conversion: true,
+              }
+            }
+          },
+          where: {
+            is_delete: false,
+          },
+          orderBy: [
+            {
+              item_unit_id: "asc"
+            },
+            {
+              item_unit: {
+                conversion: "asc"
+              }
+            }
+          ]
+        }
+      }
+    })
+  }
+
+  static toggleActive(item_id: number, status: boolean){
+    return prisma.item.update({
+      where:{
+        id: item_id
+      },
+      data: {
+        is_active: status
+      }
+    })
   }
 }

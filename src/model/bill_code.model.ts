@@ -268,7 +268,7 @@ class BillCodeModel {
               select: {
                 reference: true,
                 description: true,
-                item_unit: true,
+                unit: true,
               }
             },
             item_unit: {

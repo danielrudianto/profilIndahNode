@@ -160,6 +160,26 @@ class ItemTypeModel {
       })
     }
   }
+
+  static fetchByBrandIds(ids: number[]){
+    return prisma.item_type.findMany({
+      where:{
+        item: {
+          some: {
+            item_brand_id: {
+              in: ids
+            },
+            is_active: true,
+            is_delete: false,
+          }
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+      }
+    })
+  }
 }
 
 export default ItemTypeModel;

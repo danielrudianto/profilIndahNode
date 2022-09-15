@@ -1,7 +1,7 @@
 import { compare, hash, hashSync } from "bcrypt";
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import { sign } from "jsonwebtoken";
+import { sign, verify } from "jsonwebtoken";
 import LogHelper from "../helper/log.helper";
 import UserModel from "../model/user.model";
 import UserTokenModel from "../model/user_token.model";
@@ -35,16 +35,25 @@ class AuthController {
             return res.status(401).send("Username / kata sandi salah.");
           }
 
-          const expired = (new Date()).getTime() + 60 * 60 * 12 * 1000;
           const jwtToken = sign(
             {
               id: user.id,
             },
             process.env.TOKEN_KEY!.toString(),
             {
-              expiresIn: "12h",
+              expiresIn: process.env.EXPIRATION,
             }
           );
+
+          const refreshToken = sign(
+            {
+              id: user.id
+            },
+            process.env.REFRESH_TOKEN_KEY!.toString(),
+            {
+              expiresIn: process.env.REFRESH_EXPIRATION
+            }
+          )
 
           const userObject = {
             id: user.id,
@@ -55,7 +64,7 @@ class AuthController {
           const response = {
             user: userObject,
             token: jwtToken,
-            expire: expired,
+            refreshToken: refreshToken,
           };
 
           LogHelper.log(
@@ -237,6 +246,46 @@ class AuthController {
         return res.status(500).send(error);
       });
   };
+
+  static refreshToken = (req: Request, res: Response) => {
+    let tokenHeader = req.headers["x-access-token"]?.toString();
+    if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
+      return res.status(400).json({
+        auth: false,
+        message: "Format token tidak sesuai. Mohon coba login ulang.",
+      });
+    }
+
+    let token = tokenHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(400).json({
+        auth: false,
+        message: "Token tidak tersedia. Mohon coba login ulang.",
+      });
+    }
+
+    verify(token, process.env.REFRESH_TOKEN_KEY!, (err, decoded) => {
+      if (err) {
+        return res.status(400).send(err);
+      } else {
+        const id = parseInt((decoded as any).id);
+        const jwtToken = sign(
+          {
+            id: id
+          },
+          process.env.TOKEN_KEY!.toString(),
+          {
+            expiresIn: process.env.EXPIRATION,
+          }
+        );
+
+        return res.status(200).send({
+          token: jwtToken
+        })
+      }
+    });
+  }
 }
 
 export default AuthController;

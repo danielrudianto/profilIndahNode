@@ -56,10 +56,10 @@ class ItemController {
             const item_price = new ItemPriceModel(
               req.body.price,
               req.body.discount,
-              req.body.discount_project,
               result.id,
-              req.body.userId
+              req.body.userId,
             );
+            
             const item_purchase_price = new ItemPurchasePriceModel(
               req.body.purchase_price,
               result.id,
@@ -128,6 +128,7 @@ class ItemController {
                   });
               })
               .catch((error) => {
+                console.log(error);
                 LogHelper.log(
                   new Date(),
                   "error",
@@ -140,6 +141,7 @@ class ItemController {
               });
           })
           .catch((error) => {
+            console.log(error);
             LogHelper.log(
               new Date(),
               "error",
@@ -291,7 +293,7 @@ class ItemController {
     });
   };
 
-  static fetch = (req: Request, res: Response) => {
+  static fetchSearchResult = (req: Request, res: Response) => {
     const page: number = !req.query.page
       ? 1
       : Math.max(parseInt(req.query.page.toString()), 1);
@@ -299,11 +301,44 @@ class ItemController {
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
 
+    ItemModel.fetchSearch(keyword, offset, limit).then(result => {
+      const ids = (result[0] as any[]).map(x => {
+        return x.id
+      });
+
+      ItemModel.fetchSearchByIds(ids).then(items => {
+        return res.status(200).send({
+          data: items.map(x => {
+            return {
+              ...x,
+              price: x.item_price.filter(y => y.item_unit == null)[0].price,
+              discount: x.item_price.filter(y => y.item_unit == null)[0].discount,
+            }
+          }),
+          count: (result[1] as any[]).length
+        });
+      }).catch(error => {
+        return res.status(500).send(error);
+      })
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
+
+  static fetch = (req: Request, res: Response) => {
+    const page: number = !req.query.page
+      ? 1
+      : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const active = !req.query.active ? true : (req.query.active == '1') ? true : false;
+
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);
 
-    ItemModel.fetch(keyword, date, offset, limit)
+    ItemModel.fetch(keyword, date, offset, limit, active)
       .then((result) => {
         ItemModel.checkCountByIds(result[0].map((x) => x.id))
           .then((count) => {
@@ -338,6 +373,7 @@ class ItemController {
           "Item controller - fetch",
           req.body.userId
         );
+        console.log(error);
         return res.status(500).send(error);
       });
   };
@@ -591,6 +627,24 @@ class ItemController {
       }).catch(error => {
         return res.status(500).send(error);
       })
+  }
+
+  static toggleActive = (req: Request, res: Response) => {
+    const reference = req.params.reference;
+    ItemModel.fetchByReference(reference).then(item => {
+      if(item == null || item.is_delete){
+        return res.status(404).send("Barang tidak ditemukan.");
+      } else {
+        ItemModel.toggleActive(item.id, !item.is_active).then(result => {
+          const socket = new SocketHelper("updateItemActive", result);
+          socket.create();
+
+          return res.status(200).send(result);
+        }).catch(error => {
+          return res.status(500).send(error);
+        })
+      }
+    })
   }
 }
 

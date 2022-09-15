@@ -6,7 +6,6 @@ class ItemPriceModel {
   id?: number;
   price: number;
   discount: number;
-  discount_project: number;
   item_id: number;
   created_by: number;
   created_at: Date;
@@ -15,14 +14,12 @@ class ItemPriceModel {
   constructor(
     price: number,
     discount: number,
-    discount_project: number,
     item_id: number,
     created_by: number,
     effective_date: Date | null = null
   ) {
     this.price = price;
     this.discount = discount;
-    this.discount_project = discount_project;
     this.item_id = item_id;
     this.created_by = created_by;
     this.created_at = new Date();
@@ -35,7 +32,6 @@ class ItemPriceModel {
         item_id: this.item_id,
         price: this.price,
         discount: this.discount,
-        discount_project: this.discount_project,
         created_by: this.created_by,
         created_at: this.created_at,
         effective_date: this.effective_date,
@@ -43,7 +39,6 @@ class ItemPriceModel {
       select: {
         price: true,
         discount: true,
-        discount_project: true,
         is_delete: true,
         user: {
           select: {
@@ -71,6 +66,7 @@ class ItemPriceModel {
             id: true,
             reference: true,
             description: true,
+            unit: true,
             item_brand: {
               select: {
                 name: true,
@@ -78,11 +74,18 @@ class ItemPriceModel {
             },
             item_price: {
               select: {
+                id: true,
                 price: true,
                 discount: true,
-                discount_project: true,
                 created_at: true,
                 effective_date: true,
+                item_unit: {
+                  select: {
+                    id: true,
+                    unit: true,
+                    conversion: true,
+                  },
+                },
               },
               where: {
                 is_delete: false,
@@ -92,14 +95,20 @@ class ItemPriceModel {
               },
               orderBy: [
                 {
+                  item_unit_id: "asc",
+                },
+                {
+                  item_unit: {
+                    unit: "asc",
+                  },
+                },
+                {
                   effective_date: "desc",
                 },
                 {
                   id: "desc",
                 },
               ],
-              take: 1,
-              skip: 0,
             },
           },
           orderBy: {
@@ -136,6 +145,7 @@ class ItemPriceModel {
             id: true,
             reference: true,
             description: true,
+            unit: true,
             item_brand: {
               select: {
                 name: true,
@@ -143,10 +153,18 @@ class ItemPriceModel {
             },
             item_price: {
               select: {
+                id: true,
                 price: true,
                 discount: true,
-                discount_project: true,
                 created_at: true,
+                effective_date: true,
+                item_unit: {
+                  select: {
+                    id: true,
+                    unit: true,
+                    conversion: true,
+                  },
+                },
               },
               where: {
                 is_delete: false,
@@ -156,14 +174,20 @@ class ItemPriceModel {
               },
               orderBy: [
                 {
+                  item_unit_id: "asc",
+                },
+                {
+                  item_unit: {
+                    unit: "asc",
+                  },
+                },
+                {
                   effective_date: "desc",
                 },
                 {
                   id: "desc",
                 },
               ],
-              take: 1,
-              skip: 0,
             },
           },
           orderBy: {
@@ -216,9 +240,15 @@ class ItemPriceModel {
         created_at: true,
         item_price: {
           select: {
+            id: true,
             price: true,
             discount: true,
-            discount_project: true,
+            item_unit: {
+              select: {
+                unit: true,
+                conversion: true,
+              },
+            },
           },
           where: {
             is_delete: false,
@@ -263,6 +293,75 @@ class ItemPriceModel {
         deleted_by: created_by,
       },
     });
+  }
+
+  static updatePrice(
+    item_id: number,
+    price: number,
+    discount: number,
+    created_by: number,
+    item_unit_id: number | null = null,
+    effective_date: Date = new Date()
+  ) {
+    return prisma.$transaction([
+      prisma.item_price.updateMany({
+        where: {
+          item_id: item_id,
+          item_unit_id: item_unit_id,
+          is_delete: false,
+        },
+        data: {
+          is_delete: true,
+          deleted_at: new Date(),
+          deleted_by: created_by
+        }
+      }),
+      prisma.item_price.create({
+        data: {
+          item_id: item_id,
+          item_unit_id: item_unit_id,
+          price: price,
+          discount: discount,
+          created_by: created_by,
+          created_at: new Date(),
+          effective_date: effective_date
+        }
+      })
+    ]);
+  }
+
+  static fetchById(id: number){
+    return prisma.item_price.findUnique({
+      where: {
+        id: id
+      },
+      select: {
+        price: true,
+        discount: true,
+        item_unit: {
+          select: {
+            id: true,
+            unit: true,
+            conversion: true
+          }
+        },
+        item: {
+          select: {
+            id: true,
+            reference: true,
+            description: true,
+            item_brand: {
+              select: {
+                name: true,
+              }
+            },
+            unit: true,
+          }
+        },
+        is_delete: true,
+        effective_date: true,
+      }
+    })
   }
 }
 

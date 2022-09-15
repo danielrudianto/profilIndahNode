@@ -6,6 +6,8 @@ const router = Router();
 router.get("/autocomplete", ItemTypeController.fetchAutocomplete);
 router.get("/:id", ItemTypeController.fetchById);
 router.get("/", ItemTypeController.fetchItems);
+
+router.post("/getByBrandIds", ItemTypeController.fetchByBrandId);
 router.post("/", ItemTypeController.createItem);
 router.put("/", ItemTypeController.updateItem);
 

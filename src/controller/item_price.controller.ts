@@ -1,76 +1,11 @@
 import { Request, Response } from "express";
-import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
-import { io } from "../app";
 import { ItemModel } from "../model/item.model";
 import ItemPriceModel from "../model/item_price.model";
+import SocketHelper from "../helper/socket.helper";
+import ExcelJS from 'exceljs';
 
 class ItemPriceController {
-  static create = (req: Request, res: Response) => {
-    const item_id = req.body.item_id;
-    const discount = req.body.discount;
-    const discount_project = req.body.discount_project;
-    const price = req.body.price;
-
-    const date = new Date();
-    date.setDate(date.getDate() + 1);
-    date.setHours(0, 0, 0, 0);
-
-    const item_price = new ItemPriceModel(
-      price,
-      discount,
-      discount_project,
-      item_id,
-      req.body.userId
-    );
-    const item_price_create = item_price.create();
-    const item_price_delete = ItemPriceModel.deleteById(
-      item_id,
-      req.body.userId
-    );
-
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([item_price_create, item_price_delete])
-      .then((result) => {
-        ItemModel.fetchById(result[1].item_id, date)
-          .then((item) => {
-            LogHelper.log(
-              new Date(),
-              "info",
-              `${result[0].user.name} added sales item price for item ${result[0].item.reference} (ID: ${result[0].item.id}) with the price ${result[0].price} and discount (${result[0].discount} / ${result[0].discount_project}`,
-              "Item Price - Create",
-              req.body.userId
-            );
-
-            io.emit("updatePrice", item);
-            return res.status(200).send(result[1]);
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              error,
-              "Item Price - Create",
-              req.body.userId
-            );
-
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Item Price - Create",
-          req.body.userId
-        );
-
-        return res.status(500).send(error);
-      });
-  };
-
   static createBulk = (req: Request, res: Response) => {
     const effective_date = new Date(req.body.effective_date);
     const items = req.body.items as any[];
@@ -111,7 +46,6 @@ class ItemPriceController {
           const item_price = new ItemPriceModel(
             price_object[index].price,
             price_object[index].discount,
-            price_object[index].discount_project,
             items.filter((x) => x.reference == reference)[0].id,
             req.body.userId,
             effective_date
@@ -156,7 +90,19 @@ class ItemPriceController {
           });
         });
 
-        return res.status(200).send(result);
+        return res.status(200).send(
+          items.map((x) => {
+            return {
+              reference: x.reference,
+              description: x.description,
+              item_brand: x.item_brand,
+              price: x.item_price.filter((x) => x.item_unit == null)[0].price,
+              discount: x.item_price.filter((x) => x.item_unit == null)[0]
+                .discount,
+              item_price: x.item_price.filter((x) => x.item_unit != null),
+            };
+          })
+        );
       })
       .catch((error) => {
         return res.status(500).send(error);
@@ -178,7 +124,17 @@ class ItemPriceController {
     ItemPriceModel.fetch(keyword, date, offset, limit)
       .then((result) => {
         return res.status(200).send({
-          data: result[0],
+          data: result[0].map((x) => {
+            return {
+              ...x,
+              price: x.item_price.filter((x) => x.item_unit == null)[0].price,
+              discount: x.item_price.filter((x) => x.item_unit == null)[0]
+                .discount,
+              effective_date: x.item_price.filter((x) => x.item_unit == null)[0]
+                .effective_date,
+              item_price: x.item_price.filter((x) => x.item_unit != null),
+            };
+          }),
           count: result[1],
         });
       })
@@ -195,12 +151,89 @@ class ItemPriceController {
 
     ItemPriceModel.fetchByReference(reference, date)
       .then((result) => {
+        if (result == null) {
+          return res.status(404).send("Barang tidak ditemukan.");
+        } else {
+          return res.status(200).send({
+            ...result,
+            price: result?.item_price.filter((x) => x.item_unit == null)[0]
+              .price,
+            discount: result?.item_price.filter((x) => x.item_unit == null)[0]
+              .discount,
+            item_price: result.item_price.filter((x) => x.item_unit != null),
+            item_price_id: result.item_price.filter(
+              (x) => x.item_unit == null
+            )[0].id,
+          });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static updatePrice = (req: Request, res: Response) => {
+    const item_id = req.body.item_id;
+    const item_unit_id = req.body.item_unit_id;
+    const price = req.body.price;
+    const discount = req.body.discount;
+    const effective_date = new Date(req.body.effective_date);
+    const old_id = req.body.id;
+
+    ItemPriceModel.updatePrice(
+      item_id,
+      price,
+      discount,
+      req.body.userId,
+      item_unit_id,
+      effective_date
+    )
+      .then((result) => {
+        const socket = new SocketHelper("updateUnitPrice", {
+          ...result[1],
+          delete_id: old_id,
+        });
+        socket.create();
+        return res.status(200).send(result[1]);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    ItemPriceModel.fetchById(id)
+      .then((result) => {
         return res.status(200).send(result);
       })
       .catch((error) => {
         return res.status(500).send(error);
       });
   };
+
+  static getXlsx = async(req: Request, res: Response) => {
+    const brand_id = req.body.brand_id as number[];
+    const type_id = req.body.type_id as number[];
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet('Sheet 1');
+    sheet.columns = [
+      { header: 'Id', key: 'id', width: 0 },
+      { header: 'Reference', key: 'reference' },
+      { header: 'Description', key: 'description' }
+    ];
+    sheet.addRow({
+      id: 1,
+      reference: "ABC",
+    });
+
+    workbook.xlsx.writeBuffer().then(buffer => {
+      return res.status(200).send({
+        data: Buffer([buffer]).toString('base64')
+      });
+    })
+  }
 }
 
 export default ItemPriceController;

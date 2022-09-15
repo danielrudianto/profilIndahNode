@@ -76,6 +76,15 @@ class ItemTypeController {
             return res.status(500).send(error);
         })
     }
+
+    static fetchByBrandId = (req: Request, res: Response) => {
+        const ids = req.body.ids as number[];
+        ItemTypeModel.fetchByBrandIds(ids).then(result => {
+            return res.status(200).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        })
+    }
 }
 
 export default ItemTypeController;
