@@ -302,7 +302,9 @@ class ReportController {
         SalesDistributionModel.fetchSum(month, year),
         PurchaseDocumentModel.fetchSum(month, year),
         ExpenseModel.fetchSum(month, year),
-        (month == 0) ? StockValueHelper.fetchCOGS(new Date(year, 11, 31)) : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
+        month == 0
+          ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
+          : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
       ])
         .then((result) => {
           const sales_table = [];
@@ -332,7 +334,9 @@ class ReportController {
           ]);
 
           let total_value = 0;
-          let total_delivery_value = parseFloat((result[0] as any[])[0].delivery.toString());
+          let total_delivery_value = parseFloat(
+            (result[0] as any[])[0].delivery.toString()
+          );
 
           (result[1] as any[]).forEach((x) => {
             total_value += parseFloat(x.value.toString());
@@ -389,7 +393,7 @@ class ReportController {
             {
               text: "-",
               bold: true,
-              alignment: 'left' as Alignment
+              alignment: "left" as Alignment,
             },
             {
               text: formatter.format(
@@ -401,7 +405,6 @@ class ReportController {
               alignment: "left" as Alignment,
             },
           ]);
-
 
           sales_table.push([
             {
@@ -462,29 +465,32 @@ class ReportController {
             },
           ]);
 
-          (result[2] as any[]).forEach(x => {
+          (result[2] as any[]).forEach((x) => {
             purchase_table.push([
               {
                 text: `${x.name}`,
                 bold: false,
-                alignment: 'left' as Alignment
-              }, 
+                alignment: "left" as Alignment,
+              },
               {
                 text: formatter.format(parseFloat(x.value.toString())),
                 bold: false,
-                alignment: 'left' as Alignment
+                alignment: "left" as Alignment,
               },
               {
                 text: formatter.format(parseFloat(x.discount.toString())),
                 bold: false,
-                alignment: 'left' as Alignment
-              }, 
+                alignment: "left" as Alignment,
+              },
               {
-                text: formatter.format(parseFloat(x.value.toString()) - parseFloat(x.discount.toString())),
+                text: formatter.format(
+                  parseFloat(x.value.toString()) -
+                    parseFloat(x.discount.toString())
+                ),
                 bold: false,
-                alignment: 'left' as Alignment
-              }
-            ])
+                alignment: "left" as Alignment,
+              },
+            ]);
 
             total_purchase_value += parseFloat(x.value.toString());
             total_purchase_discount += parseFloat(x.discount.toString());
@@ -494,23 +500,25 @@ class ReportController {
             {
               text: "Keseluruhan",
               bold: true,
-              alignment: 'left' as Alignment
-            }, 
+              alignment: "left" as Alignment,
+            },
             {
               text: formatter.format(total_purchase_value),
               bold: true,
-              alignment: 'left' as Alignment
+              alignment: "left" as Alignment,
             },
             {
               text: formatter.format(total_purchase_discount),
               bold: true,
-              alignment: 'left' as Alignment
+              alignment: "left" as Alignment,
             },
             {
-              text: formatter.format((total_purchase_value - total_purchase_discount)),
+              text: formatter.format(
+                total_purchase_value - total_purchase_discount
+              ),
               bold: true,
-              alignment: 'left' as Alignment
-            }
+              alignment: "left" as Alignment,
+            },
           ]);
 
           const expenses: any[] = [];
@@ -530,26 +538,34 @@ class ReportController {
             },
           ]);
 
-          (result[3] as any[]).filter(x => x.parent_id == null).forEach(y => {
-            expenses.push({
-              ...y,
-              value: 0,
-              children: []
+          (result[3] as any[])
+            .filter((x) => x.parent_id == null)
+            .forEach((y) => {
+              expenses.push({
+                ...y,
+                value: 0,
+                children: [],
+              });
             });
-          });
 
-          const child_expenses = (result[3] as any[]).filter(x => x.parent_id != null);
-          child_expenses.forEach(child_expense => {
-            const index = expenses.findIndex(expense => expense.id == child_expense.parent_id);
-            if(index != -1){
+          const child_expenses = (result[3] as any[]).filter(
+            (x) => x.parent_id != null
+          );
+          child_expenses.forEach((child_expense) => {
+            const index = expenses.findIndex(
+              (expense) => expense.id == child_expense.parent_id
+            );
+            if (index != -1) {
               expenses[index].children.push(child_expense);
-              expenses[index].value += parseFloat(child_expense.value.toString());
+              expenses[index].value += parseFloat(
+                child_expense.value.toString()
+              );
 
-              total_expense_value+= parseFloat(child_expense.value.toString());
+              total_expense_value += parseFloat(child_expense.value.toString());
             }
           });
 
-          expenses.forEach(expense => {
+          expenses.forEach((expense) => {
             expense_table.push([
               {
                 text: expense.name,
@@ -562,9 +578,9 @@ class ReportController {
                 alignment: "left" as Alignment,
               },
             ]);
-            
-            if(expense.children.length > 0){
-              (expense.children as any[]).forEach(child_expense => {
+
+            if (expense.children.length > 0) {
+              (expense.children as any[]).forEach((child_expense) => {
                 expense_table.push([
                   {
                     text: `${expense.name}/${child_expense.name}`,
@@ -572,14 +588,16 @@ class ReportController {
                     alignment: "left" as Alignment,
                   },
                   {
-                    text: formatter.format(parseFloat(child_expense.value.toString())),
+                    text: formatter.format(
+                      parseFloat(child_expense.value.toString())
+                    ),
                     bold: false,
                     alignment: "left" as Alignment,
                   },
                 ]);
-              })
+              });
             }
-          })
+          });
 
           expense_table.push([
             {
@@ -609,7 +627,7 @@ class ReportController {
             },
           ]);
 
-          (result[4] as any[]).forEach(x => {
+          (result[4] as any[]).forEach((x) => {
             const name = x.f2;
             const value = parseFloat(x.f0);
 
@@ -619,32 +637,33 @@ class ReportController {
               {
                 text: name,
                 bold: false,
-                alignment: 'left' as Alignment
-              }, 
+                alignment: "left" as Alignment,
+              },
               {
                 text: formatter.format(value),
                 bold: false,
-                alignment: 'left' as Alignment
-              }
-            ])
+                alignment: "left" as Alignment,
+              },
+            ]);
           });
 
           hpp_table.push([
             {
               text: "Total",
               bold: true,
-              alignment: 'left' as Alignment
-            }, 
+              alignment: "left" as Alignment,
+            },
             {
               text: formatter.format(hpp_value),
               bold: true,
-              alignment: 'left' as Alignment
-            }
-          ])
+              alignment: "left" as Alignment,
+            },
+          ]);
 
-          const sales_value = parseFloat((result[0] as any[])[0].value.toString()) -
-          parseFloat((result[0] as any[])[0].discount.toString()) -
-          total_value;
+          const sales_value =
+            parseFloat((result[0] as any[])[0].value.toString()) -
+            parseFloat((result[0] as any[])[0].discount.toString()) -
+            total_value;
 
           let documentDefinition = {
             pageSize: "A4" as PageSize,
@@ -679,13 +698,13 @@ class ReportController {
                   widths: ["auto", "auto", "auto", "*"],
                   body: sales_table,
                 },
-                margin: [0, 0, 0, 15] as Margins
+                margin: [0, 0, 0, 15] as Margins,
               },
               {
                 text: "Penjualan tidak teralokasi disebabkan karena adanya ketidakcocokan tingkat ketersediaan dengan penjualan.",
                 fontSize: 10,
-                color: '#333333',
-                margin: [0, 0, 0, 20] as Margins
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
               },
               {
                 text: "Pembelian",
@@ -701,7 +720,7 @@ class ReportController {
                   widths: ["auto", "auto", "auto", "*"],
                   body: purchase_table,
                 },
-                margin: [0, 0, 0, 15] as Margins
+                margin: [0, 0, 0, 15] as Margins,
               },
               {
                 text: "Pengeluaran",
@@ -717,7 +736,7 @@ class ReportController {
                   widths: ["*", "*"],
                   body: expense_table,
                 },
-                margin: [0, 0, 0, 15] as Margins
+                margin: [0, 0, 0, 15] as Margins,
               },
               {
                 text: "Harga Pokok Penjualan",
@@ -733,16 +752,18 @@ class ReportController {
                   widths: ["*", "*"],
                   body: hpp_table,
                 },
-                margin: [0, 0, 0, 15] as Margins
+                margin: [0, 0, 0, 15] as Margins,
               },
               {
                 text: "Harga pokok penjualan termasuk dengan perhitungan atas kehilangan barang yang terjadi.",
                 fontSize: 10,
-                color: '#333333',
-                margin: [0, 0, 0, 20] as Margins
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
               },
               {
-                text: `Laba / Rugi: ${formatter.format(total_value - hpp_value - total_expense_value)}`,
+                text: `Laba / Rugi: ${formatter.format(
+                  total_value - hpp_value - total_expense_value
+                )}`,
                 bold: true,
                 alignment: "left" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
@@ -813,14 +834,22 @@ class ReportController {
     const month = parseInt(req.params.month);
     const date = parseInt(req.params.date);
 
-    BillCodeModel.fetchReception(year, month, date).then(result => {
-      return res.status(200).send(result);
-    }).catch(error => {
-      LogHelper.log(new Date(), "error", error, "Report Controller - Fetch Reception", req.body.userId);
+    BillCodeModel.fetchReception(year, month, date)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Report Controller - Fetch Reception",
+          req.body.userId
+        );
 
-      return res.status(500).send(error);
-    })
-  }
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default ReportController;

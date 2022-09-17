@@ -141,6 +141,8 @@ class ItemPriceController {
         });
       })
       .catch((error) => {
+        LogHelper.log(new Date(), "error", error, "Item price controller - Fetch", req.body.userId);
+        
         return res.status(500).send(error);
       });
   };

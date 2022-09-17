@@ -12,8 +12,8 @@ class PurchaseDocumentModel {
   created_at: Date;
   is_delete: boolean = false;
   is_confirm: boolean = true;
-  confirmed_by: number;
-  confirmed_at: Date;
+  confirmed_by: number | null;
+  confirmed_at: Date | null;
 
   constructor(
     name: string,
@@ -21,7 +21,8 @@ class PurchaseDocumentModel {
     discount: number,
     good_receipt_code_id: number,
     created_by: number,
-    id: number | null = null
+    confirmed_by: number | null = null,
+    id: number | null = null,
   ) {
     if (id != null) {
       this.id = id;
@@ -33,8 +34,13 @@ class PurchaseDocumentModel {
     this.good_receipt_code_id = good_receipt_code_id;
     this.created_by = created_by;
     this.created_at = new Date();
-    this.confirmed_by = created_by;
-    this.confirmed_at = this.created_at;
+    if (confirmed_by == null) {
+      this.confirmed_by = null;
+      this.confirmed_at = null;
+    } else {
+      this.confirmed_by = created_by;
+      this.confirmed_at = this.created_at;
+    }
   }
 
   create() {
@@ -46,7 +52,7 @@ class PurchaseDocumentModel {
         good_receipt_code_id: this.good_receipt_code_id,
         created_by: this.created_by,
         created_at: this.created_at,
-        is_confirm: true,
+        is_confirm: (this.confirmed_by == null) ? false : true,
         confirmed_by: this.confirmed_by,
         confirmed_at: this.confirmed_at,
       },
@@ -93,12 +99,14 @@ class PurchaseDocumentModel {
         date: true,
         user_good_receipt_code_created_byTouser: {
           select: {
+            id: true,
             name: true,
           },
         },
         created_at: true,
         user_good_receipt_code_confirmed_byTouser: {
           select: {
+            id: true,
             name: true,
           },
         },
@@ -255,6 +263,44 @@ class PurchaseDocumentModel {
         GROUP BY company.id
       `);
     }
+  }
+
+  static fetchUnconfirmed(offset: number, limit: number) {
+    return prisma.$transaction([
+      prisma.purchase_invoice.findMany({
+        where: {
+          is_confirm: false,
+          is_delete: false,
+        },
+        select: {
+          id: true,
+          date: true,
+          name: true,
+          created_at: true,
+          user_purchase_invoice_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+          good_receipt_code: {
+            select: {
+              supplier: {
+                select: {
+                  name: true,
+                  address: true,
+                },
+              },
+            },
+          },
+        },
+      }),
+      prisma.purchase_invoice.count({
+        where: {
+          is_confirm: false,
+          is_delete: false,
+        },
+      }),
+    ]);
   }
 }
 

@@ -3,6 +3,7 @@ import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../app";
 import { ItemModel } from "../model/item.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
+import LogHelper from "../helper/log.helper";
 
 class ItemPurchasePriceController {
   static fetchAll = (req: Request, res: Response) => {
@@ -26,53 +27,87 @@ class ItemPurchasePriceController {
       });
   };
 
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    ItemPurchasePriceModel.fetchById(id).then(result => {
+      return res.status(200).send(result);
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
+
   static fetch = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     const page = !req.query.page
       ? 1
-      : Math.max(parseInt(req.query.page.toString()), 1);
+      : Math.max(1, parseInt(req.query.page.toString()));
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
 
-    ItemPurchasePriceModel.fetch(keyword, offset, limit).then((result) => {
-      return res.status(200).send({
-        data: result[0],
-        count: result[1],
+    const date = new Date();
+    date.setDate(new Date().getDate() + 1);
+    date.setHours(0, 0, 0, 0);
+
+    ItemPurchasePriceModel.fetch(keyword, offset, limit)
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0].map((x) => {
+            return {
+              ...x,
+              price:
+                x.item_price_purchase.filter((y) => y.item_unit == null)
+                  .length == 0
+                  ? 0
+                  : x.item_price_purchase.filter((x) => x.item_unit == null)[0]
+                      .price,
+              item_price_purchase: x.item_price_purchase.filter(
+                (x) => x.item_unit != null
+              ),
+            };
+          }),
+          count: result[1],
+        });
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Item purchase price controller - Fetch",
+          req.body.userId
+        );
+
+        return res.status(500).send(error);
       });
-    });
   };
 
   static create = (req: Request, res: Response) => {
     const item_id = req.body.item_id;
+    const item_unit_id = req.body.item_unit_id;
     const price = req.body.price;
     const created_by = req.body.userId;
 
     const item_purchase_price = new ItemPurchasePriceModel(
       price,
       item_id,
-      created_by
+      created_by,
+      item_unit_id
     );
-    const create_item = item_purchase_price.create();
-    const delete_item = ItemPurchasePriceModel.deleteItems(
-      [item_id],
-      created_by
-    );
-    const select_item = ItemModel.fetchById(item_id, new Date());
 
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([create_item, delete_item, select_item])
-      .then((result) => {
-        ItemPurchasePriceModel.fetchByReference(result[2].reference)
+    item_purchase_price.update()
+      .then(() => {
+        ItemPurchasePriceModel.fetchByItemId(item_id)
           .then((item_purchase) => {
             io.emit("updatePurchasingPrice", item_purchase);
             return res.status(201).send(item_purchase);
           })
           .catch((error) => {
+            LogHelper.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userId);
             return res.status(500).send(error);
           });
       })
       .catch((error) => {
+        LogHelper.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userId);
         return res.status(500).send(error);
       });
   };

@@ -63,7 +63,8 @@ class ItemController {
             const item_purchase_price = new ItemPurchasePriceModel(
               req.body.purchase_price,
               result.id,
-              req.body.userId
+              req.body.userId,
+              null
             );
 
             Promise.all([

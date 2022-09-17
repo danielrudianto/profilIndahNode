@@ -3,6 +3,7 @@ import PurchaseDocumentController from "../controller/purchase_document.controll
 
 const router = Router();
 
+router.get("/unconfirmed", PurchaseDocumentController.fetchUnconfirmed);
 router.get("/:id", PurchaseDocumentController.fetchById);
 router.post("/", PurchaseDocumentController.create);
 router.put("/", PurchaseDocumentController.update);
