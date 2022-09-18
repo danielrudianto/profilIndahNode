@@ -27,12 +27,12 @@ class AuthController {
             0
           );
 
-          return res.status(401).send("Username / kata sandi salah.");
+          return res.status(400).send("Username / kata sandi salah.");
         }
 
         compare(password, user.password).then((result) => {
           if (!result) {
-            return res.status(401).send("Username / kata sandi salah.");
+            return res.status(400).send("Username / kata sandi salah.");
           }
 
           const jwtToken = sign(

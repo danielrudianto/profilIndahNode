@@ -246,7 +246,7 @@ class ItemPriceController {
             return item.toString().length
           }))
 
-          ItemModel.fetchItemByBrandType(brand_id, type_id)
+          ItemModel.fetchItemPriceByBrandType(brand_id, type_id)
             .then((items) => {
               items.forEach((x) => {
                 rows.push([

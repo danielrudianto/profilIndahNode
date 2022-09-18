@@ -4,3 +4,6 @@ Thu Sep 15 2022 20:18:18 GMT+0700 (Indochina Time); TypeError: Cannot read prope
 Thu Sep 15 2022 20:19:05 GMT+0700 (Indochina Time); TypeError: Cannot read properties of undefined (reading '0'); error; Item price controller - getXlsx; 1
 Thu Sep 15 2022 20:19:09 GMT+0700 (Indochina Time); TypeError: Cannot read properties of undefined (reading '0'); error; Item price controller - getXlsx; 1
 Thu Sep 15 2022 20:19:35 GMT+0700 (Indochina Time); TypeError: Cannot read properties of undefined (reading '0'); error; Item price controller - getXlsx; 1
+Sun Sep 18 2022 09:57:03 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Sun Sep 18 2022 10:14:14 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference TIX-A80 (ID: 3860); Item - Create; 1
+Sun Sep 18 2022 10:14:14 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.item_price_purchase.create()` invocation in,D:\Repos\profilIndahNode\src\model\item_purchase_price.model.ts:27:39,,  24 },  25 ,  26 create() {,→ 27   return prisma.item_price_purchase.create(,  The column `item_unit_id` does not exist in the current database.; Item Controller - Create; 1

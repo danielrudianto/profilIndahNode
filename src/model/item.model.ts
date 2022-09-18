@@ -1218,7 +1218,7 @@ export class ItemModel {
     })
   }
 
-  static fetchItemByBrandType(brand_id: number[], type_id: number[]){
+  static fetchItemPriceByBrandType(brand_id: number[], type_id: number[]){
     return prisma.item_price.findMany({
       where: {
         item: {
@@ -1254,6 +1254,61 @@ export class ItemModel {
         },
         price: true,
         discount: true,
+        item_unit: {
+          select: {
+            unit: true,
+            conversion: true,
+          }
+        }
+      },
+      orderBy: [
+        {
+          item: {
+            reference: "asc"
+          }
+        },
+        {
+          item_unit_id: "asc"
+        }
+      ],
+    })
+  }
+
+  static fetchItemPurchasePriceByBrandType(brand_id: number[], type_id: number[]){
+    return prisma.item_price_purchase.findMany({
+      where: {
+        item: {
+          item_brand_id: {
+            in: brand_id
+          },
+          item_type_id: {
+            in: type_id
+          },
+          is_active: true,
+          is_delete: false,
+        },
+        is_delete: false
+      },
+      select: {
+        id: true,
+        item: {
+          select: {
+            reference: true,
+            description: true,
+            unit: true,
+            item_brand: {
+              select: {
+                name: true,
+              }
+            },
+            item_type: {
+              select: {
+                name: true,
+              }
+            }
+          }
+        },
+        price: true,
         item_unit: {
           select: {
             unit: true,
