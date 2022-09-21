@@ -262,6 +262,8 @@ class BillCodeModel {
       select: {
         name: true,
         date: true,
+        discount: true,
+        delivery: true,
         bill: {
           select: {
             item: {
@@ -547,6 +549,26 @@ class BillCodeModel {
       ) pm
       ON payment_method.id = pm.payment_method_id
       ORDER BY payment_method.id ASC
+    `);
+  }
+
+  static fetchSearch(date: Date, items: any[]){
+
+    let mysql_string = "SELECT bill.bill_code_id FROM bill";
+
+    items.forEach(x => {
+      mysql_string += `WHERE `;
+    });
+
+    return prisma.$queryRawUnsafe(`
+      SELECT bill_code.date, bill_code.name
+      FROM bill_code
+      WHERE DAY(bill_code.date) = ${date.getDate()}
+      AND MONTH(bill_code.date) = ${date.getMonth() + 1}
+      AND YEAR(bill_code.date) = ${date.getFullYear()}
+      AND bill_code.id IN (
+
+      );
     `);
   }
 }

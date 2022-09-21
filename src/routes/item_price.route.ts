@@ -1,10 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import ItemPriceController from "../controller/item_price.controller";
-import { io } from "../app";
-import LogHelper from "../helper/log.helper";
 
-const prisma = new PrismaClient();
+
 const router = Router();
 
 router.get("/getById/:id", ItemPriceController.fetchById);

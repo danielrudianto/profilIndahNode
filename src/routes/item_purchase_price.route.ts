@@ -3,7 +3,6 @@ import ItemPurchasePriceController from "../controller/item_purchase_price.contr
 
 const router = Router();
 
-router.get("/bulk", ItemPurchasePriceController.fetchAll);
 router.get("/fetchById/:id", ItemPurchasePriceController.fetchById);
 router.get("/:reference", ItemPurchasePriceController.fetchByReference);
 router.get("/", ItemPurchasePriceController.fetch);

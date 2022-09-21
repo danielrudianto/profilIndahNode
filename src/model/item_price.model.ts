@@ -139,6 +139,20 @@ class ItemPriceModel {
                   contains: keyword,
                 },
               },
+              {
+                item_brand: {
+                  name: {
+                    contains: keyword
+                  }
+                }
+              },
+              {
+                item_type: {
+                  name: {
+                    contains: keyword
+                  }
+                }
+              }
             ],
           },
           select: {
@@ -210,6 +224,20 @@ class ItemPriceModel {
                   contains: keyword,
                 },
               },
+              {
+                item_brand: {
+                  name: {
+                    contains: keyword
+                  }
+                }
+              },
+              {
+                item_type: {
+                  name: {
+                    contains: keyword
+                  }
+                }
+              }
             ],
           },
         }),
@@ -362,6 +390,38 @@ class ItemPriceModel {
         effective_date: true,
       }
     })
+  }
+
+  static updateMany(item_price: any[], deleted_by: number){
+    const transactions: any[] = [];
+    item_price.forEach(x => {
+      transactions.push(prisma.item_price.updateMany({
+        where:{
+          item_id: x.item_id,
+          item_unit_id: x.item_unit_id,
+          is_delete: false,
+        },
+        data: {
+          is_delete: true,
+          deleted_at: new Date(),
+          deleted_by: deleted_by
+        }
+      }));
+
+      transactions.push(prisma.item_price.create({
+        data: {
+          item_id: x.item_id,
+          item_unit_id: x.item_unit_id,
+          price: x.price,
+          discount: x.discount,
+          created_at: new Date(),
+          created_by: deleted_by,
+          effective_date: new Date()
+        }
+      }))
+    });
+
+    return prisma.$transaction(transactions);
   }
 }
 

@@ -351,8 +351,8 @@ class ItemPriceController {
                 locked: false,
               };
 
-              sheet.getColumn(9).numFmt = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)';
-              sheet.getColumn(10).numFmt = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)';
+              sheet.getColumn(9).numFmt = '#,###.00';
+              sheet.getColumn(10).numFmt = '#,###.00';
 
               sheet.protect("", {
                 selectLockedCells: false,

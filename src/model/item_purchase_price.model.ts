@@ -152,7 +152,7 @@ class ItemPurchasePriceModel {
   }
 
   static fetchByItemId(id: number) {
-    return prisma.item_price_purchase.findFirst({
+    return prisma.item_price_purchase.findMany({
       where: {
         item_id: id,
         is_delete: false,
@@ -206,8 +206,6 @@ class ItemPurchasePriceModel {
               orderBy: {
                 id: "desc",
               },
-              take: 1,
-              skip: 0,
             },
           },
           orderBy: {
@@ -254,6 +252,7 @@ class ItemPurchasePriceModel {
               select: {
                 id: true,
                 price: true,
+                item_unit_id: true,
                 item_unit: {
                   select: {
                     unit: true,
@@ -264,11 +263,14 @@ class ItemPurchasePriceModel {
               where: {
                 is_delete: false,
               },
-              orderBy: {
-                id: "desc",
-              },
-              take: 1,
-              skip: 0,
+              orderBy: [
+                {
+                  item_id: "asc",
+                },
+                {
+                  item_unit_id: "asc"
+                }
+              ]
             },
           },
           orderBy: {
@@ -296,36 +298,6 @@ class ItemPurchasePriceModel {
         }),
       ]);
     }
-  }
-
-  static fetchAll() {
-    return prisma.item.findMany({
-      where: {
-        is_delete: false,
-      },
-      select: {
-        reference: true,
-        description: true,
-        item_brand: {
-          select: {
-            name: true,
-          },
-        },
-        item_price_purchase: {
-          select: {
-            price: true,
-          },
-          where: {
-            is_delete: false,
-          },
-          take: 1,
-          skip: 0,
-        },
-      },
-      orderBy: {
-        reference: "asc",
-      },
-    });
   }
 
   static fetchByReference(reference: string) {
@@ -409,6 +381,16 @@ class ItemPurchasePriceModel {
         item_unit_id: true,
       },
     });
+  }
+
+  static fetchByIds(ids: number[]){
+    return prisma.item_price_purchase.findMany({
+      where:{
+        id: {
+          in: ids
+        }
+      }
+    })
   }
 }
 

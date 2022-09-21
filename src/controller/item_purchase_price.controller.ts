@@ -4,20 +4,10 @@ import { io } from "../app";
 import { ItemModel } from "../model/item.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import LogHelper from "../helper/log.helper";
-import ExcelJS from 'exceljs';
+import ExcelJS from "exceljs";
 import UserModel from "../model/user.model";
 
 class ItemPurchasePriceController {
-  static fetchAll = (req: Request, res: Response) => {
-    ItemPurchasePriceModel.fetchAll()
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
   static fetchByReference = (req: Request, res: Response) => {
     const reference = req.params.reference.toString();
     ItemPurchasePriceModel.fetchByReference(reference)
@@ -31,12 +21,14 @@ class ItemPurchasePriceController {
 
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    ItemPurchasePriceModel.fetchById(id).then(result => {
-      return res.status(200).send(result);
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+    ItemPurchasePriceModel.fetchById(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 
   static fetch = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
@@ -57,11 +49,12 @@ class ItemPurchasePriceController {
             return {
               ...x,
               price:
-                x.item_price_purchase.filter((y) => y.item_unit == null)
+                x.item_price_purchase.filter((y) => y.item_unit_id == null)
                   .length == 0
                   ? 0
-                  : x.item_price_purchase.filter((x) => x.item_unit == null)[0]
-                      .price,
+                  : x.item_price_purchase.filter(
+                      (x) => x.item_unit_id == null
+                    )[0].price,
               item_price_purchase: x.item_price_purchase.filter(
                 (x) => x.item_unit != null
               ),
@@ -96,85 +89,81 @@ class ItemPurchasePriceController {
       item_unit_id
     );
 
-    item_purchase_price.update()
-      .then(() => {
-        ItemPurchasePriceModel.fetchByItemId(item_id)
+    item_purchase_price
+      .update()
+      .then((result) => {
+        ItemPurchasePriceModel.fetchById(result[1].id)
           .then((item_purchase) => {
             io.emit("updatePurchasingPrice", item_purchase);
             return res.status(201).send(item_purchase);
           })
           .catch((error) => {
-            LogHelper.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userId);
+            LogHelper.log(
+              new Date(),
+              "error",
+              error,
+              "Item purchase price controller - update",
+              req.body.userId
+            );
             return res.status(500).send(error);
           });
       })
       .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userId);
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Item purchase price controller - update",
+          req.body.userId
+        );
         return res.status(500).send(error);
       });
   };
 
   static createBulk = (req: Request, res: Response) => {
-    const items = req.body.items as any[];
-    const references: string[] = [];
-    let count: number = 0;
-    const price_object: any[] = [];
-
-    items.forEach((x) => {
-      const reference = x.reference;
-      const price = x.price;
-
-      references.push(reference);
-      price_object[count] = {
-        price: parseFloat(price),
-      };
-      count++;
+    const data = req.body.data as any[];
+    const ids = data.map((x) => {
+      return x.id;
     });
 
-    ItemModel.fetchByReferences(references)
-      .then((items) => {
-        if (items.length != count) {
-          res
-            .status(500)
-            .send(
-              `${
-                items.length - count
-              } barang tidak terdefinisi. Mohon cek kembali input anda`
-            );
-        } else {
-          const transactions: any[] = [];
-          const item_ids: number[] = [];
+    ItemPurchasePriceModel.fetchByIds(ids).then((result) => {
+      if (result.filter((x) => x.is_delete).length > 0) {
+        return res
+          .status(400)
+          .send("Terdapat input yang sudah terhapus. Mohon cek kembali.");
+      } else {
+        const response: any[] = [];
+        result.forEach((x, index) => {
+          const price = x.price;
+          const item_unit_id = x.item_unit_id;
+          const item_id = x.item_id;
+          if (data.filter((y) => y.id == x.id).length > 0) {
+            const updated_price = data.filter((y) => y.id == x.id)[0].price;
+            if (updated_price != price) {
+              const itemPurchasePriceModel = new ItemPurchasePriceModel(
+                updated_price,
+                item_id,
+                req.body.userId,
+                item_unit_id
+              );
+              response.push(itemPurchasePriceModel.create);
+            }
+          }
 
-          references.forEach((reference, index) => {
-            item_ids.push(items.filter((x) => x.reference == reference)[0].id);
-            const create_item_purchase_price = new ItemPurchasePriceModel(
-              price_object[index].price,
-              items.filter((x) => x.reference == reference)[0].id,
-              req.body.userId
-            );
-            transactions.push(create_item_purchase_price.create());
-          });
-
-          ItemPurchasePriceModel.deleteItems(item_ids, req.body.userId)
-            .then(() => {
-              const transaction = new QueryTransactionHelper();
-              transaction
-                .create(transactions)
-                .then((result) => {
-                  return res.status(201).send(result);
-                })
-                .catch((error) => {
-                  return res.status(500).send(error);
-                });
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
-            });
-        }
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+          if (index == result.length - 1) {
+            Promise.all([...response])
+              .then((result) => {
+                return res.status(201).send(result);
+              })
+              .catch((error) => {
+                return res.status(500).send(error);
+              });
+          }
+        });
+      }
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
   };
 
   static getXlsx = (req: Request, res: Response) => {
@@ -191,7 +180,7 @@ class ItemPurchasePriceController {
               "ID",
               "Referensi",
               "Deskripsi",
-              "MereK",
+              "Merek",
               "Tipe",
               "Satuan",
               "Konversi",
@@ -202,9 +191,11 @@ class ItemPurchasePriceController {
 
           const columns_width: any[] = [];
 
-          columns_width.push(rows[rows.length - 1].map((item: any) => {
-            return item.toString().length
-          }))
+          columns_width.push(
+            rows[rows.length - 1].map((item: any) => {
+              return item.toString().length;
+            })
+          );
 
           ItemModel.fetchItemPurchasePriceByBrandType(brand_id, type_id)
             .then((items) => {
@@ -224,9 +215,11 @@ class ItemPurchasePriceController {
                 ]);
 
                 // Adjusting column width
-                columns_width.push(rows[rows.length - 1].map((item: any) => {
-                  return item.toString().length
-                }))
+                columns_width.push(
+                  rows[rows.length - 1].map((item: any) => {
+                    return item.toString().length;
+                  })
+                );
               });
 
               const workbook = new ExcelJS.Workbook();
@@ -235,7 +228,7 @@ class ItemPurchasePriceController {
               workbook.lastModifiedBy = user?.name;
               workbook.created = new Date();
 
-              const sheet = workbook.addWorksheet("Perubahan Harga Jual");
+              const sheet = workbook.addWorksheet("Perubahan Harga Beli");
               sheet.state = "visible";
               rows.forEach((data) => {
                 sheet.addRow(data);
@@ -288,49 +281,62 @@ class ItemPurchasePriceController {
 
               const fixed_width: number[] = [10, 10, 10, 10, 10, 10, 10, 10];
 
-              for(let row_index = 0; row_index < rows.length - 1; row_index++){
-                for(let column_index = 0; column_index < 10; column_index++){
+              for (
+                let row_index = 0;
+                row_index < rows.length - 1;
+                row_index++
+              ) {
+                for (let column_index = 0; column_index < 10; column_index++) {
                   const width = columns_width[row_index][column_index];
-                  if(width > fixed_width[column_index]){
-                    fixed_width[column_index] = width + ((column_index >= 9) ? 20 : 0);
+                  if (width > fixed_width[column_index]) {
+                    if (column_index == 9) {
+                      fixed_width[column_index] = width + 20;
+                    } else {
+                      fixed_width[column_index] = width;
+                    }
                   }
                 }
               }
 
-              for(let column_index = 0; column_index < 8; column_index++){
-                sheet.getColumn(column_index + 1).width = fixed_width[column_index];
+              for (let column_index = 0; column_index < 9; column_index++) {
+                sheet.getColumn(column_index + 1).width =
+                  fixed_width[column_index];
               }
 
               sheet.getColumn(1).hidden = true;
               sheet.getColumn(9).protection = {
                 locked: false,
               };
-              
-              sheet.getColumn(10).protection = {
-                locked: false,
-              };
 
-              sheet.getColumn(9).numFmt = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)';
-              sheet.getColumn(10).numFmt = '_($* #,##0.00_);_($* (#,##0.00);_($* "-"??_);_(@_)';
+              sheet.getColumn(9).numFmt = "#,###.00";
 
-              sheet.protect("", {
-                selectLockedCells: false,
-                selectUnlockedCells: true
-              }).then(() => {
-                workbook.xlsx.writeBuffer().then((buffer) => {
-                  return res.status(200).send({
-                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
-                      buffer
-                    ).toString("base64")}`,
-                  });
-                }).catch(error => {
-                  return res.status(500).send(error);
+              sheet
+                .protect("", {
+                  selectLockedCells: false,
+                  selectUnlockedCells: true,
+                  sort: true,
+                  formatRows: true,
+                  deleteRows: false,
+                  insertColumns: false,
+                  formatColumns: true,
                 })
-              }).catch(error => {
-                return res.status(500).send(error);
-              })
-
-              
+                .then(() => {
+                  workbook.xlsx
+                    .writeBuffer()
+                    .then((buffer) => {
+                      return res.status(200).send({
+                        data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+                          buffer
+                        ).toString("base64")}`,
+                      });
+                    })
+                    .catch((error) => {
+                      return res.status(500).send(error);
+                    });
+                })
+                .catch((error) => {
+                  return res.status(500).send(error);
+                });
             })
             .catch((error) => {
               LogHelper.log(
@@ -347,7 +353,7 @@ class ItemPurchasePriceController {
       .catch((error) => {
         return res.status(500).send(error);
       });
-  }
+  };
 }
 
 export default ItemPurchasePriceController;

@@ -4,6 +4,7 @@ import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
+import ItemPriceModel from "../model/item_price.model";
 
 class BillController {
   static create = (req: Request, res: Response) => {
@@ -31,18 +32,21 @@ class BillController {
     bill_code
       .create()
       .then((result) => {
-        BillModel.create(
-          bill.map((x) => {
-            return {
-              item_id: x.item_id,
-              item_unit_id: x.item_unit_id,
-              price: x.price,
-              discount: x.discount,
-              quantity: x.quantity,
-              bill_code_id: result.id,
-            };
-          })
-        )
+        Promise.all([
+          BillModel.create(
+            bill.map((x) => {
+              return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                price: x.price,
+                discount: x.discount,
+                quantity: x.quantity,
+                bill_code_id: result.id,
+              };
+            })
+          ),
+          ItemPriceModel.updateMany(bill.filter(x => x.save), req.body.userId)
+        ])
           .then(() => {
             LogHelper.log(
               new Date(),

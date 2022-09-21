@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { BrandModel } from "../model/brand.model";
 import { ItemModel } from "../model/item.model";
 
 import LogHelper from "../helper/log.helper";
@@ -10,6 +9,8 @@ import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import { validationResult } from "express-validator";
 import StockCardHelper from "../helper/stock_card.helper";
 import ItemUnitModel from "../model/item_unit.model";
+import ExcelJS from "exceljs";
+import UserModel from "../model/user.model";
 
 class ItemController {
   static create = (req: Request, res: Response) => {
@@ -51,15 +52,19 @@ class ItemController {
               req.body.userId
             );
 
-            const item_units = ItemUnitModel.createMany(units, result.id, req.body.userId);
+            const item_units = ItemUnitModel.createMany(
+              units,
+              result.id,
+              req.body.userId
+            );
 
             const item_price = new ItemPriceModel(
               req.body.price,
               req.body.discount,
               result.id,
-              req.body.userId,
+              req.body.userId
             );
-            
+
             const item_purchase_price = new ItemPurchasePriceModel(
               req.body.purchase_price,
               result.id,
@@ -235,63 +240,63 @@ class ItemController {
     const reference = req.body.reference;
     const description = req.body.description;
     const brand = parseInt(req.body.brand.toString());
-    const type= parseInt(req.body.type.toString());
+    const type = parseInt(req.body.type.toString());
     const minimum_stock = req.body.minimum_stock;
 
     ItemModel.fetchById(id, new Date())
-    .then((item) => {
-      if (item == null || item.is_delete) {
-        return res.status(404).send("Barang tidak ditemukan.");
-      } else {
-        const item_model = new ItemModel(
-          reference,
-          description,
-          minimum_stock,
-          brand,
-          type,
-          req.body.userId,
-          id
+      .then((item) => {
+        if (item == null || item.is_delete) {
+          return res.status(404).send("Barang tidak ditemukan.");
+        } else {
+          const item_model = new ItemModel(
+            reference,
+            description,
+            minimum_stock,
+            brand,
+            type,
+            req.body.userId,
+            id
+          );
+
+          console.log(item_model);
+          item_model
+            .update()
+            .then((result) => {
+              LogHelper.log(
+                new Date(),
+                "info",
+                `${result.user_item_updated_byTouser?.name} updated item with reference ${result.reference} (ID: ${result.id})`,
+                `Item - Update`,
+                req.body.userId
+              );
+
+              const socket = new SocketHelper("updateItem", result);
+              socket.create();
+
+              return res.status(200).send(result);
+            })
+            .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                `${error}`,
+                `Item - Update`,
+                req.body.userId
+              );
+
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          `${error}`,
+          `Item - Update`,
+          req.body.userId
         );
-
-        console.log(item_model);
-        item_model
-          .update()
-          .then((result) => {
-            LogHelper.log(
-              new Date(),
-              "info",
-              `${result.user_item_updated_byTouser?.name} updated item with reference ${result.reference} (ID: ${result.id})`,
-              `Item - Update`,
-              req.body.userId
-            );
-
-            const socket = new SocketHelper("updateItem", result);
-            socket.create();
-
-            return res.status(200).send(result);
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              `${error}`,
-              `Item - Update`,
-              req.body.userId
-            );
-
-            return res.status(500).send(error);
-          });
-      }
-    })
-    .catch((error) => {
-      LogHelper.log(
-        new Date(),
-        "error",
-        `${error}`,
-        `Item - Update`,
-        req.body.userId
-      );
-    });
+      });
   };
 
   static fetchSearchResult = (req: Request, res: Response) => {
@@ -302,29 +307,100 @@ class ItemController {
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
 
-    ItemModel.fetchSearch(keyword, offset, limit).then(result => {
-      const ids = (result[0] as any[]).map(x => {
-        return x.id
-      });
-
-      ItemModel.fetchSearchByIds(ids).then(items => {
-        return res.status(200).send({
-          data: items.map(x => {
-            return {
-              ...x,
-              price: x.item_price.filter(y => y.item_unit == null)[0].price,
-              discount: x.item_price.filter(y => y.item_unit == null)[0].discount,
-            }
-          }),
-          count: (result[1] as any[]).length
+    ItemModel.fetchSearch(keyword, offset, limit)
+      .then((result) => {
+        const ids = (result[0] as any[]).map((x) => {
+          return x.id;
         });
-      }).catch(error => {
-        return res.status(500).send(error);
+
+        ItemModel.fetchSearchByIds(ids)
+          .then((items) => {
+            return res.status(200).send({
+              data: items.map((x) => {
+                return {
+                  ...x,
+                  price: x.item_price.filter((y) => y.item_unit == null)[0]
+                    .price,
+                  discount: x.item_price.filter((y) => y.item_unit == null)[0]
+                    .discount,
+                };
+              }),
+              count: (result[1] as any[]).length,
+            });
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       })
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchPurchaseSearchResult = (req: Request, res: Response) => {
+    const page: number = !req.query.page
+      ? 1
+      : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+
+    ItemModel.fetchSearch(keyword, offset, limit)
+      .then((result) => {
+        const ids = (result[0] as any[]).map((x) => {
+          return x.id;
+        });
+
+        ItemModel.fetchPurchaseSearchByIds(ids)
+          .then((items) => {
+            return res.status(200).send({
+              data: items.map((x) => {
+                return {
+                  ...x,
+                  price: x.item_price_purchase.filter(
+                    (y) => y.item_unit == null
+                  )[0].price,
+                };
+              }),
+              count: (result[1] as any[]).length,
+            });
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchSearchStock = (req: Request, res: Response) => {
+    const page: number = !req.query.page
+      ? 1
+      : Math.max(parseInt(req.query.page.toString()), 1);
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    ItemModel.fetchSearch(keyword, offset, limit)
+      .then((result) => {
+        const ids = (result[0] as any[]).map((x) => {
+          return x.id;
+        });
+        ItemModel.fetchStockByItemIds(ids)
+          .then((stock) => {
+            return res.status(200).send({
+              data: stock[0],
+              count: stock[1],
+            });
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 
   static fetch = (req: Request, res: Response) => {
     const page: number = !req.query.page
@@ -333,7 +409,11 @@ class ItemController {
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const active = !req.query.active ? true : (req.query.active == '1') ? true : false;
+    const active = !req.query.active
+      ? true
+      : req.query.active == "1"
+      ? true
+      : false;
 
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
@@ -407,63 +487,13 @@ class ItemController {
       });
   };
 
-  static fetchInsufficient = (req: Request, res: Response) => {
-    const page: number = !req.query.page
-      ? 1
-      : Math.max(parseInt(req.query.page.toString()), 1);
-    const limit = parseInt(process.env.LIMIT!);
-    const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const blocked_brand =
-      req.query.blocked_brands == null ||
-      req.query.blocked_brands == "" ||
-      req.query.blocked_brands == undefined
-        ? []
-        : req.query.blocked_brands.toString().split(",");
-
-    ItemModel.fetchInsufficient(keyword, blocked_brand, offset, limit)
-      .then((result) => {
-        ItemModel.fetchByIds(
-          (result[0] as any[]).map((x) => {
-            return x.id;
-          })
-        )
-          .then((items) => {
-            return res.status(200).send({
-              data: items,
-              count: (result[1] as any[])[0].count,
-            });
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              error,
-              "Item Controller - Fetch Insufficient",
-              req.body.userId
-            );
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Item Controller - Fetch Insufficient",
-          req.body.userId
-        );
-        return res.status(500).send(error);
-      });
-  };
-
   static fetchStock = (req: Request, res: Response) => {
     const errors = validationResult(req);
     if (errors.array().length > 0) {
       return res.status(400).send("Mohon isikan dengan format yang sesuai.");
     }
 
-    const reference = req.query.reference?.toString()!;
+    const reference = decodeURIComponent(req.query.reference?.toString()!);
     const page = !req.query.page
       ? 1
       : Math.max(1, parseInt(req.query.page.toString()));
@@ -569,41 +599,58 @@ class ItemController {
 
   static fetchUnits = (req: Request, res: Response) => {
     const reference = req.params.reference;
-    ItemUnitModel.fetchByItemReference(reference).then(result => {
-      if(result == null || result.is_delete){
-        return res.status(404).send("Barang tidak ditemukan.");
-      } else {
-        return res.status(200).send(result);
-      }
-    }).catch(error => {
-      LogHelper.log(new Date(), "error", error, "Item Controller - fetch Units", req.body.userId);
+    ItemUnitModel.fetchByItemReference(reference)
+      .then((result) => {
+        if (result == null || result.is_delete) {
+          return res.status(404).send("Barang tidak ditemukan.");
+        } else {
+          return res.status(200).send(result);
+        }
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Item Controller - fetch Units",
+          req.body.userId
+        );
 
-      return res.status(500).send(error);
-    })
-  }
+        return res.status(500).send(error);
+      });
+  };
 
   static updateUnit = (req: Request, res: Response) => {
     const units = req.body.units as any[];
     const item_id = req.body.item_id;
-    const new_units = units.filter(x => x.id == '');
-    const update_units = units.filter(x => x.id != '');
+    const new_units = units.filter((x) => x.id == "");
+    const update_units = units.filter((x) => x.id != "");
 
     Promise.all([
       ItemUnitModel.createMany(new_units, item_id, req.body.userId),
-      ItemUnitModel.updateMany(update_units)
-    ]).then(() => {
-      ItemModel.fetchById(item_id, new Date()).then(item => {
-        return res.status(200).send(item);
-      }).catch(error => {
-        return res.status(500).send(error);
+      ItemUnitModel.updateMany(update_units, req.body.userId),
+    ])
+      .then(() => {
+        ItemModel.fetchById(item_id, new Date())
+          .then((item) => {
+            return res.status(200).send(item);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       })
-      
-    }).catch(error => {
-      LogHelper.log(new Date(), "error", error, "Item Controller - Update units", req.body.userId);
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Item Controller - Update units",
+          req.body.userId
+        );
 
-      return res.status(500).send(error);
-    })
-  }
+        return res.status(500).send(error);
+      });
+  };
 
   static fetchDailyStock = (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -611,7 +658,7 @@ class ItemController {
       return res.status(400).send("Mohon isikan dengan format yang sesuai.");
     }
 
-    const reference = req.params.reference;
+    const reference = decodeURIComponent(req.params.reference);
     const start = req.query.start?.toString();
 
     ItemModel.fetchByReference(reference)
@@ -619,34 +666,91 @@ class ItemController {
         if (item == null) {
           return res.status(404).send("Barang tidak ditemukan.");
         } else {
-          ItemModel.fetchStockData(item.id, start, start).then((result) => {
-            return res.status(200).send(result);
-          }).catch(error => {
-            return res.status(500).send(error);
-          })
+          ItemModel.fetchStockData(item.id, start, start)
+            .then((result) => {
+              return res.status(200).send(result);
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
         }
-      }).catch(error => {
-        return res.status(500).send(error);
       })
-  }
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 
   static toggleActive = (req: Request, res: Response) => {
     const reference = req.params.reference;
-    ItemModel.fetchByReference(reference).then(item => {
-      if(item == null || item.is_delete){
+    ItemModel.fetchByReference(reference).then((item) => {
+      if (item == null || item.is_delete) {
         return res.status(404).send("Barang tidak ditemukan.");
       } else {
-        ItemModel.toggleActive(item.id, !item.is_active).then(result => {
-          const socket = new SocketHelper("updateItemActive", result);
-          socket.create();
+        ItemModel.toggleActive(item.id, !item.is_active)
+          .then((result) => {
+            const socket = new SocketHelper("updateItemActive", result);
+            socket.create();
 
-          return res.status(200).send(result);
-        }).catch(error => {
-          return res.status(500).send(error);
-        })
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       }
-    })
-  }
+    });
+  };
+
+  static fetchStockReportPdf = (req: Request, res: Response) => {
+    const brand_ids = req.body.brand_id as number[];
+    const type_ids = req.body.type_id as number[];
+
+    Promise.all([
+      UserModel.fetchById(req.body.userId),
+      ItemModel.fetchInsufficient(brand_ids, type_ids),
+    ]).then((result) => {
+      if (result[0] == null) {
+        return res.status(400).send("Pengguna tidak ditemukan.");
+      } else {
+        const items = result[1].filter(
+          (x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock
+        );
+
+        StockCardHelper.createInsufficientPdf(items,
+          function (binary: string) {
+            return res.status(200).send({
+              data: binary,
+            });
+          },
+          function (error: any) {
+            return res.status(500).send(error);
+          }
+        );
+      }
+    });
+  };
+
+  static fetchStockReport = (req: Request, res: Response) => {
+    const brand_ids = req.body.brand_id as number[];
+    const type_ids = req.body.type_id as number[];
+
+    ItemModel.fetchInsufficient(brand_ids, type_ids)
+      .then((result) => {
+        console.log(result);
+        return res.status(200).send({
+          data: result
+            .filter((x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock)
+            .map((y) => {
+              return {
+                ...y,
+                stock: y.stock == null ? 0 : y.stock.stock,
+              };
+            }),
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default ItemController;
