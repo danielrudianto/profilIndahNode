@@ -17,6 +17,7 @@ class BillController {
     const payment_method_id = req.body.payment_method_id;
     const discount = parseFloat(req.body.discount);
     const delivery = parseFloat(req.body.delivery);
+    const service = parseFloat(req.body.service);
     const bill = req.body.bill as any[];
     const date = (!req.body.date || req.body.date == null) ? new Date() : new Date(req.body.date);
 
@@ -26,6 +27,7 @@ class BillController {
       payment_method_id,
       discount,
       delivery,
+      service,
       date
     );
 

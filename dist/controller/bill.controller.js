@@ -8,6 +8,7 @@ const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const bill_model_1 = __importDefault(require("../model/bill.model"));
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
+const item_price_model_1 = __importDefault(require("../model/item_price.model"));
 class BillController {
 }
 BillController.create = (req, res) => {
@@ -19,15 +20,26 @@ BillController.create = (req, res) => {
     const payment_method_id = req.body.payment_method_id;
     const discount = parseFloat(req.body.discount);
     const delivery = parseFloat(req.body.delivery);
+    const service = parseFloat(req.body.service);
     const bill = req.body.bill;
     const date = (!req.body.date || req.body.date == null) ? new Date() : new Date(req.body.date);
-    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, date);
+    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date);
     bill_code
         .create()
         .then((result) => {
-        bill_model_1.default.create(bill.map((x) => {
-            return Object.assign(Object.assign({}, x), { bill_code_id: result.id });
-        }))
+        Promise.all([
+            bill_model_1.default.create(bill.map((x) => {
+                return {
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                    price: x.price,
+                    discount: x.discount,
+                    quantity: x.quantity,
+                    bill_code_id: result.id,
+                };
+            })),
+            item_price_model_1.default.updateMany(bill.filter(x => x.save), req.body.userId)
+        ])
             .then(() => {
             log_helper_1.default.log(new Date(), "info", `${result.user_bill_code_created_byTouser.name} berhasil menambahkan faktur penjualan ${result.name} (ID: ${result.id})`, "Bill controller - Create", req.body.userId);
             return res.status(201).send(result);

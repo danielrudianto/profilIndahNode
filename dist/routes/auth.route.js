@@ -15,6 +15,7 @@ router.get("/", auth_helper_1.authMiddleware, (req, res, next) => {
     });
 });
 router.post("/token", auth_helper_1.authMiddleware, (0, express_validator_1.body)("token").not().isEmpty(), auth_controller_1.default.saveToken);
+router.post("/refreshToken", auth_controller_1.default.refreshToken);
 router.put("/password", auth_helper_1.authMiddleware, (0, express_validator_1.body)("password").not().isEmpty(), auth_controller_1.default.updatePassword);
 router.put("/resetPassword", auth_helper_1.authMiddleware, auth_controller_1.default.resetPassword);
 exports.default = router;

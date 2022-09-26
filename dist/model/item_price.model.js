@@ -3,10 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class ItemPriceModel {
-    constructor(price, discount, discount_project, item_id, created_by, effective_date = null) {
+    constructor(price, discount, item_id, created_by, effective_date = null) {
         this.price = price;
         this.discount = discount;
-        this.discount_project = discount_project;
         this.item_id = item_id;
         this.created_by = created_by;
         this.created_at = new Date();
@@ -18,7 +17,6 @@ class ItemPriceModel {
                 item_id: this.item_id,
                 price: this.price,
                 discount: this.discount,
-                discount_project: this.discount_project,
                 created_by: this.created_by,
                 created_at: this.created_at,
                 effective_date: this.effective_date,
@@ -26,7 +24,6 @@ class ItemPriceModel {
             select: {
                 price: true,
                 discount: true,
-                discount_project: true,
                 is_delete: true,
                 user: {
                     select: {
@@ -53,6 +50,7 @@ class ItemPriceModel {
                         id: true,
                         reference: true,
                         description: true,
+                        unit: true,
                         item_brand: {
                             select: {
                                 name: true,
@@ -60,11 +58,18 @@ class ItemPriceModel {
                         },
                         item_price: {
                             select: {
+                                id: true,
                                 price: true,
                                 discount: true,
-                                discount_project: true,
                                 created_at: true,
                                 effective_date: true,
+                                item_unit: {
+                                    select: {
+                                        id: true,
+                                        unit: true,
+                                        conversion: true,
+                                    },
+                                },
                             },
                             where: {
                                 is_delete: false,
@@ -74,14 +79,20 @@ class ItemPriceModel {
                             },
                             orderBy: [
                                 {
+                                    item_unit_id: "asc",
+                                },
+                                {
+                                    item_unit: {
+                                        unit: "asc",
+                                    },
+                                },
+                                {
                                     effective_date: "desc",
                                 },
                                 {
                                     id: "desc",
                                 },
                             ],
-                            take: 1,
-                            skip: 0,
                         },
                     },
                     orderBy: {
@@ -113,12 +124,27 @@ class ItemPriceModel {
                                     contains: keyword,
                                 },
                             },
+                            {
+                                item_brand: {
+                                    name: {
+                                        contains: keyword
+                                    }
+                                }
+                            },
+                            {
+                                item_type: {
+                                    name: {
+                                        contains: keyword
+                                    }
+                                }
+                            }
                         ],
                     },
                     select: {
                         id: true,
                         reference: true,
                         description: true,
+                        unit: true,
                         item_brand: {
                             select: {
                                 name: true,
@@ -126,10 +152,18 @@ class ItemPriceModel {
                         },
                         item_price: {
                             select: {
+                                id: true,
                                 price: true,
                                 discount: true,
-                                discount_project: true,
                                 created_at: true,
+                                effective_date: true,
+                                item_unit: {
+                                    select: {
+                                        id: true,
+                                        unit: true,
+                                        conversion: true,
+                                    },
+                                },
                             },
                             where: {
                                 is_delete: false,
@@ -139,14 +173,20 @@ class ItemPriceModel {
                             },
                             orderBy: [
                                 {
+                                    item_unit_id: "asc",
+                                },
+                                {
+                                    item_unit: {
+                                        unit: "asc",
+                                    },
+                                },
+                                {
                                     effective_date: "desc",
                                 },
                                 {
                                     id: "desc",
                                 },
                             ],
-                            take: 1,
-                            skip: 0,
                         },
                     },
                     orderBy: {
@@ -169,6 +209,20 @@ class ItemPriceModel {
                                     contains: keyword,
                                 },
                             },
+                            {
+                                item_brand: {
+                                    name: {
+                                        contains: keyword
+                                    }
+                                }
+                            },
+                            {
+                                item_type: {
+                                    name: {
+                                        contains: keyword
+                                    }
+                                }
+                            }
                         ],
                     },
                 }),
@@ -198,9 +252,15 @@ class ItemPriceModel {
                 created_at: true,
                 item_price: {
                     select: {
+                        id: true,
                         price: true,
                         discount: true,
-                        discount_project: true,
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
                     },
                     where: {
                         is_delete: false,
@@ -243,6 +303,95 @@ class ItemPriceModel {
                 deleted_by: created_by,
             },
         });
+    }
+    static updatePrice(item_id, price, discount, created_by, item_unit_id = null, effective_date = new Date()) {
+        return prisma.$transaction([
+            prisma.item_price.updateMany({
+                where: {
+                    item_id: item_id,
+                    item_unit_id: item_unit_id,
+                    is_delete: false,
+                },
+                data: {
+                    is_delete: true,
+                    deleted_at: new Date(),
+                    deleted_by: created_by
+                }
+            }),
+            prisma.item_price.create({
+                data: {
+                    item_id: item_id,
+                    item_unit_id: item_unit_id,
+                    price: price,
+                    discount: discount,
+                    created_by: created_by,
+                    created_at: new Date(),
+                    effective_date: effective_date
+                }
+            })
+        ]);
+    }
+    static fetchById(id) {
+        return prisma.item_price.findUnique({
+            where: {
+                id: id
+            },
+            select: {
+                price: true,
+                discount: true,
+                item_unit: {
+                    select: {
+                        id: true,
+                        unit: true,
+                        conversion: true
+                    }
+                },
+                item: {
+                    select: {
+                        id: true,
+                        reference: true,
+                        description: true,
+                        item_brand: {
+                            select: {
+                                name: true,
+                            }
+                        },
+                        unit: true,
+                    }
+                },
+                is_delete: true,
+                effective_date: true,
+            }
+        });
+    }
+    static updateMany(item_price, deleted_by) {
+        const transactions = [];
+        item_price.forEach(x => {
+            transactions.push(prisma.item_price.updateMany({
+                where: {
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                    is_delete: false,
+                },
+                data: {
+                    is_delete: true,
+                    deleted_at: new Date(),
+                    deleted_by: deleted_by
+                }
+            }));
+            transactions.push(prisma.item_price.create({
+                data: {
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                    price: x.price,
+                    discount: x.discount,
+                    created_at: new Date(),
+                    created_by: deleted_by,
+                    effective_date: new Date()
+                }
+            }));
+        });
+        return prisma.$transaction(transactions);
     }
 }
 exports.default = ItemPriceModel;

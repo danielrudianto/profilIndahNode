@@ -177,6 +177,14 @@ class GoodReceiptModel {
     });
   }
 
+  static deleteItemsByGoodReceiptCodeId(good_receipt_code_id: number) {
+    return prisma.good_receipt.deleteMany({
+      where: {
+        good_receipt_code_id: good_receipt_code_id,
+      },
+    });
+  }
+
   static fetchArchive(
     year: number,
     month: number,
@@ -234,14 +242,6 @@ class GoodReceiptModel {
 
   static fetchArchiveYears() {
     return prisma.$queryRaw`SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year FROM good_receipt_code ORDER BY good_receipt_code.date ASC`;
-  }
-
-  static deleteItemsByGoodReceiptCodeId(good_receipt_code_id: number) {
-    return prisma.good_receipt.deleteMany({
-      where: {
-        good_receipt_code_id: good_receipt_code_id,
-      },
-    });
   }
 
   static countArchiveByYear() {

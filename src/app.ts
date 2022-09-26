@@ -20,8 +20,9 @@ import expenseRoutes from "./routes/expense.route";
 import paymentMethodRoutes from "./routes/payment_method.route";
 import billRoutes from "./routes/bill.route";
 import adjustmentCaseRoutes from "./routes/adjustment_case.route";
-import reportRoutes from './routes/report.route';
-import itemTypeRoutes from './routes/item_type.route';
+import reportRoutes from "./routes/report.route";
+import itemTypeRoutes from "./routes/item_type.route";
+import salesReturnRoutes from "./routes/sales_return.route";
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
@@ -55,8 +56,9 @@ app.use("/paymentMethod", authMiddleware, paymentMethodRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/bill", authMiddleware, billRoutes);
 
-app.use('/report', reportRoutes);
+app.use("/report", reportRoutes);
 app.use("/itemType", authMiddleware, itemTypeRoutes);
+app.use("/salesReturn", authMiddleware, salesReturnRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, () => {

@@ -243,7 +243,9 @@ ReportController.fetchPLStats = (req, res) => {
             sales_distribution_model_1.default.fetchSum(month, year),
             purchase_document_model_1.default.fetchSum(month, year),
             expense_model_1.default.fetchSum(month, year),
-            (month == 0) ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31)) : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
+            month == 0
+                ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
+                : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
         ])
             .then((result) => {
             const sales_table = [];
@@ -323,7 +325,7 @@ ReportController.fetchPLStats = (req, res) => {
                 {
                     text: "-",
                     bold: true,
-                    alignment: 'left'
+                    alignment: "left",
                 },
                 {
                     text: formatter.format(parseFloat(result[0][0].value.toString()) -
@@ -384,28 +386,29 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[2].forEach(x => {
+            result[2].forEach((x) => {
                 purchase_table.push([
                     {
                         text: `${x.name}`,
                         bold: false,
-                        alignment: 'left'
+                        alignment: "left",
                     },
                     {
                         text: formatter.format(parseFloat(x.value.toString())),
                         bold: false,
-                        alignment: 'left'
+                        alignment: "left",
                     },
                     {
                         text: formatter.format(parseFloat(x.discount.toString())),
                         bold: false,
-                        alignment: 'left'
+                        alignment: "left",
                     },
                     {
-                        text: formatter.format(parseFloat(x.value.toString()) - parseFloat(x.discount.toString())),
+                        text: formatter.format(parseFloat(x.value.toString()) -
+                            parseFloat(x.discount.toString())),
                         bold: false,
-                        alignment: 'left'
-                    }
+                        alignment: "left",
+                    },
                 ]);
                 total_purchase_value += parseFloat(x.value.toString());
                 total_purchase_discount += parseFloat(x.discount.toString());
@@ -414,23 +417,23 @@ ReportController.fetchPLStats = (req, res) => {
                 {
                     text: "Keseluruhan",
                     bold: true,
-                    alignment: 'left'
+                    alignment: "left",
                 },
                 {
                     text: formatter.format(total_purchase_value),
                     bold: true,
-                    alignment: 'left'
+                    alignment: "left",
                 },
                 {
                     text: formatter.format(total_purchase_discount),
                     bold: true,
-                    alignment: 'left'
+                    alignment: "left",
                 },
                 {
-                    text: formatter.format((total_purchase_value - total_purchase_discount)),
+                    text: formatter.format(total_purchase_value - total_purchase_discount),
                     bold: true,
-                    alignment: 'left'
-                }
+                    alignment: "left",
+                },
             ]);
             const expenses = [];
             const expense_table = [];
@@ -447,19 +450,21 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[3].filter(x => x.parent_id == null).forEach(y => {
+            result[3]
+                .filter((x) => x.parent_id == null)
+                .forEach((y) => {
                 expenses.push(Object.assign(Object.assign({}, y), { value: 0, children: [] }));
             });
-            const child_expenses = result[3].filter(x => x.parent_id != null);
-            child_expenses.forEach(child_expense => {
-                const index = expenses.findIndex(expense => expense.id == child_expense.parent_id);
+            const child_expenses = result[3].filter((x) => x.parent_id != null);
+            child_expenses.forEach((child_expense) => {
+                const index = expenses.findIndex((expense) => expense.id == child_expense.parent_id);
                 if (index != -1) {
                     expenses[index].children.push(child_expense);
                     expenses[index].value += parseFloat(child_expense.value.toString());
                     total_expense_value += parseFloat(child_expense.value.toString());
                 }
             });
-            expenses.forEach(expense => {
+            expenses.forEach((expense) => {
                 expense_table.push([
                     {
                         text: expense.name,
@@ -473,7 +478,7 @@ ReportController.fetchPLStats = (req, res) => {
                     },
                 ]);
                 if (expense.children.length > 0) {
-                    expense.children.forEach(child_expense => {
+                    expense.children.forEach((child_expense) => {
                         expense_table.push([
                             {
                                 text: `${expense.name}/${child_expense.name}`,
@@ -515,7 +520,7 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[4].forEach(x => {
+            result[4].forEach((x) => {
                 const name = x.f2;
                 const value = parseFloat(x.f0);
                 hpp_value += value;
@@ -523,26 +528,26 @@ ReportController.fetchPLStats = (req, res) => {
                     {
                         text: name,
                         bold: false,
-                        alignment: 'left'
+                        alignment: "left",
                     },
                     {
                         text: formatter.format(value),
                         bold: false,
-                        alignment: 'left'
-                    }
+                        alignment: "left",
+                    },
                 ]);
             });
             hpp_table.push([
                 {
                     text: "Total",
                     bold: true,
-                    alignment: 'left'
+                    alignment: "left",
                 },
                 {
                     text: formatter.format(hpp_value),
                     bold: true,
-                    alignment: 'left'
-                }
+                    alignment: "left",
+                },
             ]);
             const sales_value = parseFloat(result[0][0].value.toString()) -
                 parseFloat(result[0][0].discount.toString()) -
@@ -579,13 +584,13 @@ ReportController.fetchPLStats = (req, res) => {
                             widths: ["auto", "auto", "auto", "*"],
                             body: sales_table,
                         },
-                        margin: [0, 0, 0, 15]
+                        margin: [0, 0, 0, 15],
                     },
                     {
                         text: "Penjualan tidak teralokasi disebabkan karena adanya ketidakcocokan tingkat ketersediaan dengan penjualan.",
                         fontSize: 10,
-                        color: '#333333',
-                        margin: [0, 0, 0, 20]
+                        color: "#333333",
+                        margin: [0, 0, 0, 20],
                     },
                     {
                         text: "Pembelian",
@@ -601,7 +606,7 @@ ReportController.fetchPLStats = (req, res) => {
                             widths: ["auto", "auto", "auto", "*"],
                             body: purchase_table,
                         },
-                        margin: [0, 0, 0, 15]
+                        margin: [0, 0, 0, 15],
                     },
                     {
                         text: "Pengeluaran",
@@ -617,7 +622,7 @@ ReportController.fetchPLStats = (req, res) => {
                             widths: ["*", "*"],
                             body: expense_table,
                         },
-                        margin: [0, 0, 0, 15]
+                        margin: [0, 0, 0, 15],
                     },
                     {
                         text: "Harga Pokok Penjualan",
@@ -633,13 +638,13 @@ ReportController.fetchPLStats = (req, res) => {
                             widths: ["*", "*"],
                             body: hpp_table,
                         },
-                        margin: [0, 0, 0, 15]
+                        margin: [0, 0, 0, 15],
                     },
                     {
                         text: "Harga pokok penjualan termasuk dengan perhitungan atas kehilangan barang yang terjadi.",
                         fontSize: 10,
-                        color: '#333333',
-                        margin: [0, 0, 0, 20]
+                        color: "#333333",
+                        margin: [0, 0, 0, 20],
                     },
                     {
                         text: `Laba / Rugi: ${formatter.format(total_value - hpp_value - total_expense_value)}`,
@@ -692,9 +697,11 @@ ReportController.fetchReception = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const date = parseInt(req.params.date);
-    bill_code_model_1.default.fetchReception(year, month, date).then(result => {
+    bill_code_model_1.default.fetchReception(year, month, date)
+        .then((result) => {
         return res.status(200).send(result);
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Report Controller - Fetch Reception", req.body.userId);
         return res.status(500).send(error);
     });

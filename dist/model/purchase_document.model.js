@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class PurchaseDocumentModel {
-    constructor(name, date, discount, good_receipt_code_id, created_by, id = null) {
+    constructor(name, date, discount, good_receipt_code_id, created_by, confirmed_by = null, id = null) {
         this.is_delete = false;
         this.is_confirm = true;
         if (id != null) {
@@ -15,8 +15,14 @@ class PurchaseDocumentModel {
         this.good_receipt_code_id = good_receipt_code_id;
         this.created_by = created_by;
         this.created_at = new Date();
-        this.confirmed_by = created_by;
-        this.confirmed_at = this.created_at;
+        if (confirmed_by == null) {
+            this.confirmed_by = null;
+            this.confirmed_at = null;
+        }
+        else {
+            this.confirmed_by = created_by;
+            this.confirmed_at = this.created_at;
+        }
     }
     create() {
         return prisma.purchase_invoice.create({
@@ -27,7 +33,7 @@ class PurchaseDocumentModel {
                 good_receipt_code_id: this.good_receipt_code_id,
                 created_by: this.created_by,
                 created_at: this.created_at,
-                is_confirm: true,
+                is_confirm: (this.confirmed_by == null) ? false : true,
                 confirmed_by: this.confirmed_by,
                 confirmed_at: this.confirmed_at,
             },
@@ -71,12 +77,14 @@ class PurchaseDocumentModel {
                 date: true,
                 user_good_receipt_code_created_byTouser: {
                     select: {
+                        id: true,
                         name: true,
                     },
                 },
                 created_at: true,
                 user_good_receipt_code_confirmed_byTouser: {
                     select: {
+                        id: true,
                         name: true,
                     },
                 },
@@ -232,6 +240,43 @@ class PurchaseDocumentModel {
         GROUP BY company.id
       `);
         }
+    }
+    static fetchUnconfirmed(offset, limit) {
+        return prisma.$transaction([
+            prisma.purchase_invoice.findMany({
+                where: {
+                    is_confirm: false,
+                    is_delete: false,
+                },
+                select: {
+                    id: true,
+                    date: true,
+                    name: true,
+                    created_at: true,
+                    user_purchase_invoice_created_byTouser: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    good_receipt_code: {
+                        select: {
+                            supplier: {
+                                select: {
+                                    name: true,
+                                    address: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
+            prisma.purchase_invoice.count({
+                where: {
+                    is_confirm: false,
+                    is_delete: false,
+                },
+            }),
+        ]);
     }
 }
 exports.default = PurchaseDocumentModel;

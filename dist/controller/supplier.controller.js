@@ -92,4 +92,12 @@ SupplierController.getAutocomplete = (req, res) => {
         return res.status(500).send(error);
     });
 };
+SupplierController.fetchById = (req, res) => {
+    const id = parseInt(req.params.id);
+    supplier_model_1.default.fetchById(id).then(result => {
+        return res.status(200).send(result);
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
 exports.default = SupplierController;

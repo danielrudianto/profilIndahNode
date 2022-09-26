@@ -56,26 +56,29 @@ PurchaseDocumentController.update = (req, res) => {
                     quantity: good_receipt_items[idx].quantity,
                     good_receipt_code_id: good_receipt_result.id,
                     price: good_receipt_items[idx].price,
-                    item_unit_id: good_receipt_items[idx].item_unit_id
+                    item_unit_id: good_receipt_items[idx].item_unit_id,
                 });
             }
             const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
             const delete_item = good_receipt_model_1.default.deleteItemsByGoodReceiptCodeId(good_receipt_result.id);
-            const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, good_receipt_result.purchase_invoice[0].id);
-            const update_purchase_document = purchase_document.update();
-            const transaction = new query_transaction_helper_1.default();
-            transaction
-                .create([update_purchase_document, delete_item])
-                .then(() => {
-                insert_item
-                    .then((items) => {
-                    return res.status(201).send(Object.assign(Object.assign({}, good_receipt_result), { good_receipt: items }));
+            purchase_document_model_1.default.fetchById(good_receipt_result.purchase_invoice[0].id).then((purchase_document) => {
+                var _a;
+                const updated_purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, (_a = purchase_document === null || purchase_document === void 0 ? void 0 : purchase_document.user_good_receipt_code_confirmed_byTouser) === null || _a === void 0 ? void 0 : _a.id, good_receipt_result.purchase_invoice[0].id);
+                const update_purchase_document = updated_purchase_document.update();
+                Promise.all([update_purchase_document, delete_item])
+                    .then(() => {
+                    insert_item
+                        .then((items) => {
+                        return res.status(201).send(Object.assign(Object.assign({}, good_receipt_result), { good_receipt: items }));
+                    })
+                        .catch((error) => {
+                        return res.status(500).send(error);
+                    });
                 })
                     .catch((error) => {
                     return res.status(500).send(error);
                 });
-            })
-                .catch((error) => {
+            }).catch(error => {
                 return res.status(500).send(error);
             });
         })
@@ -123,7 +126,7 @@ PurchaseDocumentController.create = (req, res) => {
                         quantity: good_receipt_items[idx].quantity,
                         good_receipt_code_id: good_receipt_result.id,
                         price: good_receipt_items[idx].price,
-                        item_unit_id: good_receipt_items[idx].item_unit_id
+                        item_unit_id: good_receipt_items[idx].item_unit_id,
                     });
                     if (good_receipt_items[idx].save == true) {
                         const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId);
@@ -159,6 +162,23 @@ PurchaseDocumentController.create = (req, res) => {
             .catch((error) => {
             log_helper_1.default.log(new Date(), "error", error, "Purchase Document Controller - Create", req.body.userId);
             return res.status(500).send(error);
+        });
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+PurchaseDocumentController.fetchUnconfirmed = (req, res) => {
+    const page = !req.query.page
+        ? 1
+        : Math.max(1, parseInt(req.query.page.toString()));
+    const limit = parseInt(process.env.LIMIT);
+    const offset = (page - 1) * limit;
+    purchase_document_model_1.default.fetchUnconfirmed(offset, limit)
+        .then((result) => {
+        return res.status(200).send({
+            data: result[0],
+            count: result[1],
         });
     })
         .catch((error) => {

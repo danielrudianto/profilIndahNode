@@ -1,21 +1,133 @@
 import { Request, Response } from "express";
 import BillCodeModel from "../model/bill_code.model";
+import SalesReturnModel from "../model/sales_return.model";
 
 class SalesReturnController {
-    static create = (req: Request, res: Response) => {
-        
-    }
+  static create = (req: Request, res: Response) => {
+    const date = new Date(req.body.date);
+    const payment_method_id = req.body.payment_method_id;
+    const customer_id = req.body.customer_id;
 
-    static fetchSearch = (req: Request, res: Response) => {
-        const date = new Date(req.body.date);
-        const items = req.body.item as any[];
+    const items = req.body.sales_return as any[];
+    const name = `RJ-${date.getFullYear()}-${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}`;
 
-        BillCodeModel.fetchSearch(date, items).then(result => {
-            return res.status(200).send(result);
-        }).catch(error => {
-            return res.status(500).send(error);
+    const sales_return_code = new SalesReturnModel(
+      name,
+      date,
+      req.body.userId,
+      customer_id,
+      payment_method_id,
+      items,
+      null,
+      true
+    );
+
+    sales_return_code
+      .create()
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchSearch = (req: Request, res: Response) => {
+    const date = new Date(req.body.date);
+    const items = req.body.item as any[];
+
+    BillCodeModel.fetchSearch(date, items)
+      .then((result) => {
+        return res.status(200).send(
+          (result as any[]).map((x) => {
+            return {
+              id: x.id,
+              name: x.name,
+              date: x.date,
+              customer: {
+                name: x.customer_name,
+              },
+            };
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchArchive = (req: Request, res: Response) => {
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
+
+    if (!req.params.year && !req.params.month) {
+      const archive_years = SalesReturnModel.fetchArchiveYears();
+      const count_archive_years = SalesReturnModel.countArchiveByYear();
+
+      Promise.all([archive_years, count_archive_years])
+        .then((result) => {
+          const response: any[] = [];
+          (result[0] as any[]).forEach((item) => {
+            response.push({
+              year: item.year,
+              count: (result[1] as any[]).filter((x) => x.year == item.year)[0]
+                .count,
+            });
+          });
+
+          return res.status(200).send(response);
         })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else if (!req.params.month) {
+      const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      SalesReturnModel.countArchiveByMonth(year)
+        .then((counts) => {
+          (counts as any[]).forEach((x) => {
+            const month = x.month;
+            const num = x.count;
+
+            count[month - 1] = num;
+          });
+
+          return res.status(200).send(count);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else if (req.params.year && req.params.month) {
+      const page = !req.query.page
+        ? 1
+        : Math.max(parseInt(req.query.page.toString()), 1);
+      const limit = parseInt(process.env.LIMIT!.toString());
+      const offset = (page - 1) * limit;
+
+      Promise.all([
+        SalesReturnModel.fetchArchive(year, month, offset, limit),
+        SalesReturnModel.countArchive(year, month),
+      ])
+        .then((result) => {
+          return res.status(200).send({
+            data: result[0],
+            count: result[1],
+          });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else {
+      return res.status(400).send("Input tidak dikenal.");
     }
+  };
 }
 
 export default SalesReturnController;

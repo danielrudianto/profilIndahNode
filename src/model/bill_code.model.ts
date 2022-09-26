@@ -15,6 +15,7 @@ class BillCodeModel {
   confirmed_at: Date;
   discount: number;
   delivery: number;
+  service: number;
   date: Date;
 
   constructor(
@@ -23,6 +24,7 @@ class BillCodeModel {
     payment_method_id: number,
     discount: number,
     delivery: number,
+    service: number,
     date: Date,
     id: number | null = null
   ) {
@@ -39,6 +41,7 @@ class BillCodeModel {
     this.confirmed_by = this.created_by;
     this.discount = discount;
     this.delivery = delivery;
+    this.service = service;
     this.date = new Date(date);
     this.name = "";
   }
@@ -63,6 +66,7 @@ class BillCodeModel {
         payment_method_id: this.payment_method_id,
         discount: this.discount,
         delivery: this.delivery,
+        service: this.service,
         date: this.date,
         is_confirm: this.is_confirm,
         confirmed_by: this.created_by,
@@ -73,6 +77,7 @@ class BillCodeModel {
         name: true,
         discount: true,
         delivery: true,
+        service: true,
         payment_method: {
           select: {
             name: true,
@@ -186,7 +191,7 @@ class BillCodeModel {
 
   static fetchByDate(date: Date = new Date()) {
     return prisma.$queryRaw`
-      SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
+      SELECT (a.delivery + a.value - a.discount + a.service) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service
       FROM bill
       JOIN bill_code ON bill.bill_code_id = bill_code.id
       WHERE bill_code.is_confirm = 1
@@ -198,7 +203,7 @@ class BillCodeModel {
 
   static fetchMonthlyByDate(date: Date = new Date()) {
     return prisma.$queryRaw`
-      SELECT (a.delivery + a.value - a.discount) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount
+      SELECT (a.delivery + a.value - a.discount + a.service) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service
       FROM bill
       JOIN bill_code ON bill.bill_code_id = bill_code.id
       WHERE bill_code.is_confirm = 1
@@ -218,6 +223,9 @@ class BillCodeModel {
           select: {
             name: true,
             date: true,
+            discount: true,
+            delivery: true,
+            service: true,
             user_bill_code_created_byTouser: {
               select: {
                 name: true,
@@ -253,10 +261,10 @@ class BillCodeModel {
       },
     });
   }
-  
-  static fetchById(id: number){
+
+  static fetchById(id: number) {
     return prisma.bill_code.findUnique({
-      where:{
+      where: {
         id: id,
       },
       select: {
@@ -264,33 +272,37 @@ class BillCodeModel {
         date: true,
         discount: true,
         delivery: true,
+        service: true,
         bill: {
           select: {
+            id: true,
             item: {
               select: {
                 reference: true,
                 description: true,
                 unit: true,
-              }
+              },
             },
             item_unit: {
               select: {
                 unit: true,
-                conversion: true
-              }
+                conversion: true,
+              },
             },
             quantity: true,
             price: true,
             discount: true,
+            item_unit_id: true,
+            item_id: true,
           },
         },
         user_bill_code_created_byTouser: {
           select: {
             name: true,
-          }
-        }
-      }
-    })
+          },
+        },
+      },
+    });
   }
 
   static fetchArchive(
@@ -339,6 +351,9 @@ class BillCodeModel {
         created_at: true,
         is_delete: true,
         is_confirm: true,
+        delivery: true,
+        discount: true,
+        service: true,
       },
     });
   }
@@ -391,8 +406,8 @@ class BillCodeModel {
       start_prev_date.setMonth(date.getMonth() - limit - offset - 12);
 
       return prisma.$transaction([
-        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value, diff FROM (
-          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
+        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount + service) AS value, diff FROM (
+          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value, SUM(bill_code.service) AS service, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
           FROM bill_code
           JOIN (
             SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
@@ -410,8 +425,8 @@ class BillCodeModel {
           AND bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           GROUP BY YEAR(bill_code.date), MONTH(bill_code.date)) AS bill_a`),
-        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount) AS value, diff FROM (
-          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
+        prisma.$queryRawUnsafe(`SELECT year, month, (delivery + value - discount + service) AS value, diff FROM (
+          SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, SUM(bill_code.delivery) AS delivery, SUM(bill_code.discount) AS discount, SUM(a.value) AS value, SUM(bill_code.service) AS service, TIMESTAMPDIFF(MONTH, LAST_DAY(curdate()), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(LAST_DAY(bill_code.date)),2,'00')), '%Y-%m-%d')) AS diff
           FROM bill_code
           JOIN (
             SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
@@ -435,8 +450,8 @@ class BillCodeModel {
     } else {
       date.setDate(date.getDate() - offset);
       start_date.setDate(date.getDate() - limit - offset);
-      return prisma.$queryRawUnsafe(`SELECT diff, (delivery + value - discount) AS value FROM (
-        SELECT datediff(curdate(), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(bill_code.date),2,'00')), '%Y-%m-%d')) AS diff, SUM(a.value) AS value, SUM(delivery) AS delivery, SUM(discount) AS discount
+      return prisma.$queryRawUnsafe(`SELECT diff, (delivery + value - discount + service) AS value FROM (
+        SELECT datediff(curdate(), STR_TO_DATE(CONCAT(YEAR(bill_code.date),'-',LPAD(MONTH(bill_code.date),2,'00'),'-',LPAD(DAY(bill_code.date),2,'00')), '%Y-%m-%d')) AS diff, SUM(a.value) AS value, SUM(delivery) AS delivery, SUM(discount) AS discount, SUM(service) AS service
         FROM bill_code
         JOIN (
           SELECT (SUM(bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
@@ -465,7 +480,7 @@ class BillCodeModel {
   static fetchByCustomerId(customer_id: number | null) {
     if (customer_id == null) {
       return prisma.$queryRaw`
-        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount) AS value, COUNT(bill_code) AS count
+        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount + bill_code.service) AS value, COUNT(bill_code) AS count
         FROM bill_code
         JOIN (
           SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
@@ -477,7 +492,7 @@ class BillCodeModel {
       `;
     } else {
       return prisma.$queryRaw`
-        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount) AS value, COUNT(bill_code) AS count
+        SELECT SUM(bill_.value + bill_code.delivery - bill_code.discount + bill_code.service) AS value, COUNT(bill_code) AS count
         FROM bill_code
         JOIN (
           SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
@@ -494,7 +509,7 @@ class BillCodeModel {
     if (month == 0) {
       // Fetch annual sales
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery
+        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service
         FROM bill_code
         JOIN (
           SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
@@ -510,7 +525,7 @@ class BillCodeModel {
     } else {
       // Fetch monthly sales
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery
+        SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service
         FROM bill_code
         JOIN (
           SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
@@ -527,24 +542,24 @@ class BillCodeModel {
     }
   }
 
-  static fetchReception(year: number, month: number, date: number)
-  {
+  static fetchReception(year: number, month: number, date: number) {
     return prisma.$queryRawUnsafe(`
       SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value
       FROM payment_method
-      LEFT JOIN (
-        SELECT SUM(a.value + delivery - discount) AS value, payment_method_id
+      RIGHT JOIN (
+        SELECT SUM(a.value + delivery - discount + service) AS value, payment_method_id
         FROM bill_code
         JOIN (
-          SELECT SUM((bill.price - bill.discount) * bill.quantity * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
           FROM bill
-          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
           GROUP BY bill.bill_code_id
         ) a
         ON bill_code.id = a.bill_code_id
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
-        AND bill_code.date = '${year}-${(month + 1).toString().padStart(2, "0")}-${(date).toString().padStart(2, "0")}'
+        AND bill_code.date = '${year}-${(month + 1)
+      .toString()
+      .padStart(2, "0")}-${date.toString().padStart(2, "0")}'
         GROUP BY bill_code.payment_method_id
       ) pm
       ON payment_method.id = pm.payment_method_id
@@ -552,23 +567,39 @@ class BillCodeModel {
     `);
   }
 
-  static fetchSearch(date: Date, items: any[]){
+  static fetchSearch(date: Date, items: any[]) {
+    let mysql_string = "";
 
-    let mysql_string = "SELECT bill.bill_code_id FROM bill";
-
-    items.forEach(x => {
-      mysql_string += `WHERE `;
+    items.forEach((x) => {
+      if (x.item_unit_id == null) {
+        mysql_string += `
+          AND bill_code.id IN (
+            SELECT DISTINCT(bill.bill_code_id) AS id
+            FROM bill
+            WHERE bill.item_id = ${x.item_id}
+            AND bill.item_unit_id IS NULL 
+            AND bill.quantity >= ${x.quantity}
+          )`;
+      } else {
+        mysql_string += `
+          AND bill_code.id IN (
+            SELECT DISTINCT(bill.bill_code_id) AS id
+            FROM bill
+            WHERE bill.item_id = ${x.item_id}
+            AND bill.item_unit_id = ${x.item_unit_id}
+            AND bill.quantity >= ${x.quantity}
+          )`;
+      }
     });
 
     return prisma.$queryRawUnsafe(`
-      SELECT bill_code.date, bill_code.name
+      SELECT bill_code.id, bill_code.date, bill_code.name, COALESCE(customer.name, 'Retail') AS customer_name
       FROM bill_code
+      LEFT JOIN customer ON bill_code.customer_id = customer.id
       WHERE DAY(bill_code.date) = ${date.getDate()}
       AND MONTH(bill_code.date) = ${date.getMonth() + 1}
       AND YEAR(bill_code.date) = ${date.getFullYear()}
-      AND bill_code.id IN (
-
-      );
+      ${mysql_string}
     `);
   }
 }

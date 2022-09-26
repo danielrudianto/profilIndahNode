@@ -83,8 +83,8 @@ class ExpenseModel {
         });
     }
     static count(year, month) {
-        const date = new Date(year, month - 1, 1, 0, 0, 0, 0);
-        const max_date = new Date(year, month, 1, 0, 0, 0, 0);
+        const date = new Date(year, month, 1, 0, 0, 0, 0);
+        const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
         return prisma.expense.count({
             where: {
                 is_delete: false,

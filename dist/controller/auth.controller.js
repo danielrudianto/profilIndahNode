@@ -22,17 +22,21 @@ AuthController.login = (req, res) => {
         .then((user) => {
         if (!user || !user.is_active) {
             log_helper_1.default.log(new Date(), "warn", `Login failed for username ${username}`, "Auth controller - Login", 0);
-            return res.status(401).send("Username / kata sandi salah.");
+            return res.status(400).send("Username / kata sandi salah.");
         }
         (0, bcrypt_1.compare)(password, user.password).then((result) => {
             if (!result) {
-                return res.status(401).send("Username / kata sandi salah.");
+                return res.status(400).send("Username / kata sandi salah.");
             }
-            const expired = (new Date()).getTime() + 60 * 60 * 12 * 1000;
             const jwtToken = (0, jsonwebtoken_1.sign)({
                 id: user.id,
             }, process.env.TOKEN_KEY.toString(), {
-                expiresIn: "12h",
+                expiresIn: process.env.EXPIRATION,
+            });
+            const refreshToken = (0, jsonwebtoken_1.sign)({
+                id: user.id
+            }, process.env.REFRESH_TOKEN_KEY.toString(), {
+                expiresIn: process.env.REFRESH_EXPIRATION
             });
             const userObject = {
                 id: user.id,
@@ -42,7 +46,7 @@ AuthController.login = (req, res) => {
             const response = {
                 user: userObject,
                 token: jwtToken,
-                expire: expired,
+                refreshToken: refreshToken,
             };
             log_helper_1.default.log(new Date(), "info", `Login success for username ${username}`, "Auth controller - Login", userObject.id);
             return res.status(200).send(response);
@@ -152,6 +156,39 @@ AuthController.resetPassword = (req, res) => {
         .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Auth controller - Reset password", req.body.userId);
         return res.status(500).send(error);
+    });
+};
+AuthController.refreshToken = (req, res) => {
+    var _a;
+    let tokenHeader = (_a = req.headers["x-access-token"]) === null || _a === void 0 ? void 0 : _a.toString();
+    if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
+        return res.status(400).json({
+            auth: false,
+            message: "Format token tidak sesuai. Mohon coba login ulang.",
+        });
+    }
+    let token = tokenHeader.split(" ")[1];
+    if (!token) {
+        return res.status(400).json({
+            auth: false,
+            message: "Token tidak tersedia. Mohon coba login ulang.",
+        });
+    }
+    (0, jsonwebtoken_1.verify)(token, process.env.REFRESH_TOKEN_KEY, (err, decoded) => {
+        if (err) {
+            return res.status(400).send(err);
+        }
+        else {
+            const id = parseInt(decoded.id);
+            const jwtToken = (0, jsonwebtoken_1.sign)({
+                id: id
+            }, process.env.TOKEN_KEY.toString(), {
+                expiresIn: process.env.EXPIRATION,
+            });
+            return res.status(200).send({
+                token: jwtToken
+            });
+        }
     });
 };
 exports.default = AuthController;
