@@ -13,7 +13,10 @@ class PurchaseDocumentController {
     const id = parseInt(req.params.id);
     PurchaseDocumentModel.fetchById(id)
       .then((result) => {
-        return res.status(200).send(result);
+        return res.status(200).send({
+          ...result,
+          purchase_invoice: result?.purchase_invoice,
+        });
       })
       .catch((error) => {
         return res.status(500).send(error);
@@ -80,40 +83,42 @@ class PurchaseDocumentController {
             );
 
             PurchaseDocumentModel.fetchById(
-              good_receipt_result.purchase_invoice[0].id
-            ).then((purchase_document) => {
-              const updated_purchase_document = new PurchaseDocumentModel(
-                purchase_invoice_name,
-                date,
-                discount,
-                good_receipt_result.id,
-                req.body.userId,
-                purchase_document?.user_good_receipt_code_confirmed_byTouser?.id,
-                good_receipt_result.purchase_invoice[0].id
-              );
+              good_receipt_result.purchase_invoice?.id!
+            )
+              .then((purchase_document) => {
+                const updated_purchase_document = new PurchaseDocumentModel(
+                  purchase_invoice_name,
+                  date,
+                  discount,
+                  good_receipt_result.id,
+                  req.body.userId,
+                  purchase_document?.user_good_receipt_code_confirmed_byTouser?.id,
+                  good_receipt_result.purchase_invoice?.id
+                );
 
-              const update_purchase_document =
-                updated_purchase_document.update();
+                const update_purchase_document =
+                  updated_purchase_document.update();
 
-              Promise.all([update_purchase_document, delete_item])
-                .then(() => {
-                  insert_item
-                    .then((items) => {
-                      return res.status(201).send({
-                        ...good_receipt_result,
-                        good_receipt: items,
+                Promise.all([update_purchase_document, delete_item])
+                  .then(() => {
+                    insert_item
+                      .then((items) => {
+                        return res.status(201).send({
+                          ...good_receipt_result,
+                          good_receipt: items,
+                        });
+                      })
+                      .catch((error) => {
+                        return res.status(500).send(error);
                       });
-                    })
-                    .catch((error) => {
-                      return res.status(500).send(error);
-                    });
-                })
-                .catch((error) => {
-                  return res.status(500).send(error);
-                });
-            }).catch(error => {
-              return res.status(500).send(error);
-            })
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
+                  });
+              })
+              .catch((error) => {
+                return res.status(500).send(error);
+              });
           })
           .catch((error) => {
             return res.status(500).send(error);
@@ -131,7 +136,7 @@ class PurchaseDocumentController {
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt as any[];
 
-    const purchase_invoice = (req.body.purchase_invoice as any[])[0];
+    const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
 
@@ -266,6 +271,84 @@ class PurchaseDocumentController {
       .catch((error) => {
         return res.status(500).send(error);
       });
+  };
+
+  static confirm = (req: Request, res: Response) => {
+    const id = req.body.id;
+    const discount = req.body.discount;
+    const good_receipt = req.body.good_receipt as any[];
+
+    PurchaseDocumentModel.fetchById(id)
+      .then((good_receipt_code) => {
+        if (
+          good_receipt_code == null ||
+          good_receipt_code.purchase_invoice == null
+        ) {
+          return res.status(404).send("Pembelian tidak ditemukan.");
+        } else if (
+          good_receipt_code.purchase_invoice.is_confirm ||
+          good_receipt_code.purchase_invoice.is_delete
+        ) {
+          return res
+            .status(400)
+            .send("Pembelian telah dikonfirmasi atau dihapus.");
+        } else {
+          PurchaseDocumentModel.confirmById(
+            id,
+            discount,
+            good_receipt,
+            req.body.userId
+          )
+            .then((result) => {
+              const socket = new SocketHelper(
+                "updatePurchaseDocumentStatus",
+                result[0]
+              );
+              socket.create();
+
+              return res.status(200).send(result[0]);
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static delete = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    PurchaseDocumentModel.fetchById(id).then((good_receipt_code) => {
+      if (
+        good_receipt_code == null ||
+        good_receipt_code.purchase_invoice == null
+      ) {
+        return res.status(404).send("Pembelian tidak ditemukan.");
+      } else if (
+        good_receipt_code.purchase_invoice.is_confirm ||
+        good_receipt_code.purchase_invoice.is_delete
+      ) {
+        return res
+          .status(400)
+          .send("Pembelian telah dikonfirmasi atau dihapus.");
+      } else {
+        PurchaseDocumentModel.deleteById(id, req.body.userId)
+          .then((result) => {
+            const socket = new SocketHelper(
+              "updatePurchaseDocumentStatus",
+              result[0]
+            );
+            socket.create();
+
+            return res.status(200).send(result[0]);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      }
+    });
   };
 }
 

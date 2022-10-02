@@ -33,7 +33,7 @@ class PurchaseDocumentModel {
                 good_receipt_code_id: this.good_receipt_code_id,
                 created_by: this.created_by,
                 created_at: this.created_at,
-                is_confirm: (this.confirmed_by == null) ? false : true,
+                is_confirm: this.confirmed_by == null ? false : true,
                 confirmed_by: this.confirmed_by,
                 confirmed_at: this.confirmed_at,
             },
@@ -115,6 +115,14 @@ class PurchaseDocumentModel {
                                 id: true,
                                 reference: true,
                                 description: true,
+                                unit: true,
+                            },
+                        },
+                        item_unit: {
+                            select: {
+                                id: true,
+                                unit: true,
+                                conversion: true,
                             },
                         },
                         quantity: true,
@@ -123,6 +131,8 @@ class PurchaseDocumentModel {
                 },
                 purchase_invoice: {
                     select: {
+                        is_confirm: true,
+                        is_delete: true,
                         name: true,
                         date: true,
                         discount: true,
@@ -131,6 +141,7 @@ class PurchaseDocumentModel {
                                 name: true,
                             },
                         },
+                        created_at: true,
                     },
                 },
             },
@@ -245,8 +256,14 @@ class PurchaseDocumentModel {
         return prisma.$transaction([
             prisma.purchase_invoice.findMany({
                 where: {
-                    is_confirm: false,
-                    is_delete: false,
+                    AND: [
+                        {
+                            is_confirm: false,
+                        },
+                        {
+                            is_delete: false,
+                        },
+                    ],
                 },
                 select: {
                     id: true,
@@ -269,11 +286,69 @@ class PurchaseDocumentModel {
                         },
                     },
                 },
+                take: limit,
+                skip: offset,
             }),
             prisma.purchase_invoice.count({
                 where: {
                     is_confirm: false,
                     is_delete: false,
+                },
+            }),
+        ]);
+    }
+    static confirmById(id, discount, good_receipt, confirmed_by) {
+        const transactions = [];
+        good_receipt.forEach((x) => {
+            transactions.push(prisma.good_receipt.update({
+                where: {
+                    id: x.id,
+                },
+                data: {
+                    price: x.price,
+                },
+            }));
+        });
+        return prisma.$transaction([
+            prisma.purchase_invoice.update({
+                where: {
+                    id: id,
+                },
+                data: {
+                    discount: discount,
+                    is_confirm: true,
+                    is_delete: false,
+                    confirmed_at: new Date(),
+                    confirmed_by: confirmed_by,
+                },
+            }),
+            ...transactions,
+        ]);
+    }
+    static deleteById(id, confirmed_by) {
+        return prisma.$transaction([
+            prisma.purchase_invoice.update({
+                where: {
+                    id: id,
+                },
+                data: {
+                    is_confirm: false,
+                    is_delete: true,
+                    confirmed_at: new Date(),
+                    confirmed_by: confirmed_by,
+                },
+            }),
+            prisma.good_receipt_code.updateMany({
+                where: {
+                    purchase_invoice: {
+                        id: id,
+                    },
+                },
+                data: {
+                    is_confirm: false,
+                    is_delete: true,
+                    confirmed_at: new Date(),
+                    confirmed_by: confirmed_by,
                 },
             }),
         ]);

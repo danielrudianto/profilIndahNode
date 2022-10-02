@@ -4,11 +4,8 @@ import ReportController from "../controller/report.controller";
 const router = Router();
 
 router.get("/profitloss/:month/:year/:report", ReportController.fetchPLStats);
-
-router.get("/frequent", ReportController.fetchFrequentItems);
-router.get("/sales/monthly", ReportController.fetchMonthlySalesStats);
-router.get("/sales", ReportController.fetchSalesStats);
-router.get("/salesChart", ReportController.fetchSalesChart);
 router.get("/reception/:year/:month/:date", ReportController.fetchReception);
+router.post("/sales", ReportController.fetchSalesReport);
+router.post("/frequent", ReportController.fetchFrequent);
 
 export default router;

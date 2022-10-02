@@ -17,7 +17,7 @@ PurchaseDocumentController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
     purchase_document_model_1.default.fetchById(id)
         .then((result) => {
-        return res.status(200).send(result);
+        return res.status(200).send(Object.assign(Object.assign({}, result), { purchase_invoice: result === null || result === void 0 ? void 0 : result.purchase_invoice }));
     })
         .catch((error) => {
         return res.status(500).send(error);
@@ -49,6 +49,7 @@ PurchaseDocumentController.update = (req, res) => {
         good_receipt
             .update()
             .then((good_receipt_result) => {
+            var _a;
             const good_receipt_items_input = [];
             for (let idx = 0; idx < good_receipt_items.length; idx++) {
                 good_receipt_items_input.push({
@@ -61,9 +62,10 @@ PurchaseDocumentController.update = (req, res) => {
             }
             const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
             const delete_item = good_receipt_model_1.default.deleteItemsByGoodReceiptCodeId(good_receipt_result.id);
-            purchase_document_model_1.default.fetchById(good_receipt_result.purchase_invoice[0].id).then((purchase_document) => {
-                var _a;
-                const updated_purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, (_a = purchase_document === null || purchase_document === void 0 ? void 0 : purchase_document.user_good_receipt_code_confirmed_byTouser) === null || _a === void 0 ? void 0 : _a.id, good_receipt_result.purchase_invoice[0].id);
+            purchase_document_model_1.default.fetchById((_a = good_receipt_result.purchase_invoice) === null || _a === void 0 ? void 0 : _a.id)
+                .then((purchase_document) => {
+                var _a, _b;
+                const updated_purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, (_a = purchase_document === null || purchase_document === void 0 ? void 0 : purchase_document.user_good_receipt_code_confirmed_byTouser) === null || _a === void 0 ? void 0 : _a.id, (_b = good_receipt_result.purchase_invoice) === null || _b === void 0 ? void 0 : _b.id);
                 const update_purchase_document = updated_purchase_document.update();
                 Promise.all([update_purchase_document, delete_item])
                     .then(() => {
@@ -78,7 +80,8 @@ PurchaseDocumentController.update = (req, res) => {
                     .catch((error) => {
                     return res.status(500).send(error);
                 });
-            }).catch(error => {
+            })
+                .catch((error) => {
                 return res.status(500).send(error);
             });
         })
@@ -96,7 +99,7 @@ PurchaseDocumentController.create = (req, res) => {
     const company_id = req.body.company_id;
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt;
-    const purchase_invoice = req.body.purchase_invoice[0];
+    const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
     const company_validation = company_model_1.default.fetchById(company_id);
@@ -183,6 +186,64 @@ PurchaseDocumentController.fetchUnconfirmed = (req, res) => {
     })
         .catch((error) => {
         return res.status(500).send(error);
+    });
+};
+PurchaseDocumentController.confirm = (req, res) => {
+    const id = req.body.id;
+    const discount = req.body.discount;
+    const good_receipt = req.body.good_receipt;
+    purchase_document_model_1.default.fetchById(id)
+        .then((good_receipt_code) => {
+        if (good_receipt_code == null ||
+            good_receipt_code.purchase_invoice == null) {
+            return res.status(404).send("Pembelian tidak ditemukan.");
+        }
+        else if (good_receipt_code.purchase_invoice.is_confirm ||
+            good_receipt_code.purchase_invoice.is_delete) {
+            return res
+                .status(400)
+                .send("Pembelian telah dikonfirmasi atau dihapus.");
+        }
+        else {
+            purchase_document_model_1.default.confirmById(id, discount, good_receipt, req.body.userId)
+                .then((result) => {
+                const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
+                socket.create();
+                return res.status(200).send(result[0]);
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
+        }
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+PurchaseDocumentController.delete = (req, res) => {
+    const id = parseInt(req.params.id);
+    purchase_document_model_1.default.fetchById(id).then((good_receipt_code) => {
+        if (good_receipt_code == null ||
+            good_receipt_code.purchase_invoice == null) {
+            return res.status(404).send("Pembelian tidak ditemukan.");
+        }
+        else if (good_receipt_code.purchase_invoice.is_confirm ||
+            good_receipt_code.purchase_invoice.is_delete) {
+            return res
+                .status(400)
+                .send("Pembelian telah dikonfirmasi atau dihapus.");
+        }
+        else {
+            purchase_document_model_1.default.deleteById(id, req.body.userId)
+                .then((result) => {
+                const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
+                socket.create();
+                return res.status(200).send(result[0]);
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
+        }
     });
 };
 exports.default = PurchaseDocumentController;

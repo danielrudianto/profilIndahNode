@@ -1,8 +1,7 @@
-import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
 import BillController from "../controller/bill.controller";
+import { administratorMiddleware } from "../helper/auth.helper";
 
-const prisma = new PrismaClient();
 const router = Router();
 
 router.post("/", BillController.create);
@@ -12,5 +11,7 @@ router.get("/archives/:year/:month", BillController.fetchArchive);
 
 router.get("/code/:id", BillController.fetchCodeById);
 router.get("/:id", BillController.fetchById);
+
+router.delete("/:id", administratorMiddleware, BillController.deleteById);
 
 export default router;

@@ -5,212 +5,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const pdfmake_1 = __importDefault(require("pdfmake"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const bill_model_1 = __importDefault(require("../model/bill.model"));
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const expense_model_1 = __importDefault(require("../model/expense.model"));
-const item_model_1 = require("../model/item.model");
 const purchase_document_model_1 = __importDefault(require("../model/purchase_document.model"));
 const sales_distribution_model_1 = __importDefault(require("../model/sales_distribution.model"));
 const path_1 = __importDefault(require("path"));
 const stock_value_helper_1 = __importDefault(require("../helper/stock_value.helper"));
+const brand_model_1 = require("../model/brand.model");
+const item_type_model_1 = __importDefault(require("../model/item_type.model"));
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
 });
 class ReportController {
 }
-ReportController.fetchSalesStats = (req, res) => {
-    const date = new Date();
-    const date_before = new Date();
-    date_before.setDate(date_before.getDate() - 1);
-    Promise.all([
-        bill_code_model_1.default.fetchByDate(date),
-        bill_code_model_1.default.fetchByDate(date_before),
-        item_model_1.ItemModel.fetchSoldByDate(date),
-        item_model_1.ItemModel.fetchSoldByDate(date_before),
-        bill_model_1.default.fetchQuantitySoldByDate(date),
-        bill_model_1.default.fetchQuantitySoldByDate(date_before),
-    ]).then((result) => {
-        return res.status(200).send({
-            sales: result[0][0].value || 0,
-            prev_sales: result[1][0].value || 0,
-            items: result[2][0].count,
-            prev_items: result[3][0].count,
-            count: result[4][0].quantity || 0,
-            prev_count: result[5][0].quantity || 0,
-        });
-    });
-};
-ReportController.fetchMonthlySalesStats = (req, res) => {
-    const date = new Date();
-    const date_before = new Date();
-    date_before.setMonth(date_before.getMonth() - 1);
-    Promise.all([
-        bill_code_model_1.default.fetchMonthlyByDate(date),
-        bill_code_model_1.default.fetchMonthlyByDate(date_before),
-        item_model_1.ItemModel.fetchMonthlySoldByDate(date),
-        item_model_1.ItemModel.fetchMonthlySoldByDate(date_before),
-        bill_model_1.default.fetchMonthlyQuantitySoldByDate(date),
-        bill_model_1.default.fetchMonthlyQuantitySoldByDate(date_before),
-    ]).then((result) => {
-        return res.status(200).send({
-            sales: result[0][0].value || 0,
-            prev_sales: result[1][0].value || 0,
-            items: result[2][0].count,
-            prev_items: result[3][0].count,
-            count: result[4][0].quantity || 0,
-            prev_count: result[5][0].quantity || 0,
-        });
-    });
-};
-ReportController.fetchSalesChart = (req, res) => {
-    const shift = parseInt(req.query.shift.toString());
-    const monthly = req.query.monthly === "false"
-        ? false
-        : req.query.monthly === "true"
-            ? true
-            : false;
-    const type = parseInt(req.query.type.toString());
-    const limit = parseInt(process.env.LIMIT);
-    const date = new Date();
-    date.setMonth(date.getMonth() - shift);
-    const current_year = date.getFullYear();
-    const current_month = date.getMonth() + 1;
-    switch (type) {
-        case 0:
-            // Ambil data penjualan
-            bill_code_model_1.default.fetchChartItems(monthly, limit, shift)
-                .then((result) => {
-                if (monthly) {
-                    const response = {};
-                    response["current"] = [];
-                    response["previous"] = [];
-                    result[0].forEach((x) => {
-                        const value = x.value;
-                        const diff = parseInt(x.diff);
-                        response["current"][Math.abs(diff)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response["current"][i] = response["current"][i] || 0;
-                    }
-                    result[1].forEach((x) => {
-                        const value = x.value;
-                        const diff = parseInt(x.diff);
-                        response["previous"][Math.abs(diff + 12)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response["previous"][i] = response["previous"][i] | 0;
-                    }
-                    return res.status(200).send(response);
-                }
-                else {
-                    const response = [];
-                    result.forEach((x) => {
-                        const diff = x.diff;
-                        const value = x.value;
-                        response[Math.abs(diff)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response[i] = response[i] | 0;
-                    }
-                    return res.status(200).send(response);
-                }
-            })
-                .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", error, "Report controller - Fetch sales chart", req.body.userId);
-                return res.status(500).send(error);
-            });
-            break;
-        case 1:
-            // Ambil data penjualan
-            item_model_1.ItemModel.fetchChartItems(monthly, limit, shift)
-                .then((result) => {
-                if (monthly) {
-                    const response = {};
-                    response["current"] = [];
-                    response["previous"] = [];
-                    result[0].forEach((x) => {
-                        const value = x.count;
-                        const diff = parseInt(x.diff);
-                        response["current"][Math.abs(diff)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response["current"][i] = response["current"][i] || 0;
-                    }
-                    result[1].forEach((x) => {
-                        const value = x.count;
-                        const diff = parseInt(x.diff);
-                        response["previous"][Math.abs(diff + 12)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response["previous"][i] = response["previous"][i] | 0;
-                    }
-                    return res.status(200).send(response);
-                }
-                else {
-                    const response = [];
-                    result.forEach((x) => {
-                        const diff = x.diff;
-                        const value = x.count;
-                        response[Math.abs(diff)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response[i] = response[i] | 0;
-                    }
-                    return res.status(200).send(response);
-                }
-            })
-                .catch((error) => {
-                console.log(error);
-                log_helper_1.default.log(new Date(), "error", error, "Report controller - Fetch sales chart", req.body.userId);
-                return res.status(500).send(error);
-            });
-            break;
-        case 2:
-            item_model_1.ItemModel.fetchChartItems(monthly, limit, shift)
-                .then((result) => {
-                if (monthly) {
-                    const response = {};
-                    response["current"] = [];
-                    response["previous"] = [];
-                    result[0].forEach((x) => {
-                        const value = x.count;
-                        const diff = parseInt(x.diff);
-                        response["current"][Math.abs(diff)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response["current"][i] = response["current"][i] || 0;
-                    }
-                    result[1].forEach((x) => {
-                        const value = x.count;
-                        const diff = parseInt(x.diff);
-                        response["previous"][Math.abs(diff + 12)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response["previous"][i] = response["previous"][i] | 0;
-                    }
-                    return res.status(200).send(response);
-                }
-                else {
-                    const response = [];
-                    result.forEach((x) => {
-                        const diff = x.diff;
-                        const value = x.count;
-                        response[Math.abs(diff)] = value;
-                    });
-                    for (var i = 0; i < 10; i++) {
-                        response[i] = response[i] | 0;
-                    }
-                    return res.status(200).send(response);
-                }
-            })
-                .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", error, "Report controller - Fetch sales chart", req.body.userId);
-                return res.status(500).send(error);
-            });
-            break;
-    }
-};
 ReportController.fetchPLStats = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
@@ -678,21 +486,6 @@ ReportController.fetchPLStats = (req, res) => {
         Promise.all([]);
     }
 };
-ReportController.fetchFrequentItems = (req, res) => {
-    const monthly = !req.query.monthly
-        ? false
-        : req.query.monthly === "true"
-            ? true
-            : false;
-    item_model_1.ItemModel.fetchFrequentItems(monthly)
-        .then((result) => {
-        return res.status(200).send(result);
-    })
-        .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Report Controller - Fetch frequent items", req.body.userId);
-        return res.status(500).send(error);
-    });
-};
 ReportController.fetchReception = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
@@ -705,5 +498,64 @@ ReportController.fetchReception = (req, res) => {
         log_helper_1.default.log(new Date(), "error", error, "Report Controller - Fetch Reception", req.body.userId);
         return res.status(500).send(error);
     });
+};
+ReportController.fetchSalesReport = (req, res) => {
+    const type = req.body.type;
+    const start = new Date(req.body.start);
+    const end = new Date(req.body.end);
+    if (type == 0) {
+        // Fetch by brand
+        brand_model_1.BrandModel.fetchSales(start, end)
+            .then((result) => {
+            return res.status(200).send(result);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else if (type == 1) {
+        // Fetch by type
+        item_type_model_1.default.fetchSales(start, end)
+            .then((result) => {
+            return res.status(200).send(result);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+};
+ReportController.fetchFrequent = (req, res) => {
+    const start = new Date(req.body.start);
+    const end = new Date(req.body.end);
+    const brand_id = req.body.brand_id;
+    const type_id = req.body.type_id;
+    const limit = req.body.limit;
+    if (brand_id != null) {
+        brand_model_1.BrandModel.fetchFrequent(brand_id, start, end, limit)
+            .then((result) => {
+            return res.status(200).send(result
+                .map((x) => {
+                return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
+            }));
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else if (type_id != null) {
+        item_type_model_1.default.fetchFrequent(type_id, start, end, limit)
+            .then((result) => {
+            return res.status(200).send(result
+                .map((x) => {
+                return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
+            }));
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else {
+        return res.status(500).send("Mohon masukkan parameter yang sesuai");
+    }
 };
 exports.default = ReportController;

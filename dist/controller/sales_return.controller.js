@@ -104,4 +104,12 @@ SalesReturnController.fetchArchive = (req, res) => {
         return res.status(400).send("Input tidak dikenal.");
     }
 };
+SalesReturnController.fetchById = (req, res) => {
+    const id = parseInt(req.params.id.toString());
+    sales_return_model_1.default.fetchById(id).then(result => {
+        return res.status(200).send(result);
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
 exports.default = SalesReturnController;

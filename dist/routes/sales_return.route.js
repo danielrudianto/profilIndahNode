@@ -11,4 +11,5 @@ router.post("/", sales_return_controller_1.default.create);
 router.get("/archives", sales_return_controller_1.default.fetchArchive);
 router.get("/archives/:year", sales_return_controller_1.default.fetchArchive);
 router.get("/archives/:year/:month", sales_return_controller_1.default.fetchArchive);
+router.get("/:id", sales_return_controller_1.default.fetchById);
 exports.default = router;

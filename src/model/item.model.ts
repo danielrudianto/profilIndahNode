@@ -79,24 +79,35 @@ export class ItemModel {
     });
   }
 
-  update() {
+  static update(
+    id: number,
+    reference: string,
+    description: string,
+    brand_id: number,
+    type_id: number,
+    updated_by: number,
+    minimum_stock: string,
+    unit: string
+  ) {
     return prisma.item.update({
       where: {
-        id: this.id,
+        id: id,
       },
       data: {
-        reference: this.reference,
-        description: this.description,
-        item_brand_id: this.brand_id,
-        item_type_id: this.type_id,
-        updated_by: this.created_by,
-        updated_at: this.created_at,
-        minimum_stock: this.minimum_stock,
+        reference: reference,
+        description: description,
+        item_brand_id: brand_id,
+        item_type_id: type_id,
+        updated_by: updated_by,
+        updated_at: new Date(),
+        minimum_stock: minimum_stock,
+        unit: unit,
       },
       select: {
         id: true,
         reference: true,
         description: true,
+        unit: true,
         item_brand: {
           select: {
             name: true,
@@ -109,6 +120,12 @@ export class ItemModel {
             name: true,
           },
         },
+        item_type: {
+          select: {
+            name: true,
+          },
+        },
+        item_type_id: true,
         created_at: true,
         minimum_stock: true,
         updated_at: true,
@@ -336,12 +353,11 @@ export class ItemModel {
         AND item.is_delete = 0
       ) AS items
       ${mysql_where_string}
-      ORDER BY count DESC, reference ASC
+      ORDER BY reference ASC, count DESC
       LIMIT ${limit} OFFSET ${offset};`;
 
     const mysql_count_string = `
-      SELECT DISTINCT(items.id) AS id, 
-      (${mysql_length_string}) AS count
+      SELECT COUNT(DISTINCT(items.id)) AS count
       FROM (
         SELECT 
 		    item.id AS id, item_unit.id AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item_unit.unit COLLATE utf8mb4_0900_ai_ci AS unit
@@ -364,55 +380,11 @@ export class ItemModel {
     ]);
   }
 
-  static fetchPurchaseSearch(keyword: string) {
-    let mysql_length_string = "";
-    let mysql_where_string = "WHERE ";
-    keyword.split(" ").forEach((x, index) => {
-      if (index > 0) {
-        mysql_length_string += "+";
-        mysql_where_string += "OR";
-      }
-
-      mysql_length_string += `(3 * LENGTH(items.reference) - LENGTH(REPLACE(UPPER(items.reference), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), '')))) +  (2 * (LENGTH(items.description) - LENGTH(REPLACE(UPPER(items.description), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), '')))) + (LENGTH(items.unit) - LENGTH(REPLACE(UPPER(items.unit), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), ''))) + (LENGTH(items.type_name) - LENGTH(REPLACE(UPPER(items.type_name), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), ''))) + (LENGTH(items.brand_name) - LENGTH(REPLACE(UPPER(items.brand_name), UPPER("${x
-        .replace("'", "")
-        .replace('"', "")}"), ''))`;
-
-      mysql_where_string += `
-        reference LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR description LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR unit LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR type_name LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR brand_name LIKE "%${x.replace("'", "").replace('"', "")}%"
-      `;
-    });
-  }
-
   static fetch(
     keyword: string,
     date: Date,
     offset: number,
     limit: number,
-    is_active: boolean = true
   ) {
     if (keyword == "") {
       return prisma.$transaction([
@@ -488,27 +460,11 @@ export class ItemModel {
           },
           where: {
             is_delete: false,
-            OR: [
-              {
-                is_active: true,
-              },
-              {
-                is_active: is_active,
-              },
-            ],
           },
         }),
         prisma.item.count({
           where: {
             is_delete: false,
-            OR: [
-              {
-                is_active: true,
-              },
-              {
-                is_active: is_active,
-              },
-            ],
           },
         }),
       ]);
@@ -521,12 +477,6 @@ export class ItemModel {
           where: {
             is_delete: false,
             OR: [
-              {
-                is_active: true,
-              },
-              {
-                is_active: is_active,
-              },
               {
                 reference: {
                   contains: keyword,
@@ -634,12 +584,6 @@ export class ItemModel {
             is_delete: false,
             OR: [
               {
-                is_active: true,
-              },
-              {
-                is_active: is_active,
-              },
-              {
                 reference: {
                   search: keyword,
                 },
@@ -679,18 +623,15 @@ export class ItemModel {
     }
   }
 
-  static fetchInsufficient(
-    brand_ids: number[],
-    type_ids: number[]
-  ) {
+  static fetchInsufficient(brand_ids: number[], type_ids: number[]) {
     return prisma.item.findMany({
-      where:{
+      where: {
         item_brand_id: {
-          in: brand_ids
+          in: brand_ids,
         },
         item_type_id: {
-          in: type_ids
-        }
+          in: type_ids,
+        },
       },
       select: {
         id: true,
@@ -699,22 +640,22 @@ export class ItemModel {
         item_brand: {
           select: {
             name: true,
-          }
+          },
         },
         item_type: {
           select: {
             name: true,
-          }
+          },
         },
         minimum_stock: true,
         stock: {
           select: {
             stock: true,
-          }
+          },
         },
         unit: true,
-      }
-    })
+      },
+    });
   }
 
   static fetchAll(date: Date) {

@@ -1,7 +1,9 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
+import { Socket } from "socket.io";
 import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
+import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import ItemPriceModel from "../model/item_price.model";
@@ -171,6 +173,18 @@ class BillController {
       return res.status(400).send("Input tidak dikenal.");
     }
   };
+
+  static deleteById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    BillCodeModel.deleteById(id, req.body.userId).then(result => {
+      const socket = new SocketHelper("deleteBill", result);
+      socket.create();
+      
+      return res.status(201).send(result);
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default BillController;

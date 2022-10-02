@@ -16,7 +16,9 @@ ItemTypeController.fetchItems = (req, res) => {
     const offset = (page - 1) * limit;
     item_type_model_1.default.fetchItems(keyword, offset, limit).then(result => {
         return res.status(200).send({
-            data: result[0],
+            data: result[0].map(x => {
+                return Object.assign(Object.assign({}, x), { can_delete: x.item.length == 0 });
+            }),
             count: result[1]
         });
     }).catch(error => {
@@ -53,8 +55,7 @@ ItemTypeController.updateItem = (req, res) => {
 ItemTypeController.fetchById = (req, res) => {
     const id = parseInt(req.params.id.toString());
     item_type_model_1.default.fetchItemById(id).then(result => {
-        const item_type = Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false });
-        return res.status(200).send(item_type);
+        return res.status(200).send(Object.assign(Object.assign({}, result), { can_delete: (result === null || result === void 0 ? void 0 : result.item.length) == 0 }));
     }).catch(error => {
         return res.status(500).send(error);
     });

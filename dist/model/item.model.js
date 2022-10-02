@@ -56,24 +56,26 @@ class ItemModel {
             },
         });
     }
-    update() {
+    static update(id, reference, description, brand_id, type_id, updated_by, minimum_stock, unit) {
         return prisma.item.update({
             where: {
-                id: this.id,
+                id: id,
             },
             data: {
-                reference: this.reference,
-                description: this.description,
-                item_brand_id: this.brand_id,
-                item_type_id: this.type_id,
-                updated_by: this.created_by,
-                updated_at: this.created_at,
-                minimum_stock: this.minimum_stock,
+                reference: reference,
+                description: description,
+                item_brand_id: brand_id,
+                item_type_id: type_id,
+                updated_by: updated_by,
+                updated_at: new Date(),
+                minimum_stock: minimum_stock,
+                unit: unit,
             },
             select: {
                 id: true,
                 reference: true,
                 description: true,
+                unit: true,
                 item_brand: {
                     select: {
                         name: true,
@@ -86,6 +88,12 @@ class ItemModel {
                         name: true,
                     },
                 },
+                item_type: {
+                    select: {
+                        name: true,
+                    },
+                },
+                item_type_id: true,
                 created_at: true,
                 minimum_stock: true,
                 updated_at: true,
@@ -293,11 +301,10 @@ class ItemModel {
         AND item.is_delete = 0
       ) AS items
       ${mysql_where_string}
-      ORDER BY count DESC, reference ASC
+      ORDER BY reference ASC, count DESC
       LIMIT ${limit} OFFSET ${offset};`;
         const mysql_count_string = `
-      SELECT DISTINCT(items.id) AS id, 
-      (${mysql_length_string}) AS count
+      SELECT COUNT(DISTINCT(items.id)) AS count
       FROM (
         SELECT 
 		    item.id AS id, item_unit.id AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item_unit.unit COLLATE utf8mb4_0900_ai_ci AS unit
@@ -318,35 +325,7 @@ class ItemModel {
             prisma.$queryRawUnsafe(mysql_count_string),
         ]);
     }
-    static fetchPurchaseSearch(keyword) {
-        let mysql_length_string = "";
-        let mysql_where_string = "WHERE ";
-        keyword.split(" ").forEach((x, index) => {
-            if (index > 0) {
-                mysql_length_string += "+";
-                mysql_where_string += "OR";
-            }
-            mysql_length_string += `(3 * LENGTH(items.reference) - LENGTH(REPLACE(UPPER(items.reference), UPPER("${x
-                .replace("'", "")
-                .replace('"', "")}"), '')))) +  (2 * (LENGTH(items.description) - LENGTH(REPLACE(UPPER(items.description), UPPER("${x
-                .replace("'", "")
-                .replace('"', "")}"), '')))) + (LENGTH(items.unit) - LENGTH(REPLACE(UPPER(items.unit), UPPER("${x
-                .replace("'", "")
-                .replace('"', "")}"), ''))) + (LENGTH(items.type_name) - LENGTH(REPLACE(UPPER(items.type_name), UPPER("${x
-                .replace("'", "")
-                .replace('"', "")}"), ''))) + (LENGTH(items.brand_name) - LENGTH(REPLACE(UPPER(items.brand_name), UPPER("${x
-                .replace("'", "")
-                .replace('"', "")}"), ''))`;
-            mysql_where_string += `
-        reference LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR description LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR unit LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR type_name LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR brand_name LIKE "%${x.replace("'", "").replace('"', "")}%"
-      `;
-        });
-    }
-    static fetch(keyword, date, offset, limit, is_active = true) {
+    static fetch(keyword, date, offset, limit) {
         if (keyword == "") {
             return prisma.$transaction([
                 prisma.item.findMany({
@@ -421,27 +400,11 @@ class ItemModel {
                     },
                     where: {
                         is_delete: false,
-                        OR: [
-                            {
-                                is_active: true,
-                            },
-                            {
-                                is_active: is_active,
-                            },
-                        ],
                     },
                 }),
                 prisma.item.count({
                     where: {
                         is_delete: false,
-                        OR: [
-                            {
-                                is_active: true,
-                            },
-                            {
-                                is_active: is_active,
-                            },
-                        ],
                     },
                 }),
             ]);
@@ -455,12 +418,6 @@ class ItemModel {
                     where: {
                         is_delete: false,
                         OR: [
-                            {
-                                is_active: true,
-                            },
-                            {
-                                is_active: is_active,
-                            },
                             {
                                 reference: {
                                     contains: keyword,
@@ -568,12 +525,6 @@ class ItemModel {
                         is_delete: false,
                         OR: [
                             {
-                                is_active: true,
-                            },
-                            {
-                                is_active: is_active,
-                            },
-                            {
                                 reference: {
                                     search: keyword,
                                 },
@@ -616,11 +567,11 @@ class ItemModel {
         return prisma.item.findMany({
             where: {
                 item_brand_id: {
-                    in: brand_ids
+                    in: brand_ids,
                 },
                 item_type_id: {
-                    in: type_ids
-                }
+                    in: type_ids,
+                },
             },
             select: {
                 id: true,
@@ -629,21 +580,21 @@ class ItemModel {
                 item_brand: {
                     select: {
                         name: true,
-                    }
+                    },
                 },
                 item_type: {
                     select: {
                         name: true,
-                    }
+                    },
                 },
                 minimum_stock: true,
                 stock: {
                     select: {
                         stock: true,
-                    }
+                    },
                 },
                 unit: true,
-            }
+            },
         });
     }
     static fetchAll(date) {

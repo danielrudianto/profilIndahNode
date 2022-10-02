@@ -12,7 +12,12 @@ class ItemTypeController {
 
         ItemTypeModel.fetchItems(keyword, offset, limit).then(result => {
             return res.status(200).send({
-                data: result[0],
+                data: result[0].map(x => {
+                    return {
+                        ...x,
+                        can_delete: x.item.length == 0
+                    }
+                }),
                 count: result[1]
             });
         }).catch(error => {
@@ -56,13 +61,11 @@ class ItemTypeController {
     static fetchById = (req: Request, res: Response) => {
         const id = parseInt(req.params.id.toString());
         
-        ItemTypeModel.fetchItemById(id).then(result => {
-            const item_type = {
-                ...result[0],
-                can_delete: result[1] == 0 ? true: false
-            };
-            
-            return res.status(200).send(item_type);
+        ItemTypeModel.fetchItemById(id).then(result => {            
+            return res.status(200).send({
+                ...result,
+                can_delete: result?.item.length == 0
+            });
         }).catch(error => {
             return res.status(500).send(error);
         })

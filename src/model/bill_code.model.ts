@@ -301,6 +301,20 @@ class BillCodeModel {
             name: true,
           },
         },
+        is_confirm: true,
+        is_delete: true,
+        payment_method: {
+          select: {
+            name: true,
+            description: true,
+          }
+        },
+        customer: {
+          select: {
+            name: true,
+            address: true,
+          }
+        }
       },
     });
   }
@@ -601,6 +615,20 @@ class BillCodeModel {
       AND YEAR(bill_code.date) = ${date.getFullYear()}
       ${mysql_string}
     `);
+  }
+
+  static deleteById(id: number, deleted_by: number){
+    return prisma.bill_code.update({
+      where:{
+        id: id
+      },
+      data: {
+        is_confirm: false,
+        is_delete: true,
+        confirmed_at: new Date(),
+        confirmed_by: deleted_by,
+      }
+    })
   }
 }
 

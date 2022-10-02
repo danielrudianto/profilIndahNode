@@ -19,7 +19,7 @@ GoodReceiptController.create = (req, res) => {
     const company_id = req.body.company_id;
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt;
-    const purchase_invoice = req.body.purchase_invoice[0];
+    const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
     const company_validation = company_model_1.default.fetchById(company_id);

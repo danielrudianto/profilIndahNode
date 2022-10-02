@@ -127,16 +127,15 @@ ItemController.update = (req, res) => {
     const brand = parseInt(req.body.brand.toString());
     const type = parseInt(req.body.type.toString());
     const minimum_stock = req.body.minimum_stock;
+    const unit = req.body.unit;
     item_model_1.ItemModel.fetchById(id, new Date())
         .then((item) => {
         if (item == null || item.is_delete) {
             return res.status(404).send("Barang tidak ditemukan.");
         }
         else {
-            const item_model = new item_model_1.ItemModel(reference, description, minimum_stock, brand, type, req.body.userId, id);
-            console.log(item_model);
-            item_model
-                .update()
+            item_model_1.ItemModel
+                .update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit)
                 .then((result) => {
                 var _a;
                 log_helper_1.default.log(new Date(), "info", `${(_a = result.user_item_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated item with reference ${result.reference} (ID: ${result.id})`, `Item - Update`, req.body.userId);
@@ -230,7 +229,7 @@ ItemController.fetchSearchStock = (req, res) => {
             .then((stock) => {
             return res.status(200).send({
                 data: stock[0],
-                count: stock[1],
+                count: result[1][0].count
             });
         })
             .catch((error) => {
@@ -248,15 +247,10 @@ ItemController.fetch = (req, res) => {
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const active = !req.query.active
-        ? true
-        : req.query.active == "1"
-            ? true
-            : false;
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);
-    item_model_1.ItemModel.fetch(keyword, date, offset, limit, active)
+    item_model_1.ItemModel.fetch(keyword, date, offset, limit)
         .then((result) => {
         item_model_1.ItemModel.checkCountByIds(result[0].map((x) => x.id))
             .then((count) => {

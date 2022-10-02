@@ -2,14 +2,12 @@ import { Request, Response } from "express";
 import { ItemModel } from "../model/item.model";
 
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import { validationResult } from "express-validator";
 import StockCardHelper from "../helper/stock_card.helper";
 import ItemUnitModel from "../model/item_unit.model";
-import ExcelJS from "exceljs";
 import UserModel from "../model/user.model";
 
 class ItemController {
@@ -242,25 +240,15 @@ class ItemController {
     const brand = parseInt(req.body.brand.toString());
     const type = parseInt(req.body.type.toString());
     const minimum_stock = req.body.minimum_stock;
+    const unit = req.body.unit;
 
     ItemModel.fetchById(id, new Date())
       .then((item) => {
         if (item == null || item.is_delete) {
           return res.status(404).send("Barang tidak ditemukan.");
         } else {
-          const item_model = new ItemModel(
-            reference,
-            description,
-            minimum_stock,
-            brand,
-            type,
-            req.body.userId,
-            id
-          );
-
-          console.log(item_model);
-          item_model
-            .update()
+          ItemModel
+            .update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit)
             .then((result) => {
               LogHelper.log(
                 new Date(),
@@ -390,7 +378,7 @@ class ItemController {
           .then((stock) => {
             return res.status(200).send({
               data: stock[0],
-              count: stock[1],
+              count: (result[1] as any[])[0].count
             });
           })
           .catch((error) => {
@@ -409,17 +397,12 @@ class ItemController {
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const active = !req.query.active
-      ? true
-      : req.query.active == "1"
-      ? true
-      : false;
 
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);
 
-    ItemModel.fetch(keyword, date, offset, limit, active)
+    ItemModel.fetch(keyword, date, offset, limit)
       .then((result) => {
         ItemModel.checkCountByIds(result[0].map((x) => x.id))
           .then((count) => {

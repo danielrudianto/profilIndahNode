@@ -17,7 +17,7 @@ class GoodReceiptController {
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt as any[];
 
-    const purchase_invoice = (req.body.purchase_invoice as any[])[0];
+    const purchase_invoice = (req.body.purchase_invoice as any);
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
 

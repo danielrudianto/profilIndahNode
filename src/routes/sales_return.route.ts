@@ -9,5 +9,6 @@ router.post("/", SalesReturnController.create);
 router.get("/archives", SalesReturnController.fetchArchive);
 router.get("/archives/:year", SalesReturnController.fetchArchive);
 router.get("/archives/:year/:month", SalesReturnController.fetchArchive);
+router.get("/:id", SalesReturnController.fetchById)
 
 export default router;

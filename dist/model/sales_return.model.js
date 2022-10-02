@@ -110,5 +110,53 @@ class SalesReturnModel {
             },
         });
     }
+    static fetchById(id) {
+        return prisma.sales_return_code.findUnique({
+            where: {
+                id: id,
+            },
+            select: {
+                id: true,
+                name: true,
+                customer: {
+                    select: {
+                        name: true,
+                    },
+                },
+                date: true,
+                created_at: true,
+                user_sales_return_code_created_byTouser: {
+                    select: {
+                        name: true,
+                    },
+                },
+                sales_return: {
+                    select: {
+                        bill: {
+                            select: {
+                                quantity: true,
+                                price: true,
+                                discount: true,
+                                item: {
+                                    select: {
+                                        reference: true,
+                                        description: true,
+                                        unit: true,
+                                    },
+                                },
+                                item_unit: {
+                                    select: {
+                                        unit: true,
+                                        conversion: true,
+                                    },
+                                },
+                            },
+                        },
+                        quantity: true,
+                    },
+                },
+            },
+        });
+    }
 }
 exports.default = SalesReturnModel;
