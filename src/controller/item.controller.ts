@@ -363,6 +363,7 @@ class ItemController {
   };
 
   static fetchSearchStock = (req: Request, res: Response) => {
+    console.log("Nyari");
     const page: number = !req.query.page
       ? 1
       : Math.max(parseInt(req.query.page.toString()), 1);

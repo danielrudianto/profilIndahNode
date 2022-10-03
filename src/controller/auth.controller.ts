@@ -286,6 +286,69 @@ class AuthController {
       }
     });
   }
+
+  static administratorLogin = (req: Request, res: Response) => {
+    const username = req.body.username;
+    const password = req.body.password;
+
+    UserModel.fetchByUsername(username).then(user => {
+      if(user == null || !user.is_active || user.user_department == null || user.user_department.role != 5){
+        return res.status(401).send("Pengguna tidak ditemukan.");
+      } else {
+        compare(password, user.password).then(result => {
+          if(!result){
+            return res.status(401).send("Kata sandi salah.");
+          } else {
+            const jwtToken = sign(
+              {
+                id: user.id,
+              },
+              process.env.TOKEN_KEY!.toString(),
+              {
+                expiresIn: process.env.EXPIRATION,
+              }
+            );
+  
+            const refreshToken = sign(
+              {
+                id: user.id
+              },
+              process.env.REFRESH_TOKEN_KEY!.toString(),
+              {
+                expiresIn: process.env.REFRESH_EXPIRATION
+              }
+            )
+  
+            const userObject = {
+              id: user.id,
+              name: user.name,
+              role: user.user_department,
+            };
+  
+            const response = {
+              user: userObject,
+              token: jwtToken,
+              refreshToken: refreshToken,
+            };
+  
+            LogHelper.log(
+              new Date(),
+              "info",
+              `Login success for username ${username}`,
+              "Auth controller - Login",
+              userObject.id
+            );
+  
+            return res.status(200).send(response);
+          }
+        }).catch(error => {
+          return res.status(500).send(error);
+        })
+      }
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default AuthController;
