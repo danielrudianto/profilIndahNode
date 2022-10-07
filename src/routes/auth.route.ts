@@ -12,6 +12,8 @@ router.post(
   AuthController.login
 );
 
+router.post("/administratorLogin", AuthController.administratorLogin);
+
 router.get("/", authMiddleware, (req, res, next) => {
   res.status(200).send({
     status: "authorized",

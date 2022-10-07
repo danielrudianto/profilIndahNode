@@ -21,6 +21,8 @@ router.post("/type", (0, express_validator_1.body)("name")
     .withMessage("Mohon isikan deskripsi tipe pengeluaran."), expense_controller_1.default.createType);
 router.put("/type", expense_controller_1.default.updateType);
 router.delete("/type/:id", expense_controller_1.default.deleteType);
+router.get("/:id", expense_controller_1.default.fetchById);
 router.get("/:year/:month", expense_controller_1.default.fetch);
 router.post("/", expense_controller_1.default.create);
+router.delete("/:id", expense_controller_1.default.deleteById);
 exports.default = router;

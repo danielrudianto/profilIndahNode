@@ -72,6 +72,7 @@ class ExpenseModel {
                         name: true,
                     },
                 },
+                value: true,
                 created_at: true,
                 id: true,
                 expense_type: {
@@ -142,6 +143,49 @@ class ExpenseModel {
         GROUP BY expense_type.id
       `);
         }
+    }
+    static fetchTodaySum() {
+        const date = new Date();
+        return prisma.$queryRawUnsafe(`
+        SELECT COALESCE(SUM(expense.value), 0) AS value
+        FROM expense_type
+        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        WHERE expense.date = '${date.getFullYear()}-${(date.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        AND expense.is_delete = 0
+      `);
+    }
+    static fetchById(id) {
+        return prisma.expense.findUnique({
+            where: {
+                id: id
+            },
+            select: {
+                id: true,
+                is_delete: true,
+                value: true,
+                description: true,
+                expense_type: {
+                    select: {
+                        name: true,
+                        description: true,
+                    }
+                }
+            }
+        });
+    }
+    static deleteById(id, deleted_by) {
+        return prisma.expense.update({
+            where: {
+                id: id,
+            },
+            data: {
+                is_delete: true,
+                deleted_at: new Date(),
+                deleted_by: deleted_by,
+            }
+        });
     }
 }
 exports.default = ExpenseModel;

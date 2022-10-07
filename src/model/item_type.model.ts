@@ -240,6 +240,14 @@ class ItemTypeModel {
       LIMIT ${limit}
     `;
   }
+
+  static fetchById(id: number){
+    return prisma.item_type.findUnique({
+      where:{
+        id: id
+      }
+    })
+  }
 }
 
 export default ItemTypeModel;

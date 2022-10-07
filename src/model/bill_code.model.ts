@@ -630,6 +630,25 @@ class BillCodeModel {
       }
     })
   }
+
+  static fetchTodaySales(){
+    const date = new Date();
+    console.log(date.getMonth());
+    console.log(date.getDate());
+    return prisma.$queryRawUnsafe(`
+      SELECT COALESCE(SUM(a.value), 0) AS value, COALESCE(SUM(a.discount), 0) AS discount, COALESCE(SUM(a.service), 0) AS service, COALESCE(SUM(a.delivery), 0) AS delivery
+      FROM (
+        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill_code.discount, bill_code.service, bill_code.delivery
+        FROM bill
+        JOIN bill_code
+        ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.date = '${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        GROUP BY bill.bill_code_id
+      ) AS a
+    `);
+  }
 }
 
 export default BillCodeModel;

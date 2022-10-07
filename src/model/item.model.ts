@@ -487,29 +487,6 @@ export class ItemModel {
                   contains: keyword,
                 },
               },
-              {
-                item_brand: {
-                  name: {
-                    contains: keyword,
-                  },
-                },
-              },
-              {
-                item_type: {
-                  name: {
-                    contains: keyword,
-                  },
-                },
-              },
-              {
-                item_unit: {
-                  some: {
-                    unit: {
-                      search: keyword,
-                    },
-                  },
-                },
-              },
             ],
           },
           skip: offset,
@@ -585,35 +562,12 @@ export class ItemModel {
             OR: [
               {
                 reference: {
-                  search: keyword,
+                  contains: keyword,
                 },
               },
               {
                 description: {
-                  search: keyword,
-                },
-              },
-              {
-                item_brand: {
-                  name: {
-                    search: keyword,
-                  },
-                },
-              },
-              {
-                item_type: {
-                  name: {
-                    search: keyword,
-                  },
-                },
-              },
-              {
-                item_unit: {
-                  some: {
-                    unit: {
-                      search: keyword,
-                    },
-                  },
+                  contains: keyword,
                 },
               },
             ],

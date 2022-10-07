@@ -164,13 +164,18 @@ class UserController {
         });
       })
       .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "User - Update", req.body.userId);
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "User - Update",
+          req.body.userId
+        );
         return res.status(500).send(error);
       });
   };
 
   static update = (req: Request, res: Response) => {
-    const password = req.body.password;
     const name = req.body.name;
     const id = req.body.id;
 
@@ -179,42 +184,37 @@ class UserController {
 
     if (role == null || role.length == 0) {
       return res.status(500).send("Peran tidak ditemukan.");
-    }
+    } else {
+      UserModel.fetchById(id).then((user) => {
+        const userRoleModel = new UserRoleModel(id, role[0].id);
+        new QueryTransactionHelper()
+          .create([
+            UserModel.update(id, name, null, req.body.userId),
+            userRoleModel.update(),
+          ])
+          .then((result) => {
+            const user_object = {
+              id: result[0].id,
+              name: result[0].name,
+              nik: result[0].nik,
+              username: result[0].username,
+              password: null,
+              role: UserModel.roles.filter((x) => x.id == result[2].role)[0],
+            };
 
-    UserModel.fetchById(id).then((user) => {
-      hash(password, 12)
-        .then((hashedPassword) => {
-          const userRoleModel = new UserRoleModel(id, role[0].id);
-          new QueryTransactionHelper()
-            .create([
-              UserModel.update(id, name, hashedPassword, req.body.userId),
-              userRoleModel.update(),
-            ])
-            .then((result) => {
-              const user_object = {
-                id: result[0].id,
-                name: result[0].name,
-                nik: result[0].nik,
-                username: result[0].username,
-                password: null,
-                role: UserModel.roles.filter((x) => x.id == result[2].role)[0],
-              };
-
-              const socket = new SocketHelper("updateUser", {
-                data: user_object,
-              });
-              socket.create();
-
-              return res.status(201).send("User berhasil dirubah.");
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
+            const socket = new SocketHelper("updateUser", {
+              data: user_object,
             });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    });
+            socket.create();
+
+            return res.status(201).send("User berhasil dirubah.");
+          })
+          .catch((error) => {
+            console.log(error);
+            return res.status(500).send(error);
+          });
+      });
+    }
   };
 
   static toggleActive = (req: Request, res: Response) => {
@@ -268,6 +268,17 @@ class UserController {
         return res.status(500).send(error);
       });
   };
+
+  static changePassword = (req: Request, res: Response) => {
+    const password = req.body.password;
+    hash(password, 12).then(hashed_password => {
+      UserModel.updatePassword(hashed_password, req.body.userId).then(result => {
+        return res.status(200).send(result);
+      }).catch(error => {
+        return res.status(500).send(error);
+      })
+    })
+  }
 }
 
 export default UserController;

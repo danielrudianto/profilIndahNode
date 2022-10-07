@@ -243,7 +243,6 @@ model good_receipt {
   price                Decimal           @db.Decimal(50, 4)
   item_unit_id         Int?
   stock_card           stock_card?
-  stock_calculate      stock_calculate[]
 
   good_receipt_code good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_1")
   item              item              @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_2")
@@ -308,7 +307,6 @@ model item {
   item_unit                  item_unit[]
   stock_card                 stock_card[]
   stock                      stock?
-  stock_calculate            stock_calculate[]
   stock_out_distribution     stock_out_distribution[]
 
   @@index([reference, description], map: "item_fulltext")
@@ -456,7 +454,6 @@ model adjustment_case {
   item                    item                     @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_2")
   item_unit               item_unit?               @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_3")
   stock_card              stock_card?
-  stock_calculate         stock_calculate[]
   stock_out_distribution  stock_out_distribution[]
 
   @@index([adjustment_case_code_id], map: "adjustment_case_ibfk_1_idx")
@@ -587,19 +584,6 @@ model stock_card {
   item            item             @relation(fields: [item_id], references: [id])
   good_receipt    good_receipt?    @relation(fields: [good_receipt_id], references: [id])
   bill            bill?            @relation(fields: [bill_id], references: [id])
-  adjustment_case adjustment_case? @relation(fields: [adjustment_case_id], references: [id])
-}
-
-model stock_calculate {
-  id                 Int     @id
-  company_id         Int
-  item_id            Int
-  good_receipt_id    Int?
-  adjustment_case_id Int?
-  quantity           Decimal @db.Decimal(36, 6)
-
-  item            item             @relation(fields: [item_id], references: [id])
-  good_receipt    good_receipt?    @relation(fields: [good_receipt_id], references: [id])
   adjustment_case adjustment_case? @relation(fields: [adjustment_case_id], references: [id])
 }
 

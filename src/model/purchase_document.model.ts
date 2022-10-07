@@ -387,6 +387,164 @@ class PurchaseDocumentModel {
       }),
     ]);
   }
+
+  static fetchReport(start: Date, end: Date, type: number) {
+    if (type == 0) {
+      return prisma.$queryRawUnsafe(`
+        SELECT item_brand.id, item_brand.name, a.value
+        FROM item_brand
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, item.item_brand_id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+          JOIN item ON good_receipt.item_id = item.id
+          WHERE purchase_invoice.is_delete = 0
+          AND purchase_invoice.date >= '${start.getFullYear()}-${(
+        start.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
+        AND purchase_invoice.date <= '${end.getFullYear()}-${(
+        end.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
+          GROUP BY item.item_brand_id
+        ) AS a
+        ON item_brand.id = a.item_brand_id
+      `);
+    } else if (type == 1) {
+      return prisma.$queryRawUnsafe(`
+        SELECT item_type.id, item_type.name, a.value
+        FROM item_type
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, item.item_type_id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+          JOIN item ON good_receipt.item_id = item.id
+          WHERE purchase_invoice.is_delete = 0
+          AND purchase_invoice.date >= '${start.getFullYear()}-${(
+        start.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
+        AND purchase_invoice.date <= '${end.getFullYear()}-${(
+        end.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
+          GROUP BY item.item_type_id
+        ) AS a
+        ON item_type.id = a.item_type_id
+      `);
+    } else {
+      return prisma.$queryRawUnsafe(`
+        SELECT supplier.id, supplier.name, SUM(a.value - purchase_invoice.discount) AS value
+        FROM purchase_invoice
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, good_receipt_code.supplier_id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          GROUP BY good_receipt_code.id
+        ) AS a
+        ON purchase_invoice.good_receipt_code_id = a.id
+        JOIN supplier ON a.supplier_id = supplier.id
+        WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.date >= '${start.getFullYear()}-${(
+        start.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
+        AND purchase_invoice.date <= '${end.getFullYear()}-${(
+        end.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
+        GROUP BY supplier.id
+      `);
+    }
+  }
+
+  static fetchReportById(start: Date, end: Date, type: number, id: number) {
+    if(type == 0){
+      return prisma.$queryRawUnsafe(`
+      SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
+      FROM good_receipt
+      JOIN item ON good_receipt.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      JOIN company ON good_receipt_code.company_id = company.id
+      WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.date >= '${start.getFullYear()}-${(
+        start.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
+      AND purchase_invoice.date <= '${end.getFullYear()}-${(
+        end.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
+        AND item.item_brand_id = ${id}
+    `);
+    } else if(type == 1){
+      return prisma.$queryRawUnsafe(`
+      SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
+      FROM good_receipt
+      JOIN item ON good_receipt.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      JOIN company ON good_receipt_code.company_id = company.id
+      WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.date >= '${start.getFullYear()}-${(
+        start.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
+      AND purchase_invoice.date <= '${end.getFullYear()}-${(
+        end.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
+        AND item.item_type_id = ${id}
+    `);
+    } else {
+      return prisma.$queryRawUnsafe(`
+      SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
+      FROM good_receipt
+      JOIN item ON good_receipt.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      JOIN company ON good_receipt_code.company_id = company.id
+      WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.date >= '${start.getFullYear()}-${(
+        start.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
+      AND purchase_invoice.date <= '${end.getFullYear()}-${(
+        end.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
+        AND good_receipt_code.supplier_id = ${id}
+    `);
+    }
+  }
 }
 
 export default PurchaseDocumentModel;

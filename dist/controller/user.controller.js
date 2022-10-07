@@ -124,7 +124,6 @@ UserController.fetch = (req, res) => {
     });
 };
 UserController.update = (req, res) => {
-    const password = req.body.password;
     const name = req.body.name;
     const id = req.body.id;
     const roleId = parseInt(req.body.role);
@@ -132,13 +131,12 @@ UserController.update = (req, res) => {
     if (role == null || role.length == 0) {
         return res.status(500).send("Peran tidak ditemukan.");
     }
-    user_model_1.default.fetchById(id).then((user) => {
-        (0, bcryptjs_1.hash)(password, 12)
-            .then((hashedPassword) => {
+    else {
+        user_model_1.default.fetchById(id).then((user) => {
             const userRoleModel = new user_role_model_1.default(id, role[0].id);
             new query_transaction_helper_1.default()
                 .create([
-                user_model_1.default.update(id, name, hashedPassword, req.body.userId),
+                user_model_1.default.update(id, name, null, req.body.userId),
                 userRoleModel.update(),
             ])
                 .then((result) => {
@@ -157,13 +155,11 @@ UserController.update = (req, res) => {
                 return res.status(201).send("User berhasil dirubah.");
             })
                 .catch((error) => {
+                console.log(error);
                 return res.status(500).send(error);
             });
-        })
-            .catch((error) => {
-            return res.status(500).send(error);
         });
-    });
+    }
 };
 UserController.toggleActive = (req, res) => {
     const id = parseInt(req.params.id);
@@ -192,6 +188,16 @@ UserController.toggleActive = (req, res) => {
         .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "User - Delete", req.body.userId);
         return res.status(500).send(error);
+    });
+};
+UserController.changePassword = (req, res) => {
+    const password = req.body.password;
+    (0, bcryptjs_1.hash)(password, 12).then(hashed_password => {
+        user_model_1.default.updatePassword(hashed_password, req.body.userId).then(result => {
+            return res.status(200).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        });
     });
 };
 exports.default = UserController;

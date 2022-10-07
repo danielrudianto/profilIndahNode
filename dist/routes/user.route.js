@@ -11,6 +11,7 @@ router.get("/roles", auth_controller_1.default.fetchRoles);
 router.get("/profile", auth_controller_1.default.fetchProfile);
 router.get("/fetchById/:id", user_controller_1.default.fetchById);
 router.get("/", user_controller_1.default.fetch);
+router.post("/changePassword", user_controller_1.default.changePassword);
 router.post("/", user_controller_1.default.create);
 router.put("/", user_controller_1.default.update);
 router.delete("/:id", user_controller_1.default.toggleActive);

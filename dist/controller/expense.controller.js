@@ -8,6 +8,7 @@ const app_1 = require("../app");
 const expense_model_1 = __importDefault(require("../model/expense.model"));
 const expense_type_model_1 = __importDefault(require("../model/expense.type.model"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 class ExpenseController {
 }
 ExpenseController.create = (req, res) => {
@@ -253,6 +254,30 @@ ExpenseController.fetchTypeById = (req, res) => {
         }
     })
         .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+ExpenseController.fetchById = (req, res) => {
+    const id = parseInt(req.params.id);
+    expense_model_1.default.fetchById(id).then(result => {
+        if (result == null) {
+            return res.status(404).send("Pengeluaran tidak ditemukan.");
+        }
+        else {
+            return res.status(200).send(Object.assign(Object.assign({}, result), { value: parseFloat(result.value.toString()) }));
+        }
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
+ExpenseController.deleteById = (req, res) => {
+    const id = parseInt(req.params.id);
+    const user_id = req.body.userId;
+    expense_model_1.default.deleteById(id, user_id).then(result => {
+        const socket = new socket_helper_1.default("deleteExpense", result);
+        socket.create();
+        return res.status(200).send(result);
+    }).catch(error => {
         return res.status(500).send(error);
     });
 };

@@ -257,7 +257,6 @@ class AuthController {
     }
 
     let token = tokenHeader.split(" ")[1];
-
     if (!token) {
       return res.status(400).json({
         auth: false,

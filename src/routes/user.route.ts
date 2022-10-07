@@ -9,6 +9,7 @@ router.get("/profile", AuthController.fetchProfile);
 router.get("/fetchById/:id", UserController.fetchById);
 router.get("/", UserController.fetch);
 
+router.post("/changePassword", UserController.changePassword);
 router.post("/", UserController.create);
 
 router.put("/", UserController.update);

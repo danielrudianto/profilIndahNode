@@ -122,6 +122,17 @@ class ItemUnitModel {
                     },
                 }));
             }
+            else {
+                transaction.push(prisma.item_unit.update({
+                    where: {
+                        id: x.id,
+                    },
+                    data: {
+                        conversion: parseFloat(x.conversion.toString()),
+                        unit: x.unit,
+                    },
+                }));
+            }
         });
         return prisma.$transaction(transaction);
     }

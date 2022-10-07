@@ -182,17 +182,31 @@ class UserModel {
         });
     }
     static update(id, name, password, created_by) {
-        return prisma.user.update({
-            where: {
-                id: id,
-            },
-            data: {
-                name: name,
-                password: password,
-                updated_by: created_by,
-                updated_at: new Date(),
-            },
-        });
+        if (password == null) {
+            return prisma.user.update({
+                where: {
+                    id: id,
+                },
+                data: {
+                    name: name,
+                    updated_by: created_by,
+                    updated_at: new Date(),
+                },
+            });
+        }
+        else {
+            return prisma.user.update({
+                where: {
+                    id: id,
+                },
+                data: {
+                    name: name,
+                    password: password,
+                    updated_by: created_by,
+                    updated_at: new Date(),
+                },
+            });
+        }
     }
     static delete(user_id, status, created_by) {
         return prisma.user.update({

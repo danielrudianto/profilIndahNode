@@ -90,6 +90,7 @@ class ExpenseModel {
             name: true,
           },
         },
+        value: true,
         created_at: true,
         id: true,
         expense_type: {
@@ -103,7 +104,7 @@ class ExpenseModel {
 
   static count(year: number, month: number) {
     const date = new Date(year, month, 1, 0, 0, 0, 0);
-    const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0); 
+    const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
     return prisma.expense.count({
       where: {
         is_delete: false,
@@ -142,8 +143,8 @@ class ExpenseModel {
     });
   }
 
-  static fetchSum(month: number, year: number){
-    if(month == 0){
+  static fetchSum(month: number, year: number) {
+    if (month == 0) {
       return prisma.$queryRawUnsafe(`
         SELECT SUM(expense.value) AS value, expense_type.id, expense_type.name, expense_type.parent_id
         FROM expense_type
@@ -151,7 +152,7 @@ class ExpenseModel {
         WHERE YEAR(expense.date) = ${year}
         AND expense.is_delete = 0
         GROUP BY expense_type.id
-      `)
+      `);
     } else {
       return prisma.$queryRawUnsafe(`
         SELECT SUM(expense.value) AS value, expense_type_id, expense_type.name, expense_type.parent_id
@@ -161,8 +162,54 @@ class ExpenseModel {
         AND YEAR(expense.date) = ${year}
         AND expense.is_delete = 0
         GROUP BY expense_type.id
-      `)
+      `);
     }
+  }
+
+  static fetchTodaySum() {
+    const date = new Date();
+    return prisma.$queryRawUnsafe(`
+        SELECT COALESCE(SUM(expense.value), 0) AS value
+        FROM expense_type
+        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        WHERE expense.date = '${date.getFullYear()}-${(date.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        AND expense.is_delete = 0
+      `);
+  }
+
+  static fetchById(id: number){
+    return prisma.expense.findUnique({
+      where: {
+        id: id
+      },
+      select: {
+        id: true,
+        is_delete: true,
+        value: true,
+        description: true,
+        expense_type: {
+          select: {
+            name: true,
+            description: true,
+          }
+        }
+      }
+    })
+  }
+
+  static deleteById(id: number, deleted_by: number){
+    return prisma.expense.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        deleted_at: new Date(),
+        deleted_by: deleted_by,
+      }
+    })
   }
 }
 

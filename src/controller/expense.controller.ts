@@ -4,6 +4,7 @@ import { io } from "../app";
 import ExpenseModel from "../model/expense.model";
 import ExpenseTypeModel from "../model/expense.type.model";
 import LogHelper from "../helper/log.helper";
+import SocketHelper from "../helper/socket.helper";
 
 class ExpenseController {
   static create = (req: Request, res: Response) => {
@@ -295,6 +296,37 @@ class ExpenseController {
         return res.status(500).send(error);
       });
   };
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    ExpenseModel.fetchById(id).then(result => {
+      if(result == null) {
+        return res.status(404).send("Pengeluaran tidak ditemukan.");
+      } else {
+        return res.status(200).send({
+          ...result,
+          value: parseFloat(result!.value.toString()),
+        });
+      }
+      
+    }).catch(error => {
+      return res.status(500).send(error);
+    });
+  }
+
+  static deleteById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const user_id = req.body.userId;
+
+    ExpenseModel.deleteById(id, user_id).then(result => {
+      const socket = new SocketHelper("deleteExpense", result);
+      socket.create();
+
+      return res.status(200).send(result);
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default ExpenseController;
