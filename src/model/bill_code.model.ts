@@ -633,8 +633,6 @@ class BillCodeModel {
 
   static fetchTodaySales(){
     const date = new Date();
-    console.log(date.getMonth());
-    console.log(date.getDate());
     return prisma.$queryRawUnsafe(`
       SELECT COALESCE(SUM(a.value), 0) AS value, COALESCE(SUM(a.discount), 0) AS discount, COALESCE(SUM(a.service), 0) AS service, COALESCE(SUM(a.delivery), 0) AS delivery
       FROM (
