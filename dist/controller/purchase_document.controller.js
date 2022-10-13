@@ -246,4 +246,24 @@ PurchaseDocumentController.delete = (req, res) => {
         }
     });
 };
+PurchaseDocumentController.confirmUnchanged = (req, res) => {
+    const id = parseInt(req.body.id);
+    purchase_document_model_1.default.fetchById(id).then(purchase_document => {
+        if (purchase_document == null || purchase_document.is_delete) {
+            return res.status(404).send("Dokumen pembelian tidak ditemukan.");
+        }
+        else if (purchase_document.is_confirm) {
+            return res.status(404).send("Dokumen sudah dikonfirmasi.");
+        }
+        else {
+            purchase_document_model_1.default.confirmByIdUnchanged(id, req.body.userId).then(result => {
+                return res.status(200).send(result);
+            }).catch(error => {
+                return res.status(500).send(error);
+            });
+        }
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
 exports.default = PurchaseDocumentController;

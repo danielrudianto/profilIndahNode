@@ -69,7 +69,7 @@ ItemTypeController.fetchAutocomplete = (req, res) => {
     });
 };
 ItemTypeController.fetchByBrandId = (req, res) => {
-    const ids = req.body.ids;
+    const ids = JSON.parse(req.body.ids.replace("'", "").replace('"', ''));
     item_type_model_1.default.fetchByBrandIds(ids).then(result => {
         return res.status(200).send(result);
     }).catch(error => {

@@ -12,8 +12,9 @@ const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 class ExpenseController {
 }
 ExpenseController.create = (req, res) => {
+    console.log(req.body);
     const description = req.body.description;
-    const date = req.body.date;
+    const date = new Date(req.body.date);
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
     expense_type_model_1.default.fetchById(type_id).then((type) => {

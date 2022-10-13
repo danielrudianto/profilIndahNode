@@ -545,6 +545,20 @@ class PurchaseDocumentModel {
     `);
     }
   }
+
+  static confirmByIdUnchanged(id: number, user_id: number){
+    return prisma.purchase_invoice.update({
+      where:{
+        id: id,
+      },
+      data: {
+        is_confirm: true,
+        is_delete: false,
+        confirmed_at: new Date(),
+        confirmed_by: user_id,
+      }
+    });
+  }
 }
 
 export default PurchaseDocumentModel;

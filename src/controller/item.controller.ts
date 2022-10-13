@@ -684,8 +684,8 @@ class ItemController {
   };
 
   static fetchStockReportPdf = (req: Request, res: Response) => {
-    const brand_ids = req.body.brand_id as number[];
-    const type_ids = req.body.type_id as number[];
+    const brand_ids = JSON.parse((req.body.brand_id as string).replace("'", "").replace('"', '')) as number[];
+    const type_ids = JSON.parse((req.body.type_id as string).replace("'", "").replace('"', '')) as number[];
 
     Promise.all([
       UserModel.fetchById(req.body.userId),
@@ -713,12 +713,11 @@ class ItemController {
   };
 
   static fetchStockReport = (req: Request, res: Response) => {
-    const brand_ids = req.body.brand_id as number[];
-    const type_ids = req.body.type_id as number[];
+    const brand_ids = JSON.parse((req.body.brand_id as string).replace("'", "").replace('"', '')) as number[];
+    const type_ids = JSON.parse((req.body.type_id as string).replace("'", "").replace('"', '')) as number[];
 
     ItemModel.fetchInsufficient(brand_ids, type_ids)
       .then((result) => {
-        console.log(result);
         return res.status(200).send({
           data: result
             .filter((x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock)

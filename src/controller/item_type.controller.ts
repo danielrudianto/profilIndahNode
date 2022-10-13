@@ -81,7 +81,7 @@ class ItemTypeController {
     }
 
     static fetchByBrandId = (req: Request, res: Response) => {
-        const ids = req.body.ids as number[];
+        const ids = JSON.parse((req.body.ids as string).replace("'", "").replace('"', '')) as number[];
         ItemTypeModel.fetchByBrandIds(ids).then(result => {
             return res.status(200).send(result);
         }).catch(error => {

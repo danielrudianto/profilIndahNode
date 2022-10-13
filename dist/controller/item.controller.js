@@ -458,8 +458,8 @@ ItemController.toggleActive = (req, res) => {
     });
 };
 ItemController.fetchStockReportPdf = (req, res) => {
-    const brand_ids = req.body.brand_id;
-    const type_ids = req.body.type_id;
+    const brand_ids = JSON.parse(req.body.brand_id.replace("'", "").replace('"', ''));
+    const type_ids = JSON.parse(req.body.type_id.replace("'", "").replace('"', ''));
     Promise.all([
         user_model_1.default.fetchById(req.body.userId),
         item_model_1.ItemModel.fetchInsufficient(brand_ids, type_ids),
@@ -480,11 +480,10 @@ ItemController.fetchStockReportPdf = (req, res) => {
     });
 };
 ItemController.fetchStockReport = (req, res) => {
-    const brand_ids = req.body.brand_id;
-    const type_ids = req.body.type_id;
+    const brand_ids = JSON.parse(req.body.brand_id.replace("'", "").replace('"', ''));
+    const type_ids = JSON.parse(req.body.type_id.replace("'", "").replace('"', ''));
     item_model_1.ItemModel.fetchInsufficient(brand_ids, type_ids)
         .then((result) => {
-        console.log(result);
         return res.status(200).send({
             data: result
                 .filter((x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock)

@@ -8,8 +8,9 @@ import SocketHelper from "../helper/socket.helper";
 
 class ExpenseController {
   static create = (req: Request, res: Response) => {
+    console.log(req.body);
     const description = req.body.description;
-    const date = req.body.date;
+    const date = new Date(req.body.date);
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
 
