@@ -519,10 +519,11 @@ ReportController.fetchSalesReport = (req, res) => {
         // Fetch by brand
         brand_model_1.BrandModel.fetchSales(start, end)
             .then((result) => {
-            console.log(result);
-            return res.status(200).send(result.filter(x => {
-                parseFloat(x.value.toString()) > 0;
-            }));
+            return res.status(200).send({
+                data: result.filter(x => {
+                    parseFloat(x.value.toString()) > 0;
+                }),
+            });
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -532,10 +533,11 @@ ReportController.fetchSalesReport = (req, res) => {
         // Fetch by type
         item_type_model_1.default.fetchSales(start, end)
             .then((result) => {
-            console.log(result);
-            return res.status(200).send(result.filter(x => {
-                parseFloat(x.value.toString()) > 0;
-            }));
+            return res.status(200).send({
+                data: result.filter(x => {
+                    parseFloat(x.value.toString()) > 0;
+                }),
+            });
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -548,9 +550,11 @@ ReportController.fetchPurchaseReport = (req, res) => {
     const type = req.body.type;
     purchase_document_model_1.default.fetchReport(start, end, type).then(result => {
         console.log(result);
-        return res.status(200).send(result.filter(x => {
-            parseFloat(x.value.toString()) > 0;
-        }));
+        return res.status(200).send({
+            data: result.filter(x => {
+                parseFloat(x.value.toString()) > 0;
+            }),
+        });
     }).catch(error => {
         return res.status(500).send(error);
     });
