@@ -606,6 +606,7 @@ class ReportController {
       // Fetch by brand
       BrandModel.fetchSales(start, end)
         .then((result) => {
+          console.log(result);
           return res.status(200).send((result as any[]).filter(x => {
             x.value > 0
           }));
@@ -617,6 +618,7 @@ class ReportController {
       // Fetch by type
       ItemTypeModel.fetchSales(start, end)
         .then((result) => {
+          console.log(result);
           return res.status(200).send((result as any[]).filter(x => {
             x.value > 0
           }));
@@ -633,6 +635,7 @@ class ReportController {
     const type = req.body.type;
 
     PurchaseDocumentModel.fetchReport(start, end, type).then(result => {
+      console.log(result);
       return res.status(200).send((result as any[]).filter(x => {
         x.value > 0
       }));
