@@ -8,7 +8,12 @@ import { ItemModel } from "../model/item.model";
 import PurchaseDocumentModel from "../model/purchase_document.model";
 import SalesDistributionModel from "../model/sales_distribution.model";
 import path from "path";
-import { Alignment, Margins, PageOrientation, PageSize } from "pdfmake/interfaces";
+import {
+  Alignment,
+  Margins,
+  PageOrientation,
+  PageSize,
+} from "pdfmake/interfaces";
 import StockValueHelper from "../helper/stock_value.helper";
 import { BrandModel } from "../model/brand.model";
 import ItemTypeModel from "../model/item_type.model";
@@ -607,9 +612,9 @@ class ReportController {
       BrandModel.fetchSales(start, end)
         .then((result) => {
           return res.status(200).send(
-            (result as any[]).filter(x => {
-              return parseFloat(x.value.toString()) > 0
-            }),
+            (result as any[]).filter((x) => {
+              return parseFloat(x.value.toString()) > 0;
+            })
           );
         })
         .catch((error) => {
@@ -620,8 +625,8 @@ class ReportController {
       ItemTypeModel.fetchSales(start, end)
         .then((result) => {
           return res.status(200).send({
-            data: (result as any[]).filter(x => {
-              return parseFloat(x.value.toString()) > 0
+            data: (result as any[]).filter((x) => {
+              return parseFloat(x.value.toString()) > 0;
             }),
           });
         })
@@ -636,16 +641,18 @@ class ReportController {
     const end = new Date(req.body.end);
     const type = req.body.type;
 
-    PurchaseDocumentModel.fetchReport(start, end, type).then(result => {
-      return res.status(200).send({
-        data: (result as any[]).filter(x => {
-          return parseFloat(x.value.toString()) > 0
-        }),
+    PurchaseDocumentModel.fetchReport(start, end, type)
+      .then((result) => {
+        return res.status(200).send(
+          (result as any[]).filter((x) => {
+            return parseFloat(x.value.toString()) > 0;
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
       });
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+  };
 
   static fetchFrequent = (req: Request, res: Response) => {
     const start = new Date(req.body.start);
@@ -658,14 +665,13 @@ class ReportController {
       BrandModel.fetchFrequent(brand_id, start, end, limit)
         .then((result) => {
           return res.status(200).send(
-            (result as any[])
-              .map((x) => {
-                return {
-                  ...x,
-                  ordered: undefined,
-                  quantity: x.ordered,
-                };
-              })
+            (result as any[]).map((x) => {
+              return {
+                ...x,
+                ordered: undefined,
+                quantity: x.ordered,
+              };
+            })
           );
         })
         .catch((error) => {
@@ -675,14 +681,13 @@ class ReportController {
       ItemTypeModel.fetchFrequent(type_id, start, end, limit)
         .then((result) => {
           return res.status(200).send(
-            (result as any[])
-              .map((x) => {
-                return {
-                  ...x,
-                  ordered: undefined,
-                  quantity: x.ordered,
-                };
-              })
+            (result as any[]).map((x) => {
+              return {
+                ...x,
+                ordered: undefined,
+                quantity: x.ordered,
+              };
+            })
           );
         })
         .catch((error) => {
@@ -703,26 +708,43 @@ class ReportController {
       ExpenseModel.fetchTodaySum(),
       // PurchaseDocumentModel.fetchTodaySum,
       // PurchaseDocumentModel.fetchUnconfirmedToday,
-    ]).then(result => {
-      const response = {
-        sales: (result[0] as any[]).length == 0 ? {
-          value: 0,
-          discount: 0,
-          service: 0,
-          delivery: 0,
-        }: {
-          value: ((result[0] as any[])[0].value == null) ? 0 : parseFloat((result[0] as any[])[0].value),
-          discount: ((result[0] as any[])[0].discount == null) ? 0 : parseFloat((result[0] as any[])[0].discount),
-          delivery: ((result[0] as any[])[0].delivery == null) ? 0 : parseFloat((result[0] as any[])[0].delivery),
-          service: ((result[0] as any[])[0].service == null) ? 0 : parseFloat((result[0] as any[])[0].service),
-        },
-        expense: (result[1] as any[])[0].value,
-      };
-      return res.status(200).send(response);
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+    ])
+      .then((result) => {
+        const response = {
+          sales:
+            (result[0] as any[]).length == 0
+              ? {
+                  value: 0,
+                  discount: 0,
+                  service: 0,
+                  delivery: 0,
+                }
+              : {
+                  value:
+                    (result[0] as any[])[0].value == null
+                      ? 0
+                      : parseFloat((result[0] as any[])[0].value),
+                  discount:
+                    (result[0] as any[])[0].discount == null
+                      ? 0
+                      : parseFloat((result[0] as any[])[0].discount),
+                  delivery:
+                    (result[0] as any[])[0].delivery == null
+                      ? 0
+                      : parseFloat((result[0] as any[])[0].delivery),
+                  service:
+                    (result[0] as any[])[0].service == null
+                      ? 0
+                      : parseFloat((result[0] as any[])[0].service),
+                },
+          expense: (result[1] as any[])[0].value,
+        };
+        return res.status(200).send(response);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 
   static fetchPurchaseReportDownload = (req: Request, res: Response) => {
     const start = new Date(req.body.start);
@@ -755,161 +777,166 @@ class ReportController {
       },
     };
 
-    PurchaseDocumentModel.fetchReportById(start, end, type, id).then(async result => {
-      const purchase_table = [];
-      purchase_table.push([
-        {
-          text: "Referensi",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-        {
-          text: "Deskripsi",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-        {
-          text: "Merek",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-        {
-          text: "Tipe",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-        {
-          text: "Surat Jalan",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-        {
-          text: "Bon Pembelian",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-        {
-          text: "Perusahaan",
-          bold: true,
-          alignment: "center" as Alignment,
-        },
-      ]);
-
-      (result as any[]).forEach((x) => {
+    PurchaseDocumentModel.fetchReportById(start, end, type, id)
+      .then(async (result) => {
+        const purchase_table = [];
         purchase_table.push([
           {
-            text: x.reference,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Referensi",
+            bold: true,
+            alignment: "center" as Alignment,
           },
           {
-            text: x.description,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Deskripsi",
+            bold: true,
+            alignment: "center" as Alignment,
           },
           {
-            text: x.item_brand_name,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Merek",
+            bold: true,
+            alignment: "center" as Alignment,
           },
           {
-            text: x.item_type_name,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Tipe",
+            bold: true,
+            alignment: "center" as Alignment,
           },
           {
-            text: x.good_receipt_name,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Surat Jalan",
+            bold: true,
+            alignment: "center" as Alignment,
           },
           {
-            text: x.purchase_invoice_name,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Bon Pembelian",
+            bold: true,
+            alignment: "center" as Alignment,
           },
           {
-            text: x.company_name,
-            bold: false,
-            alignment: "left" as Alignment,
+            text: "Perusahaan",
+            bold: true,
+            alignment: "center" as Alignment,
           },
         ]);
-      });
 
-      let name;
-
-      if(type == 0){
-        const brand = await BrandModel.fetchById(id)
-        name = brand[0]?.name;
-      } else if(type == 1){
-        const type = await ItemTypeModel.fetchById(id);
-        name = type?.name;
-      } else {
-        const supplier = await SupplierModel.fetchById(id);
-        name = supplier?.name;
-      }
-
-      let documentDefinition = {
-        pageSize: "A4" as PageSize,
-        pageOrientation: 'landscape' as PageOrientation,
-        userPassword: password,
-        permissions: {
-          modifying: false,
-          annotating: true,
-          contentAccessibility: true,
-          documentAssembly: true
-        },
-        content: [
-          {
-            text: "Laporan Pembelian",
-            bold: true,
-            fontSize: 20,
-            alignment: "center" as Alignment,
-            margin: [0, 0, 0, 5] as Margins
-          },
-          {
-            text:(type == 0) ? `Merek ${name}` : (type == 1) ? `Tipe ${name}` : `Supplier ${name}`,
-            bold: true,
-            fontSize: 14,
-            alignment: "center" as Alignment,
-            margin: [0, 0, 0, 15] as Margins,
-          },
-          {
-            layout: "lightHorizontalLines",
-            table: {
-              headerRows: 1,
-              widths: ["auto", "*", "auto", "auto", "auto", "auto", "auto"],
-              body: purchase_table,
+        (result as any[]).forEach((x) => {
+          purchase_table.push([
+            {
+              text: x.reference,
+              bold: false,
+              alignment: "left" as Alignment,
             },
-            margin: [0, 0, 0, 15] as Margins,
-          },
-        ],
-      };
-
-      const printer = new PdfPrinter(fontDescriptors);
-      const pdfDocument = printer.createPdfKitDocument(documentDefinition);
-
-      let chunks: any[] = [];
-      var pdfResult;
-
-      pdfDocument.on("data", function (chunk: any) {
-        chunks.push(chunk);
-      });
-
-      pdfDocument.on("end", function () {
-        pdfResult = Buffer.concat(chunks);
-        return res.status(200).send({
-          data: `data:application/pdf;base64,${pdfResult.toString(
-            "base64"
-          )}`,
+            {
+              text: x.description,
+              bold: false,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: x.item_brand_name,
+              bold: false,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: x.item_type_name,
+              bold: false,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: x.good_receipt_name,
+              bold: false,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: x.purchase_invoice_name,
+              bold: false,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: x.company_name,
+              bold: false,
+              alignment: "left" as Alignment,
+            },
+          ]);
         });
-      });
 
-      pdfDocument.end();
-    }).catch(error => {
-      console.log(error);
-      return res.status(500).send(error);
-    })
-  }
+        let name;
+
+        if (type == 0) {
+          const brand = await BrandModel.fetchById(id);
+          name = brand[0]?.name;
+        } else if (type == 1) {
+          const type = await ItemTypeModel.fetchById(id);
+          name = type?.name;
+        } else {
+          const supplier = await SupplierModel.fetchById(id);
+          name = supplier?.name;
+        }
+
+        let documentDefinition = {
+          pageSize: "A4" as PageSize,
+          pageOrientation: "landscape" as PageOrientation,
+          userPassword: password,
+          permissions: {
+            modifying: false,
+            annotating: true,
+            contentAccessibility: true,
+            documentAssembly: true,
+          },
+          content: [
+            {
+              text: "Laporan Pembelian",
+              bold: true,
+              fontSize: 20,
+              alignment: "center" as Alignment,
+              margin: [0, 0, 0, 5] as Margins,
+            },
+            {
+              text:
+                type == 0
+                  ? `Merek ${name}`
+                  : type == 1
+                  ? `Tipe ${name}`
+                  : `Supplier ${name}`,
+              bold: true,
+              fontSize: 14,
+              alignment: "center" as Alignment,
+              margin: [0, 0, 0, 15] as Margins,
+            },
+            {
+              layout: "lightHorizontalLines",
+              table: {
+                headerRows: 1,
+                widths: ["auto", "*", "auto", "auto", "auto", "auto", "auto"],
+                body: purchase_table,
+              },
+              margin: [0, 0, 0, 15] as Margins,
+            },
+          ],
+        };
+
+        const printer = new PdfPrinter(fontDescriptors);
+        const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+
+        let chunks: any[] = [];
+        var pdfResult;
+
+        pdfDocument.on("data", function (chunk: any) {
+          chunks.push(chunk);
+        });
+
+        pdfDocument.on("end", function () {
+          pdfResult = Buffer.concat(chunks);
+          return res.status(200).send({
+            data: `data:application/pdf;base64,${pdfResult.toString("base64")}`,
+          });
+        });
+
+        pdfDocument.end();
+      })
+      .catch((error) => {
+        console.log(error);
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default ReportController;

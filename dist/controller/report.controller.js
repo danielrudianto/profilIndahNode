@@ -519,7 +519,7 @@ ReportController.fetchSalesReport = (req, res) => {
         // Fetch by brand
         brand_model_1.BrandModel.fetchSales(start, end)
             .then((result) => {
-            return res.status(200).send(result.filter(x => {
+            return res.status(200).send(result.filter((x) => {
                 return parseFloat(x.value.toString()) > 0;
             }));
         })
@@ -532,7 +532,7 @@ ReportController.fetchSalesReport = (req, res) => {
         item_type_model_1.default.fetchSales(start, end)
             .then((result) => {
             return res.status(200).send({
-                data: result.filter(x => {
+                data: result.filter((x) => {
                     return parseFloat(x.value.toString()) > 0;
                 }),
             });
@@ -546,13 +546,13 @@ ReportController.fetchPurchaseReport = (req, res) => {
     const start = new Date(req.body.start);
     const end = new Date(req.body.end);
     const type = req.body.type;
-    purchase_document_model_1.default.fetchReport(start, end, type).then(result => {
-        return res.status(200).send({
-            data: result.filter(x => {
-                return parseFloat(x.value.toString()) > 0;
-            }),
-        });
-    }).catch(error => {
+    purchase_document_model_1.default.fetchReport(start, end, type)
+        .then((result) => {
+        return res.status(200).send(result.filter((x) => {
+            return parseFloat(x.value.toString()) > 0;
+        }));
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };
@@ -565,8 +565,7 @@ ReportController.fetchFrequent = (req, res) => {
     if (brand_id != null) {
         brand_model_1.BrandModel.fetchFrequent(brand_id, start, end, limit)
             .then((result) => {
-            return res.status(200).send(result
-                .map((x) => {
+            return res.status(200).send(result.map((x) => {
                 return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
             }));
         })
@@ -577,8 +576,7 @@ ReportController.fetchFrequent = (req, res) => {
     else if (type_id != null) {
         item_type_model_1.default.fetchFrequent(type_id, start, end, limit)
             .then((result) => {
-            return res.status(200).send(result
-                .map((x) => {
+            return res.status(200).send(result.map((x) => {
                 return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
             }));
         })
@@ -600,23 +598,35 @@ ReportController.fetchQuickStats = (req, res) => {
         expense_model_1.default.fetchTodaySum(),
         // PurchaseDocumentModel.fetchTodaySum,
         // PurchaseDocumentModel.fetchUnconfirmedToday,
-    ]).then(result => {
+    ])
+        .then((result) => {
         const response = {
-            sales: result[0].length == 0 ? {
-                value: 0,
-                discount: 0,
-                service: 0,
-                delivery: 0,
-            } : {
-                value: (result[0][0].value == null) ? 0 : parseFloat(result[0][0].value),
-                discount: (result[0][0].discount == null) ? 0 : parseFloat(result[0][0].discount),
-                delivery: (result[0][0].delivery == null) ? 0 : parseFloat(result[0][0].delivery),
-                service: (result[0][0].service == null) ? 0 : parseFloat(result[0][0].service),
-            },
+            sales: result[0].length == 0
+                ? {
+                    value: 0,
+                    discount: 0,
+                    service: 0,
+                    delivery: 0,
+                }
+                : {
+                    value: result[0][0].value == null
+                        ? 0
+                        : parseFloat(result[0][0].value),
+                    discount: result[0][0].discount == null
+                        ? 0
+                        : parseFloat(result[0][0].discount),
+                    delivery: result[0][0].delivery == null
+                        ? 0
+                        : parseFloat(result[0][0].delivery),
+                    service: result[0][0].service == null
+                        ? 0
+                        : parseFloat(result[0][0].service),
+                },
             expense: result[1][0].value,
         };
         return res.status(200).send(response);
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };
@@ -634,7 +644,8 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
             bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
         },
     };
-    purchase_document_model_1.default.fetchReportById(start, end, type, id).then((result) => __awaiter(void 0, void 0, void 0, function* () {
+    purchase_document_model_1.default.fetchReportById(start, end, type, id)
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         var _b;
         const purchase_table = [];
         purchase_table.push([
@@ -728,13 +739,13 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
         }
         let documentDefinition = {
             pageSize: "A4",
-            pageOrientation: 'landscape',
+            pageOrientation: "landscape",
             userPassword: password,
             permissions: {
                 modifying: false,
                 annotating: true,
                 contentAccessibility: true,
-                documentAssembly: true
+                documentAssembly: true,
             },
             content: [
                 {
@@ -742,10 +753,14 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
                     bold: true,
                     fontSize: 20,
                     alignment: "center",
-                    margin: [0, 0, 0, 5]
+                    margin: [0, 0, 0, 5],
                 },
                 {
-                    text: (type == 0) ? `Merek ${name}` : (type == 1) ? `Tipe ${name}` : `Supplier ${name}`,
+                    text: type == 0
+                        ? `Merek ${name}`
+                        : type == 1
+                            ? `Tipe ${name}`
+                            : `Supplier ${name}`,
                     bold: true,
                     fontSize: 14,
                     alignment: "center",
@@ -776,7 +791,8 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
             });
         });
         pdfDocument.end();
-    })).catch(error => {
+    }))
+        .catch((error) => {
         console.log(error);
         return res.status(500).send(error);
     });
