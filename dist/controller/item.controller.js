@@ -496,4 +496,12 @@ ItemController.fetchStockReport = (req, res) => {
         return res.status(500).send(error);
     });
 };
+ItemController.fetchById = (req, res) => {
+    const id = parseInt(req.params.id);
+    item_model_1.ItemModel.fetchById(id, new Date()).then(result => {
+        return res.status(200).send(Object.assign(Object.assign({}, result), { item_price_id: result === null || result === void 0 ? void 0 : result.item_price.filter(x => x.item_unit == null)[0].id, item_price_purchase_id: result === null || result === void 0 ? void 0 : result.item_price_purchase.filter(x => x.item_unit == null)[0].id, price: result === null || result === void 0 ? void 0 : result.item_price.filter(x => x.item_unit == null)[0].price, discount: result === null || result === void 0 ? void 0 : result.item_price.filter(x => x.item_unit == null)[0].discount, purchase_price: result === null || result === void 0 ? void 0 : result.item_price_purchase.filter(x => x.item_unit == null)[0].price, item_price: result === null || result === void 0 ? void 0 : result.item_price.filter(x => x.item_unit != null), item_price_purchase: result === null || result === void 0 ? void 0 : result.item_price_purchase.filter(x => x.item_unit != null) }));
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
 exports.default = ItemController;

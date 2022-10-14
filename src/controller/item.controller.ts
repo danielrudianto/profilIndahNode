@@ -733,6 +733,24 @@ class ItemController {
         return res.status(500).send(error);
       });
   };
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    ItemModel.fetchById(id, new Date()).then(result => {
+      return res.status(200).send({
+        ...result,
+        item_price_id: result?.item_price.filter(x => x.item_unit == null)[0].id,
+        item_price_purchase_id: result?.item_price_purchase.filter(x => x.item_unit == null)[0].id,
+        price: result?.item_price.filter(x => x.item_unit == null)[0].price,
+        discount: result?.item_price.filter(x => x.item_unit == null)[0].discount,
+        purchase_price: result?.item_price_purchase.filter(x => x.item_unit == null)[0].price,
+        item_price: result?.item_price.filter(x => x.item_unit != null),
+        item_price_purchase: result?.item_price_purchase.filter(x => x.item_unit != null),
+      });
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
 }
 
 export default ItemController;

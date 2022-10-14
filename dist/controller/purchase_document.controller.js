@@ -249,10 +249,11 @@ PurchaseDocumentController.delete = (req, res) => {
 PurchaseDocumentController.confirmUnchanged = (req, res) => {
     const id = parseInt(req.body.id);
     purchase_document_model_1.default.fetchById(id).then(purchase_document => {
-        if (purchase_document == null || purchase_document.is_delete) {
+        var _a, _b;
+        if (purchase_document == null || purchase_document.purchase_invoice == null || ((_a = purchase_document.purchase_invoice) === null || _a === void 0 ? void 0 : _a.is_delete)) {
             return res.status(404).send("Dokumen pembelian tidak ditemukan.");
         }
-        else if (purchase_document.is_confirm) {
+        else if ((_b = purchase_document.purchase_invoice) === null || _b === void 0 ? void 0 : _b.is_confirm) {
             return res.status(404).send("Dokumen sudah dikonfirmasi.");
         }
         else {

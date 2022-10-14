@@ -35,18 +35,17 @@ GoodReceiptController.create = (req, res) => {
             return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
         }
         const good_receipt = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
-        good_receipt
-            .create()
-            .then((good_receipt_result) => {
-            const prices = [];
+        good_receipt.create().then((good_receipt_result) => {
             const item_ids = [];
             for (let i = 0; i < good_receipt_items.length; i++) {
                 item_ids.push(good_receipt_items[i].item_id);
             }
-            item_purchase_price_model_1.default.fetchByItemIds(item_ids).then(result => {
+            item_purchase_price_model_1.default.fetchByItemIds(item_ids).then((result) => {
                 const good_receipt_items_input = [];
                 for (let idx = 0; idx < good_receipt_items.length; idx++) {
-                    const price = (result.filter(x => x.item_id == good_receipt_items[idx].item_id).length == 0) ? 0 : result.filter(x => x.item_id == good_receipt_items[idx].item_id)[0].price;
+                    const price = result.filter((x) => x.item_id == good_receipt_items[idx].item_id).length == 0
+                        ? 0
+                        : result.filter((x) => x.item_id == good_receipt_items[idx].item_id)[0].price;
                     good_receipt_items_input.push({
                         item_id: good_receipt_items[idx].item_id,
                         item_unit_id: good_receipt_items[idx].item_unit_id,
@@ -66,13 +65,17 @@ GoodReceiptController.create = (req, res) => {
                         company_id: insert_transaction[1].good_receipt_code.company_id,
                     });
                     socket.create();
-                    return res.status(201).send(Object.assign(Object.assign({}, good_receipt_result), { good_receipt: insert_transaction[0] }));
+                    return res.status(201).send(Object.assign(Object.assign({}, good_receipt_result), { good_receipt: insert_transaction[0], purchase_invoice: insert_transaction[1] }));
                 })
                     .catch((error) => {
                     log_helper_1.default.log(new Date(), "error", error, "Good Receipt - Create", req.body.userId);
                     return res.status(500).send(error);
                 });
+            }).catch(error => {
+                return res.status(500).send(error);
             });
+        }).catch(error => {
+            return res.status(500).send(error);
         });
     })
         .catch((error) => {

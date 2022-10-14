@@ -354,9 +354,9 @@ class PurchaseDocumentController {
   static confirmUnchanged = (req: Request, res: Response) => {
     const id = parseInt(req.body.id);
     PurchaseDocumentModel.fetchById(id).then(purchase_document => {
-      if(purchase_document == null ||  purchase_document.is_delete){
+      if(purchase_document == null || purchase_document.purchase_invoice == null ||  purchase_document.purchase_invoice?.is_delete){
         return res.status(404).send("Dokumen pembelian tidak ditemukan.");
-      } else if(purchase_document.is_confirm){
+      } else if(purchase_document.purchase_invoice?.is_confirm){
         return res.status(404).send("Dokumen sudah dikonfirmasi.");
       } else {
         PurchaseDocumentModel.confirmByIdUnchanged(id, req.body.userId).then(result => {

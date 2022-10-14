@@ -118,17 +118,30 @@ class ItemModel {
                 is_delete: true,
                 item_brand_id: true,
                 item_type_id: true,
+                unit: true,
                 item_brand: {
                     select: {
                         name: true,
                     },
                 },
+                item_type: {
+                    select: {
+                        name: true,
+                    }
+                },
                 item_price: {
                     select: {
+                        id: true,
                         price: true,
                         discount: true,
                         created_at: true,
                         effective_date: true,
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            }
+                        }
                     },
                     where: {
                         is_delete: false,
@@ -146,6 +159,21 @@ class ItemModel {
                     ],
                     take: 1,
                     skip: 0,
+                },
+                item_price_purchase: {
+                    select: {
+                        id: true,
+                        price: true,
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            }
+                        }
+                    },
+                    where: {
+                        is_delete: false,
+                    }
                 },
                 stock: {
                     select: {

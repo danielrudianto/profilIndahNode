@@ -112,3 +112,7 @@ Thu Oct 06 2022 14:25:23 GMT+0700 (Indochina Time); error; Error: ,Invalid `pris
 Fri Oct 07 2022 14:20:40 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-00678124 (ID: 9); Bill controller - Create; 1
 Tue Oct 11 2022 21:45:58 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 4) dari Test (ID: 4) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
 Tue Oct 11 2022 22:55:02 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Oct 14 2022 10:24:47 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Oct 14 2022 10:25:01 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 5) dari Test (ID: 5) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
+Fri Oct 14 2022 15:53:51 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 6) dari Test (ID: 6) untuk perusahaan Toko Profil Indah (ID: 1); Good Receipt controller - Create; 1
+Fri Oct 14 2022 16:01:32 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 7) dari Test (ID: 7) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1

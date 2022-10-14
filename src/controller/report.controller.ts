@@ -606,7 +606,9 @@ class ReportController {
       // Fetch by brand
       BrandModel.fetchSales(start, end)
         .then((result) => {
-          return res.status(200).send(result);
+          return res.status(200).send((result as any[]).filter(x => {
+            x.value > 0
+          }));
         })
         .catch((error) => {
           return res.status(500).send(error);
@@ -615,7 +617,9 @@ class ReportController {
       // Fetch by type
       ItemTypeModel.fetchSales(start, end)
         .then((result) => {
-          return res.status(200).send(result);
+          return res.status(200).send((result as any[]).filter(x => {
+            x.value > 0
+          }));
         })
         .catch((error) => {
           return res.status(500).send(error);
@@ -629,7 +633,9 @@ class ReportController {
     const type = req.body.type;
 
     PurchaseDocumentModel.fetchReport(start, end, type).then(result => {
-      return res.status(200).send(result);
+      return res.status(200).send((result as any[]).filter(x => {
+        x.value > 0
+      }));
     }).catch(error => {
       return res.status(500).send(error);
     })
@@ -706,8 +712,6 @@ class ReportController {
         },
         expense: (result[1] as any[])[0].value,
       };
-
-      console.log(response);
       return res.status(200).send(response);
     }).catch(error => {
       return res.status(500).send(error);

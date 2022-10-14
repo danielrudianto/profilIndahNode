@@ -519,7 +519,9 @@ ReportController.fetchSalesReport = (req, res) => {
         // Fetch by brand
         brand_model_1.BrandModel.fetchSales(start, end)
             .then((result) => {
-            return res.status(200).send(result);
+            return res.status(200).send(result.filter(x => {
+                x.value > 0;
+            }));
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -529,7 +531,9 @@ ReportController.fetchSalesReport = (req, res) => {
         // Fetch by type
         item_type_model_1.default.fetchSales(start, end)
             .then((result) => {
-            return res.status(200).send(result);
+            return res.status(200).send(result.filter(x => {
+                x.value > 0;
+            }));
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -541,7 +545,9 @@ ReportController.fetchPurchaseReport = (req, res) => {
     const end = new Date(req.body.end);
     const type = req.body.type;
     purchase_document_model_1.default.fetchReport(start, end, type).then(result => {
-        return res.status(200).send(result);
+        return res.status(200).send(result.filter(x => {
+            x.value > 0;
+        }));
     }).catch(error => {
         return res.status(500).send(error);
     });
@@ -605,7 +611,6 @@ ReportController.fetchQuickStats = (req, res) => {
             },
             expense: result[1][0].value,
         };
-        console.log(response);
         return res.status(200).send(response);
     }).catch(error => {
         return res.status(500).send(error);

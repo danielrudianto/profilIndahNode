@@ -33,6 +33,7 @@ router.get("/units/:reference", ItemController.fetchUnits);
 router.get("/search", ItemController.fetchSearchResult);
 router.get("/searchStock", ItemController.fetchSearchStock);
 router.get("/searchPurchase", ItemController.fetchPurchaseSearchResult);
+router.get("/getById/:id", administratorMiddleware, ItemController.fetchById);
 router.get("/:reference", ItemController.fetchByReference);
 router.get("/", ItemController.fetch);
 
