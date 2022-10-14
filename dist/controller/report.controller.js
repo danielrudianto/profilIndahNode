@@ -521,7 +521,7 @@ ReportController.fetchSalesReport = (req, res) => {
             .then((result) => {
             console.log(result);
             return res.status(200).send(result.filter(x => {
-                x.value > 0;
+                parseFloat(x.value.toString()) > 0;
             }));
         })
             .catch((error) => {
@@ -534,7 +534,7 @@ ReportController.fetchSalesReport = (req, res) => {
             .then((result) => {
             console.log(result);
             return res.status(200).send(result.filter(x => {
-                x.value > 0;
+                parseFloat(x.value.toString()) > 0;
             }));
         })
             .catch((error) => {
@@ -549,7 +549,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
     purchase_document_model_1.default.fetchReport(start, end, type).then(result => {
         console.log(result);
         return res.status(200).send(result.filter(x => {
-            x.value > 0;
+            parseFloat(x.value.toString()) > 0;
         }));
     }).catch(error => {
         return res.status(500).send(error);

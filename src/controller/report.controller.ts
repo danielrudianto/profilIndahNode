@@ -608,7 +608,7 @@ class ReportController {
         .then((result) => {
           console.log(result);
           return res.status(200).send((result as any[]).filter(x => {
-            x.value > 0
+            parseFloat(x.value.toString()) > 0
           }));
         })
         .catch((error) => {
@@ -620,7 +620,7 @@ class ReportController {
         .then((result) => {
           console.log(result);
           return res.status(200).send((result as any[]).filter(x => {
-            x.value > 0
+            parseFloat(x.value.toString()) > 0
           }));
         })
         .catch((error) => {
@@ -637,7 +637,7 @@ class ReportController {
     PurchaseDocumentModel.fetchReport(start, end, type).then(result => {
       console.log(result);
       return res.status(200).send((result as any[]).filter(x => {
-        x.value > 0
+        parseFloat(x.value.toString()) > 0
       }));
     }).catch(error => {
       return res.status(500).send(error);
