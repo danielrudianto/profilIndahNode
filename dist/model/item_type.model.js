@@ -211,7 +211,7 @@ class ItemTypeModel {
     static fetchFrequent(type_id, start_date, end_date, limit) {
         const formatted_start_date = `${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}`;
         const formatted_end_date = `${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
-        return prisma.$queryRaw `
+        return prisma.$queryRawUnsafe(`
       SELECT item.reference, item.description, item_brand.name AS brand_name, item_type.name AS type_name, SUM(bill.quantity * IF(bill.item_unit_id IS NULL, 1, item_unit.conversion)) AS ordered
       FROM bill
       JOIN item ON bill.item_id = item.id
@@ -219,14 +219,14 @@ class ItemTypeModel {
       JOIN item_brand ON item.item_brand_id = item_brand.id
       JOIN item_type ON item.item_type_id = item_type.id
       JOIN bill_code ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.date >= ${formatted_start_date}
-      AND bill_code.date <= ${formatted_end_date}
+      WHERE bill_code.date >= '${formatted_start_date}'
+      AND bill_code.date <= '${formatted_end_date}'
       AND bill_code.is_confirm = 1
       AND item_type.id = ${type_id}
       GROUP BY bill.item_id
       ORDER BY ordered DESC
       LIMIT ${limit}
-    `;
+    `);
     }
     static fetchById(id) {
         return prisma.item_type.findUnique({

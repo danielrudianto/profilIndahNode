@@ -660,9 +660,8 @@ class ReportController {
     const brand_id = req.body.brand_id;
     const type_id = req.body.type_id;
     const limit = req.body.limit;
-
-    if (brand_id != null) {
-      BrandModel.fetchFrequent(brand_id, start, end, limit)
+    if (req.body.brand_id != undefined && brand_id != null) {
+      BrandModel.fetchFrequent(parseInt(brand_id.toString()), start, end, limit)
         .then((result) => {
           return res.status(200).send(
             (result as any[]).map((x) => {
@@ -677,8 +676,8 @@ class ReportController {
         .catch((error) => {
           return res.status(500).send(error);
         });
-    } else if (type_id != null) {
-      ItemTypeModel.fetchFrequent(type_id, start, end, limit)
+    } else if (req.body.type_id != undefined && type_id != null) {
+      ItemTypeModel.fetchFrequent(parseInt(type_id.toString()), start, end, limit)
         .then((result) => {
           return res.status(200).send(
             (result as any[]).map((x) => {
@@ -710,6 +709,7 @@ class ReportController {
       // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
       .then((result) => {
+        console.log(result);
         const response = {
           sales:
             (result[0] as any[]).length == 0
@@ -749,8 +749,8 @@ class ReportController {
   static fetchPurchaseReportDownload = (req: Request, res: Response) => {
     const start = new Date(req.body.start);
     const end = new Date(req.body.end);
-    const type = req.body.type;
-    const id = req.body.id;
+    const type = parseInt(req.body.type.toString());
+    const id = parseInt(req.body.id.toString());
     const password = req.body.password;
 
     const fontDescriptors = {

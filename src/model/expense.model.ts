@@ -170,8 +170,7 @@ class ExpenseModel {
     const date = new Date();
     return prisma.$queryRawUnsafe(`
         SELECT COALESCE(SUM(expense.value), 0) AS value
-        FROM expense_type
-        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        FROM expense
         WHERE expense.date = '${date.getFullYear()}-${(date.getMonth() + 1)
       .toString()
       .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'

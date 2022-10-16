@@ -562,8 +562,8 @@ ReportController.fetchFrequent = (req, res) => {
     const brand_id = req.body.brand_id;
     const type_id = req.body.type_id;
     const limit = req.body.limit;
-    if (brand_id != null) {
-        brand_model_1.BrandModel.fetchFrequent(brand_id, start, end, limit)
+    if (req.body.brand_id != undefined && brand_id != null) {
+        brand_model_1.BrandModel.fetchFrequent(parseInt(brand_id.toString()), start, end, limit)
             .then((result) => {
             return res.status(200).send(result.map((x) => {
                 return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
@@ -573,8 +573,8 @@ ReportController.fetchFrequent = (req, res) => {
             return res.status(500).send(error);
         });
     }
-    else if (type_id != null) {
-        item_type_model_1.default.fetchFrequent(type_id, start, end, limit)
+    else if (req.body.type_id != undefined && type_id != null) {
+        item_type_model_1.default.fetchFrequent(parseInt(type_id.toString()), start, end, limit)
             .then((result) => {
             return res.status(200).send(result.map((x) => {
                 return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
@@ -600,6 +600,7 @@ ReportController.fetchQuickStats = (req, res) => {
         // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
         .then((result) => {
+        console.log(result);
         const response = {
             sales: result[0].length == 0
                 ? {
@@ -633,8 +634,8 @@ ReportController.fetchQuickStats = (req, res) => {
 ReportController.fetchPurchaseReportDownload = (req, res) => {
     const start = new Date(req.body.start);
     const end = new Date(req.body.end);
-    const type = req.body.type;
-    const id = req.body.id;
+    const type = parseInt(req.body.type.toString());
+    const id = parseInt(req.body.id.toString());
     const password = req.body.password;
     const fontDescriptors = {
         Roboto: {
