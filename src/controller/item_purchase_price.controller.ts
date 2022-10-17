@@ -9,7 +9,7 @@ import UserModel from "../model/user.model";
 
 class ItemPurchasePriceController {
   static fetchByReference = (req: Request, res: Response) => {
-    const reference = req.params.reference.toString();
+    const reference = decodeURI(req.params.reference.toString());
     ItemPurchasePriceModel.fetchByReference(reference)
       .then((result) => {
         return res.status(200).send(result);

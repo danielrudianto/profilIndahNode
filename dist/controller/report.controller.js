@@ -494,9 +494,6 @@ ReportController.fetchPLStats = (req, res) => {
             return res.status(500).send(error);
         });
     }
-    else {
-        Promise.all([]);
-    }
 };
 ReportController.fetchReception = (req, res) => {
     const year = parseInt(req.params.year);

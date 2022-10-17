@@ -148,7 +148,7 @@ class ItemPriceController {
   };
 
   static fetchByReference = (req: Request, res: Response) => {
-    const reference = req.params.reference;
+    const reference = decodeURI(req.params.reference.toString());
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);
