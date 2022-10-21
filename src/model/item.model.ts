@@ -160,7 +160,7 @@ export class ItemModel {
         item_type: {
           select: {
             name: true,
-          }
+          },
         },
         item_price: {
           select: {
@@ -173,8 +173,8 @@ export class ItemModel {
               select: {
                 unit: true,
                 conversion: true,
-              }
-            }
+              },
+            },
           },
           where: {
             is_delete: false,
@@ -201,12 +201,12 @@ export class ItemModel {
               select: {
                 unit: true,
                 conversion: true,
-              }
-            }
+              },
+            },
           },
           where: {
             is_delete: false,
-          }
+          },
         },
         stock: {
           select: {
@@ -322,98 +322,69 @@ export class ItemModel {
   }
 
   static fetchSearch(keyword: string, offset: number, limit: number) {
-    let mysql_length_string = "";
-    let mysql_where_string = "WHERE ";
-    keyword.split(" ").forEach((x, index) => {
-      if (index > 0) {
-        mysql_length_string += "+";
-        mysql_where_string += "OR";
-      }
+    if (keyword.length == 0) {
+      return prisma.$transaction([
+        prisma.item.findMany({
+          select: {
+            id: true,
+          },
+          where: {
+            is_active: true,
+            is_delete: false,
+          },
+          take: limit,
+          skip: offset,
+          orderBy: {
+            reference: "asc",
+          }
+        }),
+        prisma.$queryRawUnsafe(`
+          SELECT COUNT(DISTINCT(item.id)) AS count
+          FROM item
+          WHERE item.is_delete = 0
+          AND item.is_active = 1`),
+      ]);
+    } else {
+      const words = keyword
+        .split(" ")
+        .filter((x) => x != "")
+        .map((x) => {
+          return `${x}*${keyword.split(" ").length == 1 ? "" : " "}`;
+        })
+        .toString();
 
-      mysql_length_string += `(3 * LENGTH(items.reference) - LENGTH(REPLACE(UPPER(items.reference), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), '')))) +  (2 * (LENGTH(items.description) - LENGTH(REPLACE(UPPER(items.description), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), '')))) + (LENGTH(items.unit) - LENGTH(REPLACE(UPPER(items.unit), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), ''))) + (LENGTH(items.type_name) - LENGTH(REPLACE(UPPER(items.type_name), UPPER("${x
-        .replace("'", "")
-        .replace(
-          '"',
-          ""
-        )}"), ''))) + (LENGTH(items.brand_name) - LENGTH(REPLACE(UPPER(items.brand_name), UPPER("${x
-        .replace("'", "")
-        .replace('"', "")}"), ''))`;
+      const keywords = words.replace(",", "");
 
-      mysql_where_string += `
-        reference LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR description LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR unit LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR type_name LIKE "%${x.replace("'", "").replace('"', "")}%"
-        OR brand_name LIKE "%${x.replace("'", "").replace('"', "")}%"
-      `;
-    });
 
-    let mysql_string = `
-      SELECT DISTINCT(items.id) AS id, 
-      (${mysql_length_string}) AS count
-      FROM (
-        SELECT 
-		    item.id AS id, item_unit.id AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item_unit.unit COLLATE utf8mb4_0900_ai_ci AS unit
-	      FROM item_unit
-        JOIN item ON item_unit.item_id = item.id
-        JOIN item_type ON item.item_type_id = item_type.id
-        JOIN item_brand ON item.item_brand_id = item_brand.id
-        UNION ALL SELECT item.id AS id, NULL AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item.unit COLLATE utf8mb4_0900_ai_ci AS unit
-        FROM item
-        JOIN item_type ON item.item_type_id = item_type.id
-        JOIN item_brand ON item.item_brand_id = item_brand.id
-        WHERE item.is_active = 1
-        AND item.is_delete = 0
-      ) AS items
-      ${mysql_where_string}
-      ORDER BY reference ASC, count DESC
-      LIMIT ${limit} OFFSET ${offset};`;
-
-    const mysql_count_string = `
-      SELECT COUNT(DISTINCT(items.id)) AS count
-      FROM (
-        SELECT 
-		    item.id AS id, item_unit.id AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item_unit.unit COLLATE utf8mb4_0900_ai_ci AS unit
-	      FROM item_unit
-        JOIN item ON item_unit.item_id = item.id
-        JOIN item_type ON item.item_type_id = item_type.id
-        JOIN item_brand ON item.item_brand_id = item_brand.id
-        UNION ALL SELECT item.id AS id, NULL AS item_unit_id, item.reference COLLATE utf8mb4_0900_ai_ci AS reference, item.description COLLATE utf8mb4_0900_ai_ci AS description, item_brand.name COLLATE utf8mb4_0900_ai_ci AS brand_name, item_type.name COLLATE utf8mb4_0900_ai_ci AS type_name, item.unit COLLATE utf8mb4_0900_ai_ci AS unit
-        FROM item
-        JOIN item_type ON item.item_type_id = item_type.id
-        JOIN item_brand ON item.item_brand_id = item_brand.id
-        WHERE item.is_active = 1
-        AND item.is_delete = 0
-      ) AS items
-      ${mysql_where_string}`;
-
-    return prisma.$transaction([
-      prisma.$queryRawUnsafe(mysql_string),
-      prisma.$queryRawUnsafe(mysql_count_string),
-    ]);
+      return prisma.$transaction([
+        prisma.$queryRawUnsafe(`
+          SELECT DISTINCT(item.id) AS id, (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE))
+          FROM item
+          JOIN item_brand ON item.item_brand_id = item_brand.id
+          JOIN item_type ON item.item_type_id = item_type.id
+          LEFT JOIN item_unit ON item.id = item_unit.item_id
+          WHERE (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE)) > 0
+          AND item.is_delete = 0
+          AND item.is_active = 1
+          ORDER BY (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE)) DESC, item.reference ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `),
+        prisma.$queryRawUnsafe(`
+            SELECT COUNT(DISTINCT(item.id)) AS count
+            FROM item
+            JOIN item_brand ON item.item_brand_id = item_brand.id
+            JOIN item_type ON item.item_type_id = item_type.id
+            LEFT JOIN item_unit ON item.id = item_unit.item_id
+            WHERE (MATCH(reference, description) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE)) > 0
+            AND item.is_delete = 0
+            AND item.is_active = 1
+          `),
+      ]);
+    }
   }
 
-  static fetch(
-    keyword: string,
-    date: Date,
-    offset: number,
-    limit: number,
-  ) {
+  static fetch(keyword: string, date: Date, offset: number, limit: number) {
     if (keyword == "") {
       return prisma.$transaction([
         prisma.item.findMany({

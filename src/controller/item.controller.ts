@@ -313,7 +313,7 @@ class ItemController {
                     .discount,
                 };
               }),
-              count: (result[1] as any[]).length,
+              count: (result[1] as any[])[0].count,
             });
           })
           .catch((error) => {

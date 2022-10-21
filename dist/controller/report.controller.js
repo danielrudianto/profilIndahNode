@@ -597,7 +597,6 @@ ReportController.fetchQuickStats = (req, res) => {
         // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
         .then((result) => {
-        console.log(result);
         const response = {
             sales: result[0].length == 0
                 ? {

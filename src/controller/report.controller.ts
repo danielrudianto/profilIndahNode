@@ -707,7 +707,6 @@ class ReportController {
       // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
       .then((result) => {
-        console.log(result);
         const response = {
           sales:
             (result[0] as any[]).length == 0

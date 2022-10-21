@@ -173,7 +173,7 @@ ItemController.fetchSearchResult = (req, res) => {
                             .price, discount: x.item_price.filter((y) => y.item_unit == null)[0]
                             .discount });
                 }),
-                count: result[1].length,
+                count: result[1][0].count,
             });
         })
             .catch((error) => {
