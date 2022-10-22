@@ -112,12 +112,14 @@ AuthController.saveToken = (req, res) => {
 AuthController.updatePassword = (req, res) => {
     const password = req.body.password;
     const userId = req.body.userId;
-    user_model_1.default.updatePassword(password, userId)
-        .then((result) => {
-        log_helper_1.default.log(new Date(), "info", `User ${result.name} update it's password (ID: ${result.id})`, "Auth controller - UPdate Password", req.body.userId);
-        return res.status(201).send(result);
-    })
-        .catch((error) => {
+    (0, bcrypt_1.hash)(password, 12).then(hashed_password => {
+        user_model_1.default.updatePassword(hashed_password, userId).then(result => {
+            log_helper_1.default.log(new Date(), "info", `User ${result.name} update it's password (ID: ${result.id})`, "Auth controller - Update password Password", req.body.userId);
+            return res.status(200).send(result);
+        }).catch(error => {
+            return res.status(500).send(error);
+        });
+    }).catch(error => {
         return res.status(500).send(error);
     });
 };

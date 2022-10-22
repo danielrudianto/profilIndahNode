@@ -288,7 +288,7 @@ class UserModel {
   static updatePassword(password: string, userId: number) {
     return prisma.user.update({
       data: {
-        password: hashSync(password, 12),
+        password: password,
       },
       where: {
         id: userId,

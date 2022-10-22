@@ -167,20 +167,23 @@ class AuthController {
   static updatePassword = (req: Request, res: Response) => {
     const password = req.body.password;
     const userId = req.body.userId;
-    UserModel.updatePassword(password, userId)
-      .then((result) => {
+    hash(password, 12).then(hashed_password => {
+      UserModel.updatePassword(hashed_password, userId).then(result => {
         LogHelper.log(
           new Date(),
           "info",
           `User ${result.name} update it's password (ID: ${result.id})`,
-          "Auth controller - UPdate Password",
+          "Auth controller - Update password Password",
           req.body.userId
         );
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
+
+        return res.status(200).send(result);
+      }).catch(error => {
         return res.status(500).send(error);
-      });
+      })
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
   };
 
   static resetPassword = (req: Request, res: Response) => {

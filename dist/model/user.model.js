@@ -1,7 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
-const bcrypt_1 = require("bcrypt");
 const prisma = new client_1.PrismaClient();
 class UserModel {
     constructor(name, nik, username, password, created_by) {
@@ -235,7 +234,7 @@ class UserModel {
     static updatePassword(password, userId) {
         return prisma.user.update({
             data: {
-                password: (0, bcrypt_1.hashSync)(password, 12),
+                password: password,
             },
             where: {
                 id: userId,

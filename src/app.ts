@@ -23,6 +23,7 @@ import adjustmentCaseRoutes from "./routes/adjustment_case.route";
 import reportRoutes from "./routes/report.route";
 import itemTypeRoutes from "./routes/item_type.route";
 import salesReturnRoutes from "./routes/sales_return.route";
+import { hash } from "bcrypt";
 
 const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
 const options: cors.CorsOptions = {
