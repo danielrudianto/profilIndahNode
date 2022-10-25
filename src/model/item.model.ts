@@ -1400,6 +1400,35 @@ export class ItemModel {
         OR: items,
         is_delete: false,
       },
+      select: {
+        id: true,
+        price: true,
+        discount: true,
+        item_id: true,
+        item_unit_id: true,
+        item_unit: {
+          select: {
+            unit: true,
+            conversion: true,
+          }
+        },
+        item: {
+          select: {
+            reference: true,
+            description: true,
+            item_brand: {
+              select: {
+                name: true,
+              }
+            },
+            item_type: {
+              select: {
+                name: true,
+              }
+            },
+          }
+        }
+      }
     })
   }
 }

@@ -7,6 +7,8 @@ const express_1 = require("express");
 const bill_controller_1 = __importDefault(require("../controller/bill.controller"));
 const auth_helper_1 = require("../helper/auth.helper");
 const router = (0, express_1.Router)();
+router.post("/printout/draft", bill_controller_1.default.createPrintoutDraft);
+router.post("/printout", bill_controller_1.default.createPrintout);
 router.post("/", bill_controller_1.default.create);
 router.get("/archives", bill_controller_1.default.fetchArchive);
 router.get("/archives/:year", bill_controller_1.default.fetchArchive);

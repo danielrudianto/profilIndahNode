@@ -1,10 +1,8 @@
 import { Request, Response } from "express";
 import PdfPrinter from "pdfmake";
 import LogHelper from "../helper/log.helper";
-import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import ExpenseModel from "../model/expense.model";
-import { ItemModel } from "../model/item.model";
 import PurchaseDocumentModel from "../model/purchase_document.model";
 import SalesDistributionModel from "../model/sales_distribution.model";
 import path from "path";

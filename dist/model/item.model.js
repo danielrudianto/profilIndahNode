@@ -1269,6 +1269,7 @@ class ItemModel {
                             name: true,
                         },
                     },
+                    unit: true,
                     minimum_stock: true,
                     id: true,
                     item_type: {
@@ -1280,18 +1281,17 @@ class ItemModel {
                         select: {
                             price: true,
                             discount: true,
+                            item_unit_id: true,
+                            item_unit: {
+                                select: {
+                                    unit: true,
+                                    conversion: true,
+                                }
+                            }
                         },
                         where: {
-                            effective_date: {
-                                lt: new Date(),
-                            },
                             is_delete: false,
-                        },
-                        orderBy: {
-                            id: "desc"
-                        },
-                        take: 1,
-                        skip: 0,
+                        }
                     }
                 },
                 orderBy: {
@@ -1308,6 +1308,43 @@ class ItemModel {
                 },
             }),
         ]);
+    }
+    static fetchByItemUnitIds(items) {
+        return prisma.item_price.findMany({
+            where: {
+                OR: items,
+                is_delete: false,
+            },
+            select: {
+                id: true,
+                price: true,
+                discount: true,
+                item_id: true,
+                item_unit_id: true,
+                item_unit: {
+                    select: {
+                        unit: true,
+                        conversion: true,
+                    }
+                },
+                item: {
+                    select: {
+                        reference: true,
+                        description: true,
+                        item_brand: {
+                            select: {
+                                name: true,
+                            }
+                        },
+                        item_type: {
+                            select: {
+                                name: true,
+                            }
+                        },
+                    }
+                }
+            }
+        });
     }
 }
 exports.ItemModel = ItemModel;
