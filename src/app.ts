@@ -25,7 +25,7 @@ import itemTypeRoutes from "./routes/item_type.route";
 import salesReturnRoutes from "./routes/sales_return.route";
 import { hash } from "bcrypt";
 
-const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
+const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id", "https://stock.profilindah.id"];
 const options: cors.CorsOptions = {
   origin: allowedOrigins,
 };

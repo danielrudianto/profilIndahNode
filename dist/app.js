@@ -27,7 +27,7 @@ const adjustment_case_route_1 = __importDefault(require("./routes/adjustment_cas
 const report_route_1 = __importDefault(require("./routes/report.route"));
 const item_type_route_1 = __importDefault(require("./routes/item_type.route"));
 const sales_return_route_1 = __importDefault(require("./routes/sales_return.route"));
-const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id"];
+const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id", "https://stock.profilindah.id"];
 const options = {
     origin: allowedOrigins,
 };
