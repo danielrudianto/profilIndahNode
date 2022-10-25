@@ -377,7 +377,15 @@ class ItemController {
         ItemModel.fetchStockByItemIds(ids)
           .then((stock) => {
             return res.status(200).send({
-              data: stock[0],
+              data: stock[0].map(x => {
+                return {
+                  ...x,
+                  price: x.item_price.find(x => x.item_unit == null)?.price,
+                  discount: x.item_price.find(x => x.item_unit == null)?.discount,
+                  unit: x.unit,
+                  item_price: x.item_price.filter(x => x.item_unit != null),
+                }
+              }),
               count: (result[1] as any[])[0].count
             });
           })

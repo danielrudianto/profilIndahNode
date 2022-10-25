@@ -1353,6 +1353,7 @@ export class ItemModel {
               name: true,
             },
           },
+          unit: true,
           minimum_stock: true,
           id: true,
           item_type: {
@@ -1360,6 +1361,22 @@ export class ItemModel {
               name: true,
             },
           },
+          item_price: {
+            select: {
+              price: true,
+              discount: true,
+              item_unit_id: true,
+              item_unit: {
+                select: {
+                  unit: true,
+                  conversion: true,
+                }
+              }
+            },
+            where: {
+              is_delete: false,
+            }
+          }
         },
         orderBy: {
           reference: "asc",
@@ -1375,5 +1392,14 @@ export class ItemModel {
         },
       }),
     ]);
+  }
+
+  static fetchByItemUnitIds(items: any[]){
+    return prisma.item_price.findMany({
+      where: {
+        OR: items,
+        is_delete: false,
+      },
+    })
   }
 }

@@ -6,6 +6,7 @@ import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
+import { ItemModel } from "../model/item.model";
 import ItemPriceModel from "../model/item_price.model";
 
 class BillController {
@@ -85,6 +86,31 @@ class BillController {
         return res.status(500).send(error);
       });
   };
+
+  static createPrintoutDraft = (req: Request, res: Response) => {
+    const items = req.body as any[];
+    ItemModel.fetchByItemUnitIds(items.map(x => {
+      return {
+        item_id: x.id,
+        item_unit_id: x.item_unit_id
+      }
+    })).then(result => {
+      return res.status(200).send(result);
+    })
+  }
+
+  static createPrintout = (req: Request, res: Response) => {
+    const items = req.body as any[];
+    ItemModel.fetchByItemUnitIds(items.map(x => {
+      return {
+        item_id: x.item_id,
+        item_unit_id: x.item_unit_id
+      }
+    })).then(result => {
+      console.log(result);
+      return res.status(200).send(result);
+    })
+  }
 
   static fetchCodeById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());

@@ -1276,6 +1276,23 @@ class ItemModel {
                             name: true,
                         },
                     },
+                    item_price: {
+                        select: {
+                            price: true,
+                            discount: true,
+                        },
+                        where: {
+                            effective_date: {
+                                lt: new Date(),
+                            },
+                            is_delete: false,
+                        },
+                        orderBy: {
+                            id: "desc"
+                        },
+                        take: 1,
+                        skip: 0,
+                    }
                 },
                 orderBy: {
                     reference: "asc",
