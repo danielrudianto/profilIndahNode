@@ -31,7 +31,7 @@ class PurchaseDocumentController {
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt as any[];
 
-    const purchase_invoice = (req.body.purchase_invoice as any[])[0];
+    const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
 
@@ -192,25 +192,20 @@ class PurchaseDocumentController {
                 }
               }
 
-              const insert_item = GoodReceiptModel.insertItems(
-                good_receipt_items_input
-              );
-
-              const save_price = ItemPurchasePriceModel.insertItems(
-                good_receipt_items_price
-              );
-
               const purchase_document = new PurchaseDocumentModel(
                 purchase_invoice_name,
                 date,
                 discount,
                 good_receipt_result.id,
-                req.body.userId
+                req.body.userId,
+                req.body.userId,
               );
-              const insert_purchase_document = purchase_document.create();
 
-              transaction
-                .create([insert_item, ...save_price, insert_purchase_document])
+              Promise.all([
+                GoodReceiptModel.insertItems(good_receipt_items_input),
+                ItemPurchasePriceModel.insertItems(good_receipt_items_price),
+                purchase_document.create(),
+              ])
                 .then(() => {
                   const socket = new SocketHelper("createGoodReceipt", {
                     supplier_id: good_receipt_result.supplier_id,
@@ -353,22 +348,30 @@ class PurchaseDocumentController {
 
   static confirmUnchanged = (req: Request, res: Response) => {
     const id = parseInt(req.body.id);
-    PurchaseDocumentModel.fetchById(id).then(purchase_document => {
-      if(purchase_document == null || purchase_document.purchase_invoice == null ||  purchase_document.purchase_invoice?.is_delete){
-        return res.status(404).send("Dokumen pembelian tidak ditemukan.");
-      } else if(purchase_document.purchase_invoice?.is_confirm){
-        return res.status(404).send("Dokumen sudah dikonfirmasi.");
-      } else {
-        PurchaseDocumentModel.confirmByIdUnchanged(id, req.body.userId).then(result => {
-          return res.status(200).send(result);
-        }).catch(error => {
-          return res.status(500).send(error);
-        })
-      }
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+    PurchaseDocumentModel.fetchById(id)
+      .then((purchase_document) => {
+        if (
+          purchase_document == null ||
+          purchase_document.purchase_invoice == null ||
+          purchase_document.purchase_invoice?.is_delete
+        ) {
+          return res.status(404).send("Dokumen pembelian tidak ditemukan.");
+        } else if (purchase_document.purchase_invoice?.is_confirm) {
+          return res.status(404).send("Dokumen sudah dikonfirmasi.");
+        } else {
+          PurchaseDocumentModel.confirmByIdUnchanged(id, req.body.userId)
+            .then((result) => {
+              return res.status(200).send(result);
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default PurchaseDocumentController;

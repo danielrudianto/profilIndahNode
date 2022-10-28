@@ -20,8 +20,8 @@ class PurchaseDocumentModel {
             this.confirmed_at = null;
         }
         else {
-            this.confirmed_by = created_by;
-            this.confirmed_at = this.created_at;
+            this.confirmed_by = confirmed_by;
+            this.confirmed_at = new Date();
         }
     }
     create() {
@@ -118,6 +118,7 @@ class PurchaseDocumentModel {
                                 unit: true,
                             },
                         },
+                        item_unit_id: true,
                         item_unit: {
                             select: {
                                 id: true,
@@ -501,6 +502,30 @@ class PurchaseDocumentModel {
                 confirmed_by: user_id,
             }
         });
+    }
+    static fetchAppendix(month, year) {
+        if (month == 0) {
+            return prisma.$queryRawUnsafe(`
+        SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date
+        FROM purchase_invoice
+        JOIN good_receipt_code ON good_receipt_code.purchase_invoice_id = purchase_invoice.id
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt.good_receipt_code_id
+          FROM good_receipt
+          GROUP BY good_receipt.good_receipt_code_id
+        ) goodReceipt
+        ON good_receipt_code.id = goodReceipt.good_receipt_code_id
+        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+        JOIN company ON good_receipt_code.company_id = company.id
+        WHERE good_receipt_code.is_confirm = 1
+        AND good_receipt_code.is_delete = 0
+        AND purchase_invoice.is_confirm = 1
+        AND purchase_invoice.is_delete = 0
+      `);
+        }
+        else {
+            return prisma.$queryRawUnsafe(``);
+        }
     }
 }
 exports.default = PurchaseDocumentModel;

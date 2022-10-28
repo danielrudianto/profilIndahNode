@@ -128,3 +128,34 @@ Tue Oct 25 2022 17:02:40 GMT+0700 (Indochina Time); info; Login success for user
 Tue Oct 25 2022 17:03:25 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Tue Oct 25 2022 17:04:25 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Tue Oct 25 2022 22:35:47 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Oct 26 2022 23:43:04 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Oct 26 2022 23:57:01 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 00:07:28 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 00:08:09 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 00:30:15 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 00:30:43 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 00:30:56 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 00:34:55 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 01:14:46 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 01:22:57 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-32867607 (ID: 10); Bill controller - Create; 1
+Thu Oct 27 2022 19:55:39 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return,          ON return.id = bill.id,          GROUP BY bill.bill_code_id,   ' at line 13`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:58:09 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return,          ON return.id = bill.id,          GROUP BY bill.bill_code_id,   ' at line 13`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:58:11 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return,          ON return.id = bill.id,          GROUP BY bill.bill_code_id,   ' at line 13`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:58:13 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return,          ON return.id = bill.id,          GROUP BY bill.bill_code_id,   ' at line 13`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:58:15 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return,          ON return.id = bill.id,          GROUP BY bill.bill_code_id,   ' at line 13`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:59:09 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'return,          ON return.id = bill.id,          GROUP BY bill.bill_code_id,   ' at line 13`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:59:47 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'sales_return.quatity' in 'field list'`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 19:59:49 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'sales_return.quatity' in 'field list'`; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:15:52 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:16:02 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:17:02 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:17:39 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:18:05 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:20:47 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:21:40 GMT+0700 (Indochina Time); error; TypeError: Cannot read property 'toString' of null; Report controller - Fetch Profit Loss; null
+Thu Oct 27 2022 20:51:43 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 12) dari Test (ID: 12) untuk perusahaan Toko Profil Indah (ID: 1); Good Receipt controller - Create; 1
+Thu Oct 27 2022 20:53:46 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 13) dari Test (ID: 13) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
+Thu Oct 27 2022 21:21:23 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-31564591 (ID: 11); Bill controller - Create; 1
+Thu Oct 27 2022 22:54:36 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 22:59:28 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Oct 27 2022 23:00:50 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1

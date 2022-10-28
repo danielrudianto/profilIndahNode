@@ -159,17 +159,15 @@ class BillController {
 
       (x.quantity as any[]).forEach((item) => {
         const price = parseFloat(item.price);
-        const discount = parseFloat(item.discount);
-        const nettPrice = price - discount;
         const quantity = item.quantity;
         const unit = item.unit;
-        const total = quantity * nettPrice;
+        const total = quantity * price;
 
         bill_table.push([
           {
             text: `${numberFormatter.format(
               quantity
-            )} ${unit} x ${formatter.format(nettPrice)}`,
+            )} ${unit} x ${formatter.format(price)}`,
           },
           {
             text: formatter.format(total),
@@ -246,6 +244,14 @@ class BillController {
             body: bill_table,
           },
           margin: [0, 0, 0, 15] as Margins,
+        },
+        {
+          text: "Price mentioned above does not include a discount. Discount value can be checked on register.",
+          bold: true,
+          color: 'grey',
+          fontSize: 10,
+          alignment: "left" as Alignment,
+          margin: [0, 0, 0, 5] as Margins,
         },
       ],
     };

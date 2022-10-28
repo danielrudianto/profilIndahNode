@@ -93,7 +93,6 @@ ReportController.fetchPLStats = (req, res) => {
                 },
             ]);
             let total_value = 0;
-            let total_delivery_value = parseFloat(result[0][0].delivery.toString());
             result[1].forEach((x) => {
                 total_value += parseFloat(x.value.toString());
                 sales_table.push([
@@ -102,9 +101,21 @@ ReportController.fetchPLStats = (req, res) => {
                         bold: false,
                         alignment: "left",
                     },
-                    formatter.format(parseFloat(x.value.toString())),
-                    "-",
-                    formatter.format(parseFloat(x.value.toString())),
+                    {
+                        text: formatter.format(parseFloat(x.value.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: "IDR 0.00",
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: formatter.format(parseFloat(x.value.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
                 ]);
             });
             sales_table.push([
@@ -116,19 +127,28 @@ ReportController.fetchPLStats = (req, res) => {
                 {
                     text: formatter.format(total_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
-                    text: "-",
+                    text: "IDR 0.00",
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
                     text: formatter.format(total_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
             ]);
+            const sales_value = result[0][0].value == null
+                ? 0
+                : parseFloat(result[0][0].value.toString());
+            const sales_discount = result[0][0].discount == null
+                ? 0
+                : parseFloat(result[0][0].discount.toString());
+            const sales_delivery = result[0][0].delivery == null
+                ? 0
+                : parseFloat(result[0][0].delivery.toString());
             sales_table.push([
                 {
                     text: "Penjualan tidak teralokasi",
@@ -136,23 +156,19 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "left",
                 },
                 {
-                    text: formatter.format(parseFloat(result[0][0].value.toString()) -
-                        parseFloat(result[0][0].discount.toString()) -
-                        total_value),
+                    text: formatter.format(sales_value - sales_discount - total_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
-                    text: "-",
+                    text: "IDR 0.00",
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
-                    text: formatter.format(parseFloat(result[0][0].value.toString()) -
-                        parseFloat(result[0][0].discount.toString()) -
-                        total_value),
+                    text: formatter.format(sales_value - sales_discount - total_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
             ]);
             sales_table.push([
@@ -162,22 +178,19 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "left",
                 },
                 {
-                    text: formatter.format(parseFloat(result[0][0].value.toString()) -
-                        parseFloat(result[0][0].discount.toString())),
+                    text: formatter.format(sales_value - sales_discount),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
-                    text: formatter.format(parseFloat(result[0][0].delivery.toString())),
+                    text: formatter.format(sales_discount),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
-                    text: formatter.format(parseFloat(result[0][0].value.toString()) +
-                        parseFloat(result[0][0].discount.toString()) +
-                        parseFloat(result[0][0].delivery.toString())),
+                    text: formatter.format(sales_value - sales_discount + sales_delivery),
                     bold: true,
-                    aligment: "left",
+                    aligment: "center",
                 },
             ]);
             // Purchase table
@@ -216,18 +229,18 @@ ReportController.fetchPLStats = (req, res) => {
                     {
                         text: formatter.format(parseFloat(x.value.toString())),
                         bold: false,
-                        alignment: "left",
+                        alignment: "center",
                     },
                     {
                         text: formatter.format(parseFloat(x.discount.toString())),
                         bold: false,
-                        alignment: "left",
+                        alignment: "center",
                     },
                     {
                         text: formatter.format(parseFloat(x.value.toString()) -
                             parseFloat(x.discount.toString())),
                         bold: false,
-                        alignment: "left",
+                        alignment: "center",
                     },
                 ]);
                 total_purchase_value += parseFloat(x.value.toString());
@@ -242,17 +255,17 @@ ReportController.fetchPLStats = (req, res) => {
                 {
                     text: formatter.format(total_purchase_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
                     text: formatter.format(total_purchase_discount),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
                 {
                     text: formatter.format(total_purchase_value - total_purchase_discount),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
             ]);
             const expenses = [];
@@ -294,7 +307,7 @@ ReportController.fetchPLStats = (req, res) => {
                     {
                         text: formatter.format(parseFloat(expense.value.toString())),
                         bold: true,
-                        alignment: "left",
+                        alignment: "center",
                     },
                 ]);
                 if (expense.children.length > 0) {
@@ -308,7 +321,7 @@ ReportController.fetchPLStats = (req, res) => {
                             {
                                 text: formatter.format(parseFloat(child_expense.value.toString())),
                                 bold: false,
-                                alignment: "left",
+                                alignment: "center",
                             },
                         ]);
                     });
@@ -353,7 +366,7 @@ ReportController.fetchPLStats = (req, res) => {
                     {
                         text: formatter.format(value),
                         bold: false,
-                        alignment: "left",
+                        alignment: "center",
                     },
                 ]);
             });
@@ -366,12 +379,9 @@ ReportController.fetchPLStats = (req, res) => {
                 {
                     text: formatter.format(hpp_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
             ]);
-            const sales_value = parseFloat(result[0][0].value.toString()) -
-                parseFloat(result[0][0].discount.toString()) -
-                total_value;
             let documentDefinition = {
                 pageSize: "A4",
                 content: [
@@ -439,7 +449,7 @@ ReportController.fetchPLStats = (req, res) => {
                         layout: "lightHorizontalLines",
                         table: {
                             headerRows: 1,
-                            widths: ["*", "*"],
+                            widths: ["*", "auto"],
                             body: expense_table,
                         },
                         margin: [0, 0, 0, 15],
@@ -472,6 +482,525 @@ ReportController.fetchPLStats = (req, res) => {
                         alignment: "left",
                         margin: [0, 0, 0, 15],
                     },
+                ],
+            };
+            const printer = new pdfmake_1.default(fontDescriptors);
+            const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+            let chunks = [];
+            var pdfResult;
+            pdfDocument.on("data", function (chunk) {
+                chunks.push(chunk);
+            });
+            pdfDocument.on("end", function () {
+                pdfResult = Buffer.concat(chunks);
+                return res.status(200).send({
+                    data: `data:application/pdf;base64,${pdfResult.toString("base64")}`,
+                });
+            });
+            pdfDocument.end();
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else {
+        Promise.all([
+            bill_code_model_1.default.fetchSum(month, year),
+            sales_distribution_model_1.default.fetchSum(month, year),
+            purchase_document_model_1.default.fetchSum(month, year),
+            expense_model_1.default.fetchSum(month, year),
+            month == 0
+                ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
+                : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
+            bill_code_model_1.default.fetchAppendix(month, year),
+            purchase_document_model_1.default.fetchAppendix(month, year),
+            // SalesReturnModel.fetchAppendix(month, year),
+        ])
+            .then((result) => {
+            const sales_table = [];
+            // Sales table
+            sales_table.push([
+                {
+                    text: "Perusahaan",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Nominal",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Pengiriman Barang",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Total",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            let total_value = 0;
+            result[1].forEach((x) => {
+                total_value += parseFloat(x.value.toString());
+                sales_table.push([
+                    {
+                        text: x.name,
+                        bold: false,
+                        alignment: "left",
+                    },
+                    {
+                        text: formatter.format(parseFloat(x.value.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: "IDR 0.00",
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: formatter.format(parseFloat(x.value.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                ]);
+            });
+            sales_table.push([
+                {
+                    text: "Total penjualan teralokasi",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: formatter.format(total_value),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "IDR 0.00",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(total_value),
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            const sales_value = result[0][0].value == null
+                ? 0
+                : parseFloat(result[0][0].value.toString());
+            const sales_discount = result[0][0].discount == null
+                ? 0
+                : parseFloat(result[0][0].discount.toString());
+            const sales_delivery = result[0][0].delivery == null
+                ? 0
+                : parseFloat(result[0][0].delivery.toString());
+            sales_table.push([
+                {
+                    text: "Penjualan tidak teralokasi",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: formatter.format(sales_value - sales_discount - total_value),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "IDR 0.00",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(sales_value - sales_discount - total_value),
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            sales_table.push([
+                {
+                    text: "Keseluruhan",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: formatter.format(sales_value - sales_discount),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(sales_discount),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(sales_value - sales_discount + sales_delivery),
+                    bold: true,
+                    aligment: "center",
+                },
+            ]);
+            const purchase_table = [];
+            let total_purchase_value = 0;
+            let total_purchase_discount = 0;
+            purchase_table.push([
+                {
+                    text: "Perusahaan",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Nominal",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Potongan Harga",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Total",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            result[2].forEach((x) => {
+                purchase_table.push([
+                    {
+                        text: `${x.name}`,
+                        bold: false,
+                        alignment: "left",
+                    },
+                    {
+                        text: formatter.format(parseFloat(x.value.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: formatter.format(parseFloat(x.discount.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: formatter.format(parseFloat(x.value.toString()) -
+                            parseFloat(x.discount.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                ]);
+                total_purchase_value += parseFloat(x.value.toString());
+                total_purchase_discount += parseFloat(x.discount.toString());
+            });
+            purchase_table.push([
+                {
+                    text: "Keseluruhan",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: formatter.format(total_purchase_value),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(total_purchase_discount),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(total_purchase_value - total_purchase_discount),
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            const expenses = [];
+            const expense_table = [];
+            let total_expense_value = 0;
+            expense_table.push([
+                {
+                    text: "Tipe",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Nominal",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            result[3]
+                .filter((x) => x.parent_id == null)
+                .forEach((y) => {
+                expenses.push(Object.assign(Object.assign({}, y), { value: 0, children: [] }));
+            });
+            const child_expenses = result[3].filter((x) => x.parent_id != null);
+            child_expenses.forEach((child_expense) => {
+                const index = expenses.findIndex((expense) => expense.id == child_expense.parent_id);
+                if (index != -1) {
+                    expenses[index].children.push(child_expense);
+                    expenses[index].value += parseFloat(child_expense.value.toString());
+                    total_expense_value += parseFloat(child_expense.value.toString());
+                }
+            });
+            expenses.forEach((expense) => {
+                expense_table.push([
+                    {
+                        text: expense.name,
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: formatter.format(parseFloat(expense.value.toString())),
+                        bold: true,
+                        alignment: "center",
+                    },
+                ]);
+                if (expense.children.length > 0) {
+                    expense.children.forEach((child_expense) => {
+                        expense_table.push([
+                            {
+                                text: `${expense.name}/${child_expense.name}`,
+                                bold: false,
+                                alignment: "left",
+                            },
+                            {
+                                text: formatter.format(parseFloat(child_expense.value.toString())),
+                                bold: false,
+                                alignment: "center",
+                            },
+                        ]);
+                    });
+                }
+            });
+            expense_table.push([
+                {
+                    text: "Total",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: formatter.format(total_expense_value),
+                    bold: true,
+                    alignment: "left",
+                },
+            ]);
+            const hpp_table = [];
+            let hpp_value = 0;
+            hpp_table.push([
+                {
+                    text: "Perusahaan",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Nominal",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            result[4].forEach((x) => {
+                const name = x.f2;
+                const value = parseFloat(x.f0);
+                hpp_value += value;
+                hpp_table.push([
+                    {
+                        text: name,
+                        bold: false,
+                        alignment: "left",
+                    },
+                    {
+                        text: formatter.format(value),
+                        bold: false,
+                        alignment: "center",
+                    },
+                ]);
+            });
+            hpp_table.push([
+                {
+                    text: "Total",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: formatter.format(hpp_value),
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            const sales_appendix_table = [];
+            sales_appendix_table.push([
+                {
+                    text: "Tanggal",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Konsumen",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Dokumen",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Nominal",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            result[5].forEach(x => {
+                sales_appendix_table.push([
+                    {
+                        text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                        bold: false,
+                        alignment: "center"
+                    },
+                    {
+                        text: x.customer_name,
+                        bold: false,
+                        alignment: "center"
+                    },
+                    {
+                        text: x.name,
+                        bold: false,
+                        alignment: "center"
+                    },
+                    {
+                        text: formatter.format(x.value),
+                        bold: false,
+                        alignment: "center"
+                    }
+                ]);
+            });
+            let documentDefinition = {
+                pageSize: "A4",
+                content: [
+                    {
+                        text: "Laporan Laba Rugi",
+                        bold: true,
+                        fontSize: 20,
+                        alignment: "center",
+                    },
+                    {
+                        text: month == 0
+                            ? `Tahun ${year}`
+                            : `${month_name[month - 1]} ${year}`,
+                        bold: true,
+                        fontSize: 16,
+                        alignment: "center",
+                        margin: [0, 0, 0, 20],
+                    },
+                    {
+                        text: "Penjualan",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["auto", "auto", "auto", "*"],
+                            body: sales_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        text: "Penjualan tidak teralokasi disebabkan karena adanya ketidakcocokan tingkat ketersediaan dengan penjualan.",
+                        fontSize: 10,
+                        color: "#333333",
+                        margin: [0, 0, 0, 20],
+                    },
+                    {
+                        text: "Pembelian",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["auto", "auto", "auto", "*"],
+                            body: purchase_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        text: "Pengeluaran",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["*", "auto"],
+                            body: expense_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        text: "Harga Pokok Penjualan",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 10],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["*", "*"],
+                            body: hpp_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        text: "Harga pokok penjualan termasuk dengan perhitungan atas kehilangan barang yang terjadi.",
+                        fontSize: 10,
+                        color: "#333333",
+                        margin: [0, 0, 0, 20],
+                    },
+                    {
+                        text: `Laba / Rugi: ${formatter.format(total_value - hpp_value - total_expense_value)}`,
+                        bold: true,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        text: "Lampiran I",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 5],
+                        pageBreak: 'before'
+                    },
+                    {
+                        text: "Rincian Penjualan",
+                        bold: true,
+                        fontSize: 10,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["auto", "auto", "*", "auto"],
+                            body: sales_appendix_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    }
                 ],
             };
             const printer = new pdfmake_1.default(fontDescriptors);

@@ -307,14 +307,14 @@ class BillCodeModel {
           select: {
             name: true,
             description: true,
-          }
+          },
         },
         customer: {
           select: {
             name: true,
             address: true,
-          }
-        }
+          },
+        },
       },
     });
   }
@@ -526,9 +526,17 @@ class BillCodeModel {
         SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service
         FROM bill_code
         JOIN (
-          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * (bill.price - bill.discount)) AS value, bill_code_id
           FROM bill
-          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id AS id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_delete = 0
+            AND sales_return_code.is_confirm = 1
+            GROUP BY sales_return.bill_id
+          ) returnTable
+          ON returnTable.id = bill.id
           GROUP BY bill.bill_code_id
         ) bills
         ON bill_code.id = bills.bill_code_id
@@ -542,9 +550,17 @@ class BillCodeModel {
         SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service
         FROM bill_code
         JOIN (
-          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(item_unit.conversion, 1)) AS value, bill_code_id
+          SELECT SUM((bill.quantity - COALESCE(return.quantity, 0)) * (bill.price - bill.discount)) AS value, bill_code_id
           FROM bill
-          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          LEFT JOIN (
+            SELECT SUM(sales_return.quatity) AS quantity, sales_return.bill_id AS id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_delete = 0
+            AND sales_return_code.is_confirm = 1
+            GROUP BY sales_return.bill_id
+          ) return
+          ON return.id = bill.id
           GROUP BY bill.bill_code_id
         ) bills
         ON bill_code.id = bills.bill_code_id
@@ -617,21 +633,21 @@ class BillCodeModel {
     `);
   }
 
-  static deleteById(id: number, deleted_by: number){
+  static deleteById(id: number, deleted_by: number) {
     return prisma.bill_code.update({
-      where:{
-        id: id
+      where: {
+        id: id,
       },
       data: {
         is_confirm: false,
         is_delete: true,
         confirmed_at: new Date(),
         confirmed_by: deleted_by,
-      }
-    })
+      },
+    });
   }
 
-  static fetchTodaySales(){
+  static fetchTodaySales() {
     const date = new Date();
     return prisma.$queryRawUnsafe(`
       SELECT COALESCE(SUM(a.value), 0) AS value, COALESCE(SUM(a.discount), 0) AS discount, COALESCE(SUM(a.service), 0) AS service, COALESCE(SUM(a.delivery), 0) AS delivery
@@ -642,10 +658,65 @@ class BillCodeModel {
         ON bill.bill_code_id = bill_code.id
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
-        AND bill_code.date = '${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        AND bill_code.date = '${date.getFullYear()}-${(date.getMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
         GROUP BY bill.bill_code_id
       ) AS a
     `);
+  }
+
+  static fetchAppendix(month: number, year: number) {
+    if (month == 0) {
+      return prisma.$queryRawUnsafe(`
+        SELECT bill_code.date, bill_code.name, COALESCE(customer.name, "Retail") AS customer_name, billValue.value
+        FROM bill_code
+        JOIN (
+          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value, bill.bill_code_id
+          FROM bill
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_confirm = 1
+            AND sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+          ) returnTable
+          ON bill.id = returnTable.bill_id
+          GROUP BY bill.bill_code_id
+        ) billValue
+        ON bill_code.id = billValue.bill_code_id
+        JOIN customer ON bill_code.customer_id = customer.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND YEAR(bill_code.date) = ${year}
+    `);
+    } else {
+      return prisma.$queryRawUnsafe(`
+        SELECT bill_code.date, bill_code.name, COALESCE(customer.name, "Retail") AS customer_name, billValue.value
+        FROM bill_code
+        JOIN (
+          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value, bill.bill_code_id
+          FROM bill
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_confirm = 1
+            AND sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+          ) returnTable
+          ON bill.id = returnTable.bill_id
+          GROUP BY bill.bill_code_id
+        ) billValue
+        ON bill_code.id = billValue.bill_code_id
+        JOIN customer ON bill_code.customer_id = customer.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND YEAR(bill_code.date) = ${year}
+        AND MONTH(bill_code.date) = ${month}
+    `);
+    }
   }
 }
 

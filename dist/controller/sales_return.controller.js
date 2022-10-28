@@ -10,18 +10,22 @@ class SalesReturnController {
 SalesReturnController.create = (req, res) => {
     const date = new Date(req.body.date);
     const payment_method_id = req.body.payment_method_id;
-    const customer_id = req.body.customer_id;
     const items = req.body.sales_return;
-    const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
-    const sales_return_code = new sales_return_model_1.default(name, date, req.body.userId, customer_id, payment_method_id, items, null, true);
-    sales_return_code
-        .create()
-        .then((result) => {
-        return res.status(200).send(result);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+    if (items.length > 0) {
+        const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
+        const sales_return_code = new sales_return_model_1.default(name, date, req.body.userId, payment_method_id, items, null, true);
+        sales_return_code
+            .create()
+            .then((result) => {
+            return res.status(200).send(result);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else {
+        return res.status(400).send("Data barang tidak dilampirkan.");
+    }
 };
 SalesReturnController.fetchSearch = (req, res) => {
     const date = new Date(req.body.date);
@@ -92,7 +96,11 @@ SalesReturnController.fetchArchive = (req, res) => {
         ])
             .then((result) => {
             return res.status(200).send({
-                data: result[0],
+                data: result[0].map(x => {
+                    return Object.assign(Object.assign({}, x), { customer: (x.sales_return.length == 0 || x.sales_return[0].bill.bill_code.customer == null) ? null : {
+                            name: x.sales_return[0].bill.bill_code.customer.name,
+                        } });
+                }),
                 count: result[1],
             });
         })
@@ -107,9 +115,23 @@ SalesReturnController.fetchArchive = (req, res) => {
 SalesReturnController.fetchById = (req, res) => {
     const id = parseInt(req.params.id.toString());
     sales_return_model_1.default.fetchById(id).then(result => {
-        return res.status(200).send(result);
+        return res.status(200).send(Object.assign(Object.assign({}, result), { customer: ((result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 || (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null) ? null : {
+                name: result.sales_return[0].bill.bill_code.customer.name,
+            } }));
     }).catch(error => {
         return res.status(500).send(error);
+    });
+};
+SalesReturnController.deleteById = (req, res) => {
+    const id = parseInt(req.params.id.toString());
+    sales_return_model_1.default.fetchById(id).then(salesReturn => {
+        if (salesReturn == null || salesReturn.is_delete) {
+            return res.status(404).send("Data tidak ditemukan.");
+        }
+        else {
+            sales_return_model_1.default.deleteById(id, req.body.userId).then(result => {
+            });
+        }
     });
 };
 exports.default = SalesReturnController;

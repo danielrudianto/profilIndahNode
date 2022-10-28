@@ -247,8 +247,16 @@ class ItemController {
         if (item == null || item.is_delete) {
           return res.status(404).send("Barang tidak ditemukan.");
         } else {
-          ItemModel
-            .update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit)
+          ItemModel.update(
+            id,
+            reference,
+            description,
+            brand,
+            type,
+            req.body.userId,
+            minimum_stock,
+            unit
+          )
             .then((result) => {
               LogHelper.log(
                 new Date(),
@@ -377,16 +385,17 @@ class ItemController {
         ItemModel.fetchStockByItemIds(ids)
           .then((stock) => {
             return res.status(200).send({
-              data: stock[0].map(x => {
+              data: stock[0].map((x) => {
                 return {
                   ...x,
-                  price: x.item_price.find(x => x.item_unit == null)?.price,
-                  discount: x.item_price.find(x => x.item_unit == null)?.discount,
+                  price: x.item_price.find((x) => x.item_unit == null)?.price,
+                  discount: x.item_price.find((x) => x.item_unit == null)
+                    ?.discount,
                   unit: x.unit,
-                  item_price: x.item_price.filter(x => x.item_unit != null),
-                }
+                  item_price: x.item_price.filter((x) => x.item_unit != null),
+                };
               }),
-              count: (result[1] as any[])[0].count
+              count: (result[1] as any[])[0].count,
             });
           })
           .catch((error) => {
@@ -692,73 +701,145 @@ class ItemController {
   };
 
   static fetchStockReportPdf = (req: Request, res: Response) => {
-    const brand_ids = JSON.parse((req.body.brand_id as string).replace("'", "").replace('"', '')) as number[];
-    const type_ids = JSON.parse((req.body.type_id as string).replace("'", "").replace('"', '')) as number[];
+    if (typeof req.body.brand_id === "string") {
+      const brand_ids = JSON.parse(
+        (req.body.brand_id as string).replace("'", "").replace('"', "")
+      ) as number[];
+      const type_ids = JSON.parse(
+        (req.body.type_id as string).replace("'", "").replace('"', "")
+      ) as number[];
 
-    Promise.all([
-      UserModel.fetchById(req.body.userId),
-      ItemModel.fetchInsufficient(brand_ids, type_ids),
-    ]).then((result) => {
-      if (result[0] == null) {
-        return res.status(400).send("Pengguna tidak ditemukan.");
-      } else {
-        const items = result[1].filter(
-          (x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock
-        );
+      Promise.all([
+        UserModel.fetchById(req.body.userId),
+        ItemModel.fetchInsufficient(brand_ids, type_ids),
+      ]).then((result) => {
+        if (result[0] == null) {
+          return res.status(400).send("Pengguna tidak ditemukan.");
+        } else {
+          const items = result[1].filter(
+            (x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock
+          );
 
-        StockCardHelper.createInsufficientPdf(items,
-          function (binary: string) {
-            return res.status(200).send({
-              data: binary,
-            });
-          },
-          function (error: any) {
-            return res.status(500).send(error);
-          }
-        );
-      }
-    });
+          StockCardHelper.createInsufficientPdf(
+            items,
+            function (binary: string) {
+              return res.status(200).send({
+                data: binary,
+              });
+            },
+            function (error: any) {
+              return res.status(500).send(error);
+            }
+          );
+        }
+      });
+    } else {
+      const brand_ids = req.body.brand_id;
+      const type_ids = req.body.type_id;
+
+      Promise.all([
+        UserModel.fetchById(req.body.userId),
+        ItemModel.fetchInsufficient(brand_ids, type_ids),
+      ]).then((result) => {
+        if (result[0] == null) {
+          return res.status(400).send("Pengguna tidak ditemukan.");
+        } else {
+          const items = result[1].filter(
+            (x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock
+          );
+
+          StockCardHelper.createInsufficientPdf(
+            items,
+            function (binary: string) {
+              return res.status(200).send({
+                data: binary,
+              });
+            },
+            function (error: any) {
+              return res.status(500).send(error);
+            }
+          );
+        }
+      });
+    }
   };
 
   static fetchStockReport = (req: Request, res: Response) => {
-    const brand_ids = JSON.parse((req.body.brand_id as string).replace("'", "").replace('"', '')) as number[];
-    const type_ids = JSON.parse((req.body.type_id as string).replace("'", "").replace('"', '')) as number[];
+    if (typeof req.body.brand_id === "string") {
+      const brand_ids = JSON.parse(
+        (req.body.brand_id as string).replace("'", "").replace('"', "")
+      ) as number[];
+      const type_ids = JSON.parse(
+        (req.body.type_id as string).replace("'", "").replace('"', "")
+      ) as number[];
 
-    ItemModel.fetchInsufficient(brand_ids, type_ids)
+      ItemModel.fetchInsufficient(brand_ids, type_ids)
+        .then((result) => {
+          return res.status(200).send({
+            data: result
+              .filter((x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock)
+              .map((y) => {
+                return {
+                  ...y,
+                  stock: y.stock == null ? 0 : y.stock.stock,
+                };
+              }),
+          });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else {
+      const brand_ids = req.body.brand_id;
+      const type_ids = req.body.type_id;
+
+      ItemModel.fetchInsufficient(brand_ids, type_ids)
+        .then((result) => {
+          return res.status(200).send({
+            data: result
+              .filter((x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock)
+              .map((y) => {
+                return {
+                  ...y,
+                  stock: y.stock == null ? 0 : y.stock.stock,
+                };
+              }),
+          });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    }
+  };
+
+  static fetchById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    ItemModel.fetchById(id, new Date())
       .then((result) => {
         return res.status(200).send({
-          data: result
-            .filter((x) => (!x.stock ? 0 : x.stock.stock) < x.minimum_stock)
-            .map((y) => {
-              return {
-                ...y,
-                stock: y.stock == null ? 0 : y.stock.stock,
-              };
-            }),
+          ...result,
+          item_price_id: result?.item_price.filter(
+            (x) => x.item_unit == null
+          )[0].id,
+          item_price_purchase_id: result?.item_price_purchase.filter(
+            (x) => x.item_unit == null
+          )[0].id,
+          price: result?.item_price.filter((x) => x.item_unit == null)[0].price,
+          discount: result?.item_price.filter((x) => x.item_unit == null)[0]
+            .discount,
+          purchase_price: result?.item_price_purchase.filter(
+            (x) => x.item_unit == null
+          )[0].price,
+          item_price: result?.item_price.filter((x) => x.item_unit != null),
+          item_price_purchase: result?.item_price_purchase.filter(
+            (x) => x.item_unit != null
+          ),
         });
       })
       .catch((error) => {
         return res.status(500).send(error);
       });
   };
-
-  static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    ItemModel.fetchById(id, new Date()).then(result => {
-      return res.status(200).send({
-        ...result,
-        item_price_id: result?.item_price.filter(x => x.item_unit == null)[0].id,
-        item_price_purchase_id: result?.item_price_purchase.filter(x => x.item_unit == null)[0].id,
-        price: result?.item_price.filter(x => x.item_unit == null)[0].price,
-        discount: result?.item_price.filter(x => x.item_unit == null)[0].discount,
-        purchase_price: result?.item_price_purchase.filter(x => x.item_unit == null)[0].price,
-        item_price: result?.item_price.filter(x => x.item_unit != null),
-        item_price_purchase: result?.item_price_purchase.filter(x => x.item_unit != null),
-      });
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
 }
 
 export default ItemController;

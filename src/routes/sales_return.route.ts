@@ -1,5 +1,6 @@
 import { Router } from "express";
 import SalesReturnController from "../controller/sales_return.controller";
+import { administratorMiddleware } from "../helper/auth.helper";
 
 const router = Router();
 
@@ -9,6 +10,8 @@ router.post("/", SalesReturnController.create);
 router.get("/archives", SalesReturnController.fetchArchive);
 router.get("/archives/:year", SalesReturnController.fetchArchive);
 router.get("/archives/:year/:month", SalesReturnController.fetchArchive);
-router.get("/:id", SalesReturnController.fetchById)
+router.get("/:id", SalesReturnController.fetchById);
+
+router.delete("/:id", administratorMiddleware, SalesReturnController.deleteById);
 
 export default router;

@@ -808,7 +808,7 @@ class ItemModel {
     }
     static fetchStockById(id, offset, limit) {
         return prisma.$transaction([
-            prisma.stock_card.findMany({
+            prisma.stock_card_act.findMany({
                 where: {
                     item_id: id,
                 },
@@ -858,7 +858,21 @@ class ItemModel {
                             },
                         },
                     },
-                    date: true,
+                    sales_return: {
+                        select: {
+                            id: true,
+                            sales_return_code: {
+                                select: {
+                                    name: true,
+                                    user_sales_return_code_created_byTouser: {
+                                        select: {
+                                            name: true,
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
                     quantity: true,
                     lead_quantity: true,
                     stock: true,

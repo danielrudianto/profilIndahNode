@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcryptjs_1 = require("bcryptjs");
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const user_role_model_1 = __importDefault(require("../model/user_role.model"));
@@ -134,8 +133,7 @@ UserController.update = (req, res) => {
     else {
         user_model_1.default.fetchById(id).then((user) => {
             const userRoleModel = new user_role_model_1.default(id, role[0].id);
-            new query_transaction_helper_1.default()
-                .create([
+            Promise.all([
                 user_model_1.default.update(id, name, null, req.body.userId),
                 userRoleModel.update(),
             ])
@@ -146,16 +144,15 @@ UserController.update = (req, res) => {
                     nik: result[0].nik,
                     username: result[0].username,
                     password: null,
-                    role: user_model_1.default.roles.filter((x) => x.id == result[2].role)[0],
+                    role: user_model_1.default.roles.filter((x) => x.id == result[1].role)[0],
                 };
                 const socket = new socket_helper_1.default("updateUser", {
                     data: user_object,
                 });
                 socket.create();
-                return res.status(201).send("User berhasil dirubah.");
+                return res.status(201).send(user_object);
             })
                 .catch((error) => {
-                console.log(error);
                 return res.status(500).send(error);
             });
         });
@@ -192,10 +189,12 @@ UserController.toggleActive = (req, res) => {
 };
 UserController.changePassword = (req, res) => {
     const password = req.body.password;
-    (0, bcryptjs_1.hash)(password, 12).then(hashed_password => {
-        user_model_1.default.updatePassword(hashed_password, req.body.userId).then(result => {
+    (0, bcryptjs_1.hash)(password, 12).then((hashed_password) => {
+        user_model_1.default.updatePassword(hashed_password, req.body.userId)
+            .then((result) => {
             return res.status(200).send(result);
-        }).catch(error => {
+        })
+            .catch((error) => {
             return res.status(500).send(error);
         });
     });

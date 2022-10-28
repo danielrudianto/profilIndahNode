@@ -30,7 +30,7 @@ PurchaseDocumentController.update = (req, res) => {
     const company_id = req.body.company_id;
     const supplier_id = req.body.supplier_id;
     const good_receipt_items = req.body.good_receipt;
-    const purchase_invoice = req.body.purchase_invoice[0];
+    const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
     const company_validation = company_model_1.default.fetchById(company_id);
@@ -136,12 +136,12 @@ PurchaseDocumentController.create = (req, res) => {
                         good_receipt_items_price.push(purchase_price);
                     }
                 }
-                const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
-                const save_price = item_purchase_price_model_1.default.insertItems(good_receipt_items_price);
-                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId);
-                const insert_purchase_document = purchase_document.create();
-                transaction
-                    .create([insert_item, ...save_price, insert_purchase_document])
+                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
+                Promise.all([
+                    good_receipt_model_1.default.insertItems(good_receipt_items_input),
+                    item_purchase_price_model_1.default.insertItems(good_receipt_items_price),
+                    purchase_document.create(),
+                ])
                     .then(() => {
                     const socket = new socket_helper_1.default("createGoodReceipt", {
                         supplier_id: good_receipt_result.supplier_id,
@@ -248,22 +248,28 @@ PurchaseDocumentController.delete = (req, res) => {
 };
 PurchaseDocumentController.confirmUnchanged = (req, res) => {
     const id = parseInt(req.body.id);
-    purchase_document_model_1.default.fetchById(id).then(purchase_document => {
+    purchase_document_model_1.default.fetchById(id)
+        .then((purchase_document) => {
         var _a, _b;
-        if (purchase_document == null || purchase_document.purchase_invoice == null || ((_a = purchase_document.purchase_invoice) === null || _a === void 0 ? void 0 : _a.is_delete)) {
+        if (purchase_document == null ||
+            purchase_document.purchase_invoice == null ||
+            ((_a = purchase_document.purchase_invoice) === null || _a === void 0 ? void 0 : _a.is_delete)) {
             return res.status(404).send("Dokumen pembelian tidak ditemukan.");
         }
         else if ((_b = purchase_document.purchase_invoice) === null || _b === void 0 ? void 0 : _b.is_confirm) {
             return res.status(404).send("Dokumen sudah dikonfirmasi.");
         }
         else {
-            purchase_document_model_1.default.confirmByIdUnchanged(id, req.body.userId).then(result => {
+            purchase_document_model_1.default.confirmByIdUnchanged(id, req.body.userId)
+                .then((result) => {
                 return res.status(200).send(result);
-            }).catch(error => {
+            })
+                .catch((error) => {
                 return res.status(500).send(error);
             });
         }
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };

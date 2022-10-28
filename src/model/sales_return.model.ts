@@ -11,7 +11,6 @@ class SalesReturnModel {
   is_delete: boolean = false;
   confirmed_by?: number | null;
   confirmed_at?: Date | null;
-  customer_id: number | null;
   payment_method_id: number | null;
   created_by: number;
   created_at: Date;
@@ -23,7 +22,6 @@ class SalesReturnModel {
     name: string,
     date: Date,
     created_by: number,
-    customer_id: number | null,
     payment_method_id: number | null,
     sales_return: sales_return[] = [],
     id: number | null,
@@ -37,7 +35,6 @@ class SalesReturnModel {
     this.date = date;
     this.created_by = created_by;
     this.created_at = new Date();
-    this.customer_id = customer_id;
     this.payment_method_id = payment_method_id;
     this.confirmed = is_confirm;
     this.sales_return = sales_return;
@@ -52,6 +49,8 @@ class SalesReturnModel {
         created_at: this.created_at,
         is_confirm: this.confirmed ? true : false,
         confirmed_by: this.confirmed ? this.created_by : null,
+        confirmed_at: this.confirmed ? new Date() : null,
+        payment_method_id: this.payment_method_id,
         sales_return: {
           create: this.sales_return.map((x) => {
             return {
@@ -96,10 +95,23 @@ class SalesReturnModel {
       select: {
         name: true,
         id: true,
-        customer: {
+        sales_return: {
+          take: 1,
           select: {
-            name: true,
-          },
+            bill: {
+              select: {
+                bill_code: {
+                  select: {
+                    customer: {
+                      select: {
+                        name: true,
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         },
         date: true,
         user_sales_return_code_created_byTouser: {
@@ -156,11 +168,6 @@ class SalesReturnModel {
       select: {
         id: true,
         name: true,
-        customer: {
-          select: {
-            name: true,
-          },
-        },
         date: true,
         created_at: true,
         user_sales_return_code_created_byTouser: {
@@ -188,13 +195,38 @@ class SalesReturnModel {
                     conversion: true,
                   },
                 },
+                bill_code: {
+                  select: {
+                    customer: {
+                      select: {
+                        name: true,
+                      }
+                    }
+                  }
+                }
               },
             },
             quantity: true,
           },
         },
+        is_confirm: true,
+        is_delete: true,
       },
     });
+  }
+
+  static deleteById(id: number, created_by: number){
+    return prisma.sales_return_code.update({
+      where: {
+        id: id
+      },
+      data: {
+        is_confirm: false,
+        is_delete: true,
+        confirmed_at: new Date(),
+        confirmed_by: created_by,
+      }
+    })
   }
 }
 

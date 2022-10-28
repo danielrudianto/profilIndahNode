@@ -187,11 +187,10 @@ class UserController {
     } else {
       UserModel.fetchById(id).then((user) => {
         const userRoleModel = new UserRoleModel(id, role[0].id);
-        new QueryTransactionHelper()
-          .create([
-            UserModel.update(id, name, null, req.body.userId),
-            userRoleModel.update(),
-          ])
+        Promise.all([
+          UserModel.update(id, name, null, req.body.userId),
+          userRoleModel.update(),
+        ])
           .then((result) => {
             const user_object = {
               id: result[0].id,
@@ -199,7 +198,7 @@ class UserController {
               nik: result[0].nik,
               username: result[0].username,
               password: null,
-              role: UserModel.roles.filter((x) => x.id == result[2].role)[0],
+              role: UserModel.roles.filter((x) => x.id == result[1].role)[0],
             };
 
             const socket = new SocketHelper("updateUser", {
@@ -207,10 +206,9 @@ class UserController {
             });
             socket.create();
 
-            return res.status(201).send("User berhasil dirubah.");
+            return res.status(201).send(user_object);
           })
           .catch((error) => {
-            console.log(error);
             return res.status(500).send(error);
           });
       });
@@ -271,14 +269,16 @@ class UserController {
 
   static changePassword = (req: Request, res: Response) => {
     const password = req.body.password;
-    hash(password, 12).then(hashed_password => {
-      UserModel.updatePassword(hashed_password, req.body.userId).then(result => {
-        return res.status(200).send(result);
-      }).catch(error => {
-        return res.status(500).send(error);
-      })
-    })
-  }
+    hash(password, 12).then((hashed_password) => {
+      UserModel.updatePassword(hashed_password, req.body.userId)
+        .then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    });
+  };
 }
 
 export default UserController;

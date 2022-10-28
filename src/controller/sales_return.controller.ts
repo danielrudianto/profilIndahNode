@@ -6,38 +6,41 @@ class SalesReturnController {
   static create = (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const payment_method_id = req.body.payment_method_id;
-    const customer_id = req.body.customer_id;
 
     const items = req.body.sales_return as any[];
-    const name = `RJ-${date.getFullYear()}-${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}`;
-
-    const sales_return_code = new SalesReturnModel(
-      name,
-      date,
-      req.body.userId,
-      customer_id,
-      payment_method_id,
-      items,
-      null,
-      true
-    );
-
-    sales_return_code
-      .create()
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    if(items.length > 0){
+      const name = `RJ-${date.getFullYear()}-${Math.floor(
+        Math.random() * 10
+      )}${Math.floor(Math.random() * 10)}${Math.floor(
+        Math.random() * 10
+      )}${Math.floor(Math.random() * 10)}${Math.floor(
+        Math.random() * 10
+      )}${Math.floor(Math.random() * 10)}${Math.floor(
+        Math.random() * 10
+      )}${Math.floor(Math.random() * 10)}`;
+  
+      const sales_return_code = new SalesReturnModel(
+        name,
+        date,
+        req.body.userId,
+        payment_method_id,
+        items,
+        null,
+        true,
+      );
+  
+      sales_return_code
+        .create()
+        .then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else {
+      return res.status(400).send("Data barang tidak dilampirkan.")
+    }
+    
   };
 
   static fetchSearch = (req: Request, res: Response) => {
@@ -117,7 +120,14 @@ class SalesReturnController {
       ])
         .then((result) => {
           return res.status(200).send({
-            data: result[0],
+            data: result[0].map(x => {
+              return {
+                ...x,
+                customer: (x.sales_return.length == 0 || x.sales_return[0].bill.bill_code.customer == null) ? null : {
+                  name: x.sales_return[0].bill.bill_code.customer.name,
+                }
+              }
+            }),
             count: result[1],
           });
         })
@@ -132,9 +142,27 @@ class SalesReturnController {
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
     SalesReturnModel.fetchById(id).then(result => {
-      return res.status(200).send(result);
+      return res.status(200).send({
+        ...result,
+        customer: (result?.sales_return.length == 0 || result?.sales_return[0].bill.bill_code.customer == null) ? null : {
+          name: result.sales_return[0].bill.bill_code.customer.name,
+        }
+      });
     }).catch(error => {
       return res.status(500).send(error);
+    })
+  }
+
+  static deleteById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    SalesReturnModel.fetchById(id).then(salesReturn => {
+      if(salesReturn == null || salesReturn.is_delete){
+        return res.status(404).send("Data tidak ditemukan.");
+      } else {
+        SalesReturnModel.deleteById(id, req.body.userId).then(result => {
+
+        })
+      }
     })
   }
 }

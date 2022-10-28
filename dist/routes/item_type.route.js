@@ -12,4 +12,5 @@ router.get("/", item_type_controller_1.default.fetchItems);
 router.post("/getByBrandIds", item_type_controller_1.default.fetchByBrandId);
 router.post("/", item_type_controller_1.default.createItem);
 router.put("/", item_type_controller_1.default.updateItem);
+router.delete("/:id", item_type_controller_1.default.deleteItem);
 exports.default = router;

@@ -235,5 +235,25 @@ class ItemTypeModel {
             }
         });
     }
+    static deleteById(id, user_id) {
+        return prisma.item_type.update({
+            where: {
+                id: id
+            },
+            data: {
+                is_delete: true,
+                deleted_at: new Date(),
+                deleted_by: user_id
+            },
+            include: {
+                user_item_type_deleted_byTouser: {
+                    select: {
+                        id: true,
+                        name: true,
+                    }
+                }
+            }
+        });
+    }
 }
 exports.default = ItemTypeModel;

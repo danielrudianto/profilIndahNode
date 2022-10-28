@@ -112,14 +112,12 @@ BillController.createPrintout = (req, res) => {
         blackLinesIndex.push(i.toString());
         x.quantity.forEach((item) => {
             const price = parseFloat(item.price);
-            const discount = parseFloat(item.discount);
-            const nettPrice = price - discount;
             const quantity = item.quantity;
             const unit = item.unit;
-            const total = quantity * nettPrice;
+            const total = quantity * price;
             bill_table.push([
                 {
-                    text: `${numberFormatter.format(quantity)} ${unit} x ${formatter.format(nettPrice)}`,
+                    text: `${numberFormatter.format(quantity)} ${unit} x ${formatter.format(price)}`,
                 },
                 {
                     text: formatter.format(total),
@@ -176,6 +174,14 @@ BillController.createPrintout = (req, res) => {
                     body: bill_table,
                 },
                 margin: [0, 0, 0, 15],
+            },
+            {
+                text: "Price mentioned above does not include a discount. Discount value can be checked on register.",
+                bold: true,
+                color: 'grey',
+                fontSize: 10,
+                alignment: "left",
+                margin: [0, 0, 0, 5],
             },
         ],
     };
