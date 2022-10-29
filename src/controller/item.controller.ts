@@ -171,7 +171,7 @@ class ItemController {
   };
 
   static delete = (req: Request, res: Response) => {
-    const reference = req.params.itemReference;
+    const reference = decodeURIComponent(req.params.itemReference);
 
     ItemModel.fetchByReference(reference).then((item) => {
       if (item == null || item.is_delete) {
@@ -598,7 +598,7 @@ class ItemController {
   };
 
   static fetchUnits = (req: Request, res: Response) => {
-    const reference = req.params.reference;
+    const reference = decodeURIComponent(req.params.reference);
     ItemUnitModel.fetchByItemReference(reference)
       .then((result) => {
         if (result == null || result.is_delete) {
@@ -681,7 +681,7 @@ class ItemController {
   };
 
   static toggleActive = (req: Request, res: Response) => {
-    const reference = req.params.reference;
+    const reference = decodeURIComponent(req.params.reference);
     ItemModel.fetchByReference(reference).then((item) => {
       if (item == null || item.is_delete) {
         return res.status(404).send("Barang tidak ditemukan.");

@@ -81,7 +81,7 @@ ItemController.create = (req, res) => {
     });
 };
 ItemController.delete = (req, res) => {
-    const reference = req.params.itemReference;
+    const reference = decodeURIComponent(req.params.itemReference);
     item_model_1.ItemModel.fetchByReference(reference).then((item) => {
         if (item == null || item.is_delete) {
             return res.status(404).send("Barang tidak ditemukan.");
@@ -375,7 +375,7 @@ ItemController.downloadStock = (req, res) => {
     });
 };
 ItemController.fetchUnits = (req, res) => {
-    const reference = req.params.reference;
+    const reference = decodeURIComponent(req.params.reference);
     item_unit_model_1.default.fetchByItemReference(reference)
         .then((result) => {
         if (result == null || result.is_delete) {
@@ -441,7 +441,7 @@ ItemController.fetchDailyStock = (req, res) => {
     });
 };
 ItemController.toggleActive = (req, res) => {
-    const reference = req.params.reference;
+    const reference = decodeURIComponent(req.params.reference);
     item_model_1.ItemModel.fetchByReference(reference).then((item) => {
         if (item == null || item.is_delete) {
             return res.status(404).send("Barang tidak ditemukan.");
