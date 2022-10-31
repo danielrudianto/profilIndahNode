@@ -564,9 +564,9 @@ class PurchaseDocumentModel {
   static fetchAppendix(month: number, year: number){
     if(month == 0){
       return prisma.$queryRawUnsafe(`
-        SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date
+        SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
         FROM purchase_invoice
-        JOIN good_receipt_code ON good_receipt_code.purchase_invoice_id = purchase_invoice.id
+        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
         JOIN (
           SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt.good_receipt_code_id
           FROM good_receipt
@@ -579,9 +579,28 @@ class PurchaseDocumentModel {
         AND good_receipt_code.is_delete = 0
         AND purchase_invoice.is_confirm = 1
         AND purchase_invoice.is_delete = 0
+        AND YEAR(purchase_invoice.date) = ${year}
       `);
     } else {
-      return prisma.$queryRawUnsafe(``);
+      return prisma.$queryRawUnsafe(`
+        SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
+        FROM purchase_invoice
+        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+        JOIN (
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt.good_receipt_code_id
+          FROM good_receipt
+          GROUP BY good_receipt.good_receipt_code_id
+        ) goodReceipt
+        ON good_receipt_code.id = goodReceipt.good_receipt_code_id
+        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+        JOIN company ON good_receipt_code.company_id = company.id
+        WHERE good_receipt_code.is_confirm = 1
+        AND good_receipt_code.is_delete = 0
+        AND purchase_invoice.is_confirm = 1
+        AND purchase_invoice.is_delete = 0
+        AND YEAR(purchase_invoice.date) = ${year}
+        AND MONTH(purchase_invoice.date) = ${month}
+      `);
     }
   }
 }
