@@ -125,7 +125,6 @@ class ItemPriceController {
 
     ItemPriceModel.fetch(keyword, date, offset, limit)
       .then((result) => {
-        console.log(JSON.stringify(result));
         return res.status(200).send({
           data: result[0].map((x) => {
             return {

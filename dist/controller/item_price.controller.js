@@ -117,7 +117,6 @@ ItemPriceController.fetch = (req, res) => {
     date.setHours(0, 0, 0, 0);
     item_price_model_1.default.fetch(keyword, date, offset, limit)
         .then((result) => {
-        console.log(JSON.stringify(result));
         return res.status(200).send({
             data: result[0].map((x) => {
                 return Object.assign(Object.assign({}, x), { price: x.item_price.filter((x) => x.item_unit == null)[0].price, discount: x.item_price.filter((x) => x.item_unit == null)[0]
