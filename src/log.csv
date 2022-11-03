@@ -159,3 +159,5 @@ Thu Oct 27 2022 21:21:23 GMT+0700 (Indochina Time); info; Daniel Tri berhasil me
 Thu Oct 27 2022 22:54:36 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Thu Oct 27 2022 22:59:28 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Thu Oct 27 2022 23:00:50 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Mon Oct 31 2022 23:19:19 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'good_receipt_code.purchase_invoice_id' in 'on clause'`; Report controller - Fetch Profit Loss; null
+Mon Oct 31 2022 23:19:23 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'good_receipt_code.purchase_invoice_id' in 'on clause'`; Report controller - Fetch Profit Loss; null

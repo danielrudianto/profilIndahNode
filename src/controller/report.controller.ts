@@ -999,6 +999,65 @@ class ReportController {
                 alignment: "center" as Alignment
               }
             ]);
+          });
+
+          const purchase_appendix_table = [];
+          purchase_appendix_table .push([
+            {
+              text: "Tanggal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Supplier",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Perusahaan",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Dokumen",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Nominal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          (result[6] as any[]).forEach(x => {
+            purchase_appendix_table.push([
+              {
+                text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                bold: false,
+                alignment: "center" as Alignment
+              },
+              {
+                text: x.supplier_name,
+                bold: false,
+                alignment: "center" as Alignment
+              },
+              {
+                text: x.company_name,
+                bold: false,
+                alignment: "center" as Alignment
+              },
+              {
+                text: x.purchase_invoice_name,
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: formatter.format(x.value),
+                bold: false,
+                alignment: "center" as Alignment
+              }
+            ]);
           })
 
           let documentDefinition = {
@@ -1125,6 +1184,30 @@ class ReportController {
                   headerRows: 1,
                   widths: ["auto", "auto", "*", "auto"],
                   body: sales_appendix_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                text: "Lampiran II",
+                bold: true,
+                fontSize: 14,
+                alignment: "left" as Alignment,
+                margin: [0, 0, 0, 5] as Margins,
+                pageBreak: 'before' as PageBreak
+              },
+              {
+                text: "Rincian Pembelian",
+                bold: true,
+                fontSize: 10,
+                alignment: "left" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "auto", "auto", "*", "auto"],
+                  body: purchase_appendix_table,
                 },
                 margin: [0, 0, 0, 15] as Margins,
               }

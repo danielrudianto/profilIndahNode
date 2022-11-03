@@ -877,6 +877,63 @@ ReportController.fetchPLStats = (req, res) => {
                     }
                 ]);
             });
+            const purchase_appendix_table = [];
+            purchase_appendix_table.push([
+                {
+                    text: "Tanggal",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Supplier",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Perusahaan",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Dokumen",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Nominal",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            result[6].forEach(x => {
+                purchase_appendix_table.push([
+                    {
+                        text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                        bold: false,
+                        alignment: "center"
+                    },
+                    {
+                        text: x.supplier_name,
+                        bold: false,
+                        alignment: "center"
+                    },
+                    {
+                        text: x.company_name,
+                        bold: false,
+                        alignment: "center"
+                    },
+                    {
+                        text: x.purchase_invoice_name,
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: formatter.format(x.value),
+                        bold: false,
+                        alignment: "center"
+                    }
+                ]);
+            });
             let documentDefinition = {
                 pageSize: "A4",
                 content: [
@@ -998,6 +1055,30 @@ ReportController.fetchPLStats = (req, res) => {
                             headerRows: 1,
                             widths: ["auto", "auto", "*", "auto"],
                             body: sales_appendix_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        text: "Lampiran II",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 5],
+                        pageBreak: 'before'
+                    },
+                    {
+                        text: "Rincian Pembelian",
+                        bold: true,
+                        fontSize: 10,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["auto", "auto", "auto", "*", "auto"],
+                            body: purchase_appendix_table,
                         },
                         margin: [0, 0, 0, 15],
                     }
