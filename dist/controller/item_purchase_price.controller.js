@@ -12,7 +12,7 @@ const user_model_1 = __importDefault(require("../model/user.model"));
 class ItemPurchasePriceController {
 }
 ItemPurchasePriceController.fetchByReference = (req, res) => {
-    const reference = decodeURI(req.params.reference.toString());
+    const reference = decodeURIComponent(req.params.reference.toString());
     item_purchase_price_model_1.default.fetchByReference(reference)
         .then((result) => {
         return res.status(200).send(result);
