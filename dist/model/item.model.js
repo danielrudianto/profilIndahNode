@@ -299,7 +299,7 @@ class ItemModel {
                     skip: offset,
                     orderBy: {
                         reference: "asc",
-                    }
+                    },
                 }),
                 prisma.$queryRawUnsafe(`
           SELECT COUNT(DISTINCT(item.id)) AS count
@@ -867,11 +867,11 @@ class ItemModel {
                                     user_sales_return_code_created_byTouser: {
                                         select: {
                                             name: true,
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                                        },
+                                    },
+                                },
+                            },
+                        },
                     },
                     quantity: true,
                     lead_quantity: true,
@@ -1172,6 +1172,8 @@ class ItemModel {
             },
             select: {
                 id: true,
+                item_id: true,
+                item_unit_id: true,
                 item: {
                     select: {
                         reference: true,
@@ -1193,6 +1195,7 @@ class ItemModel {
                 discount: true,
                 item_unit: {
                     select: {
+                        id: true,
                         unit: true,
                         conversion: true,
                     },
@@ -1227,6 +1230,8 @@ class ItemModel {
             },
             select: {
                 id: true,
+                item_id: true,
+                item_unit_id: true,
                 item: {
                     select: {
                         reference: true,
@@ -1300,13 +1305,13 @@ class ItemModel {
                                 select: {
                                     unit: true,
                                     conversion: true,
-                                }
-                            }
+                                },
+                            },
                         },
                         where: {
                             is_delete: false,
-                        }
-                    }
+                        },
+                    },
                 },
                 orderBy: {
                     reference: "asc",
@@ -1339,7 +1344,7 @@ class ItemModel {
                     select: {
                         unit: true,
                         conversion: true,
-                    }
+                    },
                 },
                 item: {
                     select: {
@@ -1348,16 +1353,16 @@ class ItemModel {
                         item_brand: {
                             select: {
                                 name: true,
-                            }
+                            },
                         },
                         item_type: {
                             select: {
                                 name: true,
-                            }
+                            },
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         });
     }
 }

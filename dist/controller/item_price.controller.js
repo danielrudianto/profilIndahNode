@@ -13,7 +13,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const item_model_1 = require("../model/item.model");
 const item_price_model_1 = __importDefault(require("../model/item_price.model"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
@@ -24,54 +23,25 @@ class ItemPriceController {
 }
 _a = ItemPriceController;
 ItemPriceController.createBulk = (req, res) => {
-    const effective_date = new Date(req.body.effective_date);
+    const effective_date = new Date();
     const items = req.body.items;
-    const references = [];
-    let count = 0;
-    const price_object = [];
+    const transactions = [];
     items.forEach((x) => {
-        const reference = x.reference;
+        const id = x.id;
+        const item_unit_id = x.item_unit_id == 0 ? null : parseInt(x.item_unit_id);
         const price = x.price;
         const discount = x.discount;
-        const discount_project = x.discount_project;
-        references.push(reference);
-        price_object[count] = {
-            price: parseFloat(price),
-            discount: parseFloat(discount),
-            discount_project: parseFloat(discount_project),
-        };
-        count++;
+        const item_price = new item_price_model_1.default(price, discount, id, item_unit_id, req.body.userId, effective_date);
+        transactions.push(item_price_model_1.default.delete(id, item_unit_id, req.body.userId));
+        transactions.push(item_price.create());
     });
-    item_model_1.ItemModel.fetchByReferences(references).then((items) => {
-        if (items.length != count) {
-            res
-                .status(500)
-                .send(`${items.length - count} barang tidak terdefinisi. Mohon cek kembali input anda`);
-        }
-        else {
-            const transactions = [];
-            const item_ids = [];
-            references.forEach((reference, index) => {
-                item_ids.push(items.filter((x) => x.reference == reference)[0].id);
-                const item_price = new item_price_model_1.default(price_object[index].price, price_object[index].discount, items.filter((x) => x.reference == reference)[0].id, req.body.userId, effective_date);
-                transactions.push(item_price.create());
-            });
-            const transaction = new query_transaction_helper_1.default();
-            item_price_model_1.default.deleteByIds(item_ids, req.body.userId)
-                .then(() => {
-                transaction
-                    .create(transactions)
-                    .then((result) => {
-                    return res.status(201).send(result);
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
-                });
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
-        }
+    Promise.all(transactions)
+        .then((result) => {
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(error);
+        return res.status(500).send(error);
     });
 };
 ItemPriceController.fetchAll = (req, res) => {
@@ -188,9 +158,10 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
             const rows = [
                 [
                     "ID",
+                    "Item_unit_id",
                     "Referensi",
                     "Deskripsi",
-                    "MereK",
+                    "Merek",
                     "Tipe",
                     "Satuan",
                     "Konversi",
@@ -208,7 +179,8 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 items.forEach((x) => {
                     var _b;
                     rows.push([
-                        x.id,
+                        x.item_id,
+                        x.item_unit == null ? 0 : x.item_unit.id,
                         x.item.reference,
                         x.item.description,
                         x.item.item_brand.name,
@@ -231,7 +203,16 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 workbook.creator = "Toko Profil Indah";
                 workbook.lastModifiedBy = user === null || user === void 0 ? void 0 : user.name;
                 workbook.created = new Date();
-                const sheet = workbook.addWorksheet("Perubahan Harga Jual");
+                const sheet = workbook.addWorksheet("Perubahan Harga Jual", {
+                    state: "visible",
+                    views: [
+                        {
+                            state: "frozen",
+                            xSplit: 9,
+                            ySplit: 1,
+                        },
+                    ],
+                });
                 sheet.state = "visible";
                 rows.forEach((data) => {
                     sheet.addRow(data);
@@ -257,6 +238,11 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                         italic: false,
                         bold: false,
                     };
+                    sheet.getRow(i + 2).alignment = {
+                        vertical: "middle",
+                        horizontal: "center",
+                        wrapText: true,
+                    };
                     sheet.getCell(`I${i + 1}`).dataValidation = {
                         type: "whole",
                         operator: "greaterThan",
@@ -276,39 +262,18 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                         prompt: "Nilai potongan harga harus lebih besar atau sama dengan 0.",
                     };
                 }
-                const fixed_width = [10, 10, 10, 10, 10, 10, 10, 10];
-                for (let row_index = 0; row_index < rows.length - 1; row_index++) {
-                    for (let column_index = 0; column_index < 10; column_index++) {
-                        const width = columns_width[row_index][column_index];
-                        if (width > fixed_width[column_index]) {
-                            fixed_width[column_index] = width + ((column_index >= 9) ? 20 : 0);
-                        }
-                    }
-                }
-                for (let column_index = 0; column_index < 8; column_index++) {
-                    sheet.getColumn(column_index + 1).width = fixed_width[column_index];
-                }
                 sheet.getColumn(1).hidden = true;
-                sheet.getColumn(9).protection = {
-                    locked: false,
-                };
-                sheet.getColumn(10).protection = {
-                    locked: false,
-                };
-                sheet.getColumn(9).numFmt = '#,###.00';
-                sheet.getColumn(10).numFmt = '#,###.00';
-                sheet.protect("", {
-                    selectLockedCells: false,
-                    selectUnlockedCells: true
-                }).then(() => {
-                    workbook.xlsx.writeBuffer().then((buffer) => {
-                        return res.status(200).send({
-                            data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
-                        });
-                    }).catch(error => {
-                        return res.status(500).send(error);
+                sheet.getColumn(2).hidden = true;
+                sheet.getColumn(9).numFmt = "#,###.00";
+                sheet.getColumn(10).numFmt = "#,###.00";
+                workbook.xlsx
+                    .writeBuffer()
+                    .then((buffer) => {
+                    return res.status(200).send({
+                        data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
                     });
-                }).catch(error => {
+                })
+                    .catch((error) => {
                     return res.status(500).send(error);
                 });
             })

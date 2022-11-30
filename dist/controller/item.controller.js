@@ -35,7 +35,7 @@ ItemController.create = (req, res) => {
             .then((result) => {
             log_helper_1.default.log(new Date(), "info", `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
             const item_units = item_unit_model_1.default.createMany(units, result.id, req.body.userId);
-            const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, req.body.userId);
+            const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, req.body.userId);
             const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, req.body.userId, null);
             Promise.all([
                 item_price.create(),

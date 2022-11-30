@@ -6,6 +6,7 @@ import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import LogHelper from "../helper/log.helper";
 import ExcelJS from "exceljs";
 import UserModel from "../model/user.model";
+import { Result } from "express-validator";
 
 class ItemPurchasePriceController {
   static fetchByReference = (req: Request, res: Response) => {
@@ -121,49 +122,33 @@ class ItemPurchasePriceController {
   };
 
   static createBulk = (req: Request, res: Response) => {
+    const transactions: any[] = [];
     const data = req.body.data as any[];
-    const ids = data.map((x) => {
-      return x.id;
+    data.forEach((x, index) => {
+      const price = x.price;
+      const item_unit_id = x.item_unit_id;
+      const item_id = x.id;
+      const updated_price = data.filter((y) => y.id == x.id)[0].price;
+      if (updated_price != price) {
+        const itemPurchasePriceModel = new ItemPurchasePriceModel(
+          updated_price,
+          item_id,
+          req.body.userId,
+          item_unit_id
+        );
+
+        transactions.push(ItemPurchasePriceModel.delete(item_id, item_unit_id, req.body.userId));
+        transactions.push(itemPurchasePriceModel.create());
+      }
     });
 
-    ItemPurchasePriceModel.fetchByIds(ids).then((result) => {
-      if (result.filter((x) => x.is_delete).length > 0) {
-        return res
-          .status(400)
-          .send("Terdapat input yang sudah terhapus. Mohon cek kembali.");
-      } else {
-        const response: any[] = [];
-        result.forEach((x, index) => {
-          const price = x.price;
-          const item_unit_id = x.item_unit_id;
-          const item_id = x.item_id;
-          if (data.filter((y) => y.id == x.id).length > 0) {
-            const updated_price = data.filter((y) => y.id == x.id)[0].price;
-            if (updated_price != price) {
-              const itemPurchasePriceModel = new ItemPurchasePriceModel(
-                updated_price,
-                item_id,
-                req.body.userId,
-                item_unit_id
-              );
-              response.push(itemPurchasePriceModel.create);
-            }
-          }
-
-          if (index == result.length - 1) {
-            Promise.all([...response])
-              .then((result) => {
-                return res.status(201).send(result);
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          }
-        });
-      }
+    Promise.all(transactions).then(result => {
+      return res.status(200).send(result);
     }).catch(error => {
       return res.status(500).send(error);
     })
+
+    
   };
 
   static getXlsx = (req: Request, res: Response) => {
@@ -178,6 +163,7 @@ class ItemPurchasePriceController {
           const rows: any[] = [
             [
               "ID",
+              "Item_unit_id",
               "Referensi",
               "Deskripsi",
               "Merek",
@@ -201,7 +187,8 @@ class ItemPurchasePriceController {
             .then((items) => {
               items.forEach((x) => {
                 rows.push([
-                  x.id,
+                  x.item_id,
+                  x.item_unit_id == null ? 0 : x.item_unit_id,
                   x.item.reference,
                   x.item.description,
                   x.item.item_brand.name,
@@ -213,13 +200,6 @@ class ItemPurchasePriceController {
                   x.item.unit,
                   parseFloat(x.price.toString()),
                 ]);
-
-                // Adjusting column width
-                columns_width.push(
-                  rows[rows.length - 1].map((item: any) => {
-                    return item.toString().length;
-                  })
-                );
               });
 
               const workbook = new ExcelJS.Workbook();
@@ -228,7 +208,16 @@ class ItemPurchasePriceController {
               workbook.lastModifiedBy = user?.name;
               workbook.created = new Date();
 
-              const sheet = workbook.addWorksheet("Perubahan Harga Beli");
+              const sheet = workbook.addWorksheet("Perubahan Harga Beli", {
+                state: "visible",
+                views: [
+                  {
+                    state: "frozen",
+                    xSplit: 9,
+                    ySplit: 1,
+                  },
+                ],
+              });
               sheet.state = "visible";
               rows.forEach((data) => {
                 sheet.addRow(data);
@@ -257,6 +246,12 @@ class ItemPurchasePriceController {
                   bold: false,
                 };
 
+                sheet.getRow(i + 2).alignment = {
+                  vertical: "middle",
+                  horizontal: "center",
+                  wrapText: true,
+                };
+
                 sheet.getCell(`I${i + 1}`).dataValidation = {
                   type: "whole",
                   operator: "greaterThan",
@@ -279,66 +274,29 @@ class ItemPurchasePriceController {
                 };
               }
 
-              const fixed_width: number[] = [10, 10, 10, 10, 10, 10, 10, 10];
-
-              for (
-                let row_index = 0;
-                row_index < rows.length - 1;
-                row_index++
-              ) {
-                for (let column_index = 0; column_index < 10; column_index++) {
-                  const width = columns_width[row_index][column_index];
-                  if (width > fixed_width[column_index]) {
-                    if (column_index == 9) {
-                      fixed_width[column_index] = width + 20;
-                    } else {
-                      fixed_width[column_index] = width;
-                    }
-                  }
-                }
-              }
-
-              for (let column_index = 0; column_index < 9; column_index++) {
-                sheet.getColumn(column_index + 1).width =
-                  fixed_width[column_index];
-              }
-
               sheet.getColumn(1).hidden = true;
+              sheet.getColumn(2).hidden = true;
               sheet.getColumn(9).protection = {
                 locked: false,
               };
 
               sheet.getColumn(9).numFmt = "#,###.00";
 
-              sheet
-                .protect("", {
-                  selectLockedCells: false,
-                  selectUnlockedCells: true,
-                  sort: true,
-                  formatRows: true,
-                  deleteRows: false,
-                  insertColumns: false,
-                  formatColumns: true,
-                })
-                .then(() => {
-                  workbook.xlsx
-                    .writeBuffer()
-                    .then((buffer) => {
-                      return res.status(200).send({
-                        data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
-                          buffer
-                        ).toString("base64")}`,
-                      });
-                    })
-                    .catch((error) => {
-                      return res.status(500).send(error);
-                    });
+              workbook.xlsx
+                .writeBuffer()
+                .then((buffer) => {
+                  return res.status(200).send({
+                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+                      buffer
+                    ).toString("base64")}`,
+                  });
                 })
                 .catch((error) => {
                   return res.status(500).send(error);
                 });
             })
             .catch((error) => {
+              console.error(error);
               LogHelper.log(
                 new Date(),
                 error,

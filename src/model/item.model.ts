@@ -336,7 +336,7 @@ export class ItemModel {
           skip: offset,
           orderBy: {
             reference: "asc",
-          }
+          },
         }),
         prisma.$queryRawUnsafe(`
           SELECT COUNT(DISTINCT(item.id)) AS count
@@ -354,7 +354,6 @@ export class ItemModel {
         .toString();
 
       const keywords = words.replace(",", "");
-
 
       return prisma.$transaction([
         prisma.$queryRawUnsafe(`
@@ -932,11 +931,11 @@ export class ItemModel {
                   user_sales_return_code_created_byTouser: {
                     select: {
                       name: true,
-                    }
-                  }
-                }
-              }
-            }
+                    },
+                  },
+                },
+              },
+            },
           },
           quantity: true,
           lead_quantity: true,
@@ -1251,6 +1250,8 @@ export class ItemModel {
       },
       select: {
         id: true,
+        item_id: true,
+        item_unit_id: true,
         item: {
           select: {
             reference: true,
@@ -1272,6 +1273,7 @@ export class ItemModel {
         discount: true,
         item_unit: {
           select: {
+            id: true,
             unit: true,
             conversion: true,
           },
@@ -1310,6 +1312,8 @@ export class ItemModel {
       },
       select: {
         id: true,
+        item_id: true,
+        item_unit_id: true,
         item: {
           select: {
             reference: true,
@@ -1384,13 +1388,13 @@ export class ItemModel {
                 select: {
                   unit: true,
                   conversion: true,
-                }
-              }
+                },
+              },
             },
             where: {
               is_delete: false,
-            }
-          }
+            },
+          },
         },
         orderBy: {
           reference: "asc",
@@ -1408,7 +1412,7 @@ export class ItemModel {
     ]);
   }
 
-  static fetchByItemUnitIds(items: any[]){
+  static fetchByItemUnitIds(items: any[]) {
     return prisma.item_price.findMany({
       where: {
         OR: items,
@@ -1424,7 +1428,7 @@ export class ItemModel {
           select: {
             unit: true,
             conversion: true,
-          }
+          },
         },
         item: {
           select: {
@@ -1433,16 +1437,16 @@ export class ItemModel {
             item_brand: {
               select: {
                 name: true,
-              }
+              },
             },
             item_type: {
               select: {
                 name: true,
-              }
+              },
             },
-          }
-        }
-      }
-    })
+          },
+        },
+      },
+    });
   }
 }

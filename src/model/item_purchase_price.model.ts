@@ -268,9 +268,9 @@ class ItemPurchasePriceModel {
                   item_id: "asc",
                 },
                 {
-                  item_unit_id: "asc"
-                }
-              ]
+                  item_unit_id: "asc",
+                },
+              ],
             },
           },
           orderBy: {
@@ -383,14 +383,33 @@ class ItemPurchasePriceModel {
     });
   }
 
-  static fetchByIds(ids: number[]){
+  static fetchByIds(ids: number[]) {
     return prisma.item_price_purchase.findMany({
-      where:{
+      where: {
         id: {
-          in: ids
-        }
-      }
-    })
+          in: ids,
+        },
+      },
+    });
+  }
+
+  static delete(
+    item_id: number,
+    item_unit_id: number | null,
+    created_by: number
+  ) {
+    return prisma.item_price_purchase.updateMany({
+      where: {
+        item_id: item_id,
+        item_unit_id: item_unit_id,
+        is_delete: false,
+      },
+      data: {
+        is_delete: true,
+        deleted_at: new Date(),
+        deleted_by: created_by,
+      },
+    });
   }
 }
 

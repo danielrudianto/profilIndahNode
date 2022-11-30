@@ -164,3 +164,14 @@ Mon Oct 31 2022 23:19:23 GMT+0700 (Indochina Time); error; Error: ,Invalid `pris
 Tue Nov 15 2022 09:28:11 GMT+0700 (Indochina Time); warn; Login failed for username danielrudianto12@gmail.com; Auth controller - Login; 0
 Tue Nov 15 2022 09:29:06 GMT+0700 (Indochina Time); info; Login success for username putriagustin; Auth controller - Login; 3
 Tue Nov 15 2022 09:34:16 GMT+0700 (Indochina Time); info; Login success for username putriagustin; Auth controller - Login; 3
+Tue Nov 15 2022 09:46:53 GMT+0700 (Indochina Time); info; Login success for username putriagustin; Auth controller - Login; 3
+Tue Nov 15 2022 09:50:53 GMT+0700 (Indochina Time); info; Login success for username putriagustin; Auth controller - Login; 3
+Wed Nov 30 2022 12:18:46 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Nov 30 2022 15:37:38 GMT+0700 (Indochina Time); TypeError: Cannot read property 'toString' of null; error; Item price controller - getXlsx; 1
+Wed Nov 30 2022 15:37:43 GMT+0700 (Indochina Time); TypeError: Cannot read property 'toString' of null; error; Item price controller - getXlsx; 1
+Wed Nov 30 2022 15:38:29 GMT+0700 (Indochina Time); TypeError: Cannot read property 'toString' of null; error; Item price controller - getXlsx; 1
+Wed Nov 30 2022 15:38:55 GMT+0700 (Indochina Time); TypeError: Cannot read property 'toString' of null; error; Item price controller - getXlsx; 1
+Wed Nov 30 2022 15:54:39 GMT+0700 (Indochina Time); TypeError: Cannot read property '0' of undefined; error; Item price controller - getXlsx; 1
+Wed Nov 30 2022 17:21:32 GMT+0700 (Indochina Time); info; Daniel Tri created supplier with the name PT Duta Sapta Energi (ID: 2); Supplier - Create; 1
+Wed Nov 30 2022 17:24:22 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 8) dari PT Duta Sapta Energi (ID: 8) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
+Wed Nov 30 2022 20:52:03 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-85269711 (ID: 11); Bill controller - Create; 1

@@ -245,9 +245,9 @@ class ItemPurchasePriceModel {
                                     item_id: "asc",
                                 },
                                 {
-                                    item_unit_id: "asc"
-                                }
-                            ]
+                                    item_unit_id: "asc",
+                                },
+                            ],
                         },
                     },
                     orderBy: {
@@ -360,9 +360,23 @@ class ItemPurchasePriceModel {
         return prisma.item_price_purchase.findMany({
             where: {
                 id: {
-                    in: ids
-                }
-            }
+                    in: ids,
+                },
+            },
+        });
+    }
+    static delete(item_id, item_unit_id, created_by) {
+        return prisma.item_price_purchase.updateMany({
+            where: {
+                item_id: item_id,
+                item_unit_id: item_unit_id,
+                is_delete: false,
+            },
+            data: {
+                is_delete: true,
+                deleted_at: new Date(),
+                deleted_by: created_by,
+            },
         });
     }
 }

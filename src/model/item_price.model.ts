@@ -7,6 +7,7 @@ class ItemPriceModel {
   price: number;
   discount: number;
   item_id: number;
+  item_unit_id: number | null;
   created_by: number;
   created_at: Date;
   effective_date: Date;
@@ -15,21 +16,26 @@ class ItemPriceModel {
     price: number,
     discount: number,
     item_id: number,
+    item_unit_id: number | null,
     created_by: number,
     effective_date: Date | null = null
   ) {
     this.price = price;
     this.discount = discount;
     this.item_id = item_id;
+    this.item_unit_id = item_unit_id;
     this.created_by = created_by;
     this.created_at = new Date();
     this.effective_date = effective_date == null ? new Date() : effective_date;
   }
 
   create() {
+    console.log(this.item_id);
+    console.log(this.item_unit_id);
     return prisma.item_price.create({
       data: {
         item_id: this.item_id,
+        item_unit_id: this.item_unit_id,
         price: this.price,
         discount: this.discount,
         created_by: this.created_by,
@@ -142,17 +148,17 @@ class ItemPriceModel {
               {
                 item_brand: {
                   name: {
-                    contains: keyword
-                  }
-                }
+                    contains: keyword,
+                  },
+                },
               },
               {
                 item_type: {
                   name: {
-                    contains: keyword
-                  }
-                }
-              }
+                    contains: keyword,
+                  },
+                },
+              },
             ],
           },
           select: {
@@ -227,17 +233,17 @@ class ItemPriceModel {
               {
                 item_brand: {
                   name: {
-                    contains: keyword
-                  }
-                }
+                    contains: keyword,
+                  },
+                },
               },
               {
                 item_type: {
                   name: {
-                    contains: keyword
-                  }
-                }
-              }
+                    contains: keyword,
+                  },
+                },
+              },
             ],
           },
         }),
@@ -341,8 +347,8 @@ class ItemPriceModel {
         data: {
           is_delete: true,
           deleted_at: new Date(),
-          deleted_by: created_by
-        }
+          deleted_by: created_by,
+        },
       }),
       prisma.item_price.create({
         data: {
@@ -352,16 +358,16 @@ class ItemPriceModel {
           discount: discount,
           created_by: created_by,
           created_at: new Date(),
-          effective_date: effective_date
-        }
-      })
+          effective_date: effective_date,
+        },
+      }),
     ]);
   }
 
-  static fetchById(id: number){
+  static fetchById(id: number) {
     return prisma.item_price.findUnique({
       where: {
-        id: id
+        id: id,
       },
       select: {
         price: true,
@@ -370,8 +376,8 @@ class ItemPriceModel {
           select: {
             id: true,
             unit: true,
-            conversion: true
-          }
+            conversion: true,
+          },
         },
         item: {
           select: {
@@ -381,47 +387,69 @@ class ItemPriceModel {
             item_brand: {
               select: {
                 name: true,
-              }
+              },
             },
             unit: true,
-          }
+          },
         },
         is_delete: true,
         effective_date: true,
-      }
-    })
+      },
+    });
   }
 
-  static updateMany(item_price: any[], deleted_by: number){
+  static updateMany(item_price: any[], deleted_by: number) {
     const transactions: any[] = [];
-    item_price.forEach(x => {
-      transactions.push(prisma.item_price.updateMany({
-        where:{
-          item_id: x.item_id,
-          item_unit_id: x.item_unit_id,
-          is_delete: false,
-        },
-        data: {
-          is_delete: true,
-          deleted_at: new Date(),
-          deleted_by: deleted_by
-        }
-      }));
+    item_price.forEach((x) => {
+      transactions.push(
+        prisma.item_price.updateMany({
+          where: {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            is_delete: false,
+          },
+          data: {
+            is_delete: true,
+            deleted_at: new Date(),
+            deleted_by: deleted_by,
+          },
+        })
+      );
 
-      transactions.push(prisma.item_price.create({
-        data: {
-          item_id: x.item_id,
-          item_unit_id: x.item_unit_id,
-          price: x.price,
-          discount: x.discount,
-          created_at: new Date(),
-          created_by: deleted_by,
-          effective_date: new Date()
-        }
-      }))
+      transactions.push(
+        prisma.item_price.create({
+          data: {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            price: x.price,
+            discount: x.discount,
+            created_at: new Date(),
+            created_by: deleted_by,
+            effective_date: new Date(),
+          },
+        })
+      );
     });
 
     return prisma.$transaction(transactions);
+  }
+
+  static delete(
+    item_id: number,
+    item_unit_id: number | null = null,
+    created_by: number
+  ) {
+    return prisma.item_price.updateMany({
+      where: {
+        item_id: item_id,
+        item_unit_id: item_unit_id,
+      },
+      data: {
+        is_delete: true,
+        deleted_by: created_by,
+        deleted_at: new Date(),
+      },
+    });
   }
 }
 

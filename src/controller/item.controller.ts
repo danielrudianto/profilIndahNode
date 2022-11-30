@@ -60,6 +60,7 @@ class ItemController {
               req.body.price,
               req.body.discount,
               result.id,
+              null,
               req.body.userId
             );
 

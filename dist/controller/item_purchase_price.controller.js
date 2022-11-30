@@ -83,40 +83,21 @@ ItemPurchasePriceController.create = (req, res) => {
     });
 };
 ItemPurchasePriceController.createBulk = (req, res) => {
+    const transactions = [];
     const data = req.body.data;
-    const ids = data.map((x) => {
-        return x.id;
+    data.forEach((x, index) => {
+        const price = x.price;
+        const item_unit_id = x.item_unit_id;
+        const item_id = x.id;
+        const updated_price = data.filter((y) => y.id == x.id)[0].price;
+        if (updated_price != price) {
+            const itemPurchasePriceModel = new item_purchase_price_model_1.default(updated_price, item_id, req.body.userId, item_unit_id);
+            transactions.push(item_purchase_price_model_1.default.delete(item_id, item_unit_id, req.body.userId));
+            transactions.push(itemPurchasePriceModel.create());
+        }
     });
-    item_purchase_price_model_1.default.fetchByIds(ids).then((result) => {
-        if (result.filter((x) => x.is_delete).length > 0) {
-            return res
-                .status(400)
-                .send("Terdapat input yang sudah terhapus. Mohon cek kembali.");
-        }
-        else {
-            const response = [];
-            result.forEach((x, index) => {
-                const price = x.price;
-                const item_unit_id = x.item_unit_id;
-                const item_id = x.item_id;
-                if (data.filter((y) => y.id == x.id).length > 0) {
-                    const updated_price = data.filter((y) => y.id == x.id)[0].price;
-                    if (updated_price != price) {
-                        const itemPurchasePriceModel = new item_purchase_price_model_1.default(updated_price, item_id, req.body.userId, item_unit_id);
-                        response.push(itemPurchasePriceModel.create);
-                    }
-                }
-                if (index == result.length - 1) {
-                    Promise.all([...response])
-                        .then((result) => {
-                        return res.status(201).send(result);
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
-                    });
-                }
-            });
-        }
+    Promise.all(transactions).then(result => {
+        return res.status(200).send(result);
     }).catch(error => {
         return res.status(500).send(error);
     });
@@ -133,6 +114,7 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
             const rows = [
                 [
                     "ID",
+                    "Item_unit_id",
                     "Referensi",
                     "Deskripsi",
                     "Merek",
@@ -152,7 +134,8 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                 items.forEach((x) => {
                     var _a;
                     rows.push([
-                        x.id,
+                        x.item_id,
+                        x.item_unit_id == null ? 0 : x.item_unit_id,
                         x.item.reference,
                         x.item.description,
                         x.item.item_brand.name,
@@ -164,17 +147,22 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                         x.item.unit,
                         parseFloat(x.price.toString()),
                     ]);
-                    // Adjusting column width
-                    columns_width.push(rows[rows.length - 1].map((item) => {
-                        return item.toString().length;
-                    }));
                 });
                 const workbook = new exceljs_1.default.Workbook();
                 // Setting up workbook properties
                 workbook.creator = "Toko Profil Indah";
                 workbook.lastModifiedBy = user === null || user === void 0 ? void 0 : user.name;
                 workbook.created = new Date();
-                const sheet = workbook.addWorksheet("Perubahan Harga Beli");
+                const sheet = workbook.addWorksheet("Perubahan Harga Beli", {
+                    state: "visible",
+                    views: [
+                        {
+                            state: "frozen",
+                            xSplit: 9,
+                            ySplit: 1,
+                        },
+                    ],
+                });
                 sheet.state = "visible";
                 rows.forEach((data) => {
                     sheet.addRow(data);
@@ -200,6 +188,11 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                         italic: false,
                         bold: false,
                     };
+                    sheet.getRow(i + 2).alignment = {
+                        vertical: "middle",
+                        horizontal: "center",
+                        wrapText: true,
+                    };
                     sheet.getCell(`I${i + 1}`).dataValidation = {
                         type: "whole",
                         operator: "greaterThan",
@@ -219,49 +212,17 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                         prompt: "Nilai potongan harga harus lebih besar atau sama dengan 0.",
                     };
                 }
-                const fixed_width = [10, 10, 10, 10, 10, 10, 10, 10];
-                for (let row_index = 0; row_index < rows.length - 1; row_index++) {
-                    for (let column_index = 0; column_index < 10; column_index++) {
-                        const width = columns_width[row_index][column_index];
-                        if (width > fixed_width[column_index]) {
-                            if (column_index == 9) {
-                                fixed_width[column_index] = width + 20;
-                            }
-                            else {
-                                fixed_width[column_index] = width;
-                            }
-                        }
-                    }
-                }
-                for (let column_index = 0; column_index < 9; column_index++) {
-                    sheet.getColumn(column_index + 1).width =
-                        fixed_width[column_index];
-                }
                 sheet.getColumn(1).hidden = true;
+                sheet.getColumn(2).hidden = true;
                 sheet.getColumn(9).protection = {
                     locked: false,
                 };
                 sheet.getColumn(9).numFmt = "#,###.00";
-                sheet
-                    .protect("", {
-                    selectLockedCells: false,
-                    selectUnlockedCells: true,
-                    sort: true,
-                    formatRows: true,
-                    deleteRows: false,
-                    insertColumns: false,
-                    formatColumns: true,
-                })
-                    .then(() => {
-                    workbook.xlsx
-                        .writeBuffer()
-                        .then((buffer) => {
-                        return res.status(200).send({
-                            data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
-                        });
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
+                workbook.xlsx
+                    .writeBuffer()
+                    .then((buffer) => {
+                    return res.status(200).send({
+                        data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
                     });
                 })
                     .catch((error) => {
@@ -269,6 +230,7 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                 });
             })
                 .catch((error) => {
+                console.error(error);
                 log_helper_1.default.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userId);
                 return res.status(500).send(error);
             });
