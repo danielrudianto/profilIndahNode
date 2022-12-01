@@ -128,6 +128,7 @@ class GoodReceiptModel {
                         item_unit: {
                             select: {
                                 unit: true,
+                                conversion: true,
                             },
                         },
                         item: {

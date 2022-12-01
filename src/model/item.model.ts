@@ -345,45 +345,57 @@ export class ItemModel {
           AND item.is_active = 1`),
       ]);
     } else {
-      const full_keyword = keyword.replace("-", "").replace("_", "");
-      const words = keyword
-        .replace("-", " ")
-        .replace("_", " ")
-        .replace(",", " ")
-        .split(" ")
-        .filter((x) => x != "" && x != " ")
-        .map((x) => {
-          return `${x}*${keyword.split(" ").length == 1 ? "" : " "}`;
-        })
-        .toString()
-        .toLowerCase();
+      let search_filter_1 = "WHERE ";
+      keyword.split(" ").forEach((x, index) => {
+        search_filter_1 += `(item.reference LIKE '%${x}%' AND item.description LIKE '%${x}%') `;
+        if (index < keyword.split(" ").length - 1) {
+          search_filter_1 += "OR ";
+        }
+      });
 
-      const keywords = words.replace(",", "");
+      let search_filter_2 = "WHERE ";
+      keyword.split(" ").forEach((x, index) => {
+        search_filter_2 += `item.reference LIKE '%${x}%' OR item.description LIKE '%${x}%' `;
+        if (index < keyword.split(" ").length - 1) {
+          search_filter_2 += "OR ";
+        }
+      });
 
       return prisma.$transaction([
         prisma.$queryRawUnsafe(`
-          SELECT DISTINCT(item.id) AS id, (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name ) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE))
+        SELECT a.id FROM (
+          SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
-          JOIN item_brand ON item.item_brand_id = item_brand.id
-          JOIN item_type ON item.item_type_id = item_type.id
-          LEFT JOIN item_unit ON item.id = item_unit.item_id
-          WHERE (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE)) > 0
-          AND item.is_delete = 0
-          AND item.is_active = 1
-          ORDER BY (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE)) DESC, item.reference ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
+          WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+        UNION ALL
+          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          FROM item
+          ${search_filter_1}
+        UNION ALL
+          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          FROM item
+          ${search_filter_2}
+        ) a
+        JOIN item ON a.id = item.id
+        GROUP BY a.id
+        ORDER BY relevance ASC, item.reference ASC
+        LIMIT ${limit} OFFSET ${offset}
         `),
-        prisma.$queryRawUnsafe(`
-            SELECT COUNT(DISTINCT(item.id)) AS count
-            FROM item
-            JOIN item_brand ON item.item_brand_id = item_brand.id
-            JOIN item_type ON item.item_type_id = item_type.id
-            LEFT JOIN item_unit ON item.id = item_unit.item_id
-            WHERE (MATCH(reference, description) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE)) > 0
-            AND item.is_delete = 0
-            AND item.is_active = 1
-          `),
+        prisma.$queryRawUnsafe(`SELECT COUNT(a.id) AS count FROM (
+          SELECT DISTINCT(item.id) AS id, 1 AS relevance
+          FROM item
+          WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+        UNION ALL
+          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          FROM item
+          ${search_filter_1}
+        UNION ALL
+          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          FROM item
+          ${search_filter_2}
+        ) a
+        JOIN item ON a.id = item.id
+        GROUP BY a.id`),
       ]);
     }
   }
