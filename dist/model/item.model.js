@@ -309,25 +309,30 @@ class ItemModel {
             ]);
         }
         else {
+            const full_keyword = keyword.replace("-", "").replace("_", "");
             const words = keyword
+                .replace("-", " ")
+                .replace("_", " ")
+                .replace(",", " ")
                 .split(" ")
-                .filter((x) => x != "")
+                .filter((x) => x != "" && x != " ")
                 .map((x) => {
                 return `${x}*${keyword.split(" ").length == 1 ? "" : " "}`;
             })
-                .toString();
+                .toString()
+                .toLowerCase();
             const keywords = words.replace(",", "");
             return prisma.$transaction([
                 prisma.$queryRawUnsafe(`
-          SELECT DISTINCT(item.id) AS id, (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE))
+          SELECT DISTINCT(item.id) AS id, (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name ) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE))
           FROM item
           JOIN item_brand ON item.item_brand_id = item_brand.id
           JOIN item_type ON item.item_type_id = item_type.id
           LEFT JOIN item_unit ON item.id = item_unit.item_id
-          WHERE (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE)) > 0
+          WHERE (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE)) > 0
           AND item.is_delete = 0
           AND item.is_active = 1
-          ORDER BY (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE)) DESC, item.reference ASC
+          ORDER BY (MATCH(reference, description) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE)) DESC, item.reference ASC
           LIMIT ${limit}
           OFFSET ${offset}
         `),
@@ -337,7 +342,7 @@ class ItemModel {
             JOIN item_brand ON item.item_brand_id = item_brand.id
             JOIN item_type ON item.item_type_id = item_type.id
             LEFT JOIN item_unit ON item.id = item_unit.item_id
-            WHERE (MATCH(reference, description) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${keyword}' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keyword}' IN BOOLEAN MODE)) > 0
+            WHERE (MATCH(reference, description) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST("${keywords}" IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${keywords}' IN BOOLEAN MODE) + MATCH(reference, description) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_brand.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_type.name) AGAINST('${full_keyword}*' IN BOOLEAN MODE) + MATCH(item_unit.unit) AGAINST('${full_keyword}*' IN BOOLEAN MODE)) > 0
             AND item.is_delete = 0
             AND item.is_active = 1
           `),
