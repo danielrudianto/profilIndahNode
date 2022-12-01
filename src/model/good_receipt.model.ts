@@ -48,7 +48,7 @@ class GoodReceiptModel {
         confirmed_at: this.confirmed_at,
         supplier_id: this.supplier_id,
         company_id: this.company_id,
-        is_confirm: this.is_confirm
+        is_confirm: this.is_confirm,
       },
       include: {
         user_good_receipt_code_created_byTouser: {
@@ -147,11 +147,17 @@ class GoodReceiptModel {
         good_receipt: {
           select: {
             id: true,
+            item_unit: {
+              select: {
+                unit: true,
+              },
+            },
             item: {
               select: {
                 id: true,
                 reference: true,
                 description: true,
+                unit: true,
               },
             },
             quantity: true,
