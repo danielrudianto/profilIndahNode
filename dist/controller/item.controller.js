@@ -158,7 +158,9 @@ ItemController.fetchSearchResult = (req, res) => {
         : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
     item_model_1.ItemModel.fetchSearch(keyword, offset, limit)
         .then((result) => {
         const ids = result[0].map((x) => {
@@ -189,7 +191,9 @@ ItemController.fetchPurchaseSearchResult = (req, res) => {
         : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
     item_model_1.ItemModel.fetchSearch(keyword, offset, limit)
         .then((result) => {
         const ids = result[0].map((x) => {
@@ -218,7 +222,9 @@ ItemController.fetchSearchStock = (req, res) => {
         : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
     item_model_1.ItemModel.fetchSearch(keyword, offset, limit)
         .then((result) => {
         const ids = result[0].map((x) => {
