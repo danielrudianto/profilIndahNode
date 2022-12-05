@@ -422,7 +422,7 @@ class ItemController {
       : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword ? "" : decodeURIComponent(req.query.keyword.toString());
 
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
