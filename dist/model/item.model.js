@@ -331,23 +331,28 @@ class ItemModel {
             });
             return prisma.$transaction([
                 prisma.$queryRawUnsafe(`
-        SELECT DISTINCT(a.id) AS id FROM (
+        SELECT a.id AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
+          FROM item
+          WHERE item.reference LIKE '%${keyword}%' AND item.description LIKE '%${keyword}%'
+          AND item.is_active = 1 AND item.is_delete = 0
+          UNION ALL
+          SELECT DISTINCT(item.id) AS id, 10 AS relevance
           FROM item
           WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
           AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          SELECT DISTINCT(item.id) AS id, 100 AS relevance
           FROM item
           ${search_filter_1}
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          SELECT DISTINCT(item.id) AS id, 1000 AS relevance
           FROM item
           ${search_filter_2}
         ) a
         JOIN item ON a.id = item.id
         GROUP BY a.id
-        ORDER BY relevance ASC, item.reference ASC
+        ORDER BY MIN(relevance) ASC, item.reference ASC
         LIMIT ${limit} OFFSET ${offset}
         `),
                 prisma.$queryRawUnsafe(`SELECT COUNT(b.id) AS count FROM (SELECT DISTINCT(a.id) AS id FROM (
