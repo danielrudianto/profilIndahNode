@@ -345,19 +345,29 @@ export class ItemModel {
           AND item.is_active = 1`),
       ]);
     } else {
-      let search_filter_1 = "WHERE ";
+      let search_filter_1 =
+        "WHERE item.is_active = 1 AND item.is_delete = 0 AND (";
       keyword.split(" ").forEach((x, index) => {
         search_filter_1 += `(item.reference LIKE '%${x}%' AND item.description LIKE '%${x}%') `;
         if (index < keyword.split(" ").length - 1) {
           search_filter_1 += "OR ";
         }
+
+        if (index == keyword.split(" ").length - 1) {
+          search_filter_1 += ")";
+        }
       });
 
-      let search_filter_2 = "WHERE ";
+      let search_filter_2 =
+        "WHERE item.is_active = 1 AND item.is_delete = 0 AND (";
       keyword.split(" ").forEach((x, index) => {
         search_filter_2 += `item.reference LIKE '%${x}%' OR item.description LIKE '%${x}%' `;
         if (index < keyword.split(" ").length - 1) {
           search_filter_2 += "OR ";
+        }
+
+        if (index == keyword.split(" ").length - 1) {
+          search_filter_2 += ")";
         }
       });
 
@@ -367,6 +377,7 @@ export class ItemModel {
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
           WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+          AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
           SELECT DISTINCT(item.id) AS id, 10 AS relevance
           FROM item
@@ -385,6 +396,7 @@ export class ItemModel {
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
           WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+          AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
           SELECT DISTINCT(item.id) AS id, 10 AS relevance
           FROM item
