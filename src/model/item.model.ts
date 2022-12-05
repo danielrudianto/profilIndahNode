@@ -363,7 +363,7 @@ export class ItemModel {
 
       return prisma.$transaction([
         prisma.$queryRawUnsafe(`
-        SELECT a.id FROM (
+        SELECT DISTINCT(a.id) AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
           WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
@@ -381,7 +381,7 @@ export class ItemModel {
         ORDER BY relevance ASC, item.reference ASC
         LIMIT ${limit} OFFSET ${offset}
         `),
-        prisma.$queryRawUnsafe(`SELECT COUNT(a.id) AS count FROM (
+        prisma.$queryRawUnsafe(`SELECT COUNT(b.id) AS count FROM (SELECT DISTINCT(a.id) AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
           WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
@@ -395,7 +395,7 @@ export class ItemModel {
           ${search_filter_2}
         ) a
         JOIN item ON a.id = item.id
-        GROUP BY a.id`),
+        GROUP BY a.id) b`),
       ]);
     }
   }
@@ -1133,11 +1133,19 @@ export class ItemModel {
   static fetchSearchByIds(ids: number[]) {
     return prisma.item.findMany({
       where: {
-        id: {
-          in: ids,
-        },
-        is_active: true,
-        is_delete: false,
+        AND: [
+          {
+            is_active: true,
+          },
+          {
+            is_delete: false,
+          },
+          {
+            id: {
+              in: ids,
+            },
+          },
+        ],
       },
       select: {
         id: true,
