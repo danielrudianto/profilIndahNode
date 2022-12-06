@@ -32,6 +32,20 @@ ExpenseController.create = (req, res) => {
         });
     });
 };
+ExpenseController.update = (req, res) => {
+    const id = req.body.id;
+    const description = req.body.description;
+    const date = new Date(req.body.date);
+    const type_id = req.body.expense_type_id;
+    const value = req.body.value;
+    const expense = new expense_model_1.default(value, description, date, type_id, req.body.userId, id);
+    expense.update().then(result => {
+        app_1.io.emit("updateExpense", result);
+        return res.status(200).send(result);
+    }).catch(error => {
+        return res.status(500).send(error);
+    });
+};
 ExpenseController.fetch = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);

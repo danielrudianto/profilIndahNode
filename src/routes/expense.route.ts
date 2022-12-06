@@ -30,6 +30,7 @@ router.delete("/type/:id", ExpenseController.deleteType);
 router.get("/:id", ExpenseController.fetchById);
 router.get("/:year/:month", ExpenseController.fetch);
 router.post("/", ExpenseController.create);
+router.put("/", ExpenseController.update);
 
 router.delete("/:id", ExpenseController.deleteById);
 

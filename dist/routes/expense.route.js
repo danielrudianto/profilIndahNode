@@ -24,5 +24,6 @@ router.delete("/type/:id", expense_controller_1.default.deleteType);
 router.get("/:id", expense_controller_1.default.fetchById);
 router.get("/:year/:month", expense_controller_1.default.fetch);
 router.post("/", expense_controller_1.default.create);
+router.put("/", expense_controller_1.default.update);
 router.delete("/:id", expense_controller_1.default.deleteById);
 exports.default = router;

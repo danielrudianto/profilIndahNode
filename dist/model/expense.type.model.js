@@ -59,6 +59,7 @@ class ExpenseTypeModel {
                 return prisma.expense_type.findMany({
                     where: {
                         parent_id: null,
+                        is_delete: false,
                     },
                     select: {
                         id: true,
@@ -87,6 +88,7 @@ class ExpenseTypeModel {
                                 },
                             },
                         ],
+                        is_delete: false,
                         parent_id: null,
                     },
                     select: {

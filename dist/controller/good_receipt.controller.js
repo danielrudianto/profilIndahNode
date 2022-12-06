@@ -35,12 +35,15 @@ GoodReceiptController.create = (req, res) => {
             return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
         }
         const good_receipt = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
-        good_receipt.create().then((good_receipt_result) => {
+        good_receipt
+            .create()
+            .then((good_receipt_result) => {
             const item_ids = [];
             for (let i = 0; i < good_receipt_items.length; i++) {
                 item_ids.push(good_receipt_items[i].item_id);
             }
-            item_purchase_price_model_1.default.fetchByItemIds(item_ids).then((result) => {
+            item_purchase_price_model_1.default.fetchByItemIds(item_ids)
+                .then((result) => {
                 const good_receipt_items_input = [];
                 for (let idx = 0; idx < good_receipt_items.length; idx++) {
                     const price = result.filter((x) => x.item_id == good_receipt_items[idx].item_id).length == 0
@@ -71,10 +74,12 @@ GoodReceiptController.create = (req, res) => {
                     log_helper_1.default.log(new Date(), "error", error, "Good Receipt - Create", req.body.userId);
                     return res.status(500).send(error);
                 });
-            }).catch(error => {
+            })
+                .catch((error) => {
                 return res.status(500).send(error);
             });
-        }).catch(error => {
+        })
+            .catch((error) => {
             return res.status(500).send(error);
         });
     })
@@ -156,5 +161,15 @@ GoodReceiptController.fetchArchive = (req, res) => {
     else {
         return res.status(400).send("Input tidak dikenal.");
     }
+};
+GoodReceiptController.fetchCodeById = (req, res) => {
+    const id = parseInt(req.params.id.toString());
+    good_receipt_model_1.default.fetchCodeById(id)
+        .then((result) => {
+        return res.status(200).send(result === null || result === void 0 ? void 0 : result.good_receipt_code);
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
 };
 exports.default = GoodReceiptController;

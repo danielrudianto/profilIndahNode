@@ -21,5 +21,6 @@ router.post("/", (0, express_validator_1.body)("date").not().isEmpty().withMessa
 router.get("/archives", good_receipt_controller_1.default.fetchArchive);
 router.get("/archives/:year", good_receipt_controller_1.default.fetchArchive);
 router.get("/archives/:year/:month", good_receipt_controller_1.default.fetchArchive);
+router.get("/code/:id", good_receipt_controller_1.default.fetchCodeById);
 router.get("/:id", good_receipt_controller_1.default.fetchById);
 exports.default = router;

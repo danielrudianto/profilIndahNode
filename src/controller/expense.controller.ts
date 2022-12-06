@@ -37,6 +37,22 @@ class ExpenseController {
     });
   };
 
+  static update = (req: Request, res: Response) => {
+    const id = req.body.id;
+    const description = req.body.description;
+    const date = new Date(req.body.date);
+    const type_id = req.body.expense_type_id;
+    const value = req.body.value;
+
+    const expense = new ExpenseModel(value, description, date, type_id, req.body.userId, id);
+    expense.update().then(result => {
+      io.emit("updateExpense", result);
+      return res.status(200).send(result);
+    }).catch(error => {
+      return res.status(500).send(error);
+    })
+  }
+
   static fetch = (req: Request, res: Response) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);

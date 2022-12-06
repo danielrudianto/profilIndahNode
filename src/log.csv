@@ -175,3 +175,5 @@ Wed Nov 30 2022 15:54:39 GMT+0700 (Indochina Time); TypeError: Cannot read prope
 Wed Nov 30 2022 17:21:32 GMT+0700 (Indochina Time); info; Daniel Tri created supplier with the name PT Duta Sapta Energi (ID: 2); Supplier - Create; 1
 Wed Nov 30 2022 17:24:22 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 8) dari PT Duta Sapta Energi (ID: 8) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
 Wed Nov 30 2022 20:52:03 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-85269711 (ID: 11); Bill controller - Create; 1
+Mon Dec 05 2022 20:21:04 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Mon Dec 05 2022 20:50:07 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1

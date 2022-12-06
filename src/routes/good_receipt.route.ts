@@ -30,6 +30,7 @@ router.get("/archives", GoodReceiptController.fetchArchive);
 router.get("/archives/:year", GoodReceiptController.fetchArchive);
 router.get("/archives/:year/:month", GoodReceiptController.fetchArchive);
 
+router.get("/code/:id", GoodReceiptController.fetchCodeById);
 router.get("/:id", GoodReceiptController.fetchById);
 
 export default router;

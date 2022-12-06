@@ -268,5 +268,53 @@ class GoodReceiptModel {
             _count: true,
         });
     }
+    static fetchCodeById(id) {
+        return prisma.good_receipt.findFirst({
+            where: {
+                id: id,
+            },
+            select: {
+                good_receipt_code: {
+                    select: {
+                        created_at: true,
+                        name: true,
+                        date: true,
+                        user_good_receipt_code_created_byTouser: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        supplier: {
+                            select: {
+                                name: true,
+                                address: true,
+                                npwp: true,
+                            },
+                        },
+                        good_receipt: {
+                            select: {
+                                id: true,
+                                quantity: true,
+                                item: {
+                                    select: {
+                                        reference: true,
+                                        description: true,
+                                        unit: true,
+                                    },
+                                },
+                                price: true,
+                                item_unit: {
+                                    select: {
+                                        unit: true,
+                                        conversion: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
 }
 exports.default = GoodReceiptModel;

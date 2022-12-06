@@ -58,6 +58,20 @@ class ExpenseModel {
     });
   }
 
+  update(){
+    return prisma.expense.update({
+      where: {
+        id: this.id,
+      },
+      data: {
+        date: this.date,
+        value: this.value,
+        expense_type_id: this.expense_type_id,
+        description: this.description,
+      }
+    })
+  }
+
   static fetch(year: number, month: number, offset: number, limit: number) {
     const date = new Date(year, month, 1, 0, 0, 0, 0);
     const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
@@ -178,27 +192,35 @@ class ExpenseModel {
       `);
   }
 
-  static fetchById(id: number){
+  static fetchById(id: number) {
     return prisma.expense.findUnique({
       where: {
-        id: id
+        id: id,
       },
       select: {
+        date: true,
         id: true,
         is_delete: true,
         value: true,
         description: true,
+        expense_type_id: true,
         expense_type: {
           select: {
             name: true,
             description: true,
-          }
-        }
-      }
-    })
+            expense_type: {
+              select: {
+                name: true,
+                description: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
-  static deleteById(id: number, deleted_by: number){
+  static deleteById(id: number, deleted_by: number) {
     return prisma.expense.update({
       where: {
         id: id,
@@ -207,8 +229,8 @@ class ExpenseModel {
         is_delete: true,
         deleted_at: new Date(),
         deleted_by: deleted_by,
-      }
-    })
+      },
+    });
   }
 }
 

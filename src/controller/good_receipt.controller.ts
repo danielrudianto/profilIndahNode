@@ -45,86 +45,91 @@ class GoodReceiptController {
           company_id
         );
 
-        good_receipt.create().then((good_receipt_result) => {
-          const item_ids: number[] = [];
-          for (let i = 0; i < good_receipt_items.length; i++) {
-            item_ids.push(good_receipt_items[i].item_id);
-          }
-
-          ItemPurchasePriceModel.fetchByItemIds(item_ids).then((result) => {
-            const good_receipt_items_input: any[] = [];
-            for (let idx = 0; idx < good_receipt_items.length; idx++) {
-              const price =
-                result.filter(
-                  (x) => x.item_id == good_receipt_items[idx].item_id
-                ).length == 0
-                  ? 0
-                  : result.filter(
-                      (x) => x.item_id == good_receipt_items[idx].item_id
-                    )[0].price;
-
-              good_receipt_items_input.push({
-                item_id: good_receipt_items[idx].item_id,
-                item_unit_id: good_receipt_items[idx].item_unit_id,
-                quantity: good_receipt_items[idx].quantity,
-                good_receipt_code_id: good_receipt_result.id,
-                price: price,
-              });
+        good_receipt
+          .create()
+          .then((good_receipt_result) => {
+            const item_ids: number[] = [];
+            for (let i = 0; i < good_receipt_items.length; i++) {
+              item_ids.push(good_receipt_items[i].item_id);
             }
 
-            const insert_item = GoodReceiptModel.insertItems(
-              good_receipt_items_input
-            );
-            const purchase_document = new PurchaseDocumentModel(
-              purchase_invoice_name,
-              date,
-              discount,
-              good_receipt_result.id,
-              req.body.userId
-            );
-            const insert_purchase_document = purchase_document.create();
+            ItemPurchasePriceModel.fetchByItemIds(item_ids)
+              .then((result) => {
+                const good_receipt_items_input: any[] = [];
+                for (let idx = 0; idx < good_receipt_items.length; idx++) {
+                  const price =
+                    result.filter(
+                      (x) => x.item_id == good_receipt_items[idx].item_id
+                    ).length == 0
+                      ? 0
+                      : result.filter(
+                          (x) => x.item_id == good_receipt_items[idx].item_id
+                        )[0].price;
 
-            Promise.all([insert_item, insert_purchase_document])
-              .then((insert_transaction) => {
-                LogHelper.log(
-                  good_receipt_result.created_at,
-                  "info",
-                  `${good_receipt_result.user_good_receipt_code_created_byTouser.name} berhasil menambahkan penerimaan barang (ID: ${good_receipt_result.id}) dari ${good_receipt_result.supplier.name} (ID: ${good_receipt_result.id}) untuk perusahaan ${good_receipt_result.company.name} (ID: ${good_receipt_result.company.id})`,
-                  "Good Receipt controller - Create",
-                  good_receipt_result.created_by
+                  good_receipt_items_input.push({
+                    item_id: good_receipt_items[idx].item_id,
+                    item_unit_id: good_receipt_items[idx].item_unit_id,
+                    quantity: good_receipt_items[idx].quantity,
+                    good_receipt_code_id: good_receipt_result.id,
+                    price: price,
+                  });
+                }
+
+                const insert_item = GoodReceiptModel.insertItems(
+                  good_receipt_items_input
                 );
-
-                const socket = new SocketHelper("createGoodReceipt", {
-                  supplier_id:
-                    insert_transaction[1].good_receipt_code.supplier_id,
-                  company_id:
-                    insert_transaction[1].good_receipt_code.company_id,
-                });
-                socket.create();
-
-                return res.status(201).send({
-                  ...good_receipt_result,
-                  good_receipt: insert_transaction[0],
-                  purchase_invoice: insert_transaction[1],
-                });
-              })
-              .catch((error) => {
-                LogHelper.log(
-                  new Date(),
-                  "error",
-                  error,
-                  "Good Receipt - Create",
+                const purchase_document = new PurchaseDocumentModel(
+                  purchase_invoice_name,
+                  date,
+                  discount,
+                  good_receipt_result.id,
                   req.body.userId
                 );
+                const insert_purchase_document = purchase_document.create();
 
+                Promise.all([insert_item, insert_purchase_document])
+                  .then((insert_transaction) => {
+                    LogHelper.log(
+                      good_receipt_result.created_at,
+                      "info",
+                      `${good_receipt_result.user_good_receipt_code_created_byTouser.name} berhasil menambahkan penerimaan barang (ID: ${good_receipt_result.id}) dari ${good_receipt_result.supplier.name} (ID: ${good_receipt_result.id}) untuk perusahaan ${good_receipt_result.company.name} (ID: ${good_receipt_result.company.id})`,
+                      "Good Receipt controller - Create",
+                      good_receipt_result.created_by
+                    );
+
+                    const socket = new SocketHelper("createGoodReceipt", {
+                      supplier_id:
+                        insert_transaction[1].good_receipt_code.supplier_id,
+                      company_id:
+                        insert_transaction[1].good_receipt_code.company_id,
+                    });
+                    socket.create();
+
+                    return res.status(201).send({
+                      ...good_receipt_result,
+                      good_receipt: insert_transaction[0],
+                      purchase_invoice: insert_transaction[1],
+                    });
+                  })
+                  .catch((error) => {
+                    LogHelper.log(
+                      new Date(),
+                      "error",
+                      error,
+                      "Good Receipt - Create",
+                      req.body.userId
+                    );
+
+                    return res.status(500).send(error);
+                  });
+              })
+              .catch((error) => {
                 return res.status(500).send(error);
               });
-          }).catch(error => {
-            return res.status(500).send(error);
           })
-        }).catch(error => {
-          return res.status(500).send(error);
-        })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       })
       .catch((error) => {
         return res.status(500).send(error);
@@ -209,6 +214,17 @@ class GoodReceiptController {
     } else {
       return res.status(400).send("Input tidak dikenal.");
     }
+  };
+
+  static fetchCodeById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    GoodReceiptModel.fetchCodeById(id)
+      .then((result) => {
+        return res.status(200).send(result?.good_receipt_code);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 }
 

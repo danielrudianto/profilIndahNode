@@ -608,6 +608,11 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
+              text: "Jasa",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
               text: "Total",
               bold: true,
               alignment: "center" as Alignment,
@@ -626,6 +631,11 @@ class ReportController {
               },
               {
                 text: formatter.format(parseFloat(x.value.toString())),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: "IDR 0.00",
                 bold: false,
                 alignment: "center" as Alignment,
               },
@@ -659,6 +669,11 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
+              text: "IDR 0.00",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
               text: formatter.format(total_value),
               bold: true,
               alignment: "center" as Alignment,
@@ -677,6 +692,10 @@ class ReportController {
             (result[0] as any[])[0].delivery == null
               ? 0
               : parseFloat((result[0] as any[])[0].delivery.toString());
+          const sales_service =
+            (result[0] as any[])[0].service == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].service.toString());
 
           sales_table.push([
             {
@@ -723,7 +742,7 @@ class ReportController {
             },
             {
               text: formatter.format(
-                sales_value - sales_discount + sales_delivery
+                sales_value - sales_discount + sales_delivery + sales_service
               ),
               bold: true,
               aligment: "center" as Alignment,
@@ -900,7 +919,7 @@ class ReportController {
             {
               text: formatter.format(total_expense_value),
               bold: true,
-              alignment: "left" as Alignment,
+              alignment: "center" as Alignment,
             },
           ]);
 
@@ -953,7 +972,7 @@ class ReportController {
           ]);
 
           const sales_appendix_table = [];
-          sales_appendix_table .push([
+          sales_appendix_table.push([
             {
               text: "Tanggal",
               bold: true,
@@ -976,33 +995,35 @@ class ReportController {
             },
           ]);
 
-          (result[5] as any[]).forEach(x => {
+          (result[5] as any[]).forEach((x) => {
             sales_appendix_table.push([
               {
-                text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                text: `${new Date(x.date).getDate()} ${
+                  month_name[new Date(x.date).getMonth()]
+                }`,
                 bold: false,
-                alignment: "center" as Alignment
+                alignment: "center" as Alignment,
               },
               {
                 text: x.customer_name,
                 bold: false,
-                alignment: "center" as Alignment
+                alignment: "center" as Alignment,
               },
               {
                 text: x.name,
                 bold: false,
-                alignment: "center" as Alignment
+                alignment: "center" as Alignment,
               },
               {
                 text: formatter.format(x.value),
                 bold: false,
-                alignment: "center" as Alignment
-              }
+                alignment: "center" as Alignment,
+              },
             ]);
           });
 
           const purchase_appendix_table = [];
-          purchase_appendix_table .push([
+          purchase_appendix_table.push([
             {
               text: "Tanggal",
               bold: true,
@@ -1030,22 +1051,24 @@ class ReportController {
             },
           ]);
 
-          (result[6] as any[]).forEach(x => {
+          (result[6] as any[]).forEach((x) => {
             purchase_appendix_table.push([
               {
-                text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                text: `${new Date(x.date).getDate()} ${
+                  month_name[new Date(x.date).getMonth()]
+                }`,
                 bold: false,
-                alignment: "center" as Alignment
+                alignment: "center" as Alignment,
               },
               {
                 text: x.supplier_name,
                 bold: false,
-                alignment: "center" as Alignment
+                alignment: "center" as Alignment,
               },
               {
                 text: x.company_name,
                 bold: false,
-                alignment: "center" as Alignment
+                alignment: "center" as Alignment,
               },
               {
                 text: x.purchase_invoice_name,
@@ -1055,10 +1078,10 @@ class ReportController {
               {
                 text: formatter.format(x.value),
                 bold: false,
-                alignment: "center" as Alignment
-              }
+                alignment: "center" as Alignment,
+              },
             ]);
-          })
+          });
 
           let documentDefinition = {
             pageSize: "A4" as PageSize,
@@ -1169,7 +1192,7 @@ class ReportController {
                 fontSize: 14,
                 alignment: "left" as Alignment,
                 margin: [0, 0, 0, 5] as Margins,
-                pageBreak: 'before' as PageBreak
+                pageBreak: "before" as PageBreak,
               },
               {
                 text: "Rincian Penjualan",
@@ -1193,7 +1216,7 @@ class ReportController {
                 fontSize: 14,
                 alignment: "left" as Alignment,
                 margin: [0, 0, 0, 5] as Margins,
-                pageBreak: 'before' as PageBreak
+                pageBreak: "before" as PageBreak,
               },
               {
                 text: "Rincian Pembelian",
@@ -1210,7 +1233,7 @@ class ReportController {
                   body: purchase_appendix_table,
                 },
                 margin: [0, 0, 0, 15] as Margins,
-              }
+              },
             ],
           };
 

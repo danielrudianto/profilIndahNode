@@ -536,6 +536,11 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
+                    text: "Jasa",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
                     text: "Total",
                     bold: true,
                     alignment: "center",
@@ -552,6 +557,11 @@ ReportController.fetchPLStats = (req, res) => {
                     },
                     {
                         text: formatter.format(parseFloat(x.value.toString())),
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: "IDR 0.00",
                         bold: false,
                         alignment: "center",
                     },
@@ -584,6 +594,11 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
+                    text: "IDR 0.00",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
                     text: formatter.format(total_value),
                     bold: true,
                     alignment: "center",
@@ -598,6 +613,9 @@ ReportController.fetchPLStats = (req, res) => {
             const sales_delivery = result[0][0].delivery == null
                 ? 0
                 : parseFloat(result[0][0].delivery.toString());
+            const sales_service = result[0][0].service == null
+                ? 0
+                : parseFloat(result[0][0].service.toString());
             sales_table.push([
                 {
                     text: "Penjualan tidak teralokasi",
@@ -637,7 +655,7 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
-                    text: formatter.format(sales_value - sales_discount + sales_delivery),
+                    text: formatter.format(sales_value - sales_discount + sales_delivery + sales_service),
                     bold: true,
                     aligment: "center",
                 },
@@ -784,7 +802,7 @@ ReportController.fetchPLStats = (req, res) => {
                 {
                     text: formatter.format(total_expense_value),
                     bold: true,
-                    alignment: "left",
+                    alignment: "center",
                 },
             ]);
             const hpp_table = [];
@@ -853,28 +871,28 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[5].forEach(x => {
+            result[5].forEach((x) => {
                 sales_appendix_table.push([
                     {
-                        text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                        text: `${new Date(x.date).getDate()} ${month_name[new Date(x.date).getMonth()]}`,
                         bold: false,
-                        alignment: "center"
+                        alignment: "center",
                     },
                     {
                         text: x.customer_name,
                         bold: false,
-                        alignment: "center"
+                        alignment: "center",
                     },
                     {
                         text: x.name,
                         bold: false,
-                        alignment: "center"
+                        alignment: "center",
                     },
                     {
                         text: formatter.format(x.value),
                         bold: false,
-                        alignment: "center"
-                    }
+                        alignment: "center",
+                    },
                 ]);
             });
             const purchase_appendix_table = [];
@@ -905,22 +923,22 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[6].forEach(x => {
+            result[6].forEach((x) => {
                 purchase_appendix_table.push([
                     {
-                        text: `${(new Date(x.date)).getDate()} ${month_name[(new Date(x.date).getMonth())]}`,
+                        text: `${new Date(x.date).getDate()} ${month_name[new Date(x.date).getMonth()]}`,
                         bold: false,
-                        alignment: "center"
+                        alignment: "center",
                     },
                     {
                         text: x.supplier_name,
                         bold: false,
-                        alignment: "center"
+                        alignment: "center",
                     },
                     {
                         text: x.company_name,
                         bold: false,
-                        alignment: "center"
+                        alignment: "center",
                     },
                     {
                         text: x.purchase_invoice_name,
@@ -930,8 +948,8 @@ ReportController.fetchPLStats = (req, res) => {
                     {
                         text: formatter.format(x.value),
                         bold: false,
-                        alignment: "center"
-                    }
+                        alignment: "center",
+                    },
                 ]);
             });
             let documentDefinition = {
@@ -1040,7 +1058,7 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 14,
                         alignment: "left",
                         margin: [0, 0, 0, 5],
-                        pageBreak: 'before'
+                        pageBreak: "before",
                     },
                     {
                         text: "Rincian Penjualan",
@@ -1064,7 +1082,7 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 14,
                         alignment: "left",
                         margin: [0, 0, 0, 5],
-                        pageBreak: 'before'
+                        pageBreak: "before",
                     },
                     {
                         text: "Rincian Pembelian",
@@ -1081,7 +1099,7 @@ ReportController.fetchPLStats = (req, res) => {
                             body: purchase_appendix_table,
                         },
                         margin: [0, 0, 0, 15],
-                    }
+                    },
                 ],
             };
             const printer = new pdfmake_1.default(fontDescriptors);

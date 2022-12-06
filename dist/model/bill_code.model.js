@@ -190,6 +190,13 @@ class BillCodeModel {
                                                 name: true,
                                             },
                                         },
+                                        unit: true,
+                                    },
+                                },
+                                item_unit: {
+                                    select: {
+                                        unit: true,
+                                        conversion: true,
                                     },
                                 },
                                 quantity: true,
