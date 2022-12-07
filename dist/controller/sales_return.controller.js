@@ -9,7 +9,7 @@ class SalesReturnController {
 }
 SalesReturnController.create = (req, res) => {
     const date = new Date(req.body.date);
-    const payment_method_id = req.body.payment_method_id;
+    const payment_method_id = req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
     const items = req.body.sales_return;
     if (items.length > 0) {
         const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
@@ -96,10 +96,13 @@ SalesReturnController.fetchArchive = (req, res) => {
         ])
             .then((result) => {
             return res.status(200).send({
-                data: result[0].map(x => {
-                    return Object.assign(Object.assign({}, x), { customer: (x.sales_return.length == 0 || x.sales_return[0].bill.bill_code.customer == null) ? null : {
-                            name: x.sales_return[0].bill.bill_code.customer.name,
-                        } });
+                data: result[0].map((x) => {
+                    return Object.assign(Object.assign({}, x), { customer: x.sales_return.length == 0 ||
+                            x.sales_return[0].bill.bill_code.customer == null
+                            ? null
+                            : {
+                                name: x.sales_return[0].bill.bill_code.customer.name,
+                            } });
                 }),
                 count: result[1],
             });
@@ -114,23 +117,27 @@ SalesReturnController.fetchArchive = (req, res) => {
 };
 SalesReturnController.fetchById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    sales_return_model_1.default.fetchById(id).then(result => {
-        return res.status(200).send(Object.assign(Object.assign({}, result), { customer: ((result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 || (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null) ? null : {
-                name: result.sales_return[0].bill.bill_code.customer.name,
-            } }));
-    }).catch(error => {
+    sales_return_model_1.default.fetchById(id)
+        .then((result) => {
+        return res.status(200).send(Object.assign(Object.assign({}, result), { customer: (result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 ||
+                (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null
+                ? null
+                : {
+                    name: result.sales_return[0].bill.bill_code.customer.name,
+                } }));
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };
 SalesReturnController.deleteById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    sales_return_model_1.default.fetchById(id).then(salesReturn => {
+    sales_return_model_1.default.fetchById(id).then((salesReturn) => {
         if (salesReturn == null || salesReturn.is_delete) {
             return res.status(404).send("Data tidak ditemukan.");
         }
         else {
-            sales_return_model_1.default.deleteById(id, req.body.userId).then(result => {
-            });
+            sales_return_model_1.default.deleteById(id, req.body.userId).then((result) => { });
         }
     });
 };
