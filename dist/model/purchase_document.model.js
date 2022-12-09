@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class PurchaseDocumentModel {
-    constructor(name, date, discount, good_receipt_code_id, created_by, confirmed_by = null, id = null) {
+    constructor(name, faktur, date, discount, good_receipt_code_id, created_by, confirmed_by = null, id = null) {
         this.is_delete = false;
         this.is_confirm = true;
         if (id != null) {
@@ -23,11 +23,13 @@ class PurchaseDocumentModel {
             this.confirmed_by = confirmed_by;
             this.confirmed_at = new Date();
         }
+        this.faktur = faktur;
     }
     create() {
         return prisma.purchase_invoice.create({
             data: {
                 name: this.name,
+                faktur: this.faktur,
                 date: this.date,
                 discount: this.discount,
                 good_receipt_code_id: this.good_receipt_code_id,
@@ -54,6 +56,7 @@ class PurchaseDocumentModel {
             },
             data: {
                 name: this.name,
+                faktur: this.faktur,
                 date: this.date,
                 discount: this.discount,
             },
@@ -278,6 +281,8 @@ class PurchaseDocumentModel {
                     },
                     good_receipt_code: {
                         select: {
+                            name: true,
+                            date: true,
                             supplier: {
                                 select: {
                                     name: true,
@@ -500,7 +505,7 @@ class PurchaseDocumentModel {
                 is_delete: false,
                 confirmed_at: new Date(),
                 confirmed_by: user_id,
-            }
+            },
         });
     }
     static fetchAppendix(month, year) {

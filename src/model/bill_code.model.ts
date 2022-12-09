@@ -674,6 +674,8 @@ class BillCodeModel {
   }
 
   static fetchAppendix(month: number, year: number) {
+    console.log(month);
+    console.log(year);
     if (month == 0) {
       return prisma.$queryRawUnsafe(`
         SELECT bill_code.date, bill_code.name, COALESCE(customer.name, "Retail") AS customer_name, billValue.value
@@ -693,7 +695,7 @@ class BillCodeModel {
           GROUP BY bill.bill_code_id
         ) billValue
         ON bill_code.id = billValue.bill_code_id
-        JOIN customer ON bill_code.customer_id = customer.id
+        LEFT JOIN customer ON bill_code.customer_id = customer.id
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
         AND YEAR(bill_code.date) = ${year}
@@ -717,7 +719,7 @@ class BillCodeModel {
           GROUP BY bill.bill_code_id
         ) billValue
         ON bill_code.id = billValue.bill_code_id
-        JOIN customer ON bill_code.customer_id = customer.id
+        LEFT JOIN customer ON bill_code.customer_id = customer.id
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
         AND YEAR(bill_code.date) = ${year}

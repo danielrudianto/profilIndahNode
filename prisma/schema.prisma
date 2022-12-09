@@ -387,6 +387,7 @@ model item_price_purchase {
 model purchase_invoice {
   id                                       Int               @id @default(autoincrement())
   name                                     String?           @db.VarChar(45)
+  faktur                                   String?           @db.VarChar(45)
   date                                     DateTime?         @db.Date
   discount                                 Decimal?          @default(0.0000) @db.Decimal(50, 4)
   good_receipt_code_id                     Int               @unique

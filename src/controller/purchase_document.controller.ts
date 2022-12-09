@@ -88,6 +88,7 @@ class PurchaseDocumentController {
               .then((purchase_document) => {
                 const updated_purchase_document = new PurchaseDocumentModel(
                   purchase_invoice_name,
+                  null,
                   date,
                   discount,
                   good_receipt_result.id,
@@ -194,6 +195,7 @@ class PurchaseDocumentController {
 
               const purchase_document = new PurchaseDocumentModel(
                 purchase_invoice_name,
+                null,
                 date,
                 discount,
                 good_receipt_result.id,

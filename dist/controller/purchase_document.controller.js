@@ -65,7 +65,7 @@ PurchaseDocumentController.update = (req, res) => {
             purchase_document_model_1.default.fetchById((_a = good_receipt_result.purchase_invoice) === null || _a === void 0 ? void 0 : _a.id)
                 .then((purchase_document) => {
                 var _a, _b;
-                const updated_purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, (_a = purchase_document === null || purchase_document === void 0 ? void 0 : purchase_document.user_good_receipt_code_confirmed_byTouser) === null || _a === void 0 ? void 0 : _a.id, (_b = good_receipt_result.purchase_invoice) === null || _b === void 0 ? void 0 : _b.id);
+                const updated_purchase_document = new purchase_document_model_1.default(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userId, (_a = purchase_document === null || purchase_document === void 0 ? void 0 : purchase_document.user_good_receipt_code_confirmed_byTouser) === null || _a === void 0 ? void 0 : _a.id, (_b = good_receipt_result.purchase_invoice) === null || _b === void 0 ? void 0 : _b.id);
                 const update_purchase_document = updated_purchase_document.update();
                 Promise.all([update_purchase_document, delete_item])
                     .then(() => {
@@ -136,7 +136,7 @@ PurchaseDocumentController.create = (req, res) => {
                         good_receipt_items_price.push(purchase_price);
                     }
                 }
-                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
+                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
                 Promise.all([
                     good_receipt_model_1.default.insertItems(good_receipt_items_input),
                     item_purchase_price_model_1.default.insertItems(good_receipt_items_price),

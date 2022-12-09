@@ -134,7 +134,7 @@ class SupplierController {
   };
 
   static getAutocomplete = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword ? "" : decodeURIComponent(req.query.keyword.toString());
     SupplierModel.getAutocomplete(keyword)
       .then((result) => {
         return res.status(200).send(result);

@@ -95,6 +95,11 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
+              text: "Jasa",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
               text: "Pengiriman Barang",
               bold: true,
               alignment: "center" as Alignment,
@@ -122,7 +127,12 @@ class ReportController {
                 alignment: "center" as Alignment,
               },
               {
-                text: "IDR 0.00",
+                text: "N/A",
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: "N/A",
                 bold: false,
                 alignment: "center" as Alignment,
               },
@@ -146,7 +156,12 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
-              text: "IDR 0.00",
+              text: "N/A",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "N/A",
               bold: true,
               alignment: "center" as Alignment,
             },
@@ -169,6 +184,10 @@ class ReportController {
             (result[0] as any[])[0].delivery == null
               ? 0
               : parseFloat((result[0] as any[])[0].delivery.toString());
+          const sales_service =
+            (result[0] as any[])[0].service == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].service.toString());
 
           sales_table.push([
             {
@@ -180,6 +199,11 @@ class ReportController {
               text: formatter.format(
                 sales_value - sales_discount - total_value
               ),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "IDR 0.00",
               bold: true,
               alignment: "center" as Alignment,
             },
@@ -210,6 +234,11 @@ class ReportController {
             },
             {
               text: formatter.format(sales_discount),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(sales_service),
               bold: true,
               alignment: "center" as Alignment,
             },
@@ -370,6 +399,7 @@ class ReportController {
                     text: `${expense.name}/${child_expense.name}`,
                     bold: false,
                     alignment: "left" as Alignment,
+                    margin: [15, 0, 0, 0] as Margins,
                   },
                   {
                     text: formatter.format(
@@ -467,14 +497,14 @@ class ReportController {
                 text: "Penjualan",
                 bold: true,
                 fontSize: 14,
-                alignment: "left" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
+                alignment: "center" as Alignment,
+                margin: [0, 10, 0, 20] as Margins,
               },
               {
                 layout: "lightHorizontalLines",
                 table: {
                   headerRows: 1,
-                  widths: ["auto", "auto", "auto", "*"],
+                  widths: ["auto", "auto", "auto", "auto", "*"],
                   body: sales_table,
                 },
                 margin: [0, 0, 0, 15] as Margins,
@@ -484,12 +514,13 @@ class ReportController {
                 fontSize: 10,
                 color: "#333333",
                 margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
               },
               {
                 text: "Pembelian",
                 bold: true,
                 fontSize: 14,
-                alignment: "left" as Alignment,
+                alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
               },
               {
@@ -502,26 +533,17 @@ class ReportController {
                 margin: [0, 0, 0, 15] as Margins,
               },
               {
-                text: "Pengeluaran",
-                bold: true,
-                fontSize: 14,
-                alignment: "left" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["*", "auto"],
-                  body: expense_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
+                text: "Pembelian yang diperoleh merupakan pembelian yang telah dikonfirmasi.",
+                fontSize: 10,
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
               },
               {
                 text: "Harga Pokok Penjualan",
                 bold: true,
                 fontSize: 14,
-                alignment: "left" as Alignment,
+                alignment: "center" as Alignment,
                 margin: [0, 0, 0, 10] as Margins,
               },
               {
@@ -538,6 +560,24 @@ class ReportController {
                 fontSize: 10,
                 color: "#333333",
                 margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
+              },
+              {
+                text: "Pengeluaran",
+                bold: true,
+                fontSize: 14,
+                alignment: "left" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["*", "auto"],
+                  body: expense_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+                pageBreak: "after" as PageBreak,
               },
               {
                 text: `Laba / Rugi: ${formatter.format(
@@ -572,6 +612,13 @@ class ReportController {
           pdfDocument.end();
         })
         .catch((error) => {
+          LogHelper.log(
+            new Date(),
+            "error",
+            error,
+            "Report controller - Fetch Profit Loss",
+            req.body.userId
+          );
           return res.status(500).send(error);
         });
     } else {
@@ -603,12 +650,12 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
-              text: "Pengiriman Barang",
+              text: "Jasa",
               bold: true,
               alignment: "center" as Alignment,
             },
             {
-              text: "Jasa",
+              text: "Pengiriman Barang",
               bold: true,
               alignment: "center" as Alignment,
             },
@@ -635,12 +682,12 @@ class ReportController {
                 alignment: "center" as Alignment,
               },
               {
-                text: "IDR 0.00",
+                text: "N/A",
                 bold: false,
                 alignment: "center" as Alignment,
               },
               {
-                text: "IDR 0.00",
+                text: "N/A",
                 bold: false,
                 alignment: "center" as Alignment,
               },
@@ -664,12 +711,12 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
-              text: "IDR 0.00",
+              text: "N/A",
               bold: true,
               alignment: "center" as Alignment,
             },
             {
-              text: "IDR 0.00",
+              text: "N/A",
               bold: true,
               alignment: "center" as Alignment,
             },
@@ -716,6 +763,11 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
+              text: "IDR 0.00",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
               text: formatter.format(
                 sales_value - sales_discount - total_value
               ),
@@ -741,8 +793,13 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
+              text: formatter.format(sales_service),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
               text: formatter.format(
-                sales_value - sales_discount + sales_delivery + sales_service
+                sales_value - sales_discount + sales_delivery
               ),
               bold: true,
               aligment: "center" as Alignment,
@@ -1106,14 +1163,14 @@ class ReportController {
                 text: "Penjualan",
                 bold: true,
                 fontSize: 14,
-                alignment: "left" as Alignment,
+                alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
               },
               {
                 layout: "lightHorizontalLines",
                 table: {
                   headerRows: 1,
-                  widths: ["auto", "auto", "auto", "*"],
+                  widths: ["auto", "auto", "auto", "auto", "*"],
                   body: sales_table,
                 },
                 margin: [0, 0, 0, 15] as Margins,
@@ -1123,12 +1180,13 @@ class ReportController {
                 fontSize: 10,
                 color: "#333333",
                 margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
               },
               {
                 text: "Pembelian",
                 bold: true,
                 fontSize: 14,
-                alignment: "left" as Alignment,
+                alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
               },
               {
@@ -1141,26 +1199,17 @@ class ReportController {
                 margin: [0, 0, 0, 15] as Margins,
               },
               {
-                text: "Pengeluaran",
-                bold: true,
-                fontSize: 14,
-                alignment: "left" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["*", "auto"],
-                  body: expense_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
+                text: "Pembelian yang diperoleh merupakan pembelian yang telah dikonfirmasi.",
+                fontSize: 10,
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
               },
               {
                 text: "Harga Pokok Penjualan",
                 bold: true,
                 fontSize: 14,
-                alignment: "left" as Alignment,
+                alignment: "center" as Alignment,
                 margin: [0, 0, 0, 10] as Margins,
               },
               {
@@ -1177,6 +1226,23 @@ class ReportController {
                 fontSize: 10,
                 color: "#333333",
                 margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
+              },
+              {
+                text: "Pengeluaran",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["*", "auto"],
+                  body: expense_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
               },
               {
                 text: `Laba / Rugi: ${formatter.format(

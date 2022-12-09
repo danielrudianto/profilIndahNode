@@ -58,7 +58,7 @@ GoodReceiptController.create = (req, res) => {
                     });
                 }
                 const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
-                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, date, discount, good_receipt_result.id, req.body.userId);
+                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userId);
                 const insert_purchase_document = purchase_document.create();
                 Promise.all([insert_item, insert_purchase_document])
                     .then((insert_transaction) => {

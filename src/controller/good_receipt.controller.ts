@@ -80,6 +80,7 @@ class GoodReceiptController {
                 );
                 const purchase_document = new PurchaseDocumentModel(
                   purchase_invoice_name,
+                  null,
                   date,
                   discount,
                   good_receipt_result.id,

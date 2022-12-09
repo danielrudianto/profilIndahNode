@@ -13,8 +13,6 @@ class ItemPriceModel {
         this.effective_date = effective_date == null ? new Date() : effective_date;
     }
     create() {
-        console.log(this.item_id);
-        console.log(this.item_unit_id);
         return prisma.item_price.create({
             data: {
                 item_id: this.item_id,

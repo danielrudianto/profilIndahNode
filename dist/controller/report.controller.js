@@ -82,6 +82,11 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
+                    text: "Jasa",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
                     text: "Pengiriman Barang",
                     bold: true,
                     alignment: "center",
@@ -107,7 +112,12 @@ ReportController.fetchPLStats = (req, res) => {
                         alignment: "center",
                     },
                     {
-                        text: "IDR 0.00",
+                        text: "N/A",
+                        bold: false,
+                        alignment: "center",
+                    },
+                    {
+                        text: "N/A",
                         bold: false,
                         alignment: "center",
                     },
@@ -130,7 +140,12 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
-                    text: "IDR 0.00",
+                    text: "N/A",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "N/A",
                     bold: true,
                     alignment: "center",
                 },
@@ -149,6 +164,9 @@ ReportController.fetchPLStats = (req, res) => {
             const sales_delivery = result[0][0].delivery == null
                 ? 0
                 : parseFloat(result[0][0].delivery.toString());
+            const sales_service = result[0][0].service == null
+                ? 0
+                : parseFloat(result[0][0].service.toString());
             sales_table.push([
                 {
                     text: "Penjualan tidak teralokasi",
@@ -157,6 +175,11 @@ ReportController.fetchPLStats = (req, res) => {
                 },
                 {
                     text: formatter.format(sales_value - sales_discount - total_value),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "IDR 0.00",
                     bold: true,
                     alignment: "center",
                 },
@@ -184,6 +207,11 @@ ReportController.fetchPLStats = (req, res) => {
                 },
                 {
                     text: formatter.format(sales_discount),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(sales_service),
                     bold: true,
                     alignment: "center",
                 },
@@ -317,6 +345,7 @@ ReportController.fetchPLStats = (req, res) => {
                                 text: `${expense.name}/${child_expense.name}`,
                                 bold: false,
                                 alignment: "left",
+                                margin: [15, 0, 0, 0],
                             },
                             {
                                 text: formatter.format(parseFloat(child_expense.value.toString())),
@@ -404,14 +433,14 @@ ReportController.fetchPLStats = (req, res) => {
                         text: "Penjualan",
                         bold: true,
                         fontSize: 14,
-                        alignment: "left",
-                        margin: [0, 0, 0, 15],
+                        alignment: "center",
+                        margin: [0, 10, 0, 20],
                     },
                     {
                         layout: "lightHorizontalLines",
                         table: {
                             headerRows: 1,
-                            widths: ["auto", "auto", "auto", "*"],
+                            widths: ["auto", "auto", "auto", "auto", "*"],
                             body: sales_table,
                         },
                         margin: [0, 0, 0, 15],
@@ -421,12 +450,13 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 10,
                         color: "#333333",
                         margin: [0, 0, 0, 20],
+                        pageBreak: "after",
                     },
                     {
                         text: "Pembelian",
                         bold: true,
                         fontSize: 14,
-                        alignment: "left",
+                        alignment: "center",
                         margin: [0, 0, 0, 15],
                     },
                     {
@@ -439,26 +469,17 @@ ReportController.fetchPLStats = (req, res) => {
                         margin: [0, 0, 0, 15],
                     },
                     {
-                        text: "Pengeluaran",
-                        bold: true,
-                        fontSize: 14,
-                        alignment: "left",
-                        margin: [0, 0, 0, 15],
-                    },
-                    {
-                        layout: "lightHorizontalLines",
-                        table: {
-                            headerRows: 1,
-                            widths: ["*", "auto"],
-                            body: expense_table,
-                        },
-                        margin: [0, 0, 0, 15],
+                        text: "Pembelian yang diperoleh merupakan pembelian yang telah dikonfirmasi.",
+                        fontSize: 10,
+                        color: "#333333",
+                        margin: [0, 0, 0, 20],
+                        pageBreak: "after",
                     },
                     {
                         text: "Harga Pokok Penjualan",
                         bold: true,
                         fontSize: 14,
-                        alignment: "left",
+                        alignment: "center",
                         margin: [0, 0, 0, 10],
                     },
                     {
@@ -475,6 +496,24 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 10,
                         color: "#333333",
                         margin: [0, 0, 0, 20],
+                        pageBreak: "after",
+                    },
+                    {
+                        text: "Pengeluaran",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "left",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["*", "auto"],
+                            body: expense_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                        pageBreak: "after",
                     },
                     {
                         text: `Laba / Rugi: ${formatter.format(total_value - hpp_value - total_expense_value)}`,
@@ -500,6 +539,7 @@ ReportController.fetchPLStats = (req, res) => {
             pdfDocument.end();
         })
             .catch((error) => {
+            log_helper_1.default.log(new Date(), "error", error, "Report controller - Fetch Profit Loss", req.body.userId);
             return res.status(500).send(error);
         });
     }
@@ -531,12 +571,12 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
-                    text: "Pengiriman Barang",
+                    text: "Jasa",
                     bold: true,
                     alignment: "center",
                 },
                 {
-                    text: "Jasa",
+                    text: "Pengiriman Barang",
                     bold: true,
                     alignment: "center",
                 },
@@ -561,12 +601,12 @@ ReportController.fetchPLStats = (req, res) => {
                         alignment: "center",
                     },
                     {
-                        text: "IDR 0.00",
+                        text: "N/A",
                         bold: false,
                         alignment: "center",
                     },
                     {
-                        text: "IDR 0.00",
+                        text: "N/A",
                         bold: false,
                         alignment: "center",
                     },
@@ -589,12 +629,12 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
-                    text: "IDR 0.00",
+                    text: "N/A",
                     bold: true,
                     alignment: "center",
                 },
                 {
-                    text: "IDR 0.00",
+                    text: "N/A",
                     bold: true,
                     alignment: "center",
                 },
@@ -633,6 +673,11 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
+                    text: "IDR 0.00",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
                     text: formatter.format(sales_value - sales_discount - total_value),
                     bold: true,
                     alignment: "center",
@@ -655,7 +700,12 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
                 {
-                    text: formatter.format(sales_value - sales_discount + sales_delivery + sales_service),
+                    text: formatter.format(sales_service),
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: formatter.format(sales_value - sales_discount + sales_delivery),
                     bold: true,
                     aligment: "center",
                 },
@@ -974,14 +1024,14 @@ ReportController.fetchPLStats = (req, res) => {
                         text: "Penjualan",
                         bold: true,
                         fontSize: 14,
-                        alignment: "left",
+                        alignment: "center",
                         margin: [0, 0, 0, 15],
                     },
                     {
                         layout: "lightHorizontalLines",
                         table: {
                             headerRows: 1,
-                            widths: ["auto", "auto", "auto", "*"],
+                            widths: ["auto", "auto", "auto", "auto", "*"],
                             body: sales_table,
                         },
                         margin: [0, 0, 0, 15],
@@ -991,12 +1041,13 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 10,
                         color: "#333333",
                         margin: [0, 0, 0, 20],
+                        pageBreak: "after",
                     },
                     {
                         text: "Pembelian",
                         bold: true,
                         fontSize: 14,
-                        alignment: "left",
+                        alignment: "center",
                         margin: [0, 0, 0, 15],
                     },
                     {
@@ -1009,26 +1060,17 @@ ReportController.fetchPLStats = (req, res) => {
                         margin: [0, 0, 0, 15],
                     },
                     {
-                        text: "Pengeluaran",
-                        bold: true,
-                        fontSize: 14,
-                        alignment: "left",
-                        margin: [0, 0, 0, 15],
-                    },
-                    {
-                        layout: "lightHorizontalLines",
-                        table: {
-                            headerRows: 1,
-                            widths: ["*", "auto"],
-                            body: expense_table,
-                        },
-                        margin: [0, 0, 0, 15],
+                        text: "Pembelian yang diperoleh merupakan pembelian yang telah dikonfirmasi.",
+                        fontSize: 10,
+                        color: "#333333",
+                        margin: [0, 0, 0, 20],
+                        pageBreak: "after",
                     },
                     {
                         text: "Harga Pokok Penjualan",
                         bold: true,
                         fontSize: 14,
-                        alignment: "left",
+                        alignment: "center",
                         margin: [0, 0, 0, 10],
                     },
                     {
@@ -1045,6 +1087,23 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 10,
                         color: "#333333",
                         margin: [0, 0, 0, 20],
+                        pageBreak: "after",
+                    },
+                    {
+                        text: "Pengeluaran",
+                        bold: true,
+                        fontSize: 14,
+                        alignment: "center",
+                        margin: [0, 0, 0, 15],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["*", "auto"],
+                            body: expense_table,
+                        },
+                        margin: [0, 0, 0, 15],
                     },
                     {
                         text: `Laba / Rugi: ${formatter.format(total_value - hpp_value - total_expense_value)}`,

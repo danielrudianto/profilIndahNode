@@ -113,6 +113,8 @@ class SupplierModel {
               name: {
                 contains: keyword,
               },
+            },
+            {
               address: {
                 contains: keyword,
               },

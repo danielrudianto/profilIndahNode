@@ -14,9 +14,11 @@ class PurchaseDocumentModel {
   is_confirm: boolean = true;
   confirmed_by: number | null;
   confirmed_at: Date | null;
+  faktur: string | null;
 
   constructor(
     name: string,
+    faktur: string | null,
     date: Date,
     discount: number,
     good_receipt_code_id: number,
@@ -41,12 +43,15 @@ class PurchaseDocumentModel {
       this.confirmed_by = confirmed_by;
       this.confirmed_at = new Date();
     }
+
+    this.faktur = faktur;
   }
 
   create() {
     return prisma.purchase_invoice.create({
       data: {
         name: this.name,
+        faktur: this.faktur,
         date: this.date,
         discount: this.discount,
         good_receipt_code_id: this.good_receipt_code_id,
@@ -74,6 +79,7 @@ class PurchaseDocumentModel {
       },
       data: {
         name: this.name,
+        faktur: this.faktur,
         date: this.date,
         discount: this.discount,
       },
@@ -302,6 +308,8 @@ class PurchaseDocumentModel {
           },
           good_receipt_code: {
             select: {
+              name: true,
+              date: true,
               supplier: {
                 select: {
                   name: true,
@@ -469,7 +477,7 @@ class PurchaseDocumentModel {
   }
 
   static fetchReportById(start: Date, end: Date, type: number, id: number) {
-    if(type == 0){
+    if (type == 0) {
       return prisma.$queryRawUnsafe(`
       SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
       FROM good_receipt
@@ -487,14 +495,12 @@ class PurchaseDocumentModel {
       )
         .toString()
         .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-      AND purchase_invoice.date <= '${end.getFullYear()}-${(
-        end.getMonth() + 1
-      )
+      AND purchase_invoice.date <= '${end.getFullYear()}-${(end.getMonth() + 1)
         .toString()
         .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
         AND item.item_brand_id = ${id}
     `);
-    } else if(type == 1){
+    } else if (type == 1) {
       return prisma.$queryRawUnsafe(`
       SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
       FROM good_receipt
@@ -512,9 +518,7 @@ class PurchaseDocumentModel {
       )
         .toString()
         .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-      AND purchase_invoice.date <= '${end.getFullYear()}-${(
-        end.getMonth() + 1
-      )
+      AND purchase_invoice.date <= '${end.getFullYear()}-${(end.getMonth() + 1)
         .toString()
         .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
         AND item.item_type_id = ${id}
@@ -537,9 +541,7 @@ class PurchaseDocumentModel {
       )
         .toString()
         .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-      AND purchase_invoice.date <= '${end.getFullYear()}-${(
-        end.getMonth() + 1
-      )
+      AND purchase_invoice.date <= '${end.getFullYear()}-${(end.getMonth() + 1)
         .toString()
         .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
         AND good_receipt_code.supplier_id = ${id}
@@ -547,9 +549,9 @@ class PurchaseDocumentModel {
     }
   }
 
-  static confirmByIdUnchanged(id: number, user_id: number){
+  static confirmByIdUnchanged(id: number, user_id: number) {
     return prisma.purchase_invoice.update({
-      where:{
+      where: {
         id: id,
       },
       data: {
@@ -557,12 +559,12 @@ class PurchaseDocumentModel {
         is_delete: false,
         confirmed_at: new Date(),
         confirmed_by: user_id,
-      }
+      },
     });
   }
 
-  static fetchAppendix(month: number, year: number){
-    if(month == 0){
+  static fetchAppendix(month: number, year: number) {
+    if (month == 0) {
       return prisma.$queryRawUnsafe(`
         SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
         FROM purchase_invoice

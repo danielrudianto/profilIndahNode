@@ -83,7 +83,7 @@ SupplierController.getItems = (req, res) => {
     });
 };
 SupplierController.getAutocomplete = (req, res) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword ? "" : decodeURIComponent(req.query.keyword.toString());
     supplier_model_1.default.getAutocomplete(keyword)
         .then((result) => {
         return res.status(200).send(result);
