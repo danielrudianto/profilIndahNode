@@ -119,12 +119,20 @@ SalesReturnController.fetchById = (req, res) => {
     const id = parseInt(req.params.id.toString());
     sales_return_model_1.default.fetchById(id)
         .then((result) => {
-        return res.status(200).send(Object.assign(Object.assign({}, result), { customer: (result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 ||
-                (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null
-                ? null
-                : {
-                    name: result.sales_return[0].bill.bill_code.customer.name,
-                } }));
+        if (result == null || result.sales_return.length == 0) {
+            return res.status(404).send("Data tidak ditemukan.");
+        }
+        else {
+            const bill_code_id = result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code_id;
+            bill_code_model_1.default.fetchById(bill_code_id).then((bill) => {
+                return res.status(200).send(Object.assign(Object.assign({}, result), { bill: bill, customer: (result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 ||
+                        (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null
+                        ? null
+                        : {
+                            name: result.sales_return[0].bill.bill_code.customer.name,
+                        } }));
+            });
+        }
     })
         .catch((error) => {
         return res.status(500).send(error);
@@ -137,7 +145,13 @@ SalesReturnController.deleteById = (req, res) => {
             return res.status(404).send("Data tidak ditemukan.");
         }
         else {
-            sales_return_model_1.default.deleteById(id, req.body.userId).then((result) => { });
+            sales_return_model_1.default.deleteById(id, req.body.userId)
+                .then((result) => {
+                return res.status(200).send(result);
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
         }
     });
 };

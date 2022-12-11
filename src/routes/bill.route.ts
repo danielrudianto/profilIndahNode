@@ -13,6 +13,7 @@ router.get("/archives/:year", BillController.fetchArchive);
 router.get("/archives/:year/:month", BillController.fetchArchive);
 
 router.get("/code/:id", BillController.fetchCodeById);
+router.get("/search", BillController.searchArchive);
 router.get("/:id", BillController.fetchById);
 
 router.delete("/:id", administratorMiddleware, BillController.deleteById);

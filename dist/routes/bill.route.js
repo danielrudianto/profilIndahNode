@@ -14,6 +14,7 @@ router.get("/archives", bill_controller_1.default.fetchArchive);
 router.get("/archives/:year", bill_controller_1.default.fetchArchive);
 router.get("/archives/:year/:month", bill_controller_1.default.fetchArchive);
 router.get("/code/:id", bill_controller_1.default.fetchCodeById);
+router.get("/search", bill_controller_1.default.searchArchive);
 router.get("/:id", bill_controller_1.default.fetchById);
 router.delete("/:id", auth_helper_1.administratorMiddleware, bill_controller_1.default.deleteById);
 exports.default = router;

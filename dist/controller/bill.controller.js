@@ -160,13 +160,11 @@ BillController.createPrintout = (req, res) => {
                             : "grey";
                     },
                     hLineWidth: function (i, node) {
-                        return (blackLinesIndex.includes(i.toString()) || i == 0)
-                            ? 1
-                            : 0;
+                        return blackLinesIndex.includes(i.toString()) || i == 0 ? 1 : 0;
                     },
                     vLineWidth: function (i, node) {
                         return 0;
-                    }
+                    },
                 },
                 table: {
                     headerRows: 0,
@@ -178,7 +176,7 @@ BillController.createPrintout = (req, res) => {
             {
                 text: "Price mentioned above does not include a discount. Discount value can be checked on register.",
                 bold: true,
-                color: 'grey',
+                color: "grey",
                 fontSize: 10,
                 alignment: "left",
                 margin: [0, 0, 0, 5],
@@ -216,6 +214,28 @@ BillController.fetchById = (req, res) => {
     bill_code_model_1.default.fetchById(id)
         .then((result) => {
         return res.status(200).send(result);
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+BillController.searchArchive = (req, res) => {
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
+    const page = !req.query.page
+        ? 1
+        : Math.max(1, parseInt(req.query.page.toString()));
+    const offset = (page - 1) * 10;
+    Promise.all([
+        bill_code_model_1.default.searchArchives(keyword, offset),
+        bill_code_model_1.default.searchCountArchives(keyword),
+    ])
+        .then((result) => {
+        return res.status(200).send({
+            data: result[0],
+            count: result[1],
+        });
     })
         .catch((error) => {
         return res.status(500).send(error);

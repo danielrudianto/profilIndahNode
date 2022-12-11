@@ -133,6 +133,11 @@ class SalesReturnModel {
                 id: true,
                 name: true,
                 date: true,
+                payment_method: {
+                    select: {
+                        name: true,
+                    }
+                },
                 created_at: true,
                 user_sales_return_code_created_byTouser: {
                     select: {
@@ -143,6 +148,7 @@ class SalesReturnModel {
                     select: {
                         bill: {
                             select: {
+                                bill_code_id: true,
                                 quantity: true,
                                 price: true,
                                 discount: true,

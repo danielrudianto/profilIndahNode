@@ -147,16 +147,24 @@ class SalesReturnController {
     const id = parseInt(req.params.id.toString());
     SalesReturnModel.fetchById(id)
       .then((result) => {
-        return res.status(200).send({
-          ...result,
-          customer:
-            result?.sales_return.length == 0 ||
-            result?.sales_return[0].bill.bill_code.customer == null
-              ? null
-              : {
-                  name: result.sales_return[0].bill.bill_code.customer.name,
-                },
-        });
+        if (result == null || result.sales_return.length == 0) {
+          return res.status(404).send("Data tidak ditemukan.");
+        } else {
+          const bill_code_id = result?.sales_return[0].bill.bill_code_id;
+          BillCodeModel.fetchById(bill_code_id).then((bill) => {
+            return res.status(200).send({
+              ...result,
+              bill: bill,
+              customer:
+                result?.sales_return.length == 0 ||
+                result?.sales_return[0].bill.bill_code.customer == null
+                  ? null
+                  : {
+                      name: result.sales_return[0].bill.bill_code.customer.name,
+                    },
+            });
+          });
+        }
       })
       .catch((error) => {
         return res.status(500).send(error);
@@ -169,7 +177,13 @@ class SalesReturnController {
       if (salesReturn == null || salesReturn.is_delete) {
         return res.status(404).send("Data tidak ditemukan.");
       } else {
-        SalesReturnModel.deleteById(id, req.body.userId).then((result) => {});
+        SalesReturnModel.deleteById(id, req.body.userId)
+          .then((result) => {
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       }
     });
   };

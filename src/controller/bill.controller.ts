@@ -130,7 +130,7 @@ class BillController {
     let greyLinesIndex: string[] = [];
 
     (req.body.items as any[]).forEach((x) => {
-      if(i != 0){
+      if (i != 0) {
         greyLinesIndex.push(i.toString());
       }
       bill_table.push([
@@ -230,13 +230,11 @@ class BillController {
                 : "grey";
             },
             hLineWidth: function (i, node) {
-              return (blackLinesIndex.includes(i.toString()) || i == 0)
-                ? 1
-                : 0
+              return blackLinesIndex.includes(i.toString()) || i == 0 ? 1 : 0;
             },
-            vLineWidth: function(i, node){
-              return 0
-            }
+            vLineWidth: function (i, node) {
+              return 0;
+            },
           } as TableLayout,
           table: {
             headerRows: 0,
@@ -248,7 +246,7 @@ class BillController {
         {
           text: "Price mentioned above does not include a discount. Discount value can be checked on register.",
           bold: true,
-          color: 'grey',
+          color: "grey",
           fontSize: 10,
           alignment: "left" as Alignment,
           margin: [0, 0, 0, 5] as Margins,
@@ -299,6 +297,31 @@ class BillController {
     BillCodeModel.fetchById(id)
       .then((result) => {
         return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static searchArchive = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword
+      ? ""
+      : decodeURIComponent(req.query.keyword.toString());
+
+    const page = !req.query.page
+      ? 1
+      : Math.max(1, parseInt(req.query.page.toString()));
+    const offset = (page - 1) * 10;
+
+    Promise.all([
+      BillCodeModel.searchArchives(keyword, offset),
+      BillCodeModel.searchCountArchives(keyword),
+    ])
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0],
+          count: result[1],
+        });
       })
       .catch((error) => {
         return res.status(500).send(error);

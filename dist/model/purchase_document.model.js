@@ -139,6 +139,7 @@ class PurchaseDocumentModel {
                         is_delete: true,
                         name: true,
                         date: true,
+                        faktur: true,
                         discount: true,
                         user_purchase_invoice_created_byTouser: {
                             select: {
@@ -273,6 +274,7 @@ class PurchaseDocumentModel {
                     id: true,
                     date: true,
                     name: true,
+                    faktur: true,
                     created_at: true,
                     user_purchase_invoice_created_byTouser: {
                         select: {

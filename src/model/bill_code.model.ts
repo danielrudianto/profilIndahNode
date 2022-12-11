@@ -579,6 +579,110 @@ class BillCodeModel {
     }
   }
 
+  static searchArchives(
+    keyword: string,
+    offset: number = 0,
+    limit: number = 10
+  ) {
+    return prisma.bill_code.findMany({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: keyword,
+            },
+          },
+          {
+            customer: {
+              name: {
+                contains: keyword,
+              },
+            },
+          },
+          {
+            bill: {
+              some: {
+                item: {
+                  reference: {
+                    contains: keyword,
+                  },
+                },
+              },
+            },
+          },
+          {
+            bill: {
+              some: {
+                item: {
+                  description: {
+                    contains: keyword,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+      include: {
+        customer: {
+          select: {
+            name: true,
+            address: true,
+            npwp: true,
+          },
+        },
+      },
+      take: limit,
+      skip: offset,
+      orderBy: {
+        date: "asc",
+      },
+    });
+  }
+
+  static searchCountArchives(keyword: string) {
+    return prisma.bill_code.count({
+      where: {
+        OR: [
+          {
+            name: {
+              contains: keyword,
+            },
+          },
+          {
+            customer: {
+              name: {
+                contains: keyword,
+              },
+            },
+          },
+          {
+            bill: {
+              some: {
+                item: {
+                  reference: {
+                    contains: keyword,
+                  },
+                },
+              },
+            },
+          },
+          {
+            bill: {
+              some: {
+                item: {
+                  description: {
+                    contains: keyword,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      },
+    });
+  }
+
   static fetchReception(year: number, month: number, date: number) {
     return prisma.$queryRawUnsafe(`
       SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value

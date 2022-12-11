@@ -34,6 +34,7 @@ class PurchaseDocumentController {
     const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
+    const faktur = (purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
 
     const company_validation = CompanyModel.fetchById(company_id);
     const supplier_validation = SupplierModel.fetchById(supplier_id);
@@ -88,7 +89,7 @@ class PurchaseDocumentController {
               .then((purchase_document) => {
                 const updated_purchase_document = new PurchaseDocumentModel(
                   purchase_invoice_name,
-                  null,
+                  faktur,
                   date,
                   discount,
                   good_receipt_result.id,
@@ -140,6 +141,7 @@ class PurchaseDocumentController {
     const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
+    const faktur = (purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
 
     const company_validation = CompanyModel.fetchById(company_id);
     const supplier_validation = SupplierModel.fetchById(supplier_id);
@@ -195,7 +197,7 @@ class PurchaseDocumentController {
 
               const purchase_document = new PurchaseDocumentModel(
                 purchase_invoice_name,
-                null,
+                faktur,
                 date,
                 discount,
                 good_receipt_result.id,
@@ -324,7 +326,6 @@ class PurchaseDocumentController {
       ) {
         return res.status(404).send("Pembelian tidak ditemukan.");
       } else if (
-        good_receipt_code.purchase_invoice.is_confirm ||
         good_receipt_code.purchase_invoice.is_delete
       ) {
         return res
