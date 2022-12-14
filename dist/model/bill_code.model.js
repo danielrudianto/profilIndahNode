@@ -498,103 +498,265 @@ class BillCodeModel {
       `);
         }
     }
-    static searchArchives(keyword, offset = 0, limit = 10) {
-        return prisma.bill_code.findMany({
-            where: {
-                OR: [
-                    {
-                        name: {
-                            contains: keyword,
+    static searchArchives(keyword, start, end, offset = 0, limit = 10) {
+        if (start != null && end != null) {
+            return prisma.bill_code.findMany({
+                where: {
+                    AND: [
+                        {
+                            date: {
+                                gte: new Date(start),
+                            },
                         },
-                    },
-                    {
-                        customer: {
+                        {
+                            date: {
+                                lte: new Date(end),
+                            },
+                        },
+                    ],
+                    OR: [
+                        {
                             name: {
                                 contains: keyword,
                             },
                         },
-                    },
-                    {
-                        bill: {
-                            some: {
-                                item: {
-                                    reference: {
-                                        contains: keyword,
+                        {
+                            customer: {
+                                name: {
+                                    contains: keyword,
+                                },
+                            },
+                        },
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        OR: [
+                                            {
+                                                reference: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                            {
+                                                description: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                        ],
                                     },
                                 },
                             },
                         },
-                    },
-                    {
-                        bill: {
-                            some: {
-                                item: {
-                                    description: {
-                                        contains: keyword,
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        description: {
+                                            contains: keyword,
+                                        },
                                     },
                                 },
                             },
                         },
-                    },
-                ],
-            },
-            include: {
-                customer: {
-                    select: {
-                        name: true,
-                        address: true,
-                        npwp: true,
+                    ],
+                },
+                include: {
+                    customer: {
+                        select: {
+                            name: true,
+                            address: true,
+                            npwp: true,
+                        },
                     },
                 },
-            },
-            take: limit,
-            skip: offset,
-            orderBy: {
-                date: "asc",
-            },
-        });
-    }
-    static searchCountArchives(keyword) {
-        return prisma.bill_code.count({
-            where: {
-                OR: [
-                    {
-                        name: {
-                            contains: keyword,
-                        },
-                    },
-                    {
-                        customer: {
+                take: limit,
+                skip: offset,
+                orderBy: {
+                    date: "asc",
+                },
+            });
+        }
+        else {
+            return prisma.bill_code.findMany({
+                where: {
+                    OR: [
+                        {
                             name: {
                                 contains: keyword,
                             },
                         },
-                    },
-                    {
-                        bill: {
-                            some: {
-                                item: {
-                                    reference: {
-                                        contains: keyword,
+                        {
+                            customer: {
+                                name: {
+                                    contains: keyword,
+                                },
+                            },
+                        },
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        OR: [
+                                            {
+                                                reference: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                            {
+                                                description: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                        ],
                                     },
                                 },
                             },
                         },
-                    },
-                    {
-                        bill: {
-                            some: {
-                                item: {
-                                    description: {
-                                        contains: keyword,
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        description: {
+                                            contains: keyword,
+                                        },
                                     },
                                 },
                             },
                         },
+                    ],
+                },
+                include: {
+                    customer: {
+                        select: {
+                            name: true,
+                            address: true,
+                            npwp: true,
+                        },
                     },
-                ],
-            },
-        });
+                },
+                take: limit,
+                skip: offset,
+                orderBy: {
+                    date: "asc",
+                },
+            });
+        }
+    }
+    static searchCountArchives(keyword, start, end) {
+        if (start != null && end != null) {
+            return prisma.bill_code.count({
+                where: {
+                    AND: [
+                        {
+                            date: {
+                                gte: new Date(start),
+                            },
+                        },
+                        {
+                            date: {
+                                lte: new Date(end),
+                            },
+                        },
+                    ],
+                    OR: [
+                        {
+                            name: {
+                                contains: keyword,
+                            },
+                        },
+                        {
+                            customer: {
+                                name: {
+                                    contains: keyword,
+                                },
+                            },
+                        },
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        OR: [
+                                            {
+                                                reference: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                            {
+                                                description: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        description: {
+                                            contains: keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+        }
+        else {
+            return prisma.bill_code.count({
+                where: {
+                    OR: [
+                        {
+                            name: {
+                                contains: keyword,
+                            },
+                        },
+                        {
+                            customer: {
+                                name: {
+                                    contains: keyword,
+                                },
+                            },
+                        },
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        OR: [
+                                            {
+                                                reference: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                            {
+                                                description: {
+                                                    contains: keyword,
+                                                },
+                                            },
+                                        ],
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            bill: {
+                                some: {
+                                    item: {
+                                        description: {
+                                            contains: keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+            });
+        }
     }
     static fetchReception(year, month, date) {
         return prisma.$queryRawUnsafe(`
@@ -686,8 +848,6 @@ class BillCodeModel {
     `);
     }
     static fetchAppendix(month, year) {
-        console.log(month);
-        console.log(year);
         if (month == 0) {
             return prisma.$queryRawUnsafe(`
         SELECT bill_code.date, bill_code.name, COALESCE(customer.name, "Retail") AS customer_name, billValue.value
@@ -739,6 +899,24 @@ class BillCodeModel {
         AND MONTH(bill_code.date) = ${month}
     `);
         }
+    }
+    static searchMaxValue() {
+        return prisma.$queryRawUnsafe(`
+      SELECT MAX(billValue.value) AS value 
+      FROM bill_code
+      JOIN (
+        SELECT SUM((price - discount) * quantity) AS value, bill_code_id
+        FROM bill
+        GROUP BY bill_code_id
+      ) billValue
+      ON bill_code.id = billValue.bill_code_id
+    `);
+    }
+    static searchMaxYear() {
+        return prisma.$queryRawUnsafe(`
+      SELECT MAX(YEAR(date)) AS year 
+      FROM bill_code
+    `);
     }
 }
 exports.default = BillCodeModel;

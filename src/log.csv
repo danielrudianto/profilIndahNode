@@ -8,3 +8,5 @@ Thu Dec 08 2022 12:38:09 GMT+0700 (Indochina Time); info; Daniel Tri berhasil me
 Thu Dec 08 2022 13:18:27 GMT+0700 (Indochina Time); error; TypeError: Cannot set property '_minWidth' of undefined; Report controller - Fetch Profit Loss; null
 Thu Dec 08 2022 13:18:47 GMT+0700 (Indochina Time); error; TypeError: Cannot set property '_minWidth' of undefined; Report controller - Fetch Profit Loss; null
 Thu Dec 08 2022 14:15:54 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 9) dari PT Duta Sapta Energi (ID: 9) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
+Tue Dec 13 2022 09:14:08 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Dec 13 2022 10:13:32 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2022-64848149 (ID: 195); Bill controller - Create; 1

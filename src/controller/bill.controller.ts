@@ -312,10 +312,12 @@ class BillController {
       ? 1
       : Math.max(1, parseInt(req.query.page.toString()));
     const offset = (page - 1) * 10;
+    const start = !req.query.start ? null : req.query.start.toString();
+    const end = !req.query.end ? null : req.query.end.toString();
 
     Promise.all([
-      BillCodeModel.searchArchives(keyword, offset),
-      BillCodeModel.searchCountArchives(keyword),
+      BillCodeModel.searchArchives(keyword, start, end, offset),
+      BillCodeModel.searchCountArchives(keyword, start, end),
     ])
       .then((result) => {
         return res.status(200).send({
