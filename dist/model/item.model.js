@@ -53,6 +53,7 @@ class ItemModel {
                 },
                 created_at: true,
                 minimum_stock: true,
+                is_active: true,
             },
         });
     }
@@ -103,6 +104,7 @@ class ItemModel {
                     },
                 },
                 updated_by: true,
+                is_active: true,
             },
         });
     }
@@ -469,12 +471,12 @@ class ItemModel {
                         OR: [
                             {
                                 reference: {
-                                    contains: keyword,
+                                    search: keyword,
                                 },
                             },
                             {
                                 description: {
-                                    contains: keyword,
+                                    search: keyword,
                                 },
                             },
                         ],
