@@ -523,12 +523,20 @@ export class ItemModel {
               },
               {
                 reference: {
-                  search: keyword,
+                  search: keyword.endsWith("-")
+                    ? keyword.slice(0, -1)
+                    : keyword.startsWith("-")
+                    ? keyword.slice(1)
+                    : keyword,
                 },
               },
               {
                 description: {
-                  search: keyword,
+                  search: keyword.endsWith("-")
+                    ? keyword.slice(0, -1)
+                    : keyword.startsWith("-")
+                    ? keyword.slice(1)
+                    : keyword,
                 },
               },
             ],
@@ -616,12 +624,20 @@ export class ItemModel {
               },
               {
                 reference: {
-                  search: keyword,
+                  search: keyword.endsWith("-")
+                    ? keyword.slice(0, -1)
+                    : keyword.startsWith("-")
+                    ? keyword.slice(1)
+                    : keyword,
                 },
               },
               {
                 description: {
-                  search: keyword,
+                  search: keyword.endsWith("-")
+                    ? keyword.slice(0, -1)
+                    : keyword.startsWith("-")
+                    ? keyword.slice(1)
+                    : keyword,
                 },
               },
             ],
