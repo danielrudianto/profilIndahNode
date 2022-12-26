@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemModel = void 0;
 const client_1 = require("@prisma/client");
+const mysql2_1 = require("mysql2");
 const prisma = new client_1.PrismaClient();
 class ItemModel {
     constructor(reference, description, minimum_stock, brand_id, type_id, created_by, unit, id = null) {
@@ -313,7 +314,7 @@ class ItemModel {
         else {
             let search_filter_1 = "WHERE item.is_active = 1 AND item.is_delete = 0 AND (";
             keyword.split(" ").forEach((x, index) => {
-                search_filter_1 += `(item.reference LIKE '%${x}%' AND item.description LIKE '%${x}%') `;
+                search_filter_1 += `(item.reference LIKE '%${(0, mysql2_1.escape)(x)}%' AND item.description LIKE '%${(0, mysql2_1.escape)(x)}%') `;
                 if (index < keyword.split(" ").length - 1) {
                     search_filter_1 += "OR ";
                 }
@@ -323,7 +324,7 @@ class ItemModel {
             });
             let search_filter_2 = "WHERE item.is_active = 1 AND item.is_delete = 0 AND (";
             keyword.split(" ").forEach((x, index) => {
-                search_filter_2 += `item.reference LIKE '%${x}%' OR item.description LIKE '%${x}%' `;
+                search_filter_2 += `item.reference LIKE '%${(0, mysql2_1.escape)(x)}%' OR item.description LIKE '%${(0, mysql2_1.escape)(x)}%' `;
                 if (index < keyword.split(" ").length - 1) {
                     search_filter_2 += "OR ";
                 }
@@ -336,19 +337,19 @@ class ItemModel {
         SELECT a.id AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
-          WHERE item.reference LIKE '%${keyword}%' AND item.description LIKE '%${keyword}%'
+          WHERE item.reference LIKE '%${(0, mysql2_1.escape)(keyword)}%' AND item.description LIKE '%${(0, mysql2_1.escape)(keyword)}%'
           AND item.is_active = 1 AND item.is_delete = 0
           UNION ALL
-          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          SELECT DISTINCT(item.id) AS id, 2 AS relevance
           FROM item
-          WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+          WHERE item.reference LIKE '%${(0, mysql2_1.escape)(keyword)}%' OR item.description LIKE '%${(0, mysql2_1.escape)(keyword)}%'
           AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          SELECT DISTINCT(item.id) AS id, 3 AS relevance
           FROM item
           ${search_filter_1}
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 1000 AS relevance
+          SELECT DISTINCT(item.id) AS id, 4 AS relevance
           FROM item
           ${search_filter_2}
         ) a
@@ -360,14 +361,19 @@ class ItemModel {
                 prisma.$queryRawUnsafe(`SELECT COUNT(b.id) AS count FROM (SELECT DISTINCT(a.id) AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
-          WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+          WHERE item.reference LIKE '%${(0, mysql2_1.escape)(keyword)}%' AND item.description LIKE '%${(0, mysql2_1.escape)(keyword)}%'
+          AND item.is_active = 1 AND item.is_delete = 0
+          UNION ALL
+          SELECT DISTINCT(item.id) AS id, 2 AS relevance
+          FROM item
+          WHERE item.reference LIKE '%${(0, mysql2_1.escape)(keyword)}%' OR item.description LIKE '%${(0, mysql2_1.escape)(keyword)}%'
           AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          SELECT DISTINCT(item.id) AS id, 2 AS relevance
           FROM item
           ${search_filter_1}
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          SELECT DISTINCT(item.id) AS id, 3 AS relevance
           FROM item
           ${search_filter_2}
         ) a
@@ -483,18 +489,30 @@ class ItemModel {
                                 reference: {
                                     search: keyword.endsWith("-")
                                         ? keyword.slice(0, -1)
-                                        : keyword.startsWith("-")
-                                            ? keyword.slice(1)
-                                            : keyword,
+                                        : keyword,
                                 },
                             },
                             {
                                 description: {
                                     search: keyword.endsWith("-")
                                         ? keyword.slice(0, -1)
-                                        : keyword.startsWith("-")
-                                            ? keyword.slice(1)
+                                        : keyword,
+                                },
+                            },
+                            {
+                                item_brand: {
+                                    name: {
+                                        contains: keyword,
+                                    },
+                                },
+                            },
+                            {
+                                item_brand: {
+                                    name: {
+                                        search: keyword.endsWith("-")
+                                            ? keyword.slice(0, -1)
                                             : keyword,
+                                    },
                                 },
                             },
                         ],
@@ -596,6 +614,22 @@ class ItemModel {
                                         : keyword.startsWith("-")
                                             ? keyword.slice(1)
                                             : keyword,
+                                },
+                            },
+                            {
+                                item_brand: {
+                                    name: {
+                                        contains: keyword,
+                                    },
+                                },
+                            },
+                            {
+                                item_brand: {
+                                    name: {
+                                        search: keyword.endsWith("-")
+                                            ? keyword.slice(0, -1)
+                                            : keyword,
+                                    },
                                 },
                             },
                         ],

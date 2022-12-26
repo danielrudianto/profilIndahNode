@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { join } from "@prisma/client/runtime";
+import { escape } from "mysql2";
 
 const prisma = new PrismaClient();
 
@@ -350,7 +351,9 @@ export class ItemModel {
       let search_filter_1 =
         "WHERE item.is_active = 1 AND item.is_delete = 0 AND (";
       keyword.split(" ").forEach((x, index) => {
-        search_filter_1 += `(item.reference LIKE '%${x}%' AND item.description LIKE '%${x}%') `;
+        search_filter_1 += `(item.reference LIKE '%${escape(
+          x
+        )}%' AND item.description LIKE '%${escape(x)}%') `;
         if (index < keyword.split(" ").length - 1) {
           search_filter_1 += "OR ";
         }
@@ -363,7 +366,9 @@ export class ItemModel {
       let search_filter_2 =
         "WHERE item.is_active = 1 AND item.is_delete = 0 AND (";
       keyword.split(" ").forEach((x, index) => {
-        search_filter_2 += `item.reference LIKE '%${x}%' OR item.description LIKE '%${x}%' `;
+        search_filter_2 += `item.reference LIKE '%${escape(
+          x
+        )}%' OR item.description LIKE '%${escape(x)}%' `;
         if (index < keyword.split(" ").length - 1) {
           search_filter_2 += "OR ";
         }
@@ -378,19 +383,23 @@ export class ItemModel {
         SELECT a.id AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
-          WHERE item.reference LIKE '%${keyword}%' AND item.description LIKE '%${keyword}%'
+          WHERE item.reference LIKE '%${escape(
+            keyword
+          )}%' AND item.description LIKE '%${escape(keyword)}%'
           AND item.is_active = 1 AND item.is_delete = 0
           UNION ALL
-          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          SELECT DISTINCT(item.id) AS id, 2 AS relevance
           FROM item
-          WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+          WHERE item.reference LIKE '%${escape(
+            keyword
+          )}%' OR item.description LIKE '%${escape(keyword)}%'
           AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          SELECT DISTINCT(item.id) AS id, 3 AS relevance
           FROM item
           ${search_filter_1}
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 1000 AS relevance
+          SELECT DISTINCT(item.id) AS id, 4 AS relevance
           FROM item
           ${search_filter_2}
         ) a
@@ -402,14 +411,23 @@ export class ItemModel {
         prisma.$queryRawUnsafe(`SELECT COUNT(b.id) AS count FROM (SELECT DISTINCT(a.id) AS id FROM (
           SELECT DISTINCT(item.id) AS id, 1 AS relevance
           FROM item
-          WHERE item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%'
+          WHERE item.reference LIKE '%${escape(
+            keyword
+          )}%' AND item.description LIKE '%${escape(keyword)}%'
+          AND item.is_active = 1 AND item.is_delete = 0
+          UNION ALL
+          SELECT DISTINCT(item.id) AS id, 2 AS relevance
+          FROM item
+          WHERE item.reference LIKE '%${escape(
+            keyword
+          )}%' OR item.description LIKE '%${escape(keyword)}%'
           AND item.is_active = 1 AND item.is_delete = 0
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 10 AS relevance
+          SELECT DISTINCT(item.id) AS id, 2 AS relevance
           FROM item
           ${search_filter_1}
         UNION ALL
-          SELECT DISTINCT(item.id) AS id, 100 AS relevance
+          SELECT DISTINCT(item.id) AS id, 3 AS relevance
           FROM item
           ${search_filter_2}
         ) a
@@ -525,8 +543,6 @@ export class ItemModel {
                 reference: {
                   search: keyword.endsWith("-")
                     ? keyword.slice(0, -1)
-                    : keyword.startsWith("-")
-                    ? keyword.slice(1)
                     : keyword,
                 },
               },
@@ -534,9 +550,23 @@ export class ItemModel {
                 description: {
                   search: keyword.endsWith("-")
                     ? keyword.slice(0, -1)
-                    : keyword.startsWith("-")
-                    ? keyword.slice(1)
                     : keyword,
+                },
+              },
+              {
+                item_brand: {
+                  name: {
+                    contains: keyword,
+                  },
+                },
+              },
+              {
+                item_brand: {
+                  name: {
+                    search: keyword.endsWith("-")
+                      ? keyword.slice(0, -1)
+                      : keyword,
+                  },
                 },
               },
             ],
@@ -638,6 +668,22 @@ export class ItemModel {
                     : keyword.startsWith("-")
                     ? keyword.slice(1)
                     : keyword,
+                },
+              },
+              {
+                item_brand: {
+                  name: {
+                    contains: keyword,
+                  },
+                },
+              },
+              {
+                item_brand: {
+                  name: {
+                    search: keyword.endsWith("-")
+                      ? keyword.slice(0, -1)
+                      : keyword,
+                  },
                 },
               },
             ],
