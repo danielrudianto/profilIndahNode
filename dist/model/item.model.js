@@ -471,6 +471,16 @@ class ItemModel {
                         OR: [
                             {
                                 reference: {
+                                    contains: keyword,
+                                },
+                            },
+                            {
+                                description: {
+                                    contains: keyword,
+                                },
+                            },
+                            {
+                                reference: {
                                     search: keyword,
                                 },
                             },
@@ -560,6 +570,16 @@ class ItemModel {
                             {
                                 description: {
                                     contains: keyword,
+                                },
+                            },
+                            {
+                                reference: {
+                                    search: keyword,
+                                },
+                            },
+                            {
+                                description: {
+                                    search: keyword,
                                 },
                             },
                         ],
