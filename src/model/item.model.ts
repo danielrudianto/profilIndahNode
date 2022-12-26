@@ -656,8 +656,6 @@ export class ItemModel {
                 reference: {
                   search: keyword.endsWith("-")
                     ? keyword.slice(0, -1)
-                    : keyword.startsWith("-")
-                    ? keyword.slice(1)
                     : keyword,
                 },
               },
@@ -665,8 +663,6 @@ export class ItemModel {
                 description: {
                   search: keyword.endsWith("-")
                     ? keyword.slice(0, -1)
-                    : keyword.startsWith("-")
-                    ? keyword.slice(1)
                     : keyword,
                 },
               },
