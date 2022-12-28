@@ -1,9 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import GoodReceiptController from "../controller/good_receipt.controller";
-
-const prisma = new PrismaClient();
 const router = Router();
 
 router.post(
@@ -30,7 +28,17 @@ router.get("/archives", GoodReceiptController.fetchArchive);
 router.get("/archives/:year", GoodReceiptController.fetchArchive);
 router.get("/archives/:year/:month", GoodReceiptController.fetchArchive);
 
-router.get("/code/:id", GoodReceiptController.fetchCodeById);
-router.get("/:id", GoodReceiptController.fetchById);
+router.get(
+  "/code/:id",
+  param("id").notEmpty().withMessage("Mohon isikan ID penerimaan barang."),
+  GoodReceiptController.fetchCodeById
+);
+router.get(
+  "/:id",
+  param("id")
+    .notEmpty()
+    .withMessage("Mohon isikan ID dokumen penerimaan barang."),
+  GoodReceiptController.fetchById
+);
 
 export default router;

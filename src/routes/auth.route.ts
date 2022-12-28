@@ -7,12 +7,17 @@ const router = Router();
 
 router.post(
   "/login",
-  body("username").not().isEmpty(),
-  body("password").not().isEmpty(),
+  body("username").not().isEmpty().withMessage("Mohon isikan username."),
+  body("password").not().isEmpty().withMessage("Mohon isikan password."),
   AuthController.login
 );
 
-router.post("/administratorLogin", AuthController.administratorLogin);
+router.post(
+  "/administratorLogin",
+  body("username").not().isEmpty().withMessage("Mohon isikan username."),
+  body("password").not().isEmpty().withMessage("Mohon isikan password."),
+  AuthController.administratorLogin
+);
 
 router.get("/", authMiddleware, (req, res, next) => {
   res.status(200).send({

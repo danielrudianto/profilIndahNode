@@ -48,7 +48,7 @@ class AdjustmentCaseModel {
     });
   }
 
-  static createItems(items: any[]) {
+  static createMany(items: any[]) {
     return prisma.adjustment_case.createMany({
       data: items,
     });

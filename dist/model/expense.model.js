@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class ExpenseModel {
-    constructor(value, description, date, expense_type_id, created_by, id = null) {
+    constructor(value, description, date, expense_type_id, company_id, created_by, id = null) {
         this.is_delete = false;
         this.deleted_by = null;
         this.deleted_at = null;
@@ -16,7 +16,9 @@ class ExpenseModel {
         this.created_by = created_by;
         this.description = description;
         this.expense_type_id = expense_type_id;
+        this.company_id = company_id;
     }
+    /** Create a new expense data */
     create() {
         return prisma.expense.create({
             data: {
@@ -26,6 +28,7 @@ class ExpenseModel {
                 created_by: this.created_by,
                 description: this.description,
                 expense_type_id: this.expense_type_id,
+                company_id: this.company_id,
             },
             select: {
                 id: true,
@@ -40,6 +43,7 @@ class ExpenseModel {
             },
         });
     }
+    /** Update expense data */
     update() {
         return prisma.expense.update({
             where: {
@@ -50,9 +54,23 @@ class ExpenseModel {
                 value: this.value,
                 expense_type_id: this.expense_type_id,
                 description: this.description,
-            }
+                company_id: this.company_id,
+            },
+            include: {
+                expense_type: {
+                    select: {
+                        name: true,
+                    },
+                },
+                company: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
         });
     }
+    /** Fetch expense data */
     static fetch(year, month, offset, limit) {
         const date = new Date(year, month, 1, 0, 0, 0, 0);
         const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
@@ -89,6 +107,12 @@ class ExpenseModel {
                 created_at: true,
                 id: true,
                 expense_type: {
+                    select: {
+                        name: true,
+                    },
+                },
+                company_id: true,
+                company: {
                     select: {
                         name: true,
                     },
@@ -180,6 +204,7 @@ class ExpenseModel {
                 value: true,
                 description: true,
                 expense_type_id: true,
+                company_id: true,
                 expense_type: {
                     select: {
                         name: true,
@@ -190,6 +215,11 @@ class ExpenseModel {
                                 description: true,
                             },
                         },
+                    },
+                },
+                company: {
+                    select: {
+                        name: true,
                     },
                 },
             },

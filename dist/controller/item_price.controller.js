@@ -19,6 +19,7 @@ const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const exceljs_1 = __importDefault(require("exceljs"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const express_validator_1 = require("express-validator");
 class ItemPriceController {
 }
 _a = ItemPriceController;
@@ -102,6 +103,10 @@ ItemPriceController.fetch = (req, res) => {
     });
 };
 ItemPriceController.fetchByReference = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const reference = decodeURI(req.params.reference.toString());
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
@@ -137,6 +142,10 @@ ItemPriceController.updatePrice = (req, res) => {
     });
 };
 ItemPriceController.fetchById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     item_price_model_1.default.fetchById(id)
         .then((result) => {

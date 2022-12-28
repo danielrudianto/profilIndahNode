@@ -1,12 +1,20 @@
 import { Router } from "express";
+import { param } from "express-validator";
 import ItemPriceController from "../controller/item_price.controller";
-
 
 const router = Router();
 
-router.get("/getById/:id", ItemPriceController.fetchById);
+router.get(
+  "/getById/:id",
+  param("id").notEmpty().withMessage("Mohon isikan ID barang."),
+  ItemPriceController.fetchById
+);
 router.get("/bulk", ItemPriceController.fetchAll);
-router.get("/:reference", ItemPriceController.fetchByReference);
+router.get(
+  "/:reference",
+  param("reference").notEmpty().withMessage("Mohon isikan referensi barang."),
+  ItemPriceController.fetchByReference
+);
 router.get("/", ItemPriceController.fetch);
 
 router.post("/getXlsx", ItemPriceController.getXlsx);

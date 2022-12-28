@@ -12,11 +12,11 @@ class AdjustmentCaseController {
       req.body.userId,
       req.body.company_id
     );
-    
+
     adjustment_case
       .create()
       .then((result) => {
-        AdjustmentCaseModel.createItems(
+        AdjustmentCaseModel.createMany(
           (req.body.adjustment_case as any[]).map((x) => {
             return {
               ...x,
@@ -45,18 +45,6 @@ class AdjustmentCaseController {
       });
   };
 
-  static generateName = (date: Date) => {
-    return `ADJ-${date.getFullYear()}-${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}`;
-  };
-
   static fetchArchives = (req: Request, res: Response) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
@@ -82,7 +70,7 @@ class AdjustmentCaseController {
         .catch((error) => {
           return res.status(500).send(error);
         });
-    } else if (!req.params.month) {
+    } else if (!req.params.month && req.params.year) {
       const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
       AdjustmentCaseModel.countArchiveByMonth(year)
         .then((counts) => {
@@ -138,13 +126,33 @@ class AdjustmentCaseController {
 
   static fetchCodeById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    AdjustmentCaseModel.fetchCodeById(id).then(result => {
-      return res.status(200).send(result?.adjustment_case_code);
-    }).catch(error => {
-      LogHelper.log(new Date(), 'error', error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
-      return res.status(500).send(error);
-    })
-  }
+    AdjustmentCaseModel.fetchCodeById(id)
+      .then((result) => {
+        return res.status(200).send(result?.adjustment_case_code);
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Adjustment Case Controller - fetchCodeById",
+          req.body.userId
+        );
+        return res.status(500).send(error);
+      });
+  };
+
+  static generateName = (date: Date) => {
+    return `ADJ-${date.getFullYear()}-${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}`;
+  };
 }
 
 export default AdjustmentCaseController;

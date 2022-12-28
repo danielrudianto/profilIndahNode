@@ -16,7 +16,7 @@ AdjustmentCaseController.post = (req, res) => {
     adjustment_case
         .create()
         .then((result) => {
-        adjustment_case_model_1.default.createItems(req.body.adjustment_case.map((x) => {
+        adjustment_case_model_1.default.createMany(req.body.adjustment_case.map((x) => {
             return Object.assign(Object.assign({}, x), { quantity: req.body.type == 0 ? x.quantity : -1 * x.quantity, adjustment_case_code_id: result.id });
         }))
             .then(() => {
@@ -30,9 +30,6 @@ AdjustmentCaseController.post = (req, res) => {
         log_helper_1.default.log(new Date(), "error", error, "Adjustment case controller - Create", req.body.userId);
         return res.status(500).send(error);
     });
-};
-AdjustmentCaseController.generateName = (date) => {
-    return `ADJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
 };
 AdjustmentCaseController.fetchArchives = (req, res) => {
     const year = parseInt(req.params.year);
@@ -58,7 +55,7 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
             return res.status(500).send(error);
         });
     }
-    else if (!req.params.month) {
+    else if (!req.params.month && req.params.year) {
         const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
         adjustment_case_model_1.default.countArchiveByMonth(year)
             .then((counts) => {
@@ -111,11 +108,16 @@ AdjustmentCaseController.fetchById = (req, res) => {
 };
 AdjustmentCaseController.fetchCodeById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    adjustment_case_model_1.default.fetchCodeById(id).then(result => {
+    adjustment_case_model_1.default.fetchCodeById(id)
+        .then((result) => {
         return res.status(200).send(result === null || result === void 0 ? void 0 : result.adjustment_case_code);
-    }).catch(error => {
-        log_helper_1.default.log(new Date(), 'error', error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
+    })
+        .catch((error) => {
+        log_helper_1.default.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
         return res.status(500).send(error);
     });
+};
+AdjustmentCaseController.generateName = (date) => {
+    return `ADJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
 };
 exports.default = AdjustmentCaseController;

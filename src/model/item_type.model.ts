@@ -220,9 +220,22 @@ class ItemTypeModel {
     `);
   }
 
-  static fetchFrequent(type_id: number, start_date: Date, end_date: Date, limit: number){
-    const formatted_start_date = `${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}`;
-    const formatted_end_date = `${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
+  static fetchFrequent(
+    type_id: number,
+    start_date: Date,
+    end_date: Date,
+    limit: number
+  ) {
+    const formatted_start_date = `${start_date.getFullYear()}-${(
+      start_date.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}`;
+    const formatted_end_date = `${end_date.getFullYear()}-${(
+      end_date.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
     return prisma.$queryRawUnsafe(`
       SELECT item.reference, item.description, item_brand.name AS brand_name, item_type.name AS type_name, SUM(bill.quantity * IF(bill.item_unit_id IS NULL, 1, item_unit.conversion)) AS ordered
       FROM bill
@@ -241,33 +254,46 @@ class ItemTypeModel {
     `);
   }
 
-  static fetchById(id: number){
+  static fetchById(id: number) {
     return prisma.item_type.findUnique({
-      where:{
-        id: id
-      }
-    })
+      where: {
+        id: id,
+      },
+    });
   }
 
-  static deleteById(id: number, user_id: number){
+  static deleteById(id: number, user_id: number) {
     return prisma.item_type.update({
       where: {
-        id: id
+        id: id,
       },
       data: {
         is_delete: true,
         deleted_at: new Date(),
-        deleted_by: user_id
+        deleted_by: user_id,
       },
       include: {
         user_item_type_deleted_byTouser: {
           select: {
             id: true,
             name: true,
-          }
-        }
-      }
-    })
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Fetching item type data by IDs (array of ID)
+   */
+  static fetchByIds(id: number[]) {
+    return prisma.item_type.findMany({
+      where: {
+        id: {
+          in: id,
+        },
+      },
+    });
   }
 }
 

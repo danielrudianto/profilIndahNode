@@ -9,18 +9,24 @@ const expense_model_1 = __importDefault(require("../model/expense.model"));
 const expense_type_model_1 = __importDefault(require("../model/expense.type.model"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const express_validator_1 = require("express-validator");
 class ExpenseController {
 }
 ExpenseController.create = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const description = req.body.description;
     const date = new Date(req.body.date);
-    const type_id = req.body.expense_type_id;
+    const expense_type_id = req.body.expense_type_id;
     const value = req.body.value;
-    expense_type_model_1.default.fetchById(type_id).then((type) => {
+    const company_id = req.body.company_id;
+    expense_type_model_1.default.fetchById(expense_type_id).then((type) => {
         if (type == null || type.is_delete) {
             return res.status(404).send("Tipe pengeluaran tidak ditemukan.");
         }
-        const expense = new expense_model_1.default(value, description, date, type_id, req.body.userId);
+        const expense = new expense_model_1.default(value, description, date, expense_type_id, company_id, req.body.userId);
         expense
             .create()
             .then((result) => {
@@ -33,20 +39,32 @@ ExpenseController.create = (req, res) => {
     });
 };
 ExpenseController.update = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = req.body.id;
     const description = req.body.description;
     const date = new Date(req.body.date);
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
-    const expense = new expense_model_1.default(value, description, date, type_id, req.body.userId, id);
-    expense.update().then(result => {
+    const company_id = req.body.company_id;
+    const expense = new expense_model_1.default(value, description, date, type_id, company_id, req.body.userId, id);
+    expense
+        .update()
+        .then((result) => {
         app_1.io.emit("updateExpense", result);
         return res.status(200).send(result);
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };
 ExpenseController.fetch = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const page = !req.query.page
@@ -99,6 +117,10 @@ ExpenseController.itemAutocomplete = (req, res) => {
     });
 };
 ExpenseController.createType = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const name = req.body.name;
     const description = req.body.description;
     const parent_id = req.body.parent_id;
@@ -114,6 +136,10 @@ ExpenseController.createType = (req, res) => {
     });
 };
 ExpenseController.updateType = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const name = req.body.name;
     const description = req.body.description;
     const id = req.body.id;
@@ -130,6 +156,10 @@ ExpenseController.updateType = (req, res) => {
     });
 };
 ExpenseController.deleteType = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     expense_type_model_1.default.fetchById(id)
         .then((expense) => {
@@ -244,6 +274,10 @@ ExpenseController.fetchType = (req, res) => {
     });
 };
 ExpenseController.fetchTypeById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     expense_type_model_1.default.fetchById(id)
         .then((result) => {
@@ -272,26 +306,38 @@ ExpenseController.fetchTypeById = (req, res) => {
     });
 };
 ExpenseController.fetchById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
-    expense_model_1.default.fetchById(id).then(result => {
+    expense_model_1.default.fetchById(id)
+        .then((result) => {
         if (result == null) {
             return res.status(404).send("Pengeluaran tidak ditemukan.");
         }
         else {
             return res.status(200).send(Object.assign(Object.assign({}, result), { value: parseFloat(result.value.toString()) }));
         }
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };
 ExpenseController.deleteById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     const user_id = req.body.userId;
-    expense_model_1.default.deleteById(id, user_id).then(result => {
+    expense_model_1.default.deleteById(id, user_id)
+        .then((result) => {
         const socket = new socket_helper_1.default("deleteExpense", result);
         socket.create();
         return res.status(200).send(result);
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };

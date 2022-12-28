@@ -157,6 +157,7 @@ model company {
   deleted_at                    DateTime?                @db.DateTime(0)
   updated_by                    Int?
   updated_at                    DateTime?                @db.DateTime(0)
+  expense                       expense[]
   user                          user                     @relation("company_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_1")
   user_company_deleted_byTouser user?                    @relation("company_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_2")
   user_company_updated_byTouser user?                    @relation("company_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "company_ibfk_3")
@@ -205,9 +206,11 @@ model expense {
   deleted_by                    Int?
   deleted_at                    DateTime?    @db.DateTime(0)
   expense_type_id               Int
+  company_id                    Int
   user_expense_created_byTouser user         @relation("expense_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_ibfk_1")
   user_expense_deleted_byTouser user?        @relation("expense_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_ibfk_2")
   expense_type                  expense_type @relation(fields: [expense_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_ibfk_3")
+  company                       company      @relation(fields: [company_id], references: [id], onDelete: Restrict, onUpdate: Restrict, map: "expense_ibfk_4")
 
   @@index([created_by], map: "expense_ibfk_1_idx")
   @@index([deleted_by], map: "expense_ibfk_2_idx")

@@ -5,15 +5,22 @@ import ExpenseModel from "../model/expense.model";
 import ExpenseTypeModel from "../model/expense.type.model";
 import LogHelper from "../helper/log.helper";
 import SocketHelper from "../helper/socket.helper";
+import { validationResult } from "express-validator";
 
 class ExpenseController {
   static create = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const description = req.body.description;
     const date = new Date(req.body.date);
-    const type_id = req.body.expense_type_id;
+    const expense_type_id = req.body.expense_type_id;
     const value = req.body.value;
+    const company_id = req.body.company_id;
 
-    ExpenseTypeModel.fetchById(type_id).then((type) => {
+    ExpenseTypeModel.fetchById(expense_type_id).then((type) => {
       if (type == null || type.is_delete) {
         return res.status(404).send("Tipe pengeluaran tidak ditemukan.");
       }
@@ -22,7 +29,8 @@ class ExpenseController {
         value,
         description,
         date,
-        type_id,
+        expense_type_id,
+        company_id,
         req.body.userId
       );
       expense
@@ -38,22 +46,44 @@ class ExpenseController {
   };
 
   static update = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = req.body.id;
     const description = req.body.description;
     const date = new Date(req.body.date);
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
+    const company_id = req.body.company_id;
 
-    const expense = new ExpenseModel(value, description, date, type_id, req.body.userId, id);
-    expense.update().then(result => {
-      io.emit("updateExpense", result);
-      return res.status(200).send(result);
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+    const expense = new ExpenseModel(
+      value,
+      description,
+      date,
+      type_id,
+      company_id,
+      req.body.userId,
+      id
+    );
+    expense
+      .update()
+      .then((result) => {
+        io.emit("updateExpense", result);
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 
   static fetch = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const page = !req.query.page
@@ -109,6 +139,11 @@ class ExpenseController {
   };
 
   static createType = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const name = req.body.name;
     const description = req.body.description;
     const parent_id = req.body.parent_id;
@@ -131,6 +166,11 @@ class ExpenseController {
   };
 
   static updateType = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const name = req.body.name;
     const description = req.body.description;
     const id = req.body.id;
@@ -149,12 +189,23 @@ class ExpenseController {
         return res.status(200).send(result);
       })
       .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Expense Type - Update", req.body.userId);
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Expense Type - Update",
+          req.body.userId
+        );
         return res.status(500).send(error);
       });
   };
 
   static deleteType = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     ExpenseTypeModel.fetchById(id)
       .then((expense) => {
@@ -268,7 +319,13 @@ class ExpenseController {
         return res.status(200).send(expense_type);
       })
       .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Expense Type - Fetch", req.body.userId);
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Expense Type - Fetch",
+          req.body.userId
+        );
         return res.status(500).send(error);
       });
 
@@ -280,6 +337,11 @@ class ExpenseController {
   };
 
   static fetchTypeById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     ExpenseTypeModel.fetchById(id)
       .then((result) => {
@@ -314,35 +376,48 @@ class ExpenseController {
   };
 
   static fetchById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
-    ExpenseModel.fetchById(id).then(result => {
-      if(result == null) {
-        return res.status(404).send("Pengeluaran tidak ditemukan.");
-      } else {
-        return res.status(200).send({
-          ...result,
-          value: parseFloat(result!.value.toString()),
-        });
-      }
-      
-    }).catch(error => {
-      return res.status(500).send(error);
-    });
-  }
+    ExpenseModel.fetchById(id)
+      .then((result) => {
+        if (result == null) {
+          return res.status(404).send("Pengeluaran tidak ditemukan.");
+        } else {
+          return res.status(200).send({
+            ...result,
+            value: parseFloat(result!.value.toString()),
+          });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 
   static deleteById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     const user_id = req.body.userId;
 
-    ExpenseModel.deleteById(id, user_id).then(result => {
-      const socket = new SocketHelper("deleteExpense", result);
-      socket.create();
+    ExpenseModel.deleteById(id, user_id)
+      .then((result) => {
+        const socket = new SocketHelper("deleteExpense", result);
+        socket.create();
 
-      return res.status(200).send(result);
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default ExpenseController;

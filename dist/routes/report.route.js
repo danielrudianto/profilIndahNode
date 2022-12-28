@@ -11,6 +11,7 @@ router.get("/reception/:year/:month/:date", report_controller_1.default.fetchRec
 router.get("/quickStats", report_controller_1.default.fetchQuickStats);
 router.post("/sales", report_controller_1.default.fetchSalesReport);
 router.post("/purchase/download", report_controller_1.default.fetchPurchaseReportDownload);
+router.post("/purchase/detail", report_controller_1.default.fetchPurchaseItemDetail);
 router.post("/purchase", report_controller_1.default.fetchPurchaseReport);
 router.post("/frequent", report_controller_1.default.fetchFrequent);
 exports.default = router;

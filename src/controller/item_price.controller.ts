@@ -6,6 +6,7 @@ import SocketHelper from "../helper/socket.helper";
 import ExcelJS from "exceljs";
 import UserModel from "../model/user.model";
 import LogHelper from "../helper/log.helper";
+import { validationResult } from "express-validator";
 
 class ItemPriceController {
   static createBulk = (req: Request, res: Response) => {
@@ -124,6 +125,11 @@ class ItemPriceController {
   };
 
   static fetchByReference = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+    
     const reference = decodeURI(req.params.reference.toString());
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
@@ -182,6 +188,11 @@ class ItemPriceController {
   };
 
   static fetchById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     ItemPriceModel.fetchById(id)
       .then((result) => {

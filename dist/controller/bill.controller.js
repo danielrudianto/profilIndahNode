@@ -34,6 +34,7 @@ BillController.create = (req, res) => {
         .create()
         .then((result) => {
         Promise.all([
+            // Create bill items
             bill_model_1.default.create(bill.map((x) => {
                 return {
                     item_id: x.item_id,
@@ -44,6 +45,7 @@ BillController.create = (req, res) => {
                     bill_code_id: result.id,
                 };
             })),
+            // Saving item price
             item_price_model_1.default.updateMany(bill.filter((x) => x.save), req.body.userId),
         ])
             .then(() => {
@@ -51,7 +53,6 @@ BillController.create = (req, res) => {
             return res.status(201).send(result);
         })
             .catch((error) => {
-            console.error(error);
             log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
             return res.status(500).send(error);
         });
@@ -210,6 +211,10 @@ BillController.fetchCodeById = (req, res) => {
     });
 };
 BillController.fetchById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     bill_code_model_1.default.fetchById(id)
         .then((result) => {
@@ -244,6 +249,10 @@ BillController.searchArchive = (req, res) => {
     });
 };
 BillController.fetchArchive = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {

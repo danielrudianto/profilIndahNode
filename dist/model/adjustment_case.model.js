@@ -30,7 +30,7 @@ class AdjustmentCaseModel {
             },
         });
     }
-    static createItems(items) {
+    static createMany(items) {
         return prisma.adjustment_case.createMany({
             data: items,
         });

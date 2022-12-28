@@ -4,7 +4,8 @@
   "description": "Backend Node Typescript for Toko Profil Indah project",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest --coverage ./src",
+    "test:watch": "jest --watch",
     "start": "nodemon src/app.ts",
     "pretty": "npx prettier --write \"**/*.ts\"",
     "build": "tsc"
@@ -23,6 +24,7 @@
     "exceljs": "^4.3.0",
     "express": "^4.18.1",
     "express-validator": "^6.14.0",
+    "http-status-codes": "^2.2.0",
     "jsonwebtoken": "^8.5.1",
     "mysql2": "^2.3.3",
     "node-gyp": "^9.0.0",
@@ -30,13 +32,19 @@
     "socket.io": "^4.0.0"
   },
   "devDependencies": {
+    "@babel/preset-typescript": "^7.18.6",
     "@types/bcryptjs": "^2.4.2",
     "@types/cors": "^2.8.12",
+    "@types/jest": "^29.2.4",
     "@types/jsonwebtoken": "^8.5.8",
     "@types/pdfmake": "^0.2.1",
+    "@types/supertest": "^2.0.12",
+    "jest": "^29.3.1",
     "nodemon": "^2.0.16",
     "prettier": "^2.7.1",
     "prisma": "^3.14.0",
+    "supertest": "^6.3.3",
+    "ts-jest": "^29.0.3",
     "typescript": "^4.7.4"
   }
 }

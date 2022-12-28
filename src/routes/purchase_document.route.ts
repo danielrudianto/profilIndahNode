@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { param } from "express-validator";
 import PurchaseDocumentController from "../controller/purchase_document.controller";
 import { administratorMiddleware } from "../helper/auth.helper";
 
@@ -8,10 +9,18 @@ router.get("/unconfirmed", PurchaseDocumentController.fetchUnconfirmed);
 router.get("/:id", PurchaseDocumentController.fetchById);
 
 router.post("/confirm", PurchaseDocumentController.confirm);
-router.post("/confirmUnchanged", administratorMiddleware, PurchaseDocumentController.confirmUnchanged);
+router.post(
+  "/confirmUnchanged",
+  administratorMiddleware,
+  PurchaseDocumentController.confirmUnchanged
+);
 router.post("/", PurchaseDocumentController.create);
 router.put("/", PurchaseDocumentController.update);
 
-router.delete("/:id", PurchaseDocumentController.delete);
+router.delete(
+  "/:id",
+  param("id").notEmpty().withMessage("Mohon isikan ID dokumen pembelian."),
+  PurchaseDocumentController.delete
+);
 
 export default router;

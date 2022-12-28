@@ -116,7 +116,7 @@ class BrandModel {
             }),
         ]);
     }
-    static getAutocomplete(keyword) {
+    static fetchAutocomplete(keyword) {
         return prisma.item_brand.findMany({
             where: {
                 name: {
@@ -126,6 +126,9 @@ class BrandModel {
             },
             skip: 0,
             take: 5,
+            orderBy: {
+                name: "asc",
+            },
         });
     }
     static fetch(keyword, offset, limit) {
@@ -291,8 +294,12 @@ class BrandModel {
     `);
     }
     static fetchFrequent(brand_id, start_date, end_date, limit) {
-        const formatted_start_date = `${start_date.getFullYear()}-${(start_date.getMonth() + 1).toString().padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}`;
-        const formatted_end_date = `${end_date.getFullYear()}-${(end_date.getMonth() + 1).toString().padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
+        const formatted_start_date = `${start_date.getFullYear()}-${(start_date.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}`;
+        const formatted_end_date = `${end_date.getFullYear()}-${(end_date.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
         return prisma.$queryRawUnsafe(`
       SELECT item.reference, item.description, item_brand.name AS brand_name, item_type.name AS type_name, SUM(bill.quantity * IF(bill.item_unit_id IS NULL, 1, item_unit.conversion)) AS ordered
       FROM bill
@@ -309,6 +316,18 @@ class BrandModel {
       ORDER BY ordered DESC
       LIMIT ${limit}
     `);
+    }
+    /**
+     * Fetching brand data by IDs (array of ID)
+     */
+    static fetchByIds(ids) {
+        return prisma.item_brand.findMany({
+            where: {
+                id: {
+                    in: ids
+                }
+            }
+        });
     }
 }
 exports.BrandModel = BrandModel;

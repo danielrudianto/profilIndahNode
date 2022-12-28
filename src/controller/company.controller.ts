@@ -261,14 +261,21 @@ class CompanyController {
   };
 
   static fetchAvailable = (req: Request, res: Response) => {
-    CompanyModel.fetchAvailable().then(result => {
-      return res.status(200).send(result);
-    }).catch(error => {
-      LogHelper.log(new Date(), "error", error, "Company controller - Fetch available", req.body.userId);
-
-      return res.status(500).send(error);
-    })
-  }
+    CompanyModel.fetchAvailable()
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Company controller - Fetch available",
+          req.body.userId
+        );
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default CompanyController;

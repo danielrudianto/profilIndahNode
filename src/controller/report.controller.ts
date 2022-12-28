@@ -8,6 +8,7 @@ import SalesDistributionModel from "../model/sales_distribution.model";
 import path from "path";
 import {
   Alignment,
+  Content,
   Margins,
   PageBreak,
   PageOrientation,
@@ -18,6 +19,7 @@ import { BrandModel } from "../model/brand.model";
 import ItemTypeModel from "../model/item_type.model";
 import SupplierModel from "../model/supplier.model";
 import SalesReturnModel from "../model/sales_return.model";
+import { ItemModel } from "../model/item.model";
 
 var formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -1697,6 +1699,221 @@ class ReportController {
         console.log(error);
         return res.status(500).send(error);
       });
+  };
+
+  static fetchPurchaseItemDetail = (req: Request, res: Response) => {
+    const format = req.body.format;
+    const start = req.body.start;
+    const end = req.body.end;
+    const brand_id = req.body.brand_id as number[];
+    const type_id = req.body.type_id as number[];
+
+    if (format === "PDF") {
+      Promise.all([
+        ItemModel.fetchInputByBrandType(
+          brand_id,
+          type_id,
+          new Date(start),
+          new Date(end)
+        ),
+        BrandModel.fetchByIds(brand_id),
+        ItemTypeModel.fetchByIds(type_id),
+      ])
+        .then((result) => {
+          const fontDescriptors = {
+            Roboto: {
+              normal: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Regular.ttf"
+              ),
+              bold: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Medium.ttf"
+              ),
+              italics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Italic.ttf"
+              ),
+              bolditalics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-MediumItalic.ttf"
+              ),
+            },
+          };
+
+          const printer = new PdfPrinter(fontDescriptors);
+          const content: Content = [];
+
+          content.push({
+            text: "Laporan Pemasukan Barang",
+            bold: true,
+            fontSize: 20,
+            font: "Roboto",
+            alignment: "center" as Alignment,
+            margin: [0, 0, 0, 15] as Margins,
+          });
+
+          brand_id.forEach((brand) => {
+            const brandData = result[1].findIndex((x) => x.id == brand);
+            if (brandData != -1) {
+              content.push({
+                text: `Merek: ${result[1][brandData].name}`,
+                bold: true,
+                fontSize: 14,
+                font: "Roboto",
+                alignment: "center" as Alignment,
+              });
+
+              type_id.forEach((type) => {
+                const typeData = result[2].findIndex((x) => x.id == type);
+                if (typeData != -1) {
+                  content.push({
+                    text: `Tipe: ${result[2][typeData].name}`,
+                    bold: true,
+                    fontSize: 14,
+                    font: "Roboto",
+                    alignment: "left" as Alignment,
+                    margin: [0, 0, 0, 5] as Margins,
+                  });
+
+                  const items = result[0].filter(
+                    (item) =>
+                      item.item.item_brand_id == brand &&
+                      item.item.item_type_id == type
+                  );
+
+                  const itemTable = [];
+
+                  itemTable.push([
+                    {
+                      text: "Tanggal",
+                      bold: true,
+                      alignment: "center" as Alignment,
+                    },
+                    {
+                      text: "Referensi",
+                      bold: true,
+                      alignment: "center" as Alignment,
+                    },
+                    {
+                      text: "Deskripsi",
+                      bold: true,
+                      alignment: "center" as Alignment,
+                    },
+                    {
+                      text: "Jumlah",
+                      bold: true,
+                      alignment: "center" as Alignment,
+                    },
+                  ]);
+
+                  if (items.length > 0) {
+                    items.forEach((item) => {
+                      itemTable.push([
+                        {
+                          text: Intl.DateTimeFormat("en-US").format(
+                            new Date(item.good_receipt_code.date)
+                          ),
+                          bold: false,
+                          alignment: "left" as Alignment,
+                        },
+                        {
+                          text: item.item.reference,
+                          bold: false,
+                          alignment: "left" as Alignment,
+                        },
+                        {
+                          text: item.item.description,
+                          bold: false,
+                          alignment: "left" as Alignment,
+                        },
+                        {
+                          text: `${Intl.NumberFormat().format(
+                            parseFloat(item.quantity.toString())
+                          )} ${
+                            item.item_unit == null
+                              ? item.item.unit
+                              : item.item_unit.unit
+                          }`,
+                          bold: false,
+                          alignemnt: "left" as Alignment,
+                        },
+                      ]);
+                    });
+                  } else {
+                    itemTable.push([
+                      { text: "Barang tidak ditemukan.", colSpan: 4 },
+                      { text: "" },
+                      { text: "" },
+                      { text: "" },
+                    ]);
+                  }
+
+                  content.push({
+                    layout: "lightHorizontalLines",
+                    table: {
+                      headerRows: 1,
+                      widths: ["auto", "auto", "*", "auto"],
+                      body: itemTable,
+                    },
+                    margin: [0, 0, 0, 15] as Margins,
+                    pageBreak: "after" as PageBreak,
+                  });
+                }
+              });
+            }
+          });
+
+          let documentDefinition = {
+            pageSize: "A4" as PageSize,
+            content: content,
+          };
+          const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+
+          let chunks: any[] = [];
+          var pdfResult;
+
+          pdfDocument.on("data", function (chunk: any) {
+            chunks.push(chunk);
+          });
+
+          pdfDocument.on("end", function () {
+            pdfResult = Buffer.concat(chunks);
+            return res.status(200).send({
+              data: `data:application/pdf;base64,${pdfResult.toString(
+                "base64"
+              )}`,
+            });
+          });
+
+          pdfDocument.end();
+        })
+        .catch((error) => {
+          console.log(error);
+          return res.status(500).send(error);
+        });
+    } else if (format === "Excel") {
+      ItemModel.fetchInputByBrandType(
+        brand_id,
+        type_id,
+        new Date(start),
+        new Date(end)
+      )
+        .then((result) => {})
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else {
+      return res.status(400).send("Format tidak ditemukan.");
+    }
   };
 }
 

@@ -24,6 +24,7 @@ const stock_value_helper_1 = __importDefault(require("../helper/stock_value.help
 const brand_model_1 = require("../model/brand.model");
 const item_type_model_1 = __importDefault(require("../model/item_type.model"));
 const supplier_model_1 = __importDefault(require("../model/supplier.model"));
+const item_model_1 = require("../model/item.model");
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
@@ -1480,5 +1481,166 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
         console.log(error);
         return res.status(500).send(error);
     });
+};
+ReportController.fetchPurchaseItemDetail = (req, res) => {
+    const format = req.body.format;
+    const start = req.body.start;
+    const end = req.body.end;
+    const brand_id = req.body.brand_id;
+    const type_id = req.body.type_id;
+    if (format === "PDF") {
+        Promise.all([
+            item_model_1.ItemModel.fetchInputByBrandType(brand_id, type_id, new Date(start), new Date(end)),
+            brand_model_1.BrandModel.fetchByIds(brand_id),
+            item_type_model_1.default.fetchByIds(type_id),
+        ])
+            .then((result) => {
+            const fontDescriptors = {
+                Roboto: {
+                    normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                    bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                    italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                    bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                },
+            };
+            const printer = new pdfmake_1.default(fontDescriptors);
+            const content = [];
+            content.push({
+                text: "Laporan Pemasukan Barang",
+                bold: true,
+                fontSize: 20,
+                font: "Roboto",
+                alignment: "center",
+                margin: [0, 0, 0, 15],
+            });
+            brand_id.forEach((brand) => {
+                const brandData = result[1].findIndex((x) => x.id == brand);
+                if (brandData != -1) {
+                    content.push({
+                        text: `Merek: ${result[1][brandData].name}`,
+                        bold: true,
+                        fontSize: 14,
+                        font: "Roboto",
+                        alignment: "center",
+                    });
+                    type_id.forEach((type) => {
+                        const typeData = result[2].findIndex((x) => x.id == type);
+                        if (typeData != -1) {
+                            content.push({
+                                text: `Tipe: ${result[2][typeData].name}`,
+                                bold: true,
+                                fontSize: 14,
+                                font: "Roboto",
+                                alignment: "left",
+                                margin: [0, 0, 0, 5],
+                            });
+                            const items = result[0].filter((item) => item.item.item_brand_id == brand &&
+                                item.item.item_type_id == type);
+                            const itemTable = [];
+                            itemTable.push([
+                                {
+                                    text: "Tanggal",
+                                    bold: true,
+                                    alignment: "center",
+                                },
+                                {
+                                    text: "Referensi",
+                                    bold: true,
+                                    alignment: "center",
+                                },
+                                {
+                                    text: "Deskripsi",
+                                    bold: true,
+                                    alignment: "center",
+                                },
+                                {
+                                    text: "Jumlah",
+                                    bold: true,
+                                    alignment: "center",
+                                },
+                            ]);
+                            if (items.length > 0) {
+                                items.forEach((item) => {
+                                    itemTable.push([
+                                        {
+                                            text: Intl.DateTimeFormat("en-US").format(new Date(item.good_receipt_code.date)),
+                                            bold: false,
+                                            alignment: "left",
+                                        },
+                                        {
+                                            text: item.item.reference,
+                                            bold: false,
+                                            alignment: "left",
+                                        },
+                                        {
+                                            text: item.item.description,
+                                            bold: false,
+                                            alignment: "left",
+                                        },
+                                        {
+                                            text: `${Intl.NumberFormat().format(parseFloat(item.quantity.toString()))} ${item.item_unit == null
+                                                ? item.item.unit
+                                                : item.item_unit.unit}`,
+                                            bold: false,
+                                            alignemnt: "left",
+                                        },
+                                    ]);
+                                });
+                            }
+                            else {
+                                itemTable.push([
+                                    { text: "Barang tidak ditemukan.", colSpan: 4 },
+                                    { text: "" },
+                                    { text: "" },
+                                    { text: "" },
+                                ]);
+                            }
+                            content.push({
+                                layout: "lightHorizontalLines",
+                                table: {
+                                    headerRows: 1,
+                                    widths: ["auto", "auto", "*", "auto"],
+                                    body: itemTable,
+                                },
+                                margin: [0, 0, 0, 15],
+                                pageBreak: "after",
+                            });
+                        }
+                    });
+                }
+            });
+            let documentDefinition = {
+                pageSize: "A4",
+                content: content,
+            };
+            const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+            let chunks = [];
+            var pdfResult;
+            pdfDocument.on("data", function (chunk) {
+                chunks.push(chunk);
+            });
+            pdfDocument.on("end", function () {
+                pdfResult = Buffer.concat(chunks);
+                return res.status(200).send({
+                    data: `data:application/pdf;base64,${pdfResult.toString("base64")}`,
+                });
+            });
+            pdfDocument.end();
+        })
+            .catch((error) => {
+            console.log(error);
+            return res.status(500).send(error);
+        });
+    }
+    else if (format === "Excel") {
+        item_model_1.ItemModel.fetchInputByBrandType(brand_id, type_id, new Date(start), new Date(end))
+            .then((result) => { })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else {
+        return res.status(400).send("Format tidak ditemukan.");
+    }
 };
 exports.default = ReportController;

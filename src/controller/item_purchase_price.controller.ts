@@ -6,7 +6,7 @@ import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import LogHelper from "../helper/log.helper";
 import ExcelJS from "exceljs";
 import UserModel from "../model/user.model";
-import { Result } from "express-validator";
+import { Result, validationResult } from "express-validator";
 
 class ItemPurchasePriceController {
   static fetchByReference = (req: Request, res: Response) => {
@@ -21,6 +21,11 @@ class ItemPurchasePriceController {
   };
 
   static fetchById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id.toString());
     ItemPurchasePriceModel.fetchById(id)
       .then((result) => {
@@ -137,18 +142,20 @@ class ItemPurchasePriceController {
           item_unit_id
         );
 
-        transactions.push(ItemPurchasePriceModel.delete(item_id, item_unit_id, req.body.userId));
+        transactions.push(
+          ItemPurchasePriceModel.delete(item_id, item_unit_id, req.body.userId)
+        );
         transactions.push(itemPurchasePriceModel.create());
       }
     });
 
-    Promise.all(transactions).then(result => {
-      return res.status(200).send(result);
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-
-    
+    Promise.all(transactions)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static getXlsx = (req: Request, res: Response) => {

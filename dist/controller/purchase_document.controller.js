@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const express_validator_1 = require("express-validator");
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
@@ -223,6 +224,10 @@ PurchaseDocumentController.confirm = (req, res) => {
     });
 };
 PurchaseDocumentController.delete = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     purchase_document_model_1.default.fetchById(id).then((good_receipt_code) => {
         if (good_receipt_code == null ||

@@ -3,15 +3,17 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const express_validator_1 = require("express-validator");
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const brand_model_1 = require("../model/brand.model");
 const item_model_1 = require("../model/item.model");
 class BrandController {
 }
+/** Fetch autocomplete of item brand */
 BrandController.fetchAutocomplete = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    brand_model_1.BrandModel.getAutocomplete(keyword)
+    brand_model_1.BrandModel.fetchAutocomplete(keyword)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -19,7 +21,12 @@ BrandController.fetchAutocomplete = (req, res) => {
         return res.status(500).send(error);
     });
 };
+/** Fetch brand data by ID */
 BrandController.fetchById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     brand_model_1.BrandModel.fetchById(id)
         .then((result) => {
@@ -55,6 +62,7 @@ BrandController.fetch = (req, res) => {
         })
             .catch((error) => {
             log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
+            return res.status(500).send(error);
         });
     })
         .catch((error) => {
@@ -63,8 +71,13 @@ BrandController.fetch = (req, res) => {
     });
 };
 BrandController.create = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const name = req.body.name;
-    brand_model_1.BrandModel.fetchByName(name).then((brand) => {
+    brand_model_1.BrandModel.fetchByName(name)
+        .then((brand) => {
         if (brand != null) {
             return res.status(400).send("Mohon masukkan nama merek unik.");
         }
@@ -83,9 +96,16 @@ BrandController.create = (req, res) => {
                 return res.status(500).send(error);
             });
         }
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
     });
 };
 BrandController.update = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = req.body.id;
     const name = req.body.name;
     brand_model_1.BrandModel.fetchById(id)
@@ -94,8 +114,8 @@ BrandController.update = (req, res) => {
         if (brand == null || brand.is_delete) {
             return res.status(400).send("Data tidak ditemukan.");
         }
-        const update_brand = new brand_model_1.BrandModel(name, brand.created_by, id);
-        update_brand
+        const brandModel = new brand_model_1.BrandModel(name, brand.created_by, id);
+        brandModel
             .update()
             .then((result) => {
             var _a;
@@ -114,6 +134,10 @@ BrandController.update = (req, res) => {
     });
 };
 BrandController.delete = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
     brand_model_1.BrandModel.fetchById(id)
         .then((brand_result) => {
@@ -150,12 +174,14 @@ BrandController.fetchUsed = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     const limit = parseInt((_a = process.env.LIMIT) === null || _a === void 0 ? void 0 : _a.toString());
     const offset = (page - 1) * limit;
-    brand_model_1.BrandModel.fetchUsed(keyword, offset, limit).then(result => {
+    brand_model_1.BrandModel.fetchUsed(keyword, offset, limit)
+        .then((result) => {
         return res.status(200).send({
             data: result[0],
-            count: result[1][0].count
+            count: result[1][0].count,
         });
-    }).catch(error => {
+    })
+        .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);
         return res.status(500).send(error);
     });

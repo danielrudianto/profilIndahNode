@@ -8,8 +8,8 @@ const auth_helper_1 = require("../helper/auth.helper");
 const express_validator_1 = require("express-validator");
 const auth_controller_1 = __importDefault(require("../controller/auth.controller"));
 const router = (0, express_1.Router)();
-router.post("/login", (0, express_validator_1.body)("username").not().isEmpty(), (0, express_validator_1.body)("password").not().isEmpty(), auth_controller_1.default.login);
-router.post("/administratorLogin", auth_controller_1.default.administratorLogin);
+router.post("/login", (0, express_validator_1.body)("username").not().isEmpty().withMessage("Mohon isikan username."), (0, express_validator_1.body)("password").not().isEmpty().withMessage("Mohon isikan password."), auth_controller_1.default.login);
+router.post("/administratorLogin", (0, express_validator_1.body)("username").not().isEmpty().withMessage("Mohon isikan username."), (0, express_validator_1.body)("password").not().isEmpty().withMessage("Mohon isikan password."), auth_controller_1.default.administratorLogin);
 router.get("/", auth_helper_1.authMiddleware, (req, res, next) => {
     res.status(200).send({
         status: "authorized",

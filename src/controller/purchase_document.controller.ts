@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
@@ -318,6 +319,11 @@ class PurchaseDocumentController {
   };
 
   static delete = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     PurchaseDocumentModel.fetchById(id).then((good_receipt_code) => {
       if (

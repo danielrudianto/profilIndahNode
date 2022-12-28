@@ -1,13 +1,15 @@
 import { Request, Response } from "express";
+import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
 import SocketHelper from "../helper/socket.helper";
 import { BrandModel } from "../model/brand.model";
 import { ItemModel } from "../model/item.model";
 
 class BrandController {
+  /** Fetch autocomplete of item brand */
   static fetchAutocomplete = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    BrandModel.getAutocomplete(keyword)
+    BrandModel.fetchAutocomplete(keyword)
       .then((result) => {
         return res.status(200).send(result);
       })
@@ -16,9 +18,13 @@ class BrandController {
       });
   };
 
+  /** Fetch brand data by ID */
   static fetchById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id);
-
     BrandModel.fetchById(id)
       .then((result) => {
         return res.status(200).send({
@@ -70,6 +76,8 @@ class BrandController {
               "Brand - Fetch",
               req.body.userId
             );
+
+            return res.status(500).send(error);
           });
       })
       .catch((error) => {
@@ -86,47 +94,60 @@ class BrandController {
   };
 
   static create = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
     const name = req.body.name;
-    BrandModel.fetchByName(name).then((brand) => {
-      if (brand != null) {
-        return res.status(400).send("Mohon masukkan nama merek unik.");
-      } else {
-        const brand_object = new BrandModel(name, req.body.userId);
-        brand_object
-          .create()
-          .then((brand_result) => {
-            LogHelper.log(
-              brand_result.created_at,
-              "info",
-              `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`,
-              `Brand - Create`,
-              req.body.userId
-            );
+    BrandModel.fetchByName(name)
+      .then((brand) => {
+        if (brand != null) {
+          return res.status(400).send("Mohon masukkan nama merek unik.");
+        } else {
+          const brand_object = new BrandModel(name, req.body.userId);
+          brand_object
+            .create()
+            .then((brand_result) => {
+              LogHelper.log(
+                brand_result.created_at,
+                "info",
+                `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`,
+                `Brand - Create`,
+                req.body.userId
+              );
 
-            const socket = new SocketHelper("createBrand", {
-              ...brand_result,
-              can_delete: true,
+              const socket = new SocketHelper("createBrand", {
+                ...brand_result,
+                can_delete: true,
+              });
+              socket.create();
+
+              return res.status(201).send(brand_result);
+            })
+            .catch((error) => {
+              LogHelper.log(
+                new Date(),
+                "error",
+                `${error}`,
+                `Brand - Create`,
+                req.body.userId
+              );
+
+              return res.status(500).send(error);
             });
-            socket.create();
-
-            return res.status(201).send(brand_result);
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              `${error}`,
-              `Brand - Create`,
-              req.body.userId
-            );
-
-            return res.status(500).send(error);
-          });
-      }
-    });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static update = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+    
     const id = req.body.id;
     const name = req.body.name;
 
@@ -137,8 +158,8 @@ class BrandController {
           return res.status(400).send("Data tidak ditemukan.");
         }
 
-        const update_brand = new BrandModel(name, brand.created_by, id);
-        update_brand
+        const brandModel = new BrandModel(name, brand.created_by, id);
+        brandModel
           .update()
           .then((result) => {
             const socket = new SocketHelper("updateBrand", result);
@@ -172,6 +193,11 @@ class BrandController {
   };
 
   static delete = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     BrandModel.fetchById(id)
       .then((brand_result) => {
@@ -229,16 +255,24 @@ class BrandController {
     const limit = parseInt(process.env.LIMIT?.toString()!);
     const offset = (page - 1) * limit;
 
-    BrandModel.fetchUsed(keyword, offset, limit).then(result => {
-      return res.status(200).send({
-        data: result[0],
-        count: (result[1] as any[])[0].count
+    BrandModel.fetchUsed(keyword, offset, limit)
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0],
+          count: (result[1] as any[])[0].count,
+        });
       })
-    }).catch(error => {
-      LogHelper.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);
-      return res.status(500).send(error);
-    })
-  }
+      .catch((error) => {
+        LogHelper.log(
+          new Date(),
+          "error",
+          error,
+          "Brand Controller - Fetch Used",
+          req.body.userId
+        );
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default BrandController;

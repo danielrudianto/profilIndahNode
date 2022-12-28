@@ -9,6 +9,7 @@ const item_purchase_price_model_1 = __importDefault(require("../model/item_purch
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const exceljs_1 = __importDefault(require("exceljs"));
 const user_model_1 = __importDefault(require("../model/user.model"));
+const express_validator_1 = require("express-validator");
 class ItemPurchasePriceController {
 }
 ItemPurchasePriceController.fetchByReference = (req, res) => {
@@ -22,6 +23,10 @@ ItemPurchasePriceController.fetchByReference = (req, res) => {
     });
 };
 ItemPurchasePriceController.fetchById = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id.toString());
     item_purchase_price_model_1.default.fetchById(id)
         .then((result) => {
@@ -96,9 +101,11 @@ ItemPurchasePriceController.createBulk = (req, res) => {
             transactions.push(itemPurchasePriceModel.create());
         }
     });
-    Promise.all(transactions).then(result => {
+    Promise.all(transactions)
+        .then((result) => {
         return res.status(200).send(result);
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };

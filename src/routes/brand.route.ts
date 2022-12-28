@@ -1,13 +1,31 @@
 import { Router } from "express";
+import { body, param } from "express-validator";
 import BrandController from "../controller/brand.controller";
 const router = Router();
 
 router.get("/autocomplete", BrandController.fetchAutocomplete);
 router.get("/used", BrandController.fetchUsed);
-router.get("/:id", BrandController.fetchById);
+router.get(
+  "/:id",
+  param("id").exists().withMessage("Mohon isikan ID merek barang."),
+  BrandController.fetchById
+);
 router.get("/", BrandController.fetch);
-router.put("/", BrandController.update);
-router.post("/", BrandController.create);
-router.delete("/:id", BrandController.delete);
+router.put(
+  "/",
+  body("id").notEmpty().withMessage("Mohon isikan ID merek barang."),
+  body("name").notEmpty().withMessage("Mohon isikan nama merek barang."),
+  BrandController.update
+);
+router.post(
+  "/",
+  body("name").notEmpty().withMessage("Mohon isikan nama merek barang."),
+  BrandController.create
+);
+router.delete(
+  "/:id",
+  param("id").exists().withMessage("Mohon isikan ID merek barang."),
+  BrandController.delete
+);
 
 export default router;

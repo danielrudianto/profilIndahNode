@@ -49,6 +49,7 @@ class BillController {
       .create()
       .then((result) => {
         Promise.all([
+          // Create bill items
           BillModel.create(
             bill.map((x) => {
               return {
@@ -61,6 +62,7 @@ class BillController {
               };
             })
           ),
+          // Saving item price
           ItemPriceModel.updateMany(
             bill.filter((x) => x.save),
             req.body.userId
@@ -77,7 +79,6 @@ class BillController {
             return res.status(201).send(result);
           })
           .catch((error) => {
-            console.error(error);
             LogHelper.log(
               new Date(),
               "error",
@@ -293,6 +294,11 @@ class BillController {
   };
 
   static fetchById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const id = parseInt(req.params.id);
     BillCodeModel.fetchById(id)
       .then((result) => {
@@ -331,6 +337,11 @@ class BillController {
   };
 
   static fetchArchive = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
 

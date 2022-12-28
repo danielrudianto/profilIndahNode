@@ -358,7 +358,7 @@ class ItemModel {
                                 },
                             },
                         ],
-                    }
+                    },
                 }),
                 prisma.item.findMany({
                     where: {
@@ -406,7 +406,7 @@ class ItemModel {
                                 },
                             },
                         ],
-                    }
+                    },
                 }),
             ]);
         }
@@ -1498,6 +1498,86 @@ class ItemModel {
                     },
                 },
             },
+        });
+    }
+    static fetchInputByBrandType(brand_id, type_id, startDate, endDate) {
+        const formatted_start_date = `${startDate.getFullYear().toString()}-${(startDate.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${startDate.getDate().toString().padStart(2, "0")}`;
+        const formatted_end_date = `${endDate.getFullYear().toString()}-${(endDate.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${endDate.getDate().toString().padStart(2, "0")}`;
+        return prisma.good_receipt.findMany({
+            where: {
+                AND: [
+                    {
+                        good_receipt_code: {
+                            date: {
+                                gte: new Date(formatted_start_date),
+                            },
+                        },
+                    },
+                    {
+                        good_receipt_code: {
+                            date: {
+                                lte: new Date(formatted_end_date),
+                            },
+                        },
+                    },
+                    {
+                        good_receipt_code: {
+                            is_confirm: true,
+                        },
+                    },
+                ],
+                item: {
+                    item_brand_id: {
+                        in: brand_id,
+                    },
+                    item_type_id: {
+                        in: type_id,
+                    },
+                },
+            },
+            select: {
+                quantity: true,
+                item_unit: {
+                    select: {
+                        unit: true,
+                        conversion: true,
+                    },
+                },
+                good_receipt_code: {
+                    select: {
+                        date: true,
+                    },
+                },
+                item: {
+                    select: {
+                        unit: true,
+                        item_brand_id: true,
+                        item_type_id: true,
+                        id: true,
+                        reference: true,
+                        description: true,
+                        item_brand: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        item_type: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
+                },
+            },
+            orderBy: {
+                good_receipt_code: {
+                    date: "asc",
+                }
+            }
         });
     }
 }
