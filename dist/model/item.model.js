@@ -359,8 +359,10 @@ class ItemModel {
                             },
                         ],
                     },
+                    take: limit,
+                    skip: offset,
                 }),
-                prisma.item.findMany({
+                prisma.item.count({
                     where: {
                         is_delete: false,
                         is_active: true,
