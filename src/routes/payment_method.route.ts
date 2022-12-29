@@ -1,39 +1,33 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
+import ErrorList from "../assets/error_list";
 import PaymentMethodController from "../controller/payment_method.controller";
+import { administratorMiddleware } from "../helper/auth.helper";
 
 const router = Router();
 
 router.get("/autocomplete", PaymentMethodController.fetchAutocomplete);
-router.get("/:id", PaymentMethodController.fetchById);
+router.get(
+  "/:id",
+  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  PaymentMethodController.fetchById
+);
 router.get("/", PaymentMethodController.fetch);
 router.post(
   "/",
-  body("name")
-    .not()
-    .isEmpty()
-    .withMessage("Mohon isikan nama metode pembayaran."),
-  body("description")
-    .not()
-    .isEmpty()
-    .withMessage("Mohon isikan deskripsi metode pembayaran."),
+  body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
+  body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   PaymentMethodController.submit
 );
 
 router.put(
   "/",
-  body("id").not().isEmpty().withMessage("Mohon isikan ID metode pembayaran."),
-  body("name")
-    .not()
-    .isEmpty()
-    .withMessage("Mohon isikan nama metode pembayaran."),
-  body("description")
-    .not()
-    .isEmpty()
-    .withMessage("Mohon isikan deskripsi metode pembayaran."),
+  body("id").not().isEmpty().withMessage(ErrorList["Parameter error"]),
+  body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
+  body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   PaymentMethodController.update
 );
 
-router.delete("/:id", PaymentMethodController.delete);
+router.delete("/:id", administratorMiddleware, PaymentMethodController.delete);
 
 export default router;

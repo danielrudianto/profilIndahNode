@@ -4,13 +4,13 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
 const purchase_document_model_1 = __importDefault(require("../model/purchase_document.model"));
 const supplier_model_1 = __importDefault(require("../model/supplier.model"));
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class GoodReceiptController {
 }
 GoodReceiptController.create = (req, res) => {
@@ -22,14 +22,13 @@ GoodReceiptController.create = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const company_validation = company_model_1.default.fetchById(company_id);
-    const supplier_validation = supplier_model_1.default.fetchById(supplier_id);
-    const transaction_validation = new query_transaction_helper_1.default();
-    transaction_validation
-        .create([company_validation, supplier_validation])
+    Promise.all([
+        company_model_1.default.fetchById(company_id),
+        supplier_model_1.default.fetchById(supplier_id),
+    ])
         .then((validation) => {
-        if (validation[0] == null ||
-            validation[1] == null ||
+        if (!validation[0] ||
+            !validation[1] ||
             validation[0].is_delete ||
             validation[1].is_delete) {
             return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
@@ -101,11 +100,10 @@ GoodReceiptController.fetchArchive = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-        const archive_years = good_receipt_model_1.default.fetchArchiveYears();
-        const count_archive_years = good_receipt_model_1.default.countArchiveByYear();
-        const transaction = new query_transaction_helper_1.default();
-        transaction
-            .create([archive_years, count_archive_years])
+        Promise.all([
+            good_receipt_model_1.default.fetchArchiveYears(),
+            good_receipt_model_1.default.countArchiveByYear(),
+        ])
             .then((result) => {
             const response = [];
             result[0].forEach((item) => {
@@ -142,9 +140,7 @@ GoodReceiptController.fetchArchive = (req, res) => {
             : Math.max(parseInt(req.query.page.toString()), 1);
         const limit = parseInt(process.env.LIMIT.toString());
         const offset = (page - 1) * limit;
-        const transaction = new query_transaction_helper_1.default();
-        transaction
-            .create([
+        Promise.all([
             good_receipt_model_1.default.fetchArchive(year, month, offset, limit),
             good_receipt_model_1.default.countArchive(year, month),
         ])
@@ -163,13 +159,28 @@ GoodReceiptController.fetchArchive = (req, res) => {
     }
 };
 GoodReceiptController.fetchCodeById = (req, res) => {
-    const id = parseInt(req.params.id.toString());
-    good_receipt_model_1.default.fetchCodeById(id)
-        .then((result) => {
-        return res.status(200).send(result === null || result === void 0 ? void 0 : result.good_receipt_code);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+    try {
+        const id = parseInt(req.params.id.toString());
+        good_receipt_model_1.default.fetchCodeById(id)
+            .then((result) => {
+            if (!result) {
+                return res.status(404).send(error_list_1.default["Not found"]);
+            }
+            else {
+                return res.status(200).send(result.good_receipt_code);
+            }
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 exports.default = GoodReceiptController;

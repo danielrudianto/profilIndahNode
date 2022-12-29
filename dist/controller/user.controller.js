@@ -4,6 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcryptjs_1 = require("bcryptjs");
+const express_validator_1 = require("express-validator");
+const error_list_1 = __importDefault(require("../assets/error_list"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const user_model_1 = __importDefault(require("../model/user.model"));
@@ -76,18 +78,32 @@ UserController.create = (req, res) => {
     });
 };
 UserController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id);
-    user_model_1.default.fetchById(id)
-        .then((user) => {
-        if (user == null) {
-            return res.status(404).send("Pengguna tidak ditemukan.");
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
+    try {
+        const id = parseInt(req.params.id);
+        user_model_1.default.fetchById(id)
+            .then((user) => {
+            if (user == null) {
+                return res.status(404).send("Pengguna tidak ditemukan.");
+            }
+            const response = Object.assign(Object.assign({}, user), { role: user_model_1.default.roles.filter((y) => { var _a; return y.id == ((_a = user.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0].name });
+            return res.status(200).send(response);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
         }
-        const response = Object.assign(Object.assign({}, user), { role: user_model_1.default.roles.filter((y) => { var _a; return y.id == ((_a = user.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0].name });
-        return res.status(200).send(response);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 UserController.fetch = (req, res) => {
     var _a, _b;
@@ -159,33 +175,45 @@ UserController.update = (req, res) => {
     }
 };
 UserController.toggleActive = (req, res) => {
-    const id = parseInt(req.params.id);
-    user_model_1.default.fetchById(id)
-        .then((user) => {
-        if (user == null) {
-            return res.status(404).send("Pengguna tidak ditemukan.");
-        }
-        user_model_1.default.delete(user.id, !user.is_active, req.body.userId)
-            .then((user_delete) => {
-            var _a;
-            // If user was active and no longer active
-            // Log him / her out from our system immidiately
-            if (user.is_active) {
-                log_helper_1.default.log(new Date(), "info", `${(_a = user_delete.user_userTouser_deleted_by) === null || _a === void 0 ? void 0 : _a.name} deleted user with username ${user_delete.username} (ID: ${user_delete.id})`, "User - Delete", req.body.userId);
-                const socket = new socket_helper_1.default("deleteUser", user_delete);
-                socket.create();
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
+    try {
+        const id = parseInt(req.params.id);
+        user_model_1.default.fetchById(id)
+            .then((user) => {
+            if (user == null) {
+                return res.status(404).send("Pengguna tidak ditemukan.");
             }
-            return res.status(201).send(user_delete);
+            user_model_1.default.delete(user.id, !user.is_active, req.body.userId)
+                .then((user_delete) => {
+                var _a;
+                // If user was active and no longer active
+                // Log him / her out from our system immidiately
+                if (user.is_active) {
+                    log_helper_1.default.log(new Date(), "info", `${(_a = user_delete.user_userTouser_deleted_by) === null || _a === void 0 ? void 0 : _a.name} deleted user with username ${user_delete.username} (ID: ${user_delete.id})`, "User - Delete", req.body.userId);
+                    const socket = new socket_helper_1.default("deleteUser", user_delete);
+                    socket.create();
+                }
+                return res.status(201).send(user_delete);
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "User - Delete", req.body.userId);
             return res.status(500).send(error);
         });
-    })
-        .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "User - Delete", req.body.userId);
-        return res.status(500).send(error);
-    });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 UserController.changePassword = (req, res) => {
     const password = req.body.password;

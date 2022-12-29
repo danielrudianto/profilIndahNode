@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../app";
 import ExpenseModel from "../model/expense.model";
 import ExpenseTypeModel from "../model/expense.type.model";
@@ -92,11 +91,10 @@ class ExpenseController {
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
 
-    const expense = ExpenseModel.fetch(year, month, offset, limit);
-    const count = ExpenseModel.count(year, month);
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([expense, count])
+    Promise.all([
+      ExpenseModel.fetch(year, month, offset, limit),
+      ExpenseModel.count(year, month),
+    ])
       .then((result) => {
         return res.status(200).send({
           data: result[0],
@@ -278,9 +276,7 @@ class ExpenseController {
     const fetch_expenses_children = ExpenseTypeModel.fetchChild();
     const fetch_expense_count = ExpenseModel.countByTypeGroup();
 
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([fetch_expenses, fetch_expenses_children, fetch_expense_count])
+    Promise.all([fetch_expenses, fetch_expenses_children, fetch_expense_count])
       .then((result) => {
         const expense_type: any[] = [];
         (result[0] as any[]).forEach((item, index) => {

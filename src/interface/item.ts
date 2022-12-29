@@ -1,3 +1,4 @@
+import { item_type } from "@prisma/client";
 import { bill } from "./bill";
 import { item_brand } from "./brand";
 import { purchase_order } from "./purchase_order";
@@ -8,10 +9,12 @@ export interface item {
   reference: string;
   description: string;
   item_brand_id?: number;
+  item_type_id?: number;
   created_by?: number;
   created_at?: Date;
 
   item_brand?: item_brand;
+  item_type?: item_type;
   user?: user;
   bill?: bill[];
   user_item_deleted_byTouser?: user;

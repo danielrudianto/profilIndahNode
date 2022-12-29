@@ -53,3 +53,21 @@ Thu Dec 29 2022 10:47:27 GMT+0700 (Indochina Time); warn; Login failed for usern
 Thu Dec 29 2022 11:34:29 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.purchase_invoice.create()` invocation in,D:\Repos\profilIndahNode\src\model\purchase_document.model.ts:51:36,,  48 },  49 ,  50 create() {,→ 51   return prisma.purchase_invoice.create(,  The column `faktur` does not exist in the current database.; Good Receipt - Create; 1
 Thu Dec 29 2022 11:34:51 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.purchase_invoice.create()` invocation in,D:\Repos\profilIndahNode\src\model\purchase_document.model.ts:51:36,,  48 },  49 ,  50 create() {,→ 51   return prisma.purchase_invoice.create(,  The column `faktur` does not exist in the current database.; Good Receipt - Create; 1
 Thu Dec 29 2022 11:40:25 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 16) dari Test (ID: 16) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
+Thu Dec 29 2022 15:32:17 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 15:32:17 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 15:35:21 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 15:35:21 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 15:36:35 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 15:36:35 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 15:37:52 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 15:37:52 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 15:40:54 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 15:40:54 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 15:48:11 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 15:48:11 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 16:46:58 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 16:46:58 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 16:48:05 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 16:48:05 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Thu Dec 29 2022 16:48:48 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Dec 29 2022 16:48:48 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0

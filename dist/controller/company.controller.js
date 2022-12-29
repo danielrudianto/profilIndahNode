@@ -4,10 +4,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const app_1 = require("../app");
 const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class CompanyController {
 }
 CompanyController.fetch = (req, res) => {
@@ -131,7 +131,6 @@ CompanyController.create = (req, res) => {
     company
         .create()
         .then((result) => {
-        log_helper_1.default.log(result.created_at, "info", `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`, "Company - Create", req.body.userId);
         app_1.io.emit("createCompany", Object.assign(Object.assign({}, result), { can_delete: true }));
         return res.status(201).send(result);
     })
@@ -141,17 +140,32 @@ CompanyController.create = (req, res) => {
     });
 };
 CompanyController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id);
-    const transaction = new query_transaction_helper_1.default();
-    transaction
-        .create([company_model_1.default.fetchById(id), company_model_1.default.checkDeleteById(id)])
-        .then((result) => {
-        return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
-    })
-        .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Company - Fetch by ID", req.body.userId);
-        return res.status(500).send(error);
-    });
+    try {
+        const id = parseInt(req.params.id);
+        Promise.all([
+            company_model_1.default.fetchById(id),
+            company_model_1.default.checkDeleteById(id),
+        ])
+            .then((result) => {
+            if (!result[0]) {
+                return res.status(404).send(error_list_1.default["Not found"]);
+            }
+            else {
+                return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
+            }
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 CompanyController.fetchAvailable = (req, res) => {
     company_model_1.default.fetchAvailable()
@@ -159,7 +173,6 @@ CompanyController.fetchAvailable = (req, res) => {
         return res.status(200).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Company controller - Fetch available", req.body.userId);
         return res.status(500).send(error);
     });
 };

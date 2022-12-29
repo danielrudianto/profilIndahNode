@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../app";
 import SocketHelper from "../helper/socket.helper";
 import CompanyModel from "../model/company.model";
@@ -8,6 +7,7 @@ import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import PurchaseDocumentModel from "../model/purchase_document.model";
 import SupplierModel from "../model/supplier.model";
+import ErrorList from "../assets/error_list";
 
 class GoodReceiptController {
   static create = (req: Request, res: Response) => {
@@ -21,16 +21,14 @@ class GoodReceiptController {
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
 
-    const company_validation = CompanyModel.fetchById(company_id);
-    const supplier_validation = SupplierModel.fetchById(supplier_id);
-
-    const transaction_validation = new QueryTransactionHelper();
-    transaction_validation
-      .create([company_validation, supplier_validation])
+    Promise.all([
+      CompanyModel.fetchById(company_id),
+      SupplierModel.fetchById(supplier_id),
+    ])
       .then((validation) => {
         if (
-          validation[0] == null ||
-          validation[1] == null ||
+          !validation[0] ||
+          !validation[1] ||
           validation[0].is_delete ||
           validation[1].is_delete
         ) {
@@ -153,12 +151,10 @@ class GoodReceiptController {
     const month = parseInt(req.params.month);
 
     if (!req.params.year && !req.params.month) {
-      const archive_years = GoodReceiptModel.fetchArchiveYears();
-      const count_archive_years = GoodReceiptModel.countArchiveByYear();
-
-      const transaction = new QueryTransactionHelper();
-      transaction
-        .create([archive_years, count_archive_years])
+      Promise.all([
+        GoodReceiptModel.fetchArchiveYears(),
+        GoodReceiptModel.countArchiveByYear(),
+      ])
         .then((result) => {
           const response: any[] = [];
           (result[0] as any[]).forEach((item) => {
@@ -197,12 +193,10 @@ class GoodReceiptController {
       const limit = parseInt(process.env.LIMIT!.toString());
       const offset = (page - 1) * limit;
 
-      const transaction = new QueryTransactionHelper();
-      transaction
-        .create([
-          GoodReceiptModel.fetchArchive(year, month, offset, limit),
-          GoodReceiptModel.countArchive(year, month),
-        ])
+      Promise.all([
+        GoodReceiptModel.fetchArchive(year, month, offset, limit),
+        GoodReceiptModel.countArchive(year, month),
+      ])
         .then((result) => {
           return res.status(200).send({
             data: result[0],
@@ -218,14 +212,26 @@ class GoodReceiptController {
   };
 
   static fetchCodeById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id.toString());
-    GoodReceiptModel.fetchCodeById(id)
-      .then((result) => {
-        return res.status(200).send(result?.good_receipt_code);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    try {
+      const id = parseInt(req.params.id.toString());
+      GoodReceiptModel.fetchCodeById(id)
+        .then((result) => {
+          if (!result) {
+            return res.status(404).send(ErrorList["Not found"]);
+          } else {
+            return res.status(200).send(result.good_receipt_code);
+          }
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 }
 

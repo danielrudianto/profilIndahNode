@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import BillCodeModel from "../model/bill_code.model";
 import BillModel from "../model/bill_code.model";
@@ -253,9 +252,7 @@ class CustomerController {
     }
 
     const id = parseInt(req.params.id);
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([CustomerModel.fetchById(id), BillModel.countByCustomerId(id)])
+    Promise.all([CustomerModel.fetchById(id), BillModel.countByCustomerId(id)])
       .then((result) => {
         return res.status(200).send({
           ...result[0],
@@ -273,16 +270,17 @@ class CustomerController {
       CustomerModel.fetchById(id),
       BillCodeModel.fetchByCustomerId(id),
     ])
-    .then(result => {
-      return res.status(200).send({
-        customer: result[0],
-        value: (result[1] as any[])[0].value,
-        count: (result[1] as any[])[0].count,
+      .then((result) => {
+        return res.status(200).send({
+          customer: result[0],
+          value: (result[1] as any[])[0].value,
+          count: (result[1] as any[])[0].count,
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
       });
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+  };
 }
 
 export default CustomerController;

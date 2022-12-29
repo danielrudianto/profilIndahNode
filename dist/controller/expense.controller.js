@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const app_1 = require("../app");
 const expense_model_1 = __importDefault(require("../model/expense.model"));
 const expense_type_model_1 = __importDefault(require("../model/expense.type.model"));
@@ -72,11 +71,10 @@ ExpenseController.fetch = (req, res) => {
         : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    const expense = expense_model_1.default.fetch(year, month, offset, limit);
-    const count = expense_model_1.default.count(year, month);
-    const transaction = new query_transaction_helper_1.default();
-    transaction
-        .create([expense, count])
+    Promise.all([
+        expense_model_1.default.fetch(year, month, offset, limit),
+        expense_model_1.default.count(year, month),
+    ])
         .then((result) => {
         return res.status(200).send({
             data: result[0],
@@ -228,9 +226,7 @@ ExpenseController.fetchType = (req, res) => {
     const fetch_expenses = expense_type_model_1.default.fetch(parent_id);
     const fetch_expenses_children = expense_type_model_1.default.fetchChild();
     const fetch_expense_count = expense_model_1.default.countByTypeGroup();
-    const transaction = new query_transaction_helper_1.default();
-    transaction
-        .create([fetch_expenses, fetch_expenses_children, fetch_expense_count])
+    Promise.all([fetch_expenses, fetch_expenses_children, fetch_expense_count])
         .then((result) => {
         const expense_type = [];
         result[0].forEach((item, index) => {

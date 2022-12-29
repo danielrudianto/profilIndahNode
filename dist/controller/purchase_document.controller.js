@@ -4,8 +4,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_validator_1 = require("express-validator");
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
@@ -34,12 +32,11 @@ PurchaseDocumentController.update = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = (purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
-    const company_validation = company_model_1.default.fetchById(company_id);
-    const supplier_validation = supplier_model_1.default.fetchById(supplier_id);
-    const transaction_validation = new query_transaction_helper_1.default();
-    transaction_validation
-        .create([company_validation, supplier_validation])
+    const faktur = purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
+    Promise.all([
+        company_model_1.default.fetchById(company_id),
+        supplier_model_1.default.fetchById(supplier_id),
+    ])
         .then((validation) => {
         if (validation[0] == null ||
             validation[1] == null ||
@@ -104,12 +101,11 @@ PurchaseDocumentController.create = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = (purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
-    const company_validation = company_model_1.default.fetchById(company_id);
-    const supplier_validation = supplier_model_1.default.fetchById(supplier_id);
-    const transaction_validation = new query_transaction_helper_1.default();
-    transaction_validation
-        .create([company_validation, supplier_validation])
+    const faktur = purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
+    Promise.all([
+        company_model_1.default.fetchById(company_id),
+        supplier_model_1.default.fetchById(supplier_id),
+    ])
         .then((validation) => {
         if (validation[0] == null ||
             validation[1] == null ||
@@ -117,57 +113,46 @@ PurchaseDocumentController.create = (req, res) => {
             validation[1].is_delete) {
             return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
         }
-        const good_receipt = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
-        good_receipt
-            .create()
-            .then((good_receipt_result) => {
-            const transactions = [];
-            const transaction = new query_transaction_helper_1.default();
-            transaction.create(transactions).then((result) => {
-                const good_receipt_items_input = [];
-                const good_receipt_items_price = [];
-                for (let idx = 0; idx < good_receipt_items.length; idx++) {
-                    good_receipt_items_input.push({
-                        item_id: good_receipt_items[idx].item_id,
-                        quantity: good_receipt_items[idx].quantity,
-                        good_receipt_code_id: good_receipt_result.id,
-                        price: good_receipt_items[idx].price,
-                        item_unit_id: good_receipt_items[idx].item_unit_id,
-                    });
-                    if (good_receipt_items[idx].save == true) {
-                        const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId);
-                        good_receipt_items_price.push(purchase_price);
-                    }
+        const good_receipt_code = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
+        good_receipt_code.create().then((good_receipt_result) => {
+            const good_receipt = [];
+            const good_receipt_price = [];
+            for (let idx = 0; idx < good_receipt_items.length; idx++) {
+                good_receipt.push({
+                    item_id: good_receipt_items[idx].item_id,
+                    quantity: good_receipt_items[idx].quantity,
+                    good_receipt_code_id: good_receipt_result.id,
+                    price: good_receipt_items[idx].price,
+                    item_unit_id: good_receipt_items[idx].item_unit_id,
+                });
+                if (good_receipt_items[idx].save == true) {
+                    const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId);
+                    good_receipt_price.push(purchase_price);
                 }
-                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, faktur, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
-                Promise.all([
-                    good_receipt_model_1.default.insertItems(good_receipt_items_input),
-                    item_purchase_price_model_1.default.insertItems(good_receipt_items_price),
-                    purchase_document.create(),
-                ])
-                    .then(() => {
-                    const socket = new socket_helper_1.default("createGoodReceipt", {
-                        supplier_id: good_receipt_result.supplier_id,
-                        company_id: good_receipt_result.company_id,
-                    });
-                    socket.create();
-                    good_receipt_model_1.default.fetchById(good_receipt_result.id)
-                        .then((item) => {
-                        return res.status(201).send(item);
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
-                    });
+            }
+            const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, faktur, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
+            Promise.all([
+                good_receipt_model_1.default.insertItems(good_receipt),
+                item_purchase_price_model_1.default.insertItems(good_receipt_price),
+                purchase_document.create(),
+            ])
+                .then(() => {
+                const socket = new socket_helper_1.default("createGoodReceipt", {
+                    supplier_id: good_receipt_result.supplier_id,
+                    company_id: good_receipt_result.company_id,
+                });
+                socket.create();
+                good_receipt_model_1.default.fetchById(good_receipt_result.id)
+                    .then((item) => {
+                    return res.status(201).send(item);
                 })
                     .catch((error) => {
-                    log_helper_1.default.log(new Date(), "error", error, "Purchase Document - Create", req.body.userId);
                     return res.status(500).send(error);
                 });
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
             });
-        })
-            .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Purchase Document Controller - Create", req.body.userId);
-            return res.status(500).send(error);
         });
     })
         .catch((error) => {

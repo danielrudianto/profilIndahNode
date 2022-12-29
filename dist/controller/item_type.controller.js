@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+const error_list_1 = __importDefault(require("../assets/error_list"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const item_type_model_1 = __importDefault(require("../model/item_type.model"));
@@ -63,14 +64,29 @@ ItemTypeController.updateItem = (req, res) => {
     });
 };
 ItemTypeController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id.toString());
-    item_type_model_1.default.fetchItemById(id)
-        .then((result) => {
-        return res.status(200).send(Object.assign(Object.assign({}, result), { can_delete: (result === null || result === void 0 ? void 0 : result.item.length) == 0 }));
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+    try {
+        const id = parseInt(req.params.id.toString());
+        item_type_model_1.default.fetchItemById(id)
+            .then((result) => {
+            if (!result) {
+                return res.status(404).send(error_list_1.default["Not found"]);
+            }
+            else {
+                return res.status(200).send(Object.assign(Object.assign({}, result), { can_delete: result.item.length == 0 }));
+            }
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 ItemTypeController.fetchAutocomplete = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
@@ -84,57 +100,85 @@ ItemTypeController.fetchAutocomplete = (req, res) => {
 };
 ItemTypeController.fetchByBrandId = (req, res) => {
     if (typeof req.body.ids === "string") {
-        const ids = JSON.parse(req.body.ids.toString().replace("'", "").replace('"', ""));
-        item_type_model_1.default.fetchByBrandIds(ids)
-            .then((result) => {
-            return res.status(200).send(result);
-        })
-            .catch((error) => {
-            console.error(error);
-            return res.status(500).send(error);
-        });
-    }
-    else {
-        const ids = req.body.ids;
-        item_type_model_1.default.fetchByBrandIds(ids)
-            .then((result) => {
-            return res.status(200).send(result);
-        })
-            .catch((error) => {
-            console.error(error);
-            return res.status(500).send(error);
-        });
-    }
-};
-ItemTypeController.deleteItem = (req, res) => {
-    const id = parseInt(req.params.id);
-    item_type_model_1.default.fetchItemById(id)
-        .then((itemType) => {
-        if (itemType == null || itemType.is_delete) {
-            return res.status(404).send("Data tidak ditemukan.");
-        }
-        else if ((itemType === null || itemType === void 0 ? void 0 : itemType.item.length) == 0) {
-            // Can delete
-            item_type_model_1.default.deleteById(id, req.body.userId)
+        try {
+            const ids = JSON.parse(req.body.ids.toString().replace("'", "").replace('"', ""));
+            item_type_model_1.default.fetchByBrandIds(ids)
                 .then((result) => {
-                var _a;
-                const socket = new socket_helper_1.default("deleteItemType", result);
-                socket.create();
-                log_helper_1.default.log(new Date(), "Info", `${(_a = result.user_item_type_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`, "ItemTypeController - Delete by Id", req.body.userId);
                 return res.status(200).send(result);
             })
                 .catch((error) => {
                 return res.status(500).send(error);
             });
         }
-        else {
-            return res
-                .status(400)
-                .send("Tidak dapat menghapus data. Mohon pastikan tidak ada barang yang menggunakan tipe ini.");
+        catch (err) {
+            if (err instanceof Error) {
+                return res.status(500).send(err);
+            }
+            else {
+                return res.status(500).send(error_list_1.default["Unknown error"]);
+            }
         }
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+    }
+    else {
+        try {
+            const ids = req.body.ids;
+            item_type_model_1.default.fetchByBrandIds(ids)
+                .then((result) => {
+                return res.status(200).send(result);
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
+        }
+        catch (err) {
+            if (err instanceof Error) {
+                return res.status(500).send(err);
+            }
+            else {
+                return res.status(500).send(error_list_1.default["Unknown error"]);
+            }
+        }
+    }
+};
+ItemTypeController.deleteItem = (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        item_type_model_1.default.fetchItemById(id)
+            .then((itemType) => {
+            if (itemType == null || itemType.is_delete) {
+                return res.status(404).send("Data tidak ditemukan.");
+            }
+            else if ((itemType === null || itemType === void 0 ? void 0 : itemType.item.length) == 0) {
+                // Can delete
+                item_type_model_1.default.deleteById(id, req.body.userId)
+                    .then((result) => {
+                    var _a;
+                    const socket = new socket_helper_1.default("deleteItemType", result);
+                    socket.create();
+                    log_helper_1.default.log(new Date(), "Info", `${(_a = result.user_item_type_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`, "ItemTypeController - Delete by Id", req.body.userId);
+                    return res.status(200).send(result);
+                })
+                    .catch((error) => {
+                    return res.status(500).send(error);
+                });
+            }
+            else {
+                return res
+                    .status(400)
+                    .send("Tidak dapat menghapus data. Mohon pastikan tidak ada barang yang menggunakan tipe ini.");
+            }
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 exports.default = ItemTypeController;

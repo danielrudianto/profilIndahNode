@@ -12,113 +12,142 @@ const express_validator_1 = require("express-validator");
 const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper"));
 const item_unit_model_1 = __importDefault(require("../model/item_unit.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class ItemController {
 }
 ItemController.create = (req, res) => {
-    const reference = req.body.reference;
-    const description = req.body.description;
-    const brand_id = req.body.brand;
-    const type_id = req.body.type;
-    const minimum_stock = req.body.minimum_stock;
-    const user_id = req.body.userId;
-    const unit = req.body.unit;
-    const units = req.body.units;
-    item_model_1.ItemModel.fetchByReference(reference)
-        .then((itemCheck) => {
-        // There is an item exist with the same reference
-        if (itemCheck != null) {
-            return res.status(400).send("Referensi tidak unik.");
-        }
-        const item = new item_model_1.ItemModel(reference, description, minimum_stock, brand_id, type_id, user_id, unit);
-        item
-            .create()
-            .then((result) => {
-            log_helper_1.default.log(new Date(), "info", `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-            const item_units = item_unit_model_1.default.createMany(units, result.id, req.body.userId);
-            const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, req.body.userId);
-            const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, req.body.userId, null);
-            Promise.all([
-                item_price.create(),
-                item_purchase_price.create(),
-                item_model_1.ItemModel.count(),
-                item_units,
-            ])
-                .then((item_price) => {
-                const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
-                log_helper_1.default.log(new Date(), "info", `${result.user.name} created item unit for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-                log_helper_1.default.log(new Date(), "info", `${result.user.name} created item sales price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-                log_helper_1.default.log(new Date(), "info", `${result.user.name} created item purchase price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-                const itemSocket = new socket_helper_1.default("createItem", item_object);
-                itemSocket.create();
-                item_model_1.ItemModel.countByBrandId(brand_id)
-                    .then((count_brand) => {
-                    const itemSocket = new socket_helper_1.default("createItemBrand", {
-                        brand_id: brand_id,
-                        can_delete: count_brand == 0 ? true : false,
-                    });
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (errors.array().length > 0) {
+        return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+    try {
+        const reference = req.body.reference;
+        const description = req.body.description;
+        const brand_id = req.body.brand;
+        const type_id = req.body.type;
+        const minimum_stock = req.body.minimum_stock;
+        const user_id = req.body.userId;
+        const unit = req.body.unit;
+        const units = req.body.units;
+        item_model_1.ItemModel.fetchByReference(reference)
+            .then((itemCheck) => {
+            // There is an item exist with the same reference
+            if (itemCheck != null) {
+                return res.status(400).send("Referensi tidak unik.");
+            }
+            const item = new item_model_1.ItemModel(reference, description, minimum_stock, brand_id, type_id, user_id, unit);
+            item
+                .create()
+                .then((result) => {
+                log_helper_1.default.log(new Date(), "info", `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
+                const item_units = item_unit_model_1.default.createMany(units, result.id, req.body.userId);
+                const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, req.body.userId);
+                const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, req.body.userId, null);
+                Promise.all([
+                    item_price.create(),
+                    item_purchase_price.create(),
+                    item_model_1.ItemModel.count(),
+                    item_units,
+                ])
+                    .then((item_price) => {
+                    const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
+                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item unit for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
+                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item sales price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
+                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item purchase price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
+                    const itemSocket = new socket_helper_1.default("createItem", item_object);
                     itemSocket.create();
-                    return res.status(201).send(result);
+                    item_model_1.ItemModel.countByBrandId(brand_id)
+                        .then((count_brand) => {
+                        const itemSocket = new socket_helper_1.default("createItemBrand", {
+                            brand_id: brand_id,
+                            can_delete: count_brand == 0 ? true : false,
+                        });
+                        itemSocket.create();
+                        return res.status(201).send(result);
+                    })
+                        .catch((error) => {
+                        log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
+                    });
                 })
                     .catch((error) => {
-                    log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
+                    console.log(error);
+                    log_helper_1.default.log(new Date(), "error", error, "Item Controller - Create", req.body.userId);
+                    return res.status(500).send(error);
                 });
             })
                 .catch((error) => {
                 console.log(error);
-                log_helper_1.default.log(new Date(), "error", error, "Item Controller - Create", req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
                 return res.status(500).send(error);
             });
         })
             .catch((error) => {
-            console.log(error);
             log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
             return res.status(500).send(error);
         });
-    })
-        .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
-        return res.status(500).send(error);
-    });
-};
-ItemController.delete = (req, res) => {
-    const reference = decodeURIComponent(req.params.itemReference);
-    item_model_1.ItemModel.fetchByReference(reference).then((item) => {
-        if (item == null || item.is_delete) {
-            return res.status(404).send("Barang tidak ditemukan.");
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
         }
         else {
-            item_model_1.ItemModel.checkDeleteByReference(reference)
-                .then((count) => {
-                if (count[0] == 0 && count[1] == 0) {
-                    item_model_1.ItemModel.delete(item.id, req.body.userId).then((delete_result) => {
-                        const socket = new socket_helper_1.default("deleteItem", delete_result);
-                        socket.create();
-                        log_helper_1.default.log(new Date(), "info", `${delete_result.user.name} deleted item with reference ${delete_result.reference} (ID: ${delete_result.id})`, "Item controller - Delete", req.body.userId);
-                        item_model_1.ItemModel.countByBrandId(delete_result.item_brand_id)
-                            .then((count_brand) => {
-                            const itemSocket = new socket_helper_1.default("deleteItemBrand", {
-                                brand_id: delete_result.item_brand_id,
-                                can_delete: count_brand == 0 ? true : false,
-                            });
-                            itemSocket.create();
-                            return res.status(201).send(delete_result);
-                        })
-                            .catch((error) => {
-                            log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
-                        });
-                    });
-                }
-                else {
-                    return res
-                        .status(400)
-                        .send("Penghapusan data barang tidak diijinkan.");
-                }
-            })
-                .catch((error) => {
-                log_helper_1.default.log(new Date(), `Error`, `${error}`, `Item controller - Delete`, req.body.userId);
-            });
+            return res.status(500).send(error_list_1.default["Unknown error"]);
         }
-    });
+    }
+};
+ItemController.delete = (req, res) => {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (errors.array().length > 0) {
+        return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+    try {
+        const reference = decodeURIComponent(req.params.itemReference);
+        item_model_1.ItemModel.fetchByReference(reference).then((item) => {
+            if (item == null || item.is_delete) {
+                return res.status(404).send("Barang tidak ditemukan.");
+            }
+            else {
+                item_model_1.ItemModel.checkDeleteByReference(reference)
+                    .then((count) => {
+                    if (count[0] == 0 && count[1] == 0) {
+                        item_model_1.ItemModel.delete(item.id, req.body.userId).then((delete_result) => {
+                            const socket = new socket_helper_1.default("deleteItem", delete_result);
+                            socket.create();
+                            log_helper_1.default.log(new Date(), "info", `${delete_result.user.name} deleted item with reference ${delete_result.reference} (ID: ${delete_result.id})`, "Item controller - Delete", req.body.userId);
+                            item_model_1.ItemModel.countByBrandId(delete_result.item_brand_id)
+                                .then((count_brand) => {
+                                const itemSocket = new socket_helper_1.default("deleteItemBrand", {
+                                    brand_id: delete_result.item_brand_id,
+                                    can_delete: count_brand == 0 ? true : false,
+                                });
+                                itemSocket.create();
+                                return res.status(201).send(delete_result);
+                            })
+                                .catch((error) => {
+                                log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
+                            });
+                        });
+                    }
+                    else {
+                        return res
+                            .status(400)
+                            .send("Penghapusan data barang tidak diijinkan.");
+                    }
+                })
+                    .catch((error) => {
+                    log_helper_1.default.log(new Date(), `Error`, `${error}`, `Item controller - Delete`, req.body.userId);
+                });
+            }
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 ItemController.update = (req, res) => {
     const id = req.body.id;
@@ -256,7 +285,9 @@ ItemController.fetch = (req, res) => {
         : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    const keyword = !req.query.keyword ? "" : decodeURIComponent(req.query.keyword.toString());
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);

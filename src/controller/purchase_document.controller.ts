@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
@@ -35,13 +34,13 @@ class PurchaseDocumentController {
     const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = (purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
+    const faktur =
+      purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
 
-    const company_validation = CompanyModel.fetchById(company_id);
-    const supplier_validation = SupplierModel.fetchById(supplier_id);
-    const transaction_validation = new QueryTransactionHelper();
-    transaction_validation
-      .create([company_validation, supplier_validation])
+    Promise.all([
+      CompanyModel.fetchById(company_id),
+      SupplierModel.fetchById(supplier_id),
+    ])
       .then((validation) => {
         if (
           validation[0] == null ||
@@ -142,13 +141,13 @@ class PurchaseDocumentController {
     const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = (purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
+    const faktur =
+      purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
 
-    const company_validation = CompanyModel.fetchById(company_id);
-    const supplier_validation = SupplierModel.fetchById(supplier_id);
-    const transaction_validation = new QueryTransactionHelper();
-    transaction_validation
-      .create([company_validation, supplier_validation])
+    Promise.all([
+      CompanyModel.fetchById(company_id),
+      SupplierModel.fetchById(supplier_id),
+    ])
       .then((validation) => {
         if (
           validation[0] == null ||
@@ -159,7 +158,7 @@ class PurchaseDocumentController {
           return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
         }
 
-        const good_receipt = new GoodReceiptModel(
+        const good_receipt_code = new GoodReceiptModel(
           name,
           date,
           req.body.userId,
@@ -167,87 +166,63 @@ class PurchaseDocumentController {
           company_id
         );
 
-        good_receipt
-          .create()
-          .then((good_receipt_result) => {
-            const transactions: any[] = [];
-            const transaction = new QueryTransactionHelper();
-            transaction.create(transactions).then((result) => {
-              const good_receipt_items_input: any[] = [];
-              const good_receipt_items_price: any[] = [];
+        good_receipt_code.create().then((good_receipt_result) => {
+          const good_receipt = [];
+          const good_receipt_price = [];
+          for (let idx = 0; idx < good_receipt_items.length; idx++) {
+            good_receipt.push({
+              item_id: good_receipt_items[idx].item_id,
+              quantity: good_receipt_items[idx].quantity,
+              good_receipt_code_id: good_receipt_result.id,
+              price: good_receipt_items[idx].price,
+              item_unit_id: good_receipt_items[idx].item_unit_id,
+            });
 
-              for (let idx = 0; idx < good_receipt_items.length; idx++) {
-                good_receipt_items_input.push({
-                  item_id: good_receipt_items[idx].item_id,
-                  quantity: good_receipt_items[idx].quantity,
-                  good_receipt_code_id: good_receipt_result.id,
-                  price: good_receipt_items[idx].price,
-                  item_unit_id: good_receipt_items[idx].item_unit_id,
-                });
-
-                if (good_receipt_items[idx].save == true) {
-                  const purchase_price = new ItemPurchasePriceModel(
-                    parseFloat(good_receipt_items[idx].price),
-                    good_receipt_items[idx].item_id,
-                    req.body.userId
-                  );
-
-                  good_receipt_items_price.push(purchase_price);
-                }
-              }
-
-              const purchase_document = new PurchaseDocumentModel(
-                purchase_invoice_name,
-                faktur,
-                date,
-                discount,
-                good_receipt_result.id,
-                req.body.userId,
-                req.body.userId,
+            if (good_receipt_items[idx].save == true) {
+              const purchase_price = new ItemPurchasePriceModel(
+                parseFloat(good_receipt_items[idx].price),
+                good_receipt_items[idx].item_id,
+                req.body.userId
               );
 
-              Promise.all([
-                GoodReceiptModel.insertItems(good_receipt_items_input),
-                ItemPurchasePriceModel.insertItems(good_receipt_items_price),
-                purchase_document.create(),
-              ])
-                .then(() => {
-                  const socket = new SocketHelper("createGoodReceipt", {
-                    supplier_id: good_receipt_result.supplier_id,
-                    company_id: good_receipt_result.company_id,
-                  });
-                  socket.create();
+              good_receipt_price.push(purchase_price);
+            }
+          }
 
-                  GoodReceiptModel.fetchById(good_receipt_result.id)
-                    .then((item) => {
-                      return res.status(201).send(item);
-                    })
-                    .catch((error) => {
-                      return res.status(500).send(error);
-                    });
+          const purchase_document = new PurchaseDocumentModel(
+            purchase_invoice_name,
+            faktur,
+            date,
+            discount,
+            good_receipt_result.id,
+            req.body.userId,
+            req.body.userId
+          );
+
+          Promise.all([
+            GoodReceiptModel.insertItems(good_receipt),
+            ItemPurchasePriceModel.insertItems(good_receipt_price),
+            purchase_document.create(),
+          ])
+            .then(() => {
+              const socket = new SocketHelper("createGoodReceipt", {
+                supplier_id: good_receipt_result.supplier_id,
+                company_id: good_receipt_result.company_id,
+              });
+              socket.create();
+
+              GoodReceiptModel.fetchById(good_receipt_result.id)
+                .then((item) => {
+                  return res.status(201).send(item);
                 })
                 .catch((error) => {
-                  LogHelper.log(
-                    new Date(),
-                    "error",
-                    error,
-                    "Purchase Document - Create",
-                    req.body.userId
-                  );
                   return res.status(500).send(error);
                 });
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
             });
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              error,
-              "Purchase Document Controller - Create",
-              req.body.userId
-            );
-            return res.status(500).send(error);
-          });
+        });
       })
       .catch((error) => {
         return res.status(500).send(error);
@@ -331,9 +306,7 @@ class PurchaseDocumentController {
         good_receipt_code.purchase_invoice == null
       ) {
         return res.status(404).send("Pembelian tidak ditemukan.");
-      } else if (
-        good_receipt_code.purchase_invoice.is_delete
-      ) {
+      } else if (good_receipt_code.purchase_invoice.is_delete) {
         return res
           .status(400)
           .send("Pembelian telah dikonfirmasi atau dihapus.");

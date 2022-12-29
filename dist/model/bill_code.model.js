@@ -153,61 +153,6 @@ class BillCodeModel {
       AND bill_code.is_delete = 0
       AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${date.getMonth() + 1}) AS a`;
     }
-    static fetchCodeById(id) {
-        return prisma.bill.findUnique({
-            where: {
-                id: id,
-            },
-            select: {
-                bill_code: {
-                    select: {
-                        name: true,
-                        date: true,
-                        discount: true,
-                        delivery: true,
-                        service: true,
-                        user_bill_code_created_byTouser: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        customer: {
-                            select: {
-                                name: true,
-                                address: true,
-                                npwp: true,
-                                pic: true,
-                            },
-                        },
-                        bill: {
-                            select: {
-                                item: {
-                                    select: {
-                                        reference: true,
-                                        description: true,
-                                        item_brand: {
-                                            select: {
-                                                name: true,
-                                            },
-                                        },
-                                        unit: true,
-                                    },
-                                },
-                                item_unit: {
-                                    select: {
-                                        unit: true,
-                                        conversion: true,
-                                    },
-                                },
-                                quantity: true,
-                                id: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
-    }
     static fetchById(id) {
         return prisma.bill_code.findUnique({
             where: {

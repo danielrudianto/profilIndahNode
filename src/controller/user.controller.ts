@@ -1,7 +1,8 @@
 import { hash } from "bcryptjs";
 import { Request, Response } from "express";
+import { validationResult } from "express-validator";
+import ErrorList from "../assets/error_list";
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import SocketHelper from "../helper/socket.helper";
 import UserModel from "../model/user.model";
 import UserRoleModel from "../model/user_role.model";
@@ -111,25 +112,38 @@ class UserController {
   };
 
   static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    UserModel.fetchById(id)
-      .then((user) => {
-        if (user == null) {
-          return res.status(404).send("Pengguna tidak ditemukan.");
-        }
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
 
-        const response = {
-          ...user,
-          role: UserModel.roles.filter(
-            (y) => y.id == user.user_department?.role
-          )[0].name,
-        };
+    try {
+      const id = parseInt(req.params.id);
+      UserModel.fetchById(id)
+        .then((user) => {
+          if (user == null) {
+            return res.status(404).send("Pengguna tidak ditemukan.");
+          }
 
-        return res.status(200).send(response);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+          const response = {
+            ...user,
+            role: UserModel.roles.filter(
+              (y) => y.id == user.user_department?.role
+            )[0].name,
+          };
+
+          return res.status(200).send(response);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 
   static fetch = (req: Request, res: Response) => {
@@ -216,55 +230,52 @@ class UserController {
   };
 
   static toggleActive = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    UserModel.fetchById(id)
-      .then((user) => {
-        if (user == null) {
-          return res.status(404).send("Pengguna tidak ditemukan.");
-        }
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
 
-        UserModel.delete(user.id, !user.is_active, req.body.userId)
-          .then((user_delete) => {
-            // If user was active and no longer active
-            // Log him / her out from our system immidiately
-            if (user.is_active) {
-              LogHelper.log(
-                new Date(),
-                "info",
-                `${user_delete.user_userTouser_deleted_by?.name} deleted user with username ${user_delete.username} (ID: ${user_delete.id})`,
-                "User - Delete",
-                req.body.userId
-              );
+    try {
+      const id = parseInt(req.params.id);
+      UserModel.fetchById(id)
+        .then((user) => {
+          if (user == null) {
+            return res.status(404).send("Pengguna tidak ditemukan.");
+          }
 
-              const socket = new SocketHelper("deleteUser", user_delete);
-              socket.create();
-            }
+          UserModel.delete(user.id, !user.is_active, req.body.userId)
+            .then((user_delete) => {
+              // If user was active and no longer active
+              // Log him / her out from our system immidiately
+              if (user.is_active) {
+                LogHelper.log(
+                  new Date(),
+                  "info",
+                  `${user_delete.user_userTouser_deleted_by?.name} deleted user with username ${user_delete.username} (ID: ${user_delete.id})`,
+                  "User - Delete",
+                  req.body.userId
+                );
 
-            return res.status(201).send(user_delete);
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              error,
-              "User - Delete",
-              req.body.userId
-            );
+                const socket = new SocketHelper("deleteUser", user_delete);
+                socket.create();
+              }
 
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "User - Delete",
-          req.body.userId
-        );
-
-        return res.status(500).send(error);
-      });
+              return res.status(201).send(user_delete);
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 
   static changePassword = (req: Request, res: Response) => {

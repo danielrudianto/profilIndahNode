@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../assets/error_list";
 import LogHelper from "../helper/log.helper";
 import SocketHelper from "../helper/socket.helper";
 import ItemTypeModel from "../model/item_type.model";
@@ -81,18 +82,30 @@ class ItemTypeController {
   };
 
   static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id.toString());
+    try {
+      const id = parseInt(req.params.id.toString());
 
-    ItemTypeModel.fetchItemById(id)
-      .then((result) => {
-        return res.status(200).send({
-          ...result,
-          can_delete: result?.item.length == 0,
+      ItemTypeModel.fetchItemById(id)
+        .then((result) => {
+          if (!result) {
+            return res.status(404).send(ErrorList["Not found"]);
+          } else {
+            return res.status(200).send({
+              ...result,
+              can_delete: result.item.length == 0,
+            });
+          }
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
         });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 
   static fetchAutocomplete = (req: Request, res: Response) => {
@@ -108,66 +121,88 @@ class ItemTypeController {
 
   static fetchByBrandId = (req: Request, res: Response) => {
     if (typeof req.body.ids === "string") {
-      const ids = JSON.parse(
-        (req.body.ids.toString() as string).replace("'", "").replace('"', "")
-      ) as number[];
-      ItemTypeModel.fetchByBrandIds(ids)
-        .then((result) => {
-          return res.status(200).send(result);
-        })
-        .catch((error) => {
-          console.error(error);
-          return res.status(500).send(error);
-        });
+      try {
+        const ids = JSON.parse(
+          (req.body.ids.toString() as string).replace("'", "").replace('"', "")
+        ) as number[];
+        ItemTypeModel.fetchByBrandIds(ids)
+          .then((result) => {
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          return res.status(500).send(err);
+        } else {
+          return res.status(500).send(ErrorList["Unknown error"]);
+        }
+      }
     } else {
-      const ids = req.body.ids;
-      ItemTypeModel.fetchByBrandIds(ids)
-        .then((result) => {
-          return res.status(200).send(result);
-        })
-        .catch((error) => {
-          console.error(error);
-          return res.status(500).send(error);
-        });
+      try {
+        const ids = req.body.ids as number[];
+        ItemTypeModel.fetchByBrandIds(ids)
+          .then((result) => {
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      } catch (err: unknown) {
+        if (err instanceof Error) {
+          return res.status(500).send(err);
+        } else {
+          return res.status(500).send(ErrorList["Unknown error"]);
+        }
+      }
     }
   };
 
   static deleteItem = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    ItemTypeModel.fetchItemById(id)
-      .then((itemType) => {
-        if (itemType == null || itemType.is_delete) {
-          return res.status(404).send("Data tidak ditemukan.");
-        } else if (itemType?.item.length == 0) {
-          // Can delete
-          ItemTypeModel.deleteById(id, req.body.userId)
-            .then((result) => {
-              const socket = new SocketHelper("deleteItemType", result);
-              socket.create();
+    try {
+      const id = parseInt(req.params.id);
+      ItemTypeModel.fetchItemById(id)
+        .then((itemType) => {
+          if (itemType == null || itemType.is_delete) {
+            return res.status(404).send("Data tidak ditemukan.");
+          } else if (itemType?.item.length == 0) {
+            // Can delete
+            ItemTypeModel.deleteById(id, req.body.userId)
+              .then((result) => {
+                const socket = new SocketHelper("deleteItemType", result);
+                socket.create();
 
-              LogHelper.log(
-                new Date(),
-                "Info",
-                `${result.user_item_type_deleted_byTouser?.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`,
-                "ItemTypeController - Delete by Id",
-                req.body.userId
+                LogHelper.log(
+                  new Date(),
+                  "Info",
+                  `${result.user_item_type_deleted_byTouser?.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`,
+                  "ItemTypeController - Delete by Id",
+                  req.body.userId
+                );
+                return res.status(200).send(result);
+              })
+              .catch((error) => {
+                return res.status(500).send(error);
+              });
+          } else {
+            return res
+              .status(400)
+              .send(
+                "Tidak dapat menghapus data. Mohon pastikan tidak ada barang yang menggunakan tipe ini."
               );
-              return res.status(200).send(result);
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
-            });
-        } else {
-          return res
-            .status(400)
-            .send(
-              "Tidak dapat menghapus data. Mohon pastikan tidak ada barang yang menggunakan tipe ini."
-            );
-        }
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+          }
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 }
 

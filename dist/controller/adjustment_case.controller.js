@@ -5,15 +5,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_validator_1 = require("express-validator");
+const error_list_1 = __importDefault(require("../assets/error_list"));
+const error_list_2 = __importDefault(require("../assets/error_list"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const adjustment_case_model_1 = __importDefault(require("../model/adjustment_case.model"));
+const adjustment_case_code_model_1 = __importDefault(require("../model/adjustment_case_code.model"));
 class AdjustmentCaseController {
 }
 _a = AdjustmentCaseController;
 AdjustmentCaseController.post = (req, res) => {
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const name = _a.generateName(new Date(req.body.date));
-    const adjustment_case = new adjustment_case_model_1.default(name, new Date(req.body.date), req.body.userId, req.body.company_id);
+    const adjustment_case = new adjustment_case_code_model_1.default(name, new Date(req.body.date), req.body.userId, req.body.company_id);
     adjustment_case
         .create()
         .then((result) => {
@@ -28,7 +34,6 @@ AdjustmentCaseController.post = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Adjustment case controller - Create", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -40,11 +45,9 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-        const archive_years = adjustment_case_model_1.default.fetchArchiveYears();
-        const count_archive_years = adjustment_case_model_1.default.countArchiveByYear();
-        const transaction = new query_transaction_helper_1.default();
-        transaction
-            .create([archive_years, count_archive_years])
+        const archive_years = adjustment_case_code_model_1.default.fetchArchiveYears();
+        const count_archive_years = adjustment_case_code_model_1.default.countArchiveByYear();
+        Promise.all([archive_years, count_archive_years])
             .then((result) => {
             const response = [];
             result[0].forEach((item) => {
@@ -62,7 +65,7 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
     }
     else if (!req.params.month && req.params.year) {
         const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        adjustment_case_model_1.default.countArchiveByMonth(year)
+        adjustment_case_code_model_1.default.countArchiveByMonth(year)
             .then((counts) => {
             counts.forEach((x) => {
                 const month = x.month;
@@ -81,11 +84,9 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
             : Math.max(parseInt(req.query.page.toString()), 1);
         const limit = parseInt(process.env.LIMIT.toString());
         const offset = (page - 1) * limit;
-        const transaction = new query_transaction_helper_1.default();
-        transaction
-            .create([
-            adjustment_case_model_1.default.fetchArchive(year, month, offset, limit),
-            adjustment_case_model_1.default.countArchive(year, month),
+        Promise.all([
+            adjustment_case_code_model_1.default.fetchArchive(year, month, offset, limit),
+            adjustment_case_code_model_1.default.countArchive(year, month),
         ])
             .then((result) => {
             return res.status(200).send({
@@ -102,14 +103,33 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
     }
 };
 AdjustmentCaseController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id);
-    adjustment_case_model_1.default.fetchById(id)
-        .then((result) => {
-        return res.status(200).send(result);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+    const validation_result = (0, express_validator_1.validationResult)(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
+    try {
+        const id = parseInt(req.params.id);
+        adjustment_case_code_model_1.default.fetchById(id)
+            .then((result) => {
+            if (!result) {
+                return res.status(404).send(error_list_2.default["Not found"]);
+            }
+            else {
+                return res.status(200).send(result);
+            }
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    catch (error) {
+        if (error instanceof Error) {
+            return res.status(500).send(error.toString());
+        }
+        else {
+            return res.status(500).send();
+        }
+    }
 };
 AdjustmentCaseController.fetchCodeById = (req, res) => {
     const validation_result = (0, express_validator_1.validationResult)(req);
@@ -117,9 +137,14 @@ AdjustmentCaseController.fetchCodeById = (req, res) => {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id.toString());
-    adjustment_case_model_1.default.fetchCodeById(id)
+    adjustment_case_model_1.default.fetchById(id)
         .then((result) => {
-        return res.status(200).send(result === null || result === void 0 ? void 0 : result.adjustment_case_code);
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        else {
+            return res.status(200).send(result === null || result === void 0 ? void 0 : result.adjustment_case_code);
+        }
     })
         .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userId);

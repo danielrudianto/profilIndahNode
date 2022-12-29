@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { param } from "express-validator";
+import ErrorList from "../assets/error_list";
 import ItemPriceController from "../controller/item_price.controller";
 
 const router = Router();
@@ -12,7 +13,7 @@ router.get(
 router.get("/bulk", ItemPriceController.fetchAll);
 router.get(
   "/:reference",
-  param("reference").notEmpty().withMessage("Mohon isikan referensi barang."),
+  param("reference").notEmpty().withMessage(ErrorList["Parameter error"]),
   ItemPriceController.fetchByReference
 );
 router.get("/", ItemPriceController.fetch);

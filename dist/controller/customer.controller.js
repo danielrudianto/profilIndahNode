@@ -5,7 +5,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_validator_1 = require("express-validator");
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const bill_code_model_2 = __importDefault(require("../model/bill_code.model"));
@@ -149,9 +148,7 @@ CustomerController.fetchById = (req, res) => {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id);
-    const transaction = new query_transaction_helper_1.default();
-    transaction
-        .create([customer_model_1.default.fetchById(id), bill_code_model_2.default.countByCustomerId(id)])
+    Promise.all([customer_model_1.default.fetchById(id), bill_code_model_2.default.countByCustomerId(id)])
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
     })
@@ -165,13 +162,14 @@ CustomerController.fetchDetailById = (req, res) => {
         customer_model_1.default.fetchById(id),
         bill_code_model_1.default.fetchByCustomerId(id),
     ])
-        .then(result => {
+        .then((result) => {
         return res.status(200).send({
             customer: result[0],
             value: result[1][0].value,
             count: result[1][0].count,
         });
-    }).catch(error => {
+    })
+        .catch((error) => {
         return res.status(500).send(error);
     });
 };

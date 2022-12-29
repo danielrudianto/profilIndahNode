@@ -1,13 +1,20 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
+import ErrorList from "../assets/error_list";
+import GeneralErrorList from "../assets/error_list";
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import AdjustmentCaseModel from "../model/adjustment_case.model";
+import AdjustmentCaseCodeModel from "../model/adjustment_case_code.model";
 
 class AdjustmentCaseController {
   static post = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const name = this.generateName(new Date(req.body.date));
-    const adjustment_case = new AdjustmentCaseModel(
+    const adjustment_case = new AdjustmentCaseCodeModel(
       name,
       new Date(req.body.date),
       req.body.userId,
@@ -34,14 +41,6 @@ class AdjustmentCaseController {
           });
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Adjustment case controller - Create",
-          req.body.userId
-        );
-
         return res.status(500).send(error);
       });
   };
@@ -55,12 +54,10 @@ class AdjustmentCaseController {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-      const archive_years = AdjustmentCaseModel.fetchArchiveYears();
-      const count_archive_years = AdjustmentCaseModel.countArchiveByYear();
+      const archive_years = AdjustmentCaseCodeModel.fetchArchiveYears();
+      const count_archive_years = AdjustmentCaseCodeModel.countArchiveByYear();
 
-      const transaction = new QueryTransactionHelper();
-      transaction
-        .create([archive_years, count_archive_years])
+      Promise.all([archive_years, count_archive_years])
         .then((result) => {
           const response: any[] = [];
           (result[0] as any[]).forEach((item) => {
@@ -78,7 +75,7 @@ class AdjustmentCaseController {
         });
     } else if (!req.params.month && req.params.year) {
       const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-      AdjustmentCaseModel.countArchiveByMonth(year)
+      AdjustmentCaseCodeModel.countArchiveByMonth(year)
         .then((counts) => {
           (counts as any[]).forEach((x) => {
             const month = x.month;
@@ -99,12 +96,10 @@ class AdjustmentCaseController {
       const limit = parseInt(process.env.LIMIT!.toString());
       const offset = (page - 1) * limit;
 
-      const transaction = new QueryTransactionHelper();
-      transaction
-        .create([
-          AdjustmentCaseModel.fetchArchive(year, month, offset, limit),
-          AdjustmentCaseModel.countArchive(year, month),
-        ])
+      Promise.all([
+        AdjustmentCaseCodeModel.fetchArchive(year, month, offset, limit),
+        AdjustmentCaseCodeModel.countArchive(year, month),
+      ])
         .then((result) => {
           return res.status(200).send({
             data: result[0],
@@ -120,14 +115,31 @@ class AdjustmentCaseController {
   };
 
   static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    AdjustmentCaseModel.fetchById(id)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      AdjustmentCaseCodeModel.fetchById(id)
+        .then((result) => {
+          if (!result) {
+            return res.status(404).send(GeneralErrorList["Not found"]);
+          } else {
+            return res.status(200).send(result);
+          }
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return res.status(500).send(error.toString());
+      } else {
+        return res.status(500).send();
+      }
+    }
   };
 
   static fetchCodeById = (req: Request, res: Response) => {
@@ -135,11 +147,15 @@ class AdjustmentCaseController {
     if (!validation_result.isEmpty()) {
       return res.status(400).send(validation_result.array()[0].msg);
     }
-    
+
     const id = parseInt(req.params.id.toString());
-    AdjustmentCaseModel.fetchCodeById(id)
+    AdjustmentCaseModel.fetchById(id)
       .then((result) => {
-        return res.status(200).send(result?.adjustment_case_code);
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          return res.status(200).send(result?.adjustment_case_code);
+        }
       })
       .catch((error) => {
         LogHelper.log(

@@ -1,9 +1,9 @@
 import { Request, Response } from "express";
 import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
 import { io } from "../app";
 import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
+import ErrorList from "../assets/error_list";
 
 class CompanyController {
   static fetch = (req: Request, res: Response) => {
@@ -211,16 +211,7 @@ class CompanyController {
     company
       .create()
       .then((result) => {
-        LogHelper.log(
-          result.created_at,
-          "info",
-          `${result.user.name} created company with the name ${result.name} (ID: ${result.id})`,
-          "Company - Create",
-          req.body.userId
-        );
-
         io.emit("createCompany", { ...result, can_delete: true });
-
         return res.status(201).send(result);
       })
       .catch((error) => {
@@ -237,27 +228,32 @@ class CompanyController {
   };
 
   static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    const transaction = new QueryTransactionHelper();
-    transaction
-      .create([CompanyModel.fetchById(id), CompanyModel.checkDeleteById(id)])
-      .then((result) => {
-        return res.status(200).send({
-          ...result[0],
-          can_delete: result[1] == 0 ? true : false,
+    try {
+      const id = parseInt(req.params.id);
+      Promise.all([
+        CompanyModel.fetchById(id),
+        CompanyModel.checkDeleteById(id),
+      ])
+        .then((result) => {
+          if (!result[0]) {
+            return res.status(404).send(ErrorList["Not found"]);
+          } else {
+            return res.status(200).send({
+              ...result[0],
+              can_delete: result[1] == 0 ? true : false,
+            });
+          }
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
         });
-      })
-      .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Company - Fetch by ID",
-          req.body.userId
-        );
-
-        return res.status(500).send(error);
-      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 
   static fetchAvailable = (req: Request, res: Response) => {
@@ -266,13 +262,6 @@ class CompanyController {
         return res.status(200).send(result);
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Company controller - Fetch available",
-          req.body.userId
-        );
         return res.status(500).send(error);
       });
   };
