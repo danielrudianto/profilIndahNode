@@ -268,7 +268,7 @@ ItemController.fetchSearchStock = (req, res) => {
                     var _a, _b;
                     return Object.assign(Object.assign({}, x), { price: (_a = x.item_price.find((x) => x.item_unit == null)) === null || _a === void 0 ? void 0 : _a.price, discount: (_b = x.item_price.find((x) => x.item_unit == null)) === null || _b === void 0 ? void 0 : _b.discount, unit: x.unit, item_price: x.item_price.filter((x) => x.item_unit != null) });
                 }),
-                count: result[1][0].count,
+                count: result[1],
             });
         })
             .catch((error) => {
@@ -276,7 +276,6 @@ ItemController.fetchSearchStock = (req, res) => {
         });
     })
         .catch((error) => {
-        console.log(error);
         return res.status(500).send(error);
     });
 };

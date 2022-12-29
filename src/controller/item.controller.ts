@@ -436,7 +436,7 @@ class ItemController {
                   item_price: x.item_price.filter((x) => x.item_unit != null),
                 };
               }),
-              count: (result[1] as any[])[0].count,
+              count: result[1],
             });
           })
           .catch((error) => {
@@ -444,7 +444,6 @@ class ItemController {
           });
       })
       .catch((error) => {
-        console.log(error);
         return res.status(500).send(error);
       });
   };
