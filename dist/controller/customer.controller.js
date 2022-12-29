@@ -1,19 +1,14 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_validator_1 = require("express-validator");
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
-const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
-const bill_code_model_2 = __importDefault(require("../model/bill_code.model"));
-const customer_model_1 = __importDefault(require("../model/customer.model"));
+import { validationResult } from "express-validator";
+import LogHelper from "../helper/log.helper";
+import QueryTransactionHelper from "../helper/query.transaction.helper";
+import SocketHelper from "../helper/socket.helper";
+import BillCodeModel from "../model/bill_code.model";
+import BillModel from "../model/bill_code.model";
+import CustomerModel from "../model/customer.model";
 class CustomerController {
 }
 CustomerController.create = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
+    const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
@@ -22,22 +17,22 @@ CustomerController.create = (req, res) => {
     const pic = req.body.pic;
     const phone_number = req.body.phone_number;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const customer = new customer_model_1.default(name, address, npwp, pic, phone_number, req.body.userId);
+    const customer = new CustomerModel(name, address, npwp, pic, phone_number, req.body.userId);
     customer
         .create()
         .then((result) => {
-        log_helper_1.default.log(result.created_at, "info", `${result.user.name} created customer with the name ${result.name} (ID: ${result.id})`, "Customer - Create", req.body.userId);
-        const socket = new socket_helper_1.default("createCustomer", Object.assign(Object.assign({}, result), { can_delete: true }));
+        LogHelper.log(result.created_at, "info", `${result.user.name} created customer with the name ${result.name} (ID: ${result.id})`, "Customer - Create", req.body.userId);
+        const socket = new SocketHelper("createCustomer", Object.assign(Object.assign({}, result), { can_delete: true }));
         socket.create();
         return res.status(201).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Customer - Create", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Customer - Create", req.body.userId);
         return res.status(500).send(error);
     });
 };
 CustomerController.update = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
+    const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
@@ -47,39 +42,39 @@ CustomerController.update = (req, res) => {
     const npwp = req.body.npwp;
     const pic = req.body.pic;
     const phone_number = req.body.phone_number;
-    const customer = new customer_model_1.default(name, address, npwp, pic, phone_number, req.body.userId, id);
+    const customer = new CustomerModel(name, address, npwp, pic, phone_number, req.body.userId, id);
     customer
         .update()
         .then((result) => {
         var _a;
-        log_helper_1.default.log(new Date(), "info", `${(_a = result.user_customer_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated customer with the name ${result.name} (ID: ${result.id})`, "Customer - Update", req.body.userId);
-        const socket = new socket_helper_1.default("updateCustomer", result);
+        LogHelper.log(new Date(), "info", `${(_a = result.user_customer_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated customer with the name ${result.name} (ID: ${result.id})`, "Customer - Update", req.body.userId);
+        const socket = new SocketHelper("updateCustomer", result);
         socket.create();
         return res.status(201).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Customer - Update", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Customer - Update", req.body.userId);
         return res.status(500).send(error);
     });
 };
 CustomerController.delete = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
+    const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id.toString());
-    bill_code_model_2.default.countByCustomerId(id).then((count) => {
+    BillModel.countByCustomerId(id).then((count) => {
         if (count == 0) {
-            customer_model_1.default.delete(id, req.body.userId)
+            CustomerModel.delete(id, req.body.userId)
                 .then((customer) => {
                 var _a;
-                log_helper_1.default.log(customer.deleted_at, "info", `${(_a = customer.user_customer_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted customer with the name ${customer.name} (ID: ${customer.id})`, "Customer - Delete", req.body.userId);
-                const socket = new socket_helper_1.default("deleteCustomer", customer);
+                LogHelper.log(customer.deleted_at, "info", `${(_a = customer.user_customer_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted customer with the name ${customer.name} (ID: ${customer.id})`, "Customer - Delete", req.body.userId);
+                const socket = new SocketHelper("deleteCustomer", customer);
                 socket.create();
                 return res.status(201).send(customer);
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", error, "Customer - Delete", req.body.userId);
+                LogHelper.log(new Date(), "error", error, "Customer - Delete", req.body.userId);
                 return res.status(500).send(error);
             });
         }
@@ -91,17 +86,17 @@ CustomerController.delete = (req, res) => {
     });
 };
 CustomerController.fetchAutocomplete = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
+    const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const keyword = req.query.keyword.toString();
-    customer_model_1.default.fetchAutocomplete(keyword)
+    CustomerModel.fetchAutocomplete(keyword)
         .then((result) => {
         return res.status(200).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Customer - Fetch autocomplete", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Customer - Fetch autocomplete", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -113,9 +108,9 @@ CustomerController.fetch = (req, res) => {
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword ? "" : (_a = req.query.keyword) === null || _a === void 0 ? void 0 : _a.toString();
-    customer_model_1.default.fetch(keyword, offset, limit)
+    CustomerModel.fetch(keyword, offset, limit)
         .then((result) => {
-        bill_code_model_2.default.countByCustomerIds(result[0].map((x) => {
+        BillModel.countByCustomerIds(result[0].map((x) => {
             return x.id;
         }))
             .then((count) => {
@@ -130,28 +125,28 @@ CustomerController.fetch = (req, res) => {
             });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Customer - Fetch", req.body.userId);
+            LogHelper.log(new Date(), "error", error, "Customer - Fetch", req.body.userId);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Customer - Fetch", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Customer - Fetch", req.body.userId);
         return res.status(500).send(error);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Customer - Fetch", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Customer - Fetch", req.body.userId);
         return res.status(500).send(error);
     });
 };
 CustomerController.fetchById = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
+    const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id);
-    const transaction = new query_transaction_helper_1.default();
+    const transaction = new QueryTransactionHelper();
     transaction
-        .create([customer_model_1.default.fetchById(id), bill_code_model_2.default.countByCustomerId(id)])
+        .create([CustomerModel.fetchById(id), BillModel.countByCustomerId(id)])
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
     })
@@ -162,8 +157,8 @@ CustomerController.fetchById = (req, res) => {
 CustomerController.fetchDetailById = (req, res) => {
     const id = parseInt(req.params.id);
     Promise.all([
-        customer_model_1.default.fetchById(id),
-        bill_code_model_1.default.fetchByCustomerId(id),
+        CustomerModel.fetchById(id),
+        BillCodeModel.fetchByCustomerId(id),
     ])
         .then(result => {
         return res.status(200).send({
@@ -175,4 +170,4 @@ CustomerController.fetchDetailById = (req, res) => {
         return res.status(500).send(error);
     });
 };
-exports.default = CustomerController;
+export default CustomerController;

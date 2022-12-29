@@ -19,7 +19,7 @@ class AdjustmentCaseModel {
     date: Date,
     created_by: number,
     company_id: number,
-    id: number | null = null,
+    id: number | null = null
   ) {
     if (id != null) {
       this.id = id;
@@ -43,7 +43,7 @@ class AdjustmentCaseModel {
         is_delete: this.is_delete,
         confirmed_by: this.created_by,
         confirmed_at: this.created_at,
-        company_id: this.company_id
+        company_id: this.company_id,
       },
     });
   }
@@ -117,25 +117,31 @@ class AdjustmentCaseModel {
   }
 
   static countArchive(year: number, month: number) {
-    const start_date = new Date(year, month - 1, 1, 0, 0, 0, 0);
-    const end_date = new Date(year, month, 1, 0, 0, 0, 0);
+    if (year < 0) {
+      throw Error("Mohon isikan tahun arsip yang sesuai.");
+    } else if (month < 0 || month > 11) {
+      throw Error("Mohon isikan bulan arsip yang sesuai.");
+    } else {
+      const start_date = new Date(year, month - 1, 1, 0, 0, 0, 0);
+      const end_date = new Date(year, month, 1, 0, 0, 0, 0);
 
-    return prisma.adjustment_case_code.count({
-      where: {
-        AND: [
-          {
-            date: {
-              gte: start_date,
+      return prisma.adjustment_case_code.count({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: start_date,
+              },
             },
-          },
-          {
-            date: {
-              lt: end_date,
+            {
+              date: {
+                lt: end_date,
+              },
             },
-          },
-        ],
-      },
-    });
+          ],
+        },
+      });
+    }
   }
 
   static fetchById(id: number) {
@@ -170,17 +176,17 @@ class AdjustmentCaseModel {
             name: true,
             address: true,
             npwp: true,
-            code_name: true
-          }
-        }
+            code_name: true,
+          },
+        },
       },
     });
   }
 
-  static fetchCodeById(id: number){
+  static fetchCodeById(id: number) {
     return prisma.adjustment_case.findUnique({
-      where:{
-        id: id
+      where: {
+        id: id,
       },
       select: {
         adjustment_case_code: {
@@ -208,9 +214,9 @@ class AdjustmentCaseModel {
               },
             },
           },
-        }
-      }
-    })
+        },
+      },
+    });
   }
 }
 

@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class ItemPriceModel {
     constructor(price, discount, item_id, item_unit_id, created_by, effective_date = null) {
         this.price = price;
@@ -409,4 +407,4 @@ class ItemPriceModel {
         });
     }
 }
-exports.default = ItemPriceModel;
+export default ItemPriceModel;

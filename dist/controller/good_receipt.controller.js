@@ -1,16 +1,11 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
-const company_model_1 = __importDefault(require("../model/company.model"));
-const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
-const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
-const purchase_document_model_1 = __importDefault(require("../model/purchase_document.model"));
-const supplier_model_1 = __importDefault(require("../model/supplier.model"));
+import LogHelper from "../helper/log.helper";
+import QueryTransactionHelper from "../helper/query.transaction.helper";
+import SocketHelper from "../helper/socket.helper";
+import CompanyModel from "../model/company.model";
+import GoodReceiptModel from "../model/good_receipt.model";
+import ItemPurchasePriceModel from "../model/item_purchase_price.model";
+import PurchaseDocumentModel from "../model/purchase_document.model";
+import SupplierModel from "../model/supplier.model";
 class GoodReceiptController {
 }
 GoodReceiptController.create = (req, res) => {
@@ -22,9 +17,9 @@ GoodReceiptController.create = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const company_validation = company_model_1.default.fetchById(company_id);
-    const supplier_validation = supplier_model_1.default.fetchById(supplier_id);
-    const transaction_validation = new query_transaction_helper_1.default();
+    const company_validation = CompanyModel.fetchById(company_id);
+    const supplier_validation = SupplierModel.fetchById(supplier_id);
+    const transaction_validation = new QueryTransactionHelper();
     transaction_validation
         .create([company_validation, supplier_validation])
         .then((validation) => {
@@ -34,7 +29,7 @@ GoodReceiptController.create = (req, res) => {
             validation[1].is_delete) {
             return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
         }
-        const good_receipt = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
+        const good_receipt = new GoodReceiptModel(name, date, req.body.userId, supplier_id, company_id);
         good_receipt
             .create()
             .then((good_receipt_result) => {
@@ -42,7 +37,7 @@ GoodReceiptController.create = (req, res) => {
             for (let i = 0; i < good_receipt_items.length; i++) {
                 item_ids.push(good_receipt_items[i].item_id);
             }
-            item_purchase_price_model_1.default.fetchByItemIds(item_ids)
+            ItemPurchasePriceModel.fetchByItemIds(item_ids)
                 .then((result) => {
                 const good_receipt_items_input = [];
                 for (let idx = 0; idx < good_receipt_items.length; idx++) {
@@ -57,13 +52,13 @@ GoodReceiptController.create = (req, res) => {
                         price: price,
                     });
                 }
-                const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
-                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userId);
+                const insert_item = GoodReceiptModel.insertItems(good_receipt_items_input);
+                const purchase_document = new PurchaseDocumentModel(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userId);
                 const insert_purchase_document = purchase_document.create();
                 Promise.all([insert_item, insert_purchase_document])
                     .then((insert_transaction) => {
-                    log_helper_1.default.log(good_receipt_result.created_at, "info", `${good_receipt_result.user_good_receipt_code_created_byTouser.name} berhasil menambahkan penerimaan barang (ID: ${good_receipt_result.id}) dari ${good_receipt_result.supplier.name} (ID: ${good_receipt_result.id}) untuk perusahaan ${good_receipt_result.company.name} (ID: ${good_receipt_result.company.id})`, "Good Receipt controller - Create", good_receipt_result.created_by);
-                    const socket = new socket_helper_1.default("createGoodReceipt", {
+                    LogHelper.log(good_receipt_result.created_at, "info", `${good_receipt_result.user_good_receipt_code_created_byTouser.name} berhasil menambahkan penerimaan barang (ID: ${good_receipt_result.id}) dari ${good_receipt_result.supplier.name} (ID: ${good_receipt_result.id}) untuk perusahaan ${good_receipt_result.company.name} (ID: ${good_receipt_result.company.id})`, "Good Receipt controller - Create", good_receipt_result.created_by);
+                    const socket = new SocketHelper("createGoodReceipt", {
                         supplier_id: insert_transaction[1].good_receipt_code.supplier_id,
                         company_id: insert_transaction[1].good_receipt_code.company_id,
                     });
@@ -71,7 +66,7 @@ GoodReceiptController.create = (req, res) => {
                     return res.status(201).send(Object.assign(Object.assign({}, good_receipt_result), { good_receipt: insert_transaction[0], purchase_invoice: insert_transaction[1] }));
                 })
                     .catch((error) => {
-                    log_helper_1.default.log(new Date(), "error", error, "Good Receipt - Create", req.body.userId);
+                    LogHelper.log(new Date(), "error", error, "Good Receipt - Create", req.body.userId);
                     return res.status(500).send(error);
                 });
             })
@@ -89,7 +84,7 @@ GoodReceiptController.create = (req, res) => {
 };
 GoodReceiptController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
-    good_receipt_model_1.default.fetchById(id)
+    GoodReceiptModel.fetchById(id)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -101,9 +96,9 @@ GoodReceiptController.fetchArchive = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-        const archive_years = good_receipt_model_1.default.fetchArchiveYears();
-        const count_archive_years = good_receipt_model_1.default.countArchiveByYear();
-        const transaction = new query_transaction_helper_1.default();
+        const archive_years = GoodReceiptModel.fetchArchiveYears();
+        const count_archive_years = GoodReceiptModel.countArchiveByYear();
+        const transaction = new QueryTransactionHelper();
         transaction
             .create([archive_years, count_archive_years])
             .then((result) => {
@@ -123,7 +118,7 @@ GoodReceiptController.fetchArchive = (req, res) => {
     }
     else if (!req.params.month) {
         const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        good_receipt_model_1.default.countArchiveByMonth(year)
+        GoodReceiptModel.countArchiveByMonth(year)
             .then((counts) => {
             counts.forEach((x) => {
                 const month = x.month;
@@ -142,11 +137,11 @@ GoodReceiptController.fetchArchive = (req, res) => {
             : Math.max(parseInt(req.query.page.toString()), 1);
         const limit = parseInt(process.env.LIMIT.toString());
         const offset = (page - 1) * limit;
-        const transaction = new query_transaction_helper_1.default();
+        const transaction = new QueryTransactionHelper();
         transaction
             .create([
-            good_receipt_model_1.default.fetchArchive(year, month, offset, limit),
-            good_receipt_model_1.default.countArchive(year, month),
+            GoodReceiptModel.fetchArchive(year, month, offset, limit),
+            GoodReceiptModel.countArchive(year, month),
         ])
             .then((result) => {
             return res.status(200).send({
@@ -164,7 +159,7 @@ GoodReceiptController.fetchArchive = (req, res) => {
 };
 GoodReceiptController.fetchCodeById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    good_receipt_model_1.default.fetchCodeById(id)
+    GoodReceiptModel.fetchCodeById(id)
         .then((result) => {
         return res.status(200).send(result === null || result === void 0 ? void 0 : result.good_receipt_code);
     })
@@ -172,4 +167,4 @@ GoodReceiptController.fetchCodeById = (req, res) => {
         return res.status(500).send(error);
     });
 };
-exports.default = GoodReceiptController;
+export default GoodReceiptController;

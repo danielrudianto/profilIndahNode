@@ -1,10 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.administratorMiddleware = exports.authMiddleware = void 0;
-const jsonwebtoken_1 = require("jsonwebtoken");
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
-const authMiddleware = (req, res, next) => {
+import { verify } from "jsonwebtoken";
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+export const authMiddleware = (req, res, next) => {
     var _a;
     let tokenHeader = (_a = req.headers["authorization"]) === null || _a === void 0 ? void 0 : _a.toString();
     if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
@@ -20,7 +17,7 @@ const authMiddleware = (req, res, next) => {
             message: "No token provided",
         });
     }
-    (0, jsonwebtoken_1.verify)(token, process.env.TOKEN_KEY, (error, decoded) => {
+    verify(token, process.env.TOKEN_KEY, (error, decoded) => {
         if (!error) {
             const decodedData = decoded;
             prisma.user
@@ -47,8 +44,7 @@ const authMiddleware = (req, res, next) => {
         }
     });
 };
-exports.authMiddleware = authMiddleware;
-const administratorMiddleware = (req, res, next) => {
+export const administratorMiddleware = (req, res, next) => {
     var _a;
     let tokenHeader = (_a = req.headers["authorization"]) === null || _a === void 0 ? void 0 : _a.toString();
     if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
@@ -64,7 +60,7 @@ const administratorMiddleware = (req, res, next) => {
             message: "No token provided",
         });
     }
-    (0, jsonwebtoken_1.verify)(token, process.env.TOKEN_KEY, (error, decoded) => {
+    verify(token, process.env.TOKEN_KEY, (error, decoded) => {
         if (!error) {
             const decodedData = decoded;
             prisma.user
@@ -105,4 +101,3 @@ const administratorMiddleware = (req, res, next) => {
         }
     });
 };
-exports.administratorMiddleware = administratorMiddleware;

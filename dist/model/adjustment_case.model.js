@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class AdjustmentCaseModel {
     constructor(name, date, created_by, company_id, id = null) {
         this.is_confirm = true;
@@ -26,7 +24,7 @@ class AdjustmentCaseModel {
                 is_delete: this.is_delete,
                 confirmed_by: this.created_by,
                 confirmed_at: this.created_at,
-                company_id: this.company_id
+                company_id: this.company_id,
             },
         });
     }
@@ -88,24 +86,32 @@ class AdjustmentCaseModel {
         return prisma.$queryRaw `SELECT COUNT(adjustment_case_code.id) AS count, MONTH(adjustment_case_code.date) AS month FROM adjustment_case_code WHERE YEAR(adjustment_case_code.date) = ${year} GROUP BY MONTH(adjustment_case_code.date)`;
     }
     static countArchive(year, month) {
-        const start_date = new Date(year, month - 1, 1, 0, 0, 0, 0);
-        const end_date = new Date(year, month, 1, 0, 0, 0, 0);
-        return prisma.adjustment_case_code.count({
-            where: {
-                AND: [
-                    {
-                        date: {
-                            gte: start_date,
+        if (year < 0) {
+            throw Error("Mohon isikan tahun arsip yang sesuai.");
+        }
+        else if (month < 0 || month > 11) {
+            throw Error("Mohon isikan bulan arsip yang sesuai.");
+        }
+        else {
+            const start_date = new Date(year, month - 1, 1, 0, 0, 0, 0);
+            const end_date = new Date(year, month, 1, 0, 0, 0, 0);
+            return prisma.adjustment_case_code.count({
+                where: {
+                    AND: [
+                        {
+                            date: {
+                                gte: start_date,
+                            },
                         },
-                    },
-                    {
-                        date: {
-                            lt: end_date,
+                        {
+                            date: {
+                                lt: end_date,
+                            },
                         },
-                    },
-                ],
-            },
-        });
+                    ],
+                },
+            });
+        }
     }
     static fetchById(id) {
         return prisma.adjustment_case_code.findUnique({
@@ -139,16 +145,16 @@ class AdjustmentCaseModel {
                         name: true,
                         address: true,
                         npwp: true,
-                        code_name: true
-                    }
-                }
+                        code_name: true,
+                    },
+                },
             },
         });
     }
     static fetchCodeById(id) {
         return prisma.adjustment_case.findUnique({
             where: {
-                id: id
+                id: id,
             },
             select: {
                 adjustment_case_code: {
@@ -176,9 +182,9 @@ class AdjustmentCaseModel {
                             },
                         },
                     },
-                }
-            }
+                },
+            },
         });
     }
 }
-exports.default = AdjustmentCaseModel;
+export default AdjustmentCaseModel;

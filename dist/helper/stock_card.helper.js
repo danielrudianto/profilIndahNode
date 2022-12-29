@@ -1,23 +1,18 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const pdfmake_1 = __importDefault(require("pdfmake"));
-const path_1 = __importDefault(require("path"));
+import pdfPrinter from "pdfmake";
+import path from "path";
 class StockCardHelper {
     static createPdf(data, callback, errorCallback) {
         try {
             const stockItems = data;
             const fontDescriptors = {
                 Roboto: {
-                    normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-                    bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-                    italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-                    bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                    normal: path.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                    bold: path.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                    italics: path.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                    bolditalics: path.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
                 },
             };
-            const printer = new pdfmake_1.default(fontDescriptors);
+            const printer = new pdfPrinter(fontDescriptors);
             const stockBody = [];
             const month = [
                 "Januari",
@@ -114,13 +109,13 @@ class StockCardHelper {
             const items = data;
             const fontDescriptors = {
                 Roboto: {
-                    normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-                    bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-                    italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-                    bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                    normal: path.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                    bold: path.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                    italics: path.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                    bolditalics: path.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
                 },
             };
-            const printer = new pdfmake_1.default(fontDescriptors);
+            const printer = new pdfPrinter(fontDescriptors);
             const itemBody = [];
             itemBody.push([
                 "Referensi",
@@ -176,4 +171,4 @@ class StockCardHelper {
         }
     }
 }
-exports.default = StockCardHelper;
+export default StockCardHelper;

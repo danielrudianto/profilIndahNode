@@ -25,7 +25,11 @@ import itemTypeRoutes from "./routes/item_type.route";
 import salesReturnRoutes from "./routes/sales_return.route";
 import { hash } from "bcrypt";
 
-const allowedOrigins = ["http://localhost:4200", "https://app.profilindah.id", "https://stock.profilindah.id"];
+const allowedOrigins = [
+  "http://localhost:4200",
+  "https://app.profilindah.id",
+  "https://stock.profilindah.id",
+];
 const options: cors.CorsOptions = {
   origin: allowedOrigins,
 };
@@ -62,9 +66,7 @@ app.use("/itemType", authMiddleware, itemTypeRoutes);
 app.use("/salesReturn", authMiddleware, salesReturnRoutes);
 
 const server = http.createServer(app);
-server.listen(5000, () => {
-  console.log(`[server]: Listening on port 5000`);
-});
+server.listen(5000, () => {});
 
 export const io = new Server(server, {
   cors: {
@@ -73,6 +75,6 @@ export const io = new Server(server, {
   },
 });
 
-io.on("connection", () => {
-  console.log("A user has connected.");
-});
+io.on("connection", () => {});
+
+export default app;

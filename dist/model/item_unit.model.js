@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class ItemUnitModel {
     constructor(item_id, unit, conversion, created_by, id = null) {
         this.id = id;
@@ -137,4 +135,4 @@ class ItemUnitModel {
         return prisma.$transaction(transaction);
     }
 }
-exports.default = ItemUnitModel;
+export default ItemUnitModel;

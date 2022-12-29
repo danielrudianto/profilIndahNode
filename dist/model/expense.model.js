@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class ExpenseModel {
     constructor(value, description, date, expense_type_id, company_id, created_by, id = null) {
         this.is_delete = false;
@@ -238,4 +236,4 @@ class ExpenseModel {
         });
     }
 }
-exports.default = ExpenseModel;
+export default ExpenseModel;

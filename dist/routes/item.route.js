@@ -1,31 +1,26 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = require("express");
-const express_validator_1 = require("express-validator");
-const item_controller_1 = __importDefault(require("../controller/item.controller"));
-const auth_helper_1 = require("../helper/auth.helper");
-const router = (0, express_1.Router)();
-router.post("/stock/download", item_controller_1.default.downloadStock);
-router.post("/stockReport/pdf", item_controller_1.default.fetchStockReportPdf);
-router.post("/stockReport", item_controller_1.default.fetchStockReport);
-router.post("/", item_controller_1.default.create);
-router.put("/unit", item_controller_1.default.updateUnit);
-router.put("/", item_controller_1.default.update);
-router.get("/setActive/:reference", item_controller_1.default.toggleActive);
-router.get("/dailyStock/:reference", (0, express_validator_1.query)("start").not().isEmpty().withMessage("Mohon isikan tanggal"), (0, express_validator_1.query)("end").not().isEmpty().withMessage("Mohon isikan tanggal"), item_controller_1.default.fetchDailyStock);
-router.get("/stock", (0, express_validator_1.query)("reference")
+import { Router } from "express";
+import { query } from "express-validator";
+import ItemController from "../controller/item.controller";
+import { administratorMiddleware } from "../helper/auth.helper";
+const router = Router();
+router.post("/stock/download", ItemController.downloadStock);
+router.post("/stockReport/pdf", ItemController.fetchStockReportPdf);
+router.post("/stockReport", ItemController.fetchStockReport);
+router.post("/", ItemController.create);
+router.put("/unit", ItemController.updateUnit);
+router.put("/", ItemController.update);
+router.get("/setActive/:reference", ItemController.toggleActive);
+router.get("/dailyStock/:reference", query("start").not().isEmpty().withMessage("Mohon isikan tanggal"), query("end").not().isEmpty().withMessage("Mohon isikan tanggal"), ItemController.fetchDailyStock);
+router.get("/stock", query("reference")
     .not()
     .isEmpty()
-    .withMessage("Referensi barang wajib diisikan."), item_controller_1.default.fetchStock);
-router.get("/units/:reference", item_controller_1.default.fetchUnits);
-router.get("/search", item_controller_1.default.fetchSearchResult);
-router.get("/searchStock", item_controller_1.default.fetchSearchStock);
-router.get("/searchPurchase", item_controller_1.default.fetchPurchaseSearchResult);
-router.get("/getById/:id", auth_helper_1.administratorMiddleware, item_controller_1.default.fetchById);
-router.get("/:reference", item_controller_1.default.fetchByReference);
-router.get("/", item_controller_1.default.fetch);
-router.delete("/:itemReference", item_controller_1.default.delete);
-exports.default = router;
+    .withMessage("Referensi barang wajib diisikan."), ItemController.fetchStock);
+router.get("/units/:reference", ItemController.fetchUnits);
+router.get("/search", ItemController.fetchSearchResult);
+router.get("/searchStock", ItemController.fetchSearchStock);
+router.get("/searchPurchase", ItemController.fetchPurchaseSearchResult);
+router.get("/getById/:id", administratorMiddleware, ItemController.fetchById);
+router.get("/:reference", ItemController.fetchByReference);
+router.get("/", ItemController.fetch);
+router.delete("/:itemReference", ItemController.delete);
+export default router;

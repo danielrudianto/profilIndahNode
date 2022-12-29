@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class SalesDistributionModel {
     static fetchSum(month, year) {
         if (month == 0) {
@@ -31,4 +29,4 @@ class SalesDistributionModel {
         }
     }
 }
-exports.default = SalesDistributionModel;
+export default SalesDistributionModel;

@@ -1,34 +1,29 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_validator_1 = require("express-validator");
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
-const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
-const supplier_model_1 = __importDefault(require("../model/supplier.model"));
+import { validationResult } from "express-validator";
+import LogHelper from "../helper/log.helper";
+import SocketHelper from "../helper/socket.helper";
+import GoodReceiptModel from "../model/good_receipt.model";
+import SupplierModel from "../model/supplier.model";
 class SupplierController {
 }
 SupplierController.create = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
+    const validation_result = validationResult(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const name = req.body.name;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const supplier = new supplier_model_1.default(name, address, npwp, null, req.body.userId);
+    const supplier = new SupplierModel(name, address, npwp, null, req.body.userId);
     supplier
         .create()
         .then((supplier_result) => {
-        log_helper_1.default.log(new Date(), "info", `${supplier_result.user.name} created supplier with the name ${supplier_result.name} (ID: ${supplier_result.id})`, "Supplier - Create", req.body.userId);
-        const socket = new socket_helper_1.default("createSupplier", supplier_result);
+        LogHelper.log(new Date(), "info", `${supplier_result.user.name} created supplier with the name ${supplier_result.name} (ID: ${supplier_result.id})`, "Supplier - Create", req.body.userId);
+        const socket = new SocketHelper("createSupplier", supplier_result);
         socket.create();
         return res.status(201).send(Object.assign(Object.assign({}, supplier_result), { can_delete: true }));
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Supplier - Create", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Supplier - Create", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -37,11 +32,11 @@ SupplierController.update = (req, res) => {
     const id = req.body.id;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const supplier = new supplier_model_1.default(name, address, npwp, id);
+    const supplier = new SupplierModel(name, address, npwp, id);
     supplier
         .update()
         .then((supplier_result) => {
-        const socket = new socket_helper_1.default("updateSupplier", supplier_result);
+        const socket = new SocketHelper("updateSupplier", supplier_result);
         socket.create();
         return res.status(201).send("Data supplier berhasil dirubah.");
     })
@@ -56,9 +51,9 @@ SupplierController.getItems = (req, res) => {
         : Math.max(1, parseInt(req.query.page.toString()));
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    supplier_model_1.default.getItems(keyword, offset, limit)
+    SupplierModel.getItems(keyword, offset, limit)
         .then((result) => {
-        good_receipt_model_1.default.countBySupplierIds(result[0].map((x) => {
+        GoodReceiptModel.countBySupplierIds(result[0].map((x) => {
             return x.id;
         }))
             .then((counts) => {
@@ -73,18 +68,18 @@ SupplierController.getItems = (req, res) => {
             });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Supplier - Fetch", req.body.userId);
+            LogHelper.log(new Date(), "error", error, "Supplier - Fetch", req.body.userId);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Supplier - Fetch", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Supplier - Fetch", req.body.userId);
         return res.status(500).send(error);
     });
 };
 SupplierController.getAutocomplete = (req, res) => {
     const keyword = !req.query.keyword ? "" : decodeURIComponent(req.query.keyword.toString());
-    supplier_model_1.default.getAutocomplete(keyword)
+    SupplierModel.getAutocomplete(keyword)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -94,10 +89,10 @@ SupplierController.getAutocomplete = (req, res) => {
 };
 SupplierController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
-    supplier_model_1.default.fetchById(id).then(result => {
+    SupplierModel.fetchById(id).then(result => {
         return res.status(200).send(result);
     }).catch(error => {
         return res.status(500).send(error);
     });
 };
-exports.default = SupplierController;
+export default SupplierController;

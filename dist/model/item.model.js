@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ItemModel = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
-class ItemModel {
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+export class ItemModel {
     constructor(reference, description, minimum_stock, brand_id, type_id, created_by, unit, id = null) {
         if (id != null) {
             this.id = id;
@@ -1576,9 +1573,99 @@ class ItemModel {
             orderBy: {
                 good_receipt_code: {
                     date: "asc",
-                }
-            }
+                },
+            },
+        });
+    }
+    static fetchOutputByBrandType(brand_id, type_id, startDate, endDate) {
+        const formatted_start_date = `${startDate.getFullYear().toString()}-${(startDate.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${startDate.getDate().toString().padStart(2, "0")}`;
+        const formatted_end_date = `${endDate.getFullYear().toString()}-${(endDate.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${endDate.getDate().toString().padStart(2, "0")}`;
+        return prisma.bill.findMany({
+            where: {
+                AND: [
+                    {
+                        bill_code: {
+                            date: {
+                                gte: new Date(formatted_start_date),
+                            },
+                        },
+                    },
+                    {
+                        bill_code: {
+                            date: {
+                                lte: new Date(formatted_end_date),
+                            },
+                        },
+                    },
+                    {
+                        bill_code: {
+                            is_confirm: true,
+                        },
+                    },
+                ],
+                item: {
+                    item_brand_id: {
+                        in: brand_id,
+                    },
+                    item_type_id: {
+                        in: type_id,
+                    },
+                },
+            },
+            select: {
+                quantity: true,
+                item_unit: {
+                    select: {
+                        unit: true,
+                        conversion: true,
+                    },
+                },
+                bill_code: {
+                    select: {
+                        date: true,
+                    },
+                },
+                item: {
+                    select: {
+                        unit: true,
+                        item_brand_id: true,
+                        item_type_id: true,
+                        id: true,
+                        reference: true,
+                        description: true,
+                        item_brand: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        item_type: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                    },
+                },
+                sales_return: {
+                    select: {
+                        quantity: true,
+                    },
+                    where: {
+                        sales_return_code: {
+                            is_confirm: true,
+                            is_delete: false,
+                        },
+                    },
+                },
+            },
+            orderBy: {
+                bill_code: {
+                    date: "asc",
+                },
+            },
         });
     }
 }
-exports.ItemModel = ItemModel;

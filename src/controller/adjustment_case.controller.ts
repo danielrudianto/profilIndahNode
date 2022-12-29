@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { validationResult } from "express-validator";
 import LogHelper from "../helper/log.helper";
 import QueryTransactionHelper from "../helper/query.transaction.helper";
 import AdjustmentCaseModel from "../model/adjustment_case.model";
@@ -46,6 +47,11 @@ class AdjustmentCaseController {
   };
 
   static fetchArchives = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
@@ -125,6 +131,11 @@ class AdjustmentCaseController {
   };
 
   static fetchCodeById = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+    
     const id = parseInt(req.params.id.toString());
     AdjustmentCaseModel.fetchCodeById(id)
       .then((result) => {

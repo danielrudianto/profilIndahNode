@@ -1,9 +1,6 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BrandModel = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
-class BrandModel {
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+export class BrandModel {
     constructor(name, created_by, id = null) {
         if (id != null) {
             this.id = id;
@@ -330,4 +327,3 @@ class BrandModel {
         });
     }
 }
-exports.BrandModel = BrandModel;

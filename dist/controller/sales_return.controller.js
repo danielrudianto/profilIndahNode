@@ -1,10 +1,5 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
-const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
+import BillCodeModel from "../model/bill_code.model";
+import SalesReturnModel from "../model/sales_return.model";
 class SalesReturnController {
 }
 SalesReturnController.create = (req, res) => {
@@ -13,7 +8,7 @@ SalesReturnController.create = (req, res) => {
     const items = req.body.sales_return;
     if (items.length > 0) {
         const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
-        const sales_return_code = new sales_return_model_1.default(name, date, req.body.userId, payment_method_id, items, null, true);
+        const sales_return_code = new SalesReturnModel(name, date, req.body.userId, payment_method_id, items, null, true);
         sales_return_code
             .create()
             .then((result) => {
@@ -30,7 +25,7 @@ SalesReturnController.create = (req, res) => {
 SalesReturnController.fetchSearch = (req, res) => {
     const date = new Date(req.body.date);
     const items = req.body.item;
-    bill_code_model_1.default.fetchSearch(date, items)
+    BillCodeModel.fetchSearch(date, items)
         .then((result) => {
         return res.status(200).send(result.map((x) => {
             return {
@@ -51,8 +46,8 @@ SalesReturnController.fetchArchive = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-        const archive_years = sales_return_model_1.default.fetchArchiveYears();
-        const count_archive_years = sales_return_model_1.default.countArchiveByYear();
+        const archive_years = SalesReturnModel.fetchArchiveYears();
+        const count_archive_years = SalesReturnModel.countArchiveByYear();
         Promise.all([archive_years, count_archive_years])
             .then((result) => {
             const response = [];
@@ -71,7 +66,7 @@ SalesReturnController.fetchArchive = (req, res) => {
     }
     else if (!req.params.month) {
         const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        sales_return_model_1.default.countArchiveByMonth(year)
+        SalesReturnModel.countArchiveByMonth(year)
             .then((counts) => {
             counts.forEach((x) => {
                 const month = x.month;
@@ -91,8 +86,8 @@ SalesReturnController.fetchArchive = (req, res) => {
         const limit = parseInt(process.env.LIMIT.toString());
         const offset = (page - 1) * limit;
         Promise.all([
-            sales_return_model_1.default.fetchArchive(year, month, offset, limit),
-            sales_return_model_1.default.countArchive(year, month),
+            SalesReturnModel.fetchArchive(year, month, offset, limit),
+            SalesReturnModel.countArchive(year, month),
         ])
             .then((result) => {
             return res.status(200).send({
@@ -117,14 +112,14 @@ SalesReturnController.fetchArchive = (req, res) => {
 };
 SalesReturnController.fetchById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    sales_return_model_1.default.fetchById(id)
+    SalesReturnModel.fetchById(id)
         .then((result) => {
         if (result == null || result.sales_return.length == 0) {
             return res.status(404).send("Data tidak ditemukan.");
         }
         else {
             const bill_code_id = result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code_id;
-            bill_code_model_1.default.fetchById(bill_code_id).then((bill) => {
+            BillCodeModel.fetchById(bill_code_id).then((bill) => {
                 return res.status(200).send(Object.assign(Object.assign({}, result), { bill: bill, customer: (result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 ||
                         (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null
                         ? null
@@ -140,12 +135,12 @@ SalesReturnController.fetchById = (req, res) => {
 };
 SalesReturnController.deleteById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    sales_return_model_1.default.fetchById(id).then((salesReturn) => {
+    SalesReturnModel.fetchById(id).then((salesReturn) => {
         if (salesReturn == null || salesReturn.is_delete) {
             return res.status(404).send("Data tidak ditemukan.");
         }
         else {
-            sales_return_model_1.default.deleteById(id, req.body.userId)
+            SalesReturnModel.deleteById(id, req.body.userId)
                 .then((result) => {
                 return res.status(200).send(result);
             })
@@ -155,4 +150,4 @@ SalesReturnController.deleteById = (req, res) => {
         }
     });
 };
-exports.default = SalesReturnController;
+export default SalesReturnController;

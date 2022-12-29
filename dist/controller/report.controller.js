@@ -1,4 +1,3 @@
-"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8,23 +7,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var _a;
-Object.defineProperty(exports, "__esModule", { value: true });
-const pdfmake_1 = __importDefault(require("pdfmake"));
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
-const expense_model_1 = __importDefault(require("../model/expense.model"));
-const purchase_document_model_1 = __importDefault(require("../model/purchase_document.model"));
-const sales_distribution_model_1 = __importDefault(require("../model/sales_distribution.model"));
-const path_1 = __importDefault(require("path"));
-const stock_value_helper_1 = __importDefault(require("../helper/stock_value.helper"));
-const brand_model_1 = require("../model/brand.model");
-const item_type_model_1 = __importDefault(require("../model/item_type.model"));
-const supplier_model_1 = __importDefault(require("../model/supplier.model"));
-const item_model_1 = require("../model/item.model");
+import PdfPrinter from "pdfmake";
+import LogHelper from "../helper/log.helper";
+import BillCodeModel from "../model/bill_code.model";
+import ExpenseModel from "../model/expense.model";
+import PurchaseDocumentModel from "../model/purchase_document.model";
+import SalesDistributionModel from "../model/sales_distribution.model";
+import path from "path";
+import StockValueHelper from "../helper/stock_value.helper";
+import { BrandModel } from "../model/brand.model";
+import ItemTypeModel from "../model/item_type.model";
+import SupplierModel from "../model/supplier.model";
+import { ItemModel } from "../model/item.model";
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
@@ -52,21 +47,21 @@ ReportController.fetchPLStats = (req, res) => {
     ];
     const fontDescriptors = {
         Roboto: {
-            normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-            bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-            italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-            bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+            normal: path.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+            bold: path.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+            italics: path.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+            bolditalics: path.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
         },
     };
     if (report == 0) {
         Promise.all([
-            bill_code_model_1.default.fetchSum(month, year),
-            sales_distribution_model_1.default.fetchSum(month, year),
-            purchase_document_model_1.default.fetchSum(month, year),
-            expense_model_1.default.fetchSum(month, year),
+            BillCodeModel.fetchSum(month, year),
+            SalesDistributionModel.fetchSum(month, year),
+            PurchaseDocumentModel.fetchSum(month, year),
+            ExpenseModel.fetchSum(month, year),
             month == 0
-                ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
-                : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
+                ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
+                : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
         ])
             .then((result) => {
             const sales_table = [];
@@ -524,7 +519,7 @@ ReportController.fetchPLStats = (req, res) => {
                     },
                 ],
             };
-            const printer = new pdfmake_1.default(fontDescriptors);
+            const printer = new PdfPrinter(fontDescriptors);
             const pdfDocument = printer.createPdfKitDocument(documentDefinition);
             let chunks = [];
             var pdfResult;
@@ -540,21 +535,21 @@ ReportController.fetchPLStats = (req, res) => {
             pdfDocument.end();
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Report controller - Fetch Profit Loss", req.body.userId);
+            LogHelper.log(new Date(), "error", error, "Report controller - Fetch Profit Loss", req.body.userId);
             return res.status(500).send(error);
         });
     }
     else {
         Promise.all([
-            bill_code_model_1.default.fetchSum(month, year),
-            sales_distribution_model_1.default.fetchSum(month, year),
-            purchase_document_model_1.default.fetchSum(month, year),
-            expense_model_1.default.fetchSum(month, year),
+            BillCodeModel.fetchSum(month, year),
+            SalesDistributionModel.fetchSum(month, year),
+            PurchaseDocumentModel.fetchSum(month, year),
+            ExpenseModel.fetchSum(month, year),
             month == 0
-                ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
-                : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
-            bill_code_model_1.default.fetchAppendix(month, year),
-            purchase_document_model_1.default.fetchAppendix(month, year),
+                ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
+                : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
+            BillCodeModel.fetchAppendix(month, year),
+            PurchaseDocumentModel.fetchAppendix(month, year),
             // SalesReturnModel.fetchAppendix(month, year),
         ])
             .then((result) => {
@@ -1162,7 +1157,7 @@ ReportController.fetchPLStats = (req, res) => {
                     },
                 ],
             };
-            const printer = new pdfmake_1.default(fontDescriptors);
+            const printer = new PdfPrinter(fontDescriptors);
             const pdfDocument = printer.createPdfKitDocument(documentDefinition);
             let chunks = [];
             var pdfResult;
@@ -1178,7 +1173,7 @@ ReportController.fetchPLStats = (req, res) => {
             pdfDocument.end();
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Report controller - Fetch Profit Loss", req.body.userId);
+            LogHelper.log(new Date(), "error", error, "Report controller - Fetch Profit Loss", req.body.userId);
             return res.status(500).send(error);
         });
     }
@@ -1187,12 +1182,12 @@ ReportController.fetchReception = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const date = parseInt(req.params.date);
-    bill_code_model_1.default.fetchReception(year, month, date)
+    BillCodeModel.fetchReception(year, month, date)
         .then((result) => {
         return res.status(200).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Report Controller - Fetch Reception", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Report Controller - Fetch Reception", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -1202,7 +1197,7 @@ ReportController.fetchSalesReport = (req, res) => {
     const end = new Date(req.body.end);
     if (type == 0) {
         // Fetch by brand
-        brand_model_1.BrandModel.fetchSales(start, end)
+        BrandModel.fetchSales(start, end)
             .then((result) => {
             return res.status(200).send(result.filter((x) => {
                 return parseFloat(x.value.toString()) > 0;
@@ -1214,7 +1209,7 @@ ReportController.fetchSalesReport = (req, res) => {
     }
     else if (type == 1) {
         // Fetch by type
-        item_type_model_1.default.fetchSales(start, end)
+        ItemTypeModel.fetchSales(start, end)
             .then((result) => {
             return res.status(200).send({
                 data: result.filter((x) => {
@@ -1231,7 +1226,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
     const start = new Date(req.body.start);
     const end = new Date(req.body.end);
     const type = req.body.type;
-    purchase_document_model_1.default.fetchReport(start, end, type)
+    PurchaseDocumentModel.fetchReport(start, end, type)
         .then((result) => {
         return res.status(200).send(result.filter((x) => {
             return parseFloat(x.value.toString()) > 0;
@@ -1248,7 +1243,7 @@ ReportController.fetchFrequent = (req, res) => {
     const type_id = req.body.type_id;
     const limit = req.body.limit;
     if (req.body.brand_id != undefined && brand_id != null) {
-        brand_model_1.BrandModel.fetchFrequent(parseInt(brand_id.toString()), start, end, limit)
+        BrandModel.fetchFrequent(parseInt(brand_id.toString()), start, end, limit)
             .then((result) => {
             return res.status(200).send(result.map((x) => {
                 return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
@@ -1259,7 +1254,7 @@ ReportController.fetchFrequent = (req, res) => {
         });
     }
     else if (req.body.type_id != undefined && type_id != null) {
-        item_type_model_1.default.fetchFrequent(parseInt(type_id.toString()), start, end, limit)
+        ItemTypeModel.fetchFrequent(parseInt(type_id.toString()), start, end, limit)
             .then((result) => {
             return res.status(200).send(result.map((x) => {
                 return Object.assign(Object.assign({}, x), { ordered: undefined, quantity: x.ordered });
@@ -1279,8 +1274,8 @@ ReportController.fetchQuickStats = (req, res) => {
     // Fetch purchase
     // Fetch unconfirmed purchase document
     Promise.all([
-        bill_code_model_1.default.fetchTodaySales(),
-        expense_model_1.default.fetchTodaySum(),
+        BillCodeModel.fetchTodaySales(),
+        ExpenseModel.fetchTodaySum(),
         // PurchaseDocumentModel.fetchTodaySum,
         // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
@@ -1323,13 +1318,13 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
     const password = req.body.password;
     const fontDescriptors = {
         Roboto: {
-            normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-            bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-            italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-            bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+            normal: path.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+            bold: path.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+            italics: path.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+            bolditalics: path.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
         },
     };
-    purchase_document_model_1.default.fetchReportById(start, end, type, id)
+    PurchaseDocumentModel.fetchReportById(start, end, type, id)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         var _b;
         const purchase_table = [];
@@ -1411,15 +1406,15 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
         });
         let name;
         if (type == 0) {
-            const brand = yield brand_model_1.BrandModel.fetchById(id);
+            const brand = yield BrandModel.fetchById(id);
             name = (_b = brand[0]) === null || _b === void 0 ? void 0 : _b.name;
         }
         else if (type == 1) {
-            const type = yield item_type_model_1.default.fetchById(id);
+            const type = yield ItemTypeModel.fetchById(id);
             name = type === null || type === void 0 ? void 0 : type.name;
         }
         else {
-            const supplier = yield supplier_model_1.default.fetchById(id);
+            const supplier = yield SupplierModel.fetchById(id);
             name = supplier === null || supplier === void 0 ? void 0 : supplier.name;
         }
         let documentDefinition = {
@@ -1462,7 +1457,7 @@ ReportController.fetchPurchaseReportDownload = (req, res) => {
                 },
             ],
         };
-        const printer = new pdfmake_1.default(fontDescriptors);
+        const printer = new PdfPrinter(fontDescriptors);
         const pdfDocument = printer.createPdfKitDocument(documentDefinition);
         let chunks = [];
         var pdfResult;
@@ -1490,23 +1485,23 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
     const type_id = req.body.type_id;
     if (format === "PDF") {
         Promise.all([
-            item_model_1.ItemModel.fetchInputByBrandType(brand_id, type_id, new Date(start), new Date(end)),
-            brand_model_1.BrandModel.fetchByIds(brand_id),
-            item_type_model_1.default.fetchByIds(type_id),
+            ItemModel.fetchOutputByBrandType(brand_id, type_id, new Date(start), new Date(end)),
+            BrandModel.fetchByIds(brand_id),
+            ItemTypeModel.fetchByIds(type_id),
         ])
             .then((result) => {
             const fontDescriptors = {
                 Roboto: {
-                    normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-                    bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-                    italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-                    bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                    normal: path.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                    bold: path.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                    italics: path.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                    bolditalics: path.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
                 },
             };
-            const printer = new pdfmake_1.default(fontDescriptors);
+            const printer = new PdfPrinter(fontDescriptors);
             const content = [];
             content.push({
-                text: "Laporan Pemasukan Barang",
+                text: "Laporan Pengeluaran Barang",
                 bold: true,
                 fontSize: 20,
                 font: "Roboto",
@@ -1563,7 +1558,9 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
                                 items.forEach((item) => {
                                     itemTable.push([
                                         {
-                                            text: Intl.DateTimeFormat("en-US").format(new Date(item.good_receipt_code.date)),
+                                            text: item.bill_code.date == null
+                                                ? ""
+                                                : Intl.DateTimeFormat("en-US").format(new Date(item.bill_code.date)),
                                             bold: false,
                                             alignment: "left",
                                         },
@@ -1578,7 +1575,10 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
                                             alignment: "left",
                                         },
                                         {
-                                            text: `${Intl.NumberFormat().format(parseFloat(item.quantity.toString()))} ${item.item_unit == null
+                                            text: `${Intl.NumberFormat().format(parseFloat(item.quantity.toString()) -
+                                                parseFloat(item.sales_return
+                                                    .reduce((partial, a) => partial + parseFloat(a.toString()), 0)
+                                                    .toString()))} ${item.item_unit == null
                                                 ? item.item.unit
                                                 : item.item_unit.unit}`,
                                             bold: false,
@@ -1633,7 +1633,7 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
         });
     }
     else if (format === "Excel") {
-        item_model_1.ItemModel.fetchInputByBrandType(brand_id, type_id, new Date(start), new Date(end))
+        ItemModel.fetchInputByBrandType(brand_id, type_id, new Date(start), new Date(end))
             .then((result) => { })
             .catch((error) => {
             return res.status(500).send(error);
@@ -1643,4 +1643,4 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
         return res.status(400).send("Format tidak ditemukan.");
     }
 };
-exports.default = ReportController;
+export default ReportController;

@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class UserRoleModel {
     constructor(user_id, role) {
         this.user_id = user_id;
@@ -26,4 +24,4 @@ class UserRoleModel {
         });
     }
 }
-exports.default = UserRoleModel;
+export default UserRoleModel;

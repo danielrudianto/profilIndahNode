@@ -1,6 +1,4 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-function roman(number) {
+export default function roman(number) {
     let day = "";
     if (number <= 12 && number > 0) {
         switch (number) {
@@ -46,4 +44,3 @@ function roman(number) {
     }
     return day;
 }
-exports.default = roman;

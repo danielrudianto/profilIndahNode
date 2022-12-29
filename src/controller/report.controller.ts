@@ -1710,7 +1710,7 @@ class ReportController {
 
     if (format === "PDF") {
       Promise.all([
-        ItemModel.fetchInputByBrandType(
+        ItemModel.fetchOutputByBrandType(
           brand_id,
           type_id,
           new Date(start),
@@ -1753,7 +1753,7 @@ class ReportController {
           const content: Content = [];
 
           content.push({
-            text: "Laporan Pemasukan Barang",
+            text: "Laporan Pengeluaran Barang",
             bold: true,
             fontSize: 20,
             font: "Roboto",
@@ -1819,9 +1819,12 @@ class ReportController {
                     items.forEach((item) => {
                       itemTable.push([
                         {
-                          text: Intl.DateTimeFormat("en-US").format(
-                            new Date(item.good_receipt_code.date)
-                          ),
+                          text:
+                            item.bill_code.date == null
+                              ? ""
+                              : Intl.DateTimeFormat("en-US").format(
+                                  new Date(item.bill_code.date)
+                                ),
                           bold: false,
                           alignment: "left" as Alignment,
                         },
@@ -1837,7 +1840,16 @@ class ReportController {
                         },
                         {
                           text: `${Intl.NumberFormat().format(
-                            parseFloat(item.quantity.toString())
+                            parseFloat(item.quantity.toString()) -
+                              parseFloat(
+                                item.sales_return
+                                  .reduce(
+                                    (partial, a) =>
+                                      partial + parseFloat(a.toString()),
+                                    0
+                                  )
+                                  .toString()
+                              )
                           )} ${
                             item.item_unit == null
                               ? item.item.unit

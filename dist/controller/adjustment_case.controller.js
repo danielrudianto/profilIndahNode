@@ -1,22 +1,18 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 var _a;
-Object.defineProperty(exports, "__esModule", { value: true });
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
-const adjustment_case_model_1 = __importDefault(require("../model/adjustment_case.model"));
+import { validationResult } from "express-validator";
+import LogHelper from "../helper/log.helper";
+import QueryTransactionHelper from "../helper/query.transaction.helper";
+import AdjustmentCaseModel from "../model/adjustment_case.model";
 class AdjustmentCaseController {
 }
 _a = AdjustmentCaseController;
 AdjustmentCaseController.post = (req, res) => {
     const name = _a.generateName(new Date(req.body.date));
-    const adjustment_case = new adjustment_case_model_1.default(name, new Date(req.body.date), req.body.userId, req.body.company_id);
+    const adjustment_case = new AdjustmentCaseModel(name, new Date(req.body.date), req.body.userId, req.body.company_id);
     adjustment_case
         .create()
         .then((result) => {
-        adjustment_case_model_1.default.createMany(req.body.adjustment_case.map((x) => {
+        AdjustmentCaseModel.createMany(req.body.adjustment_case.map((x) => {
             return Object.assign(Object.assign({}, x), { quantity: req.body.type == 0 ? x.quantity : -1 * x.quantity, adjustment_case_code_id: result.id });
         }))
             .then(() => {
@@ -27,17 +23,21 @@ AdjustmentCaseController.post = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Adjustment case controller - Create", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Adjustment case controller - Create", req.body.userId);
         return res.status(500).send(error);
     });
 };
 AdjustmentCaseController.fetchArchives = (req, res) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-        const archive_years = adjustment_case_model_1.default.fetchArchiveYears();
-        const count_archive_years = adjustment_case_model_1.default.countArchiveByYear();
-        const transaction = new query_transaction_helper_1.default();
+        const archive_years = AdjustmentCaseModel.fetchArchiveYears();
+        const count_archive_years = AdjustmentCaseModel.countArchiveByYear();
+        const transaction = new QueryTransactionHelper();
         transaction
             .create([archive_years, count_archive_years])
             .then((result) => {
@@ -57,7 +57,7 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
     }
     else if (!req.params.month && req.params.year) {
         const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        adjustment_case_model_1.default.countArchiveByMonth(year)
+        AdjustmentCaseModel.countArchiveByMonth(year)
             .then((counts) => {
             counts.forEach((x) => {
                 const month = x.month;
@@ -76,11 +76,11 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
             : Math.max(parseInt(req.query.page.toString()), 1);
         const limit = parseInt(process.env.LIMIT.toString());
         const offset = (page - 1) * limit;
-        const transaction = new query_transaction_helper_1.default();
+        const transaction = new QueryTransactionHelper();
         transaction
             .create([
-            adjustment_case_model_1.default.fetchArchive(year, month, offset, limit),
-            adjustment_case_model_1.default.countArchive(year, month),
+            AdjustmentCaseModel.fetchArchive(year, month, offset, limit),
+            AdjustmentCaseModel.countArchive(year, month),
         ])
             .then((result) => {
             return res.status(200).send({
@@ -98,7 +98,7 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
 };
 AdjustmentCaseController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
-    adjustment_case_model_1.default.fetchById(id)
+    AdjustmentCaseModel.fetchById(id)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -107,17 +107,21 @@ AdjustmentCaseController.fetchById = (req, res) => {
     });
 };
 AdjustmentCaseController.fetchCodeById = (req, res) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+        return res.status(400).send(validation_result.array()[0].msg);
+    }
     const id = parseInt(req.params.id.toString());
-    adjustment_case_model_1.default.fetchCodeById(id)
+    AdjustmentCaseModel.fetchCodeById(id)
         .then((result) => {
         return res.status(200).send(result === null || result === void 0 ? void 0 : result.adjustment_case_code);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
+        LogHelper.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
         return res.status(500).send(error);
     });
 };
 AdjustmentCaseController.generateName = (date) => {
     return `ADJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
 };
-exports.default = AdjustmentCaseController;
+export default AdjustmentCaseController;

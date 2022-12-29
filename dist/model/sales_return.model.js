@@ -1,7 +1,5 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 class SalesReturnModel {
     constructor(name, date, created_by, payment_method_id, sales_return = [], id, is_confirm = true) {
         this.is_confirm = false;
@@ -198,4 +196,4 @@ class SalesReturnModel {
         });
     }
 }
-exports.default = SalesReturnModel;
+export default SalesReturnModel;
