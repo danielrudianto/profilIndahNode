@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -7,14 +8,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var _a;
-import { ItemModel } from "../model/item.model";
-import ItemPriceModel from "../model/item_price.model";
-import SocketHelper from "../helper/socket.helper";
-import ExcelJS from "exceljs";
-import UserModel from "../model/user.model";
-import LogHelper from "../helper/log.helper";
-import { validationResult } from "express-validator";
+Object.defineProperty(exports, "__esModule", { value: true });
+const item_model_1 = require("../model/item.model");
+const item_price_model_1 = __importDefault(require("../model/item_price.model"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const exceljs_1 = __importDefault(require("exceljs"));
+const user_model_1 = __importDefault(require("../model/user.model"));
+const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const express_validator_1 = require("express-validator");
 class ItemPriceController {
 }
 _a = ItemPriceController;
@@ -27,8 +32,8 @@ ItemPriceController.createBulk = (req, res) => {
         const item_unit_id = x.item_unit_id == 0 ? null : parseInt(x.item_unit_id);
         const price = x.price;
         const discount = x.discount;
-        const item_price = new ItemPriceModel(price, discount, id, item_unit_id, req.body.userId, effective_date);
-        transactions.push(ItemPriceModel.delete(id, item_unit_id, req.body.userId));
+        const item_price = new item_price_model_1.default(price, discount, id, item_unit_id, req.body.userId, effective_date);
+        transactions.push(item_price_model_1.default.delete(id, item_unit_id, req.body.userId));
         transactions.push(item_price.create());
     });
     Promise.all(transactions)
@@ -45,7 +50,7 @@ ItemPriceController.fetchAll = (req, res) => {
     date.setDate(date.getDate() + 1);
     date.setHours(0, 0, 0);
     const result = [];
-    ItemModel.fetchAll(date)
+    item_model_1.ItemModel.fetchAll(date)
         .then((items) => {
         items.forEach((item) => {
             result.push({
@@ -81,7 +86,7 @@ ItemPriceController.fetch = (req, res) => {
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);
-    ItemPriceModel.fetch(keyword, date, offset, limit)
+    item_price_model_1.default.fetch(keyword, date, offset, limit)
         .then((result) => {
         return res.status(200).send({
             data: result[0].map((x) => {
@@ -93,12 +98,12 @@ ItemPriceController.fetch = (req, res) => {
         });
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Item price controller - Fetch", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item price controller - Fetch", req.body.userId);
         return res.status(500).send(error);
     });
 };
 ItemPriceController.fetchByReference = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
@@ -106,7 +111,7 @@ ItemPriceController.fetchByReference = (req, res) => {
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
     date.setHours(0, 0, 0, 0);
-    ItemPriceModel.fetchByReference(reference, date)
+    item_price_model_1.default.fetchByReference(reference, date)
         .then((result) => {
         if (result == null) {
             return res.status(404).send("Barang tidak ditemukan.");
@@ -126,9 +131,9 @@ ItemPriceController.updatePrice = (req, res) => {
     const discount = req.body.discount;
     const effective_date = new Date(req.body.effective_date);
     const old_id = req.body.id;
-    ItemPriceModel.updatePrice(item_id, price, discount, req.body.userId, item_unit_id, effective_date)
+    item_price_model_1.default.updatePrice(item_id, price, discount, req.body.userId, item_unit_id, effective_date)
         .then((result) => {
-        const socket = new SocketHelper("updateUnitPrice", Object.assign(Object.assign({}, result[1]), { delete_id: old_id }));
+        const socket = new socket_helper_1.default("updateUnitPrice", Object.assign(Object.assign({}, result[1]), { delete_id: old_id }));
         socket.create();
         return res.status(200).send(result[1]);
     })
@@ -137,12 +142,12 @@ ItemPriceController.updatePrice = (req, res) => {
     });
 };
 ItemPriceController.fetchById = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id);
-    ItemPriceModel.fetchById(id)
+    item_price_model_1.default.fetchById(id)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -151,7 +156,7 @@ ItemPriceController.fetchById = (req, res) => {
     });
 };
 ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    UserModel.fetchById(req.body.userId)
+    user_model_1.default.fetchById(req.body.userId)
         .then((user) => {
         if (user == null) {
             return res.status(401).send("Pengguna tidak ditemukan.");
@@ -178,7 +183,7 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
             columns_width.push(rows[rows.length - 1].map((item) => {
                 return item.toString().length;
             }));
-            ItemModel.fetchItemPriceByBrandType(brand_id, type_id)
+            item_model_1.ItemModel.fetchItemPriceByBrandType(brand_id, type_id)
                 .then((items) => {
                 items.forEach((x) => {
                     var _b;
@@ -202,7 +207,7 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                         return item.toString().length;
                     }));
                 });
-                const workbook = new ExcelJS.Workbook();
+                const workbook = new exceljs_1.default.Workbook();
                 // Setting up workbook properties
                 workbook.creator = "Toko Profil Indah";
                 workbook.lastModifiedBy = user === null || user === void 0 ? void 0 : user.name;
@@ -282,7 +287,7 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 });
             })
                 .catch((error) => {
-                LogHelper.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userId);
+                log_helper_1.default.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userId);
                 return res.status(500).send(error);
             });
         }
@@ -291,4 +296,4 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
         return res.status(500).send(error);
     });
 });
-export default ItemPriceController;
+exports.default = ItemPriceController;

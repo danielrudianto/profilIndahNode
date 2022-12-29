@@ -1,14 +1,19 @@
-import { validationResult } from "express-validator";
-import LogHelper from "../helper/log.helper";
-import SocketHelper from "../helper/socket.helper";
-import { BrandModel } from "../model/brand.model";
-import { ItemModel } from "../model/item.model";
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_validator_1 = require("express-validator");
+const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const brand_model_1 = require("../model/brand.model");
+const item_model_1 = require("../model/item.model");
 class BrandController {
 }
 /** Fetch autocomplete of item brand */
 BrandController.fetchAutocomplete = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    BrandModel.fetchAutocomplete(keyword)
+    brand_model_1.BrandModel.fetchAutocomplete(keyword)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -18,12 +23,12 @@ BrandController.fetchAutocomplete = (req, res) => {
 };
 /** Fetch brand data by ID */
 BrandController.fetchById = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id);
-    BrandModel.fetchById(id)
+    brand_model_1.BrandModel.fetchById(id)
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
     })
@@ -39,9 +44,9 @@ BrandController.fetch = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     const limit = parseInt((_a = process.env.LIMIT) === null || _a === void 0 ? void 0 : _a.toString());
     const offset = (page - 1) * limit;
-    BrandModel.fetch(keyword, offset, limit)
+    brand_model_1.BrandModel.fetch(keyword, offset, limit)
         .then((result) => {
-        ItemModel.countByBrandIds(result[0].map((x) => {
+        item_model_1.ItemModel.countByBrandIds(result[0].map((x) => {
             return x.id;
         }))
             .then((count) => {
@@ -56,38 +61,38 @@ BrandController.fetch = (req, res) => {
             });
         })
             .catch((error) => {
-            LogHelper.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
+            log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
         return res.status(500).send(error);
     });
 };
 BrandController.create = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const name = req.body.name;
-    BrandModel.fetchByName(name)
+    brand_model_1.BrandModel.fetchByName(name)
         .then((brand) => {
         if (brand != null) {
             return res.status(400).send("Mohon masukkan nama merek unik.");
         }
         else {
-            const brand_object = new BrandModel(name, req.body.userId);
+            const brand_object = new brand_model_1.BrandModel(name, req.body.userId);
             brand_object
                 .create()
                 .then((brand_result) => {
-                LogHelper.log(brand_result.created_at, "info", `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`, `Brand - Create`, req.body.userId);
-                const socket = new SocketHelper("createBrand", Object.assign(Object.assign({}, brand_result), { can_delete: true }));
+                log_helper_1.default.log(brand_result.created_at, "info", `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`, `Brand - Create`, req.body.userId);
+                const socket = new socket_helper_1.default("createBrand", Object.assign(Object.assign({}, brand_result), { can_delete: true }));
                 socket.create();
                 return res.status(201).send(brand_result);
             })
                 .catch((error) => {
-                LogHelper.log(new Date(), "error", `${error}`, `Brand - Create`, req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error}`, `Brand - Create`, req.body.userId);
                 return res.status(500).send(error);
             });
         }
@@ -97,30 +102,30 @@ BrandController.create = (req, res) => {
     });
 };
 BrandController.update = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = req.body.id;
     const name = req.body.name;
-    BrandModel.fetchById(id)
+    brand_model_1.BrandModel.fetchById(id)
         .then((brand_result) => {
         const brand = brand_result[0];
         if (brand == null || brand.is_delete) {
             return res.status(400).send("Data tidak ditemukan.");
         }
-        const brandModel = new BrandModel(name, brand.created_by, id);
+        const brandModel = new brand_model_1.BrandModel(name, brand.created_by, id);
         brandModel
             .update()
             .then((result) => {
             var _a;
-            const socket = new SocketHelper("updateBrand", result);
+            const socket = new socket_helper_1.default("updateBrand", result);
             socket.create();
-            LogHelper.log(result.updated_at, "info", `${(_a = result.user_item_brand_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated brand with the name ${result.name} (ID: ${result.id})`, `Brand - Create`, req.body.userId);
+            log_helper_1.default.log(result.updated_at, "info", `${(_a = result.user_item_brand_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated brand with the name ${result.name} (ID: ${result.id})`, `Brand - Create`, req.body.userId);
             return res.status(201).send(result);
         })
             .catch((error) => {
-            LogHelper.log(new Date(), "error", `${error}`, `Brand - Update`, req.body.userId);
+            log_helper_1.default.log(new Date(), "error", `${error}`, `Brand - Update`, req.body.userId);
             return res.status(500).send(error);
         });
     })
@@ -129,12 +134,12 @@ BrandController.update = (req, res) => {
     });
 };
 BrandController.delete = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id);
-    BrandModel.fetchById(id)
+    brand_model_1.BrandModel.fetchById(id)
         .then((brand_result) => {
         const brand = brand_result[0];
         const count = brand_result[1];
@@ -142,22 +147,22 @@ BrandController.delete = (req, res) => {
             return res.status(500).send("Merek tidak dapat dihapus.");
         }
         else {
-            BrandModel.delete(id, req.body.userId)
+            brand_model_1.BrandModel.delete(id, req.body.userId)
                 .then((result) => {
                 var _a;
-                const socket = new SocketHelper("deleteBrand", result);
+                const socket = new socket_helper_1.default("deleteBrand", result);
                 socket.create();
-                LogHelper.log(result.deleted_at, "info", `${(_a = result.user_item_brand_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted brand with the name ${result.name} (ID: ${result.id})`, `Brand - Delete`, req.body.userId);
+                log_helper_1.default.log(result.deleted_at, "info", `${(_a = result.user_item_brand_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted brand with the name ${result.name} (ID: ${result.id})`, `Brand - Delete`, req.body.userId);
                 return res.status(201).send(result);
             })
                 .catch((error) => {
-                LogHelper.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userId);
                 return res.status(500).send(error);
             });
         }
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userId);
+        log_helper_1.default.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -169,7 +174,7 @@ BrandController.fetchUsed = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     const limit = parseInt((_a = process.env.LIMIT) === null || _a === void 0 ? void 0 : _a.toString());
     const offset = (page - 1) * limit;
-    BrandModel.fetchUsed(keyword, offset, limit)
+    brand_model_1.BrandModel.fetchUsed(keyword, offset, limit)
         .then((result) => {
         return res.status(200).send({
             data: result[0],
@@ -177,8 +182,8 @@ BrandController.fetchUsed = (req, res) => {
         });
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);
         return res.status(500).send(error);
     });
 };
-export default BrandController;
+exports.default = BrandController;

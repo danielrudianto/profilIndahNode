@@ -1,21 +1,26 @@
-import { Router } from "express";
-import { body, param } from "express-validator";
-import GoodReceiptController from "../controller/good_receipt.controller";
-const router = Router();
-router.post("/", body("date").not().isEmpty().withMessage("Tanggal wajib diisi."), body("name").not().isEmpty().withMessage("Nama dokumen wajib diisi."), body("company_id").not().isEmpty().withMessage("Perusahaan wajib diisi."), body("supplier_id").not().isEmpty().withMessage("Supplier wajib diisi."), body("purchase_invoice_name")
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const express_validator_1 = require("express-validator");
+const good_receipt_controller_1 = __importDefault(require("../controller/good_receipt.controller"));
+const router = (0, express_1.Router)();
+router.post("/", (0, express_validator_1.body)("date").not().isEmpty().withMessage("Tanggal wajib diisi."), (0, express_validator_1.body)("name").not().isEmpty().withMessage("Nama dokumen wajib diisi."), (0, express_validator_1.body)("company_id").not().isEmpty().withMessage("Perusahaan wajib diisi."), (0, express_validator_1.body)("supplier_id").not().isEmpty().withMessage("Supplier wajib diisi."), (0, express_validator_1.body)("purchase_invoice_name")
     .not()
     .isEmpty()
-    .withMessage("Nama dokumen pembelian wajib diisi."), body("discount")
+    .withMessage("Nama dokumen pembelian wajib diisi."), (0, express_validator_1.body)("discount")
     .not()
     .isEmpty()
-    .withMessage("Nominal potongan harga pembelian wajib diisi."), body("discount")
+    .withMessage("Nominal potongan harga pembelian wajib diisi."), (0, express_validator_1.body)("discount")
     .isNumeric()
-    .withMessage("Nominal potongan harga pembelian wajib diisi."), GoodReceiptController.create);
-router.get("/archives", GoodReceiptController.fetchArchive);
-router.get("/archives/:year", GoodReceiptController.fetchArchive);
-router.get("/archives/:year/:month", GoodReceiptController.fetchArchive);
-router.get("/code/:id", param("id").notEmpty().withMessage("Mohon isikan ID penerimaan barang."), GoodReceiptController.fetchCodeById);
-router.get("/:id", param("id")
+    .withMessage("Nominal potongan harga pembelian wajib diisi."), good_receipt_controller_1.default.create);
+router.get("/archives", good_receipt_controller_1.default.fetchArchive);
+router.get("/archives/:year", good_receipt_controller_1.default.fetchArchive);
+router.get("/archives/:year/:month", good_receipt_controller_1.default.fetchArchive);
+router.get("/code/:id", (0, express_validator_1.param)("id").notEmpty().withMessage("Mohon isikan ID penerimaan barang."), good_receipt_controller_1.default.fetchCodeById);
+router.get("/:id", (0, express_validator_1.param)("id")
     .notEmpty()
-    .withMessage("Mohon isikan ID dokumen penerimaan barang."), GoodReceiptController.fetchById);
-export default router;
+    .withMessage("Mohon isikan ID dokumen penerimaan barang."), good_receipt_controller_1.default.fetchById);
+exports.default = router;

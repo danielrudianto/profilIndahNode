@@ -1,5 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 class BillModel {
     constructor(item_id, price, quantity, discount, bill_code_id) {
         this.item_id = item_id;
@@ -90,4 +92,4 @@ class BillModel {
         }
     }
 }
-export default BillModel;
+exports.default = BillModel;

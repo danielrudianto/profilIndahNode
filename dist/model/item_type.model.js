@@ -1,5 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 class ItemTypeModel {
     constructor(name, created_by, id = null) {
         this.id = id;
@@ -270,4 +272,4 @@ class ItemTypeModel {
         });
     }
 }
-export default ItemTypeModel;
+exports.default = ItemTypeModel;

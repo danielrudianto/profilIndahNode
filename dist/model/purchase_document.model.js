@@ -1,5 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 class PurchaseDocumentModel {
     constructor(name, faktur, date, discount, good_receipt_code_id, created_by, confirmed_by = null, id = null) {
         this.is_delete = false;
@@ -552,4 +554,4 @@ class PurchaseDocumentModel {
         }
     }
 }
-export default PurchaseDocumentModel;
+exports.default = PurchaseDocumentModel;

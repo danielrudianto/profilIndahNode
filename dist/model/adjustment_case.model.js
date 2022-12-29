@@ -1,5 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 class AdjustmentCaseModel {
     constructor(name, date, created_by, company_id, id = null) {
         this.is_confirm = true;
@@ -187,4 +189,4 @@ class AdjustmentCaseModel {
         });
     }
 }
-export default AdjustmentCaseModel;
+exports.default = AdjustmentCaseModel;

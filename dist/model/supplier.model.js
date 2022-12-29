@@ -1,5 +1,7 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const prisma = new client_1.PrismaClient();
 class SupplierModel {
     constructor(name, address, npwp = null, id = null, created_by = null) {
         this.is_delete = false;
@@ -210,4 +212,4 @@ class SupplierModel {
         });
     }
 }
-export default SupplierModel;
+exports.default = SupplierModel;

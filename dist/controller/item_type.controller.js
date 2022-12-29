@@ -1,6 +1,11 @@
-import LogHelper from "../helper/log.helper";
-import SocketHelper from "../helper/socket.helper";
-import ItemTypeModel from "../model/item_type.model";
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const item_type_model_1 = __importDefault(require("../model/item_type.model"));
 class ItemTypeController {
 }
 ItemTypeController.fetchItems = (req, res) => {
@@ -11,7 +16,7 @@ ItemTypeController.fetchItems = (req, res) => {
     const keyword = !req.query.keyword ? "" : (_a = req.query.keyword) === null || _a === void 0 ? void 0 : _a.toString();
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    ItemTypeModel.fetchItems(keyword, offset, limit)
+    item_type_model_1.default.fetchItems(keyword, offset, limit)
         .then((result) => {
         return res.status(200).send({
             data: result[0].map((x) => {
@@ -21,23 +26,23 @@ ItemTypeController.fetchItems = (req, res) => {
         });
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "ItemTypeController - Fetch Items", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "ItemTypeController - Fetch Items", req.body.userId);
         return res.status(500).send(error);
     });
 };
 ItemTypeController.createItem = (req, res) => {
     const name = req.body.name;
     const user_id = req.body.userId;
-    const item_type = new ItemTypeModel(name, user_id);
+    const item_type = new item_type_model_1.default(name, user_id);
     item_type
         .create()
         .then((result) => {
-        const socket = new SocketHelper("createItemType", result);
+        const socket = new socket_helper_1.default("createItemType", result);
         socket.create();
         return res.status(201).send(result);
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "ItemTypeController - Submit Item", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "ItemTypeController - Submit Item", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -45,11 +50,11 @@ ItemTypeController.updateItem = (req, res) => {
     const name = req.body.name;
     const id = req.body.id;
     const user_id = req.body.userId;
-    const item_type = new ItemTypeModel(name, user_id, id);
+    const item_type = new item_type_model_1.default(name, user_id, id);
     item_type
         .update()
         .then((result) => {
-        const socket = new SocketHelper("updateItemType", result);
+        const socket = new socket_helper_1.default("updateItemType", result);
         socket.create();
         return res.status(201).send(result);
     })
@@ -59,7 +64,7 @@ ItemTypeController.updateItem = (req, res) => {
 };
 ItemTypeController.fetchById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    ItemTypeModel.fetchItemById(id)
+    item_type_model_1.default.fetchItemById(id)
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result), { can_delete: (result === null || result === void 0 ? void 0 : result.item.length) == 0 }));
     })
@@ -69,7 +74,7 @@ ItemTypeController.fetchById = (req, res) => {
 };
 ItemTypeController.fetchAutocomplete = (req, res) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    ItemTypeModel.fetchAutocomplete(keyword)
+    item_type_model_1.default.fetchAutocomplete(keyword)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -80,7 +85,7 @@ ItemTypeController.fetchAutocomplete = (req, res) => {
 ItemTypeController.fetchByBrandId = (req, res) => {
     if (typeof req.body.ids === "string") {
         const ids = JSON.parse(req.body.ids.toString().replace("'", "").replace('"', ""));
-        ItemTypeModel.fetchByBrandIds(ids)
+        item_type_model_1.default.fetchByBrandIds(ids)
             .then((result) => {
             return res.status(200).send(result);
         })
@@ -91,7 +96,7 @@ ItemTypeController.fetchByBrandId = (req, res) => {
     }
     else {
         const ids = req.body.ids;
-        ItemTypeModel.fetchByBrandIds(ids)
+        item_type_model_1.default.fetchByBrandIds(ids)
             .then((result) => {
             return res.status(200).send(result);
         })
@@ -103,19 +108,19 @@ ItemTypeController.fetchByBrandId = (req, res) => {
 };
 ItemTypeController.deleteItem = (req, res) => {
     const id = parseInt(req.params.id);
-    ItemTypeModel.fetchItemById(id)
+    item_type_model_1.default.fetchItemById(id)
         .then((itemType) => {
         if (itemType == null || itemType.is_delete) {
             return res.status(404).send("Data tidak ditemukan.");
         }
         else if ((itemType === null || itemType === void 0 ? void 0 : itemType.item.length) == 0) {
             // Can delete
-            ItemTypeModel.deleteById(id, req.body.userId)
+            item_type_model_1.default.deleteById(id, req.body.userId)
                 .then((result) => {
                 var _a;
-                const socket = new SocketHelper("deleteItemType", result);
+                const socket = new socket_helper_1.default("deleteItemType", result);
                 socket.create();
-                LogHelper.log(new Date(), "Info", `${(_a = result.user_item_type_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`, "ItemTypeController - Delete by Id", req.body.userId);
+                log_helper_1.default.log(new Date(), "Info", `${(_a = result.user_item_type_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`, "ItemTypeController - Delete by Id", req.body.userId);
                 return res.status(200).send(result);
             })
                 .catch((error) => {
@@ -132,4 +137,4 @@ ItemTypeController.deleteItem = (req, res) => {
         return res.status(500).send(error);
     });
 };
-export default ItemTypeController;
+exports.default = ItemTypeController;

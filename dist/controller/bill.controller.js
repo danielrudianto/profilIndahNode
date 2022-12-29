@@ -1,17 +1,22 @@
-import { validationResult } from "express-validator";
-import LogHelper from "../helper/log.helper";
-import QueryTransactionHelper from "../helper/query.transaction.helper";
-import SocketHelper from "../helper/socket.helper";
-import BillModel from "../model/bill.model";
-import BillCodeModel from "../model/bill_code.model";
-import { ItemModel } from "../model/item.model";
-import ItemPriceModel from "../model/item_price.model";
-import PdfPrinter from "pdfmake";
-import path from "path";
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_validator_1 = require("express-validator");
+const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const query_transaction_helper_1 = __importDefault(require("../helper/query.transaction.helper"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const bill_model_1 = __importDefault(require("../model/bill.model"));
+const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
+const item_model_1 = require("../model/item.model");
+const item_price_model_1 = __importDefault(require("../model/item_price.model"));
+const pdfmake_1 = __importDefault(require("pdfmake"));
+const path_1 = __importDefault(require("path"));
 class BillController {
 }
 BillController.create = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
@@ -24,13 +29,13 @@ BillController.create = (req, res) => {
     const date = !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
-    const bill_code = new BillCodeModel(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date);
+    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date);
     bill_code
         .create()
         .then((result) => {
         Promise.all([
             // Create bill items
-            BillModel.create(bill.map((x) => {
+            bill_model_1.default.create(bill.map((x) => {
                 return {
                     item_id: x.item_id,
                     item_unit_id: x.item_unit_id,
@@ -41,26 +46,26 @@ BillController.create = (req, res) => {
                 };
             })),
             // Saving item price
-            ItemPriceModel.updateMany(bill.filter((x) => x.save), req.body.userId),
+            item_price_model_1.default.updateMany(bill.filter((x) => x.save), req.body.userId),
         ])
             .then(() => {
-            LogHelper.log(new Date(), "info", `${result.user_bill_code_created_byTouser.name} berhasil menambahkan faktur penjualan ${result.name} (ID: ${result.id})`, "Bill controller - Create", req.body.userId);
+            log_helper_1.default.log(new Date(), "info", `${result.user_bill_code_created_byTouser.name} berhasil menambahkan faktur penjualan ${result.name} (ID: ${result.id})`, "Bill controller - Create", req.body.userId);
             return res.status(201).send(result);
         })
             .catch((error) => {
-            LogHelper.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
+            log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
         console.error(error);
-        LogHelper.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
         return res.status(500).send(error);
     });
 };
 BillController.createPrintoutDraft = (req, res) => {
     const items = req.body;
-    ItemModel.fetchByItemUnitIds(items.map((x) => {
+    item_model_1.ItemModel.fetchByItemUnitIds(items.map((x) => {
         return {
             item_id: x.id,
             item_unit_id: x.item_unit_id,
@@ -136,10 +141,10 @@ BillController.createPrintout = (req, res) => {
     ]);
     const fontDescriptors = {
         Roboto: {
-            normal: path.join(__dirname, "..", "assets", "/fonts/Cairo-Regular.ttf"),
-            bold: path.join(__dirname, "..", "assets", "/fonts/Cairo-Medium.ttf"),
-            italics: path.join(__dirname, "..", "assets", "/fonts/Cairo-Italic.ttf"),
-            bolditalics: path.join(__dirname, "..", "assets", "/fonts/Cairo-MediumItalic.ttf"),
+            normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Cairo-Regular.ttf"),
+            bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Cairo-Medium.ttf"),
+            italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Cairo-Italic.ttf"),
+            bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Cairo-MediumItalic.ttf"),
         },
     };
     let documentDefinition = {
@@ -179,7 +184,7 @@ BillController.createPrintout = (req, res) => {
             },
         ],
     };
-    const printer = new PdfPrinter(fontDescriptors);
+    const printer = new pdfmake_1.default(fontDescriptors);
     const pdfDocument = printer.createPdfKitDocument(documentDefinition);
     let chunks = [];
     var pdfResult;
@@ -196,22 +201,22 @@ BillController.createPrintout = (req, res) => {
 };
 BillController.fetchCodeById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    BillCodeModel.fetchCodeById(id)
+    bill_code_model_1.default.fetchCodeById(id)
         .then((result) => {
         return res.status(200).send(result === null || result === void 0 ? void 0 : result.bill_code);
     })
         .catch((error) => {
-        LogHelper.log(new Date(), "error", error, "Bill controller - Fetch code by ID", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Bill controller - Fetch code by ID", req.body.userId);
         return res.status(500).send(error);
     });
 };
 BillController.fetchById = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const id = parseInt(req.params.id);
-    BillCodeModel.fetchById(id)
+    bill_code_model_1.default.fetchById(id)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -230,8 +235,8 @@ BillController.searchArchive = (req, res) => {
     const start = !req.query.start ? null : req.query.start.toString();
     const end = !req.query.end ? null : req.query.end.toString();
     Promise.all([
-        BillCodeModel.searchArchives(keyword, start, end, offset),
-        BillCodeModel.searchCountArchives(keyword, start, end),
+        bill_code_model_1.default.searchArchives(keyword, start, end, offset),
+        bill_code_model_1.default.searchCountArchives(keyword, start, end),
     ])
         .then((result) => {
         return res.status(200).send({
@@ -244,16 +249,16 @@ BillController.searchArchive = (req, res) => {
     });
 };
 BillController.fetchArchive = (req, res) => {
-    const validation_result = validationResult(req);
+    const validation_result = (0, express_validator_1.validationResult)(req);
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     if (!req.params.year && !req.params.month) {
-        const archive_years = BillCodeModel.fetchArchiveYears();
-        const count_archive_years = BillCodeModel.countArchiveByYear();
-        const transaction = new QueryTransactionHelper();
+        const archive_years = bill_code_model_1.default.fetchArchiveYears();
+        const count_archive_years = bill_code_model_1.default.countArchiveByYear();
+        const transaction = new query_transaction_helper_1.default();
         transaction
             .create([archive_years, count_archive_years])
             .then((result) => {
@@ -273,7 +278,7 @@ BillController.fetchArchive = (req, res) => {
     }
     else if (!req.params.month) {
         const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        BillCodeModel.countArchiveByMonth(year)
+        bill_code_model_1.default.countArchiveByMonth(year)
             .then((counts) => {
             counts.forEach((x) => {
                 const month = x.month;
@@ -292,11 +297,11 @@ BillController.fetchArchive = (req, res) => {
             : Math.max(parseInt(req.query.page.toString()), 1);
         const limit = parseInt(process.env.LIMIT.toString());
         const offset = (page - 1) * limit;
-        const transaction = new QueryTransactionHelper();
+        const transaction = new query_transaction_helper_1.default();
         transaction
             .create([
-            BillCodeModel.fetchArchive(year, month, offset, limit),
-            BillCodeModel.countArchive(year, month),
+            bill_code_model_1.default.fetchArchive(year, month, offset, limit),
+            bill_code_model_1.default.countArchive(year, month),
         ])
             .then((result) => {
             return res.status(200).send({
@@ -314,9 +319,9 @@ BillController.fetchArchive = (req, res) => {
 };
 BillController.deleteById = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    BillCodeModel.deleteById(id, req.body.userId)
+    bill_code_model_1.default.deleteById(id, req.body.userId)
         .then((result) => {
-        const socket = new SocketHelper("deleteBill", result);
+        const socket = new socket_helper_1.default("deleteBill", result);
         socket.create();
         return res.status(201).send(result);
     })
@@ -324,4 +329,4 @@ BillController.deleteById = (req, res) => {
         return res.status(500).send(error);
     });
 };
-export default BillController;
+exports.default = BillController;

@@ -1,17 +1,22 @@
-import { Router } from "express";
-import { param } from "express-validator";
-import AdjustmentCaseController from "../controller/adjustment_case.controller";
-const router = Router();
-router.get("/archives/:year/:month", param("year")
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const express_validator_1 = require("express-validator");
+const adjustment_case_controller_1 = __importDefault(require("../controller/adjustment_case.controller"));
+const router = (0, express_1.Router)();
+router.get("/archives/:year/:month", (0, express_validator_1.param)("year")
     .isInt({ min: 2000 })
-    .withMessage("Mohon isikan tahun arsip yang sesuai."), param("month")
+    .withMessage("Mohon isikan tahun arsip yang sesuai."), (0, express_validator_1.param)("month")
     .isInt({ min: 0, max: 11 })
-    .withMessage("Mohon isikan bulan arsip yang sesuai."), AdjustmentCaseController.fetchArchives);
-router.get("/archives/:year", param("year")
+    .withMessage("Mohon isikan bulan arsip yang sesuai."), adjustment_case_controller_1.default.fetchArchives);
+router.get("/archives/:year", (0, express_validator_1.param)("year")
     .isInt({ min: 2000 })
-    .withMessage("Mohon isikan tahun arsip yang sesuai."), AdjustmentCaseController.fetchArchives);
-router.get("/archives", AdjustmentCaseController.fetchArchives);
-router.get("/code/:id", param("id").notEmpty().withMessage("Mohon isikan ID penyesuaian stock."), AdjustmentCaseController.fetchCodeById);
-router.get("/:id", AdjustmentCaseController.fetchById);
-router.post("/", AdjustmentCaseController.post);
-export default router;
+    .withMessage("Mohon isikan tahun arsip yang sesuai."), adjustment_case_controller_1.default.fetchArchives);
+router.get("/archives", adjustment_case_controller_1.default.fetchArchives);
+router.get("/code/:id", (0, express_validator_1.param)("id").notEmpty().withMessage("Mohon isikan ID penyesuaian stock."), adjustment_case_controller_1.default.fetchCodeById);
+router.get("/:id", adjustment_case_controller_1.default.fetchById);
+router.post("/", adjustment_case_controller_1.default.post);
+exports.default = router;

@@ -1,26 +1,32 @@
-import express from "express";
-import cors from "cors";
-import http from "http";
-import { Server } from "socket.io";
-import { authMiddleware } from "./helper/auth.helper";
-import authRoutes from "./routes/auth.route";
-import itemRoutes from "./routes/item.route";
-import itemPriceRoutes from "./routes/item_price.route";
-import itemPurchaseRoutes from "./routes/item_purchase_price.route";
-import brandRoutes from "./routes/brand.route";
-import supplierRoutes from "./routes/supplier.route";
-import customerRoutes from "./routes/customer.route";
-import companyRoutes from "./routes/company.route";
-import goodReceiptRoutes from "./routes/good_receipt.route";
-import purchaseDocumentRoutes from "./routes/purchase_document.route";
-import userRoutes from "./routes/user.route";
-import expenseRoutes from "./routes/expense.route";
-import paymentMethodRoutes from "./routes/payment_method.route";
-import billRoutes from "./routes/bill.route";
-import adjustmentCaseRoutes from "./routes/adjustment_case.route";
-import reportRoutes from "./routes/report.route";
-import itemTypeRoutes from "./routes/item_type.route";
-import salesReturnRoutes from "./routes/sales_return.route";
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.io = void 0;
+const express_1 = __importDefault(require("express"));
+const cors_1 = __importDefault(require("cors"));
+const http_1 = __importDefault(require("http"));
+const socket_io_1 = require("socket.io");
+const auth_helper_1 = require("./helper/auth.helper");
+const auth_route_1 = __importDefault(require("./routes/auth.route"));
+const item_route_1 = __importDefault(require("./routes/item.route"));
+const item_price_route_1 = __importDefault(require("./routes/item_price.route"));
+const item_purchase_price_route_1 = __importDefault(require("./routes/item_purchase_price.route"));
+const brand_route_1 = __importDefault(require("./routes/brand.route"));
+const supplier_route_1 = __importDefault(require("./routes/supplier.route"));
+const customer_route_1 = __importDefault(require("./routes/customer.route"));
+const company_route_1 = __importDefault(require("./routes/company.route"));
+const good_receipt_route_1 = __importDefault(require("./routes/good_receipt.route"));
+const purchase_document_route_1 = __importDefault(require("./routes/purchase_document.route"));
+const user_route_1 = __importDefault(require("./routes/user.route"));
+const expense_route_1 = __importDefault(require("./routes/expense.route"));
+const payment_method_route_1 = __importDefault(require("./routes/payment_method.route"));
+const bill_route_1 = __importDefault(require("./routes/bill.route"));
+const adjustment_case_route_1 = __importDefault(require("./routes/adjustment_case.route"));
+const report_route_1 = __importDefault(require("./routes/report.route"));
+const item_type_route_1 = __importDefault(require("./routes/item_type.route"));
+const sales_return_route_1 = __importDefault(require("./routes/sales_return.route"));
 const allowedOrigins = [
     "http://localhost:4200",
     "https://app.profilindah.id",
@@ -29,35 +35,35 @@ const allowedOrigins = [
 const options = {
     origin: allowedOrigins,
 };
-const app = express();
-app.use(cors(options));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use("/auth", authRoutes);
-app.use("/item", authMiddleware, itemRoutes);
-app.use("/brand", authMiddleware, brandRoutes);
-app.use("/itemPrice", authMiddleware, itemPriceRoutes);
-app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
-app.use("/customer", authMiddleware, customerRoutes);
-app.use("/supplier", authMiddleware, supplierRoutes);
-app.use("/company", authMiddleware, companyRoutes);
-app.use("/adjustmentCase", authMiddleware, adjustmentCaseRoutes);
-app.use("/goodReceipt", authMiddleware, goodReceiptRoutes);
-app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
-app.use("/user", authMiddleware, userRoutes);
-app.use("/paymentMethod", authMiddleware, paymentMethodRoutes);
-app.use("/expense", authMiddleware, expenseRoutes);
-app.use("/bill", authMiddleware, billRoutes);
-app.use("/report", reportRoutes);
-app.use("/itemType", authMiddleware, itemTypeRoutes);
-app.use("/salesReturn", authMiddleware, salesReturnRoutes);
-const server = http.createServer(app);
+const app = (0, express_1.default)();
+app.use((0, cors_1.default)(options));
+app.use(express_1.default.urlencoded({ extended: true }));
+app.use(express_1.default.json());
+app.use("/auth", auth_route_1.default);
+app.use("/item", auth_helper_1.authMiddleware, item_route_1.default);
+app.use("/brand", auth_helper_1.authMiddleware, brand_route_1.default);
+app.use("/itemPrice", auth_helper_1.authMiddleware, item_price_route_1.default);
+app.use("/itemPurchasePrice", auth_helper_1.authMiddleware, item_purchase_price_route_1.default);
+app.use("/customer", auth_helper_1.authMiddleware, customer_route_1.default);
+app.use("/supplier", auth_helper_1.authMiddleware, supplier_route_1.default);
+app.use("/company", auth_helper_1.authMiddleware, company_route_1.default);
+app.use("/adjustmentCase", auth_helper_1.authMiddleware, adjustment_case_route_1.default);
+app.use("/goodReceipt", auth_helper_1.authMiddleware, good_receipt_route_1.default);
+app.use("/purchaseDocument", auth_helper_1.authMiddleware, purchase_document_route_1.default);
+app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
+app.use("/paymentMethod", auth_helper_1.authMiddleware, payment_method_route_1.default);
+app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
+app.use("/bill", auth_helper_1.authMiddleware, bill_route_1.default);
+app.use("/report", report_route_1.default);
+app.use("/itemType", auth_helper_1.authMiddleware, item_type_route_1.default);
+app.use("/salesReturn", auth_helper_1.authMiddleware, sales_return_route_1.default);
+const server = http_1.default.createServer(app);
 server.listen(5000, () => { });
-export const io = new Server(server, {
+exports.io = new socket_io_1.Server(server, {
     cors: {
         origin: "*",
         methods: "*",
     },
 });
-io.on("connection", () => { });
-export default app;
+exports.io.on("connection", () => { });
+exports.default = app;
