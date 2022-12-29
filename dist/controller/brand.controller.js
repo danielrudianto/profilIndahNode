@@ -114,9 +114,7 @@ BrandController.update = (req, res) => {
         if (brand == null || brand.is_delete) {
             return res.status(400).send("Data tidak ditemukan.");
         }
-        const brandModel = new brand_model_1.BrandModel(name, brand.created_by, id);
-        brandModel
-            .update()
+        brand_model_1.BrandModel.update(id, name, new Date(), req.body.userId)
             .then((result) => {
             var _a;
             const socket = new socket_helper_1.default("updateBrand", result);

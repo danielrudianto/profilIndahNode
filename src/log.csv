@@ -71,3 +71,6 @@ Thu Dec 29 2022 16:48:05 GMT+0700 (Indochina Time); info; Login success for user
 Thu Dec 29 2022 16:48:05 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
 Thu Dec 29 2022 16:48:48 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Thu Dec 29 2022 16:48:48 GMT+0700 (Indochina Time); warn; Login failed for username danielrudiantos; Auth controller - Login; 0
+Fri Dec 30 2022 06:16:01 GMT+0700 (Indochina Time); info; Lani Liem updated brand with the name 3 BERLIANS (ID: 68); Brand - Create; 1
+Fri Dec 30 2022 06:17:30 GMT+0700 (Indochina Time); info; Lani Liem updated brand with the name 3 BERLIAN (ID: 68); Brand - Create; 1
+Fri Dec 30 2022 06:19:45 GMT+0700 (Indochina Time); info; Daniel Tri updated brand with the name 3 BERLIAN (ID: 68); Brand - Create; 1

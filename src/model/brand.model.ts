@@ -38,15 +38,15 @@ export class BrandModel {
     });
   }
 
-  update() {
+  static update(id: number, name: string, updated_at: Date, updated_by: number) {
     return prisma.item_brand.update({
       where: {
-        id: this.id,
+        id: id,
       },
       data: {
-        name: this.name,
-        updated_at: this.created_at,
-        updated_by: this.created_by,
+        name: name,
+        updated_at: updated_at,
+        updated_by: updated_by,
       },
       select: {
         id: true,
@@ -348,14 +348,13 @@ export class BrandModel {
   /**
    * Fetching brand data by IDs (array of ID)
    */
-  static fetchByIds(ids: number[])
-  {
+  static fetchByIds(ids: number[]) {
     return prisma.item_brand.findMany({
       where: {
         id: {
-          in: ids
-        }
-      }
+          in: ids,
+        },
+      },
     });
   }
 }

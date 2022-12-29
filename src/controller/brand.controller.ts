@@ -147,7 +147,7 @@ class BrandController {
     if (!validation_result.isEmpty()) {
       return res.status(400).send(validation_result.array()[0].msg);
     }
-    
+
     const id = req.body.id;
     const name = req.body.name;
 
@@ -158,9 +158,7 @@ class BrandController {
           return res.status(400).send("Data tidak ditemukan.");
         }
 
-        const brandModel = new BrandModel(name, brand.created_by, id);
-        brandModel
-          .update()
+        BrandModel.update(id, name, new Date(), req.body.userId)
           .then((result) => {
             const socket = new SocketHelper("updateBrand", result);
             socket.create();
