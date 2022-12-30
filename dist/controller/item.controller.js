@@ -203,7 +203,7 @@ ItemController.fetchSearchResult = (req, res) => {
                             .price, discount: x.item_price.filter((y) => y.item_unit == null)[0]
                             .discount });
                 }),
-                count: result[1][0].count,
+                count: result[1],
             });
         })
             .catch((error) => {
@@ -236,7 +236,7 @@ ItemController.fetchPurchaseSearchResult = (req, res) => {
                 data: items.map((x) => {
                     return Object.assign(Object.assign({}, x), { price: x.item_price_purchase.filter((y) => y.item_unit == null)[0].price });
                 }),
-                count: result[1].length,
+                count: result[1],
             });
         })
             .catch((error) => {

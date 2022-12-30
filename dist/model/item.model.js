@@ -303,11 +303,12 @@ class ItemModel {
                         reference: "asc",
                     },
                 }),
-                prisma.$queryRawUnsafe(`
-          SELECT COUNT(DISTINCT(item.id)) AS count
-          FROM item
-          WHERE item.is_delete = 0
-          AND item.is_active = 1`),
+                prisma.item.count({
+                    where: {
+                        is_delete: false,
+                        is_active: true,
+                    }
+                }),
             ]);
         }
         else {
@@ -329,14 +330,14 @@ class ItemModel {
                             },
                             {
                                 reference: {
-                                    search: keyword.endsWith("-")
+                                    search: (keyword.endsWith("-") || keyword.endsWith("+"))
                                         ? keyword.slice(0, -1)
                                         : keyword,
                                 },
                             },
                             {
                                 description: {
-                                    search: keyword.endsWith("-")
+                                    search: (keyword.endsWith("-") || keyword.endsWith("+"))
                                         ? keyword.slice(0, -1)
                                         : keyword,
                                 },
@@ -351,7 +352,7 @@ class ItemModel {
                             {
                                 item_brand: {
                                     name: {
-                                        search: keyword.endsWith("-")
+                                        search: (keyword.endsWith("-") || keyword.endsWith("+"))
                                             ? keyword.slice(0, -1)
                                             : keyword,
                                     },
@@ -379,14 +380,14 @@ class ItemModel {
                             },
                             {
                                 reference: {
-                                    search: keyword.endsWith("-")
+                                    search: (keyword.endsWith("-") || keyword.endsWith("+"))
                                         ? keyword.slice(0, -1)
                                         : keyword,
                                 },
                             },
                             {
                                 description: {
-                                    search: keyword.endsWith("-")
+                                    search: (keyword.endsWith("-") || keyword.endsWith("+"))
                                         ? keyword.slice(0, -1)
                                         : keyword,
                                 },
@@ -401,7 +402,7 @@ class ItemModel {
                             {
                                 item_brand: {
                                     name: {
-                                        search: keyword.endsWith("-")
+                                        search: (keyword.endsWith("-") || keyword.endsWith("+"))
                                             ? keyword.slice(0, -1)
                                             : keyword,
                                     },

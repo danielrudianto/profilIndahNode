@@ -356,7 +356,7 @@ class ItemController {
                     .discount,
                 };
               }),
-              count: (result[1] as any[])[0].count,
+              count: result[1],
             });
           })
           .catch((error) => {
@@ -397,7 +397,7 @@ class ItemController {
                   )[0].price,
                 };
               }),
-              count: (result[1] as any[]).length,
+              count: result[1],
             });
           })
           .catch((error) => {
