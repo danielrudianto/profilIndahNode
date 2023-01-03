@@ -8,6 +8,7 @@ const express_validator_1 = require("express-validator");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const error_list_2 = __importDefault(require("../assets/error_list"));
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const adjustment_case_model_1 = __importDefault(require("../model/adjustment_case.model"));
 const adjustment_case_code_model_1 = __importDefault(require("../model/adjustment_case_code.model"));
 class AdjustmentCaseController {
@@ -150,6 +151,36 @@ AdjustmentCaseController.fetchCodeById = (req, res) => {
         log_helper_1.default.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
         return res.status(500).send(error);
     });
+};
+AdjustmentCaseController.deleteById = (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        adjustment_case_code_model_1.default.fetchById(id).then((adjustment_case) => {
+            if (!adjustment_case) {
+                return res.status(404).send(error_list_1.default["Not found"]);
+            }
+            else {
+                adjustment_case_code_model_1.default.deleteById(id).then((result) => {
+                    if (!result) {
+                        return res.status(404).send(error_list_1.default["Not found"]);
+                    }
+                    else {
+                        const socket = new socket_helper_1.default("deleteAdjustmentCase", result);
+                        socket.create();
+                        return res.status(200).send(result);
+                    }
+                });
+            }
+        });
+    }
+    catch (err) {
+        if (err instanceof Error) {
+            return res.status(500).send(err);
+        }
+        else {
+            return res.status(500).send(error_list_1.default["Unknown error"]);
+        }
+    }
 };
 AdjustmentCaseController.generateName = (date) => {
     return `ADJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;

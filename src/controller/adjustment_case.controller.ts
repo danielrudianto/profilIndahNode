@@ -3,6 +3,7 @@ import { validationResult } from "express-validator";
 import ErrorList from "../assets/error_list";
 import GeneralErrorList from "../assets/error_list";
 import LogHelper from "../helper/log.helper";
+import SocketHelper from "../helper/socket.helper";
 import AdjustmentCaseModel from "../model/adjustment_case.model";
 import AdjustmentCaseCodeModel from "../model/adjustment_case_code.model";
 
@@ -167,6 +168,33 @@ class AdjustmentCaseController {
         );
         return res.status(500).send(error);
       });
+  };
+
+  static deleteById = (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      AdjustmentCaseCodeModel.fetchById(id).then((adjustment_case) => {
+        if (!adjustment_case) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          AdjustmentCaseCodeModel.deleteById(id).then((result) => {
+            if (!result) {
+              return res.status(404).send(ErrorList["Not found"]);
+            } else {
+              const socket = new SocketHelper("deleteAdjustmentCase", result);
+              socket.create();
+              return res.status(200).send(result);
+            }
+          });
+        }
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
   };
 
   static generateName = (date: Date) => {

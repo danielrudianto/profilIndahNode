@@ -141,6 +141,18 @@ class AdjustmentCaseCodeModel {
     }
   }
 
+  static deleteById(id: number) {
+    return prisma.adjustment_case_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        is_confirm: false,
+      },
+    });
+  }
+
   static fetchById(id: number) {
     return prisma.adjustment_case_code.findUnique({
       where: {

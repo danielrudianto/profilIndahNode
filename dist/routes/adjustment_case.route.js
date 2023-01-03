@@ -27,4 +27,5 @@ router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage("M
     .withMessage("Mohon isikan ID perusahaan."), (0, express_validator_1.body)("type")
     .isInt({ min: 0 })
     .withMessage("Mohon isikan tipe penyesuaian stock yang sesuai."), adjustment_case_controller_1.default.post);
+router.delete("/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(""), adjustment_case_controller_1.default.deleteById);
 exports.default = router;

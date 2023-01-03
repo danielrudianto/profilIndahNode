@@ -53,4 +53,10 @@ router.post(
   AdjustmentCaseController.post
 );
 
+router.delete(
+  "/:id",
+  param("id").isInt({ min: 0 }).withMessage(""),
+  AdjustmentCaseController.deleteById
+);
+
 export default router;
