@@ -345,7 +345,7 @@ export class ItemModel {
           where: {
             is_delete: false,
             is_active: true,
-          }
+          },
         }),
       ]);
     } else {
@@ -365,40 +365,43 @@ export class ItemModel {
                   contains: keyword,
                 },
               },
-              {
-                reference: {
-                  search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                    ? keyword.slice(0, -1)
-                    : keyword,
-                },
-              },
-              {
-                description: {
-                  search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                    ? keyword.slice(0, -1)
-                    : keyword,
-                },
-              },
-              {
-                item_brand: {
-                  name: {
-                    contains: keyword,
-                  },
-                },
-              },
-              {
-                item_brand: {
-                  name: {
-                    search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                      ? keyword.slice(0, -1)
-                      : keyword,
-                  },
-                },
-              },
+              // {
+              //   reference: {
+              //     search: (keyword.endsWith("-") || keyword.endsWith("+"))
+              //       ? keyword.slice(0, -1)
+              //       : keyword,
+              //   },
+              // },
+              // {
+              //   description: {
+              //     search: (keyword.endsWith("-") || keyword.endsWith("+"))
+              //       ? keyword.slice(0, -1)
+              //       : keyword,
+              //   },
+              // },
+              // {
+              //   item_brand: {
+              //     name: {
+              //       contains: keyword,
+              //     },
+              //   },
+              // },
+              // {
+              //   item_brand: {
+              //     name: {
+              //       search: (keyword.endsWith("-") || keyword.endsWith("+"))
+              //         ? keyword.slice(0, -1)
+              //         : keyword,
+              //     },
+              //   },
+              // },
             ],
           },
           take: limit,
           skip: offset,
+          orderBy: {
+            reference: "asc",
+          },
         }),
         prisma.item.count({
           where: {
@@ -415,36 +418,39 @@ export class ItemModel {
                   contains: keyword,
                 },
               },
-              {
-                reference: {
-                  search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                    ? keyword.slice(0, -1)
-                    : keyword,
-                },
-              },
-              {
-                description: {
-                  search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                    ? keyword.slice(0, -1)
-                    : keyword,
-                },
-              },
-              {
-                item_brand: {
-                  name: {
-                    contains: keyword,
-                  },
-                },
-              },
-              {
-                item_brand: {
-                  name: {
-                    search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                      ? keyword.slice(0, -1)
-                      : keyword,
-                  },
-                },
-              },
+              // {
+              //   reference: {
+              //     search:
+              //       keyword.endsWith("-") || keyword.endsWith("+")
+              //         ? keyword.slice(0, -1)
+              //         : keyword,
+              //   },
+              // },
+              // {
+              //   description: {
+              //     search:
+              //       keyword.endsWith("-") || keyword.endsWith("+")
+              //         ? keyword.slice(0, -1)
+              //         : keyword,
+              //   },
+              // },
+              // {
+              //   item_brand: {
+              //     name: {
+              //       contains: keyword,
+              //     },
+              //   },
+              // },
+              // {
+              //   item_brand: {
+              //     name: {
+              //       search:
+              //         keyword.endsWith("-") || keyword.endsWith("+")
+              //           ? keyword.slice(0, -1)
+              //           : keyword,
+              //     },
+              //   },
+              // },
             ],
           },
         }),
