@@ -90,22 +90,20 @@ ItemPurchasePriceController.create = (req, res) => {
 ItemPurchasePriceController.createBulk = (req, res) => {
     const transactions = [];
     const data = req.body.data;
-    data.forEach((x, index) => {
+    for (let x of data) {
         const price = x.price;
-        const item_unit_id = x.item_unit_id;
+        const item_unit_id = (x.item_unit_id == 0) ? null : x.item_unit_id;
         const item_id = x.id;
-        const updated_price = data.filter((y) => y.id == x.id)[0].price;
-        if (updated_price != price) {
-            const itemPurchasePriceModel = new item_purchase_price_model_1.default(updated_price, item_id, req.body.userId, item_unit_id);
-            transactions.push(item_purchase_price_model_1.default.delete(item_id, item_unit_id, req.body.userId));
-            transactions.push(itemPurchasePriceModel.create());
-        }
-    });
+        const itemPurchasePrice = new item_purchase_price_model_1.default(price, item_id, req.body.userId, item_unit_id);
+        transactions.push(item_purchase_price_model_1.default.delete(item_id, item_unit_id, req.body.userId));
+        transactions.push(itemPurchasePrice.create());
+    }
     Promise.all(transactions)
         .then((result) => {
         return res.status(200).send(result);
     })
         .catch((error) => {
+        console.log(error);
         return res.status(500).send(error);
     });
 };
@@ -118,6 +116,7 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
         else {
             const brand_id = req.body.brand_id;
             const type_id = req.body.type_id;
+            const setting = req.body.setting;
             const rows = [
                 [
                     "ID",
@@ -132,11 +131,7 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                     "Harga",
                 ],
             ];
-            const columns_width = [];
-            columns_width.push(rows[rows.length - 1].map((item) => {
-                return item.toString().length;
-            }));
-            item_model_1.ItemModel.fetchItemPurchasePriceByBrandType(brand_id, type_id)
+            item_model_1.ItemModel.fetchItemPurchasePriceByBrandType(brand_id, type_id, setting)
                 .then((items) => {
                 items.forEach((x) => {
                     var _a;
@@ -219,6 +214,13 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
                         prompt: "Nilai potongan harga harus lebih besar atau sama dengan 0.",
                     };
                 }
+                sheet.getColumn(3).width = 18;
+                sheet.getColumn(4).width = 60;
+                sheet.getColumn(5).width = 12;
+                sheet.getColumn(6).width = 12;
+                sheet.getColumn(7).width = 12;
+                sheet.getColumn(8).width = 12;
+                sheet.getColumn(9).width = 18;
                 sheet.getColumn(1).hidden = true;
                 sheet.getColumn(2).hidden = true;
                 sheet.getColumn(9).protection = {

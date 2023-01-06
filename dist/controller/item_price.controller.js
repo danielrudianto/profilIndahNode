@@ -164,6 +164,7 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
         else {
             const brand_id = req.body.brand_id;
             const type_id = req.body.type_id;
+            const setting = req.body.setting;
             const rows = [
                 [
                     "ID",
@@ -183,7 +184,7 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
             columns_width.push(rows[rows.length - 1].map((item) => {
                 return item.toString().length;
             }));
-            item_model_1.ItemModel.fetchItemPriceByBrandType(brand_id, type_id)
+            item_model_1.ItemModel.fetchItemPriceByBrandType(brand_id, type_id, setting)
                 .then((items) => {
                 items.forEach((x) => {
                     var _b;
@@ -273,6 +274,12 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 }
                 sheet.getColumn(1).hidden = true;
                 sheet.getColumn(2).hidden = true;
+                sheet.getColumn(3).width = 18;
+                sheet.getColumn(4).width = 60;
+                sheet.getColumn(5).width = 12;
+                sheet.getColumn(6).width = 12;
+                sheet.getColumn(7).width = 12;
+                sheet.getColumn(8).width = 18;
                 sheet.getColumn(9).numFmt = "#,###.00";
                 sheet.getColumn(10).numFmt = "#,###.00";
                 workbook.xlsx

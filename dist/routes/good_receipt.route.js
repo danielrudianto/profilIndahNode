@@ -16,6 +16,7 @@ router.post("/", (0, express_validator_1.body)("date").not().isEmpty().withMessa
     .withMessage("Nominal potongan harga pembelian wajib diisi."), (0, express_validator_1.body)("discount")
     .isNumeric()
     .withMessage("Nominal potongan harga pembelian wajib diisi."), good_receipt_controller_1.default.create);
+router.get("/search", good_receipt_controller_1.default.searchArchive);
 router.get("/archives", good_receipt_controller_1.default.fetchArchive);
 router.get("/archives/:year", good_receipt_controller_1.default.fetchArchive);
 router.get("/archives/:year/:month", good_receipt_controller_1.default.fetchArchive);

@@ -32,7 +32,9 @@ PurchaseDocumentController.update = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = (!purchase_invoice.faktur || purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
+    const faktur = !purchase_invoice.faktur || purchase_invoice.faktur.length < 16
+        ? null
+        : purchase_invoice.faktur;
     Promise.all([
         company_model_1.default.fetchById(company_id),
         supplier_model_1.default.fetchById(supplier_id),
@@ -203,7 +205,38 @@ PurchaseDocumentController.confirm = (req, res) => {
                 .then((result) => {
                 const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
                 socket.create();
-                return res.status(200).send(result[0]);
+                if (good_receipt.filter((x) => x.save).length > 0) {
+                    const filtered_good_receipt = good_receipt.filter((x) => x.save);
+                    good_receipt_model_1.default.fetchByIds(filtered_good_receipt.map((y) => {
+                        return y.id;
+                    }))
+                        .then((good_receipts) => {
+                        const transactions = [];
+                        for (let good_receipt_item of good_receipts) {
+                            const priceIndex = filtered_good_receipt.findIndex((idx) => idx.id == good_receipt_item.id);
+                            if (priceIndex != -1) {
+                                const price = filtered_good_receipt[priceIndex].price;
+                                const deleteItem = item_purchase_price_model_1.default.delete(good_receipt_item.item_id, good_receipt_item.item_unit_id, req.body.userId);
+                                const itemPurchasePrice = new item_purchase_price_model_1.default(price, good_receipt_item.item_id, req.body.userId, good_receipt_item.item_unit_id);
+                                transactions.push(deleteItem);
+                                transactions.push(itemPurchasePrice.create());
+                            }
+                        }
+                        Promise.all(transactions)
+                            .then(() => {
+                            return res.status(200).send(result[0]);
+                        })
+                            .catch((error) => {
+                            return res.status(500).send(error);
+                        });
+                    })
+                        .catch((error) => {
+                        return res.status(500).send(error);
+                    });
+                }
+                else {
+                    return res.status(200).send(result[0]);
+                }
             })
                 .catch((error) => {
                 return res.status(500).send(error);
@@ -331,5 +364,30 @@ PurchaseDocumentController.fetchArchive = (req, res) => {
     else {
         return res.status(400).send("Input tidak dikenal.");
     }
+};
+PurchaseDocumentController.searchArchive = (req, res) => {
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
+    const page = !req.query.page
+        ? 1
+        : Math.max(1, parseInt(req.query.page.toString()));
+    const offset = (page - 1) * 10;
+    const start = !req.query.start ? null : req.query.start.toString();
+    const end = !req.query.end ? null : req.query.end.toString();
+    Promise.all([
+        purchase_document_model_1.default.searchArchives(keyword, start, end, offset),
+        purchase_document_model_1.default.searchCountArchives(keyword, start, end),
+    ])
+        .then((result) => {
+        return res.status(200).send({
+            data: result[0],
+            count: result[1],
+        });
+    })
+        .catch((error) => {
+        console.error(error);
+        return res.status(500).send(error);
+    });
 };
 exports.default = PurchaseDocumentController;

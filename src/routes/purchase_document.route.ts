@@ -6,6 +6,7 @@ import { administratorMiddleware } from "../helper/auth.helper";
 const router = Router();
 
 router.get("/unconfirmed", PurchaseDocumentController.fetchUnconfirmed);
+router.get("/search", PurchaseDocumentController.searchArchive);
 router.get("/archives", PurchaseDocumentController.fetchArchive);
 router.get("/archives/:year", PurchaseDocumentController.fetchArchive);
 router.get("/archives/:year/:month", PurchaseDocumentController.fetchArchive);

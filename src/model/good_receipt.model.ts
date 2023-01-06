@@ -174,6 +174,16 @@ class GoodReceiptModel {
     });
   }
 
+  static fetchByIds(id: number[]) {
+    return prisma.good_receipt.findMany({
+      where: {
+        id: {
+          in: id,
+        },
+      },
+    });
+  }
+
   static countItemByReference(reference: string) {
     return prisma.good_receipt.count({
       where: {
@@ -354,6 +364,279 @@ class GoodReceiptModel {
         },
       },
     });
+  }
+
+  static searchArchives(
+    keyword: string,
+    start: string | null,
+    end: string | null,
+    offset: number = 0,
+    limit: number = 10
+  ) {
+    if (start != null && end != null) {
+      return prisma.good_receipt_code.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(start),
+              },
+            },
+            {
+              date: {
+                lte: new Date(end),
+              },
+            },
+          ],
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    OR: [
+                      {
+                        reference: {
+                          contains: keyword,
+                        },
+                      },
+                      {
+                        description: {
+                          contains: keyword,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    description: {
+                      contains: keyword,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          supplier: {
+            select: { name: true, npwp: true },
+          },
+          user_good_receipt_code_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        take: limit,
+        skip: offset,
+        orderBy: {
+          date: "asc",
+        },
+      });
+    } else {
+      return prisma.good_receipt_code.findMany({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    OR: [
+                      {
+                        reference: {
+                          contains: keyword,
+                        },
+                      },
+                      {
+                        description: {
+                          contains: keyword,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    description: {
+                      contains: keyword,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          supplier: {
+            select: { name: true, npwp: true },
+          },
+          user_good_receipt_code_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+        },
+        take: limit,
+        skip: offset,
+        orderBy: {
+          date: "asc",
+        },
+      });
+    }
+  }
+
+  static searchCountArchives(
+    keyword: string,
+    start: string | null,
+    end: string | null
+  ) {
+    if (start != null && end != null) {
+      return prisma.good_receipt_code.count({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(start),
+              },
+            },
+            {
+              date: {
+                lte: new Date(end),
+              },
+            },
+          ],
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              supplier: {
+                name: {
+                  contains: keyword,
+                },
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    OR: [
+                      {
+                        reference: {
+                          contains: keyword,
+                        },
+                      },
+                      {
+                        description: {
+                          contains: keyword,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    description: {
+                      contains: keyword,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      });
+    } else {
+      return prisma.good_receipt_code.count({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              supplier: {
+                name: {
+                  contains: keyword,
+                },
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    OR: [
+                      {
+                        reference: {
+                          contains: keyword,
+                        },
+                      },
+                      {
+                        description: {
+                          contains: keyword,
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              good_receipt: {
+                some: {
+                  item: {
+                    description: {
+                      contains: keyword,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      });
+    }
   }
 }
 

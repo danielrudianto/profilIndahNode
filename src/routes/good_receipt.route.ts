@@ -24,6 +24,7 @@ router.post(
   GoodReceiptController.create
 );
 
+router.get("/search", GoodReceiptController.searchArchive);
 router.get("/archives", GoodReceiptController.fetchArchive);
 router.get("/archives/:year", GoodReceiptController.fetchArchive);
 router.get("/archives/:year/:month", GoodReceiptController.fetchArchive);

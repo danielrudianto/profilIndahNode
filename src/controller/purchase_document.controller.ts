@@ -34,7 +34,9 @@ class PurchaseDocumentController {
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
     const faktur =
-      (!purchase_invoice.faktur || purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
+      !purchase_invoice.faktur || purchase_invoice.faktur.length < 16
+        ? null
+        : purchase_invoice.faktur;
 
     Promise.all([
       CompanyModel.fetchById(company_id),
@@ -288,7 +290,54 @@ class PurchaseDocumentController {
               );
               socket.create();
 
-              return res.status(200).send(result[0]);
+              if (good_receipt.filter((x) => x.save).length > 0) {
+                const filtered_good_receipt = good_receipt.filter(
+                  (x) => x.save
+                );
+
+                GoodReceiptModel.fetchByIds(
+                  filtered_good_receipt.map((y) => {
+                    return y.id;
+                  })
+                )
+                  .then((good_receipts) => {
+                    const transactions = [];
+                    for (let good_receipt_item of good_receipts) {
+                      const priceIndex = filtered_good_receipt.findIndex(
+                        (idx) => idx.id == good_receipt_item.id
+                      );
+                      if (priceIndex != -1) {
+                        const price = filtered_good_receipt[priceIndex].price;
+                        const deleteItem = ItemPurchasePriceModel.delete(
+                          good_receipt_item.item_id,
+                          good_receipt_item.item_unit_id,
+                          req.body.userId
+                        );
+                        const itemPurchasePrice = new ItemPurchasePriceModel(
+                          price,
+                          good_receipt_item.item_id,
+                          req.body.userId,
+                          good_receipt_item.item_unit_id
+                        );
+                        transactions.push(deleteItem);
+                        transactions.push(itemPurchasePrice.create());
+                      }
+                    }
+
+                    Promise.all(transactions)
+                      .then(() => {
+                        return res.status(200).send(result[0]);
+                      })
+                      .catch((error) => {
+                        return res.status(500).send(error);
+                      });
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
+                  });
+              } else {
+                return res.status(200).send(result[0]);
+              }
             })
             .catch((error) => {
               return res.status(500).send(error);
@@ -425,6 +474,34 @@ class PurchaseDocumentController {
     } else {
       return res.status(400).send("Input tidak dikenal.");
     }
+  };
+
+  static searchArchive = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword
+      ? ""
+      : decodeURIComponent(req.query.keyword.toString());
+
+    const page = !req.query.page
+      ? 1
+      : Math.max(1, parseInt(req.query.page.toString()));
+    const offset = (page - 1) * 10;
+    const start = !req.query.start ? null : req.query.start.toString();
+    const end = !req.query.end ? null : req.query.end.toString();
+
+    Promise.all([
+      PurchaseDocumentModel.searchArchives(keyword, start, end, offset),
+      PurchaseDocumentModel.searchCountArchives(keyword, start, end),
+    ])
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0],
+          count: result[1],
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+        return res.status(500).send(error);
+      });
   };
 }
 

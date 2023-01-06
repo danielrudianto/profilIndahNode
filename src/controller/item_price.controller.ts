@@ -128,7 +128,7 @@ class ItemPriceController {
     if (!validation_result.isEmpty()) {
       return res.status(400).send(validation_result.array()[0].msg);
     }
-    
+
     const reference = decodeURI(req.params.reference.toString());
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
@@ -210,6 +210,7 @@ class ItemPriceController {
         } else {
           const brand_id = req.body.brand_id as number[];
           const type_id = req.body.type_id as number[];
+          const setting = req.body.setting;
 
           const rows: any[] = [
             [
@@ -235,7 +236,7 @@ class ItemPriceController {
             })
           );
 
-          ItemModel.fetchItemPriceByBrandType(brand_id, type_id)
+          ItemModel.fetchItemPriceByBrandType(brand_id, type_id, setting)
             .then((items) => {
               items.forEach((x) => {
                 rows.push([
@@ -337,6 +338,13 @@ class ItemPriceController {
 
               sheet.getColumn(1).hidden = true;
               sheet.getColumn(2).hidden = true;
+
+              sheet.getColumn(3).width = 18;
+              sheet.getColumn(4).width = 60;
+              sheet.getColumn(5).width = 12;
+              sheet.getColumn(6).width = 12;
+              sheet.getColumn(7).width = 12;
+              sheet.getColumn(8).width = 18;
 
               sheet.getColumn(9).numFmt = "#,###.00";
               sheet.getColumn(10).numFmt = "#,###.00";

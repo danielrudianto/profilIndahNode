@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import ItemPurchasePriceModel from "./item_purchase_price.model";
 
 const prisma = new PrismaClient();
 
@@ -379,6 +380,332 @@ class PurchaseDocumentModel {
     });
   }
 
+  static searchArchives(
+    keyword: string,
+    start: string | null,
+    end: string | null,
+    offset: number = 0,
+    limit: number = 10
+  ) {
+    if (start != null && end != null) {
+      return prisma.purchase_invoice.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(start),
+              },
+            },
+            {
+              date: {
+                lte: new Date(end),
+              },
+            },
+          ],
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              good_receipt_code: {
+                name: {
+                  contains: keyword,
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      OR: [
+                        {
+                          reference: {
+                            contains: keyword,
+                          },
+                        },
+                        {
+                          description: {
+                            contains: keyword,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      description: {
+                        contains: keyword,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          good_receipt_code: {
+            select: {
+              name: true,
+              date: true,
+              created_at: true,
+              supplier: {
+                select: {
+                  name: true,
+                  npwp: true,
+                },
+              },
+              user_good_receipt_code_created_byTouser: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        take: limit,
+        skip: offset,
+        orderBy: {
+          date: "asc",
+        },
+      });
+    } else {
+      return prisma.purchase_invoice.findMany({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              good_receipt_code: {
+                name: {
+                  contains: keyword,
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      OR: [
+                        {
+                          reference: {
+                            contains: keyword,
+                          },
+                        },
+                        {
+                          description: {
+                            contains: keyword,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      description: {
+                        contains: keyword,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+        include: {
+          good_receipt_code: {
+            select: {
+              name: true,
+              date: true,
+              created_at: true,
+              supplier: {
+                select: {
+                  name: true,
+                  npwp: true,
+                },
+              },
+              user_good_receipt_code_created_byTouser: {
+                select: {
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+        take: limit,
+        skip: offset,
+        orderBy: {
+          date: "asc",
+        },
+      });
+    }
+  }
+
+  static searchCountArchives(
+    keyword: string,
+    start: string | null,
+    end: string | null
+  ) {
+    if (start != null && end != null) {
+      return prisma.purchase_invoice.count({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(start),
+              },
+            },
+            {
+              date: {
+                lte: new Date(end),
+              },
+            },
+          ],
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              good_receipt_code: {
+                name: {
+                  contains: keyword,
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                supplier: {
+                  name: {
+                    contains: keyword,
+                  },
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      OR: [
+                        {
+                          reference: {
+                            contains: keyword,
+                          },
+                        },
+                        {
+                          description: {
+                            contains: keyword,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      description: {
+                        contains: keyword,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      });
+    } else {
+      return prisma.purchase_invoice.count({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              good_receipt_code: {
+                name: {
+                  contains: keyword,
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                supplier: {
+                  name: {
+                    contains: keyword,
+                  },
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      OR: [
+                        {
+                          reference: {
+                            contains: keyword,
+                          },
+                        },
+                        {
+                          description: {
+                            contains: keyword,
+                          },
+                        },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+            {
+              good_receipt_code: {
+                good_receipt: {
+                  some: {
+                    item: {
+                      description: {
+                        contains: keyword,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      });
+    }
+  }
+
   static fetchUnconfirmed(offset: number, limit: number) {
     return prisma.$transaction([
       prisma.purchase_invoice.findMany({
@@ -438,7 +765,7 @@ class PurchaseDocumentModel {
     confirmed_by: number
   ) {
     const transactions: any[] = [];
-    good_receipt.forEach((x) => {
+    for (let x of good_receipt) {
       transactions.push(
         prisma.good_receipt.update({
           where: {
@@ -449,7 +776,7 @@ class PurchaseDocumentModel {
           },
         })
       );
-    });
+    }
 
     return prisma.$transaction([
       prisma.purchase_invoice.update({

@@ -1299,119 +1299,347 @@ class ItemModel {
             },
         });
     }
-    static fetchItemPriceByBrandType(brand_id, type_id) {
-        return prisma.item_price.findMany({
-            where: {
-                item: {
-                    item_brand_id: {
-                        in: brand_id,
-                    },
-                    item_type_id: {
-                        in: type_id,
-                    },
-                    is_active: true,
-                    is_delete: false,
-                },
-                is_delete: false,
-            },
-            select: {
-                id: true,
-                item_id: true,
-                item_unit_id: true,
-                item: {
-                    select: {
-                        reference: true,
-                        description: true,
-                        unit: true,
-                        item_brand: {
-                            select: {
-                                name: true,
+    static fetchItemPriceByBrandType(brand_id, type_id, setting) {
+        switch (setting) {
+            case 0:
+                return prisma.item_price.findMany({
+                    where: {
+                        item: {
+                            item_brand_id: {
+                                in: brand_id,
                             },
-                        },
-                        item_type: {
-                            select: {
-                                name: true,
+                            item_type_id: {
+                                in: type_id,
                             },
+                            is_delete: false,
                         },
+                        is_delete: false,
                     },
-                },
-                price: true,
-                discount: true,
-                item_unit: {
                     select: {
                         id: true,
-                        unit: true,
-                        conversion: true,
+                        item_id: true,
+                        item_unit_id: true,
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                        price: true,
+                        discount: true,
+                        item_unit: {
+                            select: {
+                                id: true,
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
                     },
-                },
-            },
-            orderBy: [
-                {
-                    item: {
-                        reference: "asc",
+                    orderBy: [
+                        {
+                            item: {
+                                reference: "asc",
+                            },
+                        },
+                        {
+                            item_unit_id: "asc",
+                        },
+                    ],
+                });
+            case 2:
+                return prisma.item_price.findMany({
+                    where: {
+                        item: {
+                            item_brand_id: {
+                                in: brand_id,
+                            },
+                            item_type_id: {
+                                in: type_id,
+                            },
+                            is_active: false,
+                            is_delete: false,
+                        },
+                        is_delete: false,
                     },
-                },
-                {
-                    item_unit_id: "asc",
-                },
-            ],
-        });
+                    select: {
+                        id: true,
+                        item_id: true,
+                        item_unit_id: true,
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                        price: true,
+                        discount: true,
+                        item_unit: {
+                            select: {
+                                id: true,
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
+                    },
+                    orderBy: [
+                        {
+                            item: {
+                                reference: "asc",
+                            },
+                        },
+                        {
+                            item_unit_id: "asc",
+                        },
+                    ],
+                });
+            default:
+                return prisma.item_price.findMany({
+                    where: {
+                        item: {
+                            item_brand_id: {
+                                in: brand_id,
+                            },
+                            item_type_id: {
+                                in: type_id,
+                            },
+                            is_active: true,
+                            is_delete: false,
+                        },
+                        is_delete: false,
+                    },
+                    select: {
+                        id: true,
+                        item_id: true,
+                        item_unit_id: true,
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                        price: true,
+                        discount: true,
+                        item_unit: {
+                            select: {
+                                id: true,
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
+                    },
+                    orderBy: [
+                        {
+                            item: {
+                                reference: "asc",
+                            },
+                        },
+                        {
+                            item_unit_id: "asc",
+                        },
+                    ],
+                });
+        }
     }
-    static fetchItemPurchasePriceByBrandType(brand_id, type_id) {
-        return prisma.item_price_purchase.findMany({
-            where: {
-                item: {
-                    item_brand_id: {
-                        in: brand_id,
+    static fetchItemPurchasePriceByBrandType(brand_id, type_id, setting) {
+        switch (setting) {
+            case 0:
+                return prisma.item_price_purchase.findMany({
+                    where: {
+                        item: {
+                            item_brand_id: {
+                                in: brand_id,
+                            },
+                            item_type_id: {
+                                in: type_id,
+                            },
+                            is_delete: false,
+                        },
+                        is_delete: false,
                     },
-                    item_type_id: {
-                        in: type_id,
-                    },
-                    is_active: true,
-                    is_delete: false,
-                },
-                is_delete: false,
-            },
-            select: {
-                id: true,
-                item_id: true,
-                item_unit_id: true,
-                item: {
                     select: {
-                        reference: true,
-                        description: true,
-                        unit: true,
-                        item_brand: {
+                        id: true,
+                        item_id: true,
+                        item_unit_id: true,
+                        item: {
                             select: {
-                                name: true,
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
                             },
                         },
-                        item_type: {
+                        price: true,
+                        item_unit: {
                             select: {
-                                name: true,
+                                unit: true,
+                                conversion: true,
                             },
                         },
                     },
-                },
-                price: true,
-                item_unit: {
+                    orderBy: [
+                        {
+                            item: {
+                                reference: "asc",
+                            },
+                        },
+                        {
+                            item_unit_id: "asc",
+                        },
+                    ],
+                });
+            case 2:
+                return prisma.item_price_purchase.findMany({
+                    where: {
+                        item: {
+                            item_brand_id: {
+                                in: brand_id,
+                            },
+                            item_type_id: {
+                                in: type_id,
+                            },
+                            is_active: false,
+                            is_delete: false,
+                        },
+                        is_delete: false,
+                    },
                     select: {
-                        unit: true,
-                        conversion: true,
+                        id: true,
+                        item_id: true,
+                        item_unit_id: true,
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                        price: true,
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
                     },
-                },
-            },
-            orderBy: [
-                {
-                    item: {
-                        reference: "asc",
+                    orderBy: [
+                        {
+                            item: {
+                                reference: "asc",
+                            },
+                        },
+                        {
+                            item_unit_id: "asc",
+                        },
+                    ],
+                });
+            default:
+                return prisma.item_price_purchase.findMany({
+                    where: {
+                        item: {
+                            item_brand_id: {
+                                in: brand_id,
+                            },
+                            item_type_id: {
+                                in: type_id,
+                            },
+                            is_active: true,
+                            is_delete: false,
+                        },
+                        is_delete: false,
                     },
-                },
-                {
-                    item_unit_id: "asc",
-                },
-            ],
-        });
+                    select: {
+                        id: true,
+                        item_id: true,
+                        item_unit_id: true,
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                    },
+                                },
+                            },
+                        },
+                        price: true,
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
+                    },
+                    orderBy: [
+                        {
+                            item: {
+                                reference: "asc",
+                            },
+                        },
+                        {
+                            item_unit_id: "asc",
+                        },
+                    ],
+                });
+        }
     }
     static fetchStockByItemIds(ids) {
         return prisma.$transaction([

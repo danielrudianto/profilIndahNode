@@ -233,6 +233,34 @@ class GoodReceiptController {
       }
     }
   };
+
+  static searchArchive = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword
+      ? ""
+      : decodeURIComponent(req.query.keyword.toString());
+
+    const page = !req.query.page
+      ? 1
+      : Math.max(1, parseInt(req.query.page.toString()));
+    const offset = (page - 1) * 10;
+    const start = !req.query.start ? null : req.query.start.toString();
+    const end = !req.query.end ? null : req.query.end.toString();
+
+    Promise.all([
+      GoodReceiptModel.searchArchives(keyword, start, end, offset),
+      GoodReceiptModel.searchCountArchives(keyword, start, end),
+    ])
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0],
+          count: result[1],
+        });
+      })
+      .catch((error) => {
+        console.error(error);
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default GoodReceiptController;
