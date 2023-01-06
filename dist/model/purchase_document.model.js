@@ -257,6 +257,89 @@ class PurchaseDocumentModel {
       `);
         }
     }
+    static fetchArchiveYears() {
+        return prisma.$queryRaw `SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year FROM purchase_invoice ORDER BY purchase_invoice.date ASC`;
+    }
+    static countArchiveByYear() {
+        return prisma.$queryRaw `SELECT COUNT(purchase_invoice.id) AS count, YEAR(purchase_invoice.date) AS year FROM purchase_invoice GROUP BY YEAR(purchase_invoice.date)`;
+    }
+    static countArchiveByMonth(year) {
+        return prisma.$queryRaw `SELECT COUNT(purchase_invoice.id) AS count, MONTH(purchase_invoice.date) AS month FROM purchase_invoice WHERE YEAR(purchase_invoice.date) = ${year} GROUP BY MONTH(purchase_invoice.date)`;
+    }
+    static fetchArchive(year, month, offset, limit) {
+        const start_date = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        const end_date = new Date(year, month, 1, 0, 0, 0, 0);
+        return prisma.purchase_invoice.findMany({
+            where: {
+                AND: [
+                    {
+                        date: {
+                            gte: start_date,
+                        },
+                    },
+                    {
+                        date: {
+                            lt: end_date,
+                        },
+                    },
+                ],
+            },
+            orderBy: {
+                date: "asc",
+            },
+            take: limit,
+            skip: offset,
+            select: {
+                name: true,
+                id: true,
+                date: true,
+                good_receipt_code: {
+                    select: {
+                        name: true,
+                        supplier: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        company: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        date: true,
+                        user_good_receipt_code_created_byTouser: {
+                            select: {
+                                name: true,
+                            },
+                        },
+                        created_at: true,
+                    },
+                },
+                is_delete: true,
+                is_confirm: true,
+            },
+        });
+    }
+    static countArchive(year, month) {
+        const start_date = new Date(year, month - 1, 1, 0, 0, 0, 0);
+        const end_date = new Date(year, month, 1, 0, 0, 0, 0);
+        return prisma.purchase_invoice.count({
+            where: {
+                AND: [
+                    {
+                        date: {
+                            gte: start_date,
+                        },
+                    },
+                    {
+                        date: {
+                            lt: end_date,
+                        },
+                    },
+                ],
+            },
+        });
+    }
     static fetchUnconfirmed(offset, limit) {
         return prisma.$transaction([
             prisma.purchase_invoice.findMany({
@@ -305,7 +388,7 @@ class PurchaseDocumentModel {
             }),
         ]);
     }
-    static confirmById(id, discount, good_receipt, confirmed_by) {
+    static confirmById(id, purchase_invoice_name, good_receipt_name, date, discount, good_receipt, confirmed_by) {
         const transactions = [];
         good_receipt.forEach((x) => {
             transactions.push(prisma.good_receipt.update({
@@ -323,11 +406,23 @@ class PurchaseDocumentModel {
                     id: id,
                 },
                 data: {
+                    name: purchase_invoice_name,
+                    date: date,
                     discount: discount,
                     is_confirm: true,
                     is_delete: false,
                     confirmed_at: new Date(),
                     confirmed_by: confirmed_by,
+                },
+            }),
+            prisma.good_receipt_code.updateMany({
+                where: {
+                    purchase_invoice: {
+                        id: id,
+                    },
+                },
+                data: {
+                    name: good_receipt_name,
                 },
             }),
             ...transactions,

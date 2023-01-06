@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import LogHelper from "../helper/log.helper";
 import SocketHelper from "../helper/socket.helper";
 import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
@@ -35,7 +34,7 @@ class PurchaseDocumentController {
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
     const faktur =
-      purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
+      (!purchase_invoice.faktur || purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
 
     Promise.all([
       CompanyModel.fetchById(company_id),
@@ -142,7 +141,9 @@ class PurchaseDocumentController {
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
     const faktur =
-      purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
+      !purchase_invoice.faktur || purchase_invoice.faktur?.length < 16
+        ? null
+        : purchase_invoice.faktur;
 
     Promise.all([
       CompanyModel.fetchById(company_id),
@@ -252,6 +253,9 @@ class PurchaseDocumentController {
     const id = req.body.id;
     const discount = req.body.discount;
     const good_receipt = req.body.good_receipt as any[];
+    const good_receipt_name = req.body.good_receipt_name;
+    const purchase_invoice_name = req.body.name;
+    const date = new Date(req.body.date);
 
     PurchaseDocumentModel.fetchById(id)
       .then((good_receipt_code) => {
@@ -270,6 +274,9 @@ class PurchaseDocumentController {
         } else {
           PurchaseDocumentModel.confirmById(
             id,
+            purchase_invoice_name,
+            good_receipt_name,
+            date,
             discount,
             good_receipt,
             req.body.userId
@@ -353,6 +360,71 @@ class PurchaseDocumentController {
       .catch((error) => {
         return res.status(500).send(error);
       });
+  };
+
+  static fetchArchive = (req: Request, res: Response) => {
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
+
+    if (!req.params.year && !req.params.month) {
+      Promise.all([
+        PurchaseDocumentModel.fetchArchiveYears(),
+        PurchaseDocumentModel.countArchiveByYear(),
+      ])
+        .then((result) => {
+          const response: any[] = [];
+          (result[0] as any[]).forEach((item) => {
+            response.push({
+              year: item.year,
+              count: (result[1] as any[]).filter((x) => x.year == item.year)[0]
+                .count,
+            });
+          });
+
+          return res.status(200).send(response);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else if (!req.params.month) {
+      const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      PurchaseDocumentModel.countArchiveByMonth(year)
+        .then((counts) => {
+          (counts as any[]).forEach((x) => {
+            const month = x.month;
+            const num = x.count;
+
+            count[month - 1] = num;
+          });
+
+          return res.status(200).send(count);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else if (req.params.year && req.params.month) {
+      const page = !req.query.page
+        ? 1
+        : Math.max(parseInt(req.query.page.toString()), 1);
+      const limit = parseInt(process.env.LIMIT!.toString());
+      const offset = (page - 1) * limit;
+
+      Promise.all([
+        PurchaseDocumentModel.fetchArchive(year, month, offset, limit),
+        PurchaseDocumentModel.countArchive(year, month),
+      ])
+        .then((result) => {
+          return res.status(200).send({
+            data: result[0],
+            count: result[1],
+          });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } else {
+      return res.status(400).send("Input tidak dikenal.");
+    }
   };
 }
 

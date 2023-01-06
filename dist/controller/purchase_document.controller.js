@@ -32,7 +32,7 @@ PurchaseDocumentController.update = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
+    const faktur = (!purchase_invoice.faktur || purchase_invoice.faktur.length < 16) ? null : purchase_invoice.faktur;
     Promise.all([
         company_model_1.default.fetchById(company_id),
         supplier_model_1.default.fetchById(supplier_id),
@@ -93,6 +93,7 @@ PurchaseDocumentController.update = (req, res) => {
     });
 };
 PurchaseDocumentController.create = (req, res) => {
+    var _a;
     const date = new Date(req.body.date);
     const name = req.body.name;
     const company_id = req.body.company_id;
@@ -101,7 +102,9 @@ PurchaseDocumentController.create = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = purchase_invoice.faktur.length < 16 ? null : purchase_invoice.faktur;
+    const faktur = !purchase_invoice.faktur || ((_a = purchase_invoice.faktur) === null || _a === void 0 ? void 0 : _a.length) < 16
+        ? null
+        : purchase_invoice.faktur;
     Promise.all([
         company_model_1.default.fetchById(company_id),
         supplier_model_1.default.fetchById(supplier_id),
@@ -180,6 +183,9 @@ PurchaseDocumentController.confirm = (req, res) => {
     const id = req.body.id;
     const discount = req.body.discount;
     const good_receipt = req.body.good_receipt;
+    const good_receipt_name = req.body.good_receipt_name;
+    const purchase_invoice_name = req.body.name;
+    const date = new Date(req.body.date);
     purchase_document_model_1.default.fetchById(id)
         .then((good_receipt_code) => {
         if (good_receipt_code == null ||
@@ -193,7 +199,7 @@ PurchaseDocumentController.confirm = (req, res) => {
                 .send("Pembelian telah dikonfirmasi atau dihapus.");
         }
         else {
-            purchase_document_model_1.default.confirmById(id, discount, good_receipt, req.body.userId)
+            purchase_document_model_1.default.confirmById(id, purchase_invoice_name, good_receipt_name, date, discount, good_receipt, req.body.userId)
                 .then((result) => {
                 const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
                 socket.create();
@@ -263,5 +269,67 @@ PurchaseDocumentController.confirmUnchanged = (req, res) => {
         .catch((error) => {
         return res.status(500).send(error);
     });
+};
+PurchaseDocumentController.fetchArchive = (req, res) => {
+    const year = parseInt(req.params.year);
+    const month = parseInt(req.params.month);
+    if (!req.params.year && !req.params.month) {
+        Promise.all([
+            purchase_document_model_1.default.fetchArchiveYears(),
+            purchase_document_model_1.default.countArchiveByYear(),
+        ])
+            .then((result) => {
+            const response = [];
+            result[0].forEach((item) => {
+                response.push({
+                    year: item.year,
+                    count: result[1].filter((x) => x.year == item.year)[0]
+                        .count,
+                });
+            });
+            return res.status(200).send(response);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else if (!req.params.month) {
+        const count = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        purchase_document_model_1.default.countArchiveByMonth(year)
+            .then((counts) => {
+            counts.forEach((x) => {
+                const month = x.month;
+                const num = x.count;
+                count[month - 1] = num;
+            });
+            return res.status(200).send(count);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else if (req.params.year && req.params.month) {
+        const page = !req.query.page
+            ? 1
+            : Math.max(parseInt(req.query.page.toString()), 1);
+        const limit = parseInt(process.env.LIMIT.toString());
+        const offset = (page - 1) * limit;
+        Promise.all([
+            purchase_document_model_1.default.fetchArchive(year, month, offset, limit),
+            purchase_document_model_1.default.countArchive(year, month),
+        ])
+            .then((result) => {
+            return res.status(200).send({
+                data: result[0],
+                count: result[1],
+            });
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
+    }
+    else {
+        return res.status(400).send("Input tidak dikenal.");
+    }
 };
 exports.default = PurchaseDocumentController;

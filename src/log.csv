@@ -74,3 +74,6 @@ Thu Dec 29 2022 16:48:48 GMT+0700 (Indochina Time); warn; Login failed for usern
 Fri Dec 30 2022 06:16:01 GMT+0700 (Indochina Time); info; Lani Liem updated brand with the name 3 BERLIANS (ID: 68); Brand - Create; 1
 Fri Dec 30 2022 06:17:30 GMT+0700 (Indochina Time); info; Lani Liem updated brand with the name 3 BERLIAN (ID: 68); Brand - Create; 1
 Fri Dec 30 2022 06:19:45 GMT+0700 (Indochina Time); info; Daniel Tri updated brand with the name 3 BERLIAN (ID: 68); Brand - Create; 1
+Thu Jan 05 2023 10:13:31 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-09210241 (ID: 196); Bill controller - Create; 1
+Thu Jan 05 2023 10:15:57 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-95056792 (ID: 197); Bill controller - Create; 1
+Fri Jan 06 2023 10:06:12 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 52) dari KONISHI LEMINDO INDONESIA (ID: 52) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
