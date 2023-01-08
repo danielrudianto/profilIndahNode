@@ -441,6 +441,11 @@ class GoodReceiptModel {
               name: true,
             },
           },
+          company: {
+            select: {
+              name: true,
+            },
+          },
         },
         take: limit,
         skip: offset,
@@ -500,6 +505,11 @@ class GoodReceiptModel {
             select: { name: true, npwp: true },
           },
           user_good_receipt_code_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+          company: {
             select: {
               name: true,
             },

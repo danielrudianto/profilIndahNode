@@ -186,22 +186,26 @@ class ExpenseModel {
   static fetchSum(month: number, year: number) {
     if (month == 0) {
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(expense.value) AS value, expense_type.id, expense_type.name, expense_type.parent_id
+        SELECT SUM(expense.value) AS value, expense_type.id, expense_type.name, expense_type.parent_id, company.name AS company_name, company.id AS company_id
         FROM expense_type
         LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        JOIN company ON expense.company_id = company.id
         WHERE YEAR(expense.date) = ${year}
         AND expense.is_delete = 0
-        GROUP BY expense_type.id
+        GROUP BY expense_type.id, expense.company_id
+        ORDER BY expense.company_id ASC, parent_id DESC
       `);
     } else {
       return prisma.$queryRawUnsafe(`
-        SELECT SUM(expense.value) AS value, expense_type_id, expense_type.name, expense_type.parent_id
+        SELECT SUM(expense.value) AS value, expense_type_id, expense_type.name, expense_type.parent_id, company.name AS company_name, company.id AS company_id
         FROM expense_type
         LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
+        JOIN company ON expense.company_id = company.id
         WHERE MONTH(expense.date) = ${month}
         AND YEAR(expense.date) = ${year}
         AND expense.is_delete = 0
-        GROUP BY expense_type.id
+        GROUP BY expense_type.id, expense.company_id
+        ORDER BY expense.company_id ASC, parent_id DESC
       `);
     }
   }

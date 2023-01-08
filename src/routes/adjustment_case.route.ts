@@ -44,9 +44,6 @@ router.get(
 router.post(
   "/",
   body("date").notEmpty().withMessage("Mohon isikan tanggal dokumen."),
-  body("company_id")
-    .isInt({ min: 1 })
-    .withMessage("Mohon isikan ID perusahaan."),
   body("type")
     .isInt({ min: 0 })
     .withMessage("Mohon isikan tipe penyesuaian stock yang sesuai."),

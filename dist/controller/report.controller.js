@@ -25,6 +25,7 @@ const brand_model_1 = require("../model/brand.model");
 const item_type_model_1 = __importDefault(require("../model/item_type.model"));
 const supplier_model_1 = __importDefault(require("../model/supplier.model"));
 const item_model_1 = require("../model/item.model");
+const company_model_1 = __importDefault(require("../model/company.model"));
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
@@ -549,6 +550,7 @@ ReportController.fetchPLStats = (req, res) => {
             bill_code_model_1.default.fetchSum(month, year),
             sales_distribution_model_1.default.fetchSum(month, year),
             purchase_document_model_1.default.fetchSum(month, year),
+            company_model_1.default.fetchAll(),
             expense_model_1.default.fetchSum(month, year),
             month == 0
                 ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
@@ -786,76 +788,100 @@ ReportController.fetchPLStats = (req, res) => {
                 },
             ]);
             const expenses = [];
-            const expense_table = [];
+            const expense_section = [];
             let total_expense_value = 0;
-            expense_table.push([
-                {
-                    text: "Tipe",
-                    bold: true,
-                    alignment: "center",
-                },
-                {
-                    text: "Nominal",
-                    bold: true,
-                    alignment: "center",
-                },
-            ]);
-            result[3]
-                .filter((x) => x.parent_id == null)
-                .forEach((y) => {
-                expenses.push(Object.assign(Object.assign({}, y), { value: 0, children: [] }));
-            });
-            const child_expenses = result[3].filter((x) => x.parent_id != null);
-            child_expenses.forEach((child_expense) => {
-                const index = expenses.findIndex((expense) => expense.id == child_expense.parent_id);
+            result[3].forEach((company) => {
+                const expense_table = [];
+                const index = result[4].findIndex((expense) => expense.company_id == company.id);
                 if (index != -1) {
-                    expenses[index].children.push(child_expense);
-                    expenses[index].value += parseFloat(child_expense.value.toString());
-                    total_expense_value += parseFloat(child_expense.value.toString());
-                }
-            });
-            expenses.forEach((expense) => {
-                expense_table.push([
-                    {
-                        text: expense.name,
+                    expense_section.push({
+                        text: company.name,
                         bold: true,
-                        alignment: "left",
-                    },
-                    {
-                        text: formatter.format(parseFloat(expense.value.toString())),
-                        bold: true,
+                        fontSize: 14,
                         alignment: "center",
-                    },
-                ]);
-                if (expense.children.length > 0) {
-                    expense.children.forEach((child_expense) => {
+                        margin: [0, 0, 0, 15],
+                    });
+                    let expense_value = 0;
+                    expense_table.push([
+                        {
+                            text: "Tipe",
+                            bold: true,
+                            alignment: "center",
+                        },
+                        {
+                            text: "Nominal",
+                            bold: true,
+                            alignment: "center",
+                        },
+                    ]);
+                    result[4]
+                        .filter((x) => x.parent_id == null)
+                        .forEach((y) => {
+                        expenses.push(Object.assign(Object.assign({}, y), { value: 0, children: [] }));
+                    });
+                    const child_expenses = result[4].filter((x) => x.parent_id != null);
+                    child_expenses.forEach((child_expense) => {
+                        const index = expenses.findIndex((expense) => expense.id == child_expense.parent_id);
+                        if (index != -1) {
+                            expenses[index].children.push(child_expense);
+                            expenses[index].value += parseFloat(child_expense.value.toString());
+                            expense_value += parseFloat(child_expense.value.toString());
+                        }
+                    });
+                    expenses.forEach((expense) => {
                         expense_table.push([
                             {
-                                text: `${expense.name}/${child_expense.name}`,
-                                bold: false,
+                                text: expense.name,
+                                bold: true,
                                 alignment: "left",
                             },
                             {
-                                text: formatter.format(parseFloat(child_expense.value.toString())),
-                                bold: false,
+                                text: formatter.format(parseFloat(expense.value.toString())),
+                                bold: true,
                                 alignment: "center",
                             },
                         ]);
+                        if (expense.children.length > 0) {
+                            expense.children.forEach((child_expense) => {
+                                expense_table.push([
+                                    {
+                                        text: `${expense.name}/${child_expense.name}`,
+                                        bold: false,
+                                        alignment: "left",
+                                    },
+                                    {
+                                        text: formatter.format(parseFloat(child_expense.value.toString())),
+                                        bold: false,
+                                        alignment: "center",
+                                    },
+                                ]);
+                            });
+                        }
                     });
+                    expense_table.push([
+                        {
+                            text: "Total",
+                            bold: true,
+                            alignment: "left",
+                        },
+                        {
+                            text: formatter.format(expense_value),
+                            bold: true,
+                            alignment: "center",
+                        },
+                    ]);
+                    expense_section.push({
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["auto", "auto", "auto", "auto", "*"],
+                            body: expense_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    });
+                    total_expense_value += expense_value;
                 }
             });
-            expense_table.push([
-                {
-                    text: "Total",
-                    bold: true,
-                    alignment: "left",
-                },
-                {
-                    text: formatter.format(total_expense_value),
-                    bold: true,
-                    alignment: "center",
-                },
-            ]);
             const hpp_table = [];
             let hpp_value = 0;
             hpp_table.push([
@@ -870,7 +896,7 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[4].forEach((x) => {
+            result[5].forEach((x) => {
                 const name = x.f2;
                 const value = parseFloat(x.f0);
                 hpp_value += value;
@@ -922,7 +948,7 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[5].forEach((x) => {
+            result[6].forEach((x) => {
                 sales_appendix_table.push([
                     {
                         text: `${new Date(x.date).getDate()} ${month_name[new Date(x.date).getMonth()]}`,
@@ -974,7 +1000,7 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "center",
                 },
             ]);
-            result[6].forEach((x) => {
+            result[7].forEach((x) => {
                 purchase_appendix_table.push([
                     {
                         text: `${new Date(x.date).getDate()} ${month_name[new Date(x.date).getMonth()]}`,
@@ -1097,15 +1123,7 @@ ReportController.fetchPLStats = (req, res) => {
                         alignment: "center",
                         margin: [0, 0, 0, 15],
                     },
-                    {
-                        layout: "lightHorizontalLines",
-                        table: {
-                            headerRows: 1,
-                            widths: ["*", "auto"],
-                            body: expense_table,
-                        },
-                        margin: [0, 0, 0, 15],
-                    },
+                    ...expense_section,
                     {
                         text: `Laba / Rugi: ${formatter.format(total_value - hpp_value - total_expense_value)}`,
                         bold: true,

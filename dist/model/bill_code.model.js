@@ -422,17 +422,17 @@ class BillCodeModel {
         SELECT SUM(value) AS value, SUM(discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service
         FROM bill_code
         JOIN (
-          SELECT SUM((bill.quantity - COALESCE(return.quantity, 0)) * (bill.price - bill.discount)) AS value, bill_code_id
+          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * (bill.price - bill.discount)) AS value, bill_code_id
           FROM bill
           LEFT JOIN (
-            SELECT SUM(sales_return.quatity) AS quantity, sales_return.bill_id AS id
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id AS id
             FROM sales_return
             JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
             WHERE sales_return_code.is_delete = 0
             AND sales_return_code.is_confirm = 1
             GROUP BY sales_return.bill_id
-          ) return
-          ON return.id = bill.id
+          ) returnTable
+          ON returnTable.id = bill.id
           GROUP BY bill.bill_code_id
         ) bills
         ON bill_code.id = bills.bill_code_id

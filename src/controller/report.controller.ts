@@ -20,6 +20,7 @@ import ItemTypeModel from "../model/item_type.model";
 import SupplierModel from "../model/supplier.model";
 import SalesReturnModel from "../model/sales_return.model";
 import { ItemModel } from "../model/item.model";
+import CompanyModel from "../model/company.model";
 
 var formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -628,6 +629,7 @@ class ReportController {
         BillCodeModel.fetchSum(month, year),
         SalesDistributionModel.fetchSum(month, year),
         PurchaseDocumentModel.fetchSum(month, year),
+        CompanyModel.fetchAll(),
         ExpenseModel.fetchSum(month, year),
         month == 0
           ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
@@ -892,95 +894,125 @@ class ReportController {
           ]);
 
           const expenses: any[] = [];
-          const expense_table = [];
+          const expense_section: any[] = [];
           let total_expense_value = 0;
-
-          expense_table.push([
-            {
-              text: "Tipe",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Nominal",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          (result[3] as any[])
-            .filter((x) => x.parent_id == null)
-            .forEach((y) => {
-              expenses.push({
-                ...y,
-                value: 0,
-                children: [],
-              });
-            });
-
-          const child_expenses = (result[3] as any[]).filter(
-            (x) => x.parent_id != null
-          );
-          child_expenses.forEach((child_expense) => {
-            const index = expenses.findIndex(
-              (expense) => expense.id == child_expense.parent_id
+          (result[3] as any[]).forEach((company) => {
+            const expense_table: any[] = [];
+            const index = (result[4] as any[]).findIndex(
+              (expense) => expense.company_id == company.id
             );
             if (index != -1) {
-              expenses[index].children.push(child_expense);
-              expenses[index].value += parseFloat(
-                child_expense.value.toString()
-              );
-
-              total_expense_value += parseFloat(child_expense.value.toString());
-            }
-          });
-
-          expenses.forEach((expense) => {
-            expense_table.push([
-              {
-                text: expense.name,
+              expense_section.push({
+                text: company.name,
                 bold: true,
-                alignment: "left" as Alignment,
-              },
-              {
-                text: formatter.format(parseFloat(expense.value.toString())),
-                bold: true,
+                fontSize: 14,
                 alignment: "center" as Alignment,
-              },
-            ]);
+                margin: [0, 0, 0, 15] as Margins,
+              });
 
-            if (expense.children.length > 0) {
-              (expense.children as any[]).forEach((child_expense) => {
+              let expense_value = 0;
+              expense_table.push([
+                {
+                  text: "Tipe",
+                  bold: true,
+                  alignment: "center" as Alignment,
+                },
+                {
+                  text: "Nominal",
+                  bold: true,
+                  alignment: "center" as Alignment,
+                },
+              ]);
+
+              (result[4] as any[])
+                .filter((x) => x.parent_id == null)
+                .forEach((y) => {
+                  expenses.push({
+                    ...y,
+                    value: 0,
+                    children: [],
+                  });
+                });
+
+              const child_expenses = (result[4] as any[]).filter(
+                (x) => x.parent_id != null
+              );
+              child_expenses.forEach((child_expense) => {
+                const index = expenses.findIndex(
+                  (expense) => expense.id == child_expense.parent_id
+                );
+                if (index != -1) {
+                  expenses[index].children.push(child_expense);
+                  expenses[index].value += parseFloat(
+                    child_expense.value.toString()
+                  );
+
+                  expense_value += parseFloat(child_expense.value.toString());
+                }
+              });
+
+              expenses.forEach((expense) => {
                 expense_table.push([
                   {
-                    text: `${expense.name}/${child_expense.name}`,
-                    bold: false,
+                    text: expense.name,
+                    bold: true,
                     alignment: "left" as Alignment,
                   },
                   {
                     text: formatter.format(
-                      parseFloat(child_expense.value.toString())
+                      parseFloat(expense.value.toString())
                     ),
-                    bold: false,
+                    bold: true,
                     alignment: "center" as Alignment,
                   },
                 ]);
+
+                if (expense.children.length > 0) {
+                  (expense.children as any[]).forEach((child_expense) => {
+                    expense_table.push([
+                      {
+                        text: `${expense.name}/${child_expense.name}`,
+                        bold: false,
+                        alignment: "left" as Alignment,
+                      },
+                      {
+                        text: formatter.format(
+                          parseFloat(child_expense.value.toString())
+                        ),
+                        bold: false,
+                        alignment: "center" as Alignment,
+                      },
+                    ]);
+                  });
+                }
               });
+
+              expense_table.push([
+                {
+                  text: "Total",
+                  bold: true,
+                  alignment: "left" as Alignment,
+                },
+                {
+                  text: formatter.format(expense_value),
+                  bold: true,
+                  alignment: "center" as Alignment,
+                },
+              ]);
+
+              expense_section.push({
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "auto", "auto", "auto", "*"],
+                  body: expense_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              });
+
+              total_expense_value += expense_value;
             }
           });
-
-          expense_table.push([
-            {
-              text: "Total",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(total_expense_value),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
 
           const hpp_table = [];
           let hpp_value = 0;
@@ -997,7 +1029,7 @@ class ReportController {
             },
           ]);
 
-          (result[4] as any[]).forEach((x) => {
+          (result[5] as any[]).forEach((x) => {
             const name = x.f2;
             const value = parseFloat(x.f0);
 
@@ -1054,7 +1086,7 @@ class ReportController {
             },
           ]);
 
-          (result[5] as any[]).forEach((x) => {
+          (result[6] as any[]).forEach((x) => {
             sales_appendix_table.push([
               {
                 text: `${new Date(x.date).getDate()} ${
@@ -1110,7 +1142,7 @@ class ReportController {
             },
           ]);
 
-          (result[6] as any[]).forEach((x) => {
+          (result[7] as any[]).forEach((x) => {
             purchase_appendix_table.push([
               {
                 text: `${new Date(x.date).getDate()} ${
@@ -1237,15 +1269,7 @@ class ReportController {
                 alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
               },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["*", "auto"],
-                  body: expense_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
-              },
+              ...expense_section,
               {
                 text: `Laba / Rugi: ${formatter.format(
                   total_value - hpp_value - total_expense_value

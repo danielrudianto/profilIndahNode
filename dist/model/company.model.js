@@ -134,7 +134,7 @@ class CompanyModel {
                                 code_name: {
                                     contains: keyword,
                                 },
-                            }
+                            },
                         ],
                     },
                     select: {
@@ -171,7 +171,7 @@ class CompanyModel {
                                 code_name: {
                                     contains: keyword,
                                 },
-                            }
+                            },
                         ],
                     },
                 }),
@@ -210,7 +210,7 @@ class CompanyModel {
                             code_name: {
                                 contains: keyword,
                             },
-                        }
+                        },
                     ],
                 },
             });
@@ -243,7 +243,7 @@ class CompanyModel {
                             code_name: {
                                 contains: keyword,
                             },
-                        }
+                        },
                     ],
                 },
             });
@@ -287,13 +287,20 @@ class CompanyModel {
             where: {
                 good_receipt_code: {
                     some: {
-                        is_delete: false
+                        is_delete: false,
                     },
-                }
+                },
             },
             orderBy: {
-                name: "asc"
-            }
+                name: "asc",
+            },
+        });
+    }
+    static fetchAll() {
+        return prisma.company.findMany({
+            orderBy: {
+                name: "asc",
+            },
         });
     }
 }

@@ -23,7 +23,7 @@ class CompanyModel {
     npwp: string | null,
     created_by: number,
     code_name: string,
-    id: number | null = null,
+    id: number | null = null
   ) {
     if (id != null) {
       this.id = id;
@@ -160,7 +160,7 @@ class CompanyModel {
                 code_name: {
                   contains: keyword,
                 },
-              }
+              },
             ],
           },
           select: {
@@ -192,12 +192,12 @@ class CompanyModel {
                 address: {
                   contains: keyword,
                 },
-              }, 
+              },
               {
                 code_name: {
                   contains: keyword,
                 },
-              }
+              },
             ],
           },
         }),
@@ -236,7 +236,7 @@ class CompanyModel {
               code_name: {
                 contains: keyword,
               },
-            }
+            },
           ],
         },
       });
@@ -269,7 +269,7 @@ class CompanyModel {
               code_name: {
                 contains: keyword,
               },
-            }
+            },
           ],
         },
       });
@@ -305,7 +305,7 @@ class CompanyModel {
     });
   }
 
-  static fetchAvailable(){
+  static fetchAvailable() {
     return prisma.company.findMany({
       select: {
         name: true,
@@ -313,17 +313,25 @@ class CompanyModel {
         address: true,
         id: true,
       },
-      where:{
+      where: {
         good_receipt_code: {
           some: {
-            is_delete: false
+            is_delete: false,
           },
-        }
+        },
       },
       orderBy: {
-        name: "asc"
-      }
-    })
+        name: "asc",
+      },
+    });
+  }
+
+  static fetchAll() {
+    return prisma.company.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
   }
 }
 
