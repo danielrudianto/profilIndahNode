@@ -27,6 +27,12 @@ var formatter = new Intl.NumberFormat("en-US", {
   currency: "IDR",
 });
 
+var percentage_formatter = new Intl.NumberFormat("en-US", {
+  style: "percent",
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
 class ReportController {
   static fetchPLStats = (req: Request, res: Response) => {
     const year = parseInt(req.params.year);
@@ -77,569 +83,32 @@ class ReportController {
         BillCodeModel.fetchSum(month, year),
         SalesDistributionModel.fetchSum(month, year),
         PurchaseDocumentModel.fetchSum(month, year),
-        ExpenseModel.fetchSum(month, year),
-        month == 0
-          ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
-          : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
-      ])
-        .then((result) => {
-          const sales_table = [];
-
-          // Sales table
-          sales_table.push([
-            {
-              text: "Perusahaan",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Nominal",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Jasa",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Pengiriman Barang",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Total",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          let total_value = 0;
-
-          (result[1] as any[]).forEach((x) => {
-            total_value += parseFloat(x.value.toString());
-            sales_table.push([
-              {
-                text: x.name,
-                bold: false,
-                alignment: "left" as Alignment,
-              },
-              {
-                text: formatter.format(parseFloat(x.value.toString())),
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-              {
-                text: "N/A",
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-              {
-                text: "N/A",
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-              {
-                text: formatter.format(parseFloat(x.value.toString())),
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-            ]);
-          });
-
-          sales_table.push([
-            {
-              text: "Total penjualan teralokasi",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(total_value),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "N/A",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "N/A",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(total_value),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          const sales_value =
-            (result[0] as any[])[0].value == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].value.toString());
-          const sales_discount =
-            (result[0] as any[])[0].discount == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].discount.toString());
-          const sales_delivery =
-            (result[0] as any[])[0].delivery == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].delivery.toString());
-          const sales_service =
-            (result[0] as any[])[0].service == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].service.toString());
-
-          sales_table.push([
-            {
-              text: "Penjualan tidak teralokasi",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(
-                sales_value - sales_discount - total_value
-              ),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "IDR 0.00",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "IDR 0.00",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(
-                sales_value - sales_discount - total_value
-              ),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          sales_table.push([
-            {
-              text: "Keseluruhan",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(sales_value - sales_discount),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(sales_discount),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(sales_service),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(
-                sales_value - sales_discount + sales_delivery
-              ),
-              bold: true,
-              aligment: "center" as Alignment,
-            },
-          ]);
-          // Purchase table
-          const purchase_table = [];
-          let total_purchase_value = 0;
-          let total_purchase_discount = 0;
-
-          purchase_table.push([
-            {
-              text: "Perusahaan",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Nominal",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Potongan Harga",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Total",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          (result[2] as any[]).forEach((x) => {
-            purchase_table.push([
-              {
-                text: `${x.name}`,
-                bold: false,
-                alignment: "left" as Alignment,
-              },
-              {
-                text: formatter.format(parseFloat(x.value.toString())),
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-              {
-                text: formatter.format(parseFloat(x.discount.toString())),
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-              {
-                text: formatter.format(
-                  parseFloat(x.value.toString()) -
-                    parseFloat(x.discount.toString())
-                ),
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-            ]);
-
-            total_purchase_value += parseFloat(x.value.toString());
-            total_purchase_discount += parseFloat(x.discount.toString());
-          });
-
-          purchase_table.push([
-            {
-              text: "Keseluruhan",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(total_purchase_value),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(total_purchase_discount),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: formatter.format(
-                total_purchase_value - total_purchase_discount
-              ),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          const expenses: any[] = [];
-          const expense_table = [];
-          let total_expense_value = 0;
-
-          expense_table.push([
-            {
-              text: "Tipe",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Nominal",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          (result[3] as any[])
-            .filter((x) => x.parent_id == null)
-            .forEach((y) => {
-              expenses.push({
-                ...y,
-                value: 0,
-                children: [],
-              });
-            });
-
-          const child_expenses = (result[3] as any[]).filter(
-            (x) => x.parent_id != null
-          );
-          child_expenses.forEach((child_expense) => {
-            const index = expenses.findIndex(
-              (expense) => expense.id == child_expense.parent_id
-            );
-            if (index != -1) {
-              expenses[index].children.push(child_expense);
-              expenses[index].value += parseFloat(
-                child_expense.value.toString()
-              );
-
-              total_expense_value += parseFloat(child_expense.value.toString());
-            }
-          });
-
-          expenses.forEach((expense) => {
-            expense_table.push([
-              {
-                text: expense.name,
-                bold: true,
-                alignment: "left" as Alignment,
-              },
-              {
-                text: formatter.format(parseFloat(expense.value.toString())),
-                bold: true,
-                alignment: "center" as Alignment,
-              },
-            ]);
-
-            if (expense.children.length > 0) {
-              (expense.children as any[]).forEach((child_expense) => {
-                expense_table.push([
-                  {
-                    text: `${expense.name}/${child_expense.name}`,
-                    bold: false,
-                    alignment: "left" as Alignment,
-                    margin: [15, 0, 0, 0] as Margins,
-                  },
-                  {
-                    text: formatter.format(
-                      parseFloat(child_expense.value.toString())
-                    ),
-                    bold: false,
-                    alignment: "center" as Alignment,
-                  },
-                ]);
-              });
-            }
-          });
-
-          expense_table.push([
-            {
-              text: "Total",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(total_expense_value),
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-          ]);
-
-          const hpp_table = [];
-          let hpp_value = 0;
-          hpp_table.push([
-            {
-              text: "Perusahaan",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
-              text: "Nominal",
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          (result[4] as any[]).forEach((x) => {
-            const name = x.f2;
-            const value = parseFloat(x.f0);
-
-            hpp_value += value;
-
-            hpp_table.push([
-              {
-                text: name,
-                bold: false,
-                alignment: "left" as Alignment,
-              },
-              {
-                text: formatter.format(value),
-                bold: false,
-                alignment: "center" as Alignment,
-              },
-            ]);
-          });
-
-          hpp_table.push([
-            {
-              text: "Total",
-              bold: true,
-              alignment: "left" as Alignment,
-            },
-            {
-              text: formatter.format(hpp_value),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-          ]);
-
-          let documentDefinition = {
-            pageSize: "A4" as PageSize,
-            content: [
-              {
-                text: "Laporan Laba Rugi",
-                bold: true,
-                fontSize: 20,
-                alignment: "center" as Alignment,
-              },
-              {
-                text:
-                  month == 0
-                    ? `Tahun ${year}`
-                    : `${month_name[month - 1]} ${year}`,
-                bold: true,
-                fontSize: 16,
-                alignment: "center" as Alignment,
-                margin: [0, 0, 0, 20] as Margins,
-              },
-              {
-                text: "Penjualan",
-                bold: true,
-                fontSize: 14,
-                alignment: "center" as Alignment,
-                margin: [0, 10, 0, 20] as Margins,
-              },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["auto", "auto", "auto", "auto", "*"],
-                  body: sales_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                text: "Penjualan tidak teralokasi disebabkan karena adanya ketidakcocokan tingkat ketersediaan dengan penjualan.",
-                fontSize: 10,
-                color: "#333333",
-                margin: [0, 0, 0, 20] as Margins,
-                pageBreak: "after" as PageBreak,
-              },
-              {
-                text: "Pembelian",
-                bold: true,
-                fontSize: 14,
-                alignment: "center" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["auto", "auto", "auto", "*"],
-                  body: purchase_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                text: "Pembelian yang diperoleh merupakan pembelian yang telah dikonfirmasi.",
-                fontSize: 10,
-                color: "#333333",
-                margin: [0, 0, 0, 20] as Margins,
-                pageBreak: "after" as PageBreak,
-              },
-              {
-                text: "Harga Pokok Penjualan",
-                bold: true,
-                fontSize: 14,
-                alignment: "center" as Alignment,
-                margin: [0, 0, 0, 10] as Margins,
-              },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["*", "*"],
-                  body: hpp_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                text: "Harga pokok penjualan termasuk dengan perhitungan atas kehilangan barang yang terjadi.",
-                fontSize: 10,
-                color: "#333333",
-                margin: [0, 0, 0, 20] as Margins,
-                pageBreak: "after" as PageBreak,
-              },
-              {
-                text: "Pengeluaran",
-                bold: true,
-                fontSize: 14,
-                alignment: "left" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
-              },
-              {
-                layout: "lightHorizontalLines",
-                table: {
-                  headerRows: 1,
-                  widths: ["*", "auto"],
-                  body: expense_table,
-                },
-                margin: [0, 0, 0, 15] as Margins,
-                pageBreak: "after" as PageBreak,
-              },
-              {
-                text: `Laba / Rugi: ${formatter.format(
-                  total_value - hpp_value - total_expense_value
-                )}`,
-                bold: true,
-                alignment: "left" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
-              },
-            ],
-          };
-
-          const printer = new PdfPrinter(fontDescriptors);
-          const pdfDocument = printer.createPdfKitDocument(documentDefinition);
-
-          let chunks: any[] = [];
-          var pdfResult;
-
-          pdfDocument.on("data", function (chunk: any) {
-            chunks.push(chunk);
-          });
-
-          pdfDocument.on("end", function () {
-            pdfResult = Buffer.concat(chunks);
-            return res.status(200).send({
-              data: `data:application/pdf;base64,${pdfResult.toString(
-                "base64"
-              )}`,
-            });
-          });
-
-          pdfDocument.end();
-        })
-        .catch((error) => {
-          LogHelper.log(
-            new Date(),
-            "error",
-            error,
-            "Report controller - Fetch Profit Loss",
-            req.body.userId
-          );
-          return res.status(500).send(error);
-        });
-    } else {
-      Promise.all([
-        BillCodeModel.fetchSum(month, year),
-        SalesDistributionModel.fetchSum(month, year),
-        PurchaseDocumentModel.fetchSum(month, year),
         CompanyModel.fetchAll(),
         ExpenseModel.fetchSum(month, year),
         month == 0
           ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
           : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
-        BillCodeModel.fetchAppendix(month, year),
-        PurchaseDocumentModel.fetchAppendix(month, year),
-        // SalesReturnModel.fetchAppendix(month, year),
       ])
         .then((result) => {
           const sales_table = [];
+          let total_sales_value: any[] = [];
+
+          const sales_value =
+            (result[0] as any[])[0].value == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].value.toString());
+          const sales_discount =
+            (result[0] as any[])[0].discount == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].discount.toString());
+          const sales_delivery =
+            (result[0] as any[])[0].delivery == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].delivery.toString());
+          const sales_service =
+            (result[0] as any[])[0].service == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].service.toString());
 
           // Sales table
           sales_table.push([
@@ -674,6 +143,10 @@ class ReportController {
 
           (result[1] as any[]).forEach((x) => {
             total_value += parseFloat(x.value.toString());
+            total_sales_value.push({
+              id: x.company_id,
+              value: parseFloat(x.value.toString()),
+            });
             sales_table.push([
               {
                 text: x.name,
@@ -715,38 +188,23 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
-              text: "N/A",
+              text: formatter.format(sales_delivery),
               bold: true,
               alignment: "center" as Alignment,
             },
             {
-              text: "N/A",
+              text: formatter.format(sales_service),
               bold: true,
               alignment: "center" as Alignment,
             },
             {
-              text: formatter.format(total_value),
+              text: formatter.format(
+                total_value + sales_delivery + sales_service
+              ),
               bold: true,
               alignment: "center" as Alignment,
             },
           ]);
-
-          const sales_value =
-            (result[0] as any[])[0].value == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].value.toString());
-          const sales_discount =
-            (result[0] as any[])[0].discount == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].discount.toString());
-          const sales_delivery =
-            (result[0] as any[])[0].delivery == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].delivery.toString());
-          const sales_service =
-            (result[0] as any[])[0].service == null
-              ? 0
-              : parseFloat((result[0] as any[])[0].service.toString());
 
           sales_table.push([
             {
@@ -762,12 +220,12 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
-              text: "IDR 0.00",
+              text: "N/A",
               bold: true,
               alignment: "center" as Alignment,
             },
             {
-              text: "IDR 0.00",
+              text: "N/A",
               bold: true,
               alignment: "center" as Alignment,
             },
@@ -792,18 +250,18 @@ class ReportController {
               alignment: "center" as Alignment,
             },
             {
-              text: formatter.format(sales_discount),
-              bold: true,
-              alignment: "center" as Alignment,
-            },
-            {
               text: formatter.format(sales_service),
               bold: true,
               alignment: "center" as Alignment,
             },
             {
+              text: formatter.format(sales_delivery),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
               text: formatter.format(
-                sales_value - sales_discount + sales_delivery
+                sales_value - sales_discount + sales_delivery + sales_service
               ),
               bold: true,
               aligment: "center" as Alignment,
@@ -893,14 +351,20 @@ class ReportController {
             },
           ]);
 
-          const expenses: any[] = [];
           const expense_section: any[] = [];
-          let total_expense_value = 0;
-          (result[3] as any[]).forEach((company) => {
+          let total_expense_value: any[] = [];
+          (result[3] as any[]).forEach((company, companyIndex) => {
             const expense_table: any[] = [];
+            const expenses: any[] = [];
+            total_expense_value.push({
+              id: company.id,
+              value: 0,
+            });
+
             const index = (result[4] as any[]).findIndex(
               (expense) => expense.company_id == company.id
             );
+
             if (index != -1) {
               expense_section.push({
                 text: company.name,
@@ -925,31 +389,40 @@ class ReportController {
               ]);
 
               (result[4] as any[])
-                .filter((x) => x.parent_id == null)
+                .filter(
+                  (x) => x.parent_id == null && x.company_id == company.id
+                )
                 .forEach((y) => {
                   expenses.push({
                     ...y,
                     value: 0,
                     children: [],
                   });
-                });
 
-              const child_expenses = (result[4] as any[]).filter(
-                (x) => x.parent_id != null
-              );
-              child_expenses.forEach((child_expense) => {
-                const index = expenses.findIndex(
-                  (expense) => expense.id == child_expense.parent_id
-                );
-                if (index != -1) {
-                  expenses[index].children.push(child_expense);
-                  expenses[index].value += parseFloat(
-                    child_expense.value.toString()
+                  const child_expenses = (result[4] as any[]).filter(
+                    (x) => x.parent_id == y.id && x.company_id == company.id
                   );
 
-                  expense_value += parseFloat(child_expense.value.toString());
-                }
-              });
+                  child_expenses.forEach((child_expense) => {
+                    const index = expenses.findIndex(
+                      (expense) => expense.id == child_expense.parent_id
+                    );
+                    if (index != -1) {
+                      expenses[index].children.push(child_expense);
+                      expenses[index].value += parseFloat(
+                        child_expense.value.toString()
+                      );
+
+                      expense_value += parseFloat(
+                        child_expense.value.toString()
+                      );
+
+                      total_expense_value[companyIndex].value += parseFloat(
+                        child_expense.value.toString()
+                      );
+                    }
+                  });
+                });
 
               expenses.forEach((expense) => {
                 expense_table.push([
@@ -1004,13 +477,11 @@ class ReportController {
                 layout: "lightHorizontalLines",
                 table: {
                   headerRows: 1,
-                  widths: ["auto", "auto", "auto", "auto", "*"],
+                  widths: ["auto", "*"],
                   body: expense_table,
                 },
                 margin: [0, 0, 0, 15] as Margins,
               });
-
-              total_expense_value += expense_value;
             }
           });
 
@@ -1029,9 +500,766 @@ class ReportController {
             },
           ]);
 
+          let cogs_value: any[] = [];
+
           (result[5] as any[]).forEach((x) => {
             const name = x.f2;
             const value = parseFloat(x.f0);
+            const company_id = x.f1;
+
+            cogs_value.push({
+              id: company_id,
+              value: value,
+            });
+
+            hpp_value += value;
+
+            hpp_table.push([
+              {
+                text: name,
+                bold: false,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: formatter.format(value),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+            ]);
+          });
+
+          hpp_table.push([
+            {
+              text: "Total",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: formatter.format(hpp_value),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          const summary_section: any[] = [
+            {
+              text: "Laba / Rugi",
+              bold: true,
+              fontSize: 14,
+              alignment: "center" as Alignment,
+              margin: [0, 0, 0, 10] as Margins,
+              pageBreak: "before" as PageBreak,
+              tocItem: true,
+            },
+          ];
+
+          result[3].forEach((x) => {
+            summary_section.push({
+              text: x.name,
+              fontSize: 12,
+              alignment: "center" as Alignment,
+              margins: [0, 0, 0, 15] as Margins,
+            });
+
+            const summary_table: any[] = [
+              [
+                {
+                  text: "Keterangan",
+                  bold: true,
+                  fontSize: 12,
+                },
+                {
+                  text: "Nominal",
+                  bold: true,
+                  fontSize: 12,
+                },
+                {
+                  text: "Persentase",
+                  bold: true,
+                  fontSize: 12,
+                },
+              ],
+            ];
+            const sales_value_company_index = total_sales_value.findIndex(
+              (y) => y.id == x.id
+            );
+            let sales_value_company = 0;
+            if (sales_value_company_index != -1) {
+              sales_value_company =
+                total_sales_value[sales_value_company_index].value;
+            }
+
+            const cogs_value_company_index = cogs_value.findIndex(
+              (y) => y.id == x.id
+            );
+            let cogs_value_company = 0;
+            if (cogs_value_company_index != -1) {
+              cogs_value_company = cogs_value[cogs_value_company_index].value;
+            }
+
+            const expense_value_company_index = total_expense_value.findIndex(
+              (y) => y.id == x.id
+            );
+            let expense_value_company = 0;
+            if (expense_value_company_index != -1) {
+              expense_value_company =
+                total_expense_value[expense_value_company_index].value;
+            }
+
+            summary_table.push([
+              {
+                text: "Laba kotor",
+                bold: true,
+                fontSize: 12,
+              },
+              {
+                text: formatter.format(
+                  sales_value_company - cogs_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+              {
+                text: percentage_formatter.format(
+                  (sales_value_company - cogs_value_company) /
+                    sales_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+            ]);
+
+            summary_table.push([
+              {
+                text: "Laba bersih",
+                bold: true,
+                fontSize: 12,
+              },
+              {
+                text: formatter.format(
+                  sales_value_company -
+                    cogs_value_company -
+                    expense_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+              {
+                text: percentage_formatter.format(
+                  (sales_value_company -
+                    cogs_value_company -
+                    expense_value_company) /
+                    sales_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+            ]);
+
+            summary_section.push({
+              layout: "lightHorizontalLines",
+              table: {
+                headerRows: 1,
+                widths: ["auto", "*", "auto"],
+                body: summary_table,
+              },
+              margin: [0, 0, 0, 15] as Margins,
+            });
+          });
+
+          let documentDefinition = {
+            pageSize: "A4" as PageSize,
+            content: [
+              {
+                text: "Laporan Laba Rugi",
+                bold: true,
+                fontSize: 20,
+                alignment: "center" as Alignment,
+              },
+              {
+                text:
+                  month == 0
+                    ? `Tahun ${year}`
+                    : `${month_name[month - 1]} ${year}`,
+                bold: true,
+                fontSize: 16,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 20] as Margins,
+              },
+              {
+                text: "Daftar isi",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                toc: {
+                  title: { text: "" },
+                },
+              },
+              {
+                text: "Penjualan",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+                tocItem: true,
+                pageBreak: "before" as PageBreak,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "auto", "auto", "auto", "*"],
+                  body: sales_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                text: "Penjualan tidak teralokasi disebabkan karena adanya ketidakcocokan tingkat ketersediaan dengan penjualan.",
+                fontSize: 10,
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
+              },
+              {
+                text: "Pembelian",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+                tocItem: true,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "auto", "auto", "*"],
+                  body: purchase_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                text: "Pembelian yang diperoleh merupakan pembelian yang telah dikonfirmasi.",
+                fontSize: 10,
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
+              },
+              {
+                text: "Harga Pokok Penjualan",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 10] as Margins,
+                tocItem: true,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["*", "*"],
+                  body: hpp_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                text: "Harga pokok penjualan termasuk dengan perhitungan atas kehilangan barang yang terjadi.",
+                fontSize: 10,
+                color: "#333333",
+                margin: [0, 0, 0, 20] as Margins,
+                pageBreak: "after" as PageBreak,
+              },
+              {
+                text: "Pengeluaran",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+                tocItem: true,
+              },
+              ...expense_section,
+              ...summary_section,
+            ],
+            footer: (currentPage: number, pageCount: number) => {
+              return {
+                text: currentPage.toString() + " of " + pageCount,
+                alignment: "center" as Alignment,
+                bold: false,
+                fontSize: 8,
+              };
+            },
+          };
+
+          const printer = new PdfPrinter(fontDescriptors);
+          const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+
+          let chunks: any[] = [];
+          var pdfResult;
+
+          pdfDocument.on("data", function (chunk: any) {
+            chunks.push(chunk);
+          });
+
+          pdfDocument.on("end", function () {
+            pdfResult = Buffer.concat(chunks);
+            return res.status(200).send({
+              data: `data:application/pdf;base64,${pdfResult.toString(
+                "base64"
+              )}`,
+            });
+          });
+
+          pdfDocument.end();
+        })
+        .catch((error) => {
+          LogHelper.log(
+            new Date(),
+            "error",
+            error,
+            "Report controller - Fetch Profit Loss",
+            req.body.userId
+          );
+          return res.status(500).send(error);
+        });
+    } else {
+      Promise.all([
+        BillCodeModel.fetchSum(month, year),
+        SalesDistributionModel.fetchSum(month, year),
+        PurchaseDocumentModel.fetchSum(month, year),
+        CompanyModel.fetchAll(),
+        ExpenseModel.fetchSum(month, year),
+        month == 0
+          ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
+          : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
+        BillCodeModel.fetchAppendix(month, year),
+        PurchaseDocumentModel.fetchAppendix(month, year),
+        ExpenseModel.fetchAppendix(month, year),
+        // SalesReturnModel.fetchAppendix(month, year),
+      ])
+        .then((result) => {
+          const sales_table = [];
+          let total_sales_value: any[] = [];
+
+          const sales_value =
+            (result[0] as any[])[0].value == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].value.toString());
+          const sales_discount =
+            (result[0] as any[])[0].discount == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].discount.toString());
+          const sales_delivery =
+            (result[0] as any[])[0].delivery == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].delivery.toString());
+          const sales_service =
+            (result[0] as any[])[0].service == null
+              ? 0
+              : parseFloat((result[0] as any[])[0].service.toString());
+
+          // Sales table
+          sales_table.push([
+            {
+              text: "Perusahaan",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Nominal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Jasa",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Pengiriman Barang",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Total",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          let total_value = 0;
+
+          (result[1] as any[]).forEach((x) => {
+            total_value += parseFloat(x.value.toString());
+            total_sales_value.push({
+              id: x.company_id,
+              value: parseFloat(x.value.toString()),
+            });
+            sales_table.push([
+              {
+                text: x.name,
+                bold: false,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: formatter.format(parseFloat(x.value.toString())),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: "N/A",
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: "N/A",
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: formatter.format(parseFloat(x.value.toString())),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+            ]);
+          });
+
+          sales_table.push([
+            {
+              text: "Total penjualan teralokasi",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: formatter.format(total_value),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(sales_delivery),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(sales_service),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(
+                total_value + sales_delivery + sales_service
+              ),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          sales_table.push([
+            {
+              text: "Penjualan tidak teralokasi",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: formatter.format(
+                sales_value - sales_discount - total_value
+              ),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "N/A",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "N/A",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(
+                sales_value - sales_discount - total_value
+              ),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          sales_table.push([
+            {
+              text: "Keseluruhan",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: formatter.format(sales_value - sales_discount),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(sales_service),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(sales_delivery),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(
+                sales_value - sales_discount + sales_delivery + sales_service
+              ),
+              bold: true,
+              aligment: "center" as Alignment,
+            },
+          ]);
+
+          const purchase_table = [];
+          let total_purchase_value = 0;
+          let total_purchase_discount = 0;
+
+          purchase_table.push([
+            {
+              text: "Perusahaan",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Nominal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Potongan Harga",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Total",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          (result[2] as any[]).forEach((x) => {
+            purchase_table.push([
+              {
+                text: `${x.name}`,
+                bold: false,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: formatter.format(parseFloat(x.value.toString())),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: formatter.format(parseFloat(x.discount.toString())),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: formatter.format(
+                  parseFloat(x.value.toString()) -
+                    parseFloat(x.discount.toString())
+                ),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+            ]);
+
+            total_purchase_value += parseFloat(x.value.toString());
+            total_purchase_discount += parseFloat(x.discount.toString());
+          });
+
+          purchase_table.push([
+            {
+              text: "Keseluruhan",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: formatter.format(total_purchase_value),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(total_purchase_discount),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: formatter.format(
+                total_purchase_value - total_purchase_discount
+              ),
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          const expense_section: any[] = [];
+          let total_expense_value: any[] = [];
+          (result[3] as any[]).forEach((company, companyIndex) => {
+            const expense_table: any[] = [];
+            const expenses: any[] = [];
+            total_expense_value.push({
+              id: company.id,
+              value: 0,
+            });
+
+            const index = (result[4] as any[]).findIndex(
+              (expense) => expense.company_id == company.id
+            );
+
+            if (index != -1) {
+              expense_section.push({
+                text: company.name,
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              });
+
+              let expense_value = 0;
+              expense_table.push([
+                {
+                  text: "Tipe",
+                  bold: true,
+                  alignment: "center" as Alignment,
+                },
+                {
+                  text: "Nominal",
+                  bold: true,
+                  alignment: "center" as Alignment,
+                },
+              ]);
+
+              (result[4] as any[])
+                .filter(
+                  (x) => x.parent_id == null && x.company_id == company.id
+                )
+                .forEach((y) => {
+                  expenses.push({
+                    ...y,
+                    value: 0,
+                    children: [],
+                  });
+
+                  const child_expenses = (result[4] as any[]).filter(
+                    (x) => x.parent_id == y.id && x.company_id == company.id
+                  );
+
+                  child_expenses.forEach((child_expense) => {
+                    const index = expenses.findIndex(
+                      (expense) => expense.id == child_expense.parent_id
+                    );
+                    if (index != -1) {
+                      expenses[index].children.push(child_expense);
+                      expenses[index].value += parseFloat(
+                        child_expense.value.toString()
+                      );
+
+                      expense_value += parseFloat(
+                        child_expense.value.toString()
+                      );
+
+                      total_expense_value[companyIndex].value += parseFloat(
+                        child_expense.value.toString()
+                      );
+                    }
+                  });
+                });
+
+              expenses.forEach((expense) => {
+                expense_table.push([
+                  {
+                    text: expense.name,
+                    bold: true,
+                    alignment: "left" as Alignment,
+                  },
+                  {
+                    text: formatter.format(
+                      parseFloat(expense.value.toString())
+                    ),
+                    bold: true,
+                    alignment: "center" as Alignment,
+                  },
+                ]);
+
+                if (expense.children.length > 0) {
+                  (expense.children as any[]).forEach((child_expense) => {
+                    expense_table.push([
+                      {
+                        text: `${expense.name}/${child_expense.name}`,
+                        bold: false,
+                        alignment: "left" as Alignment,
+                      },
+                      {
+                        text: formatter.format(
+                          parseFloat(child_expense.value.toString())
+                        ),
+                        bold: false,
+                        alignment: "center" as Alignment,
+                      },
+                    ]);
+                  });
+                }
+              });
+
+              expense_table.push([
+                {
+                  text: "Total",
+                  bold: true,
+                  alignment: "left" as Alignment,
+                },
+                {
+                  text: formatter.format(expense_value),
+                  bold: true,
+                  alignment: "center" as Alignment,
+                },
+              ]);
+
+              expense_section.push({
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "*"],
+                  body: expense_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              });
+            }
+          });
+
+          const hpp_table = [];
+          let hpp_value = 0;
+          hpp_table.push([
+            {
+              text: "Perusahaan",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Nominal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          let cogs_value: any[] = [];
+
+          (result[5] as any[]).forEach((x) => {
+            const name = x.f2;
+            const value = parseFloat(x.f0);
+            const company_id = x.f1;
+
+            cogs_value.push({
+              id: company_id,
+              value: value,
+            });
 
             hpp_value += value;
 
@@ -1174,6 +1402,183 @@ class ReportController {
             ]);
           });
 
+          const expense_appendix_table = [];
+          expense_appendix_table.push([
+            {
+              text: "Tanggal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Tipe Pengeluaran",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Perusahaan",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+            {
+              text: "Nominal",
+              bold: true,
+              alignment: "center" as Alignment,
+            },
+          ]);
+
+          result[8].forEach((x) => {
+            expense_appendix_table.push([
+              {
+                text: `${new Date(x.date).getDate()} ${
+                  month_name[new Date(x.date).getMonth()]
+                }`,
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: x.company.name,
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: `${x.expense_type.expense_type?.name} / ${x.expense_type.name}`,
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: formatter.format(parseFloat(x.value.toString())),
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+            ]);
+          });
+
+          const summary_section: any[] = [
+            {
+              text: "Laba / Rugi",
+              bold: true,
+              fontSize: 14,
+              alignment: "center" as Alignment,
+              margin: [0, 0, 0, 10] as Margins,
+              pageBreak: "before" as PageBreak,
+              tocItem: true,
+            },
+          ];
+
+          result[3].forEach((x) => {
+            summary_section.push({
+              text: x.name,
+              fontSize: 12,
+              alignment: "center" as Alignment,
+              margins: [0, 0, 0, 15] as Margins,
+            });
+
+            const summary_table: any[] = [
+              [
+                {
+                  text: "Keterangan",
+                  bold: true,
+                  fontSize: 12,
+                },
+                {
+                  text: "Nominal",
+                  bold: true,
+                  fontSize: 12,
+                },
+                {
+                  text: "Persentase",
+                  bold: true,
+                  fontSize: 12,
+                },
+              ],
+            ];
+            const sales_value_company_index = total_sales_value.findIndex(
+              (y) => y.id == x.id
+            );
+            let sales_value_company = 0;
+            if (sales_value_company_index != -1) {
+              sales_value_company =
+                total_sales_value[sales_value_company_index].value;
+            }
+
+            const cogs_value_company_index = cogs_value.findIndex(
+              (y) => y.id == x.id
+            );
+            let cogs_value_company = 0;
+            if (cogs_value_company_index != -1) {
+              cogs_value_company = cogs_value[cogs_value_company_index].value;
+            }
+
+            const expense_value_company_index = total_expense_value.findIndex(
+              (y) => y.id == x.id
+            );
+            let expense_value_company = 0;
+            if (expense_value_company_index != -1) {
+              expense_value_company =
+                total_expense_value[expense_value_company_index].value;
+            }
+
+            summary_table.push([
+              {
+                text: "Laba kotor",
+                bold: true,
+                fontSize: 12,
+              },
+              {
+                text: formatter.format(
+                  sales_value_company - cogs_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+              {
+                text: percentage_formatter.format(
+                  (sales_value_company - cogs_value_company) /
+                    sales_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+            ]);
+
+            summary_table.push([
+              {
+                text: "Laba bersih",
+                bold: true,
+                fontSize: 12,
+              },
+              {
+                text: formatter.format(
+                  sales_value_company -
+                    cogs_value_company -
+                    expense_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+              {
+                text: percentage_formatter.format(
+                  (sales_value_company -
+                    cogs_value_company -
+                    expense_value_company) /
+                    sales_value_company
+                ),
+                bold: false,
+                fontSize: 12,
+              },
+            ]);
+
+            summary_section.push({
+              layout: "lightHorizontalLines",
+              table: {
+                headerRows: 1,
+                widths: ["auto", "*", "auto"],
+                body: summary_table,
+              },
+              margin: [0, 0, 0, 15] as Margins,
+            });
+          });
+
           let documentDefinition = {
             pageSize: "A4" as PageSize,
             content: [
@@ -1194,11 +1599,25 @@ class ReportController {
                 margin: [0, 0, 0, 20] as Margins,
               },
               {
+                text: "Daftar isi",
+                bold: true,
+                fontSize: 14,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                toc: {
+                  title: { text: "" },
+                },
+              },
+              {
                 text: "Penjualan",
                 bold: true,
                 fontSize: 14,
                 alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
+                tocItem: true,
+                pageBreak: "before" as PageBreak,
               },
               {
                 layout: "lightHorizontalLines",
@@ -1222,6 +1641,7 @@ class ReportController {
                 fontSize: 14,
                 alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
+                tocItem: true,
               },
               {
                 layout: "lightHorizontalLines",
@@ -1245,6 +1665,7 @@ class ReportController {
                 fontSize: 14,
                 alignment: "center" as Alignment,
                 margin: [0, 0, 0, 10] as Margins,
+                tocItem: true,
               },
               {
                 layout: "lightHorizontalLines",
@@ -1268,16 +1689,10 @@ class ReportController {
                 fontSize: 14,
                 alignment: "center" as Alignment,
                 margin: [0, 0, 0, 15] as Margins,
+                tocItem: true,
               },
               ...expense_section,
-              {
-                text: `Laba / Rugi: ${formatter.format(
-                  total_value - hpp_value - total_expense_value
-                )}`,
-                bold: true,
-                alignment: "left" as Alignment,
-                margin: [0, 0, 0, 15] as Margins,
-              },
+              ...summary_section,
               {
                 text: "Lampiran I",
                 bold: true,
@@ -1285,6 +1700,7 @@ class ReportController {
                 alignment: "left" as Alignment,
                 margin: [0, 0, 0, 5] as Margins,
                 pageBreak: "before" as PageBreak,
+                tocItem: true,
               },
               {
                 text: "Rincian Penjualan",
@@ -1309,6 +1725,7 @@ class ReportController {
                 alignment: "left" as Alignment,
                 margin: [0, 0, 0, 5] as Margins,
                 pageBreak: "before" as PageBreak,
+                tocItem: true,
               },
               {
                 text: "Rincian Pembelian",
@@ -1326,7 +1743,40 @@ class ReportController {
                 },
                 margin: [0, 0, 0, 15] as Margins,
               },
+              {
+                text: "Lampiran III",
+                bold: true,
+                fontSize: 14,
+                alignment: "left" as Alignment,
+                margin: [0, 0, 0, 5] as Margins,
+                pageBreak: "before" as PageBreak,
+                tocItem: true,
+              },
+              {
+                text: "Rincian Pengeluaran",
+                bold: true,
+                fontSize: 10,
+                alignment: "left" as Alignment,
+                margin: [0, 0, 0, 15] as Margins,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "auto", "*", "auto"],
+                  body: expense_appendix_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              },
             ],
+            footer: (currentPage: number, pageCount: number) => {
+              return {
+                text: currentPage.toString() + " of " + pageCount,
+                alignment: "center" as Alignment,
+                bold: false,
+                fontSize: 8,
+              };
+            },
           };
 
           const printer = new PdfPrinter(fontDescriptors);

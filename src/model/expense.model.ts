@@ -268,6 +268,94 @@ class ExpenseModel {
       },
     });
   }
+
+  static fetchAppendix(month: number, year: number) {
+    if (month == 0) {
+      const start_date = new Date(year, 0, 1);
+      const end_date = new Date(year, 11, 31);
+      return prisma.expense.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: start_date,
+              },
+            },
+            {
+              date: {
+                lte: end_date,
+              },
+            },
+          ],
+          is_delete: false,
+        },
+        select: {
+          value: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+          expense_type: {
+            select: {
+              name: true,
+              expense_type: {
+                select: {
+                  name: true,
+                }
+              }
+            }
+          },
+          date: true,
+        },
+        orderBy: {
+          date: "asc",
+        },
+      });
+    } else {
+      const start_date = new Date(year, month - 1, 1);
+      const end_date = new Date(year, month, 1);
+      return prisma.expense.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: start_date,
+              },
+            },
+            {
+              date: {
+                lt: end_date,
+              },
+            },
+          ],
+          is_delete: false,
+        },
+        select: {
+          value: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+          expense_type: {
+            select: {
+              name: true,
+              expense_type: {
+                select: {
+                  name: true,
+                }
+              }
+            }
+          },
+          date: true,
+        },
+        orderBy: {
+          date: "asc",
+        },
+      });
+    }
+  }
 }
 
 export default ExpenseModel;
