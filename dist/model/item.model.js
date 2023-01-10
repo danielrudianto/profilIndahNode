@@ -1196,6 +1196,11 @@ class ItemModel {
                 reference: true,
                 description: true,
                 unit: true,
+                stock: {
+                    select: {
+                        stock: true
+                    }
+                },
                 item_brand: {
                     select: {
                         name: true,

@@ -263,6 +263,7 @@ class ExpenseModel {
                 },
                 select: {
                     value: true,
+                    description: true,
                     company: {
                         select: {
                             name: true,
@@ -306,6 +307,7 @@ class ExpenseModel {
                 },
                 select: {
                     value: true,
+                    description: true,
                     company: {
                         select: {
                             name: true,
