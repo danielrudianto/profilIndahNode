@@ -1272,8 +1272,8 @@ export class ItemModel {
         unit: true,
         stock: {
           select: {
-            stock: true
-          }
+            stock: true,
+          },
         },
         item_brand: {
           select: {
