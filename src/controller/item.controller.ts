@@ -706,14 +706,23 @@ class ItemController {
 
     ItemModel.fetchByReference(reference)
       .then((item) => {
-        if (item == null) {
+        if (!item) {
           return res.status(404).send("Barang tidak ditemukan.");
         } else {
           ItemModel.fetchStockData(item.id, start, start)
             .then((result) => {
-              return res.status(200).send(result);
+              return res.status(200).send({
+                data: result[0],
+                initial_stock:
+                  result[1] == null
+                    ? 0
+                    : (result[1] as any[]).length == 0
+                    ? 0
+                    : (result[1] as any[])[0].stock,
+              });
             })
             .catch((error) => {
+              console.log(error);
               return res.status(500).send(error);
             });
         }

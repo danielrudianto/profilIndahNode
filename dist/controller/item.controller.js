@@ -462,15 +462,23 @@ ItemController.fetchDailyStock = (req, res) => {
     const start = (_a = req.query.start) === null || _a === void 0 ? void 0 : _a.toString();
     item_model_1.ItemModel.fetchByReference(reference)
         .then((item) => {
-        if (item == null) {
+        if (!item) {
             return res.status(404).send("Barang tidak ditemukan.");
         }
         else {
             item_model_1.ItemModel.fetchStockData(item.id, start, start)
                 .then((result) => {
-                return res.status(200).send(result);
+                return res.status(200).send({
+                    data: result[0],
+                    initial_stock: result[1] == null
+                        ? 0
+                        : result[1].length == 0
+                            ? 0
+                            : result[1][0].stock,
+                });
             })
                 .catch((error) => {
+                console.log(error);
                 return res.status(500).send(error);
             });
         }

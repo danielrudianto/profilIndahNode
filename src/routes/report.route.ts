@@ -4,9 +4,10 @@ import ReportController from "../controller/report.controller";
 const router = Router();
 
 router.get("/profitloss/:month/:year/:report", ReportController.fetchPLStats);
-router.get("/inventory/:report", ReportController.fetchInventoryReport);
 router.get("/reception/:year/:month/:date", ReportController.fetchReception);
 router.get("/quickStats", ReportController.fetchQuickStats);
+
+router.post("/inventory", ReportController.fetchInventoryReport);
 router.post("/sales", ReportController.fetchSalesReport);
 router.post("/purchase/download", ReportController.fetchPurchaseReportDownload);
 router.post("/purchase/detail", ReportController.fetchPurchaseItemDetail);

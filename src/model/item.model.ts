@@ -1017,6 +1017,7 @@ export class ItemModel {
               id: true,
               good_receipt_code: {
                 select: {
+                  date: true,
                   name: true,
                   user_good_receipt_code_created_byTouser: {
                     select: {
@@ -1032,6 +1033,7 @@ export class ItemModel {
               id: true,
               adjustment_case_code: {
                 select: {
+                  date: true,
                   name: true,
                   user_adjustment_case_code_created_byTouser: {
                     select: {
@@ -1047,6 +1049,7 @@ export class ItemModel {
               id: true,
               bill_code: {
                 select: {
+                  date: true,
                   name: true,
                   user_bill_code_created_byTouser: {
                     select: {
@@ -1062,6 +1065,7 @@ export class ItemModel {
               id: true,
               sales_return_code: {
                 select: {
+                  date: true,
                   name: true,
                   user_sales_return_code_created_byTouser: {
                     select: {
@@ -1101,7 +1105,8 @@ export class ItemModel {
     end: string | null = null
   ) {
     if (start == null || end == null) {
-      return prisma.$queryRawUnsafe(`
+      return prisma.$transaction([
+        prisma.$queryRawUnsafe(`
         SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock, COALESCE(billTable.op, goodreceiptTable.op, 'Transaksi Internal') AS op
         FROM stock_card
         LEFT JOIN (
@@ -1124,32 +1129,51 @@ export class ItemModel {
           JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
         ) adjustmentTable
         ON stock_card.adjustment_case_id = adjustmentTable.id
-        WHERE stock_card.item_id = ${item_id}`);
+        WHERE stock_card.item_id = ${item_id}`),
+      ]);
     } else {
-      return prisma.$queryRawUnsafe(
-        `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock
-        FROM stock_card
-        LEFT JOIN (
-          SELECT bill_code.name, bill_code.date, bill.id
-          FROM bill
-          JOIN bill_code ON bill_code.id = bill.bill_code_id
-        ) billTable
-        ON stock_card.bill_id = billTable.id
-        LEFT JOIN (
-          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
-        ) goodReceiptTable
-        ON stock_card.good_receipt_id = goodReceiptTable.id
-        LEFT JOIN (
-          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
-          FROM adjustment_case
-          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
-        ) adjustmentTable
-        ON stock_card.adjustment_case_id = adjustmentTable.id
-        WHERE stock_card.item_id = ${item_id}
-        AND stock_card.date BETWEEN '${start}' AND '${end}';`
-      );
+      return prisma.$transaction([
+        prisma.$queryRawUnsafe(
+          `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card_act.quantity, stock_card_act.stock
+          FROM stock_card_act
+          LEFT JOIN (
+            SELECT bill_code.name, bill_code.date, bill.id
+            FROM bill
+            JOIN bill_code ON bill_code.id = bill.bill_code_id
+          ) billTable
+          ON stock_card_act.bill_id = billTable.id
+          LEFT JOIN (
+            SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+          ) goodReceiptTable
+          ON stock_card_act.good_receipt_id = goodReceiptTable.id
+          LEFT JOIN (
+            SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
+            FROM adjustment_case
+            JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+          ) adjustmentTable
+          ON stock_card_act.adjustment_case_id = adjustmentTable.id
+          LEFT JOIN (
+            SELECT sales_return_code.name, sales_return_code.date, sales_return.id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return_code.id = sales_return.sales_return_code_id
+          ) returnTable
+          ON stock_card_act.sales_return_id = returnTable.id
+          WHERE stock_card_act.item_id = ${item_id}
+          AND stock_card_act.date BETWEEN '${start}' AND '${end}';`
+        ),
+        prisma.$queryRawUnsafe(`
+            SELECT stock 
+            FROM stock_card_act
+            WHERE id = (
+              SELECT MIN(id) AS id
+              FROM stock_card_act
+              WHERE item_id = ${item_id}
+              AND date < '${end}'
+            )
+        `),
+      ]);
     }
   }
 
@@ -2024,5 +2048,117 @@ export class ItemModel {
         },
       },
     });
+  }
+
+  static fetchValueByBrandType(
+    brand: number[],
+    type: number[],
+    month: number,
+    year: number
+  ) {
+    const start_date = new Date(year, month, 1);
+    const end_date = new Date(year, month + 1, 1);
+    return prisma.$transaction([
+      prisma.item.findMany({
+        where: {
+          item_brand_id: {
+            in: brand,
+          },
+          item_type_id: {
+            in: type,
+          },
+        },
+        include: {
+          item_brand: {
+            select: {
+              name: true,
+            },
+          },
+          item_type: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.stock_card_act.groupBy({
+        by: ["item_id"],
+        where: {
+          item: {
+            item_brand_id: {
+              in: brand,
+            },
+            item_type_id: {
+              in: type,
+            },
+          },
+          AND: [
+            {
+              date: {
+                gte: start_date,
+              },
+            },
+            {
+              date: {
+                lt: end_date,
+              },
+            },
+          ],
+          quantity: {
+            lt: 0,
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      }),
+      prisma.stock_card_act.groupBy({
+        by: ["item_id"],
+        where: {
+          item: {
+            item_brand_id: {
+              in: brand,
+            },
+            item_type_id: {
+              in: type,
+            },
+          },
+          date: {
+            lt: start_date,
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      }),
+      prisma.stock_card_act.groupBy({
+        by: ["item_id"],
+        where: {
+          item: {
+            item_brand_id: {
+              in: brand,
+            },
+            item_type_id: {
+              in: type,
+            },
+          },
+          AND: [
+            {
+              date: {
+                gte: start_date,
+              },
+            },
+            {
+              date: {
+                lt: end_date,
+              },
+            },
+          ],
+        },
+        _sum: {
+          quantity: true,
+        },
+      }),
+    ]);
   }
 }

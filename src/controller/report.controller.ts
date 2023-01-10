@@ -6,6 +6,7 @@ import ExpenseModel from "../model/expense.model";
 import PurchaseDocumentModel from "../model/purchase_document.model";
 import SalesDistributionModel from "../model/sales_distribution.model";
 import path from "path";
+import ExcelJS from "exceljs";
 import {
   Alignment,
   Content,
@@ -2474,16 +2475,336 @@ class ReportController {
   };
 
   static fetchInventoryReport = (req: Request, res: Response) => {
-    const report = parseInt(req.params.report);
-    if (report == 0) {
-      StockValueHelper.fetchValue(new Date()).then(result => {
-        return res.status(200).send
+    const brand = req.body.brand as number[];
+    const type = req.body.type as number[];
+    const format = req.body.format;
+    const month = req.body.month;
+    const year = req.body.year;
+
+    ItemModel.fetchValueByBrandType(brand, type, month, year)
+      .then((result) => {
+        if (format == "xlsx") {
+          const rows: any[] = [
+            [
+              "Referensi",
+              "Deskripsi",
+              "Merek",
+              "Tipe barang",
+              "Stock awal",
+              "Jumlah keluar",
+              "Stock akhir",
+              "Satuan",
+            ],
+          ];
+          result[0].forEach((item) => {
+            const reference = item.reference;
+            const description = item.description;
+            const brand = item.item_brand.name;
+            const type = item.item_type?.name;
+
+            const unit = item.unit;
+            const quantityIndex = result[1].findIndex(
+              (x) => x.item_id == item.id
+            );
+            const quantity =
+              quantityIndex == -1
+                ? 0
+                : result[1][quantityIndex]._sum == null ||
+                  result[1][quantityIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[1][quantityIndex]._sum.quantity!.toString()
+                  );
+
+            const initialQuantityIndex = result[2].findIndex(
+              (x) => x.item_id == item.id
+            );
+
+            const initial_quantity =
+              initialQuantityIndex == -1
+                ? 0
+                : result[2][initialQuantityIndex]._sum == null ||
+                  result[2][initialQuantityIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[2][initialQuantityIndex]._sum.quantity!.toString()
+                  );
+
+            const finalQuantityIndex = result[3].findIndex(
+              (x) => x.item_id == item.id
+            );
+            const final_quantity =
+              finalQuantityIndex == -1
+                ? 0
+                : result[3][finalQuantityIndex]._sum == null ||
+                  result[3][finalQuantityIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[3][finalQuantityIndex]._sum.quantity!.toString()
+                  );
+
+            rows.push([
+              reference,
+              description,
+              brand,
+              type,
+              initial_quantity,
+              quantity * -1,
+              final_quantity,
+              unit,
+            ]);
+          });
+          const workbook = new ExcelJS.Workbook();
+          // Setting up workbook properties
+          workbook.creator = "Toko Profil Indah";
+          workbook.created = new Date();
+
+          const sheet = workbook.addWorksheet("Laporan pengeluaran barang");
+          rows.forEach((x) => {
+            sheet.addRow(x);
+          });
+
+          workbook.xlsx
+            .writeBuffer()
+            .then((buffer) => {
+              return res.status(200).send({
+                data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+                  buffer
+                ).toString("base64")}`,
+              });
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        } else {
+          const fontDescriptors = {
+            Roboto: {
+              normal: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Regular.ttf"
+              ),
+              bold: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Medium.ttf"
+              ),
+              italics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Italic.ttf"
+              ),
+              bolditalics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-MediumItalic.ttf"
+              ),
+            },
+          };
+
+          const report_table: any[] = [];
+          report_table.push([
+            {
+              text: "Referensi",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Deskripsi",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Merek",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Tipe barang",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Stock awal",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Jumlah keluar",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Stock akhir",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
+              text: "Satuan",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+          ]);
+
+          result[0].forEach((item) => {
+            const reference = item.reference;
+            const description = item.description;
+            const brand = item.item_brand.name;
+            const type = item.item_type?.name;
+
+            const unit = item.unit;
+            const quantityIndex = result[1].findIndex(
+              (x) => x.item_id == item.id
+            );
+            const quantity =
+              quantityIndex == -1
+                ? 0
+                : result[1][quantityIndex]._sum == null ||
+                  result[1][quantityIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[1][quantityIndex]._sum.quantity!.toString()
+                  );
+
+            const initialQuantityIndex = result[2].findIndex(
+              (x) => x.item_id == item.id
+            );
+
+            const initial_quantity =
+              initialQuantityIndex == -1
+                ? 0
+                : result[2][initialQuantityIndex]._sum == null ||
+                  result[2][initialQuantityIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[2][initialQuantityIndex]._sum.quantity!.toString()
+                  );
+
+            const finalQuantityIndex = result[3].findIndex(
+              (x) => x.item_id == item.id
+            );
+            const final_quantity =
+              finalQuantityIndex == -1
+                ? 0
+                : result[3][finalQuantityIndex]._sum == null ||
+                  result[3][finalQuantityIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[3][finalQuantityIndex]._sum.quantity!.toString()
+                  );
+
+            report_table.push([
+              {
+                text: reference,
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: description,
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: brand,
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: type,
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: Intl.NumberFormat().format(initial_quantity),
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: Intl.NumberFormat().format(quantity),
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: Intl.NumberFormat().format(final_quantity),
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: unit,
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+            ]);
+          });
+
+          let documentDefinition = {
+            pageSize: "A4" as PageSize,
+            pageOrientation: "landscape" as PageOrientation,
+            permissions: {
+              modifying: false,
+              annotating: true,
+              contentAccessibility: true,
+              documentAssembly: true,
+            },
+            content: [
+              {
+                text: "Laporan Penjualan",
+                bold: true,
+                fontSize: 20,
+                alignment: "center" as Alignment,
+                margin: [0, 0, 0, 5] as Margins,
+              },
+              {
+                layout: "lightHorizontalLines",
+                table: {
+                  headerRows: 1,
+                  widths: [
+                    "auto",
+                    "auto",
+                    "auto",
+                    "auto",
+                    "*",
+                    "*",
+                    "*",
+                    "auto",
+                  ],
+                  body: report_table,
+                },
+                margin: [0, 0, 0, 15] as Margins,
+              },
+            ],
+          };
+
+          const printer = new PdfPrinter(fontDescriptors);
+          const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+
+          let chunks: any[] = [];
+          var pdfResult;
+
+          pdfDocument.on("data", function (chunk: any) {
+            chunks.push(chunk);
+          });
+
+          pdfDocument.on("end", function () {
+            pdfResult = Buffer.concat(chunks);
+            return res.status(200).send({
+              data: `data:application/pdf;base64,${pdfResult.toString(
+                "base64"
+              )}`,
+            });
+          });
+
+          pdfDocument.end();
+        }
       })
-    } else if (report == 1) {
-    } else if (report == 2) {
-    } else {
-      return res.status(400).send("Input tidak dikenal.");
-    }
+      .catch((error) => {
+        console.log(error);
+        return res.status(500).send(error);
+      });
   };
 }
 

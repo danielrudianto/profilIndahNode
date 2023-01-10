@@ -20,6 +20,7 @@ const expense_model_1 = __importDefault(require("../model/expense.model"));
 const purchase_document_model_1 = __importDefault(require("../model/purchase_document.model"));
 const sales_distribution_model_1 = __importDefault(require("../model/sales_distribution.model"));
 const path_1 = __importDefault(require("path"));
+const exceljs_1 = __importDefault(require("exceljs"));
 const stock_value_helper_1 = __importDefault(require("../helper/stock_value.helper"));
 const brand_model_1 = require("../model/brand.model");
 const item_type_model_1 = __importDefault(require("../model/item_type.model"));
@@ -2118,18 +2119,263 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
     }
 };
 ReportController.fetchInventoryReport = (req, res) => {
-    const report = parseInt(req.params.report);
-    if (report == 0) {
-        stock_value_helper_1.default.fetchValue(new Date()).then(result => {
-            return res.status(200).send;
-        });
-    }
-    else if (report == 1) {
-    }
-    else if (report == 2) {
-    }
-    else {
-        return res.status(400).send("Input tidak dikenal.");
-    }
+    const brand = req.body.brand;
+    const type = req.body.type;
+    const format = req.body.format;
+    const month = req.body.month;
+    const year = req.body.year;
+    item_model_1.ItemModel.fetchValueByBrandType(brand, type, month, year)
+        .then((result) => {
+        if (format == "xlsx") {
+            const rows = [
+                [
+                    "Referensi",
+                    "Deskripsi",
+                    "Merek",
+                    "Tipe barang",
+                    "Stock awal",
+                    "Jumlah keluar",
+                    "Stock akhir",
+                    "Satuan",
+                ],
+            ];
+            result[0].forEach((item) => {
+                var _b;
+                const reference = item.reference;
+                const description = item.description;
+                const brand = item.item_brand.name;
+                const type = (_b = item.item_type) === null || _b === void 0 ? void 0 : _b.name;
+                const unit = item.unit;
+                const quantityIndex = result[1].findIndex((x) => x.item_id == item.id);
+                const quantity = quantityIndex == -1
+                    ? 0
+                    : result[1][quantityIndex]._sum == null ||
+                        result[1][quantityIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[1][quantityIndex]._sum.quantity.toString());
+                const initialQuantityIndex = result[2].findIndex((x) => x.item_id == item.id);
+                const initial_quantity = initialQuantityIndex == -1
+                    ? 0
+                    : result[2][initialQuantityIndex]._sum == null ||
+                        result[2][initialQuantityIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[2][initialQuantityIndex]._sum.quantity.toString());
+                const finalQuantityIndex = result[3].findIndex((x) => x.item_id == item.id);
+                const final_quantity = finalQuantityIndex == -1
+                    ? 0
+                    : result[3][finalQuantityIndex]._sum == null ||
+                        result[3][finalQuantityIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[3][finalQuantityIndex]._sum.quantity.toString());
+                rows.push([
+                    reference,
+                    description,
+                    brand,
+                    type,
+                    initial_quantity,
+                    quantity * -1,
+                    final_quantity,
+                    unit,
+                ]);
+            });
+            const workbook = new exceljs_1.default.Workbook();
+            // Setting up workbook properties
+            workbook.creator = "Toko Profil Indah";
+            workbook.created = new Date();
+            const sheet = workbook.addWorksheet("Laporan pengeluaran barang");
+            rows.forEach((x) => {
+                sheet.addRow(x);
+            });
+            workbook.xlsx
+                .writeBuffer()
+                .then((buffer) => {
+                return res.status(200).send({
+                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
+                });
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
+        }
+        else {
+            const fontDescriptors = {
+                Roboto: {
+                    normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                    bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                    italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                    bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                },
+            };
+            const report_table = [];
+            report_table.push([
+                {
+                    text: "Referensi",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Deskripsi",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Merek",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Tipe barang",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Stock awal",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Jumlah keluar",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Stock akhir",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
+                    text: "Satuan",
+                    bold: true,
+                    alignment: "left",
+                },
+            ]);
+            result[0].forEach((item) => {
+                var _b;
+                const reference = item.reference;
+                const description = item.description;
+                const brand = item.item_brand.name;
+                const type = (_b = item.item_type) === null || _b === void 0 ? void 0 : _b.name;
+                const unit = item.unit;
+                const quantityIndex = result[1].findIndex((x) => x.item_id == item.id);
+                const quantity = quantityIndex == -1
+                    ? 0
+                    : result[1][quantityIndex]._sum == null ||
+                        result[1][quantityIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[1][quantityIndex]._sum.quantity.toString());
+                const initialQuantityIndex = result[2].findIndex((x) => x.item_id == item.id);
+                const initial_quantity = initialQuantityIndex == -1
+                    ? 0
+                    : result[2][initialQuantityIndex]._sum == null ||
+                        result[2][initialQuantityIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[2][initialQuantityIndex]._sum.quantity.toString());
+                const finalQuantityIndex = result[3].findIndex((x) => x.item_id == item.id);
+                const final_quantity = finalQuantityIndex == -1
+                    ? 0
+                    : result[3][finalQuantityIndex]._sum == null ||
+                        result[3][finalQuantityIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[3][finalQuantityIndex]._sum.quantity.toString());
+                report_table.push([
+                    {
+                        text: reference,
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: description,
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: brand,
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: type,
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: Intl.NumberFormat().format(initial_quantity),
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: Intl.NumberFormat().format(quantity),
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: Intl.NumberFormat().format(final_quantity),
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
+                        text: unit,
+                        bold: true,
+                        alignment: "left",
+                    },
+                ]);
+            });
+            let documentDefinition = {
+                pageSize: "A4",
+                pageOrientation: "landscape",
+                permissions: {
+                    modifying: false,
+                    annotating: true,
+                    contentAccessibility: true,
+                    documentAssembly: true,
+                },
+                content: [
+                    {
+                        text: "Laporan Penjualan",
+                        bold: true,
+                        fontSize: 20,
+                        alignment: "center",
+                        margin: [0, 0, 0, 5],
+                    },
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: [
+                                "auto",
+                                "auto",
+                                "auto",
+                                "auto",
+                                "*",
+                                "*",
+                                "*",
+                                "auto",
+                            ],
+                            body: report_table,
+                        },
+                        margin: [0, 0, 0, 15],
+                    },
+                ],
+            };
+            const printer = new pdfmake_1.default(fontDescriptors);
+            const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+            let chunks = [];
+            var pdfResult;
+            pdfDocument.on("data", function (chunk) {
+                chunks.push(chunk);
+            });
+            pdfDocument.on("end", function () {
+                pdfResult = Buffer.concat(chunks);
+                return res.status(200).send({
+                    data: `data:application/pdf;base64,${pdfResult.toString("base64")}`,
+                });
+            });
+            pdfDocument.end();
+        }
+    })
+        .catch((error) => {
+        console.log(error);
+        return res.status(500).send(error);
+    });
 };
 exports.default = ReportController;
