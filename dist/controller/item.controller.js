@@ -487,6 +487,43 @@ ItemController.fetchDailyStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
+ItemController.fetchDailyInputStock = (req, res) => {
+    const errors = (0, express_validator_1.validationResult)(req);
+    if (errors.array().length > 0) {
+        return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+    const reference = decodeURIComponent(req.params.reference);
+    const start = parseInt(req.query.start.toString());
+    const start_date = new Date(start);
+    const end_date = new Date(start);
+    end_date.setDate(end_date.getDate() + 1);
+    item_model_1.ItemModel.fetchByReference(reference)
+        .then((item) => {
+        if (!item) {
+            return res.status(404).send("Barang tidak ditemukan.");
+        }
+        else {
+            item_model_1.ItemModel.fetchInputStockData(item.id, start_date, end_date)
+                .then((result) => {
+                return res.status(200).send({
+                    data: result[0],
+                    initial_stock: result[1] == null
+                        ? 0
+                        : result[1].length == 0
+                            ? 0
+                            : result[1][0].stock,
+                });
+            })
+                .catch((error) => {
+                console.log(error);
+                return res.status(500).send(error);
+            });
+        }
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
 ItemController.toggleActive = (req, res) => {
     const reference = decodeURIComponent(req.params.reference);
     item_model_1.ItemModel.fetchByReference(reference).then((item) => {

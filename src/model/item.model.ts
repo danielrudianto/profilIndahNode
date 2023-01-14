@@ -1170,11 +1170,80 @@ export class ItemModel {
               SELECT MIN(id) AS id
               FROM stock_card_act
               WHERE item_id = ${item_id}
-              AND date < '${end}'
+              AND date < '${start}'
             )
         `),
       ]);
     }
+  }
+
+  static fetchInputStockData(item_id: number, start: Date, end: Date) {
+    const formatted_start = `${start.getUTCFullYear()}-${(
+      start.getUTCMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}-${start
+      .getUTCDate()
+      .toString()
+      .padStart(2, "0")} ${start
+      .getUTCHours()
+      .toString()
+      .padStart(2, "0")}:${start
+      .getUTCMinutes()
+      .toString()
+      .padStart(2, "0")}:${start.getUTCSeconds().toString().padStart(2, "0")}`;
+
+    const formatted_end = `${end.getUTCFullYear()}-${(end.getUTCMonth() + 1)
+      .toString()
+      .padStart(2, "0")}-${end.getUTCDate().toString().padStart(2, "0")} ${end
+      .getUTCHours()
+      .toString()
+      .padStart(2, "0")}:${end
+      .getUTCMinutes()
+      .toString()
+      .padStart(2, "0")}:${end.getUTCSeconds().toString().padStart(2, "0")}`;
+    return prisma.$transaction([
+      prisma.$queryRawUnsafe(
+        `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name, returnTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date,returnTable.date) AS date, stock_card_act.quantity, stock_card_act.stock, COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at, returnTable.created_at) AS created_at
+        FROM stock_card_act
+        LEFT JOIN (
+          SELECT bill_code.name, bill_code.date, bill.id, bill_code.created_at
+          FROM bill
+          JOIN bill_code ON bill_code.id = bill.bill_code_id
+        ) billTable
+        ON stock_card_act.bill_id = billTable.id
+        LEFT JOIN (
+          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id, good_receipt_code.created_at
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+        ) goodReceiptTable
+        ON stock_card_act.good_receipt_id = goodReceiptTable.id
+        LEFT JOIN (
+          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id, adjustment_case_code.created_at
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+        ) adjustmentTable
+        ON stock_card_act.adjustment_case_id = adjustmentTable.id
+        LEFT JOIN (
+          SELECT sales_return_code.name, sales_return_code.date, sales_return.id, sales_return_code.created_at
+          FROM sales_return
+          JOIN sales_return_code ON sales_return_code.id = sales_return.sales_return_code_id
+        ) returnTable
+        ON stock_card_act.sales_return_id = returnTable.id
+        WHERE stock_card_act.item_id = ${item_id}
+        AND COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at, returnTable.created_at) BETWEEN '${formatted_start}' AND '${formatted_end}';`
+      ),
+      prisma.$queryRawUnsafe(`
+          SELECT stock 
+          FROM stock_card_act
+          WHERE id = (
+            SELECT MIN(id) AS id
+            FROM stock_card_act
+            WHERE item_id = ${item_id}
+            AND date < '${formatted_start}'
+          )
+      `),
+    ]);
   }
 
   static fetchFrequentItems(monthly: boolean) {

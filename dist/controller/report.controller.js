@@ -321,6 +321,7 @@ ReportController.fetchPLStats = (req, res) => {
                 },
             ];
             let total_expense_value = [];
+            console.log(result[4]);
             result[3].forEach((company, companyIndex) => {
                 const expense_table = [];
                 const expenses = [];
@@ -546,8 +547,10 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 12,
                     },
                     {
-                        text: percentage_formatter.format((sales_value_company - cogs_value_company) /
-                            sales_value_company),
+                        text: sales_value_company
+                            ? "0.00%"
+                            : percentage_formatter.format((sales_value_company - cogs_value_company) /
+                                sales_value_company),
                         bold: false,
                         fontSize: 12,
                     },
@@ -566,10 +569,12 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 12,
                     },
                     {
-                        text: percentage_formatter.format((sales_value_company -
-                            cogs_value_company -
-                            expense_value_company) /
-                            sales_value_company),
+                        text: sales_value_company == 0
+                            ? "0.00%"
+                            : percentage_formatter.format((sales_value_company -
+                                cogs_value_company -
+                                expense_value_company) /
+                                sales_value_company),
                         bold: false,
                         fontSize: 12,
                     },
@@ -2304,7 +2309,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                         alignment: "left",
                     },
                     {
-                        text: Intl.NumberFormat().format(quantity),
+                        text: Intl.NumberFormat().format(quantity * -1),
                         bold: true,
                         alignment: "left",
                     },

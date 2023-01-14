@@ -255,14 +255,14 @@ UserModel.roles = [
     },
     {
         id: 3,
-        name: "Akuntansi",
-        available: false,
+        name: "Penjualan dan Pembelian",
+        available: true,
     },
-    {
-        id: 4,
-        name: "Keuangan",
-        available: false,
-    },
+    // {
+    //   id: 4,
+    //   name: "Keuangan",
+    //   available: false,
+    // },
     {
         id: 5,
         name: "Administrator",

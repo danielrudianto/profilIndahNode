@@ -37,6 +37,12 @@ router.get(
 );
 
 router.get(
+  "/dailyInputStock/:reference",
+  query("start").not().isEmpty().withMessage("Mohon isikan tanggal"),
+  ItemController.fetchDailyInputStock
+);
+
+router.get(
   "/stock",
   query("reference")
     .not()

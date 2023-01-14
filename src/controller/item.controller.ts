@@ -732,6 +732,47 @@ class ItemController {
       });
   };
 
+  static fetchDailyInputStock = (req: Request, res: Response) => {
+    const errors = validationResult(req);
+    if (errors.array().length > 0) {
+      return res.status(400).send("Mohon isikan dengan format yang sesuai.");
+    }
+
+    const reference = decodeURIComponent(req.params.reference);
+    const start = parseInt(req.query.start!.toString());
+    const start_date = new Date(start);
+    const end_date = new Date(start);
+
+    end_date.setDate(end_date.getDate() + 1);
+
+    ItemModel.fetchByReference(reference)
+      .then((item) => {
+        if (!item) {
+          return res.status(404).send("Barang tidak ditemukan.");
+        } else {
+          ItemModel.fetchInputStockData(item.id, start_date, end_date)
+            .then((result) => {
+              return res.status(200).send({
+                data: result[0],
+                initial_stock:
+                  result[1] == null
+                    ? 0
+                    : (result[1] as any[]).length == 0
+                    ? 0
+                    : (result[1] as any[])[0].stock,
+              });
+            })
+            .catch((error) => {
+              console.log(error);
+              return res.status(500).send(error);
+            });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
   static toggleActive = (req: Request, res: Response) => {
     const reference = decodeURIComponent(req.params.reference);
     ItemModel.fetchByReference(reference).then((item) => {

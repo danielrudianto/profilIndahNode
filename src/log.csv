@@ -87,3 +87,10 @@ Mon Jan 09 2023 22:49:52 GMT+0700 (Indochina Time); error; Invalid image: Error:
 Mon Jan 09 2023 22:49:54 GMT+0700 (Indochina Time); error; Invalid image: Error: ENOENT: no such file or directory, open '/assets/header.png',Images dictionary should contain dataURL entries (or local file paths in node.js); Report controller - Fetch Profit Loss; null
 Mon Jan 09 2023 22:50:13 GMT+0700 (Indochina Time); error; Invalid image: Error: ENOENT: no such file or directory, open '../assets/header.png',Images dictionary should contain dataURL entries (or local file paths in node.js); Report controller - Fetch Profit Loss; null
 Tue Jan 10 2023 10:44:24 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jan 12 2023 11:40:18 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-88939901 (ID: 516); Bill controller - Create; 1
+Thu Jan 12 2023 22:01:31 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jan 12 2023 22:01:37 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jan 12 2023 22:18:49 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jan 12 2023 22:22:18 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Jan 12 2023 22:26:43 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Jan 13 2023 13:16:47 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-40567388 (ID: 517); Bill controller - Create; 1

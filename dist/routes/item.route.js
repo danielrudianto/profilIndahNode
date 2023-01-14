@@ -19,6 +19,7 @@ router.put("/unit", item_controller_1.default.updateUnit);
 router.put("/", item_controller_1.default.update);
 router.get("/setActive/:reference", item_controller_1.default.toggleActive);
 router.get("/dailyStock/:reference", (0, express_validator_1.query)("start").not().isEmpty().withMessage("Mohon isikan tanggal"), (0, express_validator_1.query)("end").not().isEmpty().withMessage("Mohon isikan tanggal"), item_controller_1.default.fetchDailyStock);
+router.get("/dailyInputStock/:reference", (0, express_validator_1.query)("start").not().isEmpty().withMessage("Mohon isikan tanggal"), item_controller_1.default.fetchDailyInputStock);
 router.get("/stock", (0, express_validator_1.query)("reference")
     .not()
     .isEmpty()

@@ -363,6 +363,7 @@ class ReportController {
             },
           ];
           let total_expense_value: any[] = [];
+          console.log(result[4]);
           (result[3] as any[]).forEach((company, companyIndex) => {
             const expense_table: any[] = [];
             const expenses: any[] = [];
@@ -634,10 +635,12 @@ class ReportController {
                 fontSize: 12,
               },
               {
-                text: percentage_formatter.format(
-                  (sales_value_company - cogs_value_company) /
-                    sales_value_company
-                ),
+                text: sales_value_company
+                  ? "0.00%"
+                  : percentage_formatter.format(
+                      (sales_value_company - cogs_value_company) /
+                        sales_value_company
+                    ),
                 bold: false,
                 fontSize: 12,
               },
@@ -659,12 +662,15 @@ class ReportController {
                 fontSize: 12,
               },
               {
-                text: percentage_formatter.format(
-                  (sales_value_company -
-                    cogs_value_company -
-                    expense_value_company) /
-                    sales_value_company
-                ),
+                text:
+                  sales_value_company == 0
+                    ? "0.00%"
+                    : percentage_formatter.format(
+                        (sales_value_company -
+                          cogs_value_company -
+                          expense_value_company) /
+                          sales_value_company
+                      ),
                 bold: false,
                 fontSize: 12,
               },
@@ -2724,7 +2730,7 @@ class ReportController {
                 alignment: "left" as Alignment,
               },
               {
-                text: Intl.NumberFormat().format(quantity),
+                text: Intl.NumberFormat().format(quantity * -1),
                 bold: true,
                 alignment: "left" as Alignment,
               },
