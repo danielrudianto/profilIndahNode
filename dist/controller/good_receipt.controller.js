@@ -15,7 +15,6 @@ class GoodReceiptController {
 }
 GoodReceiptController.create = (req, res) => {
     const date = new Date(req.body.date);
-    console.log(date);
     const name = req.body.name;
     const company_id = req.body.company_id;
     const supplier_id = req.body.supplier_id;

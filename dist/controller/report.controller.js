@@ -2178,7 +2178,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                     brand,
                     type,
                     initial_quantity,
-                    quantity * -1,
+                    quantity == 0 ? 0 : quantity * -1,
                     final_quantity,
                     unit,
                 ]);
@@ -2309,7 +2309,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                         alignment: "left",
                     },
                     {
-                        text: Intl.NumberFormat().format(quantity * -1),
+                        text: Intl.NumberFormat().format(quantity == 0 ? 0 : quantity * -1),
                         bold: true,
                         alignment: "left",
                     },

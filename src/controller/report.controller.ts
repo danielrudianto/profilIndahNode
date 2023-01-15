@@ -2555,7 +2555,7 @@ class ReportController {
               brand,
               type,
               initial_quantity,
-              quantity * -1,
+              quantity == 0 ? 0 : quantity * -1,
               final_quantity,
               unit,
             ]);
@@ -2730,7 +2730,9 @@ class ReportController {
                 alignment: "left" as Alignment,
               },
               {
-                text: Intl.NumberFormat().format(quantity * -1),
+                text: Intl.NumberFormat().format(
+                  quantity == 0 ? 0 : quantity * -1
+                ),
                 bold: true,
                 alignment: "left" as Alignment,
               },
