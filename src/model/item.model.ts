@@ -1134,7 +1134,7 @@ export class ItemModel {
     } else {
       return prisma.$transaction([
         prisma.$queryRawUnsafe(
-          `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card_act.quantity, stock_card_act.stock
+          `SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name, returnTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date, returnTable.date) AS date, stock_card_act.quantity, stock_card_act.stock
           FROM stock_card_act
           LEFT JOIN (
             SELECT bill_code.name, bill_code.date, bill.id
