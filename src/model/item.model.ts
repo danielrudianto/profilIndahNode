@@ -1234,14 +1234,34 @@ export class ItemModel {
         AND COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at, returnTable.created_at) BETWEEN '${formatted_start}' AND '${formatted_end}';`
       ),
       prisma.$queryRawUnsafe(`
-          SELECT stock 
+          SELECT SUM(quantity) AS stock 
           FROM stock_card_act
-          WHERE id = (
-            SELECT MIN(id) AS id
-            FROM stock_card_act
-            WHERE item_id = ${item_id}
-            AND date < '${formatted_start}'
-          )
+          LEFT JOIN (
+            SELECT bill_code.name, bill_code.created_at, bill.id
+            FROM bill
+            JOIN bill_code ON bill_code.id = bill.bill_code_id
+          ) billTable
+          ON stock_card_act.bill_id = billTable.id
+          LEFT JOIN (
+            SELECT good_receipt_code.name, good_receipt_code.created_at, good_receipt.id
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
+          ) goodReceiptTable
+          ON stock_card_act.good_receipt_id = goodReceiptTable.id
+          LEFT JOIN (
+            SELECT adjustment_case_code.name, adjustment_case_code.created_at, adjustment_case.id
+            FROM adjustment_case
+            JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+          ) adjustmentTable
+          ON stock_card_act.adjustment_case_id = adjustmentTable.id
+          LEFT JOIN (
+            SELECT sales_return_code.name, sales_return_code.created_at, sales_return.id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return_code.id = sales_return.sales_return_code_id
+          ) returnTable
+          ON stock_card_act.sales_return_id = returnTable.id
+          WHERE item_id = ${item_id}
+          AND COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at,returnTable.created_at) < '${formatted_start}'
       `),
     ]);
   }
