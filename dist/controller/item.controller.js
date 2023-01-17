@@ -511,7 +511,9 @@ ItemController.fetchDailyInputStock = (req, res) => {
                         ? 0
                         : result[1].length == 0
                             ? 0
-                            : result[1][0].stock,
+                            : result[1][0].stock == null
+                                ? 0
+                                : result[1][0].stock,
                 });
             })
                 .catch((error) => {

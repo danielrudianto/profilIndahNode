@@ -759,6 +759,8 @@ class ItemController {
                     ? 0
                     : (result[1] as any[]).length == 0
                     ? 0
+                    : (result[1] as any[])[0].stock == null
+                    ? 0
                     : (result[1] as any[])[0].stock,
               });
             })
