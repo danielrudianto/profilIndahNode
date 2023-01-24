@@ -321,7 +321,6 @@ ReportController.fetchPLStats = (req, res) => {
                 },
             ];
             let total_expense_value = [];
-            console.log(result[4]);
             result[3].forEach((company, companyIndex) => {
                 const expense_table = [];
                 const expenses = [];
@@ -1749,15 +1748,19 @@ ReportController.fetchFrequent = (req, res) => {
     }
 };
 ReportController.fetchQuickStats = (req, res) => {
+    const todayDate = new Date();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     // Fetch sales
     // Fetch expenses
     // Fetch purchase
     // Fetch unconfirmed purchase document
     Promise.all([
-        bill_code_model_1.default.fetchTodaySales(),
+        bill_code_model_1.default.fetchTodaySales(todayDate),
+        bill_code_model_1.default.fetchTodaySales(yesterdayDate),
+        purchase_document_model_1.default.fetchTodayPurchase(todayDate),
+        purchase_document_model_1.default.fetchTodayPurchase(yesterdayDate),
         expense_model_1.default.fetchTodaySum(),
-        // PurchaseDocumentModel.fetchTodaySum,
-        // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
         .then((result) => {
         const response = {
@@ -1782,7 +1785,36 @@ ReportController.fetchQuickStats = (req, res) => {
                         ? 0
                         : parseFloat(result[0][0].service),
                 },
-            expense: result[1][0].value,
+            sales_prev: result[1].length == 0
+                ? {
+                    value: 0,
+                    discount: 0,
+                    service: 0,
+                    delivery: 0,
+                }
+                : {
+                    value: result[1][0].value == null
+                        ? 0
+                        : parseFloat(result[1][0].value),
+                    discount: result[1][0].discount == null
+                        ? 0
+                        : parseFloat(result[1][0].discount),
+                    delivery: result[1][0].delivery == null
+                        ? 0
+                        : parseFloat(result[1][0].delivery),
+                    service: result[1][0].service == null
+                        ? 0
+                        : parseFloat(result[1][0].service),
+                },
+            purchase: {
+                value: result[2][0].value == null ? 0 : parseFloat(result[2][0].value),
+                discount: result[2][0].discount == null ? 0 : parseFloat(result[2][0].discount),
+            },
+            purchase_prev: {
+                value: result[3][0].value == null ? 0 : parseFloat(result[3][0].value),
+                discount: result[3][0].discount == null ? 0 : parseFloat(result[3][0].discount),
+            },
+            expense: result[4][0].value,
         };
         return res.status(200).send(response);
     })

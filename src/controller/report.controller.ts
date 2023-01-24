@@ -363,7 +363,6 @@ class ReportController {
             },
           ];
           let total_expense_value: any[] = [];
-          console.log(result[4]);
           (result[3] as any[]).forEach((company, companyIndex) => {
             const expense_table: any[] = [];
             const expenses: any[] = [];
@@ -2014,15 +2013,19 @@ class ReportController {
   };
 
   static fetchQuickStats = (req: Request, res: Response) => {
+    const todayDate = new Date();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
     // Fetch sales
     // Fetch expenses
     // Fetch purchase
     // Fetch unconfirmed purchase document
     Promise.all([
-      BillCodeModel.fetchTodaySales(),
+      BillCodeModel.fetchTodaySales(todayDate),
+      BillCodeModel.fetchTodaySales(yesterdayDate),
+      PurchaseDocumentModel.fetchTodayPurchase(todayDate),
+      PurchaseDocumentModel.fetchTodayPurchase(yesterdayDate),
       ExpenseModel.fetchTodaySum(),
-      // PurchaseDocumentModel.fetchTodaySum,
-      // PurchaseDocumentModel.fetchUnconfirmedToday,
     ])
       .then((result) => {
         const response = {
@@ -2052,8 +2055,43 @@ class ReportController {
                       ? 0
                       : parseFloat((result[0] as any[])[0].service),
                 },
-          expense: (result[1] as any[])[0].value,
+          sales_prev:
+            (result[1] as any[]).length == 0
+              ? {
+                  value: 0,
+                  discount: 0,
+                  service: 0,
+                  delivery: 0,
+                }
+              : {
+                  value:
+                    (result[1] as any[])[0].value == null
+                      ? 0
+                      : parseFloat((result[1] as any[])[0].value),
+                  discount:
+                    (result[1] as any[])[0].discount == null
+                      ? 0
+                      : parseFloat((result[1] as any[])[0].discount),
+                  delivery:
+                    (result[1] as any[])[0].delivery == null
+                      ? 0
+                      : parseFloat((result[1] as any[])[0].delivery),
+                  service:
+                    (result[1] as any[])[0].service == null
+                      ? 0
+                      : parseFloat((result[1] as any[])[0].service),
+                },
+                purchase : {
+                  value: (result[2] as any[])[0].value == null ? 0 : parseFloat((result[2] as any[])[0].value),
+                  discount: (result[2] as any[])[0].discount == null ? 0 : parseFloat((result[2] as any[])[0].discount),
+                },
+                purchase_prev: {
+                  value: (result[3] as any[])[0].value == null ? 0 : parseFloat((result[3] as any[])[0].value),
+                  discount: (result[3] as any[])[0].discount == null ? 0 : parseFloat((result[3] as any[])[0].discount),
+                },
+          expense: (result[4] as any[])[0].value,
         };
+
         return res.status(200).send(response);
       })
       .catch((error) => {
