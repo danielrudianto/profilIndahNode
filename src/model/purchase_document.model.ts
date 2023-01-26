@@ -153,6 +153,14 @@ class PurchaseDocumentModel {
                 id: true,
                 unit: true,
                 conversion: true,
+                item_price_purchase: {
+                  select: {
+                    price: true,
+                  },
+                  where: {
+                    is_delete: false,
+                  }
+                }
               },
             },
             quantity: true,
