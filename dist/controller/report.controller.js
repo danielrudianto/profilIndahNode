@@ -166,12 +166,12 @@ ReportController.fetchPLStats = (req, res) => {
                     alignment: "left",
                 },
                 {
-                    text: formatter.format(sales_delivery),
+                    text: formatter.format(sales_service),
                     bold: true,
                     alignment: "left",
                 },
                 {
-                    text: formatter.format(sales_service),
+                    text: formatter.format(sales_delivery),
                     bold: true,
                     alignment: "left",
                 },
@@ -546,7 +546,7 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 12,
                     },
                     {
-                        text: sales_value_company
+                        text: (sales_value_company == 0)
                             ? "0.00%"
                             : percentage_formatter.format((sales_value_company - cogs_value_company) /
                                 sales_value_company),
@@ -1370,7 +1370,7 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 12,
                     },
                     {
-                        text: percentage_formatter.format((sales_value_company - cogs_value_company) /
+                        text: (sales_value_company == 0) ? "0.00%" : percentage_formatter.format((sales_value_company - cogs_value_company) /
                             sales_value_company),
                         bold: false,
                         fontSize: 12,

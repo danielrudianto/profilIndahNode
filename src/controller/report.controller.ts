@@ -188,12 +188,12 @@ class ReportController {
               alignment: "left" as Alignment,
             },
             {
-              text: formatter.format(sales_delivery),
+              text: formatter.format(sales_service),
               bold: true,
               alignment: "left" as Alignment,
             },
             {
-              text: formatter.format(sales_service),
+              text: formatter.format(sales_delivery),
               bold: true,
               alignment: "left" as Alignment,
             },
@@ -413,6 +413,7 @@ class ReportController {
                   const index = expenses.findIndex(
                     (expense) => expense.id == child_expense.parent_id
                   );
+
                   if (index != -1) {
                     expenses[index].children.push(child_expense);
                     expenses[index].value += parseFloat(
@@ -634,7 +635,7 @@ class ReportController {
                 fontSize: 12,
               },
               {
-                text: sales_value_company
+                text: (sales_value_company == 0)
                   ? "0.00%"
                   : percentage_formatter.format(
                       (sales_value_company - cogs_value_company) /
@@ -1578,7 +1579,7 @@ class ReportController {
                 fontSize: 12,
               },
               {
-                text: percentage_formatter.format(
+                text: (sales_value_company == 0) ? "0.00%" : percentage_formatter.format(
                   (sales_value_company - cogs_value_company) /
                     sales_value_company
                 ),

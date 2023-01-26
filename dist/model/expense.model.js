@@ -161,27 +161,37 @@ class ExpenseModel {
     static fetchSum(month, year) {
         if (month == 0) {
             return prisma.$queryRawUnsafe(`
-        SELECT SUM(expense.value) AS value, expense_type.id, expense_type.name, expense_type.parent_id, company.name AS company_name, company.id AS company_id
-        FROM expense_type
-        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
-        JOIN company ON expense.company_id = company.id
-        WHERE YEAR(expense.date) = ${year}
-        AND expense.is_delete = 0
-        GROUP BY expense_type.id, expense.company_id
-        ORDER BY expense.company_id ASC, parent_id DESC
+      SELECT expense_type.id, expense_type.name, company.name AS company_name, expense_type.parent_id, COALESCE(exp.value, 0) AS value, company.id AS company_id
+      FROM expense_type
+      JOIN company
+      LEFT JOIN (
+        SELECT SUM(expense.value) AS value, expense_type_id, company_id
+          FROM expense
+          WHERE expense.is_delete = 0
+          AND YEAR(expense.date) = ${year}
+          GROUP BY expense_type_id, company_id
+      ) AS exp
+      ON expense_type.id = exp.expense_type_id
+      AND company.id = exp.company_id
+      ORDER BY company.id ASC, parent_id ASC
       `);
         }
         else {
             return prisma.$queryRawUnsafe(`
-        SELECT SUM(expense.value) AS value, expense_type_id, expense_type.name, expense_type.parent_id, company.name AS company_name, company.id AS company_id
-        FROM expense_type
-        LEFT JOIN expense ON expense.expense_type_id = expense.expense_type_id
-        JOIN company ON expense.company_id = company.id
-        WHERE MONTH(expense.date) = ${month}
-        AND YEAR(expense.date) = ${year}
-        AND expense.is_delete = 0
-        GROUP BY expense_type.id, expense.company_id
-        ORDER BY expense.company_id ASC, parent_id DESC
+      SELECT expense_type.id, expense_type.name, company.name AS company_name, expense_type.parent_id, COALESCE(exp.value, 0) AS value, company.id AS company_id
+      FROM expense_type
+      JOIN company
+      LEFT JOIN (
+        SELECT SUM(expense.value) AS value, expense_type_id, company_id
+          FROM expense
+          WHERE expense.is_delete = 0
+          AND MONTH(expense.date) = ${month}
+          AND YEAR(expense.date) = ${year}
+          GROUP BY expense_type_id, company_id
+      ) AS exp
+      ON expense_type.id = exp.expense_type_id
+      AND company.id = exp.company_id
+      ORDER BY company.id ASC, parent_id ASC
       `);
         }
     }
@@ -275,9 +285,9 @@ class ExpenseModel {
                             expense_type: {
                                 select: {
                                     name: true,
-                                }
-                            }
-                        }
+                                },
+                            },
+                        },
                     },
                     date: true,
                 },
@@ -319,9 +329,9 @@ class ExpenseModel {
                             expense_type: {
                                 select: {
                                     name: true,
-                                }
-                            }
-                        }
+                                },
+                            },
+                        },
                     },
                     date: true,
                 },
