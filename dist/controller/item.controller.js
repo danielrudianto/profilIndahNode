@@ -13,6 +13,8 @@ const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper
 const item_unit_model_1 = __importDefault(require("../model/item_unit.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
+const pdfmake_1 = __importDefault(require("pdfmake"));
+const path_1 = __importDefault(require("path"));
 class ItemController {
 }
 ItemController.create = (req, res) => {
@@ -632,6 +634,88 @@ ItemController.fetchById = (req, res) => {
     item_model_1.ItemModel.fetchById(id, new Date())
         .then((result) => {
         return res.status(200).send(Object.assign(Object.assign({}, result), { item_price_id: result === null || result === void 0 ? void 0 : result.item_price.filter((x) => x.item_unit == null)[0].id, item_price_purchase_id: result === null || result === void 0 ? void 0 : result.item_price_purchase.filter((x) => x.item_unit == null)[0].id, price: result === null || result === void 0 ? void 0 : result.item_price.filter((x) => x.item_unit == null)[0].price, discount: result === null || result === void 0 ? void 0 : result.item_price.filter((x) => x.item_unit == null)[0].discount, purchase_price: result === null || result === void 0 ? void 0 : result.item_price_purchase.filter((x) => x.item_unit == null)[0].price, item_price: result === null || result === void 0 ? void 0 : result.item_price.filter((x) => x.item_unit != null), item_price_purchase: result === null || result === void 0 ? void 0 : result.item_price_purchase.filter((x) => x.item_unit != null) }));
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+ItemController.fetchMinusStock = (req, res) => {
+    const keyword = req.query.keyword == null
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
+    const page = req.query.page == null ? 1 : parseInt(req.query.page.toString());
+    const offset = (page - 1) * 10;
+    item_model_1.ItemModel.fetchMinusStock(keyword, offset, 10)
+        .then((result) => {
+        return res.status(200).send({
+            data: result[0],
+            count: result[1],
+        });
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
+};
+ItemController.downloadMinusStock = (req, res) => {
+    item_model_1.ItemModel.downloadMinusStock()
+        .then((items) => {
+        try {
+            const fontDescriptors = {
+                Roboto: {
+                    normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                    bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                    italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                    bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                },
+            };
+            const printer = new pdfmake_1.default(fontDescriptors);
+            const stockBody = [];
+            stockBody.push([
+                "Referensi",
+                "Deskripsi",
+                "Tipe barang",
+                "Merek barang",
+                "Stock",
+            ]);
+            items.forEach((x) => {
+                var _a, _b;
+                stockBody.push([
+                    x.reference,
+                    x.description,
+                    (_a = x.item_type) === null || _a === void 0 ? void 0 : _a.name,
+                    x.item_brand.name,
+                    Intl.NumberFormat().format(x.stock == null ? 0 : parseFloat((_b = x.stock) === null || _b === void 0 ? void 0 : _b.stock.toString())),
+                ]);
+            });
+            const docDefinition = {
+                content: [
+                    {
+                        layout: "lightHorizontalLines",
+                        table: {
+                            headerRows: 1,
+                            widths: ["auto", "*", "*", "auto", "auto"],
+                            body: stockBody,
+                        },
+                    },
+                ],
+            };
+            const pdfDocument = printer.createPdfKitDocument(docDefinition);
+            let chunks = [];
+            var pdfResult;
+            pdfDocument.on("data", function (chunk) {
+                chunks.push(chunk);
+            });
+            pdfDocument.on("end", function () {
+                pdfResult = Buffer.concat(chunks);
+                return res.status(200).send({
+                    data: `data:application/pdf;base64,${pdfResult.toString("base64")}`,
+                });
+            });
+            pdfDocument.end();
+        }
+        catch (error) {
+            return res.status(500).send(error);
+        }
     })
         .catch((error) => {
         return res.status(500).send(error);

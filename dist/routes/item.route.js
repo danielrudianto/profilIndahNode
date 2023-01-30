@@ -28,6 +28,8 @@ router.get("/units/:reference", item_controller_1.default.fetchUnits);
 router.get("/search", item_controller_1.default.fetchSearchResult);
 router.get("/searchStock", item_controller_1.default.fetchSearchStock);
 router.get("/searchPurchase", item_controller_1.default.fetchPurchaseSearchResult);
+router.get("/minusStock", item_controller_1.default.fetchMinusStock);
+router.get("/downloadMinusStock", item_controller_1.default.downloadMinusStock);
 router.get("/getById/:id", auth_helper_1.administratorMiddleware, item_controller_1.default.fetchById);
 router.get("/:reference", item_controller_1.default.fetchByReference);
 router.get("/", item_controller_1.default.fetch);

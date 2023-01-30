@@ -11,6 +11,9 @@ import ItemUnitModel from "../model/item_unit.model";
 import UserModel from "../model/user.model";
 import ErrorList from "../assets/error_list";
 
+import pdfPrinter from "pdfmake";
+import path from "path";
+
 class ItemController {
   static create = (req: Request, res: Response) => {
     const errors = validationResult(req);
@@ -930,6 +933,122 @@ class ItemController {
             (x) => x.item_unit != null
           ),
         });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static fetchMinusStock = (req: Request, res: Response) => {
+    const keyword =
+      req.query.keyword == null
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
+    const page =
+      req.query.page == null ? 1 : parseInt(req.query.page.toString());
+    const offset = (page - 1) * 10;
+
+    ItemModel.fetchMinusStock(keyword, offset, 10)
+      .then((result) => {
+        return res.status(200).send({
+          data: result[0],
+          count: result[1],
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  static downloadMinusStock = (req: Request, res: Response) => {
+    ItemModel.downloadMinusStock()
+      .then((items) => {
+        try {
+          const fontDescriptors = {
+            Roboto: {
+              normal: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Regular.ttf"
+              ),
+              bold: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Medium.ttf"
+              ),
+              italics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Italic.ttf"
+              ),
+              bolditalics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-MediumItalic.ttf"
+              ),
+            },
+          };
+          const printer = new pdfPrinter(fontDescriptors);
+          const stockBody: any[] = [];
+
+          stockBody.push([
+            "Referensi",
+            "Deskripsi",
+            "Tipe barang",
+            "Merek barang",
+            "Stock",
+          ]);
+
+          items.forEach((x) => {
+            stockBody.push([
+              x.reference,
+              x.description,
+              x.item_type?.name,
+              x.item_brand.name,
+              Intl.NumberFormat().format(
+                x.stock == null ? 0 : parseFloat(x.stock?.stock.toString())
+              ),
+            ]);
+          });
+          const docDefinition = {
+            content: [
+              {
+                layout: "lightHorizontalLines", // optional
+                table: {
+                  headerRows: 1,
+                  widths: ["auto", "*", "*", "auto", "auto"],
+                  body: stockBody,
+                },
+              },
+            ],
+          };
+
+          const pdfDocument = printer.createPdfKitDocument(docDefinition);
+
+          let chunks: any[] = [];
+          var pdfResult;
+
+          pdfDocument.on("data", function (chunk) {
+            chunks.push(chunk);
+          });
+
+          pdfDocument.on("end", function () {
+            pdfResult = Buffer.concat(chunks);
+            return res.status(200).send({
+              data: `data:application/pdf;base64,${pdfResult.toString(
+                "base64"
+              )}`,
+            });
+          });
+
+          pdfDocument.end();
+        } catch (error) {
+          return res.status(500).send(error);
+        }
       })
       .catch((error) => {
         return res.status(500).send(error);
