@@ -20,6 +20,7 @@ BillController.create = (req, res) => {
     if (!validation_result.isEmpty()) {
         return res.status(400).send(validation_result.array()[0].msg);
     }
+    const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
     const payment_method_id = req.body.payment_method_id;
     const discount = parseFloat(req.body.discount);
@@ -29,7 +30,7 @@ BillController.create = (req, res) => {
     const date = !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
-    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date);
+    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date, uuid);
     bill_code
         .create()
         .then((result) => {

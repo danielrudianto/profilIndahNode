@@ -546,7 +546,7 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 12,
                     },
                     {
-                        text: (sales_value_company == 0)
+                        text: sales_value_company == 0
                             ? "0.00%"
                             : percentage_formatter.format((sales_value_company - cogs_value_company) /
                                 sales_value_company),
@@ -1370,8 +1370,10 @@ ReportController.fetchPLStats = (req, res) => {
                         fontSize: 12,
                     },
                     {
-                        text: (sales_value_company == 0) ? "0.00%" : percentage_formatter.format((sales_value_company - cogs_value_company) /
-                            sales_value_company),
+                        text: sales_value_company == 0
+                            ? "0.00%"
+                            : percentage_formatter.format((sales_value_company - cogs_value_company) /
+                                sales_value_company),
                         bold: false,
                         fontSize: 12,
                     },
@@ -1807,12 +1809,20 @@ ReportController.fetchQuickStats = (req, res) => {
                         : parseFloat(result[1][0].service),
                 },
             purchase: {
-                value: result[2][0].value == null ? 0 : parseFloat(result[2][0].value),
-                discount: result[2][0].discount == null ? 0 : parseFloat(result[2][0].discount),
+                value: result[2][0].value == null
+                    ? 0
+                    : parseFloat(result[2][0].value),
+                discount: result[2][0].discount == null
+                    ? 0
+                    : parseFloat(result[2][0].discount),
             },
             purchase_prev: {
-                value: result[3][0].value == null ? 0 : parseFloat(result[3][0].value),
-                discount: result[3][0].discount == null ? 0 : parseFloat(result[3][0].discount),
+                value: result[3][0].value == null
+                    ? 0
+                    : parseFloat(result[3][0].value),
+                discount: result[3][0].discount == null
+                    ? 0
+                    : parseFloat(result[3][0].discount),
             },
             expense: result[4][0].value,
         };
@@ -2172,6 +2182,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                     "Tipe barang",
                     "Stock awal",
                     "Jumlah keluar",
+                    "Jumlah masuk",
                     "Stock akhir",
                     "Satuan",
                 ],
@@ -2190,20 +2201,27 @@ ReportController.fetchInventoryReport = (req, res) => {
                         result[1][quantityIndex]._sum.quantity == null
                         ? 0
                         : parseFloat(result[1][quantityIndex]._sum.quantity.toString());
-                const initialQuantityIndex = result[2].findIndex((x) => x.item_id == item.id);
+                const quantityInIndex = result[2].findIndex((x) => x.item_id == item.id);
+                const quantityIn = quantityInIndex == -1
+                    ? 0
+                    : result[2][quantityInIndex]._sum == null ||
+                        result[2][quantityInIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[2][quantityInIndex]._sum.quantity.toString());
+                const initialQuantityIndex = result[3].findIndex((x) => x.item_id == item.id);
                 const initial_quantity = initialQuantityIndex == -1
                     ? 0
-                    : result[2][initialQuantityIndex]._sum == null ||
-                        result[2][initialQuantityIndex]._sum.quantity == null
+                    : result[3][initialQuantityIndex]._sum == null ||
+                        result[3][initialQuantityIndex]._sum.quantity == null
                         ? 0
-                        : parseFloat(result[2][initialQuantityIndex]._sum.quantity.toString());
+                        : parseFloat(result[3][initialQuantityIndex]._sum.quantity.toString());
                 const finalQuantityIndex = result[3].findIndex((x) => x.item_id == item.id);
                 const final_quantity = finalQuantityIndex == -1
                     ? 0
-                    : result[3][finalQuantityIndex]._sum == null ||
-                        result[3][finalQuantityIndex]._sum.quantity == null
+                    : result[4][finalQuantityIndex]._sum == null ||
+                        result[4][finalQuantityIndex]._sum.quantity == null
                         ? 0
-                        : parseFloat(result[3][finalQuantityIndex]._sum.quantity.toString());
+                        : parseFloat(result[4][finalQuantityIndex]._sum.quantity.toString());
                 rows.push([
                     reference,
                     description,
@@ -2211,6 +2229,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                     type,
                     initial_quantity,
                     quantity == 0 ? 0 : quantity * -1,
+                    quantityIn,
                     final_quantity,
                     unit,
                 ]);
@@ -2276,6 +2295,11 @@ ReportController.fetchInventoryReport = (req, res) => {
                     alignment: "left",
                 },
                 {
+                    text: "Jumlah masuk",
+                    bold: true,
+                    alignment: "left",
+                },
+                {
                     text: "Stock akhir",
                     bold: true,
                     alignment: "left",
@@ -2300,20 +2324,27 @@ ReportController.fetchInventoryReport = (req, res) => {
                         result[1][quantityIndex]._sum.quantity == null
                         ? 0
                         : parseFloat(result[1][quantityIndex]._sum.quantity.toString());
+                const quantityInIndex = result[2].findIndex((x) => x.item_id == item.id);
+                const quantityIn = quantityInIndex == -1
+                    ? 0
+                    : result[2][quantityInIndex]._sum == null ||
+                        result[2][quantityInIndex]._sum.quantity == null
+                        ? 0
+                        : parseFloat(result[2][quantityInIndex]._sum.quantity.toString());
                 const initialQuantityIndex = result[2].findIndex((x) => x.item_id == item.id);
                 const initial_quantity = initialQuantityIndex == -1
                     ? 0
-                    : result[2][initialQuantityIndex]._sum == null ||
-                        result[2][initialQuantityIndex]._sum.quantity == null
+                    : result[3][initialQuantityIndex]._sum == null ||
+                        result[3][initialQuantityIndex]._sum.quantity == null
                         ? 0
-                        : parseFloat(result[2][initialQuantityIndex]._sum.quantity.toString());
-                const finalQuantityIndex = result[3].findIndex((x) => x.item_id == item.id);
+                        : parseFloat(result[3][initialQuantityIndex]._sum.quantity.toString());
+                const finalQuantityIndex = result[4].findIndex((x) => x.item_id == item.id);
                 const final_quantity = finalQuantityIndex == -1
                     ? 0
-                    : result[3][finalQuantityIndex]._sum == null ||
-                        result[3][finalQuantityIndex]._sum.quantity == null
+                    : result[4][finalQuantityIndex]._sum == null ||
+                        result[4][finalQuantityIndex]._sum.quantity == null
                         ? 0
-                        : parseFloat(result[3][finalQuantityIndex]._sum.quantity.toString());
+                        : parseFloat(result[4][finalQuantityIndex]._sum.quantity.toString());
                 report_table.push([
                     {
                         text: reference,
@@ -2346,6 +2377,11 @@ ReportController.fetchInventoryReport = (req, res) => {
                         alignment: "left",
                     },
                     {
+                        text: Intl.NumberFormat().format(quantityIn == 0 ? 0 : quantityIn),
+                        bold: true,
+                        alignment: "left",
+                    },
+                    {
                         text: Intl.NumberFormat().format(final_quantity),
                         bold: true,
                         alignment: "left",
@@ -2368,7 +2404,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                 },
                 content: [
                     {
-                        text: "Laporan Penjualan",
+                        text: "Laporan Transaksi",
                         bold: true,
                         fontSize: 20,
                         alignment: "center",
@@ -2383,6 +2419,7 @@ ReportController.fetchInventoryReport = (req, res) => {
                                 "auto",
                                 "auto",
                                 "auto",
+                                "*",
                                 "*",
                                 "*",
                                 "*",

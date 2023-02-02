@@ -24,6 +24,7 @@ class BillController {
       return res.status(400).send(validation_result.array()[0].msg);
     }
 
+    const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
     const payment_method_id = req.body.payment_method_id;
     const discount = parseFloat(req.body.discount);
@@ -42,7 +43,8 @@ class BillController {
       discount,
       delivery,
       service,
-      date
+      date,
+      uuid
     );
 
     bill_code

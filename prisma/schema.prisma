@@ -130,6 +130,7 @@ model bill_code {
   discount          Decimal   @default(0.0000) @db.Decimal(50, 4)
   delivery          Decimal   @default(0.0000) @db.Decimal(50, 4)
   service           Decimal   @default(0.0000) @db.Decimal(50, 4)
+  uuid              String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
 
   date                              DateTime?       @db.Date
   user_bill_code_confirmed_byTouser user?           @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")

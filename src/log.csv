@@ -111,3 +111,15 @@ Wed Jan 18 2023 10:57:37 GMT+0700 (Indochina Time); info; Login success for user
 Thu Jan 19 2023 10:57:37 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Wed Jan 25 2023 00:20:16 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Thu Jan 26 2023 15:51:07 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 437) dari BING JAYA  (ID: 437) untuk perusahaan CV Karunia Maju Bersama (ID: 2); Good Receipt controller - Create; 1
+Tue Jan 31 2023 14:25:23 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Feb 02 2023 21:50:23 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Feb 02 2023 21:50:25 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Feb 02 2023 22:26:38 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-84225397 (ID: 4742); Bill controller - Create; 1
+Thu Feb 02 2023 22:27:08 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.bill_code.create()` invocation in,E:\source\repos\profilIndahNode\src\model\bill_code.model.ts:68:29,,   65   Math.random() * 10,   66 )}${Math.floor(Math.random() * 10)}`;,   67 ,→  68 return prisma.bill_code.create(,  Unique constraint failed on the constraint: `uuid_UNIQUE`; Bill controller - Create; 1
+Thu Feb 02 2023 22:27:26 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.bill_code.create()` invocation in,E:\source\repos\profilIndahNode\src\model\bill_code.model.ts:68:29,,   65   Math.random() * 10,   66 )}${Math.floor(Math.random() * 10)}`;,   67 ,→  68 return prisma.bill_code.create(,  Unique constraint failed on the constraint: `uuid_UNIQUE`; Bill controller - Create; 1
+Thu Feb 02 2023 22:27:38 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.bill_code.create()` invocation in,E:\source\repos\profilIndahNode\src\model\bill_code.model.ts:68:29,,   65   Math.random() * 10,   66 )}${Math.floor(Math.random() * 10)}`;,   67 ,→  68 return prisma.bill_code.create(,  Unique constraint failed on the constraint: `uuid_UNIQUE`; Bill controller - Create; 1
+Thu Feb 02 2023 22:28:13 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-95644210 (ID: 4746); Bill controller - Create; 1
+Thu Feb 02 2023 22:28:21 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-54082829 (ID: 4747); Bill controller - Create; 1
+Thu Feb 02 2023 22:29:19 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-81855546 (ID: 4748); Bill controller - Create; 1
+Thu Feb 02 2023 22:29:42 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-76346800 (ID: 4749); Bill controller - Create; 1
+Thu Feb 02 2023 22:29:48 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-17455572 (ID: 4750); Bill controller - Create; 1

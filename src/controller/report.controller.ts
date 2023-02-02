@@ -635,12 +635,13 @@ class ReportController {
                 fontSize: 12,
               },
               {
-                text: (sales_value_company == 0)
-                  ? "0.00%"
-                  : percentage_formatter.format(
-                      (sales_value_company - cogs_value_company) /
-                        sales_value_company
-                    ),
+                text:
+                  sales_value_company == 0
+                    ? "0.00%"
+                    : percentage_formatter.format(
+                        (sales_value_company - cogs_value_company) /
+                          sales_value_company
+                      ),
                 bold: false,
                 fontSize: 12,
               },
@@ -1579,10 +1580,13 @@ class ReportController {
                 fontSize: 12,
               },
               {
-                text: (sales_value_company == 0) ? "0.00%" : percentage_formatter.format(
-                  (sales_value_company - cogs_value_company) /
-                    sales_value_company
-                ),
+                text:
+                  sales_value_company == 0
+                    ? "0.00%"
+                    : percentage_formatter.format(
+                        (sales_value_company - cogs_value_company) /
+                          sales_value_company
+                      ),
                 bold: false,
                 fontSize: 12,
               },
@@ -2082,14 +2086,26 @@ class ReportController {
                       ? 0
                       : parseFloat((result[1] as any[])[0].service),
                 },
-                purchase : {
-                  value: (result[2] as any[])[0].value == null ? 0 : parseFloat((result[2] as any[])[0].value),
-                  discount: (result[2] as any[])[0].discount == null ? 0 : parseFloat((result[2] as any[])[0].discount),
-                },
-                purchase_prev: {
-                  value: (result[3] as any[])[0].value == null ? 0 : parseFloat((result[3] as any[])[0].value),
-                  discount: (result[3] as any[])[0].discount == null ? 0 : parseFloat((result[3] as any[])[0].discount),
-                },
+          purchase: {
+            value:
+              (result[2] as any[])[0].value == null
+                ? 0
+                : parseFloat((result[2] as any[])[0].value),
+            discount:
+              (result[2] as any[])[0].discount == null
+                ? 0
+                : parseFloat((result[2] as any[])[0].discount),
+          },
+          purchase_prev: {
+            value:
+              (result[3] as any[])[0].value == null
+                ? 0
+                : parseFloat((result[3] as any[])[0].value),
+            discount:
+              (result[3] as any[])[0].discount == null
+                ? 0
+                : parseFloat((result[3] as any[])[0].discount),
+          },
           expense: (result[4] as any[])[0].value,
         };
 
@@ -2537,6 +2553,7 @@ class ReportController {
               "Tipe barang",
               "Stock awal",
               "Jumlah keluar",
+              "Jumlah masuk",
               "Stock akhir",
               "Satuan",
             ],
@@ -2561,18 +2578,31 @@ class ReportController {
                     result[1][quantityIndex]._sum.quantity!.toString()
                   );
 
-            const initialQuantityIndex = result[2].findIndex(
+            const quantityInIndex = result[2].findIndex(
+              (x) => x.item_id == item.id
+            );
+            const quantityIn =
+              quantityInIndex == -1
+                ? 0
+                : result[2][quantityInIndex]._sum == null ||
+                  result[2][quantityInIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[2][quantityInIndex]._sum.quantity!.toString()
+                  );
+
+            const initialQuantityIndex = result[3].findIndex(
               (x) => x.item_id == item.id
             );
 
             const initial_quantity =
               initialQuantityIndex == -1
                 ? 0
-                : result[2][initialQuantityIndex]._sum == null ||
-                  result[2][initialQuantityIndex]._sum.quantity == null
+                : result[3][initialQuantityIndex]._sum == null ||
+                  result[3][initialQuantityIndex]._sum.quantity == null
                 ? 0
                 : parseFloat(
-                    result[2][initialQuantityIndex]._sum.quantity!.toString()
+                    result[3][initialQuantityIndex]._sum.quantity!.toString()
                   );
 
             const finalQuantityIndex = result[3].findIndex(
@@ -2581,11 +2611,11 @@ class ReportController {
             const final_quantity =
               finalQuantityIndex == -1
                 ? 0
-                : result[3][finalQuantityIndex]._sum == null ||
-                  result[3][finalQuantityIndex]._sum.quantity == null
+                : result[4][finalQuantityIndex]._sum == null ||
+                  result[4][finalQuantityIndex]._sum.quantity == null
                 ? 0
                 : parseFloat(
-                    result[3][finalQuantityIndex]._sum.quantity!.toString()
+                    result[4][finalQuantityIndex]._sum.quantity!.toString()
                   );
 
             rows.push([
@@ -2595,6 +2625,7 @@ class ReportController {
               type,
               initial_quantity,
               quantity == 0 ? 0 : quantity * -1,
+              quantityIn,
               final_quantity,
               unit,
             ]);
@@ -2684,6 +2715,11 @@ class ReportController {
               alignment: "left" as Alignment,
             },
             {
+              text: "Jumlah masuk",
+              bold: true,
+              alignment: "left" as Alignment,
+            },
+            {
               text: "Stock akhir",
               bold: true,
               alignment: "left" as Alignment,
@@ -2715,6 +2751,19 @@ class ReportController {
                     result[1][quantityIndex]._sum.quantity!.toString()
                   );
 
+            const quantityInIndex = result[2].findIndex(
+              (x) => x.item_id == item.id
+            );
+            const quantityIn =
+              quantityInIndex == -1
+                ? 0
+                : result[2][quantityInIndex]._sum == null ||
+                  result[2][quantityInIndex]._sum.quantity == null
+                ? 0
+                : parseFloat(
+                    result[2][quantityInIndex]._sum.quantity!.toString()
+                  );
+
             const initialQuantityIndex = result[2].findIndex(
               (x) => x.item_id == item.id
             );
@@ -2722,24 +2771,24 @@ class ReportController {
             const initial_quantity =
               initialQuantityIndex == -1
                 ? 0
-                : result[2][initialQuantityIndex]._sum == null ||
-                  result[2][initialQuantityIndex]._sum.quantity == null
+                : result[3][initialQuantityIndex]._sum == null ||
+                  result[3][initialQuantityIndex]._sum.quantity == null
                 ? 0
                 : parseFloat(
-                    result[2][initialQuantityIndex]._sum.quantity!.toString()
+                    result[3][initialQuantityIndex]._sum.quantity!.toString()
                   );
 
-            const finalQuantityIndex = result[3].findIndex(
+            const finalQuantityIndex = result[4].findIndex(
               (x) => x.item_id == item.id
             );
             const final_quantity =
               finalQuantityIndex == -1
                 ? 0
-                : result[3][finalQuantityIndex]._sum == null ||
-                  result[3][finalQuantityIndex]._sum.quantity == null
+                : result[4][finalQuantityIndex]._sum == null ||
+                  result[4][finalQuantityIndex]._sum.quantity == null
                 ? 0
                 : parseFloat(
-                    result[3][finalQuantityIndex]._sum.quantity!.toString()
+                    result[4][finalQuantityIndex]._sum.quantity!.toString()
                   );
 
             report_table.push([
@@ -2776,6 +2825,13 @@ class ReportController {
                 alignment: "left" as Alignment,
               },
               {
+                text: Intl.NumberFormat().format(
+                  quantityIn == 0 ? 0 : quantityIn
+                ),
+                bold: true,
+                alignment: "left" as Alignment,
+              },
+              {
                 text: Intl.NumberFormat().format(final_quantity),
                 bold: true,
                 alignment: "left" as Alignment,
@@ -2799,7 +2855,7 @@ class ReportController {
             },
             content: [
               {
-                text: "Laporan Penjualan",
+                text: "Laporan Transaksi",
                 bold: true,
                 fontSize: 20,
                 alignment: "center" as Alignment,
@@ -2814,6 +2870,7 @@ class ReportController {
                     "auto",
                     "auto",
                     "auto",
+                    "*",
                     "*",
                     "*",
                     "*",

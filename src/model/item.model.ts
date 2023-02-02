@@ -2212,6 +2212,37 @@ export class ItemModel {
               in: type,
             },
           },
+          AND: [
+            {
+              date: {
+                gte: start_date,
+              },
+            },
+            {
+              date: {
+                lt: end_date,
+              },
+            },
+          ],
+          quantity: {
+            gt: 0,
+          },
+        },
+        _sum: {
+          quantity: true,
+        },
+      }),
+      prisma.stock_card_act.groupBy({
+        by: ["item_id"],
+        where: {
+          item: {
+            item_brand_id: {
+              in: brand,
+            },
+            item_type_id: {
+              in: type,
+            },
+          },
           date: {
             lt: start_date,
           },
