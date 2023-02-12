@@ -1022,9 +1022,6 @@ class ItemModel {
                     unit: true,
                     conversion: true,
                 },
-                orderBy: {
-                    date: "desc",
-                },
                 take: limit,
                 skip: offset,
             }),
