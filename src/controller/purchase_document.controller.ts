@@ -463,6 +463,7 @@ class PurchaseDocumentController {
         PurchaseDocumentModel.countArchive(year, month),
       ])
         .then((result) => {
+          console.log(JSON.stringify(result));
           return res.status(200).send({
             data: result[0],
             count: result[1],
