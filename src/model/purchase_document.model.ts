@@ -294,11 +294,11 @@ class PurchaseDocumentModel {
   }
 
   static fetchArchiveYears() {
-    return prisma.$queryRaw`SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year FROM purchase_invoice ORDER BY purchase_invoice.date ASC`;
+    return prisma.$queryRaw`SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year FROM purchase_invoice WHERE purchase_invoice.date IS NOT NULL ORDER BY purchase_invoice.date ASC`;
   }
 
   static countArchiveByYear() {
-    return prisma.$queryRaw`SELECT COUNT(purchase_invoice.id) AS count, YEAR(purchase_invoice.date) AS year FROM purchase_invoice GROUP BY YEAR(purchase_invoice.date)`;
+    return prisma.$queryRaw`SELECT COUNT(purchase_invoice.id) AS count, YEAR(purchase_invoice.date) AS year FROM purchase_invoice WHERE purchase_invoice.date IS NOT NULL  GROUP BY YEAR(purchase_invoice.date)`;
   }
 
   static countArchiveByMonth(year: number) {
