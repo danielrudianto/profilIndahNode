@@ -187,6 +187,17 @@ class SalesReturnController {
       }
     });
   };
+
+  static fetchCodeById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    SalesReturnModel.fetchCodeById(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default SalesReturnController;

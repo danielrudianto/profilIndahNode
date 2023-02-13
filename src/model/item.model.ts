@@ -1082,6 +1082,7 @@ export class ItemModel {
           bill_id: true,
           adjustment_case_id: true,
           good_receipt_id: true,
+          sales_return_id: true,
           unit: true,
           conversion: true,
         },
@@ -2339,18 +2340,18 @@ export class ItemModel {
             },
           ],
         },
-      })
+      }),
     ]);
   }
 
-  static downloadMinusStock(){
+  static downloadMinusStock() {
     return prisma.item.findMany({
       where: {
         stock: {
           stock: {
             lt: 0,
           },
-        }
+        },
       },
       select: {
         id: true,

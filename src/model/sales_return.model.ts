@@ -105,13 +105,13 @@ class SalesReturnModel {
                     customer: {
                       select: {
                         name: true,
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
         date: true,
         user_sales_return_code_created_byTouser: {
@@ -172,7 +172,7 @@ class SalesReturnModel {
         payment_method: {
           select: {
             name: true,
-          }
+          },
         },
         created_at: true,
         user_sales_return_code_created_byTouser: {
@@ -206,10 +206,10 @@ class SalesReturnModel {
                     customer: {
                       select: {
                         name: true,
-                      }
-                    }
-                  }
-                }
+                      },
+                    },
+                  },
+                },
               },
             },
             quantity: true,
@@ -221,18 +221,74 @@ class SalesReturnModel {
     });
   }
 
-  static deleteById(id: number, created_by: number){
+  static deleteById(id: number, created_by: number) {
     return prisma.sales_return_code.update({
       where: {
-        id: id
+        id: id,
       },
       data: {
         is_confirm: false,
         is_delete: true,
         confirmed_at: new Date(),
         confirmed_by: created_by,
-      }
-    })
+      },
+    });
+  }
+
+  static fetchCodeById(id: number) {
+    return prisma.sales_return_code.findFirst({
+      where: {
+        sales_return: {
+          some: {
+            id: id,
+          },
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        date: true,
+        created_at: true,
+        user_sales_return_code_created_byTouser: {
+          select: {
+            name: true,
+          },
+        },
+        sales_return: {
+          select: {
+            id: true,
+            quantity: true,
+            bill: {
+              select: {
+                item: {
+                  select: {
+                    reference: true,
+                    description: true,
+                    item_brand: {
+                      select: {
+                        name: true,
+                      },
+                    },
+                    item_type: {
+                      select: {
+                        name: true,
+                      },
+                    },
+                    unit: true,
+                  },
+                },
+                item_unit: {
+                  select: {
+                    unit: true,
+                    conversion: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
   }
 }
 

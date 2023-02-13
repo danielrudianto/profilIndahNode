@@ -1019,6 +1019,7 @@ class ItemModel {
                     bill_id: true,
                     adjustment_case_id: true,
                     good_receipt_id: true,
+                    sales_return_id: true,
                     unit: true,
                     conversion: true,
                 },
@@ -2214,7 +2215,7 @@ class ItemModel {
                         },
                     ],
                 },
-            })
+            }),
         ]);
     }
     static downloadMinusStock() {
@@ -2224,7 +2225,7 @@ class ItemModel {
                     stock: {
                         lt: 0,
                     },
-                }
+                },
             },
             select: {
                 id: true,

@@ -7,6 +7,7 @@ const router = Router();
 router.post("/search", SalesReturnController.fetchSearch);
 router.post("/", SalesReturnController.create);
 
+router.get("/code/:id", SalesReturnController.fetchCodeById);
 router.get("/archives", SalesReturnController.fetchArchive);
 router.get("/archives/:year", SalesReturnController.fetchArchive);
 router.get("/archives/:year/:month", SalesReturnController.fetchArchive);
