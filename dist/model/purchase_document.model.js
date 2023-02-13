@@ -133,8 +133,8 @@ class PurchaseDocumentModel {
                                     },
                                     where: {
                                         is_delete: false,
-                                    }
-                                }
+                                    },
+                                },
                             },
                         },
                         quantity: true,
@@ -292,9 +292,14 @@ class PurchaseDocumentModel {
                     },
                 ],
             },
-            orderBy: {
-                date: "asc",
-            },
+            orderBy: [
+                {
+                    date: "asc",
+                },
+                {
+                    id: "asc",
+                },
+            ],
             take: limit,
             skip: offset,
             select: {

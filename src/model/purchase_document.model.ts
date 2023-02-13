@@ -159,8 +159,8 @@ class PurchaseDocumentModel {
                   },
                   where: {
                     is_delete: false,
-                  }
-                }
+                  },
+                },
               },
             },
             quantity: true,
@@ -329,9 +329,14 @@ class PurchaseDocumentModel {
           },
         ],
       },
-      orderBy: {
-        date: "asc",
-      },
+      orderBy: [
+        {
+          date: "asc",
+        },
+        {
+          id: "asc",
+        },
+      ],
       take: limit,
       skip: offset,
       select: {
@@ -1053,7 +1058,7 @@ class PurchaseDocumentModel {
     }
   }
 
-  static fetchTodayPurchase(date: Date){
+  static fetchTodayPurchase(date: Date) {
     return prisma.$queryRawUnsafe(`
       SELECT COALESCE(SUM(a.value), 0) AS value, COALESCE(SUM(a.discount), 0) AS discount
       FROM (
@@ -1064,7 +1069,9 @@ class PurchaseDocumentModel {
         JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
         WHERE good_receipt_code.is_confirm = 1
         AND good_receipt_code.is_delete = 0
-        AND good_receipt_code.date = '${date.getFullYear()}-${(date.getMonth() + 1)
+        AND good_receipt_code.date = '${date.getFullYear()}-${(
+      date.getMonth() + 1
+    )
       .toString()
       .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
         GROUP BY good_receipt.good_receipt_code_id
