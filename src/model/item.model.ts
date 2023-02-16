@@ -1,8 +1,29 @@
 import { PrismaClient } from "@prisma/client";
-import { join } from "@prisma/client/runtime";
-import { escape } from "mysql2";
+const prisma = new PrismaClient({
+  log: [
+    {
+      emit: "event",
+      level: "query",
+    },
+    {
+      emit: "stdout",
+      level: "error",
+    },
+    {
+      emit: "stdout",
+      level: "info",
+    },
+    {
+      emit: "stdout",
+      level: "warn",
+    },
+  ],
+});
 
-const prisma = new PrismaClient();
+prisma.$on("query", (e) => {
+  console.log("Query: " + e.query);
+  console.log("Duration: " + e.duration + "ms");
+});
 
 export class ItemModel {
   id?: number;
@@ -1012,72 +1033,8 @@ export class ItemModel {
           item_id: id,
         },
         select: {
-          good_receipt: {
-            select: {
-              id: true,
-              good_receipt_code: {
-                select: {
-                  date: true,
-                  name: true,
-                  user_good_receipt_code_created_byTouser: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          adjustment_case: {
-            select: {
-              id: true,
-              adjustment_case_code: {
-                select: {
-                  date: true,
-                  name: true,
-                  user_adjustment_case_code_created_byTouser: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          bill: {
-            select: {
-              id: true,
-              bill_code: {
-                select: {
-                  date: true,
-                  name: true,
-                  user_bill_code_created_byTouser: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
-          sales_return: {
-            select: {
-              id: true,
-              sales_return_code: {
-                select: {
-                  date: true,
-                  name: true,
-                  user_sales_return_code_created_byTouser: {
-                    select: {
-                      name: true,
-                    },
-                  },
-                },
-              },
-            },
-          },
+          date: true,
           quantity: true,
-          lead_quantity: true,
           stock: true,
           bill_id: true,
           adjustment_case_id: true,
@@ -1089,7 +1046,10 @@ export class ItemModel {
         take: limit,
         skip: offset,
       }),
-      prisma.stock_card.count({
+      prisma.stock_card_act.count({
+        select: {
+          id: true,
+        },
         where: {
           item_id: id,
         },
@@ -1893,6 +1853,9 @@ export class ItemModel {
         },
       }),
       prisma.item.count({
+        select: {
+          id: true,
+        },
         where: {
           is_active: true,
           is_delete: false,

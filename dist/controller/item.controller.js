@@ -1,7 +1,17 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const item_model_1 = require("../model/item.model");
 const log_helper_1 = __importDefault(require("../helper/log.helper"));
@@ -13,10 +23,16 @@ const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper
 const item_unit_model_1 = __importDefault(require("../model/item_unit.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
+// import { MeiliSearch } from "meilisearch";
+// const meili = new MeiliSearch({
+//   host: "http://localhost:7700",
+//   apiKey: "f66f07d79e465a301dccc27e9ef2bf7ac4b5f5dc",
+// });
 const pdfmake_1 = __importDefault(require("pdfmake"));
 const path_1 = __importDefault(require("path"));
 class ItemController {
 }
+_a = ItemController;
 ItemController.create = (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
@@ -40,7 +56,7 @@ ItemController.create = (req, res) => {
             const item = new item_model_1.ItemModel(reference, description, minimum_stock, brand_id, type_id, user_id, unit);
             item
                 .create()
-                .then((result) => {
+                .then((result) => __awaiter(void 0, void 0, void 0, function* () {
                 log_helper_1.default.log(new Date(), "info", `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
                 const item_units = item_unit_model_1.default.createMany(units, result.id, req.body.userId);
                 const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, req.body.userId);
@@ -50,6 +66,14 @@ ItemController.create = (req, res) => {
                     item_purchase_price.create(),
                     item_model_1.ItemModel.count(),
                     item_units,
+                    // meili.index("item").addDocuments([
+                    //   {
+                    //     reference: result.reference,
+                    //     description: result.description,
+                    //     brand: result.item_brand.name,
+                    //     type: result.item_type?.name,
+                    //   },
+                    // ]),
                 ])
                     .then((item_price) => {
                     const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
@@ -76,7 +100,7 @@ ItemController.create = (req, res) => {
                     log_helper_1.default.log(new Date(), "error", error, "Item Controller - Create", req.body.userId);
                     return res.status(500).send(error);
                 });
-            })
+            }))
                 .catch((error) => {
                 console.log(error);
                 log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
@@ -167,8 +191,8 @@ ItemController.update = (req, res) => {
         else {
             item_model_1.ItemModel.update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit)
                 .then((result) => {
-                var _a;
-                log_helper_1.default.log(new Date(), "info", `${(_a = result.user_item_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated item with reference ${result.reference} (ID: ${result.id})`, `Item - Update`, req.body.userId);
+                var _b;
+                log_helper_1.default.log(new Date(), "info", `${(_b = result.user_item_updated_byTouser) === null || _b === void 0 ? void 0 : _b.name} updated item with reference ${result.reference} (ID: ${result.id})`, `Item - Update`, req.body.userId);
                 const socket = new socket_helper_1.default("updateItem", result);
                 socket.create();
                 return res.status(200).send(result);
@@ -267,8 +291,8 @@ ItemController.fetchSearchStock = (req, res) => {
             .then((stock) => {
             return res.status(200).send({
                 data: stock[0].map((x) => {
-                    var _a, _b;
-                    return Object.assign(Object.assign({}, x), { price: (_a = x.item_price.find((x) => x.item_unit == null)) === null || _a === void 0 ? void 0 : _a.price, discount: (_b = x.item_price.find((x) => x.item_unit == null)) === null || _b === void 0 ? void 0 : _b.discount, unit: x.unit, item_price: x.item_price.filter((x) => x.item_unit != null) });
+                    var _b, _c;
+                    return Object.assign(Object.assign({}, x), { price: (_b = x.item_price.find((x) => x.item_unit == null)) === null || _b === void 0 ? void 0 : _b.price, discount: (_c = x.item_price.find((x) => x.item_unit == null)) === null || _c === void 0 ? void 0 : _c.discount, unit: x.unit, item_price: x.item_price.filter((x) => x.item_unit != null) });
                 }),
                 count: result[1],
             });
@@ -338,12 +362,12 @@ ItemController.fetchByReference = (req, res) => {
     });
 };
 ItemController.fetchStock = (req, res) => {
-    var _a;
+    var _b;
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
         return res.status(400).send("Mohon isikan dengan format yang sesuai.");
     }
-    const reference = decodeURIComponent((_a = req.query.reference) === null || _a === void 0 ? void 0 : _a.toString());
+    const reference = decodeURIComponent((_b = req.query.reference) === null || _b === void 0 ? void 0 : _b.toString());
     const page = !req.query.page
         ? 1
         : Math.max(1, parseInt(req.query.page.toString()));
@@ -455,13 +479,13 @@ ItemController.updateUnit = (req, res) => {
     });
 };
 ItemController.fetchDailyStock = (req, res) => {
-    var _a;
+    var _b;
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
         return res.status(400).send("Mohon isikan dengan format yang sesuai.");
     }
     const reference = decodeURIComponent(req.params.reference);
-    const start = (_a = req.query.start) === null || _a === void 0 ? void 0 : _a.toString();
+    const start = (_b = req.query.start) === null || _b === void 0 ? void 0 : _b.toString();
     item_model_1.ItemModel.fetchByReference(reference)
         .then((item) => {
         if (!item) {
@@ -678,13 +702,13 @@ ItemController.downloadMinusStock = (req, res) => {
                 "Stock",
             ]);
             items.forEach((x) => {
-                var _a, _b;
+                var _b, _c;
                 stockBody.push([
                     x.reference,
                     x.description,
-                    (_a = x.item_type) === null || _a === void 0 ? void 0 : _a.name,
+                    (_b = x.item_type) === null || _b === void 0 ? void 0 : _b.name,
                     x.item_brand.name,
-                    Intl.NumberFormat().format(x.stock == null ? 0 : parseFloat((_b = x.stock) === null || _b === void 0 ? void 0 : _b.stock.toString())),
+                    Intl.NumberFormat().format(x.stock == null ? 0 : parseFloat((_c = x.stock) === null || _c === void 0 ? void 0 : _c.stock.toString())),
                 ]);
             });
             const docDefinition = {

@@ -86,8 +86,14 @@ class ReportController {
         CompanyModel.fetchAll(),
         ExpenseModel.fetchSum(month, year),
         month == 0
-          ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
-          : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
+          ? StockValueHelper.fetchCOGS(
+              new Date(year - 1, 11, 31),
+              new Date(year, 11, 31)
+            )
+          : StockValueHelper.fetchCOGS(
+              new Date(year, month - 1, 0),
+              new Date(year, month, 0)
+            ),
       ])
         .then((result) => {
           const sales_table = [];
@@ -518,19 +524,21 @@ class ReportController {
 
             cogs_value.push({
               id: company_id,
+              name: name,
               value: value,
             });
+          });
 
-            hpp_value += value;
-
+          cogs_value.forEach((cogs) => {
+            hpp_value += cogs.value;
             hpp_table.push([
               {
-                text: name,
+                text: cogs.name,
                 bold: false,
                 alignment: "left" as Alignment,
               },
               {
-                text: formatter.format(value),
+                text: formatter.format(cogs.value),
                 bold: false,
                 alignment: "left" as Alignment,
               },
@@ -868,8 +876,14 @@ class ReportController {
         CompanyModel.fetchAll(),
         ExpenseModel.fetchSum(month, year),
         month == 0
-          ? StockValueHelper.fetchCOGS(new Date(year, 11, 31))
-          : StockValueHelper.fetchCOGS(new Date(year, month, 0)),
+          ? StockValueHelper.fetchCOGS(
+              new Date(year - 1, 11, 31),
+              new Date(year, 11, 31)
+            )
+          : StockValueHelper.fetchCOGS(
+              new Date(year, month - 1, 0),
+              new Date(year, month, 0)
+            ),
         BillCodeModel.fetchAppendix(month, year),
         PurchaseDocumentModel.fetchAppendix(month, year),
         ExpenseModel.fetchAppendix(month, year),

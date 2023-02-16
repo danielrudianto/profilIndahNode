@@ -73,8 +73,8 @@ ReportController.fetchPLStats = (req, res) => {
             company_model_1.default.fetchAll(),
             expense_model_1.default.fetchSum(month, year),
             month == 0
-                ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
-                : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
+                ? stock_value_helper_1.default.fetchCOGS(new Date(year - 1, 11, 31), new Date(year, 11, 31))
+                : stock_value_helper_1.default.fetchCOGS(new Date(year, month - 1, 0), new Date(year, month, 0)),
         ])
             .then((result) => {
             const sales_table = [];
@@ -446,17 +446,20 @@ ReportController.fetchPLStats = (req, res) => {
                 const company_id = x.f1;
                 cogs_value.push({
                     id: company_id,
+                    name: name,
                     value: value,
                 });
-                hpp_value += value;
+            });
+            cogs_value.forEach((cogs) => {
+                hpp_value += cogs.value;
                 hpp_table.push([
                     {
-                        text: name,
+                        text: cogs.name,
                         bold: false,
                         alignment: "left",
                     },
                     {
-                        text: formatter.format(value),
+                        text: formatter.format(cogs.value),
                         bold: false,
                         alignment: "left",
                     },
@@ -754,8 +757,8 @@ ReportController.fetchPLStats = (req, res) => {
             company_model_1.default.fetchAll(),
             expense_model_1.default.fetchSum(month, year),
             month == 0
-                ? stock_value_helper_1.default.fetchCOGS(new Date(year, 11, 31))
-                : stock_value_helper_1.default.fetchCOGS(new Date(year, month, 0)),
+                ? stock_value_helper_1.default.fetchCOGS(new Date(year - 1, 11, 31), new Date(year, 11, 31))
+                : stock_value_helper_1.default.fetchCOGS(new Date(year, month - 1, 0), new Date(year, month, 0)),
             bill_code_model_1.default.fetchAppendix(month, year),
             purchase_document_model_1.default.fetchAppendix(month, year),
             expense_model_1.default.fetchAppendix(month, year),

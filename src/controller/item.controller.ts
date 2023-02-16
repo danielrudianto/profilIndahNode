@@ -10,6 +10,12 @@ import StockCardHelper from "../helper/stock_card.helper";
 import ItemUnitModel from "../model/item_unit.model";
 import UserModel from "../model/user.model";
 import ErrorList from "../assets/error_list";
+// import { MeiliSearch } from "meilisearch";
+
+// const meili = new MeiliSearch({
+//   host: "http://localhost:7700",
+//   apiKey: "f66f07d79e465a301dccc27e9ef2bf7ac4b5f5dc",
+// });
 
 import pdfPrinter from "pdfmake";
 import path from "path";
@@ -51,7 +57,7 @@ class ItemController {
 
           item
             .create()
-            .then((result) => {
+            .then(async (result) => {
               LogHelper.log(
                 new Date(),
                 "info",
@@ -86,6 +92,14 @@ class ItemController {
                 item_purchase_price.create(),
                 ItemModel.count(),
                 item_units,
+                // meili.index("item").addDocuments([
+                //   {
+                //     reference: result.reference,
+                //     description: result.description,
+                //     brand: result.item_brand.name,
+                //     type: result.item_type?.name,
+                //   },
+                // ]),
               ])
                 .then((item_price) => {
                   const item_object = {

@@ -29,6 +29,7 @@ const allowedOrigins = [
   "https://app.profilindah.id",
   "https://stock.profilindah.id",
 ];
+
 const options: cors.CorsOptions = {
   origin: allowedOrigins,
 };

@@ -2,7 +2,30 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemModel = void 0;
 const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const prisma = new client_1.PrismaClient({
+    log: [
+        {
+            emit: "event",
+            level: "query",
+        },
+        {
+            emit: "stdout",
+            level: "error",
+        },
+        {
+            emit: "stdout",
+            level: "info",
+        },
+        {
+            emit: "stdout",
+            level: "warn",
+        },
+    ],
+});
+prisma.$on("query", (e) => {
+    console.log("Query: " + e.query);
+    console.log("Duration: " + e.duration + "ms");
+});
 class ItemModel {
     constructor(reference, description, minimum_stock, brand_id, type_id, created_by, unit, id = null) {
         if (id != null) {
@@ -949,72 +972,8 @@ class ItemModel {
                     item_id: id,
                 },
                 select: {
-                    good_receipt: {
-                        select: {
-                            id: true,
-                            good_receipt_code: {
-                                select: {
-                                    date: true,
-                                    name: true,
-                                    user_good_receipt_code_created_byTouser: {
-                                        select: {
-                                            name: true,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    adjustment_case: {
-                        select: {
-                            id: true,
-                            adjustment_case_code: {
-                                select: {
-                                    date: true,
-                                    name: true,
-                                    user_adjustment_case_code_created_byTouser: {
-                                        select: {
-                                            name: true,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    bill: {
-                        select: {
-                            id: true,
-                            bill_code: {
-                                select: {
-                                    date: true,
-                                    name: true,
-                                    user_bill_code_created_byTouser: {
-                                        select: {
-                                            name: true,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    sales_return: {
-                        select: {
-                            id: true,
-                            sales_return_code: {
-                                select: {
-                                    date: true,
-                                    name: true,
-                                    user_sales_return_code_created_byTouser: {
-                                        select: {
-                                            name: true,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                    date: true,
                     quantity: true,
-                    lead_quantity: true,
                     stock: true,
                     bill_id: true,
                     adjustment_case_id: true,
@@ -1026,7 +985,10 @@ class ItemModel {
                 take: limit,
                 skip: offset,
             }),
-            prisma.stock_card.count({
+            prisma.stock_card_act.count({
+                select: {
+                    id: true,
+                },
                 where: {
                     item_id: id,
                 },
@@ -1800,6 +1762,9 @@ class ItemModel {
                 },
             }),
             prisma.item.count({
+                select: {
+                    id: true,
+                },
                 where: {
                     is_active: true,
                     is_delete: false,
