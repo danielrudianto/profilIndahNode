@@ -571,13 +571,13 @@ class ItemController {
                 return {
                   ...x,
                   quantity: parseFloat(x.quantity.toString()),
-                  lead_quantity: parseFloat(x.lead_quantity.toString()),
                 };
               }),
               count: result[1],
             });
           })
           .catch((error) => {
+            console.log(error);
             return res.status(500).send(error);
           });
       }

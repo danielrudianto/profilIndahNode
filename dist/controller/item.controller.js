@@ -382,12 +382,13 @@ ItemController.fetchStock = (req, res) => {
                 .then((result) => {
                 return res.status(200).send({
                     data: result[0].map((x) => {
-                        return Object.assign(Object.assign({}, x), { quantity: parseFloat(x.quantity.toString()), lead_quantity: parseFloat(x.lead_quantity.toString()) });
+                        return Object.assign(Object.assign({}, x), { quantity: parseFloat(x.quantity.toString()) });
                     }),
                     count: result[1],
                 });
             })
                 .catch((error) => {
+                console.log(error);
                 return res.status(500).send(error);
             });
         }

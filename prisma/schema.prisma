@@ -583,7 +583,6 @@ model stock_card {
   date               DateTime
   item_id            Int
   stock              Decimal  @db.Decimal(50, 4)
-  lead_quantity      Decimal  @db.Decimal(50, 4)
   unit               String?
   conversion         Decimal? @db.Decimal(12, 2)
 
@@ -601,6 +600,7 @@ model stock_card_act {
   sales_return_id    Int?     @unique
   quantity           Decimal  @db.Decimal(50, 4)
   date               DateTime
+  name               String
   item_id            Int
   stock              Decimal  @db.Decimal(50, 4)
   lead_quantity      Decimal  @db.Decimal(50, 4)

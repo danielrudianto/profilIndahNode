@@ -2,30 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ItemModel = void 0;
 const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient({
-    log: [
-        {
-            emit: "event",
-            level: "query",
-        },
-        {
-            emit: "stdout",
-            level: "error",
-        },
-        {
-            emit: "stdout",
-            level: "info",
-        },
-        {
-            emit: "stdout",
-            level: "warn",
-        },
-    ],
-});
-prisma.$on("query", (e) => {
-    console.log("Query: " + e.query);
-    console.log("Duration: " + e.duration + "ms");
-});
+const prisma = new client_1.PrismaClient();
 class ItemModel {
     constructor(reference, description, minimum_stock, brand_id, type_id, created_by, unit, id = null) {
         if (id != null) {
@@ -973,6 +950,7 @@ class ItemModel {
                 },
                 select: {
                     date: true,
+                    name: true,
                     quantity: true,
                     stock: true,
                     bill_id: true,
