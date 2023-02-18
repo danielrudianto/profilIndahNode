@@ -53,6 +53,7 @@ router.get(
 router.get("/units/:reference", ItemController.fetchUnits);
 router.get("/search", ItemController.fetchSearchResult);
 router.get("/searchStock", ItemController.fetchSearchStock);
+router.get("/smartSearchStock", ItemController.fetchSmartSearchStock);
 router.get("/searchPurchase", ItemController.fetchPurchaseSearchResult);
 router.get("/minusStock", ItemController.fetchMinusStock);
 router.get("/downloadMinusStock", ItemController.downloadMinusStock);

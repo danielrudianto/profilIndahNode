@@ -1824,6 +1824,21 @@ export class ItemModel {
               is_delete: false,
             },
           },
+          item_price_purchase: {
+            select: {
+              price: true,
+              item_unit_id: true,
+              item_unit: {
+                select: {
+                  unit: true,
+                  conversion: true,
+                },
+              },
+            },
+            where: {
+              is_delete: false,
+            },
+          },
         },
         orderBy: {
           reference: "asc",

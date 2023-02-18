@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.io = void 0;
+exports.io = exports.meili = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
@@ -27,6 +27,12 @@ const adjustment_case_route_1 = __importDefault(require("./routes/adjustment_cas
 const report_route_1 = __importDefault(require("./routes/report.route"));
 const item_type_route_1 = __importDefault(require("./routes/item_type.route"));
 const sales_return_route_1 = __importDefault(require("./routes/sales_return.route"));
+const meilisearch_1 = require("meilisearch");
+const item_model_1 = require("./model/item.model");
+exports.meili = new meilisearch_1.MeiliSearch({
+    host: "http://localhost:7700",
+    apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
+});
 const allowedOrigins = [
     "http://localhost:4200",
     "https://app.profilindah.id",
@@ -58,7 +64,18 @@ app.use("/report", report_route_1.default);
 app.use("/itemType", auth_helper_1.authMiddleware, item_type_route_1.default);
 app.use("/salesReturn", auth_helper_1.authMiddleware, sales_return_route_1.default);
 const server = http_1.default.createServer(app);
-server.listen(5000, () => { });
+server.listen(5000, () => {
+    item_model_1.ItemModel.fetchAll(new Date()).then((result) => {
+        exports.meili.index("item").addDocumentsInBatches(result.map((x) => {
+            return {
+                id: x.id,
+                reference: x.reference,
+                description: x.description,
+                brand: x.item_brand.name
+            };
+        }));
+    });
+});
 exports.io = new socket_io_1.Server(server, {
     cors: {
         origin: "*",

@@ -23,13 +23,9 @@ const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper
 const item_unit_model_1 = __importDefault(require("../model/item_unit.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
-// import { MeiliSearch } from "meilisearch";
-// const meili = new MeiliSearch({
-//   host: "http://localhost:7700",
-//   apiKey: "f66f07d79e465a301dccc27e9ef2bf7ac4b5f5dc",
-// });
 const pdfmake_1 = __importDefault(require("pdfmake"));
 const path_1 = __importDefault(require("path"));
+const app_1 = require("../app");
 class ItemController {
 }
 _a = ItemController;
@@ -66,14 +62,15 @@ ItemController.create = (req, res) => {
                     item_purchase_price.create(),
                     item_model_1.ItemModel.count(),
                     item_units,
-                    // meili.index("item").addDocuments([
-                    //   {
-                    //     reference: result.reference,
-                    //     description: result.description,
-                    //     brand: result.item_brand.name,
-                    //     type: result.item_type?.name,
-                    //   },
-                    // ]),
+                    app_1.meili.index("item").addDocuments([
+                        {
+                            id: result.id,
+                            reference: result.reference,
+                            description: result.description,
+                        },
+                    ], {
+                        primaryKey: "id",
+                    }),
                 ])
                     .then((item_price) => {
                     const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
@@ -136,18 +133,21 @@ ItemController.delete = (req, res) => {
                 item_model_1.ItemModel.checkDeleteByReference(reference)
                     .then((count) => {
                     if (count[0] == 0 && count[1] == 0) {
-                        item_model_1.ItemModel.delete(item.id, req.body.userId).then((delete_result) => {
+                        Promise.all([
+                            item_model_1.ItemModel.delete(item.id, req.body.userId),
+                            app_1.meili.index("item").deleteDocument(item.id),
+                        ]).then((delete_result) => {
                             const socket = new socket_helper_1.default("deleteItem", delete_result);
                             socket.create();
-                            log_helper_1.default.log(new Date(), "info", `${delete_result.user.name} deleted item with reference ${delete_result.reference} (ID: ${delete_result.id})`, "Item controller - Delete", req.body.userId);
-                            item_model_1.ItemModel.countByBrandId(delete_result.item_brand_id)
+                            log_helper_1.default.log(new Date(), "info", `${delete_result[0].user.name} deleted item with reference ${delete_result[0].reference} (ID: ${delete_result[0].id})`, "Item controller - Delete", req.body.userId);
+                            item_model_1.ItemModel.countByBrandId(delete_result[0].item_brand_id)
                                 .then((count_brand) => {
                                 const itemSocket = new socket_helper_1.default("deleteItemBrand", {
-                                    brand_id: delete_result.item_brand_id,
+                                    brand_id: delete_result[0].item_brand_id,
                                     can_delete: count_brand == 0 ? true : false,
                                 });
                                 itemSocket.create();
-                                return res.status(201).send(delete_result);
+                                return res.status(201).send(delete_result[0]);
                             })
                                 .catch((error) => {
                                 log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
@@ -189,10 +189,19 @@ ItemController.update = (req, res) => {
             return res.status(404).send("Barang tidak ditemukan.");
         }
         else {
-            item_model_1.ItemModel.update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit)
+            Promise.all([
+                item_model_1.ItemModel.update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit),
+                app_1.meili.index("item").updateDocuments([
+                    {
+                        id: id,
+                        reference: reference,
+                        description: description,
+                    },
+                ]),
+            ])
                 .then((result) => {
                 var _b;
-                log_helper_1.default.log(new Date(), "info", `${(_b = result.user_item_updated_byTouser) === null || _b === void 0 ? void 0 : _b.name} updated item with reference ${result.reference} (ID: ${result.id})`, `Item - Update`, req.body.userId);
+                log_helper_1.default.log(new Date(), "info", `${(_b = result[0].user_item_updated_byTouser) === null || _b === void 0 ? void 0 : _b.name} updated item with reference ${result[0].reference} (ID: ${result[0].id})`, `Item - Update`, req.body.userId);
                 const socket = new socket_helper_1.default("updateItem", result);
                 socket.create();
                 return res.status(200).send(result);
@@ -291,8 +300,8 @@ ItemController.fetchSearchStock = (req, res) => {
             .then((stock) => {
             return res.status(200).send({
                 data: stock[0].map((x) => {
-                    var _b, _c;
-                    return Object.assign(Object.assign({}, x), { price: (_b = x.item_price.find((x) => x.item_unit == null)) === null || _b === void 0 ? void 0 : _b.price, discount: (_c = x.item_price.find((x) => x.item_unit == null)) === null || _c === void 0 ? void 0 : _c.discount, unit: x.unit, item_price: x.item_price.filter((x) => x.item_unit != null) });
+                    var _b, _c, _d;
+                    return Object.assign(Object.assign({}, x), { price: (_b = x.item_price.find((x) => x.item_unit == null)) === null || _b === void 0 ? void 0 : _b.price, discount: (_c = x.item_price.find((x) => x.item_unit == null)) === null || _c === void 0 ? void 0 : _c.discount, unit: x.unit, item_price: x.item_price.filter((x) => x.item_unit != null), purchase_price: (_d = x.item_price_purchase.find((x) => x.item_unit == null)) === null || _d === void 0 ? void 0 : _d.price, item_price_purchase: x.item_price_purchase.filter((x) => x.item_unit != null) });
                 }),
                 count: result[1],
             });
@@ -744,6 +753,32 @@ ItemController.downloadMinusStock = (req, res) => {
     })
         .catch((error) => {
         return res.status(500).send(error);
+    });
+};
+ItemController.fetchSmartSearchStock = (req, res) => {
+    const keyword = req.query.keyword == null
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
+    const page = req.query.page == null ? 1 : parseInt(req.query.page.toString());
+    const offset = (page - 1) * parseInt(process.env.LIMIT);
+    app_1.meili
+        .index("item")
+        .search(keyword, {
+        limit: parseInt(process.env.LIMIT),
+        offset: offset,
+    })
+        .then((result) => {
+        item_model_1.ItemModel.fetchStockByItemIds(result.hits.map((x) => {
+            return x.id;
+        })).then((items) => {
+            return res.status(200).send({
+                data: items[0].map((y) => {
+                    var _b, _c, _d;
+                    return Object.assign(Object.assign({}, y), { price: (_b = y.item_price.find((x) => x.item_unit == null)) === null || _b === void 0 ? void 0 : _b.price, discount: (_c = y.item_price.find((x) => x.item_unit == null)) === null || _c === void 0 ? void 0 : _c.discount, unit: y.unit, item_price: y.item_price.filter((x) => x.item_unit != null), purchase_price: (_d = y.item_price_purchase.find((x) => x.item_unit == null)) === null || _d === void 0 ? void 0 : _d.price, item_price_purchase: y.item_price_purchase.filter((x) => x.item_unit != null) });
+                }),
+                count: result.estimatedTotalHits,
+            });
+        });
     });
 };
 exports.default = ItemController;

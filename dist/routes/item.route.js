@@ -27,6 +27,7 @@ router.get("/stock", (0, express_validator_1.query)("reference")
 router.get("/units/:reference", item_controller_1.default.fetchUnits);
 router.get("/search", item_controller_1.default.fetchSearchResult);
 router.get("/searchStock", item_controller_1.default.fetchSearchStock);
+router.get("/smartSearchStock", item_controller_1.default.fetchSmartSearchStock);
 router.get("/searchPurchase", item_controller_1.default.fetchPurchaseSearchResult);
 router.get("/minusStock", item_controller_1.default.fetchMinusStock);
 router.get("/downloadMinusStock", item_controller_1.default.downloadMinusStock);

@@ -147,3 +147,29 @@ Fri Feb 17 2023 00:33:28 GMT+0700 (Indochina Time); error; Error: ,Invalid `pris
 Fri Feb 17 2023 00:33:49 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1356`. Message: `View 'profil_indah.stock_out_distribution' references invalid table(s) or column(s) or function(s) or definer/invoker of view lack rights to use them`; Report controller - Fetch Profit Loss; null
 Fri Feb 17 2023 01:12:37 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1318`. Message: `Incorrect number of arguments for PROCEDURE profil_indah.calculate_stock; expected 1, got 2`; Report controller - Fetch Profit Loss; null
 Fri Feb 17 2023 01:12:40 GMT+0700 (Indochina Time); error; Error: ,Invalid `prisma.$queryRaw()` invocation:,,,  Raw query failed. Code: `1318`. Message: `Incorrect number of arguments for PROCEDURE profil_indah.calculate_stock; expected 1, got 2`; Report controller - Fetch Profit Loss; null
+Fri Feb 17 2023 18:54:50 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Fri Feb 17 2023 21:50:36 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference 123 (ID: 9440); Item - Create; 1
+Fri Feb 17 2023 21:50:36 GMT+0700 (Indochina Time); info; Daniel Tri created item unit for item with reference 123 (ID: 9440); Item - Create; 1
+Fri Feb 17 2023 21:50:36 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference 123 (ID: 9440); Item - Create; 1
+Fri Feb 17 2023 21:50:36 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference 123 (ID: 9440); Item - Create; 1
+Fri Feb 17 2023 21:59:08 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference Test2 (ID: 9441); Item - Create; 1
+Fri Feb 17 2023 21:59:08 GMT+0700 (Indochina Time); info; Daniel Tri created item unit for item with reference Test2 (ID: 9441); Item - Create; 1
+Fri Feb 17 2023 21:59:08 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference Test2 (ID: 9441); Item - Create; 1
+Fri Feb 17 2023 21:59:08 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference Test2 (ID: 9441); Item - Create; 1
+Fri Feb 17 2023 22:00:13 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference Testtttt (ID: 9442); Item - Create; 1
+Fri Feb 17 2023 22:00:13 GMT+0700 (Indochina Time); info; Daniel Tri created item unit for item with reference Testtttt (ID: 9442); Item - Create; 1
+Fri Feb 17 2023 22:00:13 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference Testtttt (ID: 9442); Item - Create; 1
+Fri Feb 17 2023 22:00:13 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference Testtttt (ID: 9442); Item - Create; 1
+Fri Feb 17 2023 22:05:07 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference Test654357356845678 (ID: 9443); Item - Create; 1
+Fri Feb 17 2023 22:05:07 GMT+0700 (Indochina Time); info; Daniel Tri created item unit for item with reference Test654357356845678 (ID: 9443); Item - Create; 1
+Fri Feb 17 2023 22:05:07 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference Test654357356845678 (ID: 9443); Item - Create; 1
+Fri Feb 17 2023 22:05:07 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference Test654357356845678 (ID: 9443); Item - Create; 1
+Fri Feb 17 2023 22:11:56 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference Babu (ID: 9444); Item - Create; 1
+Fri Feb 17 2023 22:11:56 GMT+0700 (Indochina Time); info; Daniel Tri created item unit for item with reference Babu (ID: 9444); Item - Create; 1
+Fri Feb 17 2023 22:11:56 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference Babu (ID: 9444); Item - Create; 1
+Fri Feb 17 2023 22:11:56 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference Babu (ID: 9444); Item - Create; 1
+Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created new item with reference babu 2 (ID: 9445); Item - Create; 1
+Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created item unit for item with reference babu 2 (ID: 9445); Item - Create; 1
+Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference babu 2 (ID: 9445); Item - Create; 1
+Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference babu 2 (ID: 9445); Item - Create; 1
+Fri Feb 17 2023 22:19:43 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1

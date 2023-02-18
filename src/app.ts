@@ -23,6 +23,13 @@ import adjustmentCaseRoutes from "./routes/adjustment_case.route";
 import reportRoutes from "./routes/report.route";
 import itemTypeRoutes from "./routes/item_type.route";
 import salesReturnRoutes from "./routes/sales_return.route";
+import { MeiliSearch } from "meilisearch";
+import { ItemModel } from "./model/item.model";
+
+export const meili = new MeiliSearch({
+  host: "http://localhost:7700",
+  apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
+});
 
 const allowedOrigins = [
   "http://localhost:4200",
@@ -66,7 +73,20 @@ app.use("/itemType", authMiddleware, itemTypeRoutes);
 app.use("/salesReturn", authMiddleware, salesReturnRoutes);
 
 const server = http.createServer(app);
-server.listen(5000, () => {});
+server.listen(5000, () => {
+  ItemModel.fetchAll(new Date()).then((result) => {
+    meili.index("item").addDocumentsInBatches(
+      result.map((x) => {
+        return {
+          id: x.id,
+          reference: x.reference,
+          description: x.description,
+          brand: x.item_brand.name
+        };
+      })
+    );
+  });
+});
 
 export const io = new Server(server, {
   cors: {
