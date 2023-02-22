@@ -25,6 +25,7 @@ import itemTypeRoutes from "./routes/item_type.route";
 import salesReturnRoutes from "./routes/sales_return.route";
 import { MeiliSearch } from "meilisearch";
 import { ItemModel } from "./model/item.model";
+import SearchHelper from "./helper/search.helper";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -74,18 +75,7 @@ app.use("/salesReturn", authMiddleware, salesReturnRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, () => {
-  ItemModel.fetchAll(new Date()).then((result) => {
-    meili.index("item").addDocumentsInBatches(
-      result.map((x) => {
-        return {
-          id: x.id,
-          reference: x.reference,
-          description: x.description,
-          brand: x.item_brand.name
-        };
-      })
-    );
-  });
+  SearchHelper.scheduleData();
 });
 
 export const io = new Server(server, {

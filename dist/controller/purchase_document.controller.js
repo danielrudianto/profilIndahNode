@@ -131,7 +131,7 @@ PurchaseDocumentController.create = (req, res) => {
                     item_unit_id: good_receipt_items[idx].item_unit_id,
                 });
                 if (good_receipt_items[idx].save == true) {
-                    const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId);
+                    const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId, good_receipt_items[idx].item_unit_id);
                     good_receipt_price.push(purchase_price);
                 }
             }

@@ -28,7 +28,7 @@ const report_route_1 = __importDefault(require("./routes/report.route"));
 const item_type_route_1 = __importDefault(require("./routes/item_type.route"));
 const sales_return_route_1 = __importDefault(require("./routes/sales_return.route"));
 const meilisearch_1 = require("meilisearch");
-const item_model_1 = require("./model/item.model");
+const search_helper_1 = __importDefault(require("./helper/search.helper"));
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -65,16 +65,7 @@ app.use("/itemType", auth_helper_1.authMiddleware, item_type_route_1.default);
 app.use("/salesReturn", auth_helper_1.authMiddleware, sales_return_route_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => {
-    item_model_1.ItemModel.fetchAll(new Date()).then((result) => {
-        exports.meili.index("item").addDocumentsInBatches(result.map((x) => {
-            return {
-                id: x.id,
-                reference: x.reference,
-                description: x.description,
-                brand: x.item_brand.name
-            };
-        }));
-    });
+    search_helper_1.default.scheduleData();
 });
 exports.io = new socket_io_1.Server(server, {
     cors: {

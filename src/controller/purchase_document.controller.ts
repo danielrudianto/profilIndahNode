@@ -185,7 +185,8 @@ class PurchaseDocumentController {
               const purchase_price = new ItemPurchasePriceModel(
                 parseFloat(good_receipt_items[idx].price),
                 good_receipt_items[idx].item_id,
-                req.body.userId
+                req.body.userId,
+                good_receipt_items[idx].item_unit_id
               );
 
               good_receipt_price.push(purchase_price);

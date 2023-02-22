@@ -129,14 +129,19 @@ class ItemPurchasePriceModel {
     const transactions: PrismaPromise<any>[] = [];
     item_price.forEach((x) => {
       const item_id = x.item_id;
+      const item_unit_id = (x.item_unit_id = x.item_unit_id);
+      const created_by = x.created_by;
       transactions.push(
         prisma.item_price_purchase.updateMany({
           where: {
             item_id: item_id,
+            item_unit_id: item_unit_id,
+            is_delete: false,
           },
           data: {
             deleted_at: new Date(),
             is_delete: true,
+            deleted_by: created_by,
           },
         })
       );
@@ -148,7 +153,7 @@ class ItemPurchasePriceModel {
       })
     );
 
-    return transactions;
+    return Promise.all(transactions);
   }
 
   static fetchByItemId(id: number) {
