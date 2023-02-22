@@ -303,29 +303,25 @@ class PurchaseDocumentController {
                 )
                   .then((good_receipts) => {
                     const transactions = [];
+                    const good_receipt_input: any[] = [];
+
                     for (let good_receipt_item of good_receipts) {
                       const priceIndex = filtered_good_receipt.findIndex(
                         (idx) => idx.id == good_receipt_item.id
                       );
                       if (priceIndex != -1) {
                         const price = filtered_good_receipt[priceIndex].price;
-                        const deleteItem = ItemPurchasePriceModel.delete(
-                          good_receipt_item.item_id,
-                          good_receipt_item.item_unit_id,
-                          req.body.userId
-                        );
                         const itemPurchasePrice = new ItemPurchasePriceModel(
                           price,
                           good_receipt_item.item_id,
                           req.body.userId,
                           good_receipt_item.item_unit_id
                         );
-                        transactions.push(deleteItem);
-                        transactions.push(itemPurchasePrice.create());
+                        good_receipt_input.push(itemPurchasePrice);
                       }
                     }
 
-                    Promise.all(transactions)
+                    ItemPurchasePriceModel.insertItems(good_receipt_input)
                       .then(() => {
                         return res.status(200).send(result[0]);
                       })
