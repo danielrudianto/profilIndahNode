@@ -942,35 +942,10 @@ class ItemModel {
         GROUP BY YEAR(bill_code.date), MONTH(bill_code.date), DAY(bill_code.date)`);
         }
     }
-    static fetchStockById(id, offset, limit) {
+    static fetchStockById(id, offset) {
         return prisma.$transaction([
-            prisma.stock_card_act.findMany({
-                where: {
-                    item_id: id,
-                },
-                select: {
-                    date: true,
-                    name: true,
-                    quantity: true,
-                    stock: true,
-                    bill_id: true,
-                    adjustment_case_id: true,
-                    good_receipt_id: true,
-                    sales_return_id: true,
-                    unit: true,
-                    conversion: true,
-                },
-                take: limit,
-                skip: offset,
-            }),
-            prisma.stock_card_act.count({
-                select: {
-                    id: true,
-                },
-                where: {
-                    item_id: id,
-                },
-            }),
+            prisma.$queryRawUnsafe(`CALL stock_card_act_view(${offset}, ${id})`),
+            prisma.$queryRawUnsafe(`CALL stock_card_act_count(${id})`),
         ]);
     }
     static fetchStockData(item_id, start = null, end = null) {

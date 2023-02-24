@@ -1002,35 +1002,10 @@ export class ItemModel {
     }
   }
 
-  static fetchStockById(id: number, offset: number, limit: number) {
+  static fetchStockById(id: number, offset: number) {
     return prisma.$transaction([
-      prisma.stock_card_act.findMany({
-        where: {
-          item_id: id,
-        },
-        select: {
-          date: true,
-          name: true,
-          quantity: true,
-          stock: true,
-          bill_id: true,
-          adjustment_case_id: true,
-          good_receipt_id: true,
-          sales_return_id: true,
-          unit: true,
-          conversion: true,
-        },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.stock_card_act.count({
-        select: {
-          id: true,
-        },
-        where: {
-          item_id: id,
-        },
-      }),
+      prisma.$queryRawUnsafe(`CALL stock_card_act_view(${offset}, ${id})`),
+      prisma.$queryRawUnsafe(`CALL stock_card_act_count(${id})`),
     ]);
   }
 

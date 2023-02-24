@@ -387,13 +387,24 @@ ItemController.fetchStock = (req, res) => {
             return res.status(404).send("Referensi tidak ditemukan.");
         }
         else {
-            item_model_1.ItemModel.fetchStockById(item.id, offset, limit)
+            item_model_1.ItemModel.fetchStockById(item.id, offset)
                 .then((result) => {
                 return res.status(200).send({
-                    data: result[0].map((x) => {
-                        return Object.assign(Object.assign({}, x), { quantity: parseFloat(x.quantity.toString()) });
+                    data: result[0].map(x => {
+                        return {
+                            name: x.f0,
+                            date: x.f1,
+                            bill_id: x.f4,
+                            adjustment_case_id: x.f5,
+                            good_receipt_id: x.f6,
+                            sales_return_id: x.f7,
+                            quantity: x.f8,
+                            stock: x.f9,
+                            unit: x.f10,
+                            conversion: x.f11,
+                        };
                     }),
-                    count: result[1],
+                    count: result[1][0].f0
                 });
             })
                 .catch((error) => {
