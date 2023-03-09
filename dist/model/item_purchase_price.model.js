@@ -322,6 +322,7 @@ class ItemPurchasePriceModel {
             data: {
                 is_delete: true,
                 deleted_by: created_by,
+                deleted_at: new Date(),
             },
         });
     }

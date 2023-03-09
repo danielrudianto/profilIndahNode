@@ -127,10 +127,11 @@ class ItemPurchasePriceController {
 
   static createBulk = (req: Request, res: Response) => {
     const transactions: any[] = [];
+    const insert_transactions: any[] = [];
     const data = req.body.data as any[];
-    for(let x of data){
+    for (let x of data) {
       const price = x.price;
-      const item_unit_id = (x.item_unit_id == 0) ? null : x.item_unit_id;
+      const item_unit_id = x.item_unit_id == 0 ? null : x.item_unit_id;
       const item_id = x.id;
       const itemPurchasePrice = new ItemPurchasePriceModel(
         price,
@@ -142,12 +143,18 @@ class ItemPurchasePriceController {
       transactions.push(
         ItemPurchasePriceModel.delete(item_id, item_unit_id, req.body.userId)
       );
-      transactions.push(itemPurchasePrice.create());
+      insert_transactions.push(itemPurchasePrice.create());
     }
 
     Promise.all(transactions)
       .then((result) => {
-        return res.status(200).send(result);
+        Promise.all(insert_transactions)
+          .then(() => {
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       })
       .catch((error) => {
         console.log(error);

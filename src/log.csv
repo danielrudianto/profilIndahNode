@@ -173,3 +173,5 @@ Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created ite
 Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created item sales price for item with reference babu 2 (ID: 9445); Item - Create; 1
 Fri Feb 17 2023 22:12:34 GMT+0700 (Indochina Time); info; Daniel Tri created item purchase price for item with reference babu 2 (ID: 9445); Item - Create; 1
 Fri Feb 17 2023 22:19:43 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Mon Mar 06 2023 09:21:55 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Mar 09 2023 14:18:35 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 822) dari BING JAYA  (ID: 822) untuk perusahaan Toko Profil Indah (ID: 1); Good Receipt controller - Create; 1

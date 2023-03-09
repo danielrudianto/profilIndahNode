@@ -89,18 +89,25 @@ ItemPurchasePriceController.create = (req, res) => {
 };
 ItemPurchasePriceController.createBulk = (req, res) => {
     const transactions = [];
+    const insert_transactions = [];
     const data = req.body.data;
     for (let x of data) {
         const price = x.price;
-        const item_unit_id = (x.item_unit_id == 0) ? null : x.item_unit_id;
+        const item_unit_id = x.item_unit_id == 0 ? null : x.item_unit_id;
         const item_id = x.id;
         const itemPurchasePrice = new item_purchase_price_model_1.default(price, item_id, req.body.userId, item_unit_id);
         transactions.push(item_purchase_price_model_1.default.delete(item_id, item_unit_id, req.body.userId));
-        transactions.push(itemPurchasePrice.create());
+        insert_transactions.push(itemPurchasePrice.create());
     }
     Promise.all(transactions)
         .then((result) => {
-        return res.status(200).send(result);
+        Promise.all(insert_transactions)
+            .then(() => {
+            return res.status(200).send(result);
+        })
+            .catch((error) => {
+            return res.status(500).send(error);
+        });
     })
         .catch((error) => {
         console.log(error);

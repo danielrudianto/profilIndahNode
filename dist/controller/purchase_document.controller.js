@@ -121,7 +121,8 @@ PurchaseDocumentController.create = (req, res) => {
         const good_receipt_code = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
         good_receipt_code.create().then((good_receipt_result) => {
             const good_receipt = [];
-            const good_receipt_price = [];
+            const delete_price = [];
+            const insert_price = [];
             for (let idx = 0; idx < good_receipt_items.length; idx++) {
                 good_receipt.push({
                     item_id: good_receipt_items[idx].item_id,
@@ -131,25 +132,32 @@ PurchaseDocumentController.create = (req, res) => {
                     item_unit_id: good_receipt_items[idx].item_unit_id,
                 });
                 if (good_receipt_items[idx].save == true) {
+                    delete_price.push(item_purchase_price_model_1.default.delete(good_receipt_items[idx].item_id, good_receipt_items[idx].item_unit_id, req.body.userId));
                     const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId, good_receipt_items[idx].item_unit_id);
-                    good_receipt_price.push(purchase_price);
+                    insert_price.push(purchase_price.create());
                 }
             }
             const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, faktur, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
             Promise.all([
                 good_receipt_model_1.default.insertItems(good_receipt),
-                item_purchase_price_model_1.default.insertItems(good_receipt_price),
+                delete_price,
                 purchase_document.create(),
             ])
                 .then(() => {
-                const socket = new socket_helper_1.default("createGoodReceipt", {
-                    supplier_id: good_receipt_result.supplier_id,
-                    company_id: good_receipt_result.company_id,
-                });
-                socket.create();
-                good_receipt_model_1.default.fetchById(good_receipt_result.id)
-                    .then((item) => {
-                    return res.status(201).send(item);
+                Promise.all(insert_price)
+                    .then(() => {
+                    const socket = new socket_helper_1.default("createGoodReceipt", {
+                        supplier_id: good_receipt_result.supplier_id,
+                        company_id: good_receipt_result.company_id,
+                    });
+                    socket.create();
+                    good_receipt_model_1.default.fetchById(good_receipt_result.id)
+                        .then((item) => {
+                        return res.status(201).send(item);
+                    })
+                        .catch((error) => {
+                        return res.status(500).send(error);
+                    });
                 })
                     .catch((error) => {
                     return res.status(500).send(error);
