@@ -214,28 +214,36 @@ PurchaseDocumentController.confirm = (req, res) => {
                 const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
                 socket.create();
                 if (good_receipt.filter((x) => x.save).length > 0) {
+                    // Search for saved items
                     const filtered_good_receipt = good_receipt.filter((x) => x.save);
                     good_receipt_model_1.default.fetchByIds(filtered_good_receipt.map((y) => {
                         return y.id;
                     }))
                         .then((good_receipts) => {
-                        const transactions = [];
-                        const good_receipt_input = [];
-                        for (let good_receipt_item of good_receipts) {
-                            const priceIndex = filtered_good_receipt.findIndex((idx) => idx.id == good_receipt_item.id);
-                            if (priceIndex != -1) {
-                                const price = filtered_good_receipt[priceIndex].price;
-                                const itemPurchasePrice = new item_purchase_price_model_1.default(price, good_receipt_item.item_id, req.body.userId, good_receipt_item.item_unit_id);
-                                good_receipt_input.push(itemPurchasePrice);
-                            }
-                        }
-                        item_purchase_price_model_1.default.insertItems(good_receipt_input)
-                            .then(() => {
+                        if (filtered_good_receipt.length == 0) {
                             return res.status(200).send(result[0]);
-                        })
-                            .catch((error) => {
-                            return res.status(500).send(error);
-                        });
+                        }
+                        else {
+                            const insert_transaction = [];
+                            const delete_transaction = [];
+                            for (let good_receipt_item of good_receipts) {
+                                const priceIndex = filtered_good_receipt.findIndex((idx) => idx.id == good_receipt_item.id);
+                                if (priceIndex != -1) {
+                                    delete_transaction.push(item_purchase_price_model_1.default.delete(good_receipt_item.item_id, good_receipt_item.item_unit_id, req.body.userId));
+                                    const itemPurchasePrice = new item_purchase_price_model_1.default(parseFloat(good_receipt_item.price.toString()), good_receipt_item.item_id, req.body.userId1, good_receipt_item.item_unit_id);
+                                    insert_transaction.push(itemPurchasePrice.create());
+                                }
+                            }
+                            Promise.all(delete_transaction)
+                                .then(() => {
+                                Promise.all(insert_transaction).then(() => {
+                                    return res.status(200).send(result[0]);
+                                });
+                            })
+                                .catch((error) => {
+                                return res.status(500).send(error);
+                            });
+                        }
                     })
                         .catch((error) => {
                         return res.status(500).send(error);
