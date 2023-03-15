@@ -339,7 +339,7 @@ class PurchaseDocumentController {
                           const itemPurchasePrice = new ItemPurchasePriceModel(
                             parseFloat(good_receipt_item.price.toString()),
                             good_receipt_item.item_id,
-                            req.body.userId1,
+                            req.body.userId,
                             good_receipt_item.item_unit_id
                           );
 
@@ -349,9 +349,14 @@ class PurchaseDocumentController {
 
                       Promise.all(delete_transaction)
                         .then(() => {
-                          Promise.all(insert_transaction).then(() => {
-                            return res.status(200).send(result[0]);
-                          });
+                          Promise.all(insert_transaction)
+                            .then(() => {
+                              return res.status(200).send(result[0]);
+                            })
+                            .catch((error) => {
+                              console.error(error);
+                              return res.status(500).send(error);
+                            });
                         })
                         .catch((error) => {
                           return res.status(500).send(error);

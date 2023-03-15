@@ -93,13 +93,13 @@ ItemController.create = (req, res) => {
                     });
                 })
                     .catch((error) => {
-                    console.log(error);
+                    console.error(error);
                     log_helper_1.default.log(new Date(), "error", error, "Item Controller - Create", req.body.userId);
                     return res.status(500).send(error);
                 });
             }))
                 .catch((error) => {
-                console.log(error);
+                console.error(error);
                 log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
                 return res.status(500).send(error);
             });
@@ -344,7 +344,7 @@ ItemController.fetch = (req, res) => {
     })
         .catch((error) => {
         log_helper_1.default.log(new Date(), "error", error, "Item controller - fetch", req.body.userId);
-        console.log(error);
+        console.error(error);
         return res.status(500).send(error);
     });
 };

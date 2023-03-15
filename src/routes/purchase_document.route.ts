@@ -14,11 +14,6 @@ router.get("/archives/:year/:month", PurchaseDocumentController.fetchArchive);
 router.get("/:id", PurchaseDocumentController.fetchById);
 
 router.post("/confirm", PurchaseDocumentController.confirm);
-router.post(
-  "/confirmUnchanged",
-  administratorMiddleware,
-  PurchaseDocumentController.confirmUnchanged
-);
 router.post("/", PurchaseDocumentController.create);
 router.put("/", PurchaseDocumentController.update);
 

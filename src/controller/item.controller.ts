@@ -159,7 +159,7 @@ class ItemController {
                     });
                 })
                 .catch((error) => {
-                  console.log(error);
+                  console.error(error);
                   LogHelper.log(
                     new Date(),
                     "error",
@@ -172,7 +172,7 @@ class ItemController {
                 });
             })
             .catch((error) => {
-              console.log(error);
+              console.error(error);
               LogHelper.log(
                 new Date(),
                 "error",
@@ -526,7 +526,7 @@ class ItemController {
           "Item controller - fetch",
           req.body.userId
         );
-        console.log(error);
+        console.error(error);
         return res.status(500).send(error);
       });
   };
