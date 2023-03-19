@@ -579,7 +579,7 @@ class ItemController {
         ItemModel.fetchStockById(item.id, offset)
           .then((result) => {
             return res.status(200).send({
-              data: (result[0] as any[]).map(x => {
+              data: (result[0] as any[]).map((x) => {
                 return {
                   name: x.f0,
                   date: x.f1,
@@ -591,10 +591,10 @@ class ItemController {
                   stock: x.f9,
                   unit: x.f10,
                   conversion: x.f11,
-                }
+                };
               }),
-              count: (result[1] as any[])[0].f0
-            })
+              count: (result[1] as any[])[0].f0,
+            });
           })
           .catch((error) => {
             console.log(error);
@@ -621,10 +621,20 @@ class ItemController {
                 StockCardHelper.createPdf(
                   (result as any[]).map((x) => {
                     return {
-                      ...x,
-                      date: new Date(x.date),
-                      stock: parseFloat(x.stock.toString()),
-                      quantity: parseFloat(x.quantity.toString()),
+                      name: x.f0,
+                      date: new Date(x.f1),
+                      created_at: new Date(x.f2),
+                      item_id: x.f3,
+                      item_unit_id: x.f4,
+                      bill_id: x.f5,
+                      adjustment_case_id: x.f6,
+                      good_receipt_id: x.f7,
+                      sales_return_id: x.f8,
+                      quantity: x.f9,
+                      stock: x.f10,
+                      unit: x.f11,
+                      conversion: x.f12,
+                      opponent: x.f13,
                     };
                   }),
                   function (binary: string) {
@@ -642,10 +652,20 @@ class ItemController {
                 StockCardHelper.createCsv(
                   (result as any[]).map((x) => {
                     return {
-                      ...x,
-                      date: new Date(x.date),
-                      quantity: parseFloat(x.quantity.toString()),
-                      stock: parseFloat(x.stock.toString()),
+                      name: x.f0,
+                      date: new Date(x.f1),
+                      created_at: new Date(x.f2),
+                      item_id: x.f3,
+                      item_unit_id: x.f4,
+                      bill_id: x.f5,
+                      adjustment_case_id: x.f6,
+                      good_receipt_id: x.f7,
+                      sales_return_id: x.f8,
+                      quantity: x.f9,
+                      stock: x.f10,
+                      unit: x.f11,
+                      conversion: x.f12,
+                      opponent: x.f13,
                     };
                   }),
                   function (array: any[]) {
@@ -748,15 +768,25 @@ class ItemController {
         } else {
           ItemModel.fetchStockData(item.id, start, start)
             .then((result) => {
-              return res.status(200).send({
-                data: result[0],
-                initial_stock:
-                  result[1] == null
-                    ? 0
-                    : (result[1] as any[]).length == 0
-                    ? 0
-                    : (result[1] as any[])[0].stock,
-              });
+              return res.status(200).send(
+                (result as any[]).map((x) => {
+                  return {
+                    name: x.f0,
+                    date: new Date(x.f1),
+                    created_at: new Date(x.f2),
+                    item_id: x.f3,
+                    item_unit_id: x.f4,
+                    bill_id: x.f5,
+                    adjustment_case_id: x.f6,
+                    good_receipt_id: x.f7,
+                    sales_return_id: x.f8,
+                    quantity: x.f9,
+                    stock: x.f10,
+                    unit: x.f11,
+                    conversion: x.f12,
+                  };
+                })
+              );
             })
             .catch((error) => {
               console.log(error);
@@ -789,17 +819,25 @@ class ItemController {
         } else {
           ItemModel.fetchInputStockData(item.id, start_date, end_date)
             .then((result) => {
-              return res.status(200).send({
-                data: result[0],
-                initial_stock:
-                  result[1] == null
-                    ? 0
-                    : (result[1] as any[]).length == 0
-                    ? 0
-                    : (result[1] as any[])[0].stock == null
-                    ? 0
-                    : (result[1] as any[])[0].stock,
-              });
+              return res.status(200).send(
+                (result as any[]).map((x) => {
+                  return {
+                    name: x.f0,
+                    date: new Date(x.f1),
+                    created_at: new Date(x.f2),
+                    item_id: x.f3,
+                    item_unit_id: x.f4,
+                    bill_id: x.f5,
+                    adjustment_case_id: x.f6,
+                    good_receipt_id: x.f7,
+                    sales_return_id: x.f8,
+                    quantity: x.f9,
+                    stock: x.f10,
+                    unit: x.f11,
+                    conversion: x.f12,
+                  };
+                })
+              );
             })
             .catch((error) => {
               console.log(error);

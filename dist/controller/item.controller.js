@@ -390,7 +390,7 @@ ItemController.fetchStock = (req, res) => {
             item_model_1.ItemModel.fetchStockById(item.id, offset)
                 .then((result) => {
                 return res.status(200).send({
-                    data: result[0].map(x => {
+                    data: result[0].map((x) => {
                         return {
                             name: x.f0,
                             date: x.f1,
@@ -404,7 +404,7 @@ ItemController.fetchStock = (req, res) => {
                             conversion: x.f11,
                         };
                     }),
-                    count: result[1][0].f0
+                    count: result[1][0].f0,
                 });
             })
                 .catch((error) => {
@@ -429,7 +429,22 @@ ItemController.downloadStock = (req, res) => {
                 switch (format) {
                     case "pdf":
                         stock_card_helper_1.default.createPdf(result.map((x) => {
-                            return Object.assign(Object.assign({}, x), { date: new Date(x.date), stock: parseFloat(x.stock.toString()), quantity: parseFloat(x.quantity.toString()) });
+                            return {
+                                name: x.f0,
+                                date: new Date(x.f1),
+                                created_at: new Date(x.f2),
+                                item_id: x.f3,
+                                item_unit_id: x.f4,
+                                bill_id: x.f5,
+                                adjustment_case_id: x.f6,
+                                good_receipt_id: x.f7,
+                                sales_return_id: x.f8,
+                                quantity: x.f9,
+                                stock: x.f10,
+                                unit: x.f11,
+                                conversion: x.f12,
+                                opponent: x.f13,
+                            };
                         }), function (binary) {
                             return res.status(200).send({
                                 data: binary,
@@ -440,7 +455,22 @@ ItemController.downloadStock = (req, res) => {
                         break;
                     case "csv":
                         stock_card_helper_1.default.createCsv(result.map((x) => {
-                            return Object.assign(Object.assign({}, x), { date: new Date(x.date), quantity: parseFloat(x.quantity.toString()), stock: parseFloat(x.stock.toString()) });
+                            return {
+                                name: x.f0,
+                                date: new Date(x.f1),
+                                created_at: new Date(x.f2),
+                                item_id: x.f3,
+                                item_unit_id: x.f4,
+                                bill_id: x.f5,
+                                adjustment_case_id: x.f6,
+                                good_receipt_id: x.f7,
+                                sales_return_id: x.f8,
+                                quantity: x.f9,
+                                stock: x.f10,
+                                unit: x.f11,
+                                conversion: x.f12,
+                                opponent: x.f13,
+                            };
                         }), function (array) {
                             return res.status(200).send({
                                 data: array,
@@ -515,14 +545,23 @@ ItemController.fetchDailyStock = (req, res) => {
         else {
             item_model_1.ItemModel.fetchStockData(item.id, start, start)
                 .then((result) => {
-                return res.status(200).send({
-                    data: result[0],
-                    initial_stock: result[1] == null
-                        ? 0
-                        : result[1].length == 0
-                            ? 0
-                            : result[1][0].stock,
-                });
+                return res.status(200).send(result.map((x) => {
+                    return {
+                        name: x.f0,
+                        date: new Date(x.f1),
+                        created_at: new Date(x.f2),
+                        item_id: x.f3,
+                        item_unit_id: x.f4,
+                        bill_id: x.f5,
+                        adjustment_case_id: x.f6,
+                        good_receipt_id: x.f7,
+                        sales_return_id: x.f8,
+                        quantity: x.f9,
+                        stock: x.f10,
+                        unit: x.f11,
+                        conversion: x.f12,
+                    };
+                }));
             })
                 .catch((error) => {
                 console.log(error);
@@ -552,16 +591,23 @@ ItemController.fetchDailyInputStock = (req, res) => {
         else {
             item_model_1.ItemModel.fetchInputStockData(item.id, start_date, end_date)
                 .then((result) => {
-                return res.status(200).send({
-                    data: result[0],
-                    initial_stock: result[1] == null
-                        ? 0
-                        : result[1].length == 0
-                            ? 0
-                            : result[1][0].stock == null
-                                ? 0
-                                : result[1][0].stock,
-                });
+                return res.status(200).send(result.map((x) => {
+                    return {
+                        name: x.f0,
+                        date: new Date(x.f1),
+                        created_at: new Date(x.f2),
+                        item_id: x.f3,
+                        item_unit_id: x.f4,
+                        bill_id: x.f5,
+                        adjustment_case_id: x.f6,
+                        good_receipt_id: x.f7,
+                        sales_return_id: x.f8,
+                        quantity: x.f9,
+                        stock: x.f10,
+                        unit: x.f11,
+                        conversion: x.f12,
+                    };
+                }));
             })
                 .catch((error) => {
                 console.log(error);

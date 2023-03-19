@@ -43,7 +43,7 @@ class StockCardHelper {
             stockItems.forEach((x) => {
                 const date = x.date;
                 const date_format = `${date.getDate()} ${month[date.getMonth()]} ${date.getFullYear()}`;
-                stockBody.push([date_format, x.name, x.op, x.quantity, x.stock]);
+                stockBody.push([date_format, x.name, x.opponent, x.quantity, x.stock]);
             });
             const docDefinition = {
                 content: [
@@ -101,7 +101,7 @@ class StockCardHelper {
             stockItems.forEach((x) => {
                 const date = x.date;
                 const date_format = `${date.getDate()} ${month[date.getMonth()]} ${date.getFullYear()}`;
-                stockBody.push([date_format, x.name, x.op, x.quantity, x.stock]);
+                stockBody.push([date_format, x.name, x.opponent, x.quantity, x.stock]);
             });
             callback(stockBody);
         }

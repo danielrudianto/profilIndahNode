@@ -950,74 +950,10 @@ class ItemModel {
     }
     static fetchStockData(item_id, start = null, end = null) {
         if (start == null || end == null) {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
-        SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date) AS date, stock_card.quantity, stock_card.stock, COALESCE(billTable.op, goodreceiptTable.op, 'Transaksi Internal') AS op
-        FROM stock_card
-        LEFT JOIN (
-          SELECT bill_code.name, bill_code.date, bill.id, COALESCE(customer.name, 'Retail') AS op
-          FROM bill
-          JOIN bill_code ON bill_code.id = bill.bill_code_id
-          LEFT JOIN customer ON bill_code.customer_id = customer.id
-        ) billTable
-        ON stock_card.bill_id = billTable.id
-        LEFT JOIN (
-          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id, supplier.name AS op
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
-          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        ) goodReceiptTable
-        ON stock_card.good_receipt_id = goodReceiptTable.id
-        LEFT JOIN (
-          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
-          FROM adjustment_case
-          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
-        ) adjustmentTable
-        ON stock_card.adjustment_case_id = adjustmentTable.id
-        WHERE stock_card.item_id = ${item_id}`),
-            ]);
+            return prisma.$queryRawUnsafe(`CALL daily_stock_card_date(NULL, NULL, ${item_id})`);
         }
         else {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name, returnTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date, returnTable.date) AS date, stock_card_act.quantity, stock_card_act.stock
-          FROM stock_card_act
-          LEFT JOIN (
-            SELECT bill_code.name, bill_code.date, bill.id
-            FROM bill
-            JOIN bill_code ON bill_code.id = bill.bill_code_id
-          ) billTable
-          ON stock_card_act.bill_id = billTable.id
-          LEFT JOIN (
-            SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id
-            FROM good_receipt
-            JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
-          ) goodReceiptTable
-          ON stock_card_act.good_receipt_id = goodReceiptTable.id
-          LEFT JOIN (
-            SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id
-            FROM adjustment_case
-            JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
-          ) adjustmentTable
-          ON stock_card_act.adjustment_case_id = adjustmentTable.id
-          LEFT JOIN (
-            SELECT sales_return_code.name, sales_return_code.date, sales_return.id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return_code.id = sales_return.sales_return_code_id
-          ) returnTable
-          ON stock_card_act.sales_return_id = returnTable.id
-          WHERE stock_card_act.item_id = ${item_id}
-          AND stock_card_act.date BETWEEN '${start}' AND '${end}';`),
-                prisma.$queryRawUnsafe(`
-            SELECT stock 
-            FROM stock_card_act
-            WHERE id = (
-              SELECT MIN(id) AS id
-              FROM stock_card_act
-              WHERE item_id = ${item_id}
-              AND date < '${start}'
-            )
-        `),
-            ]);
+            return prisma.$queryRawUnsafe(`CALL daily_stock_card_date('${start}', '${end}', ${item_id})`);
         }
     }
     static fetchInputStockData(item_id, start, end) {
@@ -1042,66 +978,7 @@ class ItemModel {
             .getUTCMinutes()
             .toString()
             .padStart(2, "0")}:${end.getUTCSeconds().toString().padStart(2, "0")}`;
-        return prisma.$transaction([
-            prisma.$queryRawUnsafe(`SELECT COALESCE(billTable.name, goodReceiptTable.name, adjustmentTable.name, returnTable.name) AS name, COALESCE(billTable.date, goodReceiptTable.date, adjustmentTable.date,returnTable.date) AS date, stock_card_act.quantity, stock_card_act.stock, COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at, returnTable.created_at) AS created_at
-        FROM stock_card_act
-        LEFT JOIN (
-          SELECT bill_code.name, bill_code.date, bill.id, bill_code.created_at
-          FROM bill
-          JOIN bill_code ON bill_code.id = bill.bill_code_id
-        ) billTable
-        ON stock_card_act.bill_id = billTable.id
-        LEFT JOIN (
-          SELECT good_receipt_code.name, good_receipt_code.date, good_receipt.id, good_receipt_code.created_at
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
-        ) goodReceiptTable
-        ON stock_card_act.good_receipt_id = goodReceiptTable.id
-        LEFT JOIN (
-          SELECT adjustment_case_code.name, adjustment_case_code.date, adjustment_case.id, adjustment_case_code.created_at
-          FROM adjustment_case
-          JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
-        ) adjustmentTable
-        ON stock_card_act.adjustment_case_id = adjustmentTable.id
-        LEFT JOIN (
-          SELECT sales_return_code.name, sales_return_code.date, sales_return.id, sales_return_code.created_at
-          FROM sales_return
-          JOIN sales_return_code ON sales_return_code.id = sales_return.sales_return_code_id
-        ) returnTable
-        ON stock_card_act.sales_return_id = returnTable.id
-        WHERE stock_card_act.item_id = ${item_id}
-        AND COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at, returnTable.created_at) BETWEEN '${formatted_start}' AND '${formatted_end}';`),
-            prisma.$queryRawUnsafe(`
-          SELECT SUM(quantity) AS stock 
-          FROM stock_card_act
-          LEFT JOIN (
-            SELECT bill_code.name, bill_code.created_at, bill.id
-            FROM bill
-            JOIN bill_code ON bill_code.id = bill.bill_code_id
-          ) billTable
-          ON stock_card_act.bill_id = billTable.id
-          LEFT JOIN (
-            SELECT good_receipt_code.name, good_receipt_code.created_at, good_receipt.id
-            FROM good_receipt
-            JOIN good_receipt_code ON good_receipt_code.id = good_receipt.good_receipt_code_id
-          ) goodReceiptTable
-          ON stock_card_act.good_receipt_id = goodReceiptTable.id
-          LEFT JOIN (
-            SELECT adjustment_case_code.name, adjustment_case_code.created_at, adjustment_case.id
-            FROM adjustment_case
-            JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
-          ) adjustmentTable
-          ON stock_card_act.adjustment_case_id = adjustmentTable.id
-          LEFT JOIN (
-            SELECT sales_return_code.name, sales_return_code.created_at, sales_return.id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return_code.id = sales_return.sales_return_code_id
-          ) returnTable
-          ON stock_card_act.sales_return_id = returnTable.id
-          WHERE item_id = ${item_id}
-          AND COALESCE(billTable.created_at, goodReceiptTable.created_at, adjustmentTable.created_at,returnTable.created_at) < '${formatted_start}'
-      `),
-        ]);
+        return prisma.$queryRawUnsafe(`CALL daily_stock_card_input('${formatted_start}', '${formatted_end}', ${item_id})`);
     }
     static fetchFrequentItems(monthly) {
         const date = new Date();

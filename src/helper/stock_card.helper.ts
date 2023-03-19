@@ -5,7 +5,7 @@ import { Alignment, Margins } from "pdfmake/interfaces";
 interface stockItem {
   name: string;
   date: Date;
-  op: string;
+  opponent: string;
   quantity: number;
   stock: number;
 }
@@ -72,7 +72,7 @@ class StockCardHelper {
         const date_format = `${date.getDate()} ${
           month[date.getMonth()]
         } ${date.getFullYear()}`;
-        stockBody.push([date_format, x.name, x.op, x.quantity, x.stock]);
+        stockBody.push([date_format, x.name, x.opponent, x.quantity, x.stock]);
       });
       const docDefinition = {
         content: [
@@ -139,7 +139,7 @@ class StockCardHelper {
         const date_format = `${date.getDate()} ${
           month[date.getMonth()]
         } ${date.getFullYear()}`;
-        stockBody.push([date_format, x.name, x.op, x.quantity, x.stock]);
+        stockBody.push([date_format, x.name, x.opponent, x.quantity, x.stock]);
       });
 
       callback(stockBody);
