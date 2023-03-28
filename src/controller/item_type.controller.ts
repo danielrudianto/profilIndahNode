@@ -15,14 +15,21 @@ class ItemTypeController {
 
     ItemTypeModel.fetchItems(keyword, offset, limit)
       .then((result) => {
+        console.log(result);
         return res.status(200).send({
-          data: result[0].map((x) => {
+          data: (result[0] as any[]).map(x => {
             return {
-              ...x,
-              can_delete: x.item.length == 0,
-            };
+              id: x.id,
+              name: x.name,
+              created_at: new Date(x.created_at),
+              user_item_type_created_byTouser: {
+                name: x.createdByName,
+                id: x.createdBy,
+              },
+              can_delete: (x.count == 0) ? true : false,
+            }
           }),
-          count: result[1],
+          count: result[1]
         });
       })
       .catch((error) => {

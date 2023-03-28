@@ -179,3 +179,14 @@ Wed Mar 15 2023 14:41:17 GMT+0700 (Indochina Time); info; Login success for user
 Wed Mar 15 2023 14:41:20 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Wed Mar 15 2023 14:58:11 GMT+0700 (Indochina Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Sun Mar 19 2023 21:35:27 GMT+0700 (Indochina Time); info; Daniel Tri berhasil menambahkan faktur penjualan INV-2023-40449256 (ID: 15314); Bill controller - Create; 1
+Tue Mar 28 2023 09:22:07 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 09:25:47 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_type.count()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'user.name' in 'field list'`; ItemTypeController - Fetch Items; 1
+Tue Mar 28 2023 09:31:22 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_type.count()` invocation:,,,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near '+ keyword + '%',          ORDER BY item_type.name ASC,          LIMIT ? OFFSET ?' at line 12`; ItemTypeController - Fetch Items; 1
+Tue Mar 28 2023 09:31:54 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_type.count()` invocation:,,,  Server has closed the connection.; ItemTypeController - Fetch Items; 1
+Tue Mar 28 2023 09:33:26 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_type.count()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column '$1' in 'where clause'`; ItemTypeController - Fetch Items; 1
+Tue Mar 28 2023 11:52:31 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 12:16:19 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 12:16:40 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 14:08:58 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 14:10:06 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 15:10:56 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1

@@ -68,35 +68,20 @@ class ItemTypeModel {
   static fetchItems(keyword: string, offset: number, limit: number) {
     if (keyword == "") {
       return prisma.$transaction([
-        prisma.item_type.findMany({
-          where: {
-            is_delete: false,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          select: {
-            id: true,
-            name: true,
-            created_at: true,
-            created_by: true,
-            user_item_type_created_byTouser: {
-              select: {
-                name: true,
-              },
-            },
-            item: {
-              select: {
-                _count: true,
-              },
-              where: {
-                is_delete: false,
-              },
-            },
-          },
-          take: limit,
-          skip: offset,
-        }),
+        prisma.$queryRaw`
+          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, itemCount.count
+          FROM item_type
+          JOIN (
+            SELECT COUNT(id) AS count, item_type_id
+            FROM item
+            WHERE item.is_delete = 0
+            GROUP BY item.item_type_id
+          ) AS itemCount
+          ON item_type.id = itemCount.item_type_id
+          JOIN user ON item_type.created_by = user.id
+          WHERE item_type.is_delete = 0
+          ORDER BY item_type.name ASC
+          LIMIT ${limit} OFFSET ${offset}`,
         prisma.item_type.count({
           where: {
             is_delete: false,
@@ -105,38 +90,23 @@ class ItemTypeModel {
       ]);
     } else {
       return prisma.$transaction([
-        prisma.item_type.findMany({
-          where: {
-            is_delete: false,
-            name: {
-              contains: keyword,
-            },
-          },
-          orderBy: {
-            name: "asc",
-          },
-          select: {
-            id: true,
-            name: true,
-            created_at: true,
-            user_item_type_created_byTouser: {
-              select: {
-                name: true,
-                id: true,
-              },
-            },
-            item: {
-              select: {
-                _count: true,
-              },
-              where: {
-                is_delete: false,
-              },
-            },
-          },
-          take: limit,
-          skip: offset,
-        }),
+        prisma.$queryRawUnsafe(
+          `
+          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, itemCount.count
+          FROM item_type
+          JOIN (
+            SELECT COUNT(id) AS count, item_type_id
+            FROM item
+            WHERE item.is_delete = 0
+            GROUP BY item.item_type_id
+          ) AS itemCount
+          ON item_type.id = itemCount.item_type_id
+          JOIN user ON item_type.created_by = user.id
+          WHERE item_type.is_delete = 0
+          AND item_type.name LIKE '%${keyword}%'
+          ORDER BY item_type.name ASC
+          LIMIT ${limit} OFFSET ${offset}`
+        ),
         prisma.item_type.count({
           where: {
             is_delete: false,
