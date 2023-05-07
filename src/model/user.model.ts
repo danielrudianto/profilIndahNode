@@ -78,7 +78,7 @@ class UserModel {
     });
   }
 
-  static countDuplicate(username: string, nik: string) {
+  static fetchByIdentifiers(username: string, nik: string) {
     return prisma.user.count({
       where: {
         OR: [

@@ -1,0 +1,21 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const express_validator_1 = require("express-validator");
+const error_list_1 = __importDefault(require("../../assets/error_list"));
+const auth_controller_1 = __importDefault(require("../../controller/auth.controller"));
+const user_controller_1 = __importDefault(require("../../controller/user.controller"));
+const auth_helper_1 = require("../../helper/auth.helper");
+const error_helper_1 = __importDefault(require("../../helper/error.helper"));
+const router = (0, express_1.Router)();
+router.get("/profile", auth_controller_1.default.fetchProfile);
+router.get("/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.fetchById);
+router.get("/", user_controller_1.default.fetch);
+router.post("/changePassword", user_controller_1.default.changePassword);
+router.post("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("role").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("username").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("nik").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.create);
+router.put("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("id").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("role").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("username").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("nik").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.update);
+router.delete("/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), user_controller_1.default.toggleActive);
+exports.default = router;

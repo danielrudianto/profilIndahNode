@@ -9,7 +9,6 @@ class CompanyModel {
   npwp: string | null;
   created_by: number;
   created_at: Date;
-  code_name: string;
 
   deleted_by?: number;
   deleted_at?: Date;
@@ -22,7 +21,6 @@ class CompanyModel {
     address: string,
     npwp: string | null,
     created_by: number,
-    code_name: string,
     id: number | null = null
   ) {
     if (id != null) {
@@ -34,7 +32,6 @@ class CompanyModel {
     this.npwp = npwp;
     this.created_by = created_by;
     this.created_at = new Date();
-    this.code_name = code_name;
   }
 
   create() {
@@ -45,12 +42,10 @@ class CompanyModel {
         npwp: this.npwp,
         created_by: this.created_by,
         created_at: this.created_at,
-        code_name: this.code_name,
       },
       select: {
         id: true,
         name: true,
-        code_name: true,
         address: true,
         npwp: true,
         created_by: true,
@@ -80,7 +75,6 @@ class CompanyModel {
         name: this.name,
         address: this.address,
         npwp: this.npwp,
-        code_name: this.code_name,
         updated_by: this.created_by,
         updated_at: this.created_at,
       },
@@ -96,11 +90,18 @@ class CompanyModel {
   }
 
   static fetchById(id: number) {
-    return prisma.company.findUnique({
-      where: {
-        id: id,
-      },
-    });
+    return prisma.$queryRaw<any[]>`
+      SELECT company.id, company.name, company.address, company.npwp, company.created_by, company.created_at, company.is_delete, COALESCE(companyCount.count, 0) AS count
+      FROM company
+      LEFT JOIN (
+        SELECT COUNT(id) AS count, good_receipt_code.company_id
+        FROM good_receipt_code
+        WHERE good_receipt_code.is_delete = 0
+        AND good_receipt_code.company_id = ${id}
+      ) companyCount
+      ON company.id = companyCount.company_id
+      WHERE company.id = ${id}
+    `;
   }
 
   static checkDeleteById(id: number) {
@@ -122,7 +123,6 @@ class CompanyModel {
             id: true,
             name: true,
             address: true,
-            code_name: true,
             npwp: true,
             user: {
               select: {
@@ -156,18 +156,12 @@ class CompanyModel {
                   contains: keyword,
                 },
               },
-              {
-                code_name: {
-                  contains: keyword,
-                },
-              },
             ],
           },
           select: {
             id: true,
             name: true,
             address: true,
-            code_name: true,
             npwp: true,
             user: {
               select: {
@@ -190,11 +184,6 @@ class CompanyModel {
               },
               {
                 address: {
-                  contains: keyword,
-                },
-              },
-              {
-                code_name: {
                   contains: keyword,
                 },
               },
@@ -232,11 +221,6 @@ class CompanyModel {
                 contains: keyword,
               },
             },
-            {
-              code_name: {
-                contains: keyword,
-              },
-            },
           ],
         },
       });
@@ -262,11 +246,6 @@ class CompanyModel {
             },
             {
               address: {
-                contains: keyword,
-              },
-            },
-            {
-              code_name: {
                 contains: keyword,
               },
             },
@@ -296,20 +275,10 @@ class CompanyModel {
     });
   }
 
-  static getByCodeName(code_name: string) {
-    return prisma.company.findMany({
-      where: {
-        code_name: code_name,
-        is_delete: false,
-      },
-    });
-  }
-
   static fetchAvailable() {
     return prisma.company.findMany({
       select: {
         name: true,
-        code_name: true,
         address: true,
         id: true,
       },

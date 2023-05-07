@@ -2,30 +2,46 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
+import { MeiliSearch } from "meilisearch";
 
 import { authMiddleware } from "./helper/auth.helper";
 
-import authRoutes from "./routes/auth.route";
-import itemRoutes from "./routes/item.route";
-import itemPriceRoutes from "./routes/item_price.route";
-import itemPurchaseRoutes from "./routes/item_purchase_price.route";
-import brandRoutes from "./routes/brand.route";
-import supplierRoutes from "./routes/supplier.route";
-import customerRoutes from "./routes/customer.route";
-import companyRoutes from "./routes/company.route";
-import goodReceiptRoutes from "./routes/good_receipt.route";
-import purchaseDocumentRoutes from "./routes/purchase_document.route";
-import userRoutes from "./routes/user.route";
-import expenseRoutes from "./routes/expense.route";
-import paymentMethodRoutes from "./routes/payment_method.route";
-import billRoutes from "./routes/bill.route";
-import adjustmentCaseRoutes from "./routes/adjustment_case.route";
-import reportRoutes from "./routes/report.route";
-import itemTypeRoutes from "./routes/item_type.route";
-import salesReturnRoutes from "./routes/sales_return.route";
-import { MeiliSearch } from "meilisearch";
-import { ItemModel } from "./model/item.model";
+import authRoutes from "./routes/authentication/auth.route";
+/*
+  Routes for master data
+*/
+import productRoutes from "./routes/master/product.route";
+import productSalesPriceRoutes from "./routes/master/product-price-sales.route";
+import productPurchasePriceRoutes from "./routes/master/product-price-purchase.route";
+import productBrandRoutes from "./routes/master/product-brand.route";
+import productTypeRoutes from "./routes/master/product-type.route";
+import productUnitRoutes from "./routes/master/product-unit.route";
+import productStockRoutes from "./routes/report/stock.route";
+
+import supplierRoutes from "./routes/master/supplier.route";
+import customerRoutes from "./routes/master/customer.route";
+import companyRoutes from "./routes/master/company.route";
+import paymentMethodRoutes from "./routes/master/payment_method.route";
+import expenseTypeRoutes from "./routes/master/expense-type.route";
+/*
+  Routes for transactions data
+*/
+import goodReceiptRoutes from "./routes/transaction/good-receipt.route";
+import purchaseInvoiceRoutes from "./routes/transaction/purchase-invoice.route";
+import userRoutes from "./routes/master/user.route";
+import expenseRoutes from "./routes/transaction/expense.route";
+import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
+import adjustmentEventRoutes from "./routes/transaction/adjustment-event.route";
+import reportRoutes from "./routes/report/report.route";
+import salesReturnRoutes from "./routes/transaction/sales_return.route";
+import DraftBillRoutes from "./routes/transaction/draft-bill.route";
+
+/* 
+  Helpers
+*/
+
 import SearchHelper from "./helper/search.helper";
+import ProductStockController from "./controller/product-stock.controller";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -44,38 +60,40 @@ const options: cors.CorsOptions = {
 
 const app = express();
 app.use(cors(options));
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express.json());
 
 app.use("/auth", authRoutes);
-app.use("/item", authMiddleware, itemRoutes);
-app.use("/brand", authMiddleware, brandRoutes);
+app.use("/product", authMiddleware, productRoutes);
+app.use("/product-price-sales", authMiddleware, productSalesPriceRoutes);
+app.use("/product-price-purchase", authMiddleware, productPurchasePriceRoutes);
+app.use("/product-brand", authMiddleware, productBrandRoutes);
+app.use("/product-type", authMiddleware, productTypeRoutes);
+app.use("/product-unit", authMiddleware, productUnitRoutes);
+app.use("/product-stock", authMiddleware, productStockRoutes);
 
-app.use("/itemPrice", authMiddleware, itemPriceRoutes);
-app.use("/itemPurchasePrice", authMiddleware, itemPurchaseRoutes);
-
-app.use("/customer", authMiddleware, customerRoutes);
 app.use("/supplier", authMiddleware, supplierRoutes);
+app.use("/customer", authMiddleware, customerRoutes);
 app.use("/company", authMiddleware, companyRoutes);
+app.use("/payment-method", authMiddleware, paymentMethodRoutes);
+app.use("/expense-type", authMiddleware, expenseTypeRoutes);
 
-app.use("/adjustmentCase", authMiddleware, adjustmentCaseRoutes);
+app.use("/adjustment-event", authMiddleware, adjustmentEventRoutes);
+app.use("/sales-return", authMiddleware, salesReturnRoutes);
 
-app.use("/goodReceipt", authMiddleware, goodReceiptRoutes);
-app.use("/purchaseDocument", authMiddleware, purchaseDocumentRoutes);
+app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
+app.use("/purchase-invoice", authMiddleware, purchaseInvoiceRoutes);
+app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
+app.use("/draft-bill", authMiddleware, DraftBillRoutes);
 
 app.use("/user", authMiddleware, userRoutes);
-app.use("/paymentMethod", authMiddleware, paymentMethodRoutes);
-
 app.use("/expense", authMiddleware, expenseRoutes);
-app.use("/bill", authMiddleware, billRoutes);
-
 app.use("/report", reportRoutes);
-app.use("/itemType", authMiddleware, itemTypeRoutes);
-app.use("/salesReturn", authMiddleware, salesReturnRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, () => {
   SearchHelper.scheduleData();
+  ProductStockController.scheduleData();
 });
 
 export const io = new Server(server, {

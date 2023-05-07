@@ -3,11 +3,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const log_helper_1 = __importDefault(require("../helper/log.helper"));
-const app_1 = require("../app");
 const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 class CompanyController {
 }
 CompanyController.fetch = (req, res) => {
@@ -35,11 +34,10 @@ CompanyController.fetch = (req, res) => {
             });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Company - Fetch", req.body.userId);
+            return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Company - Fetch", req.body.userId);
         return res.status(500).send(error);
     });
 };
@@ -54,104 +52,88 @@ CompanyController.getAutocomplete = (req, res) => {
     });
 };
 CompanyController.delete = (req, res) => {
-    const id = parseInt(req.params.companyId);
+    const id = parseInt(req.params.id);
     company_model_1.default.fetchById(id)
         .then((company) => {
-        if (company == null || (company === null || company === void 0 ? void 0 : company.is_delete)) {
-            return res
-                .status(404)
-                .send("Perusahaan tidak ditemukan atau sudah dihapus.");
+        if (company == null || company.length == 0) {
+            return res.status(404).send(error_list_1.default["Not found"]);
         }
-        company_model_1.default.delete(id, req.body.userId)
-            .then((company_result) => {
-            var _a;
-            (_a = company_model_1.default.count()) === null || _a === void 0 ? void 0 : _a.then((company_count) => {
-                var _a;
-                log_helper_1.default.log(company_result.deleted_at, "info", `${(_a = company_result.user_company_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted company with the name ${company_result.name} (ID: ${company_result.id})`, "Company - Delete", req.body.userId);
-                app_1.io.emit("deleteCompany", {
+        else if (company[0].is_delete) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        else {
+            company_model_1.default.delete(id, req.body.userId)
+                .then((company_result) => {
+                const socket = new socket_helper_1.default("deleteCompany", {
                     name: company_result.name,
                     id: company_result.id,
-                    count: company_count,
                 });
+                socket.create();
                 return res.status(201).send(company_result);
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
             });
-        })
-            .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Delete`, req.body.userId);
-            return res.status(500).send(error);
-        });
+        }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Delete`, req.body.userId);
         return res.status(500).send(error);
     });
 };
 CompanyController.update = (req, res) => {
     const id = req.body.id;
     const name = req.body.name;
-    const code_name = req.body.code_name;
     const address = req.body.address;
     const npwp = req.body.npwp == null || req.body.toString().length != 15
         ? null
         : req.body.npwp;
-    company_model_1.default.getByCodeName(code_name)
+    const userID = req.body.userId;
+    const company = new company_model_1.default(name, address, npwp, userID, id);
+    company
+        .update()
         .then((result) => {
-        // There is another company
-        // Using this code name
-        if (result.filter((x) => x.id != id).length > 0) {
-            return res
-                .status(500)
-                .send("Kode perusahaan sudah terdaftar, mohon pastikan kode perusahaan unik.");
-        }
-        const company = new company_model_1.default(name, address, npwp, req.body.userId, code_name, id);
-        company
-            .update()
-            .then((company_result) => {
-            var _a;
-            log_helper_1.default.log(company_result.updated_at, "info", `${(_a = company_result.user_company_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated company with the name ${company_result.name} (ID: ${company_result}`, "Company - Update", req.body.userId);
-            app_1.io.emit("updateCompany", company_result);
-            return res.status(201).send(company_result);
-        })
-            .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Company - Update", req.body.userId);
-            return res.status(500).send(error);
-        });
+        const socket = new socket_helper_1.default("updateCompany", result);
+        socket.create();
+        return res.status(201).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Company - Update", req.body.userId);
         return res.status(500).send(error);
     });
 };
 CompanyController.create = (req, res) => {
-    const code_name = req.body.code_name;
     const name = req.body.name;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const company = new company_model_1.default(name, address, npwp, req.body.userId, code_name);
+    const company = new company_model_1.default(name, address, npwp, req.body.userId);
     company
         .create()
         .then((result) => {
-        app_1.io.emit("createCompany", Object.assign(Object.assign({}, result), { can_delete: true }));
+        const socket = new socket_helper_1.default("createCompany", Object.assign(Object.assign({}, result), { can_delete: true }));
+        socket.create();
         return res.status(201).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Company - Create", req.body.userId);
         return res.status(500).send(error);
     });
 };
 CompanyController.fetchById = (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        Promise.all([
-            company_model_1.default.fetchById(id),
-            company_model_1.default.checkDeleteById(id),
-        ])
+        company_model_1.default.fetchById(id)
             .then((result) => {
-            if (!result[0]) {
+            if (result == null || result.length == 0) {
                 return res.status(404).send(error_list_1.default["Not found"]);
             }
             else {
-                return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
+                const company = result[0];
+                return res.status(200).send({
+                    id: company.id,
+                    name: company.name,
+                    address: company.address,
+                    npwp: company.npwp,
+                    is_delete: company.is_delete,
+                    can_delete: company.count == 0,
+                });
             }
         })
             .catch((error) => {

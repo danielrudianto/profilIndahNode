@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import LogHelper from "../helper/log.helper";
+import ErrorList from "../assets/error_list";
+import { mysql_real_escape_string } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
-import GoodReceiptModel from "../model/good_receipt.model";
 import SupplierModel from "../model/supplier.model";
 
 class SupplierController {
@@ -27,14 +27,6 @@ class SupplierController {
     supplier
       .create()
       .then((supplier_result) => {
-        LogHelper.log(
-          new Date(),
-          "info",
-          `${supplier_result.user.name} created supplier with the name ${supplier_result.name} (ID: ${supplier_result.id})`,
-          "Supplier - Create",
-          req.body.userId
-        );
-
         const socket = new SocketHelper("createSupplier", supplier_result);
         socket.create();
 
@@ -44,21 +36,13 @@ class SupplierController {
         });
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Supplier - Create",
-          req.body.userId
-        );
-
         return res.status(500).send(error);
       });
   };
 
   static update = (req: Request, res: Response) => {
+    const id = parseInt(req.body.id);
     const name = req.body.name;
-    const id = req.body.id;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
 
@@ -69,72 +53,73 @@ class SupplierController {
         const socket = new SocketHelper("updateSupplier", supplier_result);
         socket.create();
 
-        return res.status(201).send("Data supplier berhasil dirubah.");
+        return res.status(201).send(supplier_result);
       })
       .catch((error) => {
         return res.status(500).send(error);
       });
   };
 
-  static getItems = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+  static fetch = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword
+      ? ""
+      : decodeURIComponent(
+          mysql_real_escape_string(req.query.keyword.toString())
+        );
     const page = !req.query.page
       ? 1
       : Math.max(1, parseInt(req.query.page.toString()));
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
 
-    SupplierModel.getItems(keyword, offset, limit)
+    SupplierModel.fetch(keyword, offset, limit)
       .then((result) => {
-        GoodReceiptModel.countBySupplierIds(
-          result[0].map((x) => {
-            return x.id;
-          })
-        )
-          .then((counts) => {
-            return res.status(200).send({
-              data: result[0].map((item) => {
-                return {
-                  ...item,
-                  can_delete:
-                    counts.filter((count) => count.supplier_id == item.id)
-                      .length == 0
-                      ? true
-                      : counts.filter(
-                          (count) => count.supplier_id == item.id
-                        )[0]._count == 0,
-                };
-              }),
-              count: result[1],
-            });
-          })
-          .catch((error) => {
-            LogHelper.log(
-              new Date(),
-              "error",
-              error,
-              "Supplier - Fetch",
-              req.body.userId
-            );
-
-            return res.status(500).send(error);
-          });
+        return res.status(200).send({
+          data: (result[0] as any[]).map((x) => {
+            return {
+              id: x.id,
+              name: x.name,
+              address: x.address,
+              npwp: x.npwp,
+              created_by: x.created_by,
+              created_at: new Date(x.created_at),
+              can_delete: x.count == 0 ? true : false,
+              user: {
+                name: x.created_by_name,
+              },
+            };
+          }),
+          count: result[1],
+        });
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Supplier - Fetch",
-          req.body.userId
-        );
-
         return res.status(500).send(error);
       });
   };
 
+  static delete = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    const userID = req.body.userId;
+    SupplierModel.fetchById(id).then((result) => {
+      if (result == null || result.length == 0) {
+        return res.status(404).send(ErrorList["Not found"]);
+      } else if (result[0].count > 0) {
+        return res.status(400).send(ErrorList["Delete error"]);
+      } else {
+        SupplierModel.deleteById(id, req.body.UserID).then((supplier) => {
+          const socket = new SocketHelper("deleteSupplier", supplier);
+          socket.create();
+
+          return res.status(201).send(supplier);
+        });
+      }
+    });
+  };
+
   static getAutocomplete = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : decodeURIComponent(req.query.keyword.toString());
+    const keyword = !req.query.keyword
+      ? ""
+      : decodeURIComponent(req.query.keyword.toString());
     SupplierModel.getAutocomplete(keyword)
       .then((result) => {
         return res.status(200).send(result);
@@ -146,12 +131,18 @@ class SupplierController {
 
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    SupplierModel.fetchById(id).then(result => {
-      return res.status(200).send(result);
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+    SupplierModel.fetchById(id)
+      .then((result) => {
+        if (result == null || result.length == 0) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          return res.status(200).send(result[0]);
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
 }
 
 export default SupplierController;

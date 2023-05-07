@@ -41,68 +41,93 @@ class ItemPriceModel {
             },
         });
     }
+    update() {
+        return prisma.$transaction([
+            prisma.item_price.updateMany({
+                where: {
+                    item_id: this.item_id,
+                    item_unit_id: this.item_unit_id,
+                    is_delete: false,
+                },
+                data: {
+                    is_delete: true,
+                    deleted_at: this.created_at,
+                    deleted_by: this.created_by,
+                },
+            }),
+            prisma.item_price.create({
+                data: {
+                    price: this.price,
+                    discount: this.discount,
+                    created_by: this.created_by,
+                    created_at: this.created_at,
+                    item_id: this.item_id,
+                    item_unit_id: this.item_unit_id,
+                    effective_date: new Date(),
+                },
+                select: {
+                    id: true,
+                    price: true,
+                    is_delete: true,
+                    user: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    item: {
+                        select: {
+                            reference: true,
+                            description: true,
+                            item_brand: {
+                                select: {
+                                    name: true,
+                                },
+                            },
+                            item_type: {
+                                select: {
+                                    name: true,
+                                },
+                            },
+                        },
+                    },
+                    item_unit: {
+                        select: {
+                            unit: true,
+                            conversion: true,
+                        },
+                    },
+                },
+            }),
+        ]);
+    }
     static fetch(keyword, date, offset, limit) {
         if (keyword == "") {
             return prisma.$transaction([
-                prisma.item.findMany({
-                    where: {
-                        is_delete: false,
-                    },
-                    select: {
-                        id: true,
-                        reference: true,
-                        description: true,
-                        unit: true,
-                        item_brand: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_price: {
-                            select: {
-                                id: true,
-                                price: true,
-                                discount: true,
-                                created_at: true,
-                                effective_date: true,
-                                item_unit: {
-                                    select: {
-                                        id: true,
-                                        unit: true,
-                                        conversion: true,
-                                    },
-                                },
-                            },
-                            where: {
-                                is_delete: false,
-                                effective_date: {
-                                    lte: date,
-                                },
-                            },
-                            orderBy: [
-                                {
-                                    item_unit_id: "asc",
-                                },
-                                {
-                                    item_unit: {
-                                        unit: "asc",
-                                    },
-                                },
-                                {
-                                    effective_date: "desc",
-                                },
-                                {
-                                    id: "desc",
-                                },
-                            ],
-                        },
-                    },
-                    orderBy: {
-                        reference: "asc",
-                    },
-                    take: limit,
-                    skip: offset,
-                }),
+                prisma.$queryRaw `
+          SELECT item.reference, item.description, item.id, item.unit, COALESCE(price.price, 0) AS price, COALESCE(price.discount) AS discount, COALESCE(priceCount.count, 0) AS count, price.effective_date
+          FROM item
+          JOIN (
+              SELECT item_price.price, item_price.discount, item_price.item_id, item_price.effective_date
+              FROM item_price
+              WHERE item_price.is_delete = 0
+              AND item_price.item_unit_id IS NULL
+              GROUP BY item_price.item_id
+              ORDER BY item_price.effective_date DESC
+          ) price
+          ON item.id = price.item_id
+          LEFT JOIN (
+            SELECT COUNT(id) AS count, item_price.item_id
+            FROM item_price
+            WHERE item_price.is_delete = 0
+            AND item_price.item_unit_id IS NOT NULL
+            GROUP BY item_price.item_id
+          ) priceCount
+          ON item.id = priceCount.item_id
+          WHERE item.is_delete = 0
+          ORDER BY reference ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `,
                 prisma.item.count({
                     where: {
                         is_delete: false,
@@ -112,91 +137,35 @@ class ItemPriceModel {
         }
         else {
             return prisma.$transaction([
-                prisma.item.findMany({
-                    where: {
-                        is_delete: false,
-                        OR: [
-                            {
-                                reference: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                description: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                item_brand: {
-                                    name: {
-                                        contains: keyword,
-                                    },
-                                },
-                            },
-                            {
-                                item_type: {
-                                    name: {
-                                        contains: keyword,
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                    select: {
-                        id: true,
-                        reference: true,
-                        description: true,
-                        unit: true,
-                        item_brand: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_price: {
-                            select: {
-                                id: true,
-                                price: true,
-                                discount: true,
-                                created_at: true,
-                                effective_date: true,
-                                item_unit: {
-                                    select: {
-                                        id: true,
-                                        unit: true,
-                                        conversion: true,
-                                    },
-                                },
-                            },
-                            where: {
-                                is_delete: false,
-                                effective_date: {
-                                    lte: date,
-                                },
-                            },
-                            orderBy: [
-                                {
-                                    item_unit_id: "asc",
-                                },
-                                {
-                                    item_unit: {
-                                        unit: "asc",
-                                    },
-                                },
-                                {
-                                    effective_date: "desc",
-                                },
-                                {
-                                    id: "desc",
-                                },
-                            ],
-                        },
-                    },
-                    orderBy: {
-                        reference: "asc",
-                    },
-                    take: limit,
-                    skip: offset,
-                }),
+                prisma.$queryRawUnsafe(`
+          SELECT item.reference, item.description, item.id, item.unit, COALESCE(price.price, 0) AS price, COALESCE(price.discount) AS discount, COALESCE(priceCount.count, 0) AS count, price.effective_date
+          FROM item
+          JOIN (
+              SELECT item_price.price, item_price.discount, item_price.item_id, item_price.effective_date
+              FROM item_price
+              WHERE item_price.is_delete = 0
+              AND item_price.item_unit_id IS NULL
+              GROUP BY item_price.item_id
+              ORDER BY item_price.effective_date DESC
+          ) price
+          ON item.id = price.item_id
+          LEFT JOIN (
+            SELECT COUNT(id) AS count, item_price.item_id
+            FROM item_price
+            WHERE item_price.is_delete = 0
+            AND item_price.item_unit_id IS NOT NULL
+            GROUP BY item_price.item_id
+          ) priceCount
+          ON item.id = priceCount.item_id
+          WHERE item.is_delete = 0
+          AND (
+            item.reference LIKE '%${keyword}%'
+            OR item.description LIKE '%${keyword}%'
+          )
+          ORDER BY reference ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `),
                 prisma.item.count({
                     where: {
                         is_delete: false,
@@ -211,76 +180,46 @@ class ItemPriceModel {
                                     contains: keyword,
                                 },
                             },
-                            {
-                                item_brand: {
-                                    name: {
-                                        contains: keyword,
-                                    },
-                                },
-                            },
-                            {
-                                item_type: {
-                                    name: {
-                                        contains: keyword,
-                                    },
-                                },
-                            },
                         ],
                     },
                 }),
             ]);
         }
     }
-    static fetchByReference(reference, date) {
-        return prisma.item.findFirst({
-            where: {
-                reference: reference,
-                is_delete: false,
-            },
-            select: {
-                id: true,
-                reference: true,
-                description: true,
-                item_brand: {
-                    select: {
-                        name: true,
-                    },
-                },
-                user: {
-                    select: {
-                        name: true,
-                    },
-                },
-                created_at: true,
-                item_price: {
-                    select: {
-                        id: true,
-                        price: true,
-                        discount: true,
-                        item_unit: {
-                            select: {
-                                unit: true,
-                                conversion: true,
-                            },
-                        },
-                    },
-                    where: {
-                        is_delete: false,
-                        effective_date: {
-                            lte: date,
-                        },
-                    },
-                    orderBy: [
-                        {
-                            effective_date: "desc",
-                        },
-                        {
-                            id: "desc",
-                        },
-                    ],
-                },
-            },
-        });
+    static fetchByItemID(item_id, item_unit_id = null) {
+        if (item_unit_id != null) {
+            return prisma.$queryRaw `
+        SELECT item.reference, item.description, item.unit, item_unit.unit AS used_unit, item_unit.conversion AS used_conversion, price.price, price.discount, item.id AS item_id, NULL AS item_unit_id
+        FROM item_unit
+        JOIN item ON item.item_id = item_unit.item_id
+        JOIN (
+          SELECT item_price.price, item_price.discount, item_price.item_id, item_price.item_unit_id
+          FROM item_price
+          WHERE item_price.is_delete = 0
+          AND item_price.item_id = ${item_id}
+          AND item_price.item_unit_id = ${item_unit_id}
+        ) price
+        ON item.id = price.item_id
+        AND item_unit.id
+        WHERE item.id = ${item_id}
+        AND item_unit.id = ${item_unit_id}
+      `;
+        }
+        else {
+            return prisma.$queryRaw `
+        SELECT item.reference, item.description, item.unit, NULL AS used_unit, NULL AS used_conversion, price.price, price.discount, price.item_id, price.item_unit_id
+        FROM item
+        JOIN (
+          SELECT item_price.price, item_price.discount, item_price.item_id, item_price.item_unit_id
+          FROM item_price
+          WHERE item_price.is_delete = 0
+          AND item_price.item_id = ${item_id}
+          AND item_price.item_unit_id IS NULL
+        ) price
+        ON item.id = price.item_id
+        WHERE item.id = ${item_id}
+      `;
+        }
     }
     static deleteById(item_id, created_by) {
         return prisma.item_price.updateMany({
@@ -333,38 +272,38 @@ class ItemPriceModel {
             }),
         ]);
     }
-    static fetchById(id) {
-        return prisma.item_price.findUnique({
-            where: {
-                id: id,
-            },
-            select: {
-                price: true,
-                discount: true,
-                item_unit: {
-                    select: {
-                        id: true,
-                        unit: true,
-                        conversion: true,
-                    },
-                },
-                item: {
-                    select: {
-                        id: true,
-                        reference: true,
-                        description: true,
-                        item_brand: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        unit: true,
-                    },
-                },
-                is_delete: true,
-                effective_date: true,
-            },
-        });
+    static fetchById(item_id, item_unit_id = null) {
+        if (item_unit_id == null) {
+            return prisma.$queryRaw `
+        SELECT item.id, item.reference, item.description, item.unit
+        FROM item
+        JOIN (
+          SELECT item_price.price, item_price.discount, item_price.item_id
+          FROM item_price
+          WHERE item_price.item_id = ${item_id}
+          AND item_price.item_unit_id IS NULL
+          AND item_price.is_delete = 0
+        ) price
+        ON item.id = price.item_id
+        WHERE item.id = ${item_id}
+      `;
+        }
+        else {
+            return prisma.$queryRaw `
+        SELECT item.id, item.reference, item.description, item_unit.unit
+        FROM item
+        JOIN (
+          SELECT item_price.price, item_price.discount, item_price.item_id
+          FROM item_price
+          WHERE item_price.item_id = ${item_id}
+          AND item_price.item_unit_id = ${item_unit_id}
+          AND item_price.is_delete = 0
+        ) price
+        ON item.id = price.item_id
+        JOIN item_unit ON item_unit.item_id = item.id
+        WHERE item.id = ${item_id}
+      `;
+        }
     }
     static updateMany(item_price, deleted_by) {
         const transactions = [];

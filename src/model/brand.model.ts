@@ -38,7 +38,12 @@ export class BrandModel {
     });
   }
 
-  static update(id: number, name: string, updated_at: Date, updated_by: number) {
+  static update(
+    id: number,
+    name: string,
+    updated_at: Date,
+    updated_by: number
+  ) {
     return prisma.item_brand.update({
       where: {
         id: id,
@@ -145,23 +150,22 @@ export class BrandModel {
   static fetch(keyword: string, offset: number, limit: number) {
     if (keyword == "") {
       return prisma.$transaction([
-        prisma.item_brand.findMany({
-          where: {
-            is_delete: false,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: limit,
-          skip: offset,
-          include: {
-            user: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        }),
+        prisma.$queryRaw`
+          SELECT item_brand.id, item_brand.name, user.name AS created_by_name, item_brand.created_at, item_brand.created_by, COALESCE(itemCount.count, 0) AS count, item_brand.is_delete
+          FROM item_brand
+          LEFT JOIN (
+            SELECT COUNT(id) AS count, item_brand_id
+            FROM item
+            WHERE item.is_delete = 0
+            GROUP BY item_brand_id
+          ) itemCount
+          ON item_brand.id = itemCount.item_brand_id
+          JOIN user ON item_brand.created_by = user.id
+          WHERE item_brand.is_delete = 0
+          ORDER BY item_brand.name ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `,
         prisma.item_brand.count({
           where: {
             is_delete: false,
@@ -170,33 +174,28 @@ export class BrandModel {
       ]);
     } else {
       return prisma.$transaction([
-        prisma.item_brand.findMany({
+        prisma.$queryRawUnsafe(`
+          SELECT item_brand.id, item_brand.name, user.name AS created_by_name, item_brand.created_at, item_brand.created_by, COALESCE(itemCount.count, 0) AS count, item_brand.is_delete
+          FROM item_brand
+          LEFT JOIN (
+            SELECT COUNT(id) AS count, item_brand_id
+            FROM item
+            WHERE item.is_delete = 0
+            GROUP BY item_brand_id
+          ) itemCount
+          ON item_brand.id = itemCount.item_brand_id
+          JOIN user ON item_brand.created_by = user.id
+          WHERE item_brand.is_delete = 0
+          AND item_brand.name LIKE '%${keyword}%'
+          ORDER BY item_brand.name ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `),
+        prisma.item_brand.count({
           where: {
-            is_delete: false,
             name: {
               contains: keyword,
             },
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: limit,
-          skip: offset,
-          include: {
-            user: {
-              select: {
-                name: true,
-              },
-            },
-            _count: {
-              select: {
-                item: true,
-              },
-            },
-          },
-        }),
-        prisma.item_brand.count({
-          where: {
             is_delete: false,
           },
         }),
@@ -222,68 +221,6 @@ export class BrandModel {
       });
 
     return count;
-  }
-
-  static fetchUsed(keyword: string, offset: number, limit: number) {
-    if (keyword == "") {
-      return prisma.$transaction([
-        prisma.$queryRaw`
-          SELECT item_brand.id, item_brand.name
-          FROM item_brand
-          JOIN (
-            SELECT DISTINCT(item.item_brand_id) AS id
-            FROM item
-            JOIN stock ON stock.id = item.id
-            WHERE item.is_delete = 0
-            AND item.minimum_stock > stock.stock
-          ) items
-          ON item_brand.id = items.id
-          LIMIT ${limit} OFFSET ${offset}
-        `,
-        prisma.$queryRaw`
-          SELECT COUNT(item_brand.id) AS count
-          FROM item_brand
-          JOIN (
-            SELECT DISTINCT(item.item_brand_id) AS id
-            FROM item
-            JOIN stock ON stock.id = item.id
-            WHERE item.is_delete = 0
-            AND item.minimum_stock > stock.stock
-          ) items
-          ON item_brand.id = items.id
-        `,
-      ]);
-    } else {
-      return prisma.$transaction([
-        prisma.$queryRaw`
-          SELECT item_brand.id, item_brand.name
-          FROM item_brand
-          JOIN (
-            SELECT DISTINCT(item.item_brand_id) AS id
-            FROM item
-            JOIN stock ON stock.id = item.id
-            WHERE item.is_delete = 0
-            AND item.minimum_stock > stock.stock
-          ) items
-          ON item_brand.id = items.id
-          WHERE INSTR(item_brand.name, ${keyword})
-          LIMIT ${limit} OFFSET ${offset}
-        `,
-        prisma.$queryRaw`
-          SELECT COUNT(item_brand.id) AS count
-          FROM item_brand
-          JOIN (
-            SELECT DISTINCT(item.item_brand_id) AS id
-            FROM item
-            JOIN stock ON stock.id = item.id
-            WHERE item.is_delete = 0
-            AND item.minimum_stock > stock.stock
-          ) items
-          ON item_brand.id = items.id
-          WHERE INSTR(item_brand.name, ${keyword})
-        `,
-      ]);
-    }
   }
 
   static fetchSales(start_date: Date, end_date: Date) {

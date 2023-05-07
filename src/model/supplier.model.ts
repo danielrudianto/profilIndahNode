@@ -72,20 +72,6 @@ class SupplierModel {
     });
   }
 
-  static checkDeleteById(id: number) {
-    prisma.good_receipt_code
-      .count({
-        where: {
-          supplier_id: id,
-        },
-      })
-      .then((count) => {
-        return count == 0 ? true : false;
-      });
-
-    return false;
-  }
-
   static getAutocomplete(keyword: string) {
     if (keyword == "") {
       return prisma.supplier.findMany({
@@ -136,31 +122,25 @@ class SupplierModel {
     }
   }
 
-  static getItems(keyword: string, offset: number, limit: number) {
+  static fetch(keyword: string, offset: number, limit: number) {
     if (keyword == "") {
       return prisma.$transaction([
-        prisma.supplier.findMany({
-          where: {
-            is_delete: false,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            npwp: true,
-            user: {
-              select: {
-                name: true,
-              },
-            },
-            created_at: true,
-          },
-          take: limit,
-          skip: offset,
-        }),
+        prisma.$queryRaw`
+          SELECT supplier.id, supplier.name, supplier.address, supplier.npwp, user.name AS created_by_name, supplier.created_by, supplier.created_at, COALESCE(supplierCount.count, 0) AS count
+          FROM supplier
+          JOIN user ON supplier.created_by = user.id
+          LEFT JOIN (
+            SELECT COUNT(good_receipt_code.id) AS count, good_receipt_code.supplier_id
+            FROM good_receipt_code
+            WHERE is_delete = 0
+            GROUP BY good_receipt_code.supplier_id
+          ) supplierCount
+          ON supplierCount.supplier_id = supplier.id
+          WHERE supplier.is_delete = 0
+          ORDER BY name ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `,
         prisma.supplier.count({
           where: {
             is_delete: false,
@@ -169,55 +149,29 @@ class SupplierModel {
       ]);
     } else {
       return prisma.$transaction([
-        prisma.supplier.findMany({
-          where: {
-            is_delete: false,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                address: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            npwp: true,
-            user: {
-              select: {
-                name: true,
-              },
-            },
-            created_at: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: limit,
-          skip: offset,
-        }),
+        prisma.$queryRawUnsafe(`
+          SELECT supplier.id, supplier.name, supplier.address, supplier.npwp, user.name AS created_by_name, supplier.created_by, supplier.created_at, COALESCE(supplierCount.count, 0) AS count
+          FROM supplier
+          JOIN user ON supplier.created_by = user.id
+          LEFT JOIN (
+            SELECT COUNT(good_receipt_code.id) AS count, good_receipt_code.supplier_id
+            FROM good_receipt_code
+            WHERE is_delete = 0
+            GROUP BY good_receipt_code.supplier_id
+          ) supplierCount
+          ON supplierCount.supplier_id = supplier.id
+          WHERE supplier.is_delete = 0
+          AND supplier.name LIKE '%${keyword}%'
+          ORDER BY name ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `),
         prisma.supplier.count({
           where: {
             is_delete: false,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                address: {
-                  contains: keyword,
-                },
-              },
-            ],
+            name: {
+              contains: keyword,
+            },
           },
         }),
       ]);
@@ -225,7 +179,28 @@ class SupplierModel {
   }
 
   static fetchById(id: number) {
-    return prisma.supplier.findUnique({
+    return prisma.$queryRaw<any[]>`
+      SELECT supplier.*, COALESCE(supplierCount.count, 0) AS count
+      FROM supplier
+      LEFT JOIN (
+        SELECT COUNT(good_receipt_code.id) AS count, supplier_id
+        FROM good_receipt_code
+        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+        WHERE good_receipt_code.is_delete = 0
+        AND good_receipt_code.supplier_id = ${id}
+      ) supplierCount
+      ON supplier.id = supplierCount.supplier_id
+      WHERE id = ${id}
+    `;
+  }
+
+  static deleteById(id: number, deleted_by: number) {
+    return prisma.supplier.update({
+      data: {
+        deleted_at: new Date(),
+        is_delete: true,
+        deleted_by: deleted_by,
+      },
       where: {
         id: id,
       },

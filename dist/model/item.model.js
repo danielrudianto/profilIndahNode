@@ -83,21 +83,13 @@ class ItemModel {
                     },
                 },
                 item_brand_id: true,
-                created_by: true,
-                user: {
-                    select: {
-                        name: true,
-                    },
-                },
                 item_type: {
                     select: {
                         name: true,
                     },
                 },
                 item_type_id: true,
-                created_at: true,
                 minimum_stock: true,
-                updated_at: true,
                 user_item_updated_byTouser: {
                     select: {
                         name: true,
@@ -108,92 +100,50 @@ class ItemModel {
             },
         });
     }
-    static fetchById(id, date) {
-        return prisma.item.findUnique({
-            where: {
-                id: id,
-            },
-            select: {
-                id: true,
-                reference: true,
-                description: true,
-                is_delete: true,
-                item_brand_id: true,
-                item_type_id: true,
-                unit: true,
-                item_brand: {
-                    select: {
-                        name: true,
-                    },
-                },
-                item_type: {
-                    select: {
-                        name: true,
-                    },
-                },
-                item_price: {
-                    select: {
-                        id: true,
-                        price: true,
-                        discount: true,
-                        created_at: true,
-                        effective_date: true,
-                        item_unit: {
-                            select: {
-                                unit: true,
-                                conversion: true,
-                            },
-                        },
-                    },
-                    where: {
-                        is_delete: false,
-                        effective_date: {
-                            lte: date,
-                        },
-                    },
-                    orderBy: [
-                        {
-                            effective_date: "desc",
-                        },
-                        {
-                            id: "desc",
-                        },
-                    ],
-                    take: 1,
-                    skip: 0,
-                },
-                item_price_purchase: {
-                    select: {
-                        id: true,
-                        price: true,
-                        item_unit: {
-                            select: {
-                                unit: true,
-                                conversion: true,
-                            },
-                        },
-                    },
-                    where: {
-                        is_delete: false,
-                    },
-                },
-                stock: {
-                    select: {
-                        stock: true,
-                    },
-                },
-                item_unit: {
-                    select: {
-                        id: true,
-                        unit: true,
-                        conversion: true,
-                    },
-                    where: {
-                        is_delete: false,
-                    },
-                },
-            },
-        });
+    static fetchById(id) {
+        return prisma.$queryRaw `SELECT item.id, item.reference, item.description, item.is_delete, item.item_brand_id, item.item_type_id, item.unit, item.minimum_stock, item_type.name AS item_type_name, item_brand.name AS item_brand_name, IF(COALESCE(item_count.count, 0) = 0, 1, 0) AS can_delete, item.is_active
+      FROM item
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      LEFT JOIN (
+        SELECT SUM(count) AS count, item_id
+        FROM (
+          SELECT COUNT(bill.id) AS count, bill.item_id
+          FROM bill
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_delete = 0
+          AND bill.item_id = ${id}
+          UNION ALL (
+            SELECT COUNT(adjustment_case.id) AS count, adjustment_case.item_id
+            FROM adjustment_case
+            JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
+            WHERE adjustment_case_code.is_delete = 0
+            AND adjustment_case.item_id = ${id}
+          )
+          UNION ALL (
+            SELECT COUNT(good_receipt.id) AS count, good_receipt.item_id
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+            WHERE good_receipt_code.is_delete = 0
+            AND good_receipt.item_id = ${id}
+          )
+        ) a
+      GROUP BY a.item_id
+      ) item_count
+      ON item_count.item_id = item.id
+      WHERE item.id = ${id}`;
+    }
+    static fetchAutocomplete(keyword) {
+        return prisma.$queryRawUnsafe(`
+      SELECT item.id, item.reference AS name
+      FROM item
+      WHERE item.is_active = 1
+      AND item.is_delete = 0
+      AND (item.reference LIKE '%${keyword}%'
+      OR item.description LIKE '%${keyword}%')
+      ORDER BY item.reference ASC
+      LIMIT 5
+    `);
     }
     static fetchByIds(id) {
         return prisma.item.findMany({
@@ -328,36 +278,6 @@ class ItemModel {
                                     contains: keyword,
                                 },
                             },
-                            // {
-                            //   reference: {
-                            //     search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                            //       ? keyword.slice(0, -1)
-                            //       : keyword,
-                            //   },
-                            // },
-                            // {
-                            //   description: {
-                            //     search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                            //       ? keyword.slice(0, -1)
-                            //       : keyword,
-                            //   },
-                            // },
-                            // {
-                            //   item_brand: {
-                            //     name: {
-                            //       contains: keyword,
-                            //     },
-                            //   },
-                            // },
-                            // {
-                            //   item_brand: {
-                            //     name: {
-                            //       search: (keyword.endsWith("-") || keyword.endsWith("+"))
-                            //         ? keyword.slice(0, -1)
-                            //         : keyword,
-                            //     },
-                            //   },
-                            // },
                         ],
                     },
                     take: limit,
@@ -381,330 +301,281 @@ class ItemModel {
                                     contains: keyword,
                                 },
                             },
-                            // {
-                            //   reference: {
-                            //     search:
-                            //       keyword.endsWith("-") || keyword.endsWith("+")
-                            //         ? keyword.slice(0, -1)
-                            //         : keyword,
-                            //   },
-                            // },
-                            // {
-                            //   description: {
-                            //     search:
-                            //       keyword.endsWith("-") || keyword.endsWith("+")
-                            //         ? keyword.slice(0, -1)
-                            //         : keyword,
-                            //   },
-                            // },
-                            // {
-                            //   item_brand: {
-                            //     name: {
-                            //       contains: keyword,
-                            //     },
-                            //   },
-                            // },
-                            // {
-                            //   item_brand: {
-                            //     name: {
-                            //       search:
-                            //         keyword.endsWith("-") || keyword.endsWith("+")
-                            //           ? keyword.slice(0, -1)
-                            //           : keyword,
-                            //     },
-                            //   },
-                            // },
                         ],
                     },
                 }),
             ]);
         }
     }
-    static fetch(keyword, date, offset, limit) {
-        if (keyword == "") {
-            return prisma.$transaction([
-                prisma.item.findMany({
-                    orderBy: {
-                        reference: "asc",
-                    },
-                    skip: offset,
-                    take: limit,
-                    include: {
-                        user: {
-                            select: {
-                                name: true,
-                            },
+    static fetch(keyword, offset, limit, purchase = false, sales = false) {
+        if (purchase) {
+            if (keyword == "") {
+                return prisma.$transaction([
+                    prisma.$queryRaw `
+            SELECT item_price_purchase.id, item_price_purchase.price, item_price_purchase.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+            FROM item_price_purchase
+            LEFT JOIN item_unit ON item_price_purchase.item_unit_id = item_unit.id
+            JOIN (
+              SELECT item.id
+              FROM item
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              ORDER BY reference ASC
+              LIMIT ${limit}
+              OFFSET	${offset}
+            ) item_count
+            ON item_price_purchase.item_id = item_count.id
+            WHERE item_price_purchase.is_delete = 0
+            GROUP BY item_id, item_unit_id
+          `,
+                    prisma.$queryRaw `
+            SELECT item.id, item.reference, item.description, item.unit
+            FROM item
+            WHERE item.is_delete = 0
+            AND item.is_active = 1
+            ORDER BY item.reference ASC
+            LIMIT ${limit}
+            OFFSET	${offset}
+          `,
+                    prisma.item.count({
+                        where: {
+                            is_delete: false,
+                            is_active: true,
                         },
-                        item_brand: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_type: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_price_purchase: {
-                            select: {
-                                price: true,
-                            },
-                            orderBy: {
-                                id: "desc",
-                            },
-                            where: {
-                                is_delete: false,
-                            },
-                            take: 1,
-                            skip: 0,
-                        },
-                        item_price: {
-                            select: {
-                                id: true,
-                                price: true,
-                                discount: true,
-                                item_unit: {
-                                    select: {
-                                        unit: true,
-                                        conversion: true,
+                    }),
+                ]);
+            }
+            else {
+                return prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+            SELECT item_price_purchase.id, item_price_purchase.price, item_price_purchase.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+            FROM item_price_purchase
+            LEFT JOIN item_unit ON item_price_purchase.item_unit_id = item_unit.id
+            JOIN (
+              SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                AND item.is_active = 1
+                AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
+                ORDER BY reference ASC
+                LIMIT 10
+                OFFSET	0
+            ) item_count
+            ON item_price_purchase.item_id = item_count.id
+            WHERE item_price_purchase.is_delete = 0
+            GROUP BY item_id, item_unit_id
+          `),
+                    prisma.$queryRawUnsafe(`
+            SELECT item.id, item.reference, item.description, item.unit
+            FROM item
+            WHERE item.is_delete = 0
+            AND item.is_active = 1
+            AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
+            ORDER BY item.reference ASC
+            LIMIT ${limit}
+            OFFSET	${offset}
+          `),
+                    prisma.item.count({
+                        where: {
+                            is_delete: false,
+                            is_active: true,
+                            OR: [
+                                {
+                                    reference: {
+                                        contains: keyword,
                                     },
                                 },
-                            },
-                            where: {
-                                effective_date: {
-                                    lte: date,
-                                },
-                                is_delete: false,
-                            },
-                            orderBy: [
                                 {
-                                    effective_date: "desc",
-                                },
-                                {
-                                    id: "desc",
+                                    description: {
+                                        contains: keyword,
+                                    },
                                 },
                             ],
-                            take: 1,
-                            skip: 0,
                         },
-                        stock: {
-                            select: {
-                                stock: true,
-                            },
+                    }),
+                ]);
+            }
+        }
+        else if (sales) {
+            if (keyword == "") {
+                return prisma.$transaction([
+                    prisma.$queryRaw `
+            SELECT item_price.id, item_price.price, item_price.discount, item_price.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+            FROM item_price
+            LEFT JOIN item_unit ON item_price.item_unit_id = item_unit.id
+            JOIN (
+              SELECT item.id
+              FROM item
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              ORDER BY reference ASC
+              LIMIT ${limit}
+              OFFSET	${offset}
+            ) item_count
+            ON item_price.item_id = item_count.id
+            WHERE item_price.is_delete = 0
+            GROUP BY item_id, item_unit_id
+          `,
+                    prisma.$queryRaw `
+            SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
+            FROM item
+            LEFT JOIN _stock ON item.id = _stock.item_id
+            WHERE item.is_delete = 0
+            AND item.is_active = 1
+            ORDER BY item.reference ASC
+            LIMIT ${limit}
+            OFFSET	${offset}
+          `,
+                    prisma.item.count({
+                        where: {
+                            is_delete: false,
+                            is_active: true,
                         },
-                    },
-                    where: {
-                        is_delete: false,
-                    },
-                }),
-                prisma.item.count({
-                    where: {
-                        is_delete: false,
-                    },
-                }),
-            ]);
+                    }),
+                ]);
+            }
+            else {
+                return prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+            SELECT item_price.id, item_price.price, item_price.discount, item_price.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+            FROM item_price
+            LEFT JOIN item_unit ON item_price.item_unit_id = item_unit.id
+            JOIN (
+              SELECT item.id
+              FROM item
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
+              ORDER BY reference ASC
+              LIMIT 10
+              OFFSET	0
+            ) item_count
+            ON item_price.item_id = item_count.id
+            WHERE item_price.is_delete = 0
+            GROUP BY item_id, item_unit_id
+          `),
+                    prisma.$queryRawUnsafe(`
+            SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
+            FROM item
+            LEFT JOIN _stock ON item.id = _stock.item_id
+            WHERE item.is_delete = 0
+            AND item.is_active = 1
+            AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
+            ORDER BY item.reference ASC
+            LIMIT ${limit}
+            OFFSET	${offset}
+          `),
+                    prisma.item.count({
+                        where: {
+                            is_delete: false,
+                            is_active: true,
+                            OR: [
+                                {
+                                    reference: {
+                                        contains: keyword,
+                                    },
+                                },
+                                {
+                                    description: {
+                                        contains: keyword,
+                                    },
+                                },
+                            ],
+                        },
+                    }),
+                ]);
+            }
         }
         else {
-            return prisma.$transaction([
-                prisma.item.findMany({
-                    orderBy: {
-                        reference: "asc",
-                    },
-                    where: {
-                        is_delete: false,
-                        OR: [
-                            {
-                                reference: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                description: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                reference: {
-                                    search: keyword.endsWith("-")
-                                        ? keyword.slice(0, -1)
-                                        : keyword,
-                                },
-                            },
-                            {
-                                description: {
-                                    search: keyword.endsWith("-")
-                                        ? keyword.slice(0, -1)
-                                        : keyword,
-                                },
-                            },
-                            {
-                                item_brand: {
-                                    name: {
+            if (keyword == "") {
+                return prisma.$transaction([
+                    prisma.$queryRaw `
+            SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
+            FROM item_unit
+            JOIN (
+              SELECT item.id
+              FROM item
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              ORDER BY reference ASC
+              LIMIT ${limit}
+              OFFSET	${offset}
+            ) item_count
+            ON item_unit.item_id = item_count.id
+            WHERE item_unit.is_delete = 0
+          `,
+                    prisma.$queryRaw `
+            SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
+            FROM item
+            JOIN item_brand ON item.item_brand_id = item_brand.id
+            JOIN item_type ON item.item_type_id = item_type.id
+            WHERE item.is_delete = 0
+            ORDER BY reference ASC
+            LIMIT ${limit} OFFSET ${offset}
+          `,
+                    prisma.item.count({
+                        where: {
+                            is_delete: false,
+                        },
+                    }),
+                ]);
+            }
+            else {
+                return prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+            SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
+            FROM item_unit
+            JOIN (
+              SELECT item.id
+              FROM item
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              AND (
+                item.reference LIKE '%${keyword}%'
+                OR item.description LIKE '%${keyword}%'
+              )
+              ORDER BY reference ASC
+              LIMIT ${limit}
+              OFFSET	${offset}
+            ) item_count
+            ON item_unit.item_id = item_count.id
+            WHERE item_unit.is_delete = 0
+          `),
+                    prisma.$queryRawUnsafe(`
+            SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
+            FROM item
+            JOIN item_brand ON item.item_brand_id = item_brand.id
+            JOIN item_type ON item.item_type_id = item_type.id
+            WHERE item.is_delete = 0
+            AND item.is_active = 1
+            AND (
+              item.reference LIKE '%${keyword}%'
+              OR item.description LIKE '%${keyword}%'
+            )
+            ORDER BY reference ASC
+            LIMIT ${limit} OFFSET ${offset}
+          `),
+                    prisma.item.count({
+                        where: {
+                            is_delete: false,
+                            is_active: true,
+                            OR: [
+                                {
+                                    reference: {
                                         contains: keyword,
                                     },
                                 },
-                            },
-                            {
-                                item_brand: {
-                                    name: {
-                                        search: keyword.endsWith("-")
-                                            ? keyword.slice(0, -1)
-                                            : keyword,
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                    skip: offset,
-                    take: limit,
-                    include: {
-                        user: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_brand: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_type: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        item_price_purchase: {
-                            select: {
-                                price: true,
-                            },
-                            orderBy: {
-                                id: "desc",
-                            },
-                            where: {
-                                is_delete: false,
-                            },
-                            take: 1,
-                            skip: 0,
-                        },
-                        item_price: {
-                            select: {
-                                id: true,
-                                price: true,
-                                discount: true,
-                                item_unit: {
-                                    select: {
-                                        unit: true,
-                                        conversion: true,
-                                    },
-                                },
-                            },
-                            where: {
-                                effective_date: {
-                                    lte: date,
-                                },
-                                is_delete: false,
-                            },
-                            orderBy: [
                                 {
-                                    effective_date: "desc",
-                                },
-                                {
-                                    id: "desc",
+                                    description: {
+                                        contains: keyword,
+                                    },
                                 },
                             ],
-                            take: 1,
-                            skip: 0,
                         },
-                        stock: {
-                            select: {
-                                stock: true,
-                            },
-                        },
-                    },
-                }),
-                prisma.item.count({
-                    where: {
-                        is_delete: false,
-                        OR: [
-                            {
-                                reference: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                description: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                reference: {
-                                    search: keyword.endsWith("-")
-                                        ? keyword.slice(0, -1)
-                                        : keyword,
-                                },
-                            },
-                            {
-                                description: {
-                                    search: keyword.endsWith("-")
-                                        ? keyword.slice(0, -1)
-                                        : keyword,
-                                },
-                            },
-                            {
-                                item_brand: {
-                                    name: {
-                                        contains: keyword,
-                                    },
-                                },
-                            },
-                            {
-                                item_brand: {
-                                    name: {
-                                        search: keyword.endsWith("-")
-                                            ? keyword.slice(0, -1)
-                                            : keyword,
-                                    },
-                                },
-                            },
-                        ],
-                    },
-                }),
-            ]);
+                    }),
+                ]);
+            }
         }
-    }
-    static fetchInsufficient(brand_ids, type_ids) {
-        return prisma.item.findMany({
-            where: {
-                item_brand_id: {
-                    in: brand_ids,
-                },
-                item_type_id: {
-                    in: type_ids,
-                },
-            },
-            select: {
-                id: true,
-                reference: true,
-                description: true,
-                item_brand: {
-                    select: {
-                        name: true,
-                    },
-                },
-                item_type: {
-                    select: {
-                        name: true,
-                    },
-                },
-                minimum_stock: true,
-                stock: {
-                    select: {
-                        stock: true,
-                    },
-                },
-                unit: true,
-            },
-        });
     }
     static fetchAll(date) {
         return prisma.item.findMany({
@@ -754,25 +625,7 @@ class ItemModel {
             },
         });
     }
-    static checkDeleteByReference(reference) {
-        return prisma.$transaction([
-            prisma.bill.count({
-                where: {
-                    item: {
-                        reference: reference,
-                    },
-                },
-            }),
-            prisma.good_receipt.count({
-                where: {
-                    item: {
-                        reference: reference,
-                    },
-                },
-            }),
-        ]);
-    }
-    static checkCountByIds(id) {
+    static countRelations(id) {
         return prisma.$transaction([
             prisma.bill.count({
                 where: {
@@ -948,38 +801,6 @@ class ItemModel {
             prisma.$queryRawUnsafe(`CALL stock_card_act_count(${id})`),
         ]);
     }
-    static fetchStockData(item_id, start = null, end = null) {
-        if (start == null || end == null) {
-            return prisma.$queryRawUnsafe(`CALL daily_stock_card_date(NULL, NULL, ${item_id})`);
-        }
-        else {
-            return prisma.$queryRawUnsafe(`CALL daily_stock_card_date('${start}', '${end}', ${item_id})`);
-        }
-    }
-    static fetchInputStockData(item_id, start, end) {
-        const formatted_start = `${start.getUTCFullYear()}-${(start.getUTCMonth() + 1)
-            .toString()
-            .padStart(2, "0")}-${start
-            .getUTCDate()
-            .toString()
-            .padStart(2, "0")} ${start
-            .getUTCHours()
-            .toString()
-            .padStart(2, "0")}:${start
-            .getUTCMinutes()
-            .toString()
-            .padStart(2, "0")}:${start.getUTCSeconds().toString().padStart(2, "0")}`;
-        const formatted_end = `${end.getUTCFullYear()}-${(end.getUTCMonth() + 1)
-            .toString()
-            .padStart(2, "0")}-${end.getUTCDate().toString().padStart(2, "0")} ${end
-            .getUTCHours()
-            .toString()
-            .padStart(2, "0")}:${end
-            .getUTCMinutes()
-            .toString()
-            .padStart(2, "0")}:${end.getUTCSeconds().toString().padStart(2, "0")}`;
-        return prisma.$queryRawUnsafe(`CALL daily_stock_card_input('${formatted_start}', '${formatted_end}', ${item_id})`);
-    }
     static fetchFrequentItems(monthly) {
         const date = new Date();
         if (monthly) {
@@ -1138,60 +959,7 @@ class ItemModel {
             },
         });
     }
-    static fetchPurchaseSearchByIds(ids) {
-        return prisma.item.findMany({
-            where: {
-                id: {
-                    in: ids,
-                },
-                is_active: true,
-                is_delete: false,
-            },
-            select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-                item_brand: {
-                    select: {
-                        name: true,
-                    },
-                },
-                item_type: {
-                    select: {
-                        name: true,
-                    },
-                },
-                item_price_purchase: {
-                    select: {
-                        id: true,
-                        price: true,
-                        item_unit: {
-                            select: {
-                                id: true,
-                                unit: true,
-                                conversion: true,
-                            },
-                        },
-                    },
-                    where: {
-                        is_delete: false,
-                    },
-                    orderBy: [
-                        {
-                            item_unit_id: "asc",
-                        },
-                        {
-                            item_unit: {
-                                conversion: "asc",
-                            },
-                        },
-                    ],
-                },
-            },
-        });
-    }
-    static toggleActive(item_id, status) {
+    static active(item_id, status) {
         return prisma.item.update({
             where: {
                 id: item_id,
@@ -1543,83 +1311,6 @@ class ItemModel {
                 });
         }
     }
-    static fetchStockByItemIds(ids) {
-        return prisma.$transaction([
-            prisma.item.findMany({
-                where: {
-                    is_active: true,
-                    is_delete: false,
-                    id: {
-                        in: ids,
-                    },
-                },
-                select: {
-                    reference: true,
-                    description: true,
-                    stock: true,
-                    item_brand: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                    unit: true,
-                    minimum_stock: true,
-                    id: true,
-                    item_type: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                    item_price: {
-                        select: {
-                            price: true,
-                            discount: true,
-                            item_unit_id: true,
-                            item_unit: {
-                                select: {
-                                    unit: true,
-                                    conversion: true,
-                                },
-                            },
-                        },
-                        where: {
-                            is_delete: false,
-                        },
-                    },
-                    item_price_purchase: {
-                        select: {
-                            price: true,
-                            item_unit_id: true,
-                            item_unit: {
-                                select: {
-                                    unit: true,
-                                    conversion: true,
-                                },
-                            },
-                        },
-                        where: {
-                            is_delete: false,
-                        },
-                    },
-                },
-                orderBy: {
-                    reference: "asc",
-                },
-            }),
-            prisma.item.count({
-                select: {
-                    id: true,
-                },
-                where: {
-                    is_active: true,
-                    is_delete: false,
-                    id: {
-                        in: ids,
-                    },
-                },
-            }),
-        ]);
-    }
     static fetchByItemUnitIds(items) {
         return prisma.item_price.findMany({
             where: {
@@ -1829,133 +1520,50 @@ class ItemModel {
         });
     }
     static fetchValueByBrandType(brand, type, month, year) {
-        const start_date = new Date(year, month, 1);
-        const end_date = new Date(year, month + 1, 1);
+        const start_date = new Date(year, month - 1, 1);
+        const end_date = new Date(year, month, 1);
         return prisma.$transaction([
-            prisma.item.findMany({
+            prisma.$queryRawUnsafe(`
+        SELECT item.id, item.reference, item.description, item_brand.name AS item_brand_name, item_type.name AS item_type_name, item.unit, item.item_brand_id, item.item_type_id, SUM(stock_card_act.quantity) AS quantity
+        FROM item
+        JOIN item_brand ON item.item_brand_id = item_brand.id
+        JOIN item_type ON item.item_type_id = item_type.id
+        LEFT JOIN stock_card_act ON item.id = stock_card_act.item_id
+        WHERE item_brand.id IN (${brand.join(",")}) AND item_type.id IN (${type.join(",")})
+        AND item.is_delete = 0
+        GROUP BY item.id
+        ORDER BY item.reference ASC
+        
+      `),
+            prisma.$queryRawUnsafe(`
+        SELECT item.id, SUM(CASE WHEN stock_card_act.quantity < 0 THEN stock_card_act.quantity ELSE 0 END) AS negativeQuantity, 
+        SUM(CASE WHEN stock_card_act.quantity > 0 THEN stock_card_act.quantity ELSE 0 END) AS positiveQuantity
+        FROM stock_card_act
+        JOIN item ON stock_card_act.item_id = item.id
+        WHERE item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND stock_card_act.date >= '${start_date.toISOString()}' 
+      AND stock_card_act.date < '${end_date.toISOString()}'
+      AND item.is_delete = 0
+      GROUP BY stock_card_act.item_id`),
+            prisma.$queryRawUnsafe(`
+          SELECT item.id, SUM(quantity) AS quantity
+          FROM item
+          LEFT JOIN stock_card_act ON item.id = stock_card_act.item_id
+          WHERE item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND stock_card_act.date < '${start_date.toISOString()}'
+      AND item.is_delete = 0
+          GROUP BY item.id
+      `),
+            prisma.item_brand.findMany({
                 where: {
-                    item_brand_id: {
+                    id: {
                         in: brand,
                     },
-                    item_type_id: {
+                },
+            }),
+            prisma.item_type.findMany({
+                where: {
+                    id: {
                         in: type,
                     },
-                },
-                include: {
-                    item_brand: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                    item_type: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                },
-            }),
-            prisma.stock_card_act.groupBy({
-                by: ["item_id"],
-                where: {
-                    item: {
-                        item_brand_id: {
-                            in: brand,
-                        },
-                        item_type_id: {
-                            in: type,
-                        },
-                    },
-                    AND: [
-                        {
-                            date: {
-                                gte: start_date,
-                            },
-                        },
-                        {
-                            date: {
-                                lt: end_date,
-                            },
-                        },
-                    ],
-                    quantity: {
-                        lt: 0,
-                    },
-                },
-                _sum: {
-                    quantity: true,
-                },
-            }),
-            prisma.stock_card_act.groupBy({
-                by: ["item_id"],
-                where: {
-                    item: {
-                        item_brand_id: {
-                            in: brand,
-                        },
-                        item_type_id: {
-                            in: type,
-                        },
-                    },
-                    AND: [
-                        {
-                            date: {
-                                gte: start_date,
-                            },
-                        },
-                        {
-                            date: {
-                                lt: end_date,
-                            },
-                        },
-                    ],
-                    quantity: {
-                        gt: 0,
-                    },
-                },
-                _sum: {
-                    quantity: true,
-                },
-            }),
-            prisma.stock_card_act.groupBy({
-                by: ["item_id"],
-                where: {
-                    item: {
-                        item_brand_id: {
-                            in: brand,
-                        },
-                        item_type_id: {
-                            in: type,
-                        },
-                    },
-                    date: {
-                        lt: start_date,
-                    },
-                },
-                _sum: {
-                    quantity: true,
-                },
-            }),
-            prisma.stock_card_act.groupBy({
-                by: ["item_id"],
-                where: {
-                    item: {
-                        item_brand_id: {
-                            in: brand,
-                        },
-                        item_type_id: {
-                            in: type,
-                        },
-                    },
-                    AND: [
-                        {
-                            date: {
-                                lt: end_date,
-                            },
-                        },
-                    ],
-                },
-                _sum: {
-                    quantity: true,
                 },
             }),
         ]);

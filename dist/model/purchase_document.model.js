@@ -2,7 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
-class PurchaseDocumentModel {
+class PurchaseInvoiceModel {
     constructor(name, faktur, date, discount, good_receipt_code_id, created_by, confirmed_by = null, id = null) {
         this.is_delete = false;
         this.is_confirm = true;
@@ -996,4 +996,4 @@ class PurchaseDocumentModel {
     `);
     }
 }
-exports.default = PurchaseDocumentModel;
+exports.default = PurchaseInvoiceModel;

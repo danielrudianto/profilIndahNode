@@ -6,6 +6,21 @@ const item_model_1 = require("../model/item.model");
 class SearchHelper {
 }
 SearchHelper.scheduleData = () => {
+    app_1.meili.index("item").deleteAllDocuments();
+    item_model_1.ItemModel.fetchAll(new Date())
+        .then((items) => {
+        app_1.meili.index("item").addDocumentsInBatches(items.map((x) => {
+            return {
+                id: x.id,
+                reference: x.reference,
+                description: x.description,
+                brand: x.item_brand.name,
+            };
+        }));
+    })
+        .catch((error) => {
+        console.log(error);
+    });
     (0, node_cron_1.schedule)("0 */6 * * *", () => {
         app_1.meili.index("item").deleteAllDocuments();
         item_model_1.ItemModel.fetchAll(new Date())

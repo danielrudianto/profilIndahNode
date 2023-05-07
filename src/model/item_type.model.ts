@@ -48,30 +48,19 @@ class ItemTypeModel {
   }
 
   static fetchItemById(id: number) {
-    return prisma.item_type.findUnique({
-      where: {
-        id: id,
-      },
-      include: {
-        item: {
-          select: {
-            _count: true,
-          },
-          where: {
-            is_delete: false,
-          },
-        },
-      },
-    });
+    return prisma.$queryRaw`
+      SELECT item_type.*, (SELECT COUNT(id) AS count FROM item WHERE item.is_delete = 0 AND item.item_type_id = ${id}) AS count
+      FROM item_type
+      WHERE item_type.id = ${id}`;
   }
 
   static fetchItems(keyword: string, offset: number, limit: number) {
     if (keyword == "") {
       return prisma.$transaction([
         prisma.$queryRaw`
-          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, itemCount.count
+          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, COALESCE(itemCount.count, 0) AS count
           FROM item_type
-          JOIN (
+          LEFT JOIN (
             SELECT COUNT(id) AS count, item_type_id
             FROM item
             WHERE item.is_delete = 0
@@ -92,9 +81,9 @@ class ItemTypeModel {
       return prisma.$transaction([
         prisma.$queryRawUnsafe(
           `
-          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, itemCount.count
+          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, COALESCE(itemCount.count, 0) AS count
           FROM item_type
-          JOIN (
+          LEFT JOIN (
             SELECT COUNT(id) AS count, item_type_id
             FROM item
             WHERE item.is_delete = 0

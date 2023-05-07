@@ -1,81 +1,50 @@
-import { compare, hash, hashSync } from "bcrypt";
+import { compare, hash } from "bcrypt";
 import { Request, Response } from "express";
-import { validationResult } from "express-validator";
 import { sign, verify } from "jsonwebtoken";
-import LogHelper from "../helper/log.helper";
+import ErrorList from "../assets/error_list";
 import UserModel from "../model/user.model";
-import UserTokenModel from "../model/user_token.model";
 
 class AuthController {
   static login = (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (errors.array().length > 0) {
-      return res.status(400).send("Mohon isikan dengan format yang sesuai.");
-    }
-
     const username = req.body.username;
     const password = req.body.password;
 
     UserModel.fetchByUsername(username)
       .then((user) => {
         if (!user || !user.is_active) {
-          LogHelper.log(
-            new Date(),
-            "warn",
-            `Login failed for username ${username}`,
-            "Auth controller - Login",
-            0
-          );
-
-          return res.status(400).send("Username / kata sandi salah.");
+          return res.status(400).send(ErrorList["Auth error"]);
         }
 
         compare(password, user.password).then((result) => {
           if (!result) {
-            return res.status(400).send("Username / kata sandi salah.");
+            return res.status(400).send(ErrorList["Auth error"]);
           }
 
-          const jwtToken = sign(
-            {
+          return res.status(200).send({
+            user: {
               id: user.id,
+              name: user.name,
+              role: user.user_department,
             },
-            process.env.TOKEN_KEY!.toString(),
-            {
-              expiresIn: process.env.EXPIRATION,
-            }
-          );
-
-          const refreshToken = sign(
-            {
-              id: user.id
-            },
-            process.env.REFRESH_TOKEN_KEY!.toString(),
-            {
-              expiresIn: process.env.REFRESH_EXPIRATION
-            }
-          )
-
-          const userObject = {
-            id: user.id,
-            name: user.name,
-            role: user.user_department,
-          };
-
-          const response = {
-            user: userObject,
-            token: jwtToken,
-            refreshToken: refreshToken,
-          };
-
-          LogHelper.log(
-            new Date(),
-            "info",
-            `Login success for username ${username}`,
-            "Auth controller - Login",
-            userObject.id
-          );
-
-          return res.status(200).send(response);
+            token: sign(
+              {
+                id: user.id,
+              },
+              process.env.TOKEN_KEY!.toString(),
+              {
+                expiresIn: process.env.EXPIRATION,
+              }
+            ),
+            refreshToken: sign(
+              {
+                id: user.id,
+              },
+              process.env.REFRESH_TOKEN_KEY!.toString(),
+              {
+                expiresIn: process.env.REFRESH_EXPIRATION,
+              }
+            ),
+          });
         });
       })
       .catch((error) => {
@@ -83,15 +52,11 @@ class AuthController {
       });
   };
 
-  static fetchRoles = (req: Request, res: Response) => {
-    return res.status(200).send(UserModel.roles.filter((x) => x.available));
-  };
-
   static fetchProfile = (req: Request, res: Response) => {
     UserModel.fetchById(req.body.userId)
       .then((result) => {
         if (result == null || !result.is_active) {
-          return res.status(404).send("Pengguna tidak ditemukan.");
+          return res.status(404).send(ErrorList["Auth error"]);
         } else {
           return res.status(200).send({
             name: result?.name,
@@ -105,85 +70,26 @@ class AuthController {
         }
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          `Error`,
-          `${error}`,
-          `Auth controller - Fetch profile`,
-          req.body.userId
-        );
         return res.status(500).send(error);
       });
-  };
-
-  static saveToken = (req: Request, res: Response) => {
-    const errors = validationResult(req);
-    if (errors.array().length > 0) {
-      return res.status(400).send("Please fill in the correct format.");
-    }
-
-    const token = req.body.token;
-    UserTokenModel.fetchByToken(token).then((user) => {
-      if (user == null) {
-        const tokenModel = new UserTokenModel(req.body.userId, token);
-        tokenModel.create().then((user_token) => {
-          LogHelper.log(
-            new Date(),
-            "info",
-            `Successfully register new firebase token ${token}`,
-            "Auth controller - Save token",
-            req.body.userId
-          );
-          return res.status(201).send(user_token);
-        });
-      } else if (user.user_id != req.body.userId) {
-        const tokenModel = new UserTokenModel(req.body.userId, token);
-        tokenModel.upsert().then((user_token) => {
-          LogHelper.log(
-            new Date(),
-            "info",
-            `Successfully delete firebase token ${token} from user ${user_token[0].user.name}`,
-            "Auth controller - Save token",
-            req.body.userId
-          );
-
-          LogHelper.log(
-            new Date(),
-            "info",
-            `Successfully register new firebase token ${token}`,
-            "Auth controller - Save token",
-            req.body.userId
-          );
-        });
-      } else {
-        // Token already registered for that particular user
-        return res.status(200).send({
-          token: token,
-        });
-      }
-    });
   };
 
   static updatePassword = (req: Request, res: Response) => {
     const password = req.body.password;
     const userId = req.body.userId;
-    hash(password, 12).then(hashed_password => {
-      UserModel.updatePassword(hashed_password, userId).then(result => {
-        LogHelper.log(
-          new Date(),
-          "info",
-          `User ${result.name} update it's password (ID: ${result.id})`,
-          "Auth controller - Update password Password",
-          req.body.userId
-        );
-
-        return res.status(200).send(result);
-      }).catch(error => {
-        return res.status(500).send(error);
+    hash(password, 12)
+      .then((hashed_password) => {
+        UserModel.updatePassword(hashed_password, userId)
+          .then((result) => {
+            return res.status(200).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
       })
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static resetPassword = (req: Request, res: Response) => {
@@ -216,36 +122,15 @@ class AuthController {
                   });
                 })
                 .catch((error) => {
-                  LogHelper.log(
-                    new Date(),
-                    "error",
-                    error,
-                    "Auth controller - Reset password",
-                    req.body.userId
-                  );
                   return res.status(500).send(error);
                 });
             })
             .catch((error) => {
-              LogHelper.log(
-                new Date(),
-                "error",
-                error,
-                "Auth controller - Reset password",
-                req.body.userId
-              );
               return res.status(500).send(error);
             });
         }
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "Auth controller - Reset password",
-          req.body.userId
-        );
         return res.status(500).send(error);
       });
   };
@@ -274,7 +159,7 @@ class AuthController {
         const id = parseInt((decoded as any).id);
         const jwtToken = sign(
           {
-            id: id
+            id: id,
           },
           process.env.TOKEN_KEY!.toString(),
           {
@@ -283,74 +168,11 @@ class AuthController {
         );
 
         return res.status(200).send({
-          token: jwtToken
-        })
+          token: jwtToken,
+        });
       }
     });
-  }
-
-  static administratorLogin = (req: Request, res: Response) => {
-    const username = req.body.username;
-    const password = req.body.password;
-
-    UserModel.fetchByUsername(username).then(user => {
-      if(user == null || !user.is_active || user.user_department == null || user.user_department.role != 5){
-        return res.status(401).send("Pengguna tidak ditemukan.");
-      } else {
-        compare(password, user.password).then(result => {
-          if(!result){
-            return res.status(401).send("Kata sandi salah.");
-          } else {
-            const jwtToken = sign(
-              {
-                id: user.id,
-              },
-              process.env.TOKEN_KEY!.toString(),
-              {
-                expiresIn: process.env.EXPIRATION,
-              }
-            );
-  
-            const refreshToken = sign(
-              {
-                id: user.id
-              },
-              process.env.REFRESH_TOKEN_KEY!.toString(),
-              {
-                expiresIn: process.env.REFRESH_EXPIRATION
-              }
-            )
-  
-            const userObject = {
-              id: user.id,
-              name: user.name,
-              role: user.user_department,
-            };
-  
-            const response = {
-              user: userObject,
-              token: jwtToken,
-              refreshToken: refreshToken,
-            };
-  
-            LogHelper.log(
-              new Date(),
-              "info",
-              `Login success for username ${username}`,
-              "Auth controller - Login",
-              userObject.id
-            );
-  
-            return res.status(200).send(response);
-          }
-        }).catch(error => {
-          return res.status(500).send(error);
-        })
-      }
-    }).catch(error => {
-      return res.status(500).send(error);
-    })
-  }
+  };
 }
 
 export default AuthController;

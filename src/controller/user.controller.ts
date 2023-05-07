@@ -2,7 +2,6 @@ import { hash } from "bcryptjs";
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import ErrorList from "../assets/error_list";
-import LogHelper from "../helper/log.helper";
 import SocketHelper from "../helper/socket.helper";
 import UserModel from "../model/user.model";
 import UserRoleModel from "../model/user_role.model";
@@ -19,131 +18,93 @@ class UserController {
       return res.status(500).send("Peran tidak ditemukan.");
     }
 
-    UserModel.countDuplicate(username, nik).then((count) => {
+    UserModel.fetchByIdentifiers(username, nik).then((count) => {
       if (count > 0) {
-        return res.status(500).send("Mohon masukan username / NIK unik.");
-      }
+        return res.status(400).send(ErrorList["Duplicate error"]);
+      } else {
+        let password = "";
+        const characters =
+          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        for (var i = 0; i < 8; i++) {
+          password +=
+            characters[Math.floor(Math.random() * (characters.length - 1))];
+        }
 
-      let password = "";
-      const characters =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      for (var i = 0; i < 8; i++) {
-        password +=
-          characters[Math.floor(Math.random() * (characters.length - 1))];
-      }
+        hash(password, 12)
+          .then((hashedPassword) => {
+            const user = new UserModel(
+              name,
+              nik,
+              username,
+              hashedPassword,
+              req.body.userId
+            );
+            user
+              .create()
+              .then((user_create) => {
+                const user_role = new UserRoleModel(user_create.id, roleId);
+                user_role
+                  .create()
+                  .then((user_role_create) => {
+                    const socket = new SocketHelper("createUser", {
+                      id: user_create.id,
+                      name: user_create.name,
+                      nik: user_create.nik,
+                      username: user_create.username,
+                      password: password,
+                      role_id: user_role_create.role,
+                      role: UserModel.roles.filter(
+                        (x) => x.id == user_role_create.role
+                      )[0].name,
+                      user: user_create.user,
+                    });
+                    socket.create();
 
-      hash(password, 12)
-        .then((hashedPassword) => {
-          const user = new UserModel(
-            name,
-            nik,
-            username,
-            hashedPassword,
-            req.body.userId
-          );
-          user
-            .create()
-            .then((user_create) => {
-              const user_role = new UserRoleModel(user_create.id, roleId);
-              user_role
-                .create()
-                .then((user_role_create) => {
-                  const user_object = {
-                    id: user_create.id,
-                    name: user_create.name,
-                    nik: user_create.nik,
-                    username: user_create.username,
-                    password: password,
-                    role: UserModel.roles.filter(
-                      (x) => x.id == user_role_create.role
-                    )[0].name,
-                    user: user_create.user,
-                  };
-
-                  const socket = new SocketHelper("createUser", user_object);
-                  socket.create();
-
-                  LogHelper.log(
-                    new Date(),
-                    "info",
-                    `${user_create.user?.name} created user with username ${user_create.username} (ID: ${user_create.id})`,
-                    "User - Create",
-                    req.body.userId
-                  );
-
-                  return res.status(201).send({
-                    name: user_create.name,
-                    nik: user_create.nik,
-                    username: user_create.username,
-                    password: password,
-                    role: UserModel.roles.filter(
-                      (x) => x.id == user_role_create.role
-                    )[0],
+                    return res.status(201).send({
+                      id: user_create.id,
+                      name: user_create.name,
+                      nik: user_create.nik,
+                      username: user_create.username,
+                      password: password,
+                      role_id: user_role_create.role,
+                      role: UserModel.roles.filter(
+                        (x) => x.id == user_role_create.role
+                      )[0].name,
+                    });
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
                   });
-                })
-                .catch((error) => {
-                  LogHelper.log(
-                    new Date(),
-                    "error",
-                    error,
-                    "User - Create",
-                    req.body.userId
-                  );
-
-                  return res.status(500).send(error);
-                });
-            })
-            .catch((error) => {
-              LogHelper.log(
-                new Date(),
-                "error",
-                error,
-                "User - Create",
-                req.body.userId
-              );
-
-              return res.status(500).send(error);
-            });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
+              })
+              .catch((error) => {
+                return res.status(500).send(error);
+              });
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      }
     });
   };
 
   static fetchById = (req: Request, res: Response) => {
-    const validation_result = validationResult(req);
-    if (!validation_result.isEmpty()) {
-      return res.status(400).send(validation_result.array()[0].msg);
-    }
+    const id = parseInt(req.params.id);
+    UserModel.fetchById(id)
+      .then((user) => {
+        if (user == null) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
 
-    try {
-      const id = parseInt(req.params.id);
-      UserModel.fetchById(id)
-        .then((user) => {
-          if (user == null) {
-            return res.status(404).send("Pengguna tidak ditemukan.");
-          }
-
-          const response = {
-            ...user,
-            role: UserModel.roles.filter(
-              (y) => y.id == user.user_department?.role
-            )[0].name,
-          };
-
-          return res.status(200).send(response);
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
+        return res.status(200).send({
+          ...user,
+          role: UserModel.roles.filter(
+            (y) => y.id == user.user_department?.role
+          )[0].name,
         });
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        return res.status(500).send(err);
-      } else {
-        return res.status(500).send(ErrorList["Unknown error"]);
-      }
-    }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static fetch = (req: Request, res: Response) => {
@@ -178,13 +139,6 @@ class UserController {
         });
       })
       .catch((error) => {
-        LogHelper.log(
-          new Date(),
-          "error",
-          error,
-          "User - Update",
-          req.body.userId
-        );
         return res.status(500).send(error);
       });
   };
@@ -192,40 +146,48 @@ class UserController {
   static update = (req: Request, res: Response) => {
     const name = req.body.name;
     const id = req.body.id;
-
-    const roleId = parseInt(req.body.role);
+    const roleId = req.body.role;
     const role = UserModel.roles.filter((x) => x.id == roleId && x.available);
+    const userID = req.body.userId;
 
     if (role == null || role.length == 0) {
-      return res.status(500).send("Peran tidak ditemukan.");
+      return res.status(400).send(ErrorList["Parameter error"]);
     } else {
-      UserModel.fetchById(id).then((user) => {
-        const userRoleModel = new UserRoleModel(id, role[0].id);
-        Promise.all([
-          UserModel.update(id, name, null, req.body.userId),
-          userRoleModel.update(),
-        ])
-          .then((result) => {
-            const user_object = {
-              id: result[0].id,
-              name: result[0].name,
-              nik: result[0].nik,
-              username: result[0].username,
-              password: null,
-              role: UserModel.roles.filter((x) => x.id == result[1].role)[0],
-            };
+      UserModel.fetchById(id)
+        .then((user) => {
+          if (user == null || !user.is_active) {
+            return res.status(404).send(ErrorList["Not found"]);
+          } else {
+            const userRoleModel = new UserRoleModel(id, role[0].id);
+            Promise.all([
+              UserModel.update(id, name, null, userID),
+              userRoleModel.update(),
+            ])
+              .then((result) => {
+                const user_object = {
+                  id: result[0].id,
+                  name: result[0].name,
+                  nik: result[0].nik,
+                  username: result[0].username,
+                  password: null,
+                  role: UserModel.roles.filter(
+                    (x) => x.id == result[1].role
+                  )[0],
+                };
 
-            const socket = new SocketHelper("updateUser", {
-              data: user_object,
-            });
-            socket.create();
+                const socket = new SocketHelper("updateUser", user_object);
+                socket.create();
 
-            return res.status(201).send(user_object);
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-      });
+                return res.status(201).send(user_object);
+              })
+              .catch((error) => {
+                return res.status(500).send(error);
+              });
+          }
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
     }
   };
 
@@ -248,14 +210,6 @@ class UserController {
               // If user was active and no longer active
               // Log him / her out from our system immidiately
               if (user.is_active) {
-                LogHelper.log(
-                  new Date(),
-                  "info",
-                  `${user_delete.user_userTouser_deleted_by?.name} deleted user with username ${user_delete.username} (ID: ${user_delete.id})`,
-                  "User - Delete",
-                  req.body.userId
-                );
-
                 const socket = new SocketHelper("deleteUser", user_delete);
                 socket.create();
               }

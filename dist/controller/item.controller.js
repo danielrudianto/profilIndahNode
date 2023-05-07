@@ -26,10 +26,10 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const pdfmake_1 = __importDefault(require("pdfmake"));
 const path_1 = __importDefault(require("path"));
 const app_1 = require("../app");
-class ItemController {
+class ProductController {
 }
-_a = ItemController;
-ItemController.create = (req, res) => {
+_a = ProductController;
+ProductController.create = (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
         return res.status(400).send("Mohon isikan dengan format yang sesuai.");
@@ -118,7 +118,7 @@ ItemController.create = (req, res) => {
         }
     }
 };
-ItemController.delete = (req, res) => {
+ProductController.delete = (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
         return res.status(400).send("Mohon isikan dengan format yang sesuai.");
@@ -175,7 +175,7 @@ ItemController.delete = (req, res) => {
         }
     }
 };
-ItemController.update = (req, res) => {
+ProductController.update = (req, res) => {
     const id = req.body.id;
     const reference = req.body.reference;
     const description = req.body.description;
@@ -216,7 +216,7 @@ ItemController.update = (req, res) => {
         log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Update`, req.body.userId);
     });
 };
-ItemController.fetchSearchResult = (req, res) => {
+ProductController.fetchSearchResult = (req, res) => {
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
@@ -251,7 +251,7 @@ ItemController.fetchSearchResult = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchPurchaseSearchResult = (req, res) => {
+ProductController.fetchPurchaseSearchResult = (req, res) => {
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
@@ -282,7 +282,7 @@ ItemController.fetchPurchaseSearchResult = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchSearchStock = (req, res) => {
+ProductController.fetchSearchStock = (req, res) => {
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
@@ -314,7 +314,7 @@ ItemController.fetchSearchStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetch = (req, res) => {
+ProductController.fetch = (req, res) => {
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
@@ -348,7 +348,7 @@ ItemController.fetch = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchByReference = (req, res) => {
+ProductController.fetchByReference = (req, res) => {
     const reference = req.params.reference;
     const date = new Date();
     date.setDate(date.getDate() + 1);
@@ -370,7 +370,7 @@ ItemController.fetchByReference = (req, res) => {
         res.status(500).send(error);
     });
 };
-ItemController.fetchStock = (req, res) => {
+ProductController.fetchStock = (req, res) => {
     var _b;
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
@@ -414,7 +414,7 @@ ItemController.fetchStock = (req, res) => {
         }
     });
 };
-ItemController.downloadStock = (req, res) => {
+ProductController.downloadStock = (req, res) => {
     const start = req.body.start;
     const end = req.body.end;
     const format = req.body.format;
@@ -490,7 +490,7 @@ ItemController.downloadStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchUnits = (req, res) => {
+ProductController.fetchUnits = (req, res) => {
     const reference = decodeURIComponent(req.params.reference);
     item_unit_model_1.default.fetchByItemReference(reference)
         .then((result) => {
@@ -506,7 +506,7 @@ ItemController.fetchUnits = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.updateUnit = (req, res) => {
+ProductController.updateUnit = (req, res) => {
     const units = req.body.units;
     const item_id = req.body.item_id;
     const new_units = units.filter((x) => x.id == "");
@@ -529,7 +529,7 @@ ItemController.updateUnit = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchDailyStock = (req, res) => {
+ProductController.fetchDailyStock = (req, res) => {
     var _b;
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
@@ -573,7 +573,7 @@ ItemController.fetchDailyStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchDailyInputStock = (req, res) => {
+ProductController.fetchDailyInputStock = (req, res) => {
     const errors = (0, express_validator_1.validationResult)(req);
     if (errors.array().length > 0) {
         return res.status(400).send("Mohon isikan dengan format yang sesuai.");
@@ -619,7 +619,7 @@ ItemController.fetchDailyInputStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.toggleActive = (req, res) => {
+ProductController.toggleActive = (req, res) => {
     const reference = decodeURIComponent(req.params.reference);
     item_model_1.ItemModel.fetchByReference(reference).then((item) => {
         if (item == null || item.is_delete) {
@@ -638,7 +638,7 @@ ItemController.toggleActive = (req, res) => {
         }
     });
 };
-ItemController.fetchStockReportPdf = (req, res) => {
+ProductController.fetchStockReportPdf = (req, res) => {
     if (typeof req.body.brand_id === "string") {
         const brand_ids = JSON.parse(req.body.brand_id.replace("'", "").replace('"', ""));
         const type_ids = JSON.parse(req.body.type_id.replace("'", "").replace('"', ""));
@@ -684,7 +684,7 @@ ItemController.fetchStockReportPdf = (req, res) => {
         });
     }
 };
-ItemController.fetchStockReport = (req, res) => {
+ProductController.fetchStockReport = (req, res) => {
     if (typeof req.body.brand_id === "string") {
         const brand_ids = JSON.parse(req.body.brand_id.replace("'", "").replace('"', ""));
         const type_ids = JSON.parse(req.body.type_id.replace("'", "").replace('"', ""));
@@ -720,7 +720,7 @@ ItemController.fetchStockReport = (req, res) => {
         });
     }
 };
-ItemController.fetchById = (req, res) => {
+ProductController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
     item_model_1.ItemModel.fetchById(id, new Date())
         .then((result) => {
@@ -730,7 +730,7 @@ ItemController.fetchById = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchMinusStock = (req, res) => {
+ProductController.fetchMinusStock = (req, res) => {
     const keyword = req.query.keyword == null
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
@@ -747,7 +747,7 @@ ItemController.fetchMinusStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.downloadMinusStock = (req, res) => {
+ProductController.downloadMinusStock = (req, res) => {
     item_model_1.ItemModel.downloadMinusStock()
         .then((items) => {
         try {
@@ -812,7 +812,7 @@ ItemController.downloadMinusStock = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ItemController.fetchSmartSearchStock = (req, res) => {
+ProductController.fetchSmartSearchStock = (req, res) => {
     const keyword = req.query.keyword == null
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
@@ -838,4 +838,4 @@ ItemController.fetchSmartSearchStock = (req, res) => {
         });
     });
 };
-exports.default = ItemController;
+exports.default = ProductController;

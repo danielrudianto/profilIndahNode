@@ -190,3 +190,39 @@ Tue Mar 28 2023 12:16:40 GMT+0700 (Western Indonesia Time); info; Login success 
 Tue Mar 28 2023 14:08:58 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Tue Mar 28 2023 14:10:06 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
 Tue Mar 28 2023 15:10:56 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 17:58:17 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 17:59:04 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 20:33:04 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 20:59:56 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 21:31:33 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 21:31:37 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 21:31:41 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 21:42:37 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 21:46:57 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Tue Mar 28 2023 21:49:50 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Mar 29 2023 10:23:34 GMT+0700 (Western Indonesia Time); Info; Daniel Tri berhasil menghapus data tipe barang ZZZ (ID: 56); ItemTypeController - Delete by Id; 1
+Wed Mar 29 2023 10:24:08 GMT+0700 (Western Indonesia Time); Info; Daniel Tri berhasil menghapus data tipe barang zzzzzz (ID: 57); ItemTypeController - Delete by Id; 1
+Wed Mar 29 2023 10:58:38 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Mar 29 2023 15:56:28 GMT+0700 (Western Indonesia Time); Info; Daniel Tri berhasil menghapus data tipe barang Ambalan (ID: 58); ItemTypeController - Delete by Id; 1
+Wed Mar 29 2023 19:13:05 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_brand.count()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'user.name' in 'field list'`; Brand - Fetch; 1
+Wed Mar 29 2023 19:13:21 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_brand.count()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'user.name' in 'field list'`; Brand - Fetch; 1
+Wed Mar 29 2023 19:14:09 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_brand.count()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'user.name' in 'field list'`; Brand - Fetch; 1
+Wed Mar 29 2023 19:14:23 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_brand.count()` invocation:,,,  Raw query failed. Code: `1054`. Message: `Unknown column 'user.name' in 'field list'`; Brand - Fetch; 1
+Wed Mar 29 2023 19:15:11 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_brand.count()` invocation:,,,  Raw query failed. Code: `1052`. Message: `Column 'created_at' in field list is ambiguous`; Brand - Fetch; 1
+Wed Mar 29 2023 19:15:31 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item_brand.count()` invocation:,,,  Raw query failed. Code: `1052`. Message: `Column 'created_by' in field list is ambiguous`; Brand - Fetch; 1
+Wed Mar 29 2023 19:19:19 GMT+0700 (Western Indonesia Time); info; Daniel Tri updated brand with the name 2 KUNCIS (ID: 87); Brand - Create; 1
+Wed Mar 29 2023 19:20:11 GMT+0700 (Western Indonesia Time); info; Daniel Tri updated brand with the name 2 KUNCI (ID: 87); Brand - Create; 1
+Wed Mar 29 2023 20:00:04 GMT+0700 (Western Indonesia Time); info; Daniel Tri created supplier with the name asdf (ID: 27); Supplier - Create; 1
+Wed Mar 29 2023 20:53:55 GMT+0700 (Western Indonesia Time); info; Daniel Tri updated brand with the name 2 KUNCIS (ID: 87); Brand - Create; 1
+Wed Mar 29 2023 20:53:59 GMT+0700 (Western Indonesia Time); info; Daniel Tri updated brand with the name 2 KUNCI (ID: 87); Brand - Create; 1
+Wed Mar 29 2023 21:23:37 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Mar 29 2023 21:31:19 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Wed Mar 29 2023 21:31:27 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Mar 30 2023 10:56:47 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Mar 30 2023 12:52:35 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Mar 30 2023 16:28:35 GMT+0700 (Western Indonesia Time); info; Login success for username danielrudianto; Auth controller - Login; 1
+Thu Mar 30 2023 22:58:18 GMT+0700 (Western Indonesia Time); info; Daniel Tri berhasil menambahkan penerimaan barang (ID: 1526) dari BING JAYA  (ID: 1526) untuk perusahaan Toko Profil Indah (ID: 1); Good Receipt controller - Create; 1
+Fri Mar 31 2023 11:28:01 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item.findMany()` invocation in,E:\source\repos\profilIndahNode\src\model\item_price.model.ts:65:21,,   62 static fetch(keyword: string, date: Date, offset: number, limit: number) {,   63   if (keyword == "") {,   64     return prisma.$transaction([,→  65       prisma.item.findMany(,  Raw query failed. Code: `1064`. Message: `You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'GROUP BY item_price.item_id,          ) price,          ON item.id = price.item_' at line 9`; Item price controller - Fetch; 1
+Fri Mar 31 2023 11:28:33 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item.findMany()` invocation in,E:\source\repos\profilIndahNode\src\model\item_price.model.ts:65:21,,   62 static fetch(keyword: string, date: Date, offset: number, limit: number) {,   63   if (keyword == "") {,   64     return prisma.$transaction([,→  65       prisma.item.findMany(,  Raw query failed. Code: `1054`. Message: `Unknown column 'price.effective_date' in 'field list'`; Item price controller - Fetch; 1
+Fri Mar 31 2023 11:28:52 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item.findMany()` invocation in,E:\source\repos\profilIndahNode\src\model\item_price.model.ts:65:21,,   62 static fetch(keyword: string, date: Date, offset: number, limit: number) {,   63   if (keyword == "") {,   64     return prisma.$transaction([,→  65       prisma.item.findMany(,  Raw query failed. Code: `1054`. Message: `Unknown column 'item_price' in 'group statement'`; Item price controller - Fetch; 1
+Fri Mar 31 2023 11:29:23 GMT+0700 (Western Indonesia Time); error; Error: ,Invalid `prisma.item.findMany()` invocation in,E:\source\repos\profilIndahNode\src\model\item_price.model.ts:65:21,,   62 static fetch(keyword: string, date: Date, offset: number, limit: number) {,   63   if (keyword == "") {,   64     return prisma.$transaction([,→  65       prisma.item.findMany(,  Raw query failed. Code: `1054`. Message: `Unknown column 'priceCount' in 'field list'`; Item price controller - Fetch; 1

@@ -71,128 +71,30 @@ class ExpenseTypeModel {
     });
   }
 
-  static fetchAutocomplete(keyword: string, parent_id: number | null) {
-    if (parent_id == null) {
-      if (keyword == "") {
-        return prisma.expense_type.findMany({
-          where: {
-            parent_id: null,
-            is_delete: false,
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: 5,
-          skip: 0,
-        });
-      } else {
-        return prisma.expense_type.findMany({
-          where: {
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                description: {
-                  contains: keyword,
-                },
-              },
-            ],
-            is_delete: false,
-            parent_id: null,
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: 5,
-          skip: 0,
-        });
-      }
-    } else {
-      if (keyword == "") {
-        return prisma.expense_type.findMany({
-          where: {
-            parent_id: parent_id,
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: 5,
-          skip: 0,
-        });
-      } else {
-        return prisma.expense_type.findMany({
-          where: {
-            parent_id: parent_id,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                description: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: 5,
-          skip: 0,
-        });
-      }
-    }
-  }
-
-  static fetchItemAutocomplete(keyword: string) {
-    if (keyword == "") {
+  static fetchAutocomplete(keyword: string, mode: string) {
+    if (mode == "parent") {
       return prisma.expense_type.findMany({
         where: {
           is_delete: false,
-          parent_id: {
-            not: null,
-          },
+          parent_id: null,
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              description: {
+                contains: keyword,
+              },
+            },
+          ],
         },
         orderBy: {
           name: "asc",
         },
         take: 5,
         skip: 0,
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          expense_type: {
-            select: {
-              name: true,
-            },
-          },
-        },
       });
     } else {
       return prisma.expense_type.findMany({
@@ -201,25 +103,24 @@ class ExpenseTypeModel {
           parent_id: {
             not: null,
           },
-          name: {
-            contains: keyword,
-          },
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              description: {
+                contains: keyword,
+              },
+            },
+          ],
         },
         orderBy: {
           name: "asc",
         },
         take: 5,
         skip: 0,
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          expense_type: {
-            select: {
-              name: true,
-            },
-          },
-        },
       });
     }
   }

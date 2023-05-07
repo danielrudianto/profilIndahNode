@@ -127,30 +127,22 @@ class CustomerModel {
     static fetch(keyword, offset, limit) {
         if (keyword == "") {
             return prisma.$transaction([
-                prisma.customer.findMany({
-                    where: {
-                        is_delete: false,
-                    },
-                    orderBy: {
-                        name: "asc",
-                    },
-                    select: {
-                        id: true,
-                        name: true,
-                        address: true,
-                        npwp: true,
-                        pic: true,
-                        phone_number: true,
-                        user: {
-                            select: {
-                                name: true,
-                            },
-                        },
-                        created_at: true,
-                    },
-                    skip: offset,
-                    take: limit,
-                }),
+                prisma.$queryRaw `
+          SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+          FROM customer
+          LEFT JOIN (
+            SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
+            FROM bill_code
+            JOIN customer ON bill_code.customer_id = customer.id
+            WHERE bill_code.is_delete = 0
+            GROUP BY bill_code.customer_id
+          ) itemCount
+          ON customer.id = itemCount.customer_id
+          WHERE customer.is_delete = 0
+          ORDER BY customer.name ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `,
                 prisma.customer.count({
                     where: {
                         is_delete: false,
@@ -160,43 +152,26 @@ class CustomerModel {
         }
         else {
             return prisma.$transaction([
-                prisma.customer.findMany({
-                    where: {
-                        is_delete: false,
-                        OR: [
-                            {
-                                name: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                address: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                npwp: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                pic: {
-                                    contains: keyword,
-                                },
-                            },
-                            {
-                                phone_number: {
-                                    contains: keyword,
-                                },
-                            },
-                        ],
-                    },
-                    orderBy: {
-                        name: "asc",
-                    },
-                    skip: offset,
-                    take: limit,
-                }),
+                prisma.$queryRawUnsafe(`
+          SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+          FROM customer
+          LEFT JOIN (
+            SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
+            FROM bill_code
+            JOIN customer ON bill_code.customer_id = customer.id
+            WHERE bill_code.is_delete = 0
+            GROUP BY bill_code.customer_id
+          ) itemCount
+          ON customer.id = itemCount.customer_id
+          WHERE customer.is_delete = 0
+          AND (
+            customer.name LIKE '%${keyword}%'
+            OR customer.address LIKE '%${keyword}%'
+          )
+          ORDER BY customer.name ASC
+          LIMIT ${limit}
+          OFFSET ${offset}
+        `),
                 prisma.customer.count({
                     where: {
                         is_delete: false,
@@ -233,14 +208,18 @@ class CustomerModel {
         }
     }
     static fetchById(id) {
-        return prisma.customer.findUnique({
-            where: {
-                id: id,
-            },
-            include: {
-                user: true,
-            },
-        });
+        return prisma.$queryRaw `
+      SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+      FROM customer
+      LEFT JOIN (
+        SELECT COUNT(bill_code.id) AS count
+        FROM bill_code
+        WHERE bill_code.is_delete = 0
+        AND bill_code.customer_id = ${id}
+      ) itemCount
+      ON customer.id = itemCount.customer_id
+      WHERE AND customer.id = ${id}
+    `;
     }
 }
 exports.default = CustomerModel;
