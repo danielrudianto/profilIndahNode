@@ -256,10 +256,16 @@ class ProductStockModel {
     `);
     }
     static updateStock(data) {
-        let queryUpdate = "UPDATE _stock";
+        let queryUpdate = "UPDATE _stock SET stock = CASE item_id ";
         data.forEach((item) => {
-            queryUpdate += ` SET stock = stock + ${item.quantity} WHERE item_id = ${item.item_id};`;
+            queryUpdate += `WHEN ${item.item_id} THEN stock + ${item.quantity} `;
         });
+        queryUpdate += "ELSE stock END WHERE item_id IN (";
+        data.forEach((item) => {
+            queryUpdate += `${item.item_id}, `;
+        });
+        queryUpdate = queryUpdate.slice(0, -2);
+        queryUpdate += ")";
         return prisma.$queryRawUnsafe(queryUpdate);
     }
     static syncData() {

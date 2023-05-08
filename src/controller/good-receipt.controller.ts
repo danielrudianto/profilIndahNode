@@ -106,9 +106,15 @@ class GoodReceiptController {
                                     quantity: quantity,
                                   };
                                 })
-                              ).then(() => {
-                                return res.status(201).send(goodReceiptResult);
-                              });
+                              )
+                                .then(() => {
+                                  return res
+                                    .status(201)
+                                    .send(goodReceiptResult);
+                                })
+                                .catch((error) => {
+                                  return res.status(500).send(error);
+                                });
                             }
                           })
                           .catch(() => {

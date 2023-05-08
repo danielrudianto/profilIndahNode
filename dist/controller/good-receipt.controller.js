@@ -79,8 +79,14 @@ GoodReceiptController.create = (req, res) => {
                                             item_id: x.item.id,
                                             quantity: quantity,
                                         };
-                                    })).then(() => {
-                                        return res.status(201).send(goodReceiptResult);
+                                    }))
+                                        .then(() => {
+                                        return res
+                                            .status(201)
+                                            .send(goodReceiptResult);
+                                    })
+                                        .catch((error) => {
+                                        return res.status(500).send(error);
                                     });
                                 }
                             })

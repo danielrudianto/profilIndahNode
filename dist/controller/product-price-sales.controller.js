@@ -161,7 +161,7 @@ ItemPriceController.fetchByItemID = (req, res) => {
 ItemPriceController.fetchFormat = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const brand_id = req.body.brand_id;
     const type_id = req.body.type_id;
-    const setting = req.body.setting;
+    const setting = 0;
     const rows = [
         [
             "ID",

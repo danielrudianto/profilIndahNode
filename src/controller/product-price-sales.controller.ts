@@ -185,7 +185,7 @@ class ItemPriceController {
   static fetchFormat = async (req: Request, res: Response) => {
     const brand_id = req.body.brand_id as number[];
     const type_id = req.body.type_id as number[];
-    const setting = req.body.setting;
+    const setting = 0;
 
     const rows: any[] = [
       [
