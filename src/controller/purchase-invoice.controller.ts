@@ -454,7 +454,7 @@ class PurchaseInvoiceController {
   };
 
   static delete = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = parseInt(req.body.id);
     PurchaseInvoiceModel.fetchById(id).then((purchase_invoice) => {
       if (purchase_invoice == null || purchase_invoice.is_delete) {
         return res.status(404).send(ErrorList["Not found"]);
