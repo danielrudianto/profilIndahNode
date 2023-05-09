@@ -31,7 +31,7 @@ class ProductStockModel {
           prisma.$queryRawUnsafe<any[]>(`
               SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock, item_brand.name as item_brand_name
               FROM item
-              LEFT JOIN _stock ON item.id = _stock.id
+              LEFT JOIN _stock ON item.id = _stock.item_id
               JOIN item_brand ON item.item_brand_id = item_brand.id
               WHERE item.is_delete = 0
               AND item.is_active = 1
@@ -95,7 +95,7 @@ class ProductStockModel {
           prisma.$queryRawUnsafe<any[]>(`
               SELECT item.id, item.reference, item.description, item.unit, COALESCE(stock.stock, 0) AS stock, item_brand.name as item_brand_name
               FROM item
-              LEFT JOIN stock ON item.id = stock.id
+              LEFT JOIN stock ON item.id = stock.item_id
               JOIN item_brand ON item.item_brand_id = item_brand.id
               WHERE item.is_delete = 0
               AND item.is_active = 1
