@@ -42,6 +42,7 @@ import DraftBillRoutes from "./routes/transaction/draft-bill.route";
 
 import SearchHelper from "./helper/search.helper";
 import ProductStockController from "./controller/product-stock.controller";
+import DraftBillController from "./controller/draft-bill.controller";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -94,6 +95,7 @@ const server = http.createServer(app);
 server.listen(5000, () => {
   SearchHelper.scheduleData();
   ProductStockController.scheduleData();
+  DraftBillController.truncateData();
 });
 
 export const io = new Server(server, {

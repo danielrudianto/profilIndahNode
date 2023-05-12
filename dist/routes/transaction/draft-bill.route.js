@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const draft_bill_controller_1 = __importDefault(require("../../controller/draft-bill.controller"));
 const router = (0, express_1.Router)();
+router.post("/order", draft_bill_controller_1.default.order);
 router.post("/", draft_bill_controller_1.default.create);
 router.get("/:queueNumber", draft_bill_controller_1.default.fetchByQueueNumber);
 exports.default = router;

@@ -115,6 +115,7 @@ class SalesReturnModel {
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           GROUP BY sales_return_code.id
         ) salesReturnCount
+        ON sales_return_code.id = salesReturnCount.sales_return_code_id
         LEFT JOIN customer ON salesReturnCount.customer_id = customer.id
         WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${month + 1}
         ORDER BY sales_return_code.date ASC
@@ -139,6 +140,7 @@ class SalesReturnModel {
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           GROUP BY sales_return_code.id
         ) salesReturnCount
+        ON sales_return_code.id = salesReturnCount.sales_return_code_id
         LEFT JOIN customer ON salesReturnCount.customer_id = customer.id
         WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${month + 1}
         AND sales_return_code.is_delete = 1
@@ -165,6 +167,7 @@ class SalesReturnModel {
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           GROUP BY sales_return_code.id
         ) salesReturnCount
+        ON sales_return_code.id = salesReturnCount.sales_return_code_id
         LEFT JOIN customer ON salesReturnCount.customer_id = customer.id
         WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${month + 1}
         AND sales_return_code.is_delete = 0

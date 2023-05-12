@@ -43,6 +43,7 @@ const draft_bill_route_1 = __importDefault(require("./routes/transaction/draft-b
 */
 const search_helper_1 = __importDefault(require("./helper/search.helper"));
 const product_stock_controller_1 = __importDefault(require("./controller/product-stock.controller"));
+const draft_bill_controller_1 = __importDefault(require("./controller/draft-bill.controller"));
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -85,6 +86,7 @@ const server = http_1.default.createServer(app);
 server.listen(5000, () => {
     search_helper_1.default.scheduleData();
     product_stock_controller_1.default.scheduleData();
+    draft_bill_controller_1.default.truncateData();
 });
 exports.io = new socket_io_1.Server(server, {
     cors: {

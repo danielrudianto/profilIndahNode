@@ -8,7 +8,7 @@ class BillCodeModel {
   customer_id?: number | null;
   created_by: number;
   created_at: Date;
-  payment_method_id: number;
+  payment_method_id: number | null;
   is_delete: boolean = false;
   is_confirm: boolean = true;
   confirmed_by: number;
@@ -22,7 +22,7 @@ class BillCodeModel {
   constructor(
     customer_id: number | null,
     created_by: number,
-    payment_method_id: number,
+    payment_method_id: number | null,
     discount: number,
     delivery: number,
     service: number,
