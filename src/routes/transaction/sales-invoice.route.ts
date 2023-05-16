@@ -28,13 +28,6 @@ router.post(
   SalesInvoiceController.create
 );
 
-// router.post(
-//   "/printout/draft",
-//   body("items").isArray().withMessage(ErrorList["Parameter error"]),
-//   SalesInvoiceController.createPrintoutDraft
-// );
-// router.post("/printout", SalesInvoiceController.createPrintout);
-
 router.get("/archives", SalesInvoiceController.fetchArchive);
 
 router.get(
