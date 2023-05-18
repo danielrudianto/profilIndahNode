@@ -35,6 +35,7 @@ DraftBillController.create = (req, res) => {
     });
 };
 DraftBillController.fetchByQueueNumber = (req, res) => {
+    console.log(req.params);
     const queueNumber = req.params.queueNumber;
     try {
         const queue_number = parseInt(queueNumber);
@@ -143,7 +144,7 @@ DraftBillController.order = (req, res) => {
                 }
             }), date, req.body.userId)
                 .then((result) => {
-                return res.status(201).send(result);
+                return res.status(201).send(result[1]);
             })
                 .catch((error) => {
                 return res.status(500).send(error);
