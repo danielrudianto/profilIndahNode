@@ -87,6 +87,7 @@ server.listen(5000, () => {
     search_helper_1.default.scheduleData();
     product_stock_controller_1.default.scheduleData();
     draft_bill_controller_1.default.truncateData();
+    console.log("Server is running on port 5000");
 });
 exports.io = new socket_io_1.Server(server, {
     cors: {

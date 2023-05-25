@@ -96,6 +96,8 @@ server.listen(5000, () => {
   SearchHelper.scheduleData();
   ProductStockController.scheduleData();
   DraftBillController.truncateData();
+
+  console.log("Server is running on port 5000");
 });
 
 export const io = new Server(server, {

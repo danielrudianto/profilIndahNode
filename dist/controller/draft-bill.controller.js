@@ -35,6 +35,7 @@ DraftBillController.create = (req, res) => {
     });
 };
 DraftBillController.fetchByQueueNumber = (req, res) => {
+    console.log(req.params);
     const queueNumber = req.params.queueNumber;
     try {
         const queue_number = parseInt(queueNumber);

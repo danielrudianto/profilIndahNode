@@ -29,6 +29,7 @@ class DraftBillController {
   };
 
   static fetchByQueueNumber = (req: Request, res: Response) => {
+    console.log(req.params);
     const queueNumber = req.params.queueNumber;
     try {
       const queue_number = parseInt(queueNumber);
