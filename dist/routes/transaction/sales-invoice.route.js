@@ -21,12 +21,6 @@ router.post("/", (0, express_validator_1.body)("customer_id").exists().withMessa
     .toInt()
     .isInt({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.create);
-// router.post(
-//   "/printout/draft",
-//   body("items").isArray().withMessage(ErrorList["Parameter error"]),
-//   SalesInvoiceController.createPrintoutDraft
-// );
-// router.post("/printout", SalesInvoiceController.createPrintout);
 router.get("/archives", sales_invoice_controller_1.default.fetchArchive);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.fetchById);
 router.delete("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id")

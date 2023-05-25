@@ -38,14 +38,12 @@ router.get(
 router.get("/", ProductController.fetch);
 router.put(
   "/active",
-  administratorMiddleware,
   body("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ProductController.active
 );
 router.put(
   "/",
-  administratorMiddleware,
   body("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
   body("reference").exists().withMessage(ErrorList["Parameter error"]),
   body("reference").notEmpty().withMessage(ErrorList["Parameter error"]),

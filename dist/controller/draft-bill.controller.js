@@ -143,7 +143,7 @@ DraftBillController.order = (req, res) => {
                 }
             }), date, req.body.userId)
                 .then((result) => {
-                return res.status(201).send(result);
+                return res.status(201).send(result[1]);
             })
                 .catch((error) => {
                 return res.status(500).send(error);
