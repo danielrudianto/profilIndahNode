@@ -45,34 +45,64 @@ ProductController.create = (req, res) => {
             item
                 .create()
                 .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-                const item_units = product_unit_model_1.default.createMany(units, result.id, userID);
-                const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, userID);
-                const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, userID, null);
-                Promise.all([
-                    item_price.create(),
-                    item_purchase_price.create(),
-                    item_model_1.ItemModel.count(),
-                    item_units,
-                    app_1.meili.index("item").addDocuments([
-                        {
-                            id: result.id,
-                            reference: result.reference,
-                            description: result.description,
-                        },
-                    ], {
-                        primaryKey: "id",
-                    }),
-                    product_stock_model_1.default.createStockData(result.id),
-                ])
-                    .then((item_price) => {
-                    const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
-                    const itemSocket = new socket_helper_1.default("createItem", item_object);
-                    itemSocket.create();
-                    return res.status(201).send(result);
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
-                });
+                if (units.length == 0) {
+                    const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, userID);
+                    const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, userID, null);
+                    Promise.all([
+                        item_price.create(),
+                        item_purchase_price.create(),
+                        item_model_1.ItemModel.count(),
+                        app_1.meili.index("item").addDocuments([
+                            {
+                                id: result.id,
+                                reference: result.reference,
+                                description: result.description,
+                            },
+                        ], {
+                            primaryKey: "id",
+                        }),
+                        product_stock_model_1.default.createStockData(result.id),
+                    ])
+                        .then((item_price) => {
+                        const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: [] });
+                        const itemSocket = new socket_helper_1.default("createItem", item_object);
+                        itemSocket.create();
+                        return res.status(201).send(result);
+                    })
+                        .catch((error) => {
+                        return res.status(500).send(error);
+                    });
+                }
+                else {
+                    const item_units = product_unit_model_1.default.createMany(units, result.id, userID);
+                    const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, userID);
+                    const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, userID, null);
+                    Promise.all([
+                        item_price.create(),
+                        item_purchase_price.create(),
+                        item_model_1.ItemModel.count(),
+                        item_units,
+                        app_1.meili.index("item").addDocuments([
+                            {
+                                id: result.id,
+                                reference: result.reference,
+                                description: result.description,
+                            },
+                        ], {
+                            primaryKey: "id",
+                        }),
+                        product_stock_model_1.default.createStockData(result.id),
+                    ])
+                        .then((item_price) => {
+                        const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
+                        const itemSocket = new socket_helper_1.default("createItem", item_object);
+                        itemSocket.create();
+                        return res.status(201).send(result);
+                    })
+                        .catch((error) => {
+                        return res.status(500).send(error);
+                    });
+                }
             }))
                 .catch((error) => {
                 console.log(error);

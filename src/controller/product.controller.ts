@@ -4,12 +4,9 @@ import { ItemModel } from "../model/item.model";
 import SocketHelper from "../helper/socket.helper";
 import ItemPriceModel from "../model/item_price.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
-import StockCardHelper from "../helper/stock_card.helper";
 import ItemUnitModel from "../model/product-unit.model";
 import ErrorList from "../assets/error_list";
 
-import pdfPrinter from "pdfmake";
-import path from "path";
 import { meili } from "../app";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import ProductStockModel from "../model/product-stock.model";
@@ -47,65 +44,120 @@ class ProductController {
           item
             .create()
             .then(async (result) => {
-              const item_units = ItemUnitModel.createMany(
-                units,
-                result.id,
-                userID
-              );
+              if (units.length == 0) {
+                const item_price = new ItemPriceModel(
+                  req.body.price,
+                  req.body.discount,
+                  result.id,
+                  null,
+                  userID
+                );
 
-              const item_price = new ItemPriceModel(
-                req.body.price,
-                req.body.discount,
-                result.id,
-                null,
-                userID
-              );
+                const item_purchase_price = new ItemPurchasePriceModel(
+                  req.body.purchase_price,
+                  result.id,
+                  userID,
+                  null
+                );
 
-              const item_purchase_price = new ItemPurchasePriceModel(
-                req.body.purchase_price,
-                result.id,
-                userID,
-                null
-              );
-
-              Promise.all([
-                item_price.create(),
-                item_purchase_price.create(),
-                ItemModel.count(),
-                item_units,
-                meili.index("item").addDocuments(
-                  [
+                Promise.all([
+                  item_price.create(),
+                  item_purchase_price.create(),
+                  ItemModel.count(),
+                  meili.index("item").addDocuments(
+                    [
+                      {
+                        id: result.id,
+                        reference: result.reference,
+                        description: result.description,
+                      },
+                    ],
                     {
-                      id: result.id,
-                      reference: result.reference,
-                      description: result.description,
-                    },
-                  ],
-                  {
-                    primaryKey: "id",
-                  }
-                ),
-                ProductStockModel.createStockData(result.id),
-              ])
-                .then((item_price) => {
-                  const item_object = {
-                    ...result,
-                    item_price: item_price[0],
-                    item_price_purchase: item_price[1],
-                    item_units: item_price[2],
-                  };
+                      primaryKey: "id",
+                    }
+                  ),
+                  ProductStockModel.createStockData(result.id),
+                ])
+                  .then((item_price) => {
+                    const item_object = {
+                      ...result,
+                      item_price: item_price[0],
+                      item_price_purchase: item_price[1],
+                      item_units: [],
+                    };
 
-                  const itemSocket = new SocketHelper(
-                    "createItem",
-                    item_object
-                  );
-                  itemSocket.create();
+                    const itemSocket = new SocketHelper(
+                      "createItem",
+                      item_object
+                    );
+                    itemSocket.create();
 
-                  return res.status(201).send(result);
-                })
-                .catch((error) => {
-                  return res.status(500).send(error);
-                });
+                    return res.status(201).send(result);
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
+                  });
+              } else {
+                const item_units = ItemUnitModel.createMany(
+                  units,
+                  result.id,
+                  userID
+                );
+
+                const item_price = new ItemPriceModel(
+                  req.body.price,
+                  req.body.discount,
+                  result.id,
+                  null,
+                  userID
+                );
+
+                const item_purchase_price = new ItemPurchasePriceModel(
+                  req.body.purchase_price,
+                  result.id,
+                  userID,
+                  null
+                );
+
+                Promise.all([
+                  item_price.create(),
+                  item_purchase_price.create(),
+                  ItemModel.count(),
+                  item_units,
+                  meili.index("item").addDocuments(
+                    [
+                      {
+                        id: result.id,
+                        reference: result.reference,
+                        description: result.description,
+                      },
+                    ],
+                    {
+                      primaryKey: "id",
+                    }
+                  ),
+                  ProductStockModel.createStockData(result.id),
+                ])
+                  .then((item_price) => {
+                    const item_object = {
+                      ...result,
+                      item_price: item_price[0],
+                      item_price_purchase: item_price[1],
+                      item_units: item_price[2],
+                    };
+
+                    const itemSocket = new SocketHelper(
+                      "createItem",
+                      item_object
+                    );
+                    itemSocket.create();
+
+                    return res.status(201).send(result);
+                  })
+                  .catch((error) => {
+                    return res.status(500).send(error);
+                  });
+              }
             })
             .catch((error) => {
               console.log(error);
