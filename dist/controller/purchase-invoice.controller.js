@@ -348,7 +348,7 @@ PurchaseInvoiceController.confirm = (req, res) => {
     });
 };
 PurchaseInvoiceController.delete = (req, res) => {
-    const id = parseInt(req.body.id);
+    const id = parseInt(req.params.id);
     purchase_invoice_model_1.default.fetchById(id).then((purchase_invoice) => {
         if (purchase_invoice == null || purchase_invoice.is_delete) {
             return res.status(404).send(error_list_1.default["Not found"]);
