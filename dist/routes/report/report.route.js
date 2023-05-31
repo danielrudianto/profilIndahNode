@@ -7,6 +7,7 @@ const express_1 = require("express");
 const express_validator_1 = require("express-validator");
 const error_list_1 = __importDefault(require("../../assets/error_list"));
 const report_controller_1 = __importDefault(require("../../controller/report.controller"));
+const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.post("/money-receipt", (0, express_validator_1.body)("date").exists().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.fetchMoneyReceipt);
@@ -15,7 +16,7 @@ router.post("/purchase", (0, express_validator_1.body)("month")
     .notEmpty()
     .isNumeric()
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("year").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.fetchPurchaseReport);
-router.get("/profitloss/:month/:year/:report", report_controller_1.default.fetchPLStats);
+router.get("/profitloss/:month/:year/:report", auth_helper_1.administratorMiddleware, report_controller_1.default.fetchPLStats);
 router.get("/quickStats", report_controller_1.default.fetchQuickStats);
 router.post("/sales", report_controller_1.default.fetchSalesReport);
 router.post("/purchase/download", report_controller_1.default.fetchPurchaseReportDownload);

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { body } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import ReportController from "../../controller/report.controller";
+import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
 
 const router = Router();
@@ -33,7 +34,11 @@ router.post(
   ReportController.fetchPurchaseReport
 );
 
-router.get("/profitloss/:month/:year/:report", ReportController.fetchPLStats);
+router.get(
+  "/profitloss/:month/:year/:report",
+  administratorMiddleware,
+  ReportController.fetchPLStats
+);
 
 router.get("/quickStats", ReportController.fetchQuickStats);
 
