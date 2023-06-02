@@ -559,7 +559,7 @@ ProductController.search = (req, res) => {
                 })).then((items) => {
                     return res.status(200).send({
                         data: items.map((x) => {
-                            var _b, _c;
+                            var _b, _c, _d;
                             const priceIndex = x.item_price.findIndex((y) => {
                                 y.item_unit == null;
                             });
@@ -573,7 +573,7 @@ ProductController.search = (req, res) => {
                                 item_brand: {
                                     name: (_c = x.item_brand) === null || _c === void 0 ? void 0 : _c.name,
                                 },
-                                stock: x.stock,
+                                stock: x.stock == null ? 0 : (_d = x.stock) === null || _d === void 0 ? void 0 : _d.stock,
                                 price: priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
                                 discount: 0,
                                 unit: x.unit,

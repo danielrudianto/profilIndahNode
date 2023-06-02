@@ -662,7 +662,7 @@ class ProductController {
                     item_brand: {
                       name: x.item_brand?.name,
                     },
-                    stock: x.stock,
+                    stock: x.stock == null ? 0 : x.stock?.stock,
                     price:
                       priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
                     discount: 0,
