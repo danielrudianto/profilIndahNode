@@ -626,7 +626,7 @@ class ProductController {
       meili
         .index("item")
         .search(keyword, {
-          filter: `brand in [${brands
+          filter: `brand IN [${brands
             .map((x) => {
               return x;
             })
