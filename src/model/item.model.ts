@@ -1789,4 +1789,46 @@ export class ItemModel {
       },
     });
   }
+
+  static fetchCompleteByIDs(ids: number[]) {
+    return prisma.item.findMany({
+      where: {
+        id: {
+          in: ids,
+        },
+      },
+      select: {
+        id: true,
+        reference: true,
+        description: true,
+        item_type: {
+          select: {
+            name: true,
+          },
+        },
+        item_brand: {
+          select: {
+            name: true,
+          },
+        },
+        unit: true,
+        stock: true,
+        item_price: {
+          select: {
+            price: true,
+            item_unit: {
+              select: {
+                id: true,
+                unit: true,
+                conversion: true,
+              },
+            },
+          },
+          where: {
+            is_delete: false,
+          },
+        },
+      },
+    });
+  }
 }

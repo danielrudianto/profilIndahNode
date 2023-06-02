@@ -471,4 +471,130 @@ ProductController.fetchSmartSearchStock = (req, res) => {
         }
     });
 };
+ProductController.search = (req, res) => {
+    const keyword = req.body.keyword;
+    const page = req.body.page;
+    const offset = (page - 1) * 20;
+    const brands = req.body.brands;
+    if (brands.length == 0) {
+        // Fetch all products
+        app_1.meili
+            .index("item")
+            .search(keyword, {
+            limit: 20,
+            offset: offset,
+        })
+            .then((result) => {
+            if (result.hits.length == 0) {
+                return res.status(200).send({
+                    data: [],
+                    count: 0,
+                });
+            }
+            else {
+                item_model_1.ItemModel.fetchCompleteByIDs(result.hits.map((x) => {
+                    return x.id;
+                })).then((items) => {
+                    return res.status(200).send({
+                        data: items.map((x) => {
+                            var _b, _c;
+                            const priceIndex = x.item_price.findIndex((y) => {
+                                y.item_unit == null;
+                            });
+                            return {
+                                id: x.id,
+                                reference: x.reference,
+                                description: x.description,
+                                item_type: {
+                                    name: (_b = x.item_type) === null || _b === void 0 ? void 0 : _b.name,
+                                },
+                                item_brand: {
+                                    name: (_c = x.item_brand) === null || _c === void 0 ? void 0 : _c.name,
+                                },
+                                stock: x.stock,
+                                price: priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
+                                discount: 0,
+                                unit: x.unit,
+                                unit_price: x.item_price
+                                    .filter((z) => z.item_unit != null)
+                                    .map((a) => {
+                                    var _b, _c, _d;
+                                    return {
+                                        id: (_b = a.item_unit) === null || _b === void 0 ? void 0 : _b.id,
+                                        unit: (_c = a.item_unit) === null || _c === void 0 ? void 0 : _c.unit,
+                                        conversion: (_d = a.item_unit) === null || _d === void 0 ? void 0 : _d.conversion,
+                                        price: a.price,
+                                    };
+                                }),
+                            };
+                        }),
+                        count: result.estimatedTotalHits,
+                    });
+                });
+            }
+        });
+    }
+    else {
+        app_1.meili
+            .index("item")
+            .search(keyword, {
+            filter: `brand in [${brands
+                .map((x) => {
+                return x;
+            })
+                .join(",")}]`,
+            limit: 20,
+            offset: offset,
+        })
+            .then((result) => {
+            if (result.hits.length == 0) {
+                return res.status(200).send({
+                    data: [],
+                    count: 0,
+                });
+            }
+            else {
+                item_model_1.ItemModel.fetchCompleteByIDs(result.hits.map((x) => {
+                    return x.id;
+                })).then((items) => {
+                    return res.status(200).send({
+                        data: items.map((x) => {
+                            var _b, _c;
+                            const priceIndex = x.item_price.findIndex((y) => {
+                                y.item_unit == null;
+                            });
+                            return {
+                                id: x.id,
+                                reference: x.reference,
+                                description: x.description,
+                                item_type: {
+                                    name: (_b = x.item_type) === null || _b === void 0 ? void 0 : _b.name,
+                                },
+                                item_brand: {
+                                    name: (_c = x.item_brand) === null || _c === void 0 ? void 0 : _c.name,
+                                },
+                                stock: x.stock,
+                                price: priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
+                                discount: 0,
+                                unit: x.unit,
+                                unit_price: x.item_price
+                                    .filter((z) => z.item_unit != null)
+                                    .map((a) => {
+                                    var _b, _c, _d;
+                                    return {
+                                        id: (_b = a.item_unit) === null || _b === void 0 ? void 0 : _b.id,
+                                        unit: (_c = a.item_unit) === null || _c === void 0 ? void 0 : _c.unit,
+                                        conversion: (_d = a.item_unit) === null || _d === void 0 ? void 0 : _d.conversion,
+                                        price: a.price,
+                                    };
+                                }),
+                            };
+                        }),
+                        count: result.estimatedTotalHits,
+                    });
+                });
+            }
+        });
+    }
+};
 exports.default = ProductController;

@@ -558,6 +558,134 @@ class ProductController {
         }
       });
   };
+
+  static search = (req: Request, res: Response) => {
+    const keyword = req.body.keyword;
+    const page = req.body.page;
+    const offset = (page - 1) * 20;
+    const brands = req.body.brands as any[];
+    if (brands.length == 0) {
+      // Fetch all products
+      meili
+        .index("item")
+        .search(keyword, {
+          limit: 20,
+          offset: offset,
+        })
+        .then((result) => {
+          if (result.hits.length == 0) {
+            return res.status(200).send({
+              data: [],
+              count: 0,
+            });
+          } else {
+            ItemModel.fetchCompleteByIDs(
+              result.hits.map((x) => {
+                return x.id;
+              })
+            ).then((items) => {
+              return res.status(200).send({
+                data: items.map((x) => {
+                  const priceIndex = x.item_price.findIndex((y) => {
+                    y.item_unit == null;
+                  });
+
+                  return {
+                    id: x.id,
+                    reference: x.reference,
+                    description: x.description,
+                    item_type: {
+                      name: x.item_type?.name,
+                    },
+                    item_brand: {
+                      name: x.item_brand?.name,
+                    },
+                    stock: x.stock,
+                    price:
+                      priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
+                    discount: 0,
+                    unit: x.unit,
+                    unit_price: x.item_price
+                      .filter((z) => z.item_unit != null)
+                      .map((a) => {
+                        return {
+                          id: a.item_unit?.id,
+                          unit: a.item_unit?.unit,
+                          conversion: a.item_unit?.conversion,
+                          price: a.price,
+                        };
+                      }),
+                  };
+                }),
+                count: result.estimatedTotalHits,
+              });
+            });
+          }
+        });
+    } else {
+      meili
+        .index("item")
+        .search(keyword, {
+          filter: `brand in [${brands
+            .map((x) => {
+              return x;
+            })
+            .join(",")}]`,
+          limit: 20,
+          offset: offset,
+        })
+        .then((result) => {
+          if (result.hits.length == 0) {
+            return res.status(200).send({
+              data: [],
+              count: 0,
+            });
+          } else {
+            ItemModel.fetchCompleteByIDs(
+              result.hits.map((x) => {
+                return x.id;
+              })
+            ).then((items) => {
+              return res.status(200).send({
+                data: items.map((x) => {
+                  const priceIndex = x.item_price.findIndex((y) => {
+                    y.item_unit == null;
+                  });
+
+                  return {
+                    id: x.id,
+                    reference: x.reference,
+                    description: x.description,
+                    item_type: {
+                      name: x.item_type?.name,
+                    },
+                    item_brand: {
+                      name: x.item_brand?.name,
+                    },
+                    stock: x.stock,
+                    price:
+                      priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
+                    discount: 0,
+                    unit: x.unit,
+                    unit_price: x.item_price
+                      .filter((z) => z.item_unit != null)
+                      .map((a) => {
+                        return {
+                          id: a.item_unit?.id,
+                          unit: a.item_unit?.unit,
+                          conversion: a.item_unit?.conversion,
+                          price: a.price,
+                        };
+                      }),
+                  };
+                }),
+                count: result.estimatedTotalHits,
+              });
+            });
+          }
+        });
+    }
+  };
 }
 
 export default ProductController;

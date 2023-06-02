@@ -9,6 +9,7 @@ import ItemPurchasePriceController from "../../controller/product-price-purchase
 
 const router = Router();
 
+router.post("/search", ProductController.search);
 router.post(
   "/",
   body("reference").exists().withMessage(ErrorList["Parameter error"]),
