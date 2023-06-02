@@ -5,6 +5,9 @@ import { ItemModel } from "../model/item.model";
 class SearchHelper {
   static scheduleData = () => {
     meili.index("item").deleteAllDocuments();
+    meili.index("item").updateSettings({
+      filterableAttributes: ["brand"],
+    });
     ItemModel.fetchAll(new Date())
       .then((items) => {
         meili.index("item").addDocumentsInBatches(

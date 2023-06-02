@@ -7,6 +7,9 @@ class SearchHelper {
 }
 SearchHelper.scheduleData = () => {
     app_1.meili.index("item").deleteAllDocuments();
+    app_1.meili.index("item").updateSettings({
+        filterableAttributes: ["brand"],
+    });
     item_model_1.ItemModel.fetchAll(new Date())
         .then((items) => {
         app_1.meili.index("item").addDocumentsInBatches(items.map((x) => {
