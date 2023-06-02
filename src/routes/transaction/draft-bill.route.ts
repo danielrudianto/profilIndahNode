@@ -5,6 +5,5 @@ const router = Router();
 
 router.post("/order", DraftBillController.order);
 router.post("/", DraftBillController.create);
-router.get("/:queueNumber", DraftBillController.fetchByQueueNumber);
 
 export default router;

@@ -636,7 +636,6 @@ model stock_out_distribution {
 
 model draft_bill_code {
   id                                      Int          @id @default(autoincrement())
-  queue_number                            Int
   customer_id                             Int?
   customer                                customer?     @relation(fields: [customer_id], references: [id])
   draft_bill                              draft_bill[]
