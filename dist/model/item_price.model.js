@@ -191,7 +191,7 @@ class ItemPriceModel {
             return prisma.$queryRaw `
         SELECT item.reference, item.description, item.unit, item_unit.unit AS used_unit, item_unit.conversion AS used_conversion, price.price, price.discount, item.id AS item_id, NULL AS item_unit_id
         FROM item_unit
-        JOIN item ON item.item_id = item_unit.item_id
+        JOIN item ON item.id = item_unit.item_id
         JOIN (
           SELECT item_price.price, item_price.discount, item_price.item_id, item_price.item_unit_id
           FROM item_price
