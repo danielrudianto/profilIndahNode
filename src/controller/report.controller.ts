@@ -21,6 +21,7 @@ import SupplierModel from "../model/supplier.model";
 import { ItemModel } from "../model/item.model";
 import CompanyModel from "../model/company.model";
 import StockCardHelper from "../helper/stock_card.helper";
+import ProductStockModel from "../model/product-stock.model";
 
 var formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -2684,6 +2685,189 @@ class ReportController {
       .catch((error) => {
         return res.status(500).send(error);
       });
+  };
+
+  static fetchProductStockProblem = (req: Request, res: Response) => {
+    const mode = req.body.mode;
+    ProductStockModel.fetchProblematic().then((result) => {
+      if (mode == "excel") {
+        const rows: any[] = [["No", "Referensi", "Deskripsi", "Stock"]];
+        result.forEach((data, index) => {
+          rows.push([
+            index + 1,
+            data.item.reference,
+            data.item.description,
+            parseFloat(data.stock.toString()),
+          ]);
+        });
+        // Create an excel file
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = "Toko Profil Indah";
+        workbook.created = new Date();
+        workbook.modified = new Date();
+        workbook.lastModifiedBy = "Toko Profil Indah";
+
+        const sheet = workbook.addWorksheet("Stock bermasalah", {
+          state: "visible",
+          views: [
+            {
+              state: "frozen",
+              xSplit: 9,
+              ySplit: 1,
+            },
+          ],
+        });
+        sheet.state = "visible";
+        rows.forEach((data) => {
+          sheet.addRow(data);
+        });
+
+        sheet.columns = [
+          { header: "No", key: "no", width: 5 },
+          { header: "Referensi", key: "reference", width: 20 },
+          { header: "Deskripsi", key: "description", width: 50 },
+          { header: "Stock", key: "stock", width: 10 },
+        ];
+
+        sheet.getRow(1).font = { bold: true };
+        sheet.getRow(1).alignment = { horizontal: "center" };
+        sheet.getRow(1).height = 20;
+
+        workbook.xlsx
+          .writeBuffer()
+          .then((buffer) => {
+            return res.status(200).send({
+              data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+                buffer
+              ).toString("base64")}`,
+            });
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      } else {
+        // Create PDF
+        const content = [];
+        content.push({
+          text: "Laporan Stok Bermasalah",
+          bold: true,
+          fontSize: 16,
+          font: "Roboto",
+          alignment: "center" as Alignment,
+          margin: [0, 0, 0, 15] as Margins,
+        });
+
+        const table = [];
+        table.push([
+          {
+            text: "No",
+            bold: true,
+            alignment: "center" as Alignment,
+          },
+          {
+            text: "Referensi",
+            bold: true,
+            alignment: "center" as Alignment,
+          },
+          {
+            text: "Deskripsi",
+            bold: true,
+            alignment: "center" as Alignment,
+          },
+          {
+            text: "Stock",
+            bold: true,
+            alignment: "center" as Alignment,
+          },
+        ]);
+
+        if (result.length > 0) {
+          result.forEach((item, index) => {
+            table.push([
+              {
+                text: index + 1,
+                bold: false,
+                alignment: "center" as Alignment,
+              },
+              {
+                text: item.item.reference,
+                bold: false,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: item.item.description,
+                bold: false,
+                alignment: "left" as Alignment,
+              },
+              {
+                text: `${item.stock} ${item.item.unit}`,
+                bold: false,
+                alignment: "left" as Alignment,
+              },
+            ]);
+          });
+
+          content.push({
+            layout: "lightHorizontalLines",
+            table: {
+              headerRows: 1,
+              widths: ["auto", "auto", "*", "auto"],
+              body: table,
+            },
+            margin: [0, 0, 0, 15] as Margins,
+            pageBreak: "after" as PageBreak,
+          });
+
+          let documentDefinition = {
+            pageSize: "A4" as PageSize,
+            content: content,
+          };
+
+          const fontDescriptors = {
+            Roboto: {
+              normal: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Regular.ttf"
+              ),
+              bold: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Medium.ttf"
+              ),
+              italics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-Italic.ttf"
+              ),
+              bolditalics: path.join(
+                __dirname,
+                "..",
+                "assets",
+                "/fonts/Roboto-MediumItalic.ttf"
+              ),
+            },
+          };
+
+          const printer = new PdfPrinter(fontDescriptors);
+          const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+          let chunks: any[] = [];
+          pdfDocument.on("data", function (chunk) {
+            chunks.push(chunk);
+          });
+          pdfDocument.on("end", function () {
+            var doc = Buffer.concat(chunks);
+            return res.status(200).send({
+              data: `data:application/pdf;base64,${doc.toString("base64")}`,
+            });
+          });
+          pdfDocument.end();
+        }
+      }
+    });
   };
 }
 

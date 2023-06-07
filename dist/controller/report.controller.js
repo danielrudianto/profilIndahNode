@@ -27,6 +27,7 @@ const supplier_model_1 = __importDefault(require("../model/supplier.model"));
 const item_model_1 = require("../model/item.model");
 const company_model_1 = __importDefault(require("../model/company.model"));
 const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper"));
+const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
@@ -2325,6 +2326,157 @@ ReportController.fetchSalesItemReport = (req, res) => {
     })
         .catch((error) => {
         return res.status(500).send(error);
+    });
+};
+ReportController.fetchProductStockProblem = (req, res) => {
+    const mode = req.body.mode;
+    product_stock_model_1.default.fetchProblematic().then((result) => {
+        if (mode == "excel") {
+            const rows = [["No", "Referensi", "Deskripsi", "Stock"]];
+            result.forEach((data, index) => {
+                rows.push([
+                    index + 1,
+                    data.item.reference,
+                    data.item.description,
+                    parseFloat(data.stock.toString()),
+                ]);
+            });
+            // Create an excel file
+            const workbook = new exceljs_1.default.Workbook();
+            workbook.creator = "Toko Profil Indah";
+            workbook.created = new Date();
+            workbook.modified = new Date();
+            workbook.lastModifiedBy = "Toko Profil Indah";
+            const sheet = workbook.addWorksheet("Stock bermasalah", {
+                state: "visible",
+                views: [
+                    {
+                        state: "frozen",
+                        xSplit: 9,
+                        ySplit: 1,
+                    },
+                ],
+            });
+            sheet.state = "visible";
+            rows.forEach((data) => {
+                sheet.addRow(data);
+            });
+            sheet.columns = [
+                { header: "No", key: "no", width: 5 },
+                { header: "Referensi", key: "reference", width: 20 },
+                { header: "Deskripsi", key: "description", width: 50 },
+                { header: "Stock", key: "stock", width: 10 },
+            ];
+            sheet.getRow(1).font = { bold: true };
+            sheet.getRow(1).alignment = { horizontal: "center" };
+            sheet.getRow(1).height = 20;
+            workbook.xlsx
+                .writeBuffer()
+                .then((buffer) => {
+                return res.status(200).send({
+                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
+                });
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
+        }
+        else {
+            // Create PDF
+            const content = [];
+            content.push({
+                text: "Laporan Stok Bermasalah",
+                bold: true,
+                fontSize: 16,
+                font: "Roboto",
+                alignment: "center",
+                margin: [0, 0, 0, 15],
+            });
+            const table = [];
+            table.push([
+                {
+                    text: "No",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Referensi",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Deskripsi",
+                    bold: true,
+                    alignment: "center",
+                },
+                {
+                    text: "Stock",
+                    bold: true,
+                    alignment: "center",
+                },
+            ]);
+            if (result.length > 0) {
+                result.forEach((item, index) => {
+                    table.push([
+                        {
+                            text: index + 1,
+                            bold: false,
+                            alignment: "center",
+                        },
+                        {
+                            text: item.item.reference,
+                            bold: false,
+                            alignment: "left",
+                        },
+                        {
+                            text: item.item.description,
+                            bold: false,
+                            alignment: "left",
+                        },
+                        {
+                            text: `${item.stock} ${item.item.unit}`,
+                            bold: false,
+                            alignment: "left",
+                        },
+                    ]);
+                });
+                content.push({
+                    layout: "lightHorizontalLines",
+                    table: {
+                        headerRows: 1,
+                        widths: ["auto", "auto", "*", "auto"],
+                        body: table,
+                    },
+                    margin: [0, 0, 0, 15],
+                    pageBreak: "after",
+                });
+                let documentDefinition = {
+                    pageSize: "A4",
+                    content: content,
+                };
+                const fontDescriptors = {
+                    Roboto: {
+                        normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
+                        bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
+                        italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
+                        bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
+                    },
+                };
+                const printer = new pdfmake_1.default(fontDescriptors);
+                const pdfDocument = printer.createPdfKitDocument(documentDefinition);
+                let chunks = [];
+                pdfDocument.on("data", function (chunk) {
+                    chunks.push(chunk);
+                });
+                pdfDocument.on("end", function () {
+                    var doc = Buffer.concat(chunks);
+                    return res.status(200).send({
+                        data: `data:application/pdf;base64,${doc.toString("base64")}`,
+                    });
+                });
+                pdfDocument.end();
+            }
+        }
     });
 };
 exports.default = ReportController;

@@ -288,6 +288,26 @@ class ProductStockModel {
       prisma.$queryRawUnsafe(queryUpdate.slice(0, -1)),
     ]);
   }
+
+  static fetchProblematic() {
+    return prisma.stock.findMany({
+      where: {
+        stock: {
+          lt: 0,
+        },
+      },
+      select: {
+        item: {
+          select: {
+            reference: true,
+            description: true,
+            unit: true,
+          },
+        },
+        stock: true,
+      },
+    });
+  }
 }
 
 export default ProductStockModel;

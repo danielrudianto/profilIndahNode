@@ -22,4 +22,5 @@ router.post("/sales", report_controller_1.default.fetchSalesReport);
 router.post("/purchase/download", report_controller_1.default.fetchPurchaseReportDownload);
 router.post("/purchase/detail", report_controller_1.default.fetchPurchaseItemDetail);
 router.post("/purchase", report_controller_1.default.fetchPurchaseReport);
+router.post("/product-stock-problem", report_controller_1.default.fetchProductStockProblem);
 exports.default = router;
