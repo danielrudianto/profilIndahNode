@@ -586,7 +586,6 @@ export class ItemModel {
             JOIN item_brand ON item.item_brand_id = item_brand.id
             JOIN item_type ON item.item_type_id = item_type.id
             WHERE item.is_delete = 0
-            AND item.is_active = 1
             AND (
               item.reference LIKE '%${keyword}%'
               OR item.description LIKE '%${keyword}%'
