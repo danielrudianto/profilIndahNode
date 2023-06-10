@@ -348,41 +348,46 @@ PurchaseInvoiceController.confirm = (req, res) => {
     });
 };
 PurchaseInvoiceController.delete = (req, res) => {
-    const id = parseInt(req.params.id);
-    purchase_invoice_model_1.default.fetchById(id).then((purchase_invoice) => {
-        if (purchase_invoice == null || purchase_invoice.is_delete) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        else {
-            purchase_invoice_model_1.default.deleteById(id, req.body.userId)
-                .then((result) => {
-                good_receipt_model_1.default.fetchById(result[0].good_receipt_code_id).then((document) => {
-                    if (document == null) {
-                        return res.status(404).send(error_list_1.default["Not found"]);
-                    }
-                    else {
-                        product_stock_model_1.default.updateStock(document.good_receipt.map((x) => {
-                            const quantity = parseFloat(x.quantity.toString()) *
-                                -1 *
-                                (x.item_unit == null
-                                    ? 1
-                                    : parseFloat(x.item_unit.conversion.toString()));
-                            return {
-                                item_id: x.item.id,
-                                quantity: quantity,
-                            };
-                        }));
-                    }
+    try {
+        const id = parseInt(req.body.id);
+        purchase_invoice_model_1.default.fetchById(id).then((purchase_invoice) => {
+            if (purchase_invoice == null || purchase_invoice.is_delete) {
+                return res.status(404).send(error_list_1.default["Not found"]);
+            }
+            else {
+                purchase_invoice_model_1.default.deleteById(id, req.body.userId)
+                    .then((result) => {
+                    good_receipt_model_1.default.fetchById(result[0].good_receipt_code_id).then((document) => {
+                        if (document == null) {
+                            return res.status(404).send(error_list_1.default["Not found"]);
+                        }
+                        else {
+                            product_stock_model_1.default.updateStock(document.good_receipt.map((x) => {
+                                const quantity = parseFloat(x.quantity.toString()) *
+                                    -1 *
+                                    (x.item_unit == null
+                                        ? 1
+                                        : parseFloat(x.item_unit.conversion.toString()));
+                                return {
+                                    item_id: x.item.id,
+                                    quantity: quantity,
+                                };
+                            }));
+                        }
+                    });
+                    const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
+                    socket.create();
+                    return res.status(200).send(result[0]);
+                })
+                    .catch((error) => {
+                    return res.status(500).send(error);
                 });
-                const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
-                socket.create();
-                return res.status(200).send(result[0]);
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
-        }
-    });
+            }
+        });
+    }
+    catch (error) {
+        return res.status(400).send(error);
+    }
 };
 PurchaseInvoiceController.fetchArchive = (req, res) => {
     const mode = req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
