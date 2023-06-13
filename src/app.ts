@@ -44,6 +44,12 @@ import SearchHelper from "./helper/search.helper";
 import ProductStockController from "./controller/product-stock.controller";
 import DraftBillController from "./controller/draft-bill.controller";
 
+/*
+  Administrator Routes
+*/
+
+import administratorRoutes from "./routes/distinct/adminsitrator.route";
+
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
   apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -91,13 +97,15 @@ app.use("/user", authMiddleware, userRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/report", reportRoutes);
 
+app.use("/administrator", authMiddleware, administratorRoutes);
+
 const server = http.createServer(app);
 server.listen(5000, () => {
   SearchHelper.scheduleData();
   ProductStockController.scheduleData();
   DraftBillController.truncateData();
 
-  console.log("Server is running on port 5000");
+  console.log("[server]: Server is running on port 5000");
 });
 
 export const io = new Server(server, {

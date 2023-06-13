@@ -192,10 +192,11 @@ class ProductStockModel {
       item.reference, 
       item.description, 
       item.unit, 
-      (COALESCE(goodreceipt.quantity, 0) + COALESCE(bill.quantity, 0) + COALESCE(adjustmentcase.quantity, 0)) AS stock, 
+      _stock.stock, 
       item_brand.name AS item_brand_name,
       COALESCE(unit.count, 0) AS count,
-      COALESCE(itemPrice.price, 0) AS price
+      COALESCE(itemPrice.price, 0) AS price,
+      COALESCE(itemPrice.discount, 0) AS discount
     FROM item
     JOIN item_brand ON item.item_brand_id = item_brand.id
     LEFT JOIN (
@@ -207,7 +208,7 @@ class ProductStockModel {
     ) AS unit
     ON item.id = unit.item_id
     LEFT JOIN (
-      SELECT item_price.item_id, item_price.price
+      SELECT item_price.item_id, item_price.price, item_price.discount
       FROM item_price
       WHERE item_price.is_delete = 0
       AND item_price.item_id IN (${itemIDs.join(",")})
@@ -215,39 +216,7 @@ class ProductStockModel {
       ORDER BY item_price.id DESC
     ) AS itemPrice
     ON item.id = itemPrice.item_id
-    LEFT JOIN (
-      SELECT SUM(good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, good_receipt.item_id
-        FROM good_receipt
-        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-        LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
-        WHERE good_receipt.item_id in (${itemIDs.join(",")})
-    ) AS goodreceipt
-    ON item.id = goodreceipt.item_id
-    LEFT JOIN (
-      SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * COALESCE(item_unit.conversion, 1)) * -1 AS quantity, bill.item_id
-        FROM bill
-        JOIN bill_code ON bill.bill_code_id = bill_code.id
-        LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
-        LEFT JOIN (
-        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_confirm = 1
-            AND sales_return_code.is_delete = 0
-            GROUP BY sales_return.bill_id
-        ) salesReturn
-        ON bill.id = salesReturn.bill_id
-        WHERE bill.item_id in (${itemIDs.join(",")})
-    ) AS bill
-    ON item.id = bill.item_id
-    LEFT JOIN (
-      SELECT SUM(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, adjustment_case.item_id
-        FROM adjustment_case
-        JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
-        LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
-        WHERE adjustment_case.item_id in (${itemIDs.join(",")})
-    ) AS adjustmentcase
-    ON item.id = adjustmentcase.item_id
+    LEFT JOIN _stock ON item.id = _stock.item_id
     WHERE item.id in (${itemIDs.join(",")})
     `);
   }

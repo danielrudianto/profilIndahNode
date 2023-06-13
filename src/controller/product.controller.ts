@@ -502,6 +502,33 @@ class ProductController {
       });
   };
 
+  static fetchCompleteById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    ItemModel.fetchById(id).then((item) => {
+      if (item == null || item.length == 0) {
+        return res.status(404).send(ErrorList["Not found"]);
+      } else {
+        Promise.all([
+          ItemPriceModel.fetchByItemID(id),
+          ItemPurchasePriceModel.fetchByItemID(id),
+        ]).then((result) => {
+          return res.status(200).send({
+            id: item[0].id,
+            reference: item[0].reference,
+            description: item[0].description,
+            unit: item[0].unit,
+            minimum_stock: item[0].minimum_stock,
+            item_brand: item[0].item_brand_name,
+            item_type: item[0].item_type_name,
+            stock: item[0].stock,
+            item_prices: result[0],
+            item_purchase_prices: result[1],
+          });
+        });
+      }
+    });
+  };
+
   static active = (req: Request, res: Response) => {
     const id = req.body.id;
     ItemModel.fetchById(id).then((item) => {
@@ -525,12 +552,8 @@ class ProductController {
   };
 
   static fetchSmartSearchStock = (req: Request, res: Response) => {
-    const keyword =
-      req.query.keyword == null
-        ? ""
-        : decodeURIComponent(req.query.keyword.toString());
-    const page =
-      req.query.page == null ? 1 : parseInt(req.query.page.toString());
+    const keyword = req.body.keyword;
+    const page = req.body.page;
     const offset = (page - 1) * 20;
     meili
       .index("item")
@@ -550,8 +573,26 @@ class ProductController {
               return x.id;
             })
           ).then((items) => {
+            var fullMatchedItem = null;
+            var response: any[] = [];
+            items.forEach((x: any) => {
+              if (x.reference == keyword) {
+                fullMatchedItem = x;
+              }
+            });
+
+            // Remove fullMatched if exist, and put it on top
+            if (fullMatchedItem != null) {
+              response = items.filter((x: any) => {
+                return x.reference != keyword;
+              });
+              response.unshift(fullMatchedItem);
+            } else {
+              response = items;
+            }
+
             return res.status(200).send({
-              data: items,
+              data: response,
               count: result.estimatedTotalHits,
             });
           });
@@ -563,128 +604,64 @@ class ProductController {
     const keyword = req.body.keyword;
     const page = req.body.page;
     const offset = (page - 1) * 20;
-    const brands = req.body.brands as any[];
-    if (brands.length == 0) {
-      // Fetch all products
-      meili
-        .index("item")
-        .search(keyword, {
-          limit: 20,
-          offset: offset,
-        })
-        .then((result) => {
-          if (result.hits.length == 0) {
-            return res.status(200).send({
-              data: [],
-              count: 0,
-            });
-          } else {
-            ItemModel.fetchCompleteByIDs(
-              result.hits.map((x) => {
-                return x.id;
-              })
-            ).then((items) => {
-              return res.status(200).send({
-                data: items.map((x) => {
-                  const priceIndex = x.item_price.findIndex((y) => {
-                    y.item_unit == null;
-                  });
-
-                  return {
-                    id: x.id,
-                    reference: x.reference,
-                    description: x.description,
-                    item_type: {
-                      name: x.item_type?.name,
-                    },
-                    item_brand: {
-                      name: x.item_brand?.name,
-                    },
-                    stock: x.stock,
-                    price:
-                      priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
-                    discount: 0,
-                    unit: x.unit,
-                    unit_price: x.item_price
-                      .filter((z) => z.item_unit != null)
-                      .map((a) => {
-                        return {
-                          id: a.item_unit?.id,
-                          unit: a.item_unit?.unit,
-                          conversion: a.item_unit?.conversion,
-                          price: a.price,
-                        };
-                      }),
-                  };
-                }),
-                count: result.estimatedTotalHits,
-              });
-            });
-          }
-        });
-    } else {
-      meili
-        .index("item")
-        .search(keyword, {
-          filter: `brand IN [${brands
-            .map((x) => {
-              return x;
+    meili
+      .index("item")
+      .search(keyword, {
+        limit: 20,
+        offset: offset,
+      })
+      .then((result) => {
+        if (result.hits.length == 0) {
+          return res.status(200).send({
+            data: [],
+            count: 0,
+          });
+        } else {
+          ItemModel.fetchCompleteByIDs(
+            result.hits.map((x) => {
+              return x.id;
             })
-            .join(",")}]`,
-          limit: 20,
-          offset: offset,
-        })
-        .then((result) => {
-          if (result.hits.length == 0) {
+          ).then((items) => {
             return res.status(200).send({
-              data: [],
-              count: 0,
-            });
-          } else {
-            ItemModel.fetchCompleteByIDs(
-              result.hits.map((x) => {
-                return x.id;
-              })
-            ).then((items) => {
-              return res.status(200).send({
-                data: items.map((x) => {
-                  const priceIndex = x.item_price.findIndex((y) => {
-                    y.item_unit == null;
-                  });
+              data: items.map((x) => {
+                const priceIndex = x.item_price.findIndex((y) => {
+                  y.item_unit == null;
+                });
 
-                  return {
-                    id: x.id,
-                    reference: x.reference,
-                    description: x.description,
-                    item_type: {
-                      name: x.item_type?.name,
-                    },
-                    item_brand: {
-                      name: x.item_brand?.name,
-                    },
-                    stock: x.stock == null ? 0 : x.stock?.stock,
-                    price:
-                      priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
-                    discount: 0,
-                    unit: x.unit,
-                    unit_price: x.item_price
-                      .filter((z) => z.item_unit != null)
-                      .map((a) => {
-                        return {
-                          id: a.item_unit?.id,
-                          unit: a.item_unit?.unit,
-                          conversion: a.item_unit?.conversion,
-                          price: a.price,
-                        };
-                      }),
-                  };
-                }),
-                count: result.estimatedTotalHits,
-              });
+                return {
+                  id: x.id,
+                  reference: x.reference,
+                  description: x.description,
+                  item_type: {
+                    name: x.item_type?.name,
+                  },
+                  item_brand: {
+                    name: x.item_brand?.name,
+                  },
+                  stock: x.stock == null ? 0 : x.stock?.stock,
+                  price: priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
+                  discount: 0,
+                  unit: x.unit,
+                  unit_price: x.item_price
+                    .filter((z) => z.item_unit != null)
+                    .map((a) => {
+                      return {
+                        id: a.item_unit?.id,
+                        unit: a.item_unit?.unit,
+                        conversion: a.item_unit?.conversion,
+                        price: a.price,
+                      };
+                    }),
+                };
+              }),
+              count: result.estimatedTotalHits,
             });
-          }
-        });
-    }
+          });
+        }
+      })
+      .catch((error) => {
+        console.log(error);
+      });
   };
 }
 

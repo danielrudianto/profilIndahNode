@@ -8,6 +8,16 @@ class SearchHelper {
     meili.index("item").updateSettings({
       filterableAttributes: ["brand"],
     });
+    meili
+      .index("item")
+      .updateRankingRules([
+        "words",
+        "typo",
+        "proximity",
+        "attribute",
+        "sort",
+        "exactness",
+      ]);
     ItemModel.fetchAll(new Date())
       .then((items) => {
         meili.index("item").addDocumentsInBatches(

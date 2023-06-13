@@ -10,6 +10,16 @@ SearchHelper.scheduleData = () => {
     app_1.meili.index("item").updateSettings({
         filterableAttributes: ["brand"],
     });
+    app_1.meili
+        .index("item")
+        .updateRankingRules([
+        "words",
+        "typo",
+        "proximity",
+        "attribute",
+        "sort",
+        "exactness",
+    ]);
     item_model_1.ItemModel.fetchAll(new Date())
         .then((items) => {
         app_1.meili.index("item").addDocumentsInBatches(items.map((x) => {

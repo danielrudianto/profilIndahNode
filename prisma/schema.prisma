@@ -636,8 +636,9 @@ model stock_out_distribution {
 
 model draft_bill_code {
   id                                      Int          @id @default(autoincrement())
+  name                                    String       @unique(map: "name_UNIQUE") @db.VarChar(45)
   customer_id                             Int?
-  customer                                customer?     @relation(fields: [customer_id], references: [id])
+  customer                                customer?    @relation(fields: [customer_id], references: [id])
   draft_bill                              draft_bill[]
   note                                    String?      @db.Text
   created_by                              Int

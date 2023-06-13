@@ -23,11 +23,13 @@ DraftBillController.create = (req, res) => {
     const items = req.body.items;
     const userID = req.body.userId;
     const note = req.body.note;
-    const draftBill = new draft_bill_model_1.DraftBillModel(customer_id, note, items, userID);
+    const date = new Date();
+    const name = `INV-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
+    const draftBill = new draft_bill_model_1.DraftBillModel(customer_id, note, items, userID, name);
     draftBill
         .create()
         .then((result) => {
-        return res.status(201).send(result);
+        return res.status(201).send(Object.assign({}, result));
     })
         .catch((error) => {
         return res.status(500).send(error);

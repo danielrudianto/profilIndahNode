@@ -8,18 +8,32 @@ class DraftBillController {
     const items = req.body.items as any[];
     const userID = req.body.userId;
     const note = req.body.note;
+    const date = new Date();
+    const name = `INV-${date.getFullYear()}-${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}`;
 
     const draftBill = new DraftBillModel(
       customer_id,
       note,
       items,
-      userID
+      userID,
+      name
     );
 
     draftBill
       .create()
       .then((result) => {
-        return res.status(201).send(result);
+        return res.status(201).send({
+          ...result,
+          
+        });
       })
       .catch((error) => {
         return res.status(500).send(error);

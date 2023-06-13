@@ -1,6 +1,6 @@
-import { Router, Request, Response } from "express";
+import { Router } from "express";
 import { authMiddleware } from "../../helper/auth.helper";
-import { body, validationResult } from "express-validator";
+import { body } from "express-validator";
 import AuthController from "../../controller/auth.controller";
 import ErrorHelper from "../../helper/error.helper";
 

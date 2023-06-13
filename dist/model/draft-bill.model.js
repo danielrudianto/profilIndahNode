@@ -5,15 +5,17 @@ const client_1 = require("@prisma/client");
 const uuid_1 = require("uuid");
 const prisma = new client_1.PrismaClient();
 class DraftBillModel {
-    constructor(customer_id, note, items, created_by) {
+    constructor(customer_id, note, items, created_by, name) {
         this.created_by = created_by;
         this.customer_id = customer_id;
         this.items = items;
         this.note = note;
+        this.name = name;
     }
     create() {
         return prisma.draft_bill_code.create({
             data: {
+                name: this.name,
                 note: this.note,
                 created_at: new Date(),
                 created_by: this.created_by,
@@ -29,6 +31,36 @@ class DraftBillModel {
                                 item_unit_id: x.item_unit_id,
                             };
                         }),
+                    },
+                },
+            },
+            select: {
+                id: true,
+                note: true,
+                name: true,
+                created_at: true,
+                user_draft_bill_code_created_byTouser: {
+                    select: {
+                        name: true,
+                    },
+                },
+                draft_bill: {
+                    select: {
+                        item: {
+                            select: {
+                                reference: true,
+                                description: true,
+                            },
+                        },
+                        item_unit: {
+                            select: {
+                                conversion: true,
+                                unit: true,
+                            },
+                        },
+                        quantity: true,
+                        price: true,
+                        discount: true,
                     },
                 },
             },
