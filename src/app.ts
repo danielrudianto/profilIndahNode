@@ -35,6 +35,7 @@ import adjustmentEventRoutes from "./routes/transaction/adjustment-event.route";
 import reportRoutes from "./routes/report/report.route";
 import salesReturnRoutes from "./routes/transaction/sales_return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
+import CashierRoutes from "./routes/distinct/cashier.route";
 
 /* 
   Helpers
@@ -92,6 +93,7 @@ app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
 app.use("/purchase-invoice", authMiddleware, purchaseInvoiceRoutes);
 app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
 app.use("/draft-bill", authMiddleware, DraftBillRoutes);
+app.use("/cashier", authMiddleware, CashierRoutes);
 
 app.use("/user", authMiddleware, userRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);

@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { validationResult } from "express-validator";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
+import BillModel from "../model/bill.model";
+import CustomerModel from "../model/customer.model";
 import UserModel from "../model/user.model";
 import UserRoleModel from "../model/user_role.model";
 
@@ -242,6 +244,96 @@ class UserController {
         .catch((error) => {
           return res.status(500).send(error);
         });
+    });
+  };
+
+  static fetchStats = (req: Request, res: Response) => {
+    const id = req.body.userId;
+    Promise.all([
+      BillModel.fetchBySales(id),
+      CustomerModel.fetchBySales(id),
+    ]).then((result) => {
+      const customers = result[1];
+
+      const value =
+        result[0] == null || result[0].length == 0 ? 0 : result[0][0].value;
+      const discount =
+        result[0] == null || result[0].length == 0 ? 0 : result[0][0].discount;
+      const delivery =
+        result[0] == null || result[0].length == 0 ? 0 : result[0][0].delivery;
+      const service =
+        result[0] == null || result[0].length == 0 ? 0 : result[0][0].service;
+
+      var totalSales = value + delivery + service - discount;
+
+      const achivements = [
+        {
+          name: "Ordinary sales",
+          shortName: "OrdinarySales",
+          description: "Sales value is more than 10.000.000 IDR",
+          value: totalSales,
+          target: 10000000,
+          achieved: totalSales > 10000000,
+        },
+        {
+          name: "Extraordinary sales",
+          shortName: "ExtraordinarySales",
+          description: "Sales value is more than 100.000.000 IDR",
+          value: totalSales,
+          target: 100000000,
+          achieved: totalSales > 100000000,
+        },
+        {
+          name: "Super sales",
+          shortName: "SuperSales",
+          description: "Sales value is more than 1.000.000.000 IDR",
+          value: totalSales,
+          target: 1000000000,
+          achieved: totalSales > 1000000000,
+        },
+        {
+          name: "Mega sales",
+          shortName: "MegaSales",
+          description: "Sales value is more than 10.000.000.000 IDR",
+          value: totalSales,
+          target: 10000000000,
+          achieved: totalSales > 10000000000,
+        },
+        {
+          name: "Junior customer hunter",
+          shortName: "JuniorCustomerHunter",
+          description: "Acquired new customer",
+          value: customers,
+          target: 1,
+          achieved: customers >= 1,
+        },
+        {
+          name: "Customer hunter",
+          shortName: "CustomerHunter",
+          description: "Acquired more than 50 new customer",
+          value: customers,
+          target: 50,
+          achieved: customers >= 50,
+        },
+        {
+          name: "Senior customer hunter",
+          shortName: "SeniorCustomerHunter",
+          description: "Acquired more than 150 new customer",
+          value: customers,
+          target: 150,
+          achieved: customers >= 250,
+        },
+        {
+          name: "Master customer hunter",
+          shortName: "MasterCustomerHunter",
+          description: "Acquired more than 500 new customer",
+          value: customers,
+          target: 500,
+          achieved: customers >= 500,
+        },
+      ];
+
+      return res.status(200).send(achivements);
     });
   };
 }

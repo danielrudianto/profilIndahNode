@@ -85,9 +85,11 @@ class BillModel {
         `);
             default:
                 return new Promise((resolve, reject) => {
-                    resolve([{
-                            value: 0
-                        }]);
+                    resolve([
+                        {
+                            value: 0,
+                        },
+                    ]);
                 });
         }
     }
@@ -145,6 +147,16 @@ class BillModel {
                 },
             },
         });
+    }
+    static fetchBySales(id) {
+        return prisma.$queryRawUnsafe(`
+      SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery, SUM(bill_code.service) AS service
+      FROM bill
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND bill_code.created_by = ${id}
+    `);
     }
 }
 exports.default = BillModel;

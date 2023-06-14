@@ -38,6 +38,7 @@ const adjustment_event_route_1 = __importDefault(require("./routes/transaction/a
 const report_route_1 = __importDefault(require("./routes/report/report.route"));
 const sales_return_route_1 = __importDefault(require("./routes/transaction/sales_return.route"));
 const draft_bill_route_1 = __importDefault(require("./routes/transaction/draft-bill.route"));
+const cashier_route_1 = __importDefault(require("./routes/distinct/cashier.route"));
 /*
   Helpers
 */
@@ -83,6 +84,7 @@ app.use("/good-receipt", auth_helper_1.authMiddleware, good_receipt_route_1.defa
 app.use("/purchase-invoice", auth_helper_1.authMiddleware, purchase_invoice_route_1.default);
 app.use("/sales-invoice", auth_helper_1.authMiddleware, sales_invoice_route_1.default);
 app.use("/draft-bill", auth_helper_1.authMiddleware, draft_bill_route_1.default);
+app.use("/cashier", auth_helper_1.authMiddleware, cashier_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.use("/report", report_route_1.default);

@@ -221,5 +221,13 @@ class CustomerModel {
       WHERE AND customer.id = ${id}
     `;
     }
+    static fetchBySales(id) {
+        return prisma.customer.count({
+            where: {
+                is_delete: false,
+                created_by: id,
+            },
+        });
+    }
 }
 exports.default = CustomerModel;

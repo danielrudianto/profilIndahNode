@@ -7,6 +7,8 @@ const bcryptjs_1 = require("bcryptjs");
 const express_validator_1 = require("express-validator");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const bill_model_1 = __importDefault(require("../model/bill.model"));
+const customer_model_1 = __importDefault(require("../model/customer.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const user_role_model_1 = __importDefault(require("../model/user_role.model"));
 class UserController {
@@ -214,6 +216,79 @@ UserController.changePassword = (req, res) => {
             .catch((error) => {
             return res.status(500).send(error);
         });
+    });
+};
+UserController.fetchStats = (req, res) => {
+    const id = req.body.userId;
+    Promise.all([
+        bill_model_1.default.fetchBySales(id),
+        customer_model_1.default.fetchBySales(id),
+    ]).then((result) => {
+        const customers = result[1];
+        const value = result[0] == null || result[0].length == 0 ? 0 : result[0][0].value;
+        const discount = result[0] == null || result[0].length == 0 ? 0 : result[0][0].discount;
+        const delivery = result[0] == null || result[0].length == 0 ? 0 : result[0][0].delivery;
+        const service = result[0] == null || result[0].length == 0 ? 0 : result[0][0].service;
+        var totalSales = value + delivery + service - discount;
+        const achivements = [
+            {
+                name: "Ordinary sales",
+                description: "Sales value is more than 10.000.000 IDR",
+                value: totalSales,
+                target: 10000000,
+                achieved: totalSales > 10000000,
+            },
+            {
+                name: "Extraordinary sales",
+                description: "Sales value is more than 100.000.000 IDR",
+                value: totalSales,
+                target: 100000000,
+                achieved: totalSales > 100000000,
+            },
+            {
+                name: "Super sales",
+                description: "Sales value is more than 1.000.000.000 IDR",
+                value: totalSales,
+                target: 1000000000,
+                achieved: totalSales > 1000000000,
+            },
+            {
+                name: "Mega sales",
+                description: "Sales value is more than 10.000.000.000 IDR",
+                value: totalSales,
+                target: 10000000000,
+                achieved: totalSales > 10000000000,
+            },
+            {
+                name: "Customer acquisition",
+                description: "Acquired new customer",
+                value: customers,
+                target: 1,
+                achieved: customers >= 1,
+            },
+            {
+                name: "Soul hunter",
+                description: "Acquired more than 50 new customer",
+                value: customers,
+                target: 50,
+                achieved: customers >= 50,
+            },
+            {
+                name: "Soul reaper",
+                description: "Acquired more than 150 new customer",
+                value: customers,
+                target: 150,
+                achieved: customers >= 150,
+            },
+            {
+                name: "Soul eater",
+                description: "Acquired more than 500 new customer",
+                value: customers,
+                target: 500,
+                achieved: customers >= 500,
+            },
+        ];
+        return res.status(200).send(achivements);
     });
 };
 exports.default = UserController;
