@@ -28,7 +28,6 @@ router.post(
 );
 
 router.get("/autocomplete", ProductController.fetchAutocomplete);
-router.get("/smartSearchStock", ProductController.fetchSmartSearchStock);
 router.get(
   "/:id",
   param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
