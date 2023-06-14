@@ -10,7 +10,7 @@ const product_controller_1 = __importDefault(require("../../controller/product.c
 const router = (0, express_1.Router)();
 router.post("/login", auth_controller_1.default.login);
 router.post("/refresh-token", auth_controller_1.default.refreshToken);
-router.post("/product", product_controller_1.default.fetchSmartSearchStock);
+router.post("/product", product_controller_1.default.search);
 router.get("/product/:id", product_controller_1.default.fetchCompleteById);
 router.get("/customer", customer_controller_1.default.fetch);
 exports.default = router;
