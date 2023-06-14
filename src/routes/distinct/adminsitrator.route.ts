@@ -8,7 +8,7 @@ const router = Router();
 
 router.post("/login", AuthController.login);
 router.post("/refresh-token", AuthController.refreshToken);
-router.post("/product", ProductController.fetchSmartSearchStock);
+router.post("/product", ProductController.search);
 
 router.get("/product/:id", ProductController.fetchCompleteById);
 router.get("/customer", CustomerController.fetch);

@@ -272,7 +272,7 @@ ProductStockController.create = (req, res) => {
 ProductStockController.scheduleData = () => {
     product_stock_model_1.default.syncData();
     // Create a cron job to run every day at 00:00:00
-    node_cron_1.default.schedule("0 0 0 * * *", () => {
+    node_cron_1.default.schedule("0 */6 * * *", () => {
         product_stock_model_1.default.syncData();
     });
 };

@@ -467,40 +467,6 @@ ProductController.active = (req, res) => {
         }
     });
 };
-ProductController.fetchSmartSearchStock = (req, res) => {
-    const keyword = req.body.keyword;
-    const page = req.body.page;
-    const offset = (page - 1) * 20;
-    app_1.meili
-        .index("item")
-        .search(keyword, {
-        limit: 20,
-        offset: offset,
-    })
-        .then((result) => {
-        if (result.hits.length == 0) {
-            return res.status(200).send({
-                data: [],
-                count: 0,
-            });
-        }
-        else {
-            product_stock_model_1.default.fetchByIDs(result.hits.map((x) => {
-                return x.id;
-            })).then((items) => {
-                return res.status(200).send({
-                    data: result.hits.map((x) => {
-                        const itemIndex = items.findIndex((y) => y.id == x.id);
-                        if (itemIndex != -1) {
-                            return Object.assign({}, items[itemIndex]);
-                        }
-                    }),
-                    count: result.estimatedTotalHits,
-                });
-            });
-        }
-    });
-};
 ProductController.search = (req, res) => {
     const keyword = req.body.keyword;
     const page = req.body.page;

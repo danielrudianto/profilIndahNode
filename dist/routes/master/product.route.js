@@ -17,7 +17,6 @@ router.post("/", (0, express_validator_1.body)("reference").exists().withMessage
     .isFloat({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("unit").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("unit").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_controller_1.default.create);
 router.get("/autocomplete", product_controller_1.default.fetchAutocomplete);
-router.get("/smartSearchStock", product_controller_1.default.fetchSmartSearchStock);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_controller_1.default.fetchById);
 router.get("/", product_controller_1.default.fetch);
 router.put("/active", (0, express_validator_1.body)("id").exists().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_controller_1.default.active);
