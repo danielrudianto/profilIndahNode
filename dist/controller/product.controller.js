@@ -488,25 +488,13 @@ ProductController.fetchSmartSearchStock = (req, res) => {
             product_stock_model_1.default.fetchByIDs(result.hits.map((x) => {
                 return x.id;
             })).then((items) => {
-                var fullMatchedItem = null;
-                var response = [];
-                items.forEach((x) => {
-                    if (x.reference == keyword) {
-                        fullMatchedItem = x;
-                    }
-                });
-                // Remove fullMatched if exist, and put it on top
-                if (fullMatchedItem != null) {
-                    response = items.filter((x) => {
-                        return x.reference != keyword;
-                    });
-                    response.unshift(fullMatchedItem);
-                }
-                else {
-                    response = items;
-                }
                 return res.status(200).send({
-                    data: response,
+                    data: result.hits.map((x) => {
+                        const itemIndex = items.findIndex((y) => y.id == x.id);
+                        if (itemIndex != -1) {
+                            return Object.assign({}, items[itemIndex]);
+                        }
+                    }),
                     count: result.estimatedTotalHits,
                 });
             });
@@ -535,37 +523,42 @@ ProductController.search = (req, res) => {
                 return x.id;
             })).then((items) => {
                 return res.status(200).send({
-                    data: items.map((x) => {
-                        var _b, _c, _d;
-                        const priceIndex = x.item_price.findIndex((y) => {
-                            y.item_unit == null;
-                        });
-                        return {
-                            id: x.id,
-                            reference: x.reference,
-                            description: x.description,
-                            item_type: {
-                                name: (_b = x.item_type) === null || _b === void 0 ? void 0 : _b.name,
-                            },
-                            item_brand: {
-                                name: (_c = x.item_brand) === null || _c === void 0 ? void 0 : _c.name,
-                            },
-                            stock: x.stock == null ? 0 : (_d = x.stock) === null || _d === void 0 ? void 0 : _d.stock,
-                            price: priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
-                            discount: 0,
-                            unit: x.unit,
-                            unit_price: x.item_price
-                                .filter((z) => z.item_unit != null)
-                                .map((a) => {
-                                var _b, _c, _d;
-                                return {
-                                    id: (_b = a.item_unit) === null || _b === void 0 ? void 0 : _b.id,
-                                    unit: (_c = a.item_unit) === null || _c === void 0 ? void 0 : _c.unit,
-                                    conversion: (_d = a.item_unit) === null || _d === void 0 ? void 0 : _d.conversion,
-                                    price: a.price,
-                                };
-                            }),
-                        };
+                    data: result.hits.map((x) => {
+                        var _b;
+                        const itemIndex = items.findIndex((y) => y.id == x.id);
+                        if (itemIndex != -1) {
+                            const priceIndex = items[itemIndex].item_price.findIndex((z) => z.item_unit == null);
+                            return {
+                                id: x.id,
+                                reference: x.reference,
+                                description: x.description,
+                                item_type: {
+                                    name: (_b = items[itemIndex].item_type) === null || _b === void 0 ? void 0 : _b.name,
+                                },
+                                item_brand: {
+                                    name: items[itemIndex].item_brand.name,
+                                },
+                                stock: items[itemIndex].stock == null
+                                    ? 0
+                                    : items[itemIndex].stock,
+                                price: priceIndex == -1
+                                    ? 0
+                                    : items[itemIndex].item_price[priceIndex].price,
+                                discount: 0,
+                                unit: items[itemIndex].unit,
+                                unit_price: items[itemIndex].item_price
+                                    .filter((a) => a.item_unit != null)
+                                    .map((b) => {
+                                    var _b, _c;
+                                    return {
+                                        id: (_b = b.item_unit) === null || _b === void 0 ? void 0 : _b.id,
+                                        unit: (_c = b.item_unit) === null || _c === void 0 ? void 0 : _c.unit,
+                                        price: b.price,
+                                        discount: 0,
+                                    };
+                                }),
+                            };
+                        }
                     }),
                     count: result.estimatedTotalHits,
                 });

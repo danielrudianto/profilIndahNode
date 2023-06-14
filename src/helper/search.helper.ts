@@ -6,18 +6,34 @@ class SearchHelper {
   static scheduleData = () => {
     meili.index("item").deleteAllDocuments();
     meili.index("item").updateSettings({
-      filterableAttributes: ["brand"],
+      searchableAttributes: ["reference", "description"],
+      rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
+      distinctAttribute: "reference",
+      synonyms: {
+        "rel fe": ["Rel full extension"],
+        shelf: ["rak"],
+        knob: ["handle", "knop"],
+        doble: ["double"],
+        bracket: ["breket"],
+        profile: ["profil"],
+        hinge: ["engsel"],
+        hing: ["engsel"],
+        lis: ["list"],
+        "lubang angin": ["lubang udara", "lubang hawa"],
+        tacosheet: ["sheet"],
+      },
+      typoTolerance: {
+        enabled: true,
+        minWordSizeForTypos: {
+          oneTypo: 4,
+          twoTypos: 8,
+        },
+        disableOnAttributes: ["reference"],
+      },
+      pagination: {
+        maxTotalHits: 50,
+      },
     });
-    meili
-      .index("item")
-      .updateRankingRules([
-        "words",
-        "typo",
-        "proximity",
-        "attribute",
-        "sort",
-        "exactness",
-      ]);
     ItemModel.fetchAll(new Date())
       .then((items) => {
         meili.index("item").addDocumentsInBatches(

@@ -8,18 +8,34 @@ class SearchHelper {
 SearchHelper.scheduleData = () => {
     app_1.meili.index("item").deleteAllDocuments();
     app_1.meili.index("item").updateSettings({
-        filterableAttributes: ["brand"],
+        searchableAttributes: ["reference", "description"],
+        rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
+        distinctAttribute: "reference",
+        synonyms: {
+            "rel fe": ["Rel full extension"],
+            shelf: ["rak"],
+            knob: ["handle", "knop"],
+            doble: ["double"],
+            bracket: ["breket"],
+            profile: ["profil"],
+            hinge: ["engsel"],
+            hing: ["engsel"],
+            lis: ["list"],
+            "lubang angin": ["lubang udara", "lubang hawa"],
+            tacosheet: ["sheet"],
+        },
+        typoTolerance: {
+            enabled: true,
+            minWordSizeForTypos: {
+                oneTypo: 4,
+                twoTypos: 8,
+            },
+            disableOnAttributes: ["reference"],
+        },
+        pagination: {
+            maxTotalHits: 50,
+        },
     });
-    app_1.meili
-        .index("item")
-        .updateRankingRules([
-        "words",
-        "typo",
-        "proximity",
-        "attribute",
-        "sort",
-        "exactness",
-    ]);
     item_model_1.ItemModel.fetchAll(new Date())
         .then((items) => {
         app_1.meili.index("item").addDocumentsInBatches(items.map((x) => {

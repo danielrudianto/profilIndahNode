@@ -573,26 +573,15 @@ class ProductController {
               return x.id;
             })
           ).then((items) => {
-            var fullMatchedItem = null;
-            var response: any[] = [];
-            items.forEach((x: any) => {
-              if (x.reference == keyword) {
-                fullMatchedItem = x;
-              }
-            });
-
-            // Remove fullMatched if exist, and put it on top
-            if (fullMatchedItem != null) {
-              response = items.filter((x: any) => {
-                return x.reference != keyword;
-              });
-              response.unshift(fullMatchedItem);
-            } else {
-              response = items;
-            }
-
             return res.status(200).send({
-              data: response,
+              data: result.hits.map((x) => {
+                const itemIndex = items.findIndex((y) => y.id == x.id);
+                if (itemIndex != -1) {
+                  return {
+                    ...items[itemIndex],
+                  };
+                }
+              }),
               count: result.estimatedTotalHits,
             });
           });
@@ -623,36 +612,44 @@ class ProductController {
             })
           ).then((items) => {
             return res.status(200).send({
-              data: items.map((x) => {
-                const priceIndex = x.item_price.findIndex((y) => {
-                  y.item_unit == null;
-                });
-
-                return {
-                  id: x.id,
-                  reference: x.reference,
-                  description: x.description,
-                  item_type: {
-                    name: x.item_type?.name,
-                  },
-                  item_brand: {
-                    name: x.item_brand?.name,
-                  },
-                  stock: x.stock == null ? 0 : x.stock?.stock,
-                  price: priceIndex == -1 ? 0 : x.item_price[priceIndex].price,
-                  discount: 0,
-                  unit: x.unit,
-                  unit_price: x.item_price
-                    .filter((z) => z.item_unit != null)
-                    .map((a) => {
-                      return {
-                        id: a.item_unit?.id,
-                        unit: a.item_unit?.unit,
-                        conversion: a.item_unit?.conversion,
-                        price: a.price,
-                      };
-                    }),
-                };
+              data: result.hits.map((x) => {
+                const itemIndex = items.findIndex((y) => y.id == x.id);
+                if (itemIndex != -1) {
+                  const priceIndex = items[itemIndex].item_price.findIndex(
+                    (z) => z.item_unit == null
+                  );
+                  return {
+                    id: x.id,
+                    reference: x.reference,
+                    description: x.description,
+                    item_type: {
+                      name: items[itemIndex].item_type?.name,
+                    },
+                    item_brand: {
+                      name: items[itemIndex].item_brand.name,
+                    },
+                    stock:
+                      items[itemIndex].stock == null
+                        ? 0
+                        : items[itemIndex].stock,
+                    price:
+                      priceIndex == -1
+                        ? 0
+                        : items[itemIndex].item_price[priceIndex].price,
+                    discount: 0,
+                    unit: items[itemIndex].unit,
+                    unit_price: items[itemIndex].item_price
+                      .filter((a) => a.item_unit != null)
+                      .map((b) => {
+                        return {
+                          id: b.item_unit?.id,
+                          unit: b.item_unit?.unit,
+                          price: b.price,
+                          discount: 0,
+                        };
+                      }),
+                  };
+                }
               }),
               count: result.estimatedTotalHits,
             });
