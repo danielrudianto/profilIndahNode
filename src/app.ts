@@ -49,7 +49,7 @@ import DraftBillController from "./controller/draft-bill.controller";
   Administrator Routes
 */
 
-import administratorRoutes from "./routes/distinct/adminsitrator.route";
+import administratorRoutes from "./routes/distinct/administrator.route";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",

@@ -48,7 +48,7 @@ const draft_bill_controller_1 = __importDefault(require("./controller/draft-bill
 /*
   Administrator Routes
 */
-const adminsitrator_route_1 = __importDefault(require("./routes/distinct/adminsitrator.route"));
+const administrator_route_1 = __importDefault(require("./routes/distinct/administrator.route"));
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -88,7 +88,7 @@ app.use("/cashier", auth_helper_1.authMiddleware, cashier_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.use("/report", report_route_1.default);
-app.use("/administrator", auth_helper_1.authMiddleware, adminsitrator_route_1.default);
+app.use("/administrator", auth_helper_1.authMiddleware, administrator_route_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => {
     search_helper_1.default.scheduleData();

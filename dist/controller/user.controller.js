@@ -233,6 +233,7 @@ UserController.fetchStats = (req, res) => {
         const achivements = [
             {
                 name: "Ordinary sales",
+                shortName: "OrdinarySales",
                 description: "Sales value is more than 10.000.000 IDR",
                 value: totalSales,
                 target: 10000000,
@@ -240,6 +241,7 @@ UserController.fetchStats = (req, res) => {
             },
             {
                 name: "Extraordinary sales",
+                shortName: "ExtraordinarySales",
                 description: "Sales value is more than 100.000.000 IDR",
                 value: totalSales,
                 target: 100000000,
@@ -247,6 +249,7 @@ UserController.fetchStats = (req, res) => {
             },
             {
                 name: "Super sales",
+                shortName: "SuperSales",
                 description: "Sales value is more than 1.000.000.000 IDR",
                 value: totalSales,
                 target: 1000000000,
@@ -254,34 +257,39 @@ UserController.fetchStats = (req, res) => {
             },
             {
                 name: "Mega sales",
+                shortName: "MegaSales",
                 description: "Sales value is more than 10.000.000.000 IDR",
                 value: totalSales,
                 target: 10000000000,
                 achieved: totalSales > 10000000000,
             },
             {
-                name: "Customer acquisition",
+                name: "Junior customer hunter",
+                shortName: "JuniorCustomerHunter",
                 description: "Acquired new customer",
                 value: customers,
                 target: 1,
                 achieved: customers >= 1,
             },
             {
-                name: "Soul hunter",
+                name: "Customer hunter",
+                shortName: "CustomerHunter",
                 description: "Acquired more than 50 new customer",
                 value: customers,
                 target: 50,
                 achieved: customers >= 50,
             },
             {
-                name: "Soul reaper",
+                name: "Senior customer hunter",
+                shortName: "SeniorCustomerHunter",
                 description: "Acquired more than 150 new customer",
                 value: customers,
                 target: 150,
-                achieved: customers >= 150,
+                achieved: customers >= 250,
             },
             {
-                name: "Soul eater",
+                name: "Master customer hunter",
+                shortName: "MasterCustomerHunter",
                 description: "Acquired more than 500 new customer",
                 value: customers,
                 target: 500,

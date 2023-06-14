@@ -123,7 +123,7 @@ class CustomerController {
               id: x.id,
               name: x.name,
               address: x.address,
-              phoneNumber: x.phoneNumber,
+              phoneNumber: x.phone_number,
               npwp: x.npwp,
               pic: x.pic,
               can_delete: x.count == 0 ? true : false,

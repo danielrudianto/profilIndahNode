@@ -62,6 +62,17 @@ export class DraftBillModel {
               select: {
                 reference: true,
                 description: true,
+                unit: true,
+                item_type: {
+                  select: {
+                    name: true,
+                  },
+                },
+                item_brand: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
             item_unit: {
