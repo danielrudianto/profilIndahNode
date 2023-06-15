@@ -9,6 +9,9 @@ class DraftBillController {
     const userID = req.body.userId;
     const note = req.body.note;
     const date = new Date();
+    const service = req.body.service;
+    const delivery = req.body.delivery;
+
     const name = `INV-${date.getFullYear()}-${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}${Math.floor(
@@ -24,7 +27,9 @@ class DraftBillController {
       note,
       items,
       userID,
-      name
+      name,
+      service,
+      delivery
     );
 
     draftBill
@@ -32,7 +37,6 @@ class DraftBillController {
       .then((result) => {
         return res.status(201).send({
           ...result,
-          
         });
       })
       .catch((error) => {

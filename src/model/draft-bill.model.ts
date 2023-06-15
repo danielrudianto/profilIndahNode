@@ -9,25 +9,33 @@ export class DraftBillModel {
   note: string;
   items: any[];
   name: string;
+  service: number;
+  delivery: number;
 
   constructor(
     customer_id: number,
     note: string,
     items: any[],
     created_by: number,
-    name: string
+    name: string,
+    service: number,
+    delivery: number
   ) {
     this.created_by = created_by;
     this.customer_id = customer_id;
     this.items = items;
     this.note = note;
     this.name = name;
+    this.service = service;
+    this.delivery = delivery;
   }
 
   create() {
     return prisma.draft_bill_code.create({
       data: {
         name: this.name,
+        delivery: this.delivery,
+        service: this.service,
         note: this.note,
         created_at: new Date(),
         created_by: this.created_by,
@@ -56,6 +64,8 @@ export class DraftBillModel {
             name: true,
           },
         },
+        delivery: true,
+        service: true,
         draft_bill: {
           select: {
             item: {

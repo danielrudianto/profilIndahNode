@@ -24,8 +24,10 @@ DraftBillController.create = (req, res) => {
     const userID = req.body.userId;
     const note = req.body.note;
     const date = new Date();
+    const service = req.body.service;
+    const delivery = req.body.delivery;
     const name = `INV-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
-    const draftBill = new draft_bill_model_1.DraftBillModel(customer_id, note, items, userID, name);
+    const draftBill = new draft_bill_model_1.DraftBillModel(customer_id, note, items, userID, name, service, delivery);
     draftBill
         .create()
         .then((result) => {
