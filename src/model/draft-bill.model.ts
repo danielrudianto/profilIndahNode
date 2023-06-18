@@ -64,6 +64,15 @@ export class DraftBillModel {
             name: true,
           },
         },
+        customer: {
+          select: {
+            name: true,
+            address: true,
+            npwp: true,
+            phone_number: true,
+            id: true,
+          },
+        },
         delivery: true,
         service: true,
         draft_bill: {

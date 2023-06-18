@@ -35,9 +35,7 @@ class DraftBillController {
     draftBill
       .create()
       .then((result) => {
-        return res.status(201).send({
-          ...result,
-        });
+        return res.status(201).send(result);
       })
       .catch((error) => {
         return res.status(500).send(error);

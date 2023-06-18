@@ -31,7 +31,7 @@ DraftBillController.create = (req, res) => {
     draftBill
         .create()
         .then((result) => {
-        return res.status(201).send(Object.assign({}, result));
+        return res.status(201).send(result);
     })
         .catch((error) => {
         return res.status(500).send(error);
