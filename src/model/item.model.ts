@@ -1791,44 +1791,55 @@ export class ItemModel {
   }
 
   static fetchCompleteByIDs(ids: number[]) {
-    return prisma.item.findMany({
-      where: {
-        id: {
-          in: ids,
-        },
-      },
-      select: {
-        id: true,
-        reference: true,
-        description: true,
-        item_type: {
-          select: {
-            name: true,
+    return prisma.$transaction([
+      prisma.item.findMany({
+        where: {
+          id: {
+            in: ids,
           },
         },
-        item_brand: {
-          select: {
-            name: true,
-          },
-        },
-        unit: true,
-        stock: true,
-        item_price: {
-          select: {
-            price: true,
-            item_unit: {
-              select: {
-                id: true,
-                unit: true,
-                conversion: true,
-              },
+        select: {
+          id: true,
+          reference: true,
+          description: true,
+          item_type: {
+            select: {
+              name: true,
             },
           },
-          where: {
-            is_delete: false,
+          item_brand: {
+            select: {
+              name: true,
+            },
+          },
+          unit: true,
+          stock: true,
+          item_price: {
+            select: {
+              price: true,
+              item_unit: {
+                select: {
+                  id: true,
+                  unit: true,
+                  conversion: true,
+                },
+              },
+            },
+            where: {
+              is_delete: false,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM(quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item_id
+        FROM draft_bill
+        JOIN draft_bill_code ON draft_bill.draft_bill_code_id = draft_bill_code.id
+        LEFT JOIN item_unit ON draft_bill.item_unit_id = item_unit.id
+        WHERE item_id IN (${ids.join(",")})
+        AND draft_bill_code.is_delete = 0
+        GROUP BY item_id
+      `),
+    ]);
   }
 }

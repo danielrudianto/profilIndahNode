@@ -575,32 +575,36 @@ class ProductController {
           ).then((items) => {
             return res.status(200).send({
               data: result.hits.map((x) => {
-                const itemIndex = items.findIndex((y) => y.id == x.id);
+                const item = items[0];
+                const itemIndex = item.findIndex((y) => y.id == x.id);
                 if (itemIndex != -1) {
-                  const priceIndex = items[itemIndex].item_price.findIndex(
+                  const priceIndex = item[itemIndex].item_price.findIndex(
                     (z) => z.item_unit == null
                   );
+
+                  const draftSumIndex = items[1].findIndex(
+                    (z) => z.item_id == x.id
+                  );
+
                   return {
                     id: x.id,
                     reference: x.reference,
                     description: x.description,
                     item_type: {
-                      name: items[itemIndex].item_type?.name,
+                      name: item[itemIndex].item_type?.name,
                     },
                     item_brand: {
-                      name: items[itemIndex].item_brand.name,
+                      name: item[itemIndex].item_brand.name,
                     },
                     stock:
-                      items[itemIndex].stock == null
-                        ? 0
-                        : items[itemIndex].stock,
+                      item[itemIndex].stock == null ? 0 : item[itemIndex].stock,
                     price:
                       priceIndex == -1
                         ? 0
-                        : items[itemIndex].item_price[priceIndex].price,
+                        : item[itemIndex].item_price[priceIndex].price,
                     discount: 0,
-                    unit: items[itemIndex].unit,
-                    unit_price: items[itemIndex].item_price
+                    unit: item[itemIndex].unit,
+                    unit_price: item[itemIndex].item_price
                       .filter((a) => a.item_unit != null)
                       .map((b) => {
                         return {
@@ -610,6 +614,10 @@ class ProductController {
                           discount: 0,
                         };
                       }),
+                    draft:
+                      draftSumIndex == -1
+                        ? 0
+                        : items[1][draftSumIndex].quantity,
                   };
                 }
               }),
