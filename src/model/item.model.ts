@@ -1836,7 +1836,7 @@ export class ItemModel {
         FROM draft_bill
         JOIN draft_bill_code ON draft_bill.draft_bill_code_id = draft_bill_code.id
         LEFT JOIN item_unit ON draft_bill.item_unit_id = item_unit.id
-        WHERE item_id IN (${ids.join(",")})
+        WHERE draft_bill.item_id IN (${ids.join(",")})
         AND draft_bill_code.is_delete = 0
         GROUP BY draft_bill.item_id
       `),
