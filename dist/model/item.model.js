@@ -1715,7 +1715,7 @@ class ItemModel {
         LEFT JOIN item_unit ON draft_bill.item_unit_id = item_unit.id
         WHERE item_id IN (${ids.join(",")})
         AND draft_bill_code.is_delete = 0
-        GROUP BY item_id
+        GROUP BY draft_bill.item_id
       `),
         ]);
     }
