@@ -1832,7 +1832,7 @@ export class ItemModel {
         },
       }),
       prisma.$queryRawUnsafe<any[]>(`
-        SELECT SUM(quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item_id
+        SELECT SUM(quantity * COALESCE(item_unit.conversion, 1)) AS quantity, draft_bill.item_id
         FROM draft_bill
         JOIN draft_bill_code ON draft_bill.draft_bill_code_id = draft_bill_code.id
         LEFT JOIN item_unit ON draft_bill.item_unit_id = item_unit.id
