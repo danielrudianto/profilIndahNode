@@ -51,4 +51,6 @@ router.post(
   ReportController.fetchProductStockProblem
 );
 
+router.get("/inventory", ReportController.fetchInventoryReport);
+
 export default router;

@@ -307,6 +307,15 @@ ReportController.fetchSalesReport = (req, res) => {
         return res.status(500).send(error);
     });
 };
+ReportController.fetchInventoryReport = (req, res) => {
+    sales_distribution_model_1.default.fetchValue().then((result) => {
+        var stockIn = result[0][0].value;
+        var stockOut = result[1][0].value;
+        return res.status(200).send({
+            value: stockIn - stockOut,
+        });
+    });
+};
 ReportController.fetchPLStats = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);

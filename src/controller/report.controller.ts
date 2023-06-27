@@ -330,6 +330,16 @@ class ReportController {
       });
   };
 
+  static fetchInventoryReport = (req: Request, res: Response) => {
+    SalesDistributionModel.fetchValue().then((result) => {
+      var stockIn = (result[0] as any[])[0].value;
+      var stockOut = (result[1] as any[])[0].value;
+      return res.status(200).send({
+        value: stockIn - stockOut,
+      });
+    });
+  };
+
   static fetchPLStats = (req: Request, res: Response) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);

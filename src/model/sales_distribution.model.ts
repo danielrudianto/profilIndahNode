@@ -29,6 +29,16 @@ class SalesDistributionModel {
     `);
     }
   }
+
+  static fetchValue() {
+    return prisma.$transaction([
+      prisma.$queryRaw`
+      SELECT SUM(value) AS value FROM stock_out_distribution`,
+      prisma.$queryRaw`
+        SELECT SUM(value) AS value FROM stock_in
+      `,
+    ]);
+  }
 }
 
 export default SalesDistributionModel;
