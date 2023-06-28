@@ -4,10 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const express_validator_1 = require("express-validator");
-const error_list_1 = __importDefault(require("../../assets/error_list"));
 const purchase_invoice_controller_1 = __importDefault(require("../../controller/purchase-invoice.controller"));
-const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.get("/unconfirmed", purchase_invoice_controller_1.default.fetchUnconfirmed);
 router.get("/archives", purchase_invoice_controller_1.default.fetchArchive);
@@ -17,5 +14,4 @@ router.post("/", purchase_invoice_controller_1.default.create);
 router.put("/confirm", purchase_invoice_controller_1.default.confirm);
 router.put("/delete", purchase_invoice_controller_1.default.delete);
 router.put("/", purchase_invoice_controller_1.default.update);
-router.delete("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, purchase_invoice_controller_1.default.delete);
 exports.default = router;

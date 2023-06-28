@@ -17,11 +17,4 @@ router.put("/confirm", PurchaseInvoiceController.confirm);
 router.put("/delete", PurchaseInvoiceController.delete);
 router.put("/", PurchaseInvoiceController.update);
 
-router.delete(
-  "/:id",
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  PurchaseInvoiceController.delete
-);
-
 export default router;

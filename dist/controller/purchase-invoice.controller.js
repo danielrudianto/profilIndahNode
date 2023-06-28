@@ -372,12 +372,17 @@ PurchaseInvoiceController.delete = (req, res) => {
                                     item_id: x.item.id,
                                     quantity: quantity,
                                 };
-                            }));
+                            }))
+                                .then(() => {
+                                const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
+                                socket.create();
+                                return res.status(200).send(result[0]);
+                            })
+                                .catch((error) => {
+                                return res.status(500).send(error);
+                            });
                         }
                     });
-                    const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
-                    socket.create();
-                    return res.status(200).send(result[0]);
                 })
                     .catch((error) => {
                     return res.status(500).send(error);

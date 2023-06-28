@@ -480,17 +480,22 @@ class PurchaseInvoiceController {
                           quantity: quantity,
                         };
                       })
-                    );
+                    )
+                      .then(() => {
+                        const socket = new SocketHelper(
+                          "updatePurchaseDocumentStatus",
+                          result[0]
+                        );
+                        socket.create();
+
+                        return res.status(200).send(result[0]);
+                      })
+                      .catch((error) => {
+                        return res.status(500).send(error);
+                      });
                   }
                 }
               );
-              const socket = new SocketHelper(
-                "updatePurchaseDocumentStatus",
-                result[0]
-              );
-              socket.create();
-
-              return res.status(200).send(result[0]);
             })
             .catch((error) => {
               return res.status(500).send(error);
