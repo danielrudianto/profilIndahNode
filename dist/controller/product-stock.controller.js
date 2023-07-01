@@ -1,7 +1,17 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
@@ -11,6 +21,7 @@ const product_stock_model_1 = __importDefault(require("../model/product-stock.mo
 const node_cron_1 = __importDefault(require("node-cron"));
 class ProductStockController {
 }
+_a = ProductStockController;
 ProductStockController.fetch = (req, res) => {
     if (req.query.mode == "plain" || req.query.mode == "problem") {
         const page = !req.query.page
@@ -272,8 +283,8 @@ ProductStockController.create = (req, res) => {
 ProductStockController.scheduleData = () => {
     product_stock_model_1.default.syncData();
     // Create a cron job to run every day at 00:00:00
-    node_cron_1.default.schedule("0 */6 * * *", () => {
-        product_stock_model_1.default.syncData();
-    });
+    node_cron_1.default.schedule("0 */6 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+        yield product_stock_model_1.default.syncData();
+    }));
 };
 exports.default = ProductStockController;

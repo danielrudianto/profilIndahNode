@@ -1,13 +1,24 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const node_cron_1 = require("node-cron");
 const app_1 = require("../app");
 const item_model_1 = require("../model/item.model");
 class SearchHelper {
 }
-SearchHelper.scheduleData = () => {
-    app_1.meili.index("item").deleteAllDocuments();
-    app_1.meili.index("item").updateSettings({
+_a = SearchHelper;
+SearchHelper.scheduleData = () => __awaiter(void 0, void 0, void 0, function* () {
+    yield app_1.meili.index("item").deleteAllDocuments();
+    yield app_1.meili.index("item").updateSettings({
         searchableAttributes: ["reference", "description"],
         rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
         distinctAttribute: "reference",
@@ -37,8 +48,8 @@ SearchHelper.scheduleData = () => {
         },
     });
     item_model_1.ItemModel.fetchAll(new Date())
-        .then((items) => {
-        app_1.meili.index("item").addDocumentsInBatches(items.map((x) => {
+        .then((items) => __awaiter(void 0, void 0, void 0, function* () {
+        yield app_1.meili.index("item").addDocumentsInBatches(items.map((x) => {
             return {
                 id: x.id,
                 reference: x.reference,
@@ -46,7 +57,7 @@ SearchHelper.scheduleData = () => {
                 brand: x.item_brand.name,
             };
         }));
-    })
+    }))
         .catch((error) => {
         console.log(error);
     });
@@ -67,5 +78,5 @@ SearchHelper.scheduleData = () => {
             console.log(error);
         });
     });
-};
+});
 exports.default = SearchHelper;

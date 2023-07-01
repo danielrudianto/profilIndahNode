@@ -244,7 +244,7 @@ class ProductStockModel {
             result.forEach((item) => {
                 queryUpdate += `(${item.id}, ${item.stock}),`;
             });
-            return Promise.all([
+            yield Promise.all([
                 prisma.$queryRaw `
           TRUNCATE TABLE _stock;
         `,

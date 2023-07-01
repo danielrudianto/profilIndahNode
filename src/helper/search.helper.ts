@@ -3,9 +3,9 @@ import { meili } from "../app";
 import { ItemModel } from "../model/item.model";
 
 class SearchHelper {
-  static scheduleData = () => {
-    meili.index("item").deleteAllDocuments();
-    meili.index("item").updateSettings({
+  static scheduleData = async () => {
+    await meili.index("item").deleteAllDocuments();
+    await meili.index("item").updateSettings({
       searchableAttributes: ["reference", "description"],
       rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
       distinctAttribute: "reference",
@@ -35,8 +35,8 @@ class SearchHelper {
       },
     });
     ItemModel.fetchAll(new Date())
-      .then((items) => {
-        meili.index("item").addDocumentsInBatches(
+      .then(async (items) => {
+        await meili.index("item").addDocumentsInBatches(
           items.map((x) => {
             return {
               id: x.id,

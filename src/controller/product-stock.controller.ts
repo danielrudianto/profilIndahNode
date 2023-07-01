@@ -301,8 +301,8 @@ class ProductStockController {
   static scheduleData = () => {
     ProductStockModel.syncData();
     // Create a cron job to run every day at 00:00:00
-    cron.schedule("0 */6 * * *", () => {
-      ProductStockModel.syncData();
+    cron.schedule("0 */6 * * *", async () => {
+      await ProductStockModel.syncData();
     });
   };
 }
