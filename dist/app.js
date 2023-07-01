@@ -44,7 +44,6 @@ const cashier_route_1 = __importDefault(require("./routes/distinct/cashier.route
 */
 const search_helper_1 = __importDefault(require("./helper/search.helper"));
 const product_stock_controller_1 = __importDefault(require("./controller/product-stock.controller"));
-const draft_bill_controller_1 = __importDefault(require("./controller/draft-bill.controller"));
 /*
   Administrator Routes
 */
@@ -93,7 +92,6 @@ const server = http_1.default.createServer(app);
 server.listen(5000, () => {
     search_helper_1.default.scheduleData();
     product_stock_controller_1.default.scheduleData();
-    draft_bill_controller_1.default.truncateData();
     console.log("[server]: Server is running on port 5000");
 });
 exports.io = new socket_io_1.Server(server, {

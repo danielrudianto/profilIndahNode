@@ -105,7 +105,6 @@ const server = http.createServer(app);
 server.listen(5000, () => {
   SearchHelper.scheduleData();
   ProductStockController.scheduleData();
-  DraftBillController.truncateData();
 
   console.log("[server]: Server is running on port 5000");
 });

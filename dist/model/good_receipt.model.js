@@ -394,5 +394,45 @@ class GoodReceiptModel {
             prisma.$queryRawUnsafe(`SELECT COUNT(good_receipt_code.id) AS count FROM good_receipt_code ${conditionalQueries}`),
         ]);
     }
+    // improvement needed, create good receipt, good receipt item in one go
+    static createGoodReceipt(name, purchase_invoice_name, date, supplier_id, company_id, user_id, good_receipt_items) {
+        return prisma.good_receipt_code.create({
+            data: {
+                name: name,
+                date: date,
+                created_by: user_id,
+                created_at: new Date(),
+                confirmed_by: null,
+                confirmed_at: null,
+                supplier_id: supplier_id,
+                company_id: company_id,
+                is_confirm: false,
+                is_delete: false,
+                purchase_invoice: {
+                    create: {
+                        name: purchase_invoice_name,
+                        faktur: null,
+                        date: date,
+                        discount: 0,
+                        created_by: user_id,
+                        created_at: new Date(),
+                        is_delete: false,
+                    },
+                },
+                good_receipt: {
+                    createMany: {
+                        data: good_receipt_items.map((x) => {
+                            return {
+                                item_id: x.item_id,
+                                price: x.price,
+                                quantity: x.quantity,
+                                item_unit_id: x.item_unit_id,
+                            };
+                        }),
+                    },
+                },
+            },
+        });
+    }
 }
 exports.default = GoodReceiptModel;

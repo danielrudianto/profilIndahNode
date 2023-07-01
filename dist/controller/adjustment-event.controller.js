@@ -67,7 +67,12 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
     if (req.query.year == undefined) {
         adjustment_case_code_model_1.default.fetchArchiveYears(mode)
             .then((result) => {
-            return res.status(200).send(result);
+            return res.status(200).send(result.map((x) => {
+                return {
+                    year: x.year,
+                    count: parseInt(x.count.toString()),
+                };
+            }));
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -79,7 +84,7 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
             .then((result) => {
             const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             result.forEach((x) => {
-                response[x.month - 1] = x.count;
+                response[x.month - 1] = parseInt(x.count.toString());
             });
             return res.status(200).send(response);
         })
@@ -111,7 +116,7 @@ AdjustmentCaseController.fetchArchives = (req, res) => {
                 }),
                 count: result[1] == null || result[1].length == 0
                     ? 0
-                    : result[1][0].count,
+                    : parseInt(result[1][0].count.toString()),
             });
         })
             .catch((error) => {

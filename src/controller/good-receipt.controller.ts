@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
-import SocketHelper from "../helper/socket.helper";
 import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
-import PurchaseInvoiceModel from "../model/purchase-invoice.model";
 import SupplierModel from "../model/supplier.model";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
@@ -34,104 +32,65 @@ class GoodReceiptController {
         ) {
           return res.status(400).send(ErrorList["Not found"]);
         } else {
-          const goodReceipt = new GoodReceiptModel(
-            name,
-            date,
-            userID,
-            supplier_id,
-            company_id
-          );
+          ItemPurchasePriceModel.fetchCurrentPrice(
+            good_receipt_items.map((x) => {
+              return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+              };
+            })
+          ).then((priceResult) => {
+            for (let x of good_receipt_items) {
+              const priceIndex = priceResult.findIndex(
+                (y) =>
+                  y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
+              );
+              if (priceIndex == -1) {
+                x.price = 0;
+              } else {
+                x.price = priceResult[priceIndex].price;
+              }
+            }
 
-          goodReceipt.create().then((goodReceiptResult) => {
-            const purchaseDocument = new PurchaseInvoiceModel(
+            GoodReceiptModel.createGoodReceipt(
+              name,
               purchase_invoice_name,
-              null,
               date,
-              0,
-              goodReceiptResult.id,
-              req.body.userId
-            );
-
-            purchaseDocument
-              .create()
-              .then(() => {
-                ItemPurchasePriceModel.fetchCurrentPrice(
-                  good_receipt_items.map((x) => {
-                    return {
-                      item_id: x.item_id,
-                      item_unit_id: x.item_unit_id,
-                    };
-                  })
-                )
-                  .then((priceResult) => {
-                    for (let x of good_receipt_items) {
-                      const price = priceResult.filter(
-                        (y) =>
-                          y.item_id == x.item_id &&
-                          y.item_unit_id == x.item_unit_id
-                      )[0].price;
-                      x.price = price;
-                    }
-
-                    GoodReceiptModel.insertItems(
-                      good_receipt_items.map((x) => {
+              supplier_id,
+              company_id,
+              userID,
+              good_receipt_items
+            ).then((goodReceiptResult) => {
+              GoodReceiptModel.fetchById(goodReceiptResult.id)
+                .then(async (document) => {
+                  if (document == null) {
+                    return res.status(400).send(ErrorList["Not found"]);
+                  } else {
+                    ProductStockModel.updateStock(
+                      document?.good_receipt.map((x) => {
+                        const quantity =
+                          parseFloat(x.quantity.toString()) *
+                          (x.item_unit == null
+                            ? 1
+                            : parseFloat(x.item_unit.conversion.toString()));
                         return {
-                          good_receipt_code_id: goodReceiptResult.id,
-                          item_id: x.item_id,
-                          item_unit_id: x.item_unit_id,
-                          quantity: x.quantity,
-                          price: x.price,
+                          item_id: x.item.id,
+                          quantity: quantity,
                         };
                       })
                     )
                       .then(() => {
-                        GoodReceiptModel.fetchById(goodReceiptResult.id)
-                          .then((document) => {
-                            if (document == null) {
-                              return res
-                                .status(400)
-                                .send(ErrorList["Not found"]);
-                            } else {
-                              ProductStockModel.updateStock(
-                                document?.good_receipt.map((x) => {
-                                  const quantity =
-                                    parseFloat(x.quantity.toString()) *
-                                    (x.item_unit == null
-                                      ? 1
-                                      : parseFloat(
-                                          x.item_unit.conversion.toString()
-                                        ));
-                                  return {
-                                    item_id: x.item.id,
-                                    quantity: quantity,
-                                  };
-                                })
-                              )
-                                .then(() => {
-                                  return res
-                                    .status(201)
-                                    .send(goodReceiptResult);
-                                })
-                                .catch((error) => {
-                                  return res.status(500).send(error);
-                                });
-                            }
-                          })
-                          .catch(() => {
-                            return res.status(201).send(goodReceiptResult);
-                          });
+                        return res.status(201).send(document);
                       })
                       .catch((error) => {
                         return res.status(500).send(error);
                       });
-                  })
-                  .catch((error) => {
-                    return res.status(500).send(error);
-                  });
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
+                  }
+                })
+                .catch(() => {
+                  return res.status(201).send(goodReceiptResult);
+                });
+            });
           });
         }
       })
@@ -157,7 +116,14 @@ class GoodReceiptController {
     if (req.query.year == undefined) {
       GoodReceiptModel.fetchArchiveYears(mode)!
         .then((result) => {
-          return res.status(200).send(result);
+          return res.status(200).send(
+            result.map((x) => {
+              return {
+                year: x.year,
+                count: parseInt(x.count.toString()),
+              };
+            })
+          );
         })
         .catch((error) => {
           return res.status(500).send(error);
@@ -168,7 +134,7 @@ class GoodReceiptController {
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
-            response[x.month - 1] = x.count;
+            response[x.month - 1] = parseInt(x.count.toString());
           });
           return res.status(200).send(response);
         })
@@ -204,7 +170,7 @@ class GoodReceiptController {
             count:
               result[1] == null || result[1].length == 0
                 ? 0
-                : result[1][0].count,
+                : parseInt(result[1][0].count.toString()),
           });
         })
         .catch((error) => {
@@ -280,7 +246,7 @@ class GoodReceiptController {
       .then((result) => {
         return res.status(200).send({
           data: result[0],
-          count: result[1][0].count,
+          count: parseInt(result[1][0].count.toString()),
         });
       })
       .catch((error) => {

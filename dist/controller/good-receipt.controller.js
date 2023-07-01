@@ -1,18 +1,28 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
-const purchase_invoice_model_1 = __importDefault(require("../model/purchase-invoice.model"));
 const supplier_model_1 = __importDefault(require("../model/supplier.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
 const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 class GoodReceiptController {
 }
+_a = GoodReceiptController;
 GoodReceiptController.create = (req, res) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
@@ -34,76 +44,49 @@ GoodReceiptController.create = (req, res) => {
             return res.status(400).send(error_list_1.default["Not found"]);
         }
         else {
-            const goodReceipt = new good_receipt_model_1.default(name, date, userID, supplier_id, company_id);
-            goodReceipt.create().then((goodReceiptResult) => {
-                const purchaseDocument = new purchase_invoice_model_1.default(purchase_invoice_name, null, date, 0, goodReceiptResult.id, req.body.userId);
-                purchaseDocument
-                    .create()
-                    .then(() => {
-                    item_purchase_price_model_1.default.fetchCurrentPrice(good_receipt_items.map((x) => {
-                        return {
-                            item_id: x.item_id,
-                            item_unit_id: x.item_unit_id,
-                        };
-                    }))
-                        .then((priceResult) => {
-                        for (let x of good_receipt_items) {
-                            const price = priceResult.filter((y) => y.item_id == x.item_id &&
-                                y.item_unit_id == x.item_unit_id)[0].price;
-                            x.price = price;
+            item_purchase_price_model_1.default.fetchCurrentPrice(good_receipt_items.map((x) => {
+                return {
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                };
+            })).then((priceResult) => {
+                for (let x of good_receipt_items) {
+                    const priceIndex = priceResult.findIndex((y) => y.item_id == x.item_id && y.item_unit_id == x.item_unit_id);
+                    if (priceIndex == -1) {
+                        x.price = 0;
+                    }
+                    else {
+                        x.price = priceResult[priceIndex].price;
+                    }
+                }
+                good_receipt_model_1.default.createGoodReceipt(name, purchase_invoice_name, date, supplier_id, company_id, userID, good_receipt_items).then((goodReceiptResult) => {
+                    good_receipt_model_1.default.fetchById(goodReceiptResult.id)
+                        .then((document) => __awaiter(void 0, void 0, void 0, function* () {
+                        if (document == null) {
+                            return res.status(400).send(error_list_1.default["Not found"]);
                         }
-                        good_receipt_model_1.default.insertItems(good_receipt_items.map((x) => {
-                            return {
-                                good_receipt_code_id: goodReceiptResult.id,
-                                item_id: x.item_id,
-                                item_unit_id: x.item_unit_id,
-                                quantity: x.quantity,
-                                price: x.price,
-                            };
-                        }))
-                            .then(() => {
-                            good_receipt_model_1.default.fetchById(goodReceiptResult.id)
-                                .then((document) => {
-                                if (document == null) {
-                                    return res
-                                        .status(400)
-                                        .send(error_list_1.default["Not found"]);
-                                }
-                                else {
-                                    product_stock_model_1.default.updateStock(document === null || document === void 0 ? void 0 : document.good_receipt.map((x) => {
-                                        const quantity = parseFloat(x.quantity.toString()) *
-                                            (x.item_unit == null
-                                                ? 1
-                                                : parseFloat(x.item_unit.conversion.toString()));
-                                        return {
-                                            item_id: x.item.id,
-                                            quantity: quantity,
-                                        };
-                                    }))
-                                        .then(() => {
-                                        return res
-                                            .status(201)
-                                            .send(goodReceiptResult);
-                                    })
-                                        .catch((error) => {
-                                        return res.status(500).send(error);
-                                    });
-                                }
+                        else {
+                            product_stock_model_1.default.updateStock(document === null || document === void 0 ? void 0 : document.good_receipt.map((x) => {
+                                const quantity = parseFloat(x.quantity.toString()) *
+                                    (x.item_unit == null
+                                        ? 1
+                                        : parseFloat(x.item_unit.conversion.toString()));
+                                return {
+                                    item_id: x.item.id,
+                                    quantity: quantity,
+                                };
+                            }))
+                                .then(() => {
+                                return res.status(201).send(document);
                             })
-                                .catch(() => {
-                                return res.status(201).send(goodReceiptResult);
+                                .catch((error) => {
+                                return res.status(500).send(error);
                             });
-                        })
-                            .catch((error) => {
-                            return res.status(500).send(error);
-                        });
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
+                        }
+                    }))
+                        .catch(() => {
+                        return res.status(201).send(goodReceiptResult);
                     });
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
                 });
             });
         }
@@ -127,7 +110,12 @@ GoodReceiptController.fetchArchive = (req, res) => {
     if (req.query.year == undefined) {
         good_receipt_model_1.default.fetchArchiveYears(mode)
             .then((result) => {
-            return res.status(200).send(result);
+            return res.status(200).send(result.map((x) => {
+                return {
+                    year: x.year,
+                    count: parseInt(x.count.toString()),
+                };
+            }));
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -139,7 +127,7 @@ GoodReceiptController.fetchArchive = (req, res) => {
             .then((result) => {
             const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             result.forEach((x) => {
-                response[x.month - 1] = x.count;
+                response[x.month - 1] = parseInt(x.count.toString());
             });
             return res.status(200).send(response);
         })
@@ -173,7 +161,7 @@ GoodReceiptController.fetchArchive = (req, res) => {
                 }),
                 count: result[1] == null || result[1].length == 0
                     ? 0
-                    : result[1][0].count,
+                    : parseInt(result[1][0].count.toString()),
             });
         })
             .catch((error) => {
@@ -235,7 +223,7 @@ GoodReceiptController.search = (req, res) => {
         .then((result) => {
         return res.status(200).send({
             data: result[0],
-            count: result[1][0].count,
+            count: parseInt(result[1][0].count.toString()),
         });
     })
         .catch((error) => {

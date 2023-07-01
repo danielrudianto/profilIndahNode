@@ -513,7 +513,14 @@ class PurchaseInvoiceController {
     if (req.query.year == undefined) {
       PurchaseInvoiceModel.fetchArchiveYears(mode)!
         .then((result) => {
-          return res.status(200).send(result);
+          return res.status(200).send(
+            result.map((x) => {
+              return {
+                year: x.year,
+                count: parseInt(x.count.toString()),
+              };
+            })
+          );
         })
         .catch((error) => {
           return res.status(500).send(error);
@@ -524,7 +531,7 @@ class PurchaseInvoiceController {
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
-            response[x.month - 1] = x.count;
+            response[x.month - 1] = parseInt(x.count.toString());
           });
           return res.status(200).send(response);
         })
@@ -560,7 +567,7 @@ class PurchaseInvoiceController {
             count:
               result[1] == null || result[1].length == 0
                 ? 0
-                : result[1][0].count,
+                : parseInt(result[1][0].count.toString()),
           });
         })
         .catch((error) => {
@@ -612,10 +619,11 @@ class PurchaseInvoiceController {
       .then((result) => {
         return res.status(200).send({
           data: result[0],
-          count: result[1][0].count,
+          count: parseInt(result[1][0].count.toString()),
         });
       })
       .catch((error) => {
+        console.log(error);
         return res.status(500).send(error);
       });
   };

@@ -5,7 +5,8 @@ import ErrorHelper from "../../helper/error.helper";
 
 const router = Router();
 
-router.post("/order", DraftBillController.order);
+router.post("/confirm", DraftBillController.confirm);
+router.post("/delete", DraftBillController.delete);
 router.post(
   "/",
   body("customer_id").exists().withMessage("Please fill in customer ID"),
@@ -16,5 +17,9 @@ router.post(
   ErrorHelper.intercept,
   DraftBillController.create
 );
+
+router.get("/archives", DraftBillController.fetchArchives);
+router.get("/:id", DraftBillController.fetchByID);
+router.get("/", DraftBillController.fetchUnconfirmed);
 
 export default router;

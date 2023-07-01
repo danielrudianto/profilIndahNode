@@ -182,7 +182,7 @@ SalesInvoiceController.search = (req, res) => {
         .then((result) => {
         return res.status(200).send({
             data: result[0],
-            count: result[1][0].count,
+            count: parseInt(result[1][0].count.toString()),
         });
     })
         .catch((error) => {
@@ -194,7 +194,12 @@ SalesInvoiceController.fetchArchive = (req, res) => {
     if (req.query.year == undefined) {
         bill_code_model_1.default.fetchArchiveYears(mode)
             .then((result) => {
-            return res.status(200).send(result);
+            return res.status(200).send(result.map((x) => {
+                return {
+                    year: x.year,
+                    count: parseInt(x.count.toString().replace("n", "")),
+                };
+            }));
         })
             .catch((error) => {
             return res.status(500).send(error);
@@ -206,7 +211,7 @@ SalesInvoiceController.fetchArchive = (req, res) => {
             .then((result) => {
             const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             result.forEach((x) => {
-                response[x.month - 1] = x.count;
+                response[x.month - 1] = parseInt(x.count.toString().replace("n", ""));
             });
             return res.status(200).send(response);
         })
@@ -236,7 +241,7 @@ SalesInvoiceController.fetchArchive = (req, res) => {
                 }),
                 count: result[1] == null || result[1].length == 0
                     ? 0
-                    : result[1][0].count,
+                    : parseInt(result[1][0].count.toString().replace("n", "")),
             });
         })
             .catch((error) => {
