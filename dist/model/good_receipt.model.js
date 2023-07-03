@@ -402,11 +402,11 @@ class GoodReceiptModel {
                 date: date,
                 created_by: user_id,
                 created_at: new Date(),
-                confirmed_by: null,
-                confirmed_at: null,
+                confirmed_by: user_id,
+                confirmed_at: new Date(),
                 supplier_id: supplier_id,
                 company_id: company_id,
-                is_confirm: false,
+                is_confirm: true,
                 is_delete: false,
                 purchase_invoice: {
                     create: {
