@@ -68,7 +68,7 @@ ProductStockController.fetchByID = (req, res) => {
                             document_id: x.f12,
                         };
                     }),
-                    count: result[1][0].f0,
+                    count: parseInt(result[1][0].f0.toString()),
                 });
             })
                 .catch((error) => {

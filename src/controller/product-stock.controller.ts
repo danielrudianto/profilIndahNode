@@ -57,7 +57,7 @@ class ProductStockController {
                   document_id: x.f12,
                 };
               }),
-              count: (result[1] as any[])[0].f0,
+              count: parseInt((result[1] as any[])[0].f0.toString()),
             });
           })
           .catch((error) => {
