@@ -70,7 +70,7 @@ ItemPriceController.fetch = (req, res) => {
                     id: x.id,
                     reference: x.reference,
                     description: x.description,
-                    count: x.count,
+                    count: parseInt(x.count.toString()),
                     price: x.price,
                     discount: x.discount,
                     effective_date: new Date(x.effective_date),

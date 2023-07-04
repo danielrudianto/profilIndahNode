@@ -43,7 +43,6 @@ import CashierRoutes from "./routes/distinct/cashier.route";
 
 import SearchHelper from "./helper/search.helper";
 import ProductStockController from "./controller/product-stock.controller";
-import DraftBillController from "./controller/draft-bill.controller";
 
 /*
   Administrator Routes
@@ -102,9 +101,9 @@ app.use("/report", reportRoutes);
 app.use("/administrator", authMiddleware, administratorRoutes);
 
 const server = http.createServer(app);
-server.listen(5000, () => {
-  SearchHelper.scheduleData();
-  ProductStockController.scheduleData();
+server.listen(5000, async () => {
+  await SearchHelper.scheduleData();
+  await ProductStockController.scheduleData();
 
   console.log("[server]: Server is running on port 5000");
 });

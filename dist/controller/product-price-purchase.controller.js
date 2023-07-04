@@ -41,7 +41,7 @@ ItemPurchasePriceController.fetch = (req, res) => {
                     id: x.id,
                     reference: x.reference,
                     description: x.description,
-                    count: x.count,
+                    count: parseInt(x.count.toString()),
                     price: x.price,
                 };
             }),
