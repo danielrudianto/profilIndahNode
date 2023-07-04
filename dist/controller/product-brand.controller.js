@@ -24,9 +24,10 @@ BrandController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
     brand_model_1.BrandModel.fetchById(id)
         .then((result) => {
-        return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 ? true : false }));
+        return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: parseInt(result[1].toString()) == 0 ? true : false }));
     })
         .catch((error) => {
+        console.log(error);
         return res.status(500).send(error);
     });
 };

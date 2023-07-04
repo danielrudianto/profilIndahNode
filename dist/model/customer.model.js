@@ -212,13 +212,13 @@ class CustomerModel {
       SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
       FROM customer
       LEFT JOIN (
-        SELECT COUNT(bill_code.id) AS count
+        SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
         FROM bill_code
         WHERE bill_code.is_delete = 0
         AND bill_code.customer_id = ${id}
       ) itemCount
       ON customer.id = itemCount.customer_id
-      WHERE AND customer.id = ${id}
+      WHERE customer.id = ${id}
     `;
     }
     static fetchBySales(id) {

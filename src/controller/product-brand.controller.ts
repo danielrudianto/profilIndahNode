@@ -23,10 +23,11 @@ class BrandController {
       .then((result) => {
         return res.status(200).send({
           ...result[0],
-          can_delete: result[1] == 0 ? true : false,
+          can_delete: parseInt(result[1].toString()) == 0 ? true : false,
         });
       })
       .catch((error) => {
+        console.log(error);
         return res.status(500).send(error);
       });
   };

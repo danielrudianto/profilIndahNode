@@ -63,6 +63,7 @@ class CustomerController {
         return res.status(201).send(result);
       })
       .catch((error) => {
+        console.log(error);
         return res.status(500).send(error);
       });
   };
@@ -142,16 +143,21 @@ class CustomerController {
 
   static fetchById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    CustomerModel.fetchById(id).then((result) => {
-      if (result == null || result.length == 0) {
-        return res.status(404).send(ErrorList["Not found"]);
-      } else {
-        return res.status(200).send({
-          ...result[0],
-          can_delete: parseInt(result[0].count.toString()) == 0,
-        });
-      }
-    });
+    CustomerModel.fetchById(id)
+      .then((result) => {
+        if (result == null || result.length == 0) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          return res.status(200).send({
+            ...result[0],
+            count: parseInt(result[0].count.toString()),
+            can_delete: parseInt(result[0].count.toString()) == 0,
+          });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 }
 

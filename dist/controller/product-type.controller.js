@@ -82,10 +82,11 @@ ItemTypeController.fetchById = (req, res) => {
             }
             else {
                 const itemType = result[0];
-                return res.status(200).send(Object.assign(Object.assign({}, itemType), { can_delete: itemType.count == 0 ? true : false }));
+                return res.status(200).send(Object.assign(Object.assign({}, itemType), { count: parseInt(itemType.count.toString()), can_delete: parseInt(itemType.count.toString()) == 0 ? true : false }));
             }
         })
             .catch((error) => {
+            console.log(error);
             return res.status(500).send(error);
         });
     }

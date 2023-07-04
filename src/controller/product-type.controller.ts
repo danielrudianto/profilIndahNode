@@ -89,11 +89,14 @@ class ItemTypeController {
             const itemType = (result as any[])[0];
             return res.status(200).send({
               ...itemType,
-              can_delete: itemType.count == 0 ? true : false,
+              count: parseInt(itemType.count.toString()),
+              can_delete:
+                parseInt(itemType.count.toString()) == 0 ? true : false,
             });
           }
         })
         .catch((error) => {
+          console.log(error);
           return res.status(500).send(error);
         });
     } catch (err: unknown) {

@@ -43,6 +43,7 @@ CustomerController.update = (req, res) => {
         return res.status(201).send(result);
     })
         .catch((error) => {
+        console.log(error);
         return res.status(500).send(error);
     });
 };
@@ -118,13 +119,17 @@ CustomerController.fetch = (req, res) => {
 };
 CustomerController.fetchById = (req, res) => {
     const id = parseInt(req.params.id);
-    customer_model_1.default.fetchById(id).then((result) => {
+    customer_model_1.default.fetchById(id)
+        .then((result) => {
         if (result == null || result.length == 0) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
         else {
-            return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: parseInt(result[0].count.toString()) == 0 }));
+            return res.status(200).send(Object.assign(Object.assign({}, result[0]), { count: parseInt(result[0].count.toString()), can_delete: parseInt(result[0].count.toString()) == 0 }));
         }
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
     });
 };
 exports.default = CustomerController;
