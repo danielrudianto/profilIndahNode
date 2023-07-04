@@ -136,7 +136,14 @@ class SupplierController {
         if (result == null || result.length == 0) {
           return res.status(404).send(ErrorList["Not found"]);
         } else {
-          return res.status(200).send(result[0]);
+          return res.status(200).send(
+            result[0].map((x: any) => {
+              return {
+                ...x,
+                count: parseInt(x.count.toString()),
+              };
+            })
+          );
         }
       })
       .catch((error) => {

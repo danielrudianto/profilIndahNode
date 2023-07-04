@@ -119,7 +119,9 @@ SupplierController.fetchById = (req, res) => {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
         else {
-            return res.status(200).send(result[0]);
+            return res.status(200).send(result[0].map((x) => {
+                return Object.assign(Object.assign({}, x), { count: parseInt(x.count.toString()) });
+            }));
         }
     })
         .catch((error) => {
