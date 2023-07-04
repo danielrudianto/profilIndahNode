@@ -123,7 +123,7 @@ CustomerController.fetchById = (req, res) => {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
         else {
-            return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[0].count == 0 }));
+            return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: parseInt(result[0].count.toString()) == 0 }));
         }
     });
 };

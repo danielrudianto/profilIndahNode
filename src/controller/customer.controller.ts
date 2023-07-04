@@ -148,7 +148,7 @@ class CustomerController {
       } else {
         return res.status(200).send({
           ...result[0],
-          can_delete: result[0].count == 0,
+          can_delete: parseInt(result[0].count.toString()) == 0,
         });
       }
     });
