@@ -448,8 +448,8 @@ class ItemModel {
               AND item.is_active = 1
               AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
               ORDER BY reference ASC
-              LIMIT 10
-              OFFSET	0
+              LIMIT ${limit}
+              OFFSET	${offset}
             ) item_count
             ON item_price.item_id = item_count.id
             WHERE item_price.is_delete = 0

@@ -306,6 +306,7 @@ class ProductController {
       case "sales":
         ItemModel.fetch(keyword, offset, limit, false, true)
           .then((result) => {
+            console.log(result);
             return res.status(200).send({
               data: (result[1] as any[]).map((x) => {
                 const priceIndex = (result[0] as any[]).findIndex(

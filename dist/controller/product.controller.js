@@ -234,6 +234,7 @@ ProductController.fetch = (req, res) => {
         case "sales":
             item_model_1.ItemModel.fetch(keyword, offset, limit, false, true)
                 .then((result) => {
+                console.log(result);
                 return res.status(200).send({
                     data: result[1].map((x) => {
                         const priceIndex = result[0].findIndex((item) => item.item_id == x.id && item.item_unit_id == null);
