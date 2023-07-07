@@ -5,6 +5,7 @@ import StockCardHelper from "../helper/stock_card.helper";
 import { ItemModel } from "../model/item.model";
 import ProductStockModel from "../model/product-stock.model";
 import cron from "node-cron";
+import DistributionStockModel from "../model/distribution_stock.model";
 
 class ProductStockController {
   static fetch = (req: Request, res: Response) => {
@@ -303,6 +304,16 @@ class ProductStockController {
     // Create a cron job to run every day at 00:00:00
     cron.schedule("0 */6 * * *", async () => {
       await ProductStockModel.syncData();
+    });
+  };
+
+  static adjustDistibution = async () => {
+    await DistributionStockModel.truncateDistributionStockTable();
+    await DistributionStockModel.fillDistributionStockTable();
+
+    cron.schedule("0 1 * * *", async () => {
+      await DistributionStockModel.truncateDistributionStockTable();
+      await DistributionStockModel.fillDistributionStockTable();
     });
   };
 }

@@ -33,7 +33,7 @@ class SalesDistributionModel {
   static fetchValue() {
     return prisma.$transaction([
       prisma.$queryRaw`
-      SELECT SUM(value) AS value FROM stock_out_distribution`,
+      SELECT SUM(value) AS value FROM distribution_stock`,
       prisma.$queryRaw`
         SELECT SUM(value) AS value FROM stock_in
       `,

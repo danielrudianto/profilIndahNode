@@ -28,6 +28,7 @@ const item_model_1 = require("../model/item.model");
 const company_model_1 = __importDefault(require("../model/company.model"));
 const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper"));
 const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
+const distribution_stock_model_1 = __importDefault(require("../model/distribution_stock.model"));
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
@@ -314,6 +315,27 @@ ReportController.fetchInventoryReport = (req, res) => {
         return res.status(200).send({
             value: stockIn - stockOut,
         });
+    });
+};
+ReportController.downloadInventoryReport = (req, res) => {
+    distribution_stock_model_1.default.download()
+        .then((result) => {
+        return res.status(200).send(result.map((x) => {
+            const quantity = parseFloat(x.quantity.toString());
+            const value = parseFloat(x.value.toString());
+            return {
+                reference: x.reference,
+                description: x.description,
+                quantity: quantity,
+                unit: x.unit,
+                value: quantity == 0 ? 0 : value / quantity,
+                brand: x.item_brand_name,
+                type: x.item_type_name,
+            };
+        }));
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
     });
 };
 ReportController.fetchPLStats = (req, res) => {

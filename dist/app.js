@@ -101,6 +101,7 @@ const server = http_1.default.createServer(app);
 server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     yield search_helper_1.default.scheduleData();
     yield product_stock_controller_1.default.scheduleData();
+    yield product_stock_controller_1.default.adjustDistibution();
     console.log("[server]: Server is running on port 5000");
 }));
 exports.io = new socket_io_1.Server(server, {

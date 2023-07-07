@@ -19,6 +19,7 @@ const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper
 const item_model_1 = require("../model/item.model");
 const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const node_cron_1 = __importDefault(require("node-cron"));
+const distribution_stock_model_1 = __importDefault(require("../model/distribution_stock.model"));
 class ProductStockController {
 }
 _a = ProductStockController;
@@ -285,6 +286,14 @@ ProductStockController.scheduleData = () => __awaiter(void 0, void 0, void 0, fu
     // Create a cron job to run every day at 00:00:00
     node_cron_1.default.schedule("0 */6 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
         yield product_stock_model_1.default.syncData();
+    }));
+});
+ProductStockController.adjustDistibution = () => __awaiter(void 0, void 0, void 0, function* () {
+    yield distribution_stock_model_1.default.truncateDistributionStockTable();
+    yield distribution_stock_model_1.default.fillDistributionStockTable();
+    node_cron_1.default.schedule("0 1 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+        yield distribution_stock_model_1.default.truncateDistributionStockTable();
+        yield distribution_stock_model_1.default.fillDistributionStockTable();
     }));
 });
 exports.default = ProductStockController;

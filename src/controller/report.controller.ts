@@ -22,6 +22,7 @@ import { ItemModel } from "../model/item.model";
 import CompanyModel from "../model/company.model";
 import StockCardHelper from "../helper/stock_card.helper";
 import ProductStockModel from "../model/product-stock.model";
+import DistributionStockModel from "../model/distribution_stock.model";
 
 var formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -338,6 +339,31 @@ class ReportController {
         value: stockIn - stockOut,
       });
     });
+  };
+
+  static downloadInventoryReport = (req: Request, res: Response) => {
+    DistributionStockModel.download()
+      .then((result) => {
+        return res.status(200).send(
+          result.map((x) => {
+            const quantity = parseFloat(x.quantity.toString());
+            const value = parseFloat(x.value.toString());
+
+            return {
+              reference: x.reference,
+              description: x.description,
+              quantity: quantity,
+              unit: x.unit,
+              value: quantity == 0 ? 0 : value / quantity,
+              brand: x.item_brand_name,
+              type: x.item_type_name,
+            };
+          })
+        );
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static fetchPLStats = (req: Request, res: Response) => {
