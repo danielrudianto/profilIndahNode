@@ -306,7 +306,6 @@ class ProductController {
       case "sales":
         ItemModel.fetch(keyword, offset, limit, false, true)
           .then((result) => {
-            console.log(result);
             return res.status(200).send({
               data: (result[1] as any[]).map((x) => {
                 const priceIndex = (result[0] as any[]).findIndex(
@@ -505,29 +504,81 @@ class ProductController {
 
   static fetchCompleteById = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    ItemModel.fetchById(id).then((item) => {
-      if (item == null || item.length == 0) {
-        return res.status(404).send(ErrorList["Not found"]);
-      } else {
-        Promise.all([
-          ItemPriceModel.fetchByItemID(id),
-          ItemPurchasePriceModel.fetchByItemID(id),
-        ]).then((result) => {
-          return res.status(200).send({
-            id: item[0].id,
-            reference: item[0].reference,
-            description: item[0].description,
-            unit: item[0].unit,
-            minimum_stock: item[0].minimum_stock,
-            item_brand: item[0].item_brand_name,
-            item_type: item[0].item_type_name,
-            stock: item[0].stock,
-            item_prices: result[0],
-            item_purchase_prices: result[1],
+    ItemModel.fetchCompleteByID(id)
+      .then((item) => {
+        if (item == null) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          const priceIdx = item.item_price.findIndex((x) => {
+            x.item_unit == null;
           });
-        });
-      }
-    });
+
+          const purchasePriceIdx = item.item_price_purchase.findIndex((x) => {
+            x.item_unit == null;
+          });
+
+          const price =
+            priceIdx == -1
+              ? 0
+              : parseFloat(item.item_price[priceIdx].price.toString());
+          const discount =
+            priceIdx == -1
+              ? 0
+              : parseFloat(item.item_price[priceIdx].discount.toString());
+          const purchasePrice =
+            purchasePriceIdx == -1
+              ? 0
+              : parseFloat(
+                  item.item_price_purchase[purchasePriceIdx].price.toString()
+                );
+          return res.status(200).send({
+            reference: item.reference,
+            description: item.description,
+            unit: item.unit,
+            item_brand: item.item_brand.name,
+            item_type: item.item_type!.name,
+            price: price,
+            discount: discount,
+            purchase_price: purchasePrice,
+            units: item.item_unit.map((x) => {
+              const priceIndex = item.item_price.findIndex(
+                (y) => y.item_unit != null && y.item_unit.id == x.id
+              );
+
+              const purchasePriceIndex = item.item_price_purchase.findIndex(
+                (y) => y.item_unit != null && y.item_unit.id == x.id
+              );
+
+              return {
+                id: x.id,
+                unit: x.unit,
+                conversion: parseFloat(x.conversion.toString()),
+                price:
+                  priceIndex == -1
+                    ? 0
+                    : parseFloat(item.item_price[priceIndex].price.toString()),
+                discount:
+                  priceIndex == -1
+                    ? 0
+                    : parseFloat(
+                        item.item_price[priceIndex].discount.toString()
+                      ),
+                price_purchase:
+                  purchasePriceIndex == -1
+                    ? 0
+                    : parseFloat(
+                        item.item_price_purchase[
+                          purchasePriceIndex
+                        ].price.toString()
+                      ),
+              };
+            }),
+          });
+        }
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   static active = (req: Request, res: Response) => {
@@ -555,6 +606,7 @@ class ProductController {
   static search = (req: Request, res: Response) => {
     const keyword = req.body.keyword;
     const page = req.body.page;
+    console.log(keyword);
     const offset = (page - 1) * 20;
     meili
       .index("item")

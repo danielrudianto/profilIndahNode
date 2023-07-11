@@ -98,7 +98,7 @@ app.use("/user", authMiddleware, userRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/report", reportRoutes);
 
-app.use("/administrator", authMiddleware, administratorRoutes);
+app.use("/administrator", administratorRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, async () => {

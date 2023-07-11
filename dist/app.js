@@ -96,7 +96,7 @@ app.use("/cashier", auth_helper_1.authMiddleware, cashier_route_1.default);
 app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.use("/report", report_route_1.default);
-app.use("/administrator", auth_helper_1.authMiddleware, administrator_route_1.default);
+app.use("/administrator", administrator_route_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     yield search_helper_1.default.scheduleData();

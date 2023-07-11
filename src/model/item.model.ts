@@ -1790,6 +1790,68 @@ export class ItemModel {
     });
   }
 
+  static fetchCompleteByID(id: number) {
+    return prisma.item.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        id: true,
+        reference: true,
+        description: true,
+        item_type: {
+          select: {
+            name: true,
+          },
+        },
+        item_brand: {
+          select: {
+            name: true,
+          },
+        },
+        item_unit: {
+          select: {
+            unit: true,
+            conversion: true,
+            id: true,
+          },
+          where: {
+            is_delete: false,
+          },
+        },
+        unit: true,
+        stock: true,
+        item_price: {
+          select: {
+            price: true,
+            discount: true,
+            item_unit: {
+              select: {
+                id: true,
+              },
+            },
+          },
+          where: {
+            is_delete: false,
+          },
+        },
+        item_price_purchase: {
+          select: {
+            price: true,
+            item_unit: {
+              select: {
+                id: true,
+              },
+            },
+          },
+          where: {
+            is_delete: false,
+          },
+        },
+      },
+    });
+  }
+
   static fetchCompleteByIDs(ids: number[]) {
     return prisma.$transaction([
       prisma.item.findMany({
