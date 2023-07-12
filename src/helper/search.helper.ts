@@ -4,6 +4,7 @@ import { ItemModel } from "../model/item.model";
 
 class SearchHelper {
   static scheduleData = async () => {
+    console.log("[info]: Indexing search data.");
     await meili.index("item").deleteAllDocuments();
     await meili.index("item").updateSettings({
       searchableAttributes: ["reference", "description"],
@@ -46,6 +47,7 @@ class SearchHelper {
             };
           })
         );
+        console.log("[info]: Indexing search data completed.");
       })
       .catch((error) => {
         console.log(error);

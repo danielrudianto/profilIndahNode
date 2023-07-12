@@ -283,17 +283,20 @@ ProductStockController.create = (req, res) => {
 };
 ProductStockController.scheduleData = () => __awaiter(void 0, void 0, void 0, function* () {
     yield product_stock_model_1.default.syncData();
-    // Create a cron job to run every day at 00:00:00
     node_cron_1.default.schedule("0 */6 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
         yield product_stock_model_1.default.syncData();
     }));
 });
 ProductStockController.adjustDistibution = () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("[info]: Adjusting distribution stock.");
     yield distribution_stock_model_1.default.truncateDistributionStockTable();
     yield distribution_stock_model_1.default.fillDistributionStockTable();
+    console.log("[info]: Completed adjusting distribution stock.");
     node_cron_1.default.schedule("0 1 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("[info]: Adjusting distribution stock.");
         yield distribution_stock_model_1.default.truncateDistributionStockTable();
         yield distribution_stock_model_1.default.fillDistributionStockTable();
+        console.log("[info]: Completed adjusting distribution stock.");
     }));
 });
 exports.default = ProductStockController;

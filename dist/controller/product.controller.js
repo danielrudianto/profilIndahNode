@@ -530,7 +530,7 @@ ProductController.search = (req, res) => {
                     data: result.hits.map((x) => {
                         var _b;
                         const item = itemData[0];
-                        const stockIndex = stockData.findIndex((y) => y.item_id == x.id);
+                        const stockIndex = stockData.findIndex((y) => y.id == x.id);
                         const stock = stockIndex == -1 ? 0 : stockData[stockIndex].stock;
                         const itemIndex = item.findIndex((y) => y.id == x.id);
                         if (itemIndex != -1) {
@@ -546,7 +546,9 @@ ProductController.search = (req, res) => {
                                 item_brand: {
                                     name: item[itemIndex].item_brand.name,
                                 },
-                                stock: stock,
+                                stock: {
+                                    stock: stock,
+                                },
                                 price: priceIndex == -1
                                     ? 0
                                     : item[itemIndex].item_price[priceIndex].price,

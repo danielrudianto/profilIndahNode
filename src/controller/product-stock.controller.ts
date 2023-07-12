@@ -301,19 +301,23 @@ class ProductStockController {
 
   static scheduleData = async () => {
     await ProductStockModel.syncData();
-    // Create a cron job to run every day at 00:00:00
     cron.schedule("0 */6 * * *", async () => {
       await ProductStockModel.syncData();
     });
   };
 
   static adjustDistibution = async () => {
+    console.log("[info]: Adjusting distribution stock.");
     await DistributionStockModel.truncateDistributionStockTable();
     await DistributionStockModel.fillDistributionStockTable();
 
+    console.log("[info]: Completed adjusting distribution stock.");
+
     cron.schedule("0 1 * * *", async () => {
+      console.log("[info]: Adjusting distribution stock.");
       await DistributionStockModel.truncateDistributionStockTable();
       await DistributionStockModel.fillDistributionStockTable();
+      console.log("[info]: Completed adjusting distribution stock.");
     });
   };
 }

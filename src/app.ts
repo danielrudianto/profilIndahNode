@@ -102,11 +102,11 @@ app.use("/administrator", administratorRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, async () => {
+  console.log("[server]: Server is running on port 5000");
+
   await SearchHelper.scheduleData();
   await ProductStockController.scheduleData();
   await ProductStockController.adjustDistibution();
-
-  console.log("[server]: Server is running on port 5000");
 });
 
 export const io = new Server(server, {

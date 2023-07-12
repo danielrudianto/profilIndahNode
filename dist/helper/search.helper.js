@@ -17,6 +17,7 @@ class SearchHelper {
 }
 _a = SearchHelper;
 SearchHelper.scheduleData = () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("[info]: Indexing search data.");
     yield app_1.meili.index("item").deleteAllDocuments();
     yield app_1.meili.index("item").updateSettings({
         searchableAttributes: ["reference", "description"],
@@ -57,6 +58,7 @@ SearchHelper.scheduleData = () => __awaiter(void 0, void 0, void 0, function* ()
                 brand: x.item_brand.name,
             };
         }));
+        console.log("[info]: Indexing search data completed.");
     }))
         .catch((error) => {
         console.log(error);

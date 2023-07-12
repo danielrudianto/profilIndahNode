@@ -245,17 +245,29 @@ class ProductStockModel {
   }
 
   static async syncData() {
-    const result = await prisma.stock.findMany();
-    let queryUpdate = "INSERT INTO _stock (item_id, stock) VALUES ";
-    result.forEach((item) => {
-      queryUpdate += `(${item.id}, ${item.stock}),`;
+    console.log("[info]: Syncing stock data.");
+    await prisma.stock.findMany({}).then(async (result) => {
+      console.log(`[info]: Updating ${result.length} stock data.`);
+      let queryUpdate = "INSERT INTO _stock (item_id, stock) VALUES ";
+      result.forEach((item) => {
+        queryUpdate += `(${item.id}, ${item.stock}),`;
+      });
+
+      Promise.all([
+        prisma.$queryRaw`
+            TRUNCATE TABLE _stock;
+          `,
+        prisma.$queryRawUnsafe(queryUpdate.slice(0, -1)),
+      ])
+        .then(() => {
+          console.log("[info]: Stock data has been synced.");
+        })
+        .catch(() => {
+          // Retry
+          console.log("[error]: Stock data sync failed. Retrying.");
+          this.syncData();
+        });
     });
-    await Promise.all([
-      prisma.$queryRaw`
-          TRUNCATE TABLE _stock;
-        `,
-      prisma.$queryRawUnsafe(queryUpdate.slice(0, -1)),
-    ]);
   }
 
   static fetchProblematic() {

@@ -639,7 +639,7 @@ class ProductController {
               data: result.hits.map((x) => {
                 const item = itemData[0];
                 const stockIndex = stockData.findIndex(
-                  (y) => y.item_id == x.id
+                  (y) => y.id == x.id
                 );
                 const stock =
                   stockIndex == -1 ? 0 : stockData[stockIndex].stock;
@@ -664,7 +664,9 @@ class ProductController {
                     item_brand: {
                       name: item[itemIndex].item_brand.name,
                     },
-                    stock: stock,
+                    stock: {
+                      stock: stock,
+                    },
                     price:
                       priceIndex == -1
                         ? 0
