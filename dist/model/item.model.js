@@ -1751,7 +1751,6 @@ class ItemModel {
                         },
                     },
                     unit: true,
-                    stock: true,
                     item_price: {
                         select: {
                             price: true,

@@ -498,10 +498,10 @@ ProductController.active = (req, res) => {
     });
 };
 ProductController.search = (req, res) => {
+    var _b;
     const keyword = req.body.keyword;
     const page = req.body.page;
-    console.log(keyword);
-    const offset = (page - 1) * 20;
+    const offset = (_b = (page - 1) * 20) !== null && _b !== void 0 ? _b : 0;
     app_1.meili
         .index("item")
         .search(keyword, {
@@ -516,13 +516,22 @@ ProductController.search = (req, res) => {
             });
         }
         else {
-            item_model_1.ItemModel.fetchCompleteByIDs(result.hits.map((x) => {
-                return x.id;
-            })).then((items) => {
+            Promise.all([
+                item_model_1.ItemModel.fetchCompleteByIDs(result.hits.map((x) => {
+                    return x.id;
+                })),
+                product_stock_model_1.default.fetchByIDs(result.hits.map((x) => {
+                    return x.id;
+                })),
+            ]).then((items) => {
+                const itemData = items[0];
+                const stockData = items[1];
                 return res.status(200).send({
                     data: result.hits.map((x) => {
                         var _b;
-                        const item = items[0];
+                        const item = itemData[0];
+                        const stockIndex = stockData.findIndex((y) => y.item_id == x.id);
+                        const stock = stockIndex == -1 ? 0 : stockData[stockIndex].stock;
                         const itemIndex = item.findIndex((y) => y.id == x.id);
                         if (itemIndex != -1) {
                             const priceIndex = item[itemIndex].item_price.findIndex((z) => z.item_unit == null);
@@ -537,7 +546,7 @@ ProductController.search = (req, res) => {
                                 item_brand: {
                                     name: item[itemIndex].item_brand.name,
                                 },
-                                stock: item[itemIndex].stock == null ? 0 : item[itemIndex].stock,
+                                stock: stock,
                                 price: priceIndex == -1
                                     ? 0
                                     : item[itemIndex].item_price[priceIndex].price,

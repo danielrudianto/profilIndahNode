@@ -606,8 +606,7 @@ class ProductController {
   static search = (req: Request, res: Response) => {
     const keyword = req.body.keyword;
     const page = req.body.page;
-    console.log(keyword);
-    const offset = (page - 1) * 20;
+    const offset = (page - 1) * 20 ?? 0;
     meili
       .index("item")
       .search(keyword, {
@@ -621,14 +620,30 @@ class ProductController {
             count: 0,
           });
         } else {
-          ItemModel.fetchCompleteByIDs(
-            result.hits.map((x) => {
-              return x.id;
-            })
-          ).then((items) => {
+          Promise.all([
+            ItemModel.fetchCompleteByIDs(
+              result.hits.map((x) => {
+                return x.id;
+              })
+            ),
+            ProductStockModel.fetchByIDs(
+              result.hits.map((x) => {
+                return x.id;
+              })
+            ),
+          ]).then((items) => {
+            const itemData = items[0];
+            const stockData = items[1];
+
             return res.status(200).send({
               data: result.hits.map((x) => {
-                const item = items[0];
+                const item = itemData[0];
+                const stockIndex = stockData.findIndex(
+                  (y) => y.item_id == x.id
+                );
+                const stock =
+                  stockIndex == -1 ? 0 : stockData[stockIndex].stock;
+
                 const itemIndex = item.findIndex((y) => y.id == x.id);
                 if (itemIndex != -1) {
                   const priceIndex = item[itemIndex].item_price.findIndex(
@@ -649,8 +664,7 @@ class ProductController {
                     item_brand: {
                       name: item[itemIndex].item_brand.name,
                     },
-                    stock:
-                      item[itemIndex].stock == null ? 0 : item[itemIndex].stock,
+                    stock: stock,
                     price:
                       priceIndex == -1
                         ? 0
