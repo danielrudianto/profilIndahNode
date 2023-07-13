@@ -547,6 +547,7 @@ ProductController.search = (req, res) => {
                                     name: item[itemIndex].item_brand.name,
                                 },
                                 stock: {
+                                    id: x.id,
                                     stock: stock,
                                 },
                                 price: priceIndex == -1
