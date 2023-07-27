@@ -1536,22 +1536,122 @@ class ItemModel {
         
       `),
             prisma.$queryRawUnsafe(`
-        SELECT item.id, SUM(CASE WHEN stock_card_act.quantity < 0 THEN stock_card_act.quantity ELSE 0 END) AS negativeQuantity, 
-        SUM(CASE WHEN stock_card_act.quantity > 0 THEN stock_card_act.quantity ELSE 0 END) AS positiveQuantity
-        FROM stock_card_act
-        JOIN item ON stock_card_act.item_id = item.id
-        WHERE item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND stock_card_act.date >= '${start_date.toISOString()}' 
-      AND stock_card_act.date < '${end_date.toISOString()}'
-      AND item.is_delete = 0
-      GROUP BY stock_card_act.item_id`),
-            prisma.$queryRawUnsafe(`
-          SELECT item.id, SUM(quantity) AS quantity
-          FROM item
-          LEFT JOIN stock_card_act ON item.id = stock_card_act.item_id
-          WHERE item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND stock_card_act.date < '${start_date.toISOString()}'
-      AND item.is_delete = 0
-          GROUP BY item.id
+          SELECT a.id, SUM(CASE WHEN a.quantity < 0 THEN a.quantity ELSE 0 END) AS negativeQuantity,
+      SUM(CASE WHEN a.quantity > 0 THEN a.quantity ELSE 0 END) AS positiveQuantity
+    FROM (
+      SELECT SUM(good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item.id
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      JOIN item ON good_receipt.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      WHERE good_receipt_code.is_delete = 0
+      AND item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND good_receipt_code.date >= '${start_date.toISOString()}' 
+    AND good_receipt_code.date < '${end_date.toISOString()}'
+      GROUP BY good_receipt.item_id
+      union all 
+      select sum(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item.id
+      FROM adjustment_case
+      JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+      LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
+      JOIN item ON adjustment_case.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      WHERE adjustment_case_code.is_delete = 0
+      AND adjustment_case.quantity > 0
+      AND adjustment_case_code.is_delete = 0
+      AND item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND adjustment_case_code.date >= '${start_date.toISOString()}' 
+    AND adjustment_case_code.date < '${end_date.toISOString()}'
+      GROUP BY adjustment_case.item_id
+      union all 
+      select sum(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item.id
+      FROM adjustment_case
+      JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+      LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
+      JOIN item ON adjustment_case.item_id = item.id
+      WHERE adjustment_case_code.is_delete = 0
+      AND adjustment_case.quantity < 0
+      GROUP BY adjustment_case.item_id
+      union all 
+      SELECT SUM((bill.quantity - COALESCE(returned.quantity, 0) * COALESCE(item_unit.conversion, 1))) * -1 AS quantity, item.id
+      FROM bill
+      JOIN bill_code ON bill_code.id = bill.bill_code_id
+      JOIN item ON bill.item_id = item.id
+      LEFT JOIN item_unit ON bill.item_unit_id = item_unit_id
+      LEFT JOIN (
+        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+        FROM sales_return
+        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+        WHERE sales_return_code.is_delete = 0
+        AND sales_return_code.date >= '${start_date.toISOString()}' 
+        AND sales_return_code.date < '${end_date.toISOString()}'
+      ) AS returned
+      ON bill.id = returned.bill_id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      WHERE bill_code.is_delete = 0
+      AND item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND bill_code.date >= '${start_date.toISOString()}' 
+    AND bill_code.date < '${end_date.toISOString()}'
+    ) AS a
+    GROUP BY a.id
+        
       `),
+            prisma.$queryRawUnsafe(`
+      SELECT a.id, SUM(a.quantity) AS quantity
+    FROM (
+      SELECT SUM(good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item.id
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      JOIN item ON good_receipt.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      WHERE good_receipt_code.is_delete = 0
+      AND item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND good_receipt_code.date < '${start_date.toISOString()}'
+      GROUP BY good_receipt.item_id
+      union all 
+      select sum(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item.id
+      FROM adjustment_case
+      JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+      LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
+      JOIN item ON adjustment_case.item_id = item.id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      WHERE adjustment_case_code.is_delete = 0
+      AND adjustment_case.quantity > 0
+      AND adjustment_case_code.is_delete = 0
+      AND item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND adjustment_case_code.date < '${start_date.toISOString()}'
+      GROUP BY adjustment_case.item_id
+      union all 
+      select sum(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, item.id
+      FROM adjustment_case
+      JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+      LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
+      JOIN item ON adjustment_case.item_id = item.id
+      WHERE adjustment_case_code.is_delete = 0
+      AND adjustment_case.quantity < 0
+      GROUP BY adjustment_case.item_id
+      union all 
+      SELECT SUM((bill.quantity - COALESCE(returned.quantity, 0) * COALESCE(item_unit.conversion, 1))) * -1 AS quantity, item.id
+      FROM bill
+      JOIN bill_code ON bill_code.id = bill.bill_code_id
+      JOIN item ON bill.item_id = item.id
+      LEFT JOIN item_unit ON bill.item_unit_id = item_unit_id
+      LEFT JOIN (
+        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+        FROM sales_return
+        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+        WHERE sales_return_code.is_delete = 0
+        AND sales_return_code.date < '${start_date.toISOString()}'
+      ) AS returned
+      ON bill.id = returned.bill_id
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      WHERE bill_code.is_delete = 0
+      AND item.item_brand_id IN (${brand.join(",")}) AND item.item_type_id IN (${type.join(",")}) AND bill_code.date < '${start_date.toISOString()}'
+    ) AS a
+    GROUP BY a.id`),
             prisma.item_brand.findMany({
                 where: {
                     id: {
