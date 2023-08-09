@@ -308,52 +308,146 @@ class ItemModel {
             ]);
         }
     }
-    static fetch(keyword, offset, limit, purchase = false, sales = false) {
-        if (purchase) {
-            if (keyword == "") {
-                return prisma.$transaction([
-                    prisma.$queryRaw `
-            SELECT item_price_purchase.id, item_price_purchase.price, item_price_purchase.item_id, item_unit_id, item_unit.unit, item_unit.conversion
-            FROM item_price_purchase
-            LEFT JOIN item_unit ON item_price_purchase.item_unit_id = item_unit.id
-            JOIN (
-              SELECT item.id
+    static fetch(keyword, offset, limit, type) {
+        // Type 1 is for purchase
+        // Type 2 is for sales
+        // Type 3 is for plain
+        // Type 4 is for return
+        switch (type) {
+            case 1:
+                if (keyword == "") {
+                    return prisma.$transaction([
+                        prisma.$queryRaw `
+              SELECT item_price_purchase.id, item_price_purchase.price, item_price_purchase.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+              FROM item_price_purchase
+              LEFT JOIN item_unit ON item_price_purchase.item_unit_id = item_unit.id
+              JOIN (
+                SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                AND item.is_active = 1
+                ORDER BY reference ASC
+                LIMIT ${limit}
+                OFFSET	${offset}
+              ) item_count
+              ON item_price_purchase.item_id = item_count.id
+              WHERE item_price_purchase.is_delete = 0
+              GROUP BY item_id, item_unit_id
+            `,
+                        prisma.$queryRaw `
+              SELECT item.id, item.reference, item.description, item.unit
               FROM item
               WHERE item.is_delete = 0
               AND item.is_active = 1
-              ORDER BY reference ASC
+              ORDER BY item.reference ASC
               LIMIT ${limit}
               OFFSET	${offset}
-            ) item_count
-            ON item_price_purchase.item_id = item_count.id
-            WHERE item_price_purchase.is_delete = 0
-            GROUP BY item_id, item_unit_id
-          `,
-                    prisma.$queryRaw `
-            SELECT item.id, item.reference, item.description, item.unit
-            FROM item
-            WHERE item.is_delete = 0
-            AND item.is_active = 1
-            ORDER BY item.reference ASC
-            LIMIT ${limit}
-            OFFSET	${offset}
-          `,
-                    prisma.item.count({
-                        where: {
-                            is_delete: false,
-                            is_active: true,
-                        },
-                    }),
-                ]);
-            }
-            else {
-                return prisma.$transaction([
-                    prisma.$queryRawUnsafe(`
-            SELECT item_price_purchase.id, item_price_purchase.price, item_price_purchase.item_id, item_unit_id, item_unit.unit, item_unit.conversion
-            FROM item_price_purchase
-            LEFT JOIN item_unit ON item_price_purchase.item_unit_id = item_unit.id
-            JOIN (
-              SELECT item.id
+            `,
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                                is_active: true,
+                            },
+                        }),
+                    ]);
+                }
+                else {
+                    return prisma.$transaction([
+                        prisma.$queryRawUnsafe(`
+              SELECT item_price_purchase.id, item_price_purchase.price, item_price_purchase.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+              FROM item_price_purchase
+              LEFT JOIN item_unit ON item_price_purchase.item_unit_id = item_unit.id
+              JOIN (
+                SELECT item.id
+                  FROM item
+                  WHERE item.is_delete = 0
+                  AND item.is_active = 1
+                  AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
+                  ORDER BY reference ASC
+                  LIMIT ${limit}
+                  OFFSET	${offset}
+              ) item_count
+              ON item_price_purchase.item_id = item_count.id
+              WHERE item_price_purchase.is_delete = 0
+              GROUP BY item_id, item_unit_id
+            `),
+                        prisma.$queryRawUnsafe(`
+              SELECT item.id, item.reference, item.description, item.unit
+              FROM item
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
+              ORDER BY item.reference ASC
+              LIMIT ${limit}
+              OFFSET	${offset}
+            `),
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                                is_active: true,
+                                OR: [
+                                    {
+                                        reference: {
+                                            contains: keyword,
+                                        },
+                                    },
+                                    {
+                                        description: {
+                                            contains: keyword,
+                                        },
+                                    },
+                                ],
+                            },
+                        }),
+                    ]);
+                }
+                break;
+            case 2:
+                if (keyword == "") {
+                    return prisma.$transaction([
+                        prisma.$queryRaw `
+              SELECT item_price.id, item_price.price, item_price.discount, item_price.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+              FROM item_price
+              LEFT JOIN item_unit ON item_price.item_unit_id = item_unit.id
+              JOIN (
+                SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                AND item.is_active = 1
+                ORDER BY reference ASC
+                LIMIT ${limit}
+                OFFSET	${offset}
+              ) item_count
+              ON item_price.item_id = item_count.id
+              WHERE item_price.is_delete = 0
+              GROUP BY item_id, item_unit_id
+            `,
+                        prisma.$queryRaw `
+              SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
+              FROM item
+              LEFT JOIN _stock ON item.id = _stock.item_id
+              WHERE item.is_delete = 0
+              AND item.is_active = 1
+              ORDER BY item.reference ASC
+              LIMIT ${limit}
+              OFFSET	${offset}
+            `,
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                                is_active: true,
+                            },
+                        }),
+                    ]);
+                }
+                else {
+                    return prisma.$transaction([
+                        prisma.$queryRawUnsafe(`
+              SELECT item_price.id, item_price.price, item_price.discount, item_price.item_id, item_unit_id, item_unit.unit, item_unit.conversion
+              FROM item_price
+              LEFT JOIN item_unit ON item_price.item_unit_id = item_unit.id
+              JOIN (
+                SELECT item.id
                 FROM item
                 WHERE item.is_delete = 0
                 AND item.is_active = 1
@@ -361,174 +455,190 @@ class ItemModel {
                 ORDER BY reference ASC
                 LIMIT ${limit}
                 OFFSET	${offset}
-            ) item_count
-            ON item_price_purchase.item_id = item_count.id
-            WHERE item_price_purchase.is_delete = 0
-            GROUP BY item_id, item_unit_id
-          `),
-                    prisma.$queryRawUnsafe(`
-            SELECT item.id, item.reference, item.description, item.unit
-            FROM item
-            WHERE item.is_delete = 0
-            AND item.is_active = 1
-            AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
-            ORDER BY item.reference ASC
-            LIMIT ${limit}
-            OFFSET	${offset}
-          `),
-                    prisma.item.count({
-                        where: {
-                            is_delete: false,
-                            is_active: true,
-                            OR: [
-                                {
-                                    reference: {
-                                        contains: keyword,
-                                    },
-                                },
-                                {
-                                    description: {
-                                        contains: keyword,
-                                    },
-                                },
-                            ],
-                        },
-                    }),
-                ]);
-            }
-        }
-        else if (sales) {
-            if (keyword == "") {
-                return prisma.$transaction([
-                    prisma.$queryRaw `
-            SELECT item_price.id, item_price.price, item_price.discount, item_price.item_id, item_unit_id, item_unit.unit, item_unit.conversion
-            FROM item_price
-            LEFT JOIN item_unit ON item_price.item_unit_id = item_unit.id
-            JOIN (
-              SELECT item.id
+              ) item_count
+              ON item_price.item_id = item_count.id
+              WHERE item_price.is_delete = 0
+              GROUP BY item_id, item_unit_id
+            `),
+                        prisma.$queryRawUnsafe(`
+              SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
               FROM item
-              WHERE item.is_delete = 0
-              AND item.is_active = 1
-              ORDER BY reference ASC
-              LIMIT ${limit}
-              OFFSET	${offset}
-            ) item_count
-            ON item_price.item_id = item_count.id
-            WHERE item_price.is_delete = 0
-            GROUP BY item_id, item_unit_id
-          `,
-                    prisma.$queryRaw `
-            SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
-            FROM item
-            LEFT JOIN _stock ON item.id = _stock.item_id
-            WHERE item.is_delete = 0
-            AND item.is_active = 1
-            ORDER BY item.reference ASC
-            LIMIT ${limit}
-            OFFSET	${offset}
-          `,
-                    prisma.item.count({
-                        where: {
-                            is_delete: false,
-                            is_active: true,
-                        },
-                    }),
-                ]);
-            }
-            else {
-                return prisma.$transaction([
-                    prisma.$queryRawUnsafe(`
-            SELECT item_price.id, item_price.price, item_price.discount, item_price.item_id, item_unit_id, item_unit.unit, item_unit.conversion
-            FROM item_price
-            LEFT JOIN item_unit ON item_price.item_unit_id = item_unit.id
-            JOIN (
-              SELECT item.id
-              FROM item
+              LEFT JOIN _stock ON item.id = _stock.item_id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
-              ORDER BY reference ASC
+              ORDER BY item.reference ASC
               LIMIT ${limit}
               OFFSET	${offset}
-            ) item_count
-            ON item_price.item_id = item_count.id
-            WHERE item_price.is_delete = 0
-            GROUP BY item_id, item_unit_id
-          `),
-                    prisma.$queryRawUnsafe(`
-            SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
-            FROM item
-            LEFT JOIN _stock ON item.id = _stock.item_id
-            WHERE item.is_delete = 0
-            AND item.is_active = 1
-            AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
-            ORDER BY item.reference ASC
-            LIMIT ${limit}
-            OFFSET	${offset}
-          `),
-                    prisma.item.count({
-                        where: {
-                            is_delete: false,
-                            is_active: true,
-                            OR: [
-                                {
-                                    reference: {
-                                        contains: keyword,
+            `),
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                                is_active: true,
+                                OR: [
+                                    {
+                                        reference: {
+                                            contains: keyword,
+                                        },
                                     },
-                                },
-                                {
-                                    description: {
-                                        contains: keyword,
+                                    {
+                                        description: {
+                                            contains: keyword,
+                                        },
                                     },
-                                },
-                            ],
-                        },
-                    }),
-                ]);
-            }
-        }
-        else {
-            if (keyword == "") {
-                return prisma.$transaction([
-                    prisma.$queryRaw `
-            SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
-            FROM item_unit
-            JOIN (
-              SELECT item.id
+                                ],
+                            },
+                        }),
+                    ]);
+                }
+                break;
+            case 4:
+                if (keyword == "") {
+                    return prisma.$transaction([
+                        prisma.$queryRaw `
+              SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
+              FROM item_unit
+              JOIN (
+                SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                ORDER BY reference ASC
+                LIMIT ${limit}
+                OFFSET	${offset}
+              ) item_count
+              ON item_unit.item_id = item_count.id
+              WHERE item_unit.is_delete = 0
+            `,
+                        prisma.$queryRaw `
+              SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
               FROM item
+              JOIN item_brand ON item.item_brand_id = item_brand.id
+              JOIN item_type ON item.item_type_id = item_type.id
               WHERE item.is_delete = 0
-              AND item.is_active = 1
               ORDER BY reference ASC
-              LIMIT ${limit}
-              OFFSET	${offset}
-            ) item_count
-            ON item_unit.item_id = item_count.id
-            WHERE item_unit.is_delete = 0
-          `,
-                    prisma.$queryRaw `
-            SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
-            FROM item
-            JOIN item_brand ON item.item_brand_id = item_brand.id
-            JOIN item_type ON item.item_type_id = item_type.id
-            WHERE item.is_delete = 0
-            ORDER BY reference ASC
-            LIMIT ${limit} OFFSET ${offset}
-          `,
-                    prisma.item.count({
-                        where: {
-                            is_delete: false,
-                        },
-                    }),
-                ]);
-            }
-            else {
-                return prisma.$transaction([
-                    prisma.$queryRawUnsafe(`
-            SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
-            FROM item_unit
-            JOIN (
-              SELECT item.id
+              LIMIT ${limit} OFFSET ${offset}
+            `,
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                            },
+                        }),
+                    ]);
+                }
+                else {
+                    return prisma.$transaction([
+                        prisma.$queryRawUnsafe(`
+              SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
+              FROM item_unit
+              JOIN (
+                SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                AND (
+                  item.reference LIKE '%${keyword}%'
+                  OR item.description LIKE '%${keyword}%'
+                )
+                ORDER BY reference ASC
+                LIMIT ${limit}
+                OFFSET	${offset}
+              ) item_count
+              ON item_unit.item_id = item_count.id
+              WHERE item_unit.is_delete = 0
+            `),
+                        prisma.$queryRawUnsafe(`
+              SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
               FROM item
+              JOIN item_brand ON item.item_brand_id = item_brand.id
+              JOIN item_type ON item.item_type_id = item_type.id
+              WHERE item.is_delete = 0
+              AND (
+                item.reference LIKE '%${keyword}%'
+                OR item.description LIKE '%${keyword}%'
+              )
+              ORDER BY reference ASC
+              LIMIT ${limit} OFFSET ${offset}
+            `),
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                                OR: [
+                                    {
+                                        reference: {
+                                            contains: keyword,
+                                        },
+                                    },
+                                    {
+                                        description: {
+                                            contains: keyword,
+                                        },
+                                    },
+                                ],
+                            },
+                        }),
+                    ]);
+                }
+                break;
+            case 3:
+            default:
+                if (keyword == "") {
+                    return prisma.$transaction([
+                        prisma.$queryRaw `
+              SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
+              FROM item_unit
+              JOIN (
+                SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                AND item.is_active = 1
+                ORDER BY reference ASC
+                LIMIT ${limit}
+                OFFSET	${offset}
+              ) item_count
+              ON item_unit.item_id = item_count.id
+              WHERE item_unit.is_delete = 0
+            `,
+                        prisma.$queryRaw `
+              SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
+              FROM item
+              JOIN item_brand ON item.item_brand_id = item_brand.id
+              JOIN item_type ON item.item_type_id = item_type.id
+              WHERE item.is_delete = 0
+              ORDER BY reference ASC
+              LIMIT ${limit} OFFSET ${offset}
+            `,
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                            },
+                        }),
+                    ]);
+                }
+                else {
+                    return prisma.$transaction([
+                        prisma.$queryRawUnsafe(`
+              SELECT item_unit.item_id, item_unit.id, item_unit.unit, item_unit.conversion
+              FROM item_unit
+              JOIN (
+                SELECT item.id
+                FROM item
+                WHERE item.is_delete = 0
+                AND item.is_active = 1
+                AND (
+                  item.reference LIKE '%${keyword}%'
+                  OR item.description LIKE '%${keyword}%'
+                )
+                ORDER BY reference ASC
+                LIMIT ${limit}
+                OFFSET	${offset}
+              ) item_count
+              ON item_unit.item_id = item_count.id
+              WHERE item_unit.is_delete = 0
+            `),
+                        prisma.$queryRawUnsafe(`
+              SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
+              FROM item
+              JOIN item_brand ON item.item_brand_id = item_brand.id
+              JOIN item_type ON item.item_type_id = item_type.id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               AND (
@@ -536,45 +646,29 @@ class ItemModel {
                 OR item.description LIKE '%${keyword}%'
               )
               ORDER BY reference ASC
-              LIMIT ${limit}
-              OFFSET	${offset}
-            ) item_count
-            ON item_unit.item_id = item_count.id
-            WHERE item_unit.is_delete = 0
-          `),
-                    prisma.$queryRawUnsafe(`
-            SELECT item.id, item.reference, item.description, item.minimum_stock, item.unit, item_type.name AS item_type_name, item_brand.name AS item_brand_name, item.item_type_id, item.item_brand_id, item.is_active
-            FROM item
-            JOIN item_brand ON item.item_brand_id = item_brand.id
-            JOIN item_type ON item.item_type_id = item_type.id
-            WHERE item.is_delete = 0
-            AND (
-              item.reference LIKE '%${keyword}%'
-              OR item.description LIKE '%${keyword}%'
-            )
-            ORDER BY reference ASC
-            LIMIT ${limit} OFFSET ${offset}
-          `),
-                    prisma.item.count({
-                        where: {
-                            is_delete: false,
-                            is_active: true,
-                            OR: [
-                                {
-                                    reference: {
-                                        contains: keyword,
+              LIMIT ${limit} OFFSET ${offset}
+            `),
+                        prisma.item.count({
+                            where: {
+                                is_delete: false,
+                                is_active: true,
+                                OR: [
+                                    {
+                                        reference: {
+                                            contains: keyword,
+                                        },
                                     },
-                                },
-                                {
-                                    description: {
-                                        contains: keyword,
+                                    {
+                                        description: {
+                                            contains: keyword,
+                                        },
                                     },
-                                },
-                            ],
-                        },
-                    }),
-                ]);
-            }
+                                ],
+                            },
+                        }),
+                    ]);
+                }
+                break;
         }
     }
     static fetchAll(date) {
@@ -1520,8 +1614,8 @@ class ItemModel {
         });
     }
     static fetchValueByBrandType(brand, type, month, year) {
-        const start_date = new Date(year, month - 1, 1);
-        const end_date = new Date(year, month, 1);
+        const start_date = new Date(year, month - 1, 1, 23, 59, 59);
+        const end_date = new Date(year, month, 1, 23, 59, 59);
         return prisma.$transaction([
             prisma.$queryRawUnsafe(`
         SELECT item.id, item.reference, item.description, item_brand.name AS item_brand_name, item_type.name AS item_type_name, item.unit, item.item_brand_id, item.item_type_id, SUM(stock_card_act.quantity) AS quantity

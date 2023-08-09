@@ -198,7 +198,7 @@ ProductController.fetch = (req, res) => {
     const mode = req.query.mode;
     switch (mode) {
         case "purchase":
-            item_model_1.ItemModel.fetch(keyword, offset, limit, true, false)
+            item_model_1.ItemModel.fetch(keyword, offset, limit, 1)
                 .then((result) => {
                 return res.status(200).send({
                     data: result[1].map((x) => {
@@ -232,7 +232,7 @@ ProductController.fetch = (req, res) => {
             });
             break;
         case "sales":
-            item_model_1.ItemModel.fetch(keyword, offset, limit, false, true)
+            item_model_1.ItemModel.fetch(keyword, offset, limit, 2)
                 .then((result) => {
                 return res.status(200).send({
                     data: result[1].map((x) => {
@@ -271,7 +271,46 @@ ProductController.fetch = (req, res) => {
             });
             break;
         case "plain":
-            item_model_1.ItemModel.fetch(keyword, offset, limit, false, false)
+            item_model_1.ItemModel.fetch(keyword, offset, limit, 3)
+                .then((result) => {
+                return res.status(200).send({
+                    data: result[1].map((x) => {
+                        return {
+                            id: x.id,
+                            reference: x.reference,
+                            description: x.description,
+                            minimum_stock: x.minimum_stock,
+                            unit: x.unit,
+                            item_type_id: x.item_type_id,
+                            item_brand_id: x.item_brand_id,
+                            item_type: {
+                                name: x.item_type_name,
+                            },
+                            item_brand: {
+                                name: x.item_brand_name,
+                            },
+                            is_active: x.is_active == 1 ? true : false,
+                            unit_price: result[0]
+                                .filter((item) => item.item_id == x.id)
+                                .map((unit) => {
+                                return {
+                                    id: unit.id,
+                                    unit: unit.unit,
+                                    conversion: unit.conversion,
+                                    item_unit_id: unit.id,
+                                };
+                            }),
+                        };
+                    }),
+                    count: result[2],
+                });
+            })
+                .catch((error) => {
+                return res.status(500).send(error);
+            });
+            break;
+        case "return":
+            item_model_1.ItemModel.fetch(keyword, offset, limit, 4)
                 .then((result) => {
                 return res.status(200).send({
                     data: result[1].map((x) => {
@@ -310,7 +349,7 @@ ProductController.fetch = (req, res) => {
             });
             break;
         default:
-            item_model_1.ItemModel.fetch(keyword, offset, limit, false, false)
+            item_model_1.ItemModel.fetch(keyword, offset, limit, 4)
                 .then((result) => {
                 item_model_1.ItemModel.countRelations(result[1].map((x) => {
                     return x.id;

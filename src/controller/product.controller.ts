@@ -263,7 +263,7 @@ class ProductController {
 
     switch (mode) {
       case "purchase":
-        ItemModel.fetch(keyword, offset, limit, true, false)
+        ItemModel.fetch(keyword, offset, limit, 1)
           .then((result) => {
             return res.status(200).send({
               data: (result[1] as any[]).map((x) => {
@@ -304,7 +304,7 @@ class ProductController {
           });
         break;
       case "sales":
-        ItemModel.fetch(keyword, offset, limit, false, true)
+        ItemModel.fetch(keyword, offset, limit, 2)
           .then((result) => {
             return res.status(200).send({
               data: (result[1] as any[]).map((x) => {
@@ -351,7 +351,46 @@ class ProductController {
           });
         break;
       case "plain":
-        ItemModel.fetch(keyword, offset, limit, false, false)
+        ItemModel.fetch(keyword, offset, limit, 3)
+          .then((result) => {
+            return res.status(200).send({
+              data: (result[1] as any[]).map((x) => {
+                return {
+                  id: x.id,
+                  reference: x.reference,
+                  description: x.description,
+                  minimum_stock: x.minimum_stock,
+                  unit: x.unit,
+                  item_type_id: x.item_type_id,
+                  item_brand_id: x.item_brand_id,
+                  item_type: {
+                    name: x.item_type_name,
+                  },
+                  item_brand: {
+                    name: x.item_brand_name,
+                  },
+                  is_active: x.is_active == 1 ? true : false,
+                  unit_price: (result[0] as any[])
+                    .filter((item) => item.item_id == x.id)
+                    .map((unit) => {
+                      return {
+                        id: unit.id,
+                        unit: unit.unit,
+                        conversion: unit.conversion,
+                        item_unit_id: unit.id,
+                      };
+                    }),
+                };
+              }),
+              count: result[2],
+            });
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+        break;
+      case "return":
+        ItemModel.fetch(keyword, offset, limit, 4)
           .then((result) => {
             return res.status(200).send({
               data: (result[1] as any[]).map((x) => {
@@ -390,7 +429,7 @@ class ProductController {
           });
         break;
       default:
-        ItemModel.fetch(keyword, offset, limit, false, false)
+        ItemModel.fetch(keyword, offset, limit, 4)
           .then((result) => {
             ItemModel.countRelations(
               (result[1] as any[]).map((x) => {
