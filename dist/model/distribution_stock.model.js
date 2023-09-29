@@ -39,8 +39,10 @@ class DistributionStockModel {
       ) AS valueOut
       ON item.id = valueOut.item_id
       LEFT JOIN (
-        select sum(stock_in.quantity * value) AS value, SUM(stock_in.quantity) AS quantity, stock_in.item_id
+        select sum(stock_in.quantity * COALESCE(item_unit.conversion, 1) * value) AS value, SUM(stock_in.quantity  * COALESCE(item_unit.conversion, 1)) AS quantity, stock_in.item_id
           FROM stock_in
+          LEFT JOIN item_unit
+          ON stock_in.item_unit_id = item_unit.id
           GROUP BY stock_in.item_id
       ) AS valueIn
       ON item.id = valueIn.item_id
