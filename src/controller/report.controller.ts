@@ -23,6 +23,7 @@ import CompanyModel from "../model/company.model";
 import StockCardHelper from "../helper/stock_card.helper";
 import ProductStockModel from "../model/product-stock.model";
 import DistributionStockModel from "../model/distribution_stock.model";
+import { fetchMode } from "../interface/fetch.interface";
 
 var formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -172,158 +173,167 @@ class ReportController {
 
     BillCodeModel.calculateTotalSales(month, year, mode)!
       .then((result) => {
-        if (mode == "plain") {
-          const date = new Date(year, month, 0).getDate();
-          const sales_dates = new Array(date).fill(0);
-          for (let sales of result[0]) {
-            sales_dates[sales.day - 1] =
-              parseFloat(sales.value) - parseFloat(sales.discount);
-          }
-          return res.status(200).send({
-            sales: sales_dates,
-            sales_detail: (result[1] as any[])
-              .map((x) => {
-                return {
-                  name: x.customer_name,
-                  value:
-                    parseFloat(x.value.toString()) -
-                    parseFloat(x.discount.toString()) +
-                    parseFloat(x.delivery.toString()) +
-                    parseFloat(x.service.toString()),
-                };
-              })
-              .sort((a, b) => {
-                return b.value - a.value;
-              }),
-          });
-        } else if (mode == "customer") {
-          return res.status(200).send({
-            sales_detail: result
-              .map((x) => {
-                return {
-                  name: x.customer_name,
-                  value:
-                    parseFloat(x.value.toString()) -
-                    parseFloat(x.discount.toString()),
-                };
-              })
-              .sort((a, b) => {
-                return b.value - a.value;
-              }),
-          });
-        } else if (mode == "type") {
-          return res.status(200).send({
-            sales_detail: result
-              .map((x) => {
-                return {
-                  name: x.item_type_name,
-                  value: parseFloat(x.value.toString()),
-                };
-              })
-              .sort((a, b) => {
-                return b.value - a.value;
-              }),
-          });
-        } else if (mode == "brand") {
-          return res.status(200).send({
-            sales_detail: result
-              .map((x) => {
-                return {
-                  name: x.item_brand_name,
-                  value: parseFloat(x.value.toString()),
-                };
-              })
-              .sort((a, b) => {
-                return b.value - a.value;
-              }),
-          });
-        } else if (mode == "download") {
-          const workbook = new ExcelJS.Workbook();
-          // Setting up workbook properties
-          workbook.creator = "Toko Profil Indah";
-          workbook.created = new Date();
-          workbook.modified = new Date();
-          workbook.lastModifiedBy = "Toko Profil Indah";
-
-          const customerSheet = workbook.addWorksheet("Customers", {
-            state: "visible",
-          });
-
-          customerSheet.addRow([
-            "Name",
-            "Value",
-            "Discount",
-            "Delivery",
-            "Service",
-          ]);
-
-          (result[0] as any[]).forEach((data) => {
-            customerSheet.addRow([
-              data.customer_name,
-              parseFloat(data.value.toString()),
-              parseFloat(data.discount.toString()),
-              parseFloat(data.delivery.toString()),
-              parseFloat(data.service.toString()),
-            ]);
-          });
-
-          customerSheet.getColumn(2).numFmt = "#,###.00";
-          customerSheet.getColumn(3).numFmt = "#,###.00";
-          customerSheet.getColumn(4).numFmt = "#,###.00";
-          customerSheet.getColumn(5).numFmt = "#,###.00";
-
-          customerSheet.getColumn(1).width = 18;
-          customerSheet.getColumn(2).width = 25;
-          customerSheet.getColumn(3).width = 25;
-          customerSheet.getColumn(4).width = 25;
-          customerSheet.getColumn(5).width = 25;
-
-          const typeSheet = workbook.addWorksheet("Types", {
-            state: "visible",
-          });
-
-          typeSheet.addRow(["Name", "Value"]);
-          (result[1] as any[]).forEach((data) => {
-            typeSheet.addRow([
-              data.item_type_name,
-              parseFloat(data.value.toString()),
-            ]);
-          });
-
-          typeSheet.getColumn(2).numFmt = "#,###.00";
-
-          typeSheet.getColumn(1).width = 18;
-          typeSheet.getColumn(2).width = 25;
-
-          const brandSheet = workbook.addWorksheet("Brands", {
-            state: "visible",
-          });
-
-          brandSheet.addRow(["Name", "Value"]);
-          (result[2] as any[]).forEach((data) => {
-            brandSheet.addRow([
-              data.item_brand_name,
-              parseFloat(data.value.toString()),
-            ]);
-          });
-
-          brandSheet.getColumn(2).numFmt = "#,###.00";
-
-          brandSheet.getColumn(1).width = 18;
-          brandSheet.getColumn(2).width = 25;
-
-          workbook.xlsx
-            .writeBuffer()
-            .then((buffer) => {
-              return res.status(200).send({
-                data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
-                  buffer
-                ).toString("base64")}`,
-              });
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
+        switch (mode) {
+          case "plain":
+            const date = new Date(year, month, 0).getDate();
+            const sales_dates = new Array(date).fill(0);
+            for (let sales of result[0]) {
+              sales_dates[sales.day - 1] =
+                parseFloat(sales.value) - parseFloat(sales.discount);
+            }
+            return res.status(200).send({
+              sales: sales_dates,
+              sales_detail: (result[1] as any[])
+                .map((x) => {
+                  return {
+                    name: x.customer_name,
+                    value:
+                      parseFloat(x.value.toString()) -
+                      parseFloat(x.discount.toString()) +
+                      parseFloat(x.delivery.toString()) +
+                      parseFloat(x.service.toString()),
+                  };
+                })
+                .sort((a, b) => {
+                  return b.value - a.value;
+                }),
             });
+            break;
+          case "customer":
+            return res.status(200).send({
+              sales_detail: result
+                .map((x) => {
+                  return {
+                    name: x.customer_name,
+                    value:
+                      parseFloat(x.value.toString()) -
+                      parseFloat(x.discount.toString()),
+                  };
+                })
+                .sort((a, b) => {
+                  return b.value - a.value;
+                }),
+            });
+            break;
+          case "type":
+            return res.status(200).send({
+              sales_detail: result
+                .map((x) => {
+                  return {
+                    name: x.item_type_name,
+                    value: parseFloat(x.value.toString()),
+                  };
+                })
+                .sort((a, b) => {
+                  return b.value - a.value;
+                }),
+            });
+            break;
+          case "brand":
+            return res.status(200).send({
+              sales_detail: result
+                .map((x) => {
+                  return {
+                    name: x.item_brand_name,
+                    value: parseFloat(x.value.toString()),
+                  };
+                })
+                .sort((a, b) => {
+                  return b.value - a.value;
+                }),
+            });
+            break;
+          case "package":
+            return res.status(200).send(result);
+            break;
+          case "download":
+            const workbook = new ExcelJS.Workbook();
+            // Setting up workbook properties
+            workbook.creator = "Toko Profil Indah";
+            workbook.created = new Date();
+            workbook.modified = new Date();
+            workbook.lastModifiedBy = "Toko Profil Indah";
+
+            const customerSheet = workbook.addWorksheet("Customers", {
+              state: "visible",
+            });
+
+            customerSheet.addRow([
+              "Name",
+              "Value",
+              "Discount",
+              "Delivery",
+              "Service",
+            ]);
+
+            (result[0] as any[]).forEach((data) => {
+              customerSheet.addRow([
+                data.customer_name,
+                parseFloat(data.value.toString()),
+                parseFloat(data.discount.toString()),
+                parseFloat(data.delivery.toString()),
+                parseFloat(data.service.toString()),
+              ]);
+            });
+
+            customerSheet.getColumn(2).numFmt = "#,###.00";
+            customerSheet.getColumn(3).numFmt = "#,###.00";
+            customerSheet.getColumn(4).numFmt = "#,###.00";
+            customerSheet.getColumn(5).numFmt = "#,###.00";
+
+            customerSheet.getColumn(1).width = 18;
+            customerSheet.getColumn(2).width = 25;
+            customerSheet.getColumn(3).width = 25;
+            customerSheet.getColumn(4).width = 25;
+            customerSheet.getColumn(5).width = 25;
+
+            const typeSheet = workbook.addWorksheet("Types", {
+              state: "visible",
+            });
+
+            typeSheet.addRow(["Name", "Value"]);
+            (result[1] as any[]).forEach((data) => {
+              typeSheet.addRow([
+                data.item_type_name,
+                parseFloat(data.value.toString()),
+              ]);
+            });
+
+            typeSheet.getColumn(2).numFmt = "#,###.00";
+
+            typeSheet.getColumn(1).width = 18;
+            typeSheet.getColumn(2).width = 25;
+
+            const brandSheet = workbook.addWorksheet("Brands", {
+              state: "visible",
+            });
+
+            brandSheet.addRow(["Name", "Value"]);
+            (result[2] as any[]).forEach((data) => {
+              brandSheet.addRow([
+                data.item_brand_name,
+                parseFloat(data.value.toString()),
+              ]);
+            });
+
+            brandSheet.getColumn(2).numFmt = "#,###.00";
+
+            brandSheet.getColumn(1).width = 18;
+            brandSheet.getColumn(2).width = 25;
+
+            workbook.xlsx
+              .writeBuffer()
+              .then((buffer) => {
+                return res.status(200).send({
+                  data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+                    buffer
+                  ).toString("base64")}`,
+                });
+              })
+              .catch((error) => {
+                return res.status(500).send(error);
+              });
+            break;
         }
       })
       .catch((error) => {
@@ -376,7 +386,7 @@ class ReportController {
         BillCodeModel.fetchSum(month, year),
         SalesDistributionModel.fetchSum(month, year),
         PurchaseInvoiceModel.fetchSum(month, year),
-        CompanyModel.fetchAll(),
+        CompanyModel.fetch("", 0, 0, fetchMode.All),
         ExpenseModel.fetchSum(month, year),
         month == 0
           ? StockValueHelper.fetchCOGS(
@@ -864,131 +874,131 @@ class ReportController {
             },
           ];
 
-          result[3].forEach((x) => {
-            summary_section.push({
-              text: x.name,
-              bold: true,
-              fontSize: 14,
-              alignment: "left" as Alignment,
-              margins: [0, 0, 0, 15] as Margins,
-              pageOrientation: "landscape" as PageOrientation,
-            });
+          // result[3]!.forEach((x) => {
+          //   summary_section.push({
+          //     text: x.name!,
+          //     bold: true,
+          //     fontSize: 14,
+          //     alignment: "left" as Alignment,
+          //     margins: [0, 0, 0, 15] as Margins,
+          //     pageOrientation: "landscape" as PageOrientation,
+          //   });
 
-            const summary_table: any[] = [
-              [
-                {
-                  text: "Keterangan",
-                  bold: true,
-                  alignment: "left" as Alignment,
-                  fontSize: 12,
-                },
-                {
-                  text: "Nominal",
-                  bold: true,
-                  alignment: "left" as Alignment,
-                  fontSize: 12,
-                },
-                {
-                  text: "Persentase",
-                  bold: true,
-                  alignment: "left" as Alignment,
-                  fontSize: 12,
-                },
-              ],
-            ];
-            const sales_value_company_index = total_sales_value.findIndex(
-              (y) => y.id == x.id
-            );
-            let sales_value_company = 0;
-            if (sales_value_company_index != -1) {
-              sales_value_company =
-                total_sales_value[sales_value_company_index].value;
-            }
+          //   const summary_table: any[] = [
+          //     [
+          //       {
+          //         text: "Keterangan",
+          //         bold: true,
+          //         alignment: "left" as Alignment,
+          //         fontSize: 12,
+          //       },
+          //       {
+          //         text: "Nominal",
+          //         bold: true,
+          //         alignment: "left" as Alignment,
+          //         fontSize: 12,
+          //       },
+          //       {
+          //         text: "Persentase",
+          //         bold: true,
+          //         alignment: "left" as Alignment,
+          //         fontSize: 12,
+          //       },
+          //     ],
+          //   ];
+          //   const sales_value_company_index = total_sales_value.findIndex(
+          //     (y) => y.id == x.id
+          //   );
+          //   let sales_value_company = 0;
+          //   if (sales_value_company_index != -1) {
+          //     sales_value_company =
+          //       total_sales_value[sales_value_company_index].value;
+          //   }
 
-            const cogs_value_company_index = cogs_value.findIndex(
-              (y) => y.id == x.id
-            );
-            let cogs_value_company = 0;
-            if (cogs_value_company_index != -1) {
-              cogs_value_company = cogs_value[cogs_value_company_index].value;
-            }
+          //   const cogs_value_company_index = cogs_value.findIndex(
+          //     (y) => y.id == x.id
+          //   );
+          //   let cogs_value_company = 0;
+          //   if (cogs_value_company_index != -1) {
+          //     cogs_value_company = cogs_value[cogs_value_company_index].value;
+          //   }
 
-            const expense_value_company_index = total_expense_value.findIndex(
-              (y) => y.id == x.id
-            );
-            let expense_value_company = 0;
-            if (expense_value_company_index != -1) {
-              expense_value_company =
-                total_expense_value[expense_value_company_index].value;
-            }
+          //   const expense_value_company_index = total_expense_value.findIndex(
+          //     (y) => y.id == x.id
+          //   );
+          //   let expense_value_company = 0;
+          //   if (expense_value_company_index != -1) {
+          //     expense_value_company =
+          //       total_expense_value[expense_value_company_index].value;
+          //   }
 
-            summary_table.push([
-              {
-                text: "Laba kotor",
-                bold: true,
-                fontSize: 12,
-              },
-              {
-                text: formatter.format(
-                  sales_value_company - cogs_value_company
-                ),
-                bold: false,
-                fontSize: 12,
-              },
-              {
-                text:
-                  sales_value_company == 0
-                    ? "0.00%"
-                    : percentage_formatter.format(
-                        (sales_value_company - cogs_value_company) /
-                          sales_value_company
-                      ),
-                bold: false,
-                fontSize: 12,
-              },
-            ]);
+          //   summary_table.push([
+          //     {
+          //       text: "Laba kotor",
+          //       bold: true,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text: formatter.format(
+          //         sales_value_company - cogs_value_company
+          //       ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text:
+          //         sales_value_company == 0
+          //           ? "0.00%"
+          //           : percentage_formatter.format(
+          //               (sales_value_company - cogs_value_company) /
+          //                 sales_value_company
+          //             ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //   ]);
 
-            summary_table.push([
-              {
-                text: "Laba bersih",
-                bold: true,
-                fontSize: 12,
-              },
-              {
-                text: formatter.format(
-                  sales_value_company -
-                    cogs_value_company -
-                    expense_value_company
-                ),
-                bold: false,
-                fontSize: 12,
-              },
-              {
-                text:
-                  sales_value_company == 0
-                    ? "0.00%"
-                    : percentage_formatter.format(
-                        (sales_value_company -
-                          cogs_value_company -
-                          expense_value_company) /
-                          sales_value_company
-                      ),
-                bold: false,
-                fontSize: 12,
-              },
-            ]);
+          //   summary_table.push([
+          //     {
+          //       text: "Laba bersih",
+          //       bold: true,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text: formatter.format(
+          //         sales_value_company -
+          //           cogs_value_company -
+          //           expense_value_company
+          //       ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text:
+          //         sales_value_company == 0
+          //           ? "0.00%"
+          //           : percentage_formatter.format(
+          //               (sales_value_company -
+          //                 cogs_value_company -
+          //                 expense_value_company) /
+          //                 sales_value_company
+          //             ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //   ]);
 
-            summary_section.push({
-              layout: "lightHorizontalLines",
-              table: {
-                headerRows: 1,
-                widths: ["*", "*", "*"],
-                body: summary_table,
-              },
-              margin: [0, 0, 0, 15] as Margins,
-              pageOrientation: "landscape" as PageOrientation,
-            });
-          });
+          //   summary_section.push({
+          //     layout: "lightHorizontalLines",
+          //     table: {
+          //       headerRows: 1,
+          //       widths: ["*", "*", "*"],
+          //       body: summary_table,
+          //     },
+          //     margin: [0, 0, 0, 15] as Margins,
+          //     pageOrientation: "landscape" as PageOrientation,
+          //   });
+          // });
 
           let documentDefinition = {
             pageSize: "A4" as PageSize,
@@ -1147,7 +1157,7 @@ class ReportController {
         BillCodeModel.fetchSum(month, year),
         SalesDistributionModel.fetchSum(month, year),
         PurchaseInvoiceModel.fetchSum(month, year),
-        CompanyModel.fetchAll(),
+        CompanyModel.fetch("", 0, 0, fetchMode.All),
         ExpenseModel.fetchSum(month, year),
         month == 0
           ? StockValueHelper.fetchCOGS(
@@ -1798,124 +1808,124 @@ class ReportController {
             },
           ];
 
-          result[3].forEach((x) => {
-            summary_section.push({
-              text: x.name,
-              fontSize: 14,
-              bold: true,
-              alignment: "left" as Alignment,
+          // result[3].forEach((x) => {
+          //   summary_section.push({
+          //     text: x.name,
+          //     fontSize: 14,
+          //     bold: true,
+          //     alignment: "left" as Alignment,
 
-              margins: [0, 0, 0, 15] as Margins,
-            });
+          //     margins: [0, 0, 0, 15] as Margins,
+          //   });
 
-            const summary_table: any[] = [
-              [
-                {
-                  text: "Keterangan",
-                  bold: true,
-                  fontSize: 12,
-                },
-                {
-                  text: "Nominal",
-                  bold: true,
-                  fontSize: 12,
-                },
-                {
-                  text: "Persentase",
-                  bold: true,
-                  fontSize: 12,
-                },
-              ],
-            ];
-            const sales_value_company_index = total_sales_value.findIndex(
-              (y) => y.id == x.id
-            );
-            let sales_value_company = 0;
-            if (sales_value_company_index != -1) {
-              sales_value_company =
-                total_sales_value[sales_value_company_index].value;
-            }
+          //   const summary_table: any[] = [
+          //     [
+          //       {
+          //         text: "Keterangan",
+          //         bold: true,
+          //         fontSize: 12,
+          //       },
+          //       {
+          //         text: "Nominal",
+          //         bold: true,
+          //         fontSize: 12,
+          //       },
+          //       {
+          //         text: "Persentase",
+          //         bold: true,
+          //         fontSize: 12,
+          //       },
+          //     ],
+          //   ];
+          //   const sales_value_company_index = total_sales_value.findIndex(
+          //     (y) => y.id == x.id
+          //   );
+          //   let sales_value_company = 0;
+          //   if (sales_value_company_index != -1) {
+          //     sales_value_company =
+          //       total_sales_value[sales_value_company_index].value;
+          //   }
 
-            const cogs_value_company_index = cogs_value.findIndex(
-              (y) => y.id == x.id
-            );
-            let cogs_value_company = 0;
-            if (cogs_value_company_index != -1) {
-              cogs_value_company = cogs_value[cogs_value_company_index].value;
-            }
+          //   const cogs_value_company_index = cogs_value.findIndex(
+          //     (y) => y.id == x.id
+          //   );
+          //   let cogs_value_company = 0;
+          //   if (cogs_value_company_index != -1) {
+          //     cogs_value_company = cogs_value[cogs_value_company_index].value;
+          //   }
 
-            const expense_value_company_index = total_expense_value.findIndex(
-              (y) => y.id == x.id
-            );
-            let expense_value_company = 0;
-            if (expense_value_company_index != -1) {
-              expense_value_company =
-                total_expense_value[expense_value_company_index].value;
-            }
+          //   const expense_value_company_index = total_expense_value.findIndex(
+          //     (y) => y.id == x.id
+          //   );
+          //   let expense_value_company = 0;
+          //   if (expense_value_company_index != -1) {
+          //     expense_value_company =
+          //       total_expense_value[expense_value_company_index].value;
+          //   }
 
-            summary_table.push([
-              {
-                text: "Laba kotor",
-                bold: true,
-                fontSize: 12,
-              },
-              {
-                text: formatter.format(
-                  sales_value_company - cogs_value_company
-                ),
-                bold: false,
-                fontSize: 12,
-              },
-              {
-                text:
-                  sales_value_company == 0
-                    ? "0.00%"
-                    : percentage_formatter.format(
-                        (sales_value_company - cogs_value_company) /
-                          sales_value_company
-                      ),
-                bold: false,
-                fontSize: 12,
-              },
-            ]);
+          //   summary_table.push([
+          //     {
+          //       text: "Laba kotor",
+          //       bold: true,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text: formatter.format(
+          //         sales_value_company - cogs_value_company
+          //       ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text:
+          //         sales_value_company == 0
+          //           ? "0.00%"
+          //           : percentage_formatter.format(
+          //               (sales_value_company - cogs_value_company) /
+          //                 sales_value_company
+          //             ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //   ]);
 
-            summary_table.push([
-              {
-                text: "Laba bersih",
-                bold: true,
-                fontSize: 12,
-              },
-              {
-                text: formatter.format(
-                  sales_value_company -
-                    cogs_value_company -
-                    expense_value_company
-                ),
-                bold: false,
-                fontSize: 12,
-              },
-              {
-                text: percentage_formatter.format(
-                  (sales_value_company -
-                    cogs_value_company -
-                    expense_value_company) /
-                    sales_value_company
-                ),
-                bold: false,
-                fontSize: 12,
-              },
-            ]);
+          //   summary_table.push([
+          //     {
+          //       text: "Laba bersih",
+          //       bold: true,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text: formatter.format(
+          //         sales_value_company -
+          //           cogs_value_company -
+          //           expense_value_company
+          //       ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //     {
+          //       text: percentage_formatter.format(
+          //         (sales_value_company -
+          //           cogs_value_company -
+          //           expense_value_company) /
+          //           sales_value_company
+          //       ),
+          //       bold: false,
+          //       fontSize: 12,
+          //     },
+          //   ]);
 
-            summary_section.push({
-              layout: "lightHorizontalLines",
-              table: {
-                headerRows: 1,
-                widths: ["*", "*", "*"],
-                body: summary_table,
-              },
-              margin: [0, 0, 0, 15] as Margins,
-            });
-          });
+          //   summary_section.push({
+          //     layout: "lightHorizontalLines",
+          //     table: {
+          //       headerRows: 1,
+          //       widths: ["*", "*", "*"],
+          //       body: summary_table,
+          //     },
+          //     margin: [0, 0, 0, 15] as Margins,
+          //   });
+          // });
 
           let documentDefinition = {
             pageSize: "A4" as PageSize,
@@ -2377,16 +2387,16 @@ class ReportController {
 
         let name;
 
-        if (type == 0) {
-          const brand = await BrandModel.fetchById(id);
-          name = brand[0]?.name;
-        } else if (type == 1) {
-          const type = await ItemTypeModel.fetchById(id);
-          name = type?.name;
-        } else {
-          const supplier = await SupplierModel.fetchById(id);
-          // name = supplier?.name;
-        }
+        // if (type == 0) {
+        //   const brand = await BrandModel.fetchById(id);
+        //   name = brand[0]?.name;
+        // } else if (type == 1) {
+        //   const type = await ItemTypeModel.fetchByID(id);
+        //   name = type?.name;
+        // } else {
+        //   const supplier = await SupplierModel.fetchByID(id);
+        //   // name = supplier?.name;
+        // }
 
         let documentDefinition = {
           pageSize: "A4" as PageSize,
@@ -2470,7 +2480,7 @@ class ReportController {
           new Date(start),
           new Date(end)
         ),
-        BrandModel.fetchByIds(brand_id),
+        BrandModel.fetchByIDs(brand_id),
         ItemTypeModel.fetchByIds(type_id),
       ])
         .then((result) => {
@@ -2540,6 +2550,7 @@ class ReportController {
 
                   const items = result[0].filter(
                     (item) =>
+                      item.item != null &&
                       item.item.item_brand_id == brand &&
                       item.item.item_type_id == type
                   );
@@ -2583,12 +2594,12 @@ class ReportController {
                           alignment: "left" as Alignment,
                         },
                         {
-                          text: item.item.reference,
+                          text: item.item!.reference,
                           bold: false,
                           alignment: "left" as Alignment,
                         },
                         {
-                          text: item.item.description,
+                          text: item.item!.description,
                           bold: false,
                           alignment: "left" as Alignment,
                         },
@@ -2606,7 +2617,7 @@ class ReportController {
                               )
                           )} ${
                             item.item_unit == null
-                              ? item.item.unit
+                              ? item.item!.unit
                               : item.item_unit.unit
                           }`,
                           bold: false,

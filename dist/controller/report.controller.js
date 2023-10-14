@@ -164,144 +164,149 @@ ReportController.fetchSalesReport = (req, res) => {
     const mode = req.body.mode;
     bill_code_model_1.default.calculateTotalSales(month, year, mode)
         .then((result) => {
-        if (mode == "plain") {
-            const date = new Date(year, month, 0).getDate();
-            const sales_dates = new Array(date).fill(0);
-            for (let sales of result[0]) {
-                sales_dates[sales.day - 1] =
-                    parseFloat(sales.value) - parseFloat(sales.discount);
-            }
-            return res.status(200).send({
-                sales: sales_dates,
-                sales_detail: result[1]
-                    .map((x) => {
-                    return {
-                        name: x.customer_name,
-                        value: parseFloat(x.value.toString()) -
-                            parseFloat(x.discount.toString()) +
-                            parseFloat(x.delivery.toString()) +
-                            parseFloat(x.service.toString()),
-                    };
-                })
-                    .sort((a, b) => {
-                    return b.value - a.value;
-                }),
-            });
-        }
-        else if (mode == "customer") {
-            return res.status(200).send({
-                sales_detail: result
-                    .map((x) => {
-                    return {
-                        name: x.customer_name,
-                        value: parseFloat(x.value.toString()) -
-                            parseFloat(x.discount.toString()),
-                    };
-                })
-                    .sort((a, b) => {
-                    return b.value - a.value;
-                }),
-            });
-        }
-        else if (mode == "type") {
-            return res.status(200).send({
-                sales_detail: result
-                    .map((x) => {
-                    return {
-                        name: x.item_type_name,
-                        value: parseFloat(x.value.toString()),
-                    };
-                })
-                    .sort((a, b) => {
-                    return b.value - a.value;
-                }),
-            });
-        }
-        else if (mode == "brand") {
-            return res.status(200).send({
-                sales_detail: result
-                    .map((x) => {
-                    return {
-                        name: x.item_brand_name,
-                        value: parseFloat(x.value.toString()),
-                    };
-                })
-                    .sort((a, b) => {
-                    return b.value - a.value;
-                }),
-            });
-        }
-        else if (mode == "download") {
-            const workbook = new exceljs_1.default.Workbook();
-            // Setting up workbook properties
-            workbook.creator = "Toko Profil Indah";
-            workbook.created = new Date();
-            workbook.modified = new Date();
-            workbook.lastModifiedBy = "Toko Profil Indah";
-            const customerSheet = workbook.addWorksheet("Customers", {
-                state: "visible",
-            });
-            customerSheet.addRow([
-                "Name",
-                "Value",
-                "Discount",
-                "Delivery",
-                "Service",
-            ]);
-            result[0].forEach((data) => {
-                customerSheet.addRow([
-                    data.customer_name,
-                    parseFloat(data.value.toString()),
-                    parseFloat(data.discount.toString()),
-                    parseFloat(data.delivery.toString()),
-                    parseFloat(data.service.toString()),
-                ]);
-            });
-            customerSheet.getColumn(2).numFmt = "#,###.00";
-            customerSheet.getColumn(3).numFmt = "#,###.00";
-            customerSheet.getColumn(4).numFmt = "#,###.00";
-            customerSheet.getColumn(5).numFmt = "#,###.00";
-            customerSheet.getColumn(1).width = 18;
-            customerSheet.getColumn(2).width = 25;
-            customerSheet.getColumn(3).width = 25;
-            customerSheet.getColumn(4).width = 25;
-            customerSheet.getColumn(5).width = 25;
-            const typeSheet = workbook.addWorksheet("Types", {
-                state: "visible",
-            });
-            typeSheet.addRow(["Name", "Value"]);
-            result[1].forEach((data) => {
-                typeSheet.addRow([
-                    data.item_type_name,
-                    parseFloat(data.value.toString()),
-                ]);
-            });
-            typeSheet.getColumn(2).numFmt = "#,###.00";
-            typeSheet.getColumn(1).width = 18;
-            typeSheet.getColumn(2).width = 25;
-            const brandSheet = workbook.addWorksheet("Brands", {
-                state: "visible",
-            });
-            brandSheet.addRow(["Name", "Value"]);
-            result[2].forEach((data) => {
-                brandSheet.addRow([
-                    data.item_brand_name,
-                    parseFloat(data.value.toString()),
-                ]);
-            });
-            brandSheet.getColumn(2).numFmt = "#,###.00";
-            brandSheet.getColumn(1).width = 18;
-            brandSheet.getColumn(2).width = 25;
-            workbook.xlsx
-                .writeBuffer()
-                .then((buffer) => {
+        switch (mode) {
+            case "plain":
+                const date = new Date(year, month, 0).getDate();
+                const sales_dates = new Array(date).fill(0);
+                for (let sales of result[0]) {
+                    sales_dates[sales.day - 1] =
+                        parseFloat(sales.value) - parseFloat(sales.discount);
+                }
                 return res.status(200).send({
-                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
+                    sales: sales_dates,
+                    sales_detail: result[1]
+                        .map((x) => {
+                        return {
+                            name: x.customer_name,
+                            value: parseFloat(x.value.toString()) -
+                                parseFloat(x.discount.toString()) +
+                                parseFloat(x.delivery.toString()) +
+                                parseFloat(x.service.toString()),
+                        };
+                    })
+                        .sort((a, b) => {
+                        return b.value - a.value;
+                    }),
                 });
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
+                break;
+            case "customer":
+                return res.status(200).send({
+                    sales_detail: result
+                        .map((x) => {
+                        return {
+                            name: x.customer_name,
+                            value: parseFloat(x.value.toString()) -
+                                parseFloat(x.discount.toString()),
+                        };
+                    })
+                        .sort((a, b) => {
+                        return b.value - a.value;
+                    }),
+                });
+                break;
+            case "type":
+                return res.status(200).send({
+                    sales_detail: result
+                        .map((x) => {
+                        return {
+                            name: x.item_type_name,
+                            value: parseFloat(x.value.toString()),
+                        };
+                    })
+                        .sort((a, b) => {
+                        return b.value - a.value;
+                    }),
+                });
+                break;
+            case "brand":
+                return res.status(200).send({
+                    sales_detail: result
+                        .map((x) => {
+                        return {
+                            name: x.item_brand_name,
+                            value: parseFloat(x.value.toString()),
+                        };
+                    })
+                        .sort((a, b) => {
+                        return b.value - a.value;
+                    }),
+                });
+                break;
+            case "package":
+                return res.status(200).send(result);
+                break;
+            case "download":
+                const workbook = new exceljs_1.default.Workbook();
+                // Setting up workbook properties
+                workbook.creator = "Toko Profil Indah";
+                workbook.created = new Date();
+                workbook.modified = new Date();
+                workbook.lastModifiedBy = "Toko Profil Indah";
+                const customerSheet = workbook.addWorksheet("Customers", {
+                    state: "visible",
+                });
+                customerSheet.addRow([
+                    "Name",
+                    "Value",
+                    "Discount",
+                    "Delivery",
+                    "Service",
+                ]);
+                result[0].forEach((data) => {
+                    customerSheet.addRow([
+                        data.customer_name,
+                        parseFloat(data.value.toString()),
+                        parseFloat(data.discount.toString()),
+                        parseFloat(data.delivery.toString()),
+                        parseFloat(data.service.toString()),
+                    ]);
+                });
+                customerSheet.getColumn(2).numFmt = "#,###.00";
+                customerSheet.getColumn(3).numFmt = "#,###.00";
+                customerSheet.getColumn(4).numFmt = "#,###.00";
+                customerSheet.getColumn(5).numFmt = "#,###.00";
+                customerSheet.getColumn(1).width = 18;
+                customerSheet.getColumn(2).width = 25;
+                customerSheet.getColumn(3).width = 25;
+                customerSheet.getColumn(4).width = 25;
+                customerSheet.getColumn(5).width = 25;
+                const typeSheet = workbook.addWorksheet("Types", {
+                    state: "visible",
+                });
+                typeSheet.addRow(["Name", "Value"]);
+                result[1].forEach((data) => {
+                    typeSheet.addRow([
+                        data.item_type_name,
+                        parseFloat(data.value.toString()),
+                    ]);
+                });
+                typeSheet.getColumn(2).numFmt = "#,###.00";
+                typeSheet.getColumn(1).width = 18;
+                typeSheet.getColumn(2).width = 25;
+                const brandSheet = workbook.addWorksheet("Brands", {
+                    state: "visible",
+                });
+                brandSheet.addRow(["Name", "Value"]);
+                result[2].forEach((data) => {
+                    brandSheet.addRow([
+                        data.item_brand_name,
+                        parseFloat(data.value.toString()),
+                    ]);
+                });
+                brandSheet.getColumn(2).numFmt = "#,###.00";
+                brandSheet.getColumn(1).width = 18;
+                brandSheet.getColumn(2).width = 25;
+                workbook.xlsx
+                    .writeBuffer()
+                    .then((buffer) => {
+                    return res.status(200).send({
+                        data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
+                    });
+                })
+                    .catch((error) => {
+                    return res.status(500).send(error);
+                });
+                break;
         }
     })
         .catch((error) => {
@@ -2217,7 +2222,8 @@ ReportController.fetchPurchaseItemDetail = (req, res) => {
                                 alignment: "left",
                                 margin: [0, 0, 0, 5],
                             });
-                            const items = result[0].filter((item) => item.item.item_brand_id == brand &&
+                            const items = result[0].filter((item) => item.item != null &&
+                                item.item.item_brand_id == brand &&
                                 item.item.item_type_id == type);
                             const itemTable = [];
                             itemTable.push([

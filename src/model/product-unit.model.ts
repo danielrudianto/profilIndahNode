@@ -61,6 +61,7 @@ class ItemUnitModel {
             item_price_purchase: {
               create: {
                 price: unit.price_purchase,
+                discount: unit.discount_purchase,
                 created_by: created_by,
                 created_at: created_at,
                 item_id: item_id,
@@ -197,6 +198,7 @@ class ItemUnitModel {
                 create: {
                   item_id: item_id,
                   price: 0,
+                  discount: 0,
                   created_by: deleted_by,
                   created_at: new Date(),
                 },

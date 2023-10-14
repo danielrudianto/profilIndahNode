@@ -11,19 +11,28 @@ const router = Router();
 router.get("/profile", AuthController.fetchProfile);
 router.get(
   "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  UserController.fetchById
+  UserController.fetchByID
 );
 router.get("/", UserController.fetch);
 
-router.post("/changePassword", UserController.changePassword);
+router.post(
+  "/changePassword",
+  body("password").notEmpty().withMessage(ErrorList["Password required"]),
+  ErrorHelper.intercept,
+  UserController.updatePassword
+);
 router.post(
   "/",
   administratorMiddleware,
-  body("role").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
-  body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("username").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("role")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(ErrorList["User role required"]),
+  body("name").notEmpty().withMessage(ErrorList["Name required"]),
+  body("username").notEmpty().withMessage(ErrorList["Username is required"]),
   body("nik").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   UserController.create
@@ -32,10 +41,13 @@ router.post(
 router.put(
   "/",
   administratorMiddleware,
-  body("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
-  body("role").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
-  body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("username").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("id").notEmpty().isNumeric().withMessage(ErrorList["ID is required"]),
+  body("role")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(ErrorList["User role required"]),
+  body("name").notEmpty().withMessage(ErrorList["Name required"]),
+  body("username").notEmpty().withMessage(ErrorList["Username is required"]),
   body("nik").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   UserController.update
@@ -43,7 +55,9 @@ router.put(
 
 router.delete(
   "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
   UserController.toggleActive
 );
 

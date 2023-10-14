@@ -1,28 +1,37 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "../app";
 
-const prisma = new PrismaClient();
-
-export class BrandModel {
+export interface IProductBrand {
   id?: number;
   name: string;
   created_by: number;
   created_at?: Date;
+  is_delete?: boolean;
+  deleted_by?: number;
+  deleted_at?: Date;
+  can_delete?: string;
+}
 
-  constructor(name: string, created_by: number, id: number | null = null) {
-    if (id != null) {
-      this.id = id;
-    }
-    this.name = name;
-    this.created_by = created_by;
-    this.created_at = new Date();
-  }
+export interface IFetchProductBrand {
+  id: number;
+  name: string;
+  created_by: number;
+  created_at: Date;
+  is_delete: boolean;
+  can_delete: string;
+}
 
-  create() {
+export class BrandModel {
+  /**
+   * Create a new brand
+   * @param data
+   * @returns Promise<IProductBrand>
+   */
+  static create(data: IProductBrand) {
     return prisma.item_brand.create({
       data: {
-        name: this.name,
-        created_by: this.created_by,
-        created_at: this.created_at,
+        name: data.name,
+        created_by: data.created_by,
+        created_at: new Date(),
       },
       select: {
         id: true,
@@ -38,20 +47,20 @@ export class BrandModel {
     });
   }
 
-  static update(
-    id: number,
-    name: string,
-    updated_at: Date,
-    updated_by: number
-  ) {
+  /**
+   * Update brand by ID
+   * @param data
+   * @returns
+   */
+  static updateByID(data: IProductBrand) {
     return prisma.item_brand.update({
       where: {
-        id: id,
+        id: data.id,
       },
       data: {
-        name: name,
-        updated_at: updated_at,
-        updated_by: updated_by,
+        name: data.name,
+        updated_at: new Date(),
+        updated_by: data.created_by,
       },
       select: {
         id: true,
@@ -73,7 +82,13 @@ export class BrandModel {
     });
   }
 
-  static delete(id: number, created_by: number) {
+  /**
+   * Delete brand by ID
+   * @param id
+   * @param created_by
+   * @returns
+   */
+  static deleteByID(id: number, created_by: number) {
     return prisma.item_brand.update({
       where: {
         id: id,
@@ -99,6 +114,11 @@ export class BrandModel {
     });
   }
 
+  /**
+   * Fetch if any active brand has the same name
+   * @param name
+   * @returns
+   */
   static fetchByName(name: string) {
     return prisma.item_brand.findFirst({
       where: {
@@ -108,29 +128,33 @@ export class BrandModel {
     });
   }
 
-  static fetchById(id: number) {
-    return prisma.$transaction([
-      prisma.item_brand.findUnique({
-        where: {
-          id: id,
-        },
-        include: {
-          user: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      }),
-      prisma.item.count({
-        where: {
-          item_brand_id: id,
-          is_delete: false,
-        },
-      }),
-    ]);
+  /**
+   * Fetch brand by ID
+   * @param id
+   * @returns
+   */
+  static fetchByID(id: number) {
+    return prisma.$queryRaw<IFetchProductBrand[]>`
+      SELECT item_brand.id, item_brand.name, user.name AS user_name, 
+      item_brand.created_at, item_brand.created_by, item_brand.is_delete, 
+      IF(COALESCE(itemCount.count, 0) = 0,"1", "0") AS can_delete
+      FROM item_brand
+      LEFT JOIN user ON user.id = item_brand.created_by
+      LEFT JOIN (
+        SELECT COUNT(*) AS count, item_brand_id 
+        FROM item 
+        WHERE is_delete = 0 
+        GROUP BY item_brand_id
+      ) itemCount ON itemCount.item_brand_id = item_brand.id
+      WHERE item_brand.id = ${id}
+    `;
   }
 
+  /**
+   * Fetch autocomplete brand
+   * @param keyword
+   * @returns
+   */
   static fetchAutocomplete(keyword: string) {
     return prisma.item_brand.findMany({
       where: {
@@ -203,26 +227,6 @@ export class BrandModel {
     }
   }
 
-  static checkDeleteById(id: number) {
-    let count = false;
-    prisma.item
-      .count({
-        where: {
-          item_brand_id: id,
-          is_delete: false,
-        },
-      })
-      .then((result) => {
-        if (result > 0) {
-          count = false;
-        } else {
-          count = true;
-        }
-      });
-
-    return count;
-  }
-
   static fetchSales(start_date: Date, end_date: Date) {
     return prisma.$queryRawUnsafe(`
       SELECT item_brand.id, item_brand.name, SUM((bill.price - bill.discount) * bill.quantity) AS value
@@ -285,7 +289,7 @@ export class BrandModel {
   /**
    * Fetching brand data by IDs (array of ID)
    */
-  static fetchByIds(ids: number[]) {
+  static fetchByIDs(ids: number[]) {
     return prisma.item_brand.findMany({
       where: {
         id: {

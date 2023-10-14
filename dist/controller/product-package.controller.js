@@ -1,0 +1,249 @@
+"use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var _a;
+Object.defineProperty(exports, "__esModule", { value: true });
+const app_1 = require("../app");
+const error_list_1 = __importDefault(require("../assets/error_list"));
+const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const product_package_model_1 = require("../model/product-package.model");
+class ProductPackageController {
+}
+_a = ProductPackageController;
+ProductPackageController.create = (req, res) => {
+    const package_content = req.body.package_content;
+    const name = req.body.name;
+    const price = req.body.price;
+    const description = req.body.description;
+    const userID = req.body.userId;
+    const productPackage = new product_package_model_1.ProductPackageCodeModel(name, description, price, package_content.map((x) => {
+        return new product_package_model_1.ProductPackageModel(x.item_id, x.item_unit_id, x.quantity, x.price, x.discount);
+    }), userID, new Date());
+    productPackage
+        .create()
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        yield app_1.meili.index("package").addDocuments([
+            {
+                id: result.id,
+                name: result.name,
+                description: result.description,
+                price: result.price,
+                product_content: result.package_content.map((y) => {
+                    return {
+                        quantity: y.quantity,
+                        item: {
+                            reference: y.item.reference,
+                            description: y.item.description,
+                            unit: y.item.unit,
+                        },
+                        item_unit: y.item_unit == null
+                            ? null
+                            : {
+                                unit: y.item_unit.unit,
+                                conversion: y.item_unit.conversion,
+                            },
+                    };
+                }),
+            },
+        ], {
+            primaryKey: "id",
+        });
+        return res.status(201).send(result);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on creating product package: ${error}`);
+        return res.status(500).send(error);
+    });
+};
+ProductPackageController.fetch = (req, res) => {
+    const page = !req.query.page ? 1 : parseInt(req.query.page);
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const content = req.query.content;
+    if (content == "true") {
+        if (keyword == "") {
+            product_package_model_1.ProductPackageCodeModel.fetch(page, keyword)
+                .then((result) => {
+                const data = result[0];
+                const count = result[1];
+                return res.status(200).send({
+                    data: data.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            description: x.description,
+                            price: x.price,
+                            information: `${x.package_content.length} item${x.package_content.length > 1 ? "s" : ""}`,
+                            package_content: x.package_content.map((x) => {
+                                return {
+                                    reference: x.item.reference,
+                                    description: x.item.description,
+                                    unit: x.item.unit,
+                                    quantity: x.quantity,
+                                    item_unit: x.item_unit,
+                                };
+                            }),
+                            is_delete: x.is_delete,
+                        };
+                    }),
+                    count: count,
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on fetching product package: ${error}`);
+                return res.status(500).send(error);
+            });
+        }
+        else {
+            app_1.meili
+                .index("package")
+                .search(keyword, { limit: 10, offset: (page - 1) * 10 })
+                .then((result) => {
+                return res.status(200).send({
+                    data: result.hits.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            description: x.description,
+                            price: x.price,
+                            information: `${x.product_content.length} item${x.product_content.length > 1 ? "s" : ""}`,
+                            package_content: x.product_content.map((x) => {
+                                return {
+                                    reference: x.item.reference,
+                                    description: x.item.description,
+                                    unit: x.item.unit,
+                                    quantity: x.quantity,
+                                    item_unit: x.item_unit,
+                                };
+                            }),
+                            is_delete: false,
+                        };
+                    }),
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on fetching product package: ${error}`);
+                return res.status(500).send(error);
+            });
+        }
+    }
+    else {
+        if (keyword == "") {
+            product_package_model_1.ProductPackageCodeModel.fetch(page, keyword)
+                .then((result) => {
+                const data = result[0];
+                const count = result[1];
+                return res.status(200).send({
+                    data: data.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            description: x.description,
+                            price: x.price,
+                            information: `${x.package_content.length} item${x.package_content.length > 1 ? "s" : ""}`,
+                            is_delete: x.is_delete,
+                        };
+                    }),
+                    count: count,
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on fetching product package: ${error}`);
+                return res.status(500).send(error);
+            });
+        }
+        else {
+            app_1.meili
+                .index("package")
+                .search(keyword, { limit: 10, offset: (page - 1) * 10 })
+                .then((result) => {
+                return res.status(200).send({
+                    data: result.hits.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            description: x.description,
+                            price: x.price,
+                            information: `${x.product_content.length} item${x.product_content.length > 1 ? "s" : ""}`,
+                            is_delete: false,
+                        };
+                    }),
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on fetching product package: ${error}`);
+                return res.status(500).send(error);
+            });
+        }
+    }
+};
+ProductPackageController.fetchByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    product_package_model_1.ProductPackageCodeModel.fetchByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        return res.status(200).send(Object.assign(Object.assign({}, result), { price: parseFloat(result.price.toString()) }));
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching product package by ID: ${error}`);
+        return res.status(500).send(error);
+    });
+};
+ProductPackageController.update = (req, res) => {
+    console.log(req.body);
+    const price = req.body.price;
+    const description = req.body.description;
+    const name = req.body.name;
+    const id = req.body.id;
+    product_package_model_1.ProductPackageCodeModel.update(name, description, price, id)
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        console.log(result);
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        yield app_1.meili.index("package").updateDocuments([
+            {
+                id: result.id,
+                name: result.name,
+                description: result.description,
+                price: result.price,
+            },
+        ], {
+            primaryKey: "id",
+        });
+        const socket = new socket_helper_1.default("updateItemPackage", result);
+        socket.create();
+        return res.status(201).send(result);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on updating product package: ${error}`);
+        return res.status(500).send(error);
+    });
+};
+ProductPackageController.delete = (req, res) => {
+    const id = parseInt(req.params.id);
+    const userID = req.body.userId;
+    product_package_model_1.ProductPackageCodeModel.delete(id, userID)
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        yield app_1.meili.index("package").deleteDocument(id);
+        const socket = new socket_helper_1.default("deleteItemPackage", result);
+        socket.create();
+        return res.status(200).send(result);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on deleting product package: ${error}`);
+        return res.status(500).send(error);
+    });
+};
+exports.default = ProductPackageController;

@@ -1,12 +1,21 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
+import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
-import BillCodeModel from "../model/bill_code.model";
-import { DraftBillModel } from "../model/draft-bill.model";
+import { fetchMode } from "../interface/fetch.interface";
+import {
+  DraftBillModel,
+  IConfirmDraftBillItems,
+} from "../model/draft-bill.model";
 import PaymentMethodModel from "../model/payment-method.model";
 import ProductStockModel from "../model/product-stock.model";
 
 class DraftBillController {
+  /**
+   * Create a new draft bill
+   * @param req
+   * @param res
+   */
   static create = (req: Request, res: Response) => {
     const customer_id = req.body.customer_id;
     const items = req.body.items as any[];
@@ -16,7 +25,31 @@ class DraftBillController {
     const service = req.body.service;
     const delivery = req.body.delivery;
 
-    const name = `INV-${date.getFullYear()}-${Math.floor(
+    DraftBillModel.create({
+      customer_id: customer_id,
+      note: note,
+      items: items,
+      created_by: userID,
+      name: this.generateName(date),
+      service: service,
+      delivery: delivery,
+    })
+      .then((result) => {
+        return res.status(201).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on create draft bill: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Generate name for draft bill
+   * @param date
+   * @returns Draft bill name
+   */
+  static generateName(date: Date) {
+    return `INV-${date.getFullYear()}-${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}${Math.floor(
       Math.random() * 10
@@ -25,49 +58,19 @@ class DraftBillController {
     )}${Math.floor(Math.random() * 10)}${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}`;
+  }
 
-    const draftBill = new DraftBillModel(
-      customer_id,
-      note,
-      items,
-      userID,
-      name,
-      service,
-      delivery
-    );
-
-    draftBill
-      .create()
-      .then((result) => {
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  static fetchUnconfirmed = (req: Request, res: Response) => {
-    const page =
-      req.query.page == undefined || req.query.page == null
-        ? 1
-        : parseInt(req.query.page.toString());
-
-    const keyword =
-      req.query.keyword == undefined
-        ? ""
-        : decodeURIComponent(req.query.keyword.toString());
-
-    DraftBillModel.fetchUnconfirmed(page, keyword).then((result) => {
-      return res.status(200).send({
-        data: result[0],
-        count: result[1],
-      });
-    });
-  };
-
+  /**
+   * Fetch draft bill by ID
+   * @param req
+   * @param res
+   */
   static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    Promise.all([PaymentMethodModel.fetchAll(), DraftBillModel.fetchByID(id)])
+    Promise.all([
+      PaymentMethodModel.fetch("", 0, 0, fetchMode.Autocomplete),
+      DraftBillModel.fetchByID(id),
+    ])
       .then((result) => {
         return res.status(200).send({
           data: result[1],
@@ -75,11 +78,47 @@ class DraftBillController {
         });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetch draft bill by id: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
-  static confirm = (req: Request, res: Response) => {
+  /**
+   * Fetch draft bills
+   * @param req
+   * @param res
+   */
+  static fetch = (req: Request, res: Response) => {
+    const page =
+      req.query.page == undefined || req.query.page == null
+        ? 1
+        : parseInt(req.query.page.toString());
+    const limit = parseInt(process.env.LIMIT!);
+    const offset = (page - 1) * limit;
+    const mode = req.body.mode;
+
+    const keyword =
+      req.query.keyword == undefined
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
+
+    DraftBillModel.fetch(keyword, limit, offset, mode)!.then(
+      ([result, count]) => {
+        return res.status(200).send({
+          data: result,
+          count: count,
+        });
+      }
+    );
+    throw new Error("Method not implemented.");
+  };
+
+  /**
+   * Confirm bill and create new bill
+   * @param req
+   * @param res
+   */
+  static confirmByID = (req: Request, res: Response) => {
     const id = req.body.id;
     const payment_method_id =
       req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
@@ -88,81 +127,79 @@ class DraftBillController {
     const discount = req.body.discount;
     const userID = req.body.userId;
 
-    const items = req.body.items;
+    const items = req.body.items as any[];
 
     DraftBillModel.fetchByID(id).then((result) => {
-      if (result == null || result.is_delete) {
+      if (!result) {
         return res.status(404).send(ErrorList["Not found"]);
-      } else {
-        const bill = (items as any[]).map((x) => {
-          const id = x.id;
-          const discount = x.discount;
-          const draftBillIndex = result.draft_bill.findIndex((y) => y.id == id);
-          if (draftBillIndex != -1) {
-            return {
-              item_id: result.draft_bill[draftBillIndex].item_id,
-              item_unit_id: result.draft_bill[draftBillIndex].item_unit_id,
-              quantity: result.draft_bill[draftBillIndex].quantity,
-              discount: discount,
-              price: result.draft_bill[draftBillIndex].price,
-              conversion:
-                result.draft_bill[draftBillIndex].item_unit == null
-                  ? 1
-                  : result.draft_bill[draftBillIndex].item_unit?.conversion,
-            };
-          }
-        });
-        DraftBillModel.confirm(
-          id,
-          result.name,
-          new Date(result.created_at!),
-          result.customer_id,
-          payment_method_id,
-          service,
-          delivery,
-          discount,
-          bill,
-          userID
-        )
-          .then(() => {
-            const socket = new SocketHelper("delete-draft-bill", {
-              id: result.id,
-            });
-
-            socket.create();
-            ProductStockModel.updateStock(
-              bill.map((x) => {
-                if (x != null) {
-                  return {
-                    item_id: x?.item_id,
-                    quantity:
-                      parseFloat(x.quantity.toString()) *
-                      parseFloat(x.conversion!.toString()) *
-                      -1,
-                  };
-                }
-              })
-            )
-              .then(() => {
-                return res.status(201).send(result);
-              })
-              .catch((error) => {
-                console.log(error);
-                return res.status(500).send(error);
-              });
-          })
-          .catch((error) => {
-            console.log(error);
-            return res.status(500).send(error);
-          });
       }
+
+      if (result.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const bills: IConfirmDraftBillItems[] = [];
+
+      items.forEach((x) => {
+        const id = x.id;
+
+        const draftBillIndex = result.draft_bill.findIndex((y) => y.id == id);
+        const price = parseFloat(
+          result.draft_bill[draftBillIndex].price.toString()
+        );
+        const discount = parseFloat(
+          result.draft_bill[draftBillIndex].discount.toString()
+        );
+
+        if (draftBillIndex != -1) {
+          bills.push({
+            item_id: result.draft_bill[draftBillIndex].item_id,
+            item_unit_id: result.draft_bill[draftBillIndex].item_unit_id,
+            quantity: parseFloat(
+              result.draft_bill[draftBillIndex].quantity.toString()
+            ),
+            discount: discount,
+            price: price,
+          });
+        }
+      });
+      DraftBillModel.confirm({
+        id: id,
+        name: result.name,
+        date: new Date(result.created_at!),
+        customer_id: result.customer_id,
+        payment_method_id: payment_method_id,
+        service: service,
+        delivery: delivery,
+        discount: discount,
+        items: bills,
+        userID: userID,
+      })
+        .then(async (bill) => {
+          const socket = new SocketHelper("delete-draft-bill", {
+            id: result.id,
+          });
+
+          socket.create();
+          await queue.add("create-sales-invoice", bill);
+          return res.status(201).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on confirm draft bill: ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
     });
   };
 
-  static delete = (req: Request, res: Response) => {
+  /**
+   * Delete draft bill by ID
+   * @param req
+   * @param res
+   */
+  static deleteByID = (req: Request, res: Response) => {
     const id = req.body.id;
     const userID = req.body.userId;
-    DraftBillModel.delete(id, userID)
+    DraftBillModel.deleteByID(id, userID)
       .then((result) => {
         const socket = new SocketHelper("delete-draft-bill", {
           id: result.id,
@@ -172,10 +209,16 @@ class DraftBillController {
         return res.status(201).send(result);
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on deleting draft bill ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
+  /**
+   * Fetch draft bill archives
+   * @param req
+   * @param res
+   */
   static fetchArchives = (req: Request, res: Response) => {
     const mode =
       req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
@@ -192,7 +235,8 @@ class DraftBillController {
           );
         })
         .catch((error) => {
-          return res.status(500).send(error);
+          console.error(`[error]: Error on fetch draft bill archives ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
     } else if (req.query.year != undefined && req.query.month == undefined) {
       const year = parseInt(req.query.year.toString());
@@ -205,7 +249,8 @@ class DraftBillController {
           return res.status(200).send(response);
         })
         .catch((error) => {
-          return res.status(500).send(error);
+          console.error(`[error]: Error on fetch draft bill archives ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
     } else if (req.query.year != undefined && req.query.month != undefined) {
       const year = parseInt(req.query.year.toString());
@@ -231,9 +276,11 @@ class DraftBillController {
           });
         })
         .catch((error) => {
-          console.log(error);
-          return res.status(500).send(error);
+          console.error(`[error]: Error on fetch draft bill archives ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
+    } else {
+      return res.status(404).send(ErrorList["Parameter error"]);
     }
   };
 }

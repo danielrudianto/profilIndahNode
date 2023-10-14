@@ -1,12 +1,30 @@
-import { Router } from "express";
-import { body } from "express-validator";
+import { NextFunction, Request, Router } from "express";
+import { body, param } from "express-validator";
+import ErrorList from "../../assets/error_list";
 import DraftBillController from "../../controller/draft-bill.controller";
 import ErrorHelper from "../../helper/error.helper";
+import { fetchMode } from "../../interface/fetch.interface";
 
 const router = Router();
 
-router.post("/confirm", DraftBillController.confirm);
-router.post("/delete", DraftBillController.delete);
+router.post(
+  "/confirm",
+  body("payment_method_id")
+    .notEmpty()
+    .withMessage(ErrorList["Payment method required"]),
+  body("service").notEmpty().withMessage(ErrorList["Service required"]),
+  body("delivery").notEmpty().withMessage(ErrorList["Delivery required"]),
+  body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  ErrorHelper.intercept,
+  DraftBillController.confirmByID
+);
+router.post(
+  "/delete",
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  ErrorHelper.intercept,
+  DraftBillController.deleteByID
+);
 router.post(
   "/",
   body("customer_id").exists().withMessage("Please fill in customer ID"),
@@ -19,7 +37,26 @@ router.post(
 );
 
 router.get("/archives", DraftBillController.fetchArchives);
-router.get("/:id", DraftBillController.fetchByID);
-router.get("/", DraftBillController.fetchUnconfirmed);
+router.get(
+  "/unconfirmed",
+  (req: Request, _, next: NextFunction) => {
+    req.body.mode = fetchMode.Unconfirmed;
+    next();
+  },
+  DraftBillController.fetch
+);
+router.get(
+  "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  DraftBillController.fetchByID
+);
+router.get(
+  "/",
+  (req: Request, _, next: NextFunction) => {
+    req.body.mode = fetchMode.Pagination;
+    next();
+  },
+  DraftBillController.fetch
+);
 
 export default router;

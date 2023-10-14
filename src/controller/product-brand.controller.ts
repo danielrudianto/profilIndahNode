@@ -1,10 +1,51 @@
 import { Request, Response } from "express";
+import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
 import { BrandModel } from "../model/brand.model";
 
 class BrandController {
-  /** Fetch autocomplete of item brand */
+  /**
+   * Create a new brand
+   * @param req
+   * @param res
+   */
+  static create = (req: Request, res: Response) => {
+    const name = req.body.name;
+    const userID = req.body.userId;
+    BrandModel.fetchByName(name)
+      .then((brand) => {
+        if (brand) {
+          return res.status(400).send(ErrorList["Brand unique constraint"]);
+        }
+
+        BrandModel.create({
+          name: name,
+          created_by: userID,
+        })
+          .then((result) => {
+            const socket = new SocketHelper("createBrand", {
+              ...result,
+              can_delete: true,
+            });
+            socket.create();
+
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            return res.status(500).send(error);
+          });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  /**
+   * Fetch brand data for autocomplete
+   * @param req
+   * @param res
+   */
   static fetchAutocomplete = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     BrandModel.fetchAutocomplete(keyword)
@@ -16,22 +57,42 @@ class BrandController {
       });
   };
 
-  /** Fetch brand data by ID */
-  static fetchById = (req: Request, res: Response) => {
+  /**
+   * Fetch brand by id
+   * @param req
+   * @param res
+   */
+  static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    BrandModel.fetchById(id)
+    BrandModel.fetchByID(id)
       .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        if (result.length == 0) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        const itemBrand = result[0];
         return res.status(200).send({
-          ...result[0],
-          can_delete: parseInt(result[1].toString()) == 0 ? true : false,
+          ...itemBrand,
+          can_delete: itemBrand.can_delete! == "1" ? true : false,
         });
       })
       .catch((error) => {
-        console.log(error);
-        return res.status(500).send(error);
+        console.error(
+          `[error]: Error while fetching brand by id [${id}] ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
+  /**
+   * Fetch brand data
+   * @param req
+   * @param res
+   */
   static fetch = (req: Request, res: Response) => {
     const page = !req.query.page
       ? 1
@@ -68,83 +129,86 @@ class BrandController {
       });
   };
 
-  static create = (req: Request, res: Response) => {
-    const name = req.body.name;
-    BrandModel.fetchByName(name)
-      .then((brand) => {
-        if (brand != null) {
-          return res.status(400).send("Mohon masukkan nama merek unik.");
-        } else {
-          const brand_object = new BrandModel(name, req.body.userId);
-          brand_object
-            .create()
-            .then((brand_result) => {
-              const socket = new SocketHelper("createBrand", {
-                ...brand_result,
-                can_delete: true,
-              });
-              socket.create();
-
-              return res.status(201).send(brand_result);
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
-            });
-        }
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
+  /**
+   * Update brand data
+   * @param req
+   * @param res
+   */
   static update = (req: Request, res: Response) => {
     const id = req.body.id;
     const name = req.body.name;
+    const userID = req.body.userId;
 
-    BrandModel.fetchById(id)
+    BrandModel.fetchByID(id)
       .then((brand_result) => {
         const brand = brand_result[0];
         if (brand == null || brand.is_delete) {
           return res.status(400).send("Data tidak ditemukan.");
         }
 
-        BrandModel.update(id, name, new Date(), req.body.userId)
+        BrandModel.updateByID({
+          id: id,
+          name: name,
+          created_by: userID,
+        })
           .then((result) => {
             const socket = new SocketHelper("updateBrand", result);
             socket.create();
+
             return res.status(201).send(result);
           })
           .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on updating brand ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
           });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on updating brand ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
+  /**
+   * Delete brand data
+   * @param req
+   * @param res
+   */
   static delete = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    BrandModel.fetchById(id)
-      .then((brand_result) => {
-        const brand = brand_result[0];
-        const count = brand_result[1];
-        if (brand == null || count > 0) {
-          return res.status(500).send("Merek tidak dapat dihapus.");
-        } else {
-          BrandModel.delete(id, req.body.userId)
-            .then((result) => {
-              const socket = new SocketHelper("deleteBrand", result);
-              socket.create();
-              return res.status(201).send(result);
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
-            });
+    const userID = req.body.userId;
+    BrandModel.fetchByID(id)
+      .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
         }
+
+        if (result.length == 0) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        if (result[0].is_delete) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        if (!result[0].can_delete) {
+          return res.status(400).send(ErrorList["Unable to delete"]);
+        }
+
+        BrandModel.deleteByID(id, userID)
+          .then((result) => {
+            const socket = new SocketHelper("deleteBrand", result);
+            socket.create();
+
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on deleting brand ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on deleting brand ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 }

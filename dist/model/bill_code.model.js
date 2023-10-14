@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
@@ -37,47 +28,50 @@ class BillCodeModel {
             this.uuid = "";
         }
     }
-    create() {
-        return __awaiter(this, void 0, void 0, function* () {
-            const name = `INV-${this.date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
-            return prisma.bill_code.create({
-                data: {
-                    name: name,
-                    created_by: this.created_by,
-                    created_at: this.created_at,
-                    customer_id: this.customer_id,
-                    payment_method_id: this.payment_method_id,
-                    discount: this.discount,
-                    delivery: this.delivery,
-                    service: this.service,
-                    date: this.date,
-                    is_confirm: this.is_confirm,
-                    confirmed_by: this.created_by,
-                    confirmed_at: this.created_at,
-                    uuid: this.uuid,
-                },
-                select: {
-                    id: true,
-                    name: true,
-                    discount: true,
-                    delivery: true,
-                    service: true,
-                    payment_method: {
-                        select: {
-                            name: true,
-                            description: true,
-                            id: true,
-                        },
-                    },
-                    customer_id: true,
-                    user_bill_code_created_byTouser: {
-                        select: {
-                            id: true,
-                            name: true,
-                        },
+    static create(customer_id, created_by, payment_method_id, discount, delivery, service, date, uuid, items) {
+        const name = `INV-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
+        return prisma.bill_code.create({
+            data: {
+                name: name,
+                created_by: created_by,
+                created_at: new Date(),
+                customer_id: customer_id,
+                payment_method_id: payment_method_id,
+                discount: discount,
+                delivery: delivery,
+                service: service,
+                date: date,
+                is_confirm: true,
+                confirmed_by: created_by,
+                confirmed_at: new Date(),
+                uuid: uuid,
+                bill: {
+                    createMany: {
+                        data: items,
                     },
                 },
-            });
+            },
+            select: {
+                id: true,
+                name: true,
+                discount: true,
+                delivery: true,
+                service: true,
+                payment_method: {
+                    select: {
+                        name: true,
+                        description: true,
+                        id: true,
+                    },
+                },
+                customer_id: true,
+                user_bill_code_created_byTouser: {
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                },
+            },
         });
     }
     generateName(date = new Date()) {
@@ -157,6 +151,32 @@ class BillCodeModel {
                             select: {
                                 unit: true,
                                 conversion: true,
+                            },
+                        },
+                        package_code_id: true,
+                        package_code: {
+                            select: {
+                                name: true,
+                                description: true,
+                                package_content: {
+                                    select: {
+                                        item_id: true,
+                                        item: {
+                                            select: {
+                                                reference: true,
+                                                description: true,
+                                                unit: true,
+                                            },
+                                        },
+                                        item_unit: {
+                                            select: {
+                                                unit: true,
+                                                conversion: true,
+                                            },
+                                        },
+                                        quantity: true,
+                                    },
+                                },
                             },
                         },
                         quantity: true,
@@ -460,6 +480,7 @@ class BillCodeModel {
         }
     }
     static search(customers, items, date, keyword, page, mode) {
+        console.log(items);
         let query = `SELECT bill_code.name, bill_code.id, bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name, bill_code.is_confirm, bill_code.is_delete
       FROM bill_code 
       LEFT JOIN customer ON bill_code.customer_id = customer.id`;
@@ -469,6 +490,13 @@ class BillCodeModel {
         SELECT bill.bill_code_id
         FROM bill
         WHERE bill.item_id IN (${items.join(",")})
+        GROUP BY bill.bill_code_id
+        UNION ALL SELECT bill.bill_code_id
+        FROM bill
+        JOIN package_code ON bill.package_code_id = package_code.id
+        JOIN package_content ON package_code.id = package_content.package_code_id
+        JOIN item ON package_content.item_id = item.id
+        WHERE item.id IN (${items.join(",")})
         GROUP BY bill.bill_code_id
       ) billCount ON bill_code.id = billCount.bill_code_id`;
         }
@@ -713,6 +741,30 @@ class BillCodeModel {
       AND YEAR(bill_code.date) = ${year}
       AND MONTH(bill_code.date) = ${month}
       GROUP BY item_brand.id
+      `;
+        }
+        else if (mode == "package") {
+            return prisma.$queryRaw `
+        SELECT SUM(bill.quantity - coalesce(salesReturn.quantity, 0)) AS quantity, SUM((bill.quantity - coalesce(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, package_code_id, package_code.name, package_code.description
+        FROM bill
+        LEFT JOIN (
+          SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code 
+            ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_confirm = 1
+            AND sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+        ) AS salesReturn
+        ON bill.id = salesReturn.bill_id
+        JOIN package_code ON bill.package_code_id = package_code.id
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0 
+        AND YEAR(bill_code.date) = ${year}
+        AND MONTH(bill_code.date) = ${month}
+        group by bill.package_code_id
+        ORDER BY value DESC
       `;
         }
         else {

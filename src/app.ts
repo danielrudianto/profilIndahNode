@@ -11,6 +11,7 @@ import authRoutes from "./routes/authentication/auth.route";
   Routes for master data
 */
 import productRoutes from "./routes/master/product.route";
+import productPackageRoutes from "./routes/master/product-package.route";
 import productSalesPriceRoutes from "./routes/master/product-price-sales.route";
 import productPurchasePriceRoutes from "./routes/master/product-price-purchase.route";
 import productBrandRoutes from "./routes/master/product-brand.route";
@@ -33,33 +34,27 @@ import expenseRoutes from "./routes/transaction/expense.route";
 import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
 import adjustmentEventRoutes from "./routes/transaction/adjustment-event.route";
 import reportRoutes from "./routes/report/report.route";
-import salesReturnRoutes from "./routes/transaction/sales_return.route";
+import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
 import CashierRoutes from "./routes/distinct/cashier.route";
-
-/* 
-  Helpers
-*/
-
-import SearchHelper from "./helper/search.helper";
-import ProductStockController from "./controller/product-stock.controller";
 
 /*
   Administrator Routes
 */
 
 import administratorRoutes from "./routes/distinct/administrator.route";
+import developmentRoutes from "./routes/development/development.routes";
+import osRoutes from "./routes/distinct/os.route";
+import changelogRoutes from "./routes/report/changelog.route";
+import mongoose from "mongoose";
+import { PrismaClient } from "@prisma/client";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
   apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
 
-const allowedOrigins = [
-  "http://localhost:4200",
-  "https://app.profilindah.id",
-  "https://stock.profilindah.id",
-];
+const allowedOrigins = ["https://app.profilindah.id"];
 
 const options: cors.CorsOptions = {
   origin: allowedOrigins,
@@ -78,6 +73,7 @@ app.use("/product-brand", authMiddleware, productBrandRoutes);
 app.use("/product-type", authMiddleware, productTypeRoutes);
 app.use("/product-unit", authMiddleware, productUnitRoutes);
 app.use("/product-stock", authMiddleware, productStockRoutes);
+app.use("/product-package", authMiddleware, productPackageRoutes);
 
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/customer", authMiddleware, customerRoutes);
@@ -99,15 +95,26 @@ app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/report", reportRoutes);
 
 app.use("/administrator", administratorRoutes);
+app.use("/os", osRoutes);
+app.use("/changelog", changelogRoutes);
+app.use("/development", developmentRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, async () => {
   console.log("[server]: Server is running on port 5000");
 
-  await SearchHelper.scheduleData();
-  await ProductStockController.scheduleData();
-  await ProductStockController.adjustDistibution();
+  // await ProductStockController.scheduleData();
+  // await ProductStockController.adjustDistibution();
+
+  const url = "mongodb://localhost:27017/ProfilIndah";
+  await mongoose.connect(url, {
+    dbName: "ProfilIndah",
+    autoCreate: true,
+  });
+  console.info("[info]: Connected with database");
 });
+
+export const prisma = new PrismaClient();
 
 export const io = new Server(server, {
   cors: {

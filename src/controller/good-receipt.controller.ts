@@ -1,13 +1,17 @@
 import { Request, Response } from "express";
-import CompanyModel from "../model/company.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
-import SupplierModel from "../model/supplier.model";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import ProductStockModel from "../model/product-stock.model";
+import { queue } from "../helper/queue.helper";
 
 class GoodReceiptController {
+  /**
+   * Create new good receipt
+   * @param req
+   * @param res
+   */
   static create = (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
@@ -19,189 +23,71 @@ class GoodReceiptController {
     const purchase_invoice_name = purchase_invoice.name;
     const userID = req.body.userId;
 
-    Promise.all([
-      CompanyModel.fetchById(company_id),
-      SupplierModel.fetchById(supplier_id),
-    ])
-      .then((validation) => {
-        if (
-          validation[0] == null ||
-          validation[1] == null ||
-          validation[0].length == 0 ||
-          validation[1].length == 0
-        ) {
-          return res.status(400).send(ErrorList["Not found"]);
-        } else {
-          ItemPurchasePriceModel.fetchCurrentPrice(
-            good_receipt_items.map((x) => {
-              return {
-                item_id: x.item_id,
-                item_unit_id: x.item_unit_id,
-              };
-            })
-          ).then((priceResult) => {
-            for (let x of good_receipt_items) {
-              const priceIndex = priceResult.findIndex(
-                (y) =>
-                  y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
-              );
-              if (priceIndex == -1) {
-                x.price = 0;
-              } else {
-                x.price = priceResult[priceIndex].price;
-              }
-            }
-
-            GoodReceiptModel.createGoodReceipt(
-              name,
-              purchase_invoice_name,
-              date,
-              supplier_id,
-              company_id,
-              userID,
-              good_receipt_items
-            ).then((goodReceiptResult) => {
-              GoodReceiptModel.fetchById(goodReceiptResult.id)
-                .then(async (document) => {
-                  if (document == null) {
-                    return res.status(400).send(ErrorList["Not found"]);
-                  } else {
-                    ProductStockModel.updateStock(
-                      document?.good_receipt.map((x) => {
-                        const quantity =
-                          parseFloat(x.quantity.toString()) *
-                          (x.item_unit == null
-                            ? 1
-                            : parseFloat(x.item_unit.conversion.toString()));
-                        return {
-                          item_id: x.item.id,
-                          quantity: quantity,
-                        };
-                      })
-                    )
-                      .then(() => {
-                        return res.status(201).send(document);
-                      })
-                      .catch((error) => {
-                        return res.status(500).send(error);
-                      });
-                  }
-                })
-                .catch(() => {
-                  return res.status(201).send(goodReceiptResult);
-                });
-            });
-          });
-        }
+    ItemPurchasePriceModel.fetchCurrentPrice(
+      good_receipt_items.map((x) => {
+        return {
+          item_id: x.item_id,
+          item_unit_id: x.item_unit_id,
+        };
       })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    GoodReceiptModel.fetchById(id)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  static fetchArchive = (req: Request, res: Response) => {
-    const mode =
-      req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-      GoodReceiptModel.fetchArchiveYears(mode)!
-        .then((result) => {
-          return res.status(200).send(
-            result.map((x) => {
-              return {
-                year: x.year,
-                count: parseInt(x.count.toString()),
-              };
-            })
+    ).then((priceResult) => {
+      GoodReceiptModel.create({
+        name: name,
+        purchase_invoice_name: purchase_invoice_name,
+        date: date,
+        supplier_id: supplier_id,
+        company_id: company_id,
+        created_by: userID,
+        good_receipt: good_receipt_items.map((x) => {
+          const priceIndex = priceResult.findIndex(
+            (y) => y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
           );
+          return {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            quantity: x.quantity,
+            price: priceIndex == -1 ? 0 : priceResult[priceIndex].price,
+            discount: priceIndex == -1 ? 0 : priceResult[priceIndex].discount,
+          };
+        }),
+      })
+        .then((goodReceiptResult) => {
+          Promise.all([
+            ProductStockModel.updateStock(
+              goodReceiptResult.good_receipt.map((x) => {
+                const quantity =
+                  parseFloat(x.quantity.toString()) *
+                  (x.item_unit == null
+                    ? 1
+                    : parseFloat(x.item_unit.conversion.toString()));
+                return {
+                  item_id: x.item.id,
+                  quantity: quantity,
+                };
+              })
+            ),
+            queue.add("create-good-receipt", goodReceiptResult),
+          ])
+            .then(() => {
+              return res.status(201).send(goodReceiptResult);
+            })
+            .catch((error) => {
+              console.error(`[error]: Error on creating good receipt ${error}`);
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
         })
         .catch((error) => {
-          return res.status(500).send(error);
+          console.error(`[error]: Error on fetching price ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month == undefined) {
-      const year = parseInt(req.query.year.toString());
-      GoodReceiptModel.fetchArchiveMonths(year, mode)!
-        .then((result) => {
-          const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-          result.forEach((x) => {
-            response[x.month - 1] = parseInt(x.count.toString());
-          });
-          return res.status(200).send(response);
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    } else if (req.query.year != undefined && req.query.month != undefined) {
-      const year = parseInt(req.query.year.toString());
-      const month = parseInt(req.query.month.toString());
-      const page =
-        req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
-
-      GoodReceiptModel.fetchArchive(year, month, page, mode)!
-        .then((result) => {
-          return res.status(200).send({
-            data: result[0].map((x) => {
-              return {
-                id: x.id,
-                name: x.name,
-                date: x.date,
-                is_delete: x.is_delete == 1,
-                is_confirm: x.is_confirm == 1,
-                supplier: {
-                  id: x.supplier_id,
-                  name: x.supplier_name,
-                },
-                company: {
-                  id: x.company_id,
-                  name: x.company_name,
-                },
-              };
-            }),
-            count:
-              result[1] == null || result[1].length == 0
-                ? 0
-                : parseInt(result[1][0].count.toString()),
-          });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    }
+    });
   };
 
-  static fetchCodeById = (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id.toString());
-      GoodReceiptModel.fetchCodeById(id)
-        .then((result) => {
-          if (!result) {
-            return res.status(404).send(ErrorList["Not found"]);
-          } else {
-            return res.status(200).send(result.good_receipt_code);
-          }
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        return res.status(500).send(err);
-      } else {
-        return res.status(500).send(ErrorList["Unknown error"]);
-      }
-    }
-  };
-
+  /**
+   * Search good receipt
+   * @param req
+   * @param res
+   */
   static search = (req: Request, res: Response) => {
     const suppliers = req.body.suppliers as number[];
     const items = req.body.items as number[];
@@ -252,6 +138,106 @@ class GoodReceiptController {
       .catch((error) => {
         return res.status(500).send(error);
       });
+  };
+
+  /**
+   * Fetch good receipt by id
+   * @param req
+   * @param res
+   */
+  static fetchByID = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    GoodReceiptModel.fetchByID(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching good receipt ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Fetch good receipt archive
+   * @param req
+   * @param res
+   */
+  static fetchArchive = (req: Request, res: Response) => {
+    const mode =
+      req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
+    if (req.query.year == undefined) {
+      GoodReceiptModel.fetchArchiveYears(mode)!
+        .then((result) => {
+          return res.status(200).send(
+            result.map((x) => {
+              return {
+                year: x.year,
+                count: parseInt(x.count.toString()),
+              };
+            })
+          );
+        })
+        .catch((error) => {
+          console.error(
+            `[error]: Error on fetching good receipt archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    } else if (req.query.year != undefined && req.query.month == undefined) {
+      const year = parseInt(req.query.year.toString());
+      GoodReceiptModel.fetchArchiveMonths(year, mode)!
+        .then((result) => {
+          const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+          result.forEach((x) => {
+            response[x.month - 1] = parseInt(x.count.toString());
+          });
+          return res.status(200).send(response);
+        })
+        .catch((error) => {
+          console.error(
+            `[error]: Error on fetching good receipt archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    } else if (req.query.year != undefined && req.query.month != undefined) {
+      const year = parseInt(req.query.year.toString());
+      const month = parseInt(req.query.month.toString());
+      const page =
+        req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
+
+      GoodReceiptModel.fetchArchive(year, month, page, mode)!
+        .then((result) => {
+          return res.status(200).send({
+            data: result[0].map((x) => {
+              return {
+                id: x.id,
+                name: x.name,
+                date: x.date,
+                is_delete: x.is_delete == 1,
+                is_confirm: x.is_confirm == 1,
+                supplier: {
+                  id: x.supplier_id,
+                  name: x.supplier_name,
+                },
+                company: {
+                  id: x.company_id,
+                  name: x.company_name,
+                },
+              };
+            }),
+            count:
+              result[1] == null || result[1].length == 0
+                ? 0
+                : parseInt(result[1][0].count.toString()),
+          });
+        })
+        .catch((error) => {
+          console.error(
+            `[error]: Error on fetching good receipt archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    }
   };
 }
 

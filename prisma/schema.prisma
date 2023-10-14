@@ -92,6 +92,8 @@ model user {
   user_token                                                   user_token[]
   draft_bill_draft_bill_created_byTouser                       draft_bill_code[]      @relation("draft_bill_created_byTouser")
   draft_bill_draft_bill_confirmed_byTouser                     draft_bill_code[]      @relation("draft_bill_confirmed_byTouser")
+  package_code_created_byTouser                                package_code[]         @relation("package_code_created_byTouser")
+  package_code_deleted_byTouser                                package_code[]         @relation("package_code_deleted_byTouser")
 
   @@index([created_by], map: "user_ibfk_1_idx")
   @@index([deleted_by], map: "user_ibfk_2_idx")
@@ -99,20 +101,22 @@ model user {
 
 model bill {
   id                     Int                      @id @default(autoincrement())
-  item_id                Int
+  item_id                Int?
   item_unit_id           Int?
+  package_code_id        Int?
   price                  Decimal                  @db.Decimal(50, 4)
   discount               Decimal                  @db.Decimal(50, 4)
   quantity               Decimal                  @db.Decimal(50, 4)
   bill_code_id           Int
   bill_code              bill_code                @relation(fields: [bill_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_1")
-  item                   item                     @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_2")
+  item                   item?                    @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_2")
   item_unit              item_unit?               @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_3")
   sales_return           sales_return[]
   stock_card             stock_card?
   stock_card_act         stock_card_act?
   stock_out_distribution stock_out_distribution[]
   distribution_stock     distribution_stock[]
+  package_code           package_code?            @relation(fields: [package_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_ibfk_4")
 
   @@index([bill_code_id], map: "bill_ibfk_1_idx")
   @@index([item_unit_id], map: "bill_ibfk_3_idx")
@@ -246,9 +250,10 @@ model expense_type {
 model good_receipt {
   id                   Int             @id @default(autoincrement())
   item_id              Int
-  quantity             Decimal         @db.Decimal(50, 4)
+  quantity             Decimal         @db.Decimal(12, 2)
   good_receipt_code_id Int
-  price                Decimal         @db.Decimal(50, 4)
+  price                Decimal         @db.Decimal(12, 2)
+  discount             Decimal         @db.Decimal(12, 2)
   item_unit_id         Int?
   stock_card           stock_card?
   stock_card_act       stock_card_act?
@@ -299,14 +304,14 @@ model item {
   deleted_at                 DateTime?                @db.DateTime(0)
   updated_by                 Int?
   updated_at                 DateTime?                @db.DateTime(0)
-  item_type_id               Int?
+  item_type_id               Int
   item_brand_id              Int
   unit                       String                   @db.VarChar(45)
   is_active                  Boolean                  @default(true)
   user                       user                     @relation("item_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_1")
   user_item_deleted_byTouser user?                    @relation("item_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_2")
   item_brand                 item_brand               @relation(fields: [item_brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_3")
-  item_type                  item_type?               @relation(fields: [item_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_5")
+  item_type                  item_type                @relation(fields: [item_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_5")
   user_item_updated_byTouser user?                    @relation("item_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_ibfk_4")
   adjustment_case            adjustment_case[]
   bill                       bill[]
@@ -320,6 +325,7 @@ model item {
   stock_out_distribution     stock_out_distribution[]
   draft_bill                 draft_bill[]
   distribution_stock         distribution_stock[]
+  package_content            package_content[]
 
   @@index([reference, description], map: "item_fulltext")
   @@index([created_by], map: "item_ibfk_1_idx")
@@ -376,7 +382,8 @@ model item_price {
 model item_price_purchase {
   id           Int       @id @default(autoincrement())
   item_id      Int
-  price        Decimal   @db.Decimal(50, 4)
+  price        Decimal   @db.Decimal(12, 2)
+  discount     Decimal   @db.Decimal(12, 2)
   created_by   Int
   created_at   DateTime  @default(now()) @db.DateTime(0)
   is_delete    Boolean   @default(false)
@@ -516,6 +523,7 @@ model item_unit {
   bill                            bill[]
   good_receipt                    good_receipt[]
   draft_bill                      draft_bill[]
+  package_content                 package_content[]
 
   @@index([item_id], map: "item_id")
   @@index([deleted_by], map: "deleted_by")
@@ -574,6 +582,37 @@ model sales_return_code {
 
   @@index([created_by], map: "sales_return_code_ibfk_1_idx")
   @@index([confirmed_by], map: "sales_return_code_ibfk_2_idx")
+}
+
+model package_code {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(45)
+  description String    @db.VarChar(200)
+  price       Decimal   @db.Decimal(12, 2)
+  created_by  Int
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  is_delete   Boolean   @default(false)
+  deleted_by  Int?
+  deleted_at  DateTime? @db.DateTime(0)
+
+  user_package_code_created_byTouser user              @relation("package_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_code_ibfk_1")
+  user_package_code_deleted_byTouser user?             @relation("package_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_code_ibfk_2")
+  package_content                    package_content[]
+  bill                               bill[]
+}
+
+model package_content {
+  id              Int     @id @default(autoincrement())
+  item_id         Int
+  item_unit_id    Int?
+  quantity        Int
+  price           Decimal @db.Decimal(12, 2)
+  discount        Decimal @db.Decimal(12, 2)
+  package_code_id Int
+
+  item         item         @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_ibfk_2")
+  item_unit    item_unit?   @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_ibfk_3")
+  package_code package_code @relation(fields: [package_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_ibfk_1")
 }
 
 model stock {

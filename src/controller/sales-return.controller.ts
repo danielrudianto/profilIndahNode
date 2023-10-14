@@ -1,17 +1,47 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
+import { queue } from "../helper/queue.helper";
+import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import ProductStockModel from "../model/product-stock.model";
 import SalesReturnModel from "../model/sales_return.model";
 
 class SalesReturnController {
+  /**
+   * Create sales return data
+   * @param req
+   * @param res
+   * @returns Sales return data
+   */
   static create = (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const payment_method_id =
       req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
-
     const items = req.body.sales_return as any[];
-    if (items.length > 0) {
+    const userID = req.body.userId;
+
+    if (items.length == 0) {
+      return res.status(400).send(ErrorList["Parameter error"]);
+    }
+
+    // Add checker for bill id
+    const billIDs = items.map((x) => x.bill_id);
+    BillModel.fetchByIDs(billIDs).then((billItems) => {
+      for (let i = 0; i < billItems.length; i++) {
+        const itemIndex = items.findIndex((x) => x.bill_id == billItems[i].id);
+
+        if (itemIndex == -1) {
+          return res.status(400).send(ErrorList["Parameter error"]);
+        }
+
+        if (
+          billItems[i].quantity - billItems[i].return_quantity <
+          items[itemIndex].quantity
+        ) {
+          return res.status(400).send(ErrorList["Parameter error"]);
+        }
+      }
+
       const name = `RJ-${date.getFullYear()}-${Math.floor(
         Math.random() * 10
       )}${Math.floor(Math.random() * 10)}${Math.floor(
@@ -22,54 +52,71 @@ class SalesReturnController {
         Math.random() * 10
       )}${Math.floor(Math.random() * 10)}`;
 
-      const sales_return_code = new SalesReturnModel(
-        name,
-        date,
-        req.body.userId,
-        payment_method_id,
-        items,
-        null,
-        true
-      );
-
-      sales_return_code
-        .create()
-        .then((result) => {
-          SalesReturnModel.fetchById(result.id).then((salesReturn) => {
-            if (salesReturn == null) {
-              return res.status(400).send(ErrorList["Not found"]);
-            } else {
-              ProductStockModel.updateStock(
-                salesReturn.sales_return.map((x) => {
-                  const quantity =
-                    parseFloat(x.quantity.toString()) *
-                    (x.bill.item_unit == null
-                      ? 1
-                      : parseFloat(x.bill.item_unit.conversion.toString()));
-                  return {
-                    item_id: x.bill.item.id,
-                    quantity: quantity,
-                  };
-                })
-              ).then(() => {
-                return res.status(201).send(result);
+      SalesReturnModel.create({
+        name: name,
+        date: date,
+        created_by: userID,
+        payment_method_id: payment_method_id,
+        sales_return: items.map((x: any) => {
+          return {
+            bill_id: x.bill_id,
+            quantity: x.quantity,
+          };
+        }),
+      }).then((result) => {
+        const updateArray: any[] = [];
+        result.sales_return.forEach((x) => {
+          if (x.bill.item != null) {
+            updateArray.push({
+              item_id: x.bill.item.id,
+              quantity:
+                parseFloat(x.quantity.toString()) *
+                (x.bill.item_unit == null
+                  ? 1
+                  : parseFloat(x.bill.item_unit.conversion.toString())),
+            });
+          } else if (x.bill.package_code != null) {
+            x.bill.package_code.package_content.forEach((y) => {
+              updateArray.push({
+                item_id: y.item.id,
+                quantity:
+                  parseFloat(x.quantity.toString()) *
+                  parseFloat(y.quantity.toString()) *
+                  (y.item_unit == null
+                    ? 1
+                    : parseFloat(y.item_unit.conversion.toString())),
               });
-            }
-          });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
+            });
+          }
         });
-    } else {
-      return res.status(400).send("Data barang tidak dilampirkan.");
-    }
+
+        Promise.all([
+          ProductStockModel.updateStock(updateArray),
+          queue.add("create-sales-return", result),
+        ])
+          .then(() => {
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on updating stock ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      });
+    });
   };
 
+  /**
+   * Search for a bill that can be returned
+   * @param req
+   * @param res
+   * @returns Bill data
+   */
   static fetchSearch = (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const items = req.body.items as any[];
+    const packages = req.body.packages as any[];
 
-    SalesReturnModel.fetchSearch(date, items)
+    SalesReturnModel.fetchSearch(date, items, packages)
       .then((result) => {
         return res.status(200).send(
           (result as any[]).map((x) => {
@@ -85,10 +132,19 @@ class SalesReturnController {
         );
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(
+          `[error]: Error on fetching sales return search ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
+  /**
+   * Fetch sales return archive
+   * @param req
+   * @param res
+   * @return Sales return archive
+   */
   static fetchArchives = (req: Request, res: Response) => {
     const mode =
       req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
@@ -157,87 +213,126 @@ class SalesReturnController {
     }
   };
 
-  static fetchById = (req: Request, res: Response) => {
+  /**
+   * Fetch sales return by ID
+   * @param req
+   * @param res
+   * @returns Sales return data
+   */
+  static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    SalesReturnModel.fetchById(id)
+    SalesReturnModel.fetchByID(id)
       .then((result) => {
-        if (result == null || result.sales_return.length == 0) {
+        if (!result) {
           return res.status(404).send(ErrorList["Not found"]);
-        } else {
-          const bill_code_id = result?.sales_return[0].bill.bill_code_id;
-          BillCodeModel.fetchById(bill_code_id).then((bill) => {
-            let total = 0;
-            for (let item of result.sales_return) {
-              total +=
-                parseFloat(item.quantity.toString()) *
-                (parseFloat(item.bill.price.toString()) -
-                  parseFloat(item.bill.discount.toString()));
-            }
-            return res.status(200).send({
-              ...result,
-              bill: bill,
-              customer:
-                result?.sales_return.length == 0 ||
-                result?.sales_return[0].bill.bill_code.customer == null
-                  ? null
-                  : {
-                      name: result.sales_return[0].bill.bill_code.customer.name,
-                    },
-              total: total,
-            });
-          });
         }
+
+        // Take the first bill to determine the bill code ID
+        const bill_code_id = result.sales_return[0].bill.bill_code_id;
+        BillCodeModel.fetchByID(bill_code_id).then((bill) => {
+          if (!bill) {
+            return res.status(404).send(ErrorList["Not found"]);
+          }
+
+          let total = 0;
+          for (let item of result.sales_return) {
+            total +=
+              parseFloat(item.quantity.toString()) *
+              (parseFloat(item.bill.price.toString()) -
+                parseFloat(item.bill.discount.toString()));
+          }
+          return res.status(200).send({
+            ...result,
+            bill: bill,
+            customer:
+              result?.sales_return.length == 0 ||
+              result?.sales_return[0].bill.bill_code.customer == null
+                ? null
+                : {
+                    name: result.sales_return[0].bill.bill_code.customer.name,
+                  },
+            total: total,
+          });
+        });
       })
       .catch((error) => {
         return res.status(500).send(error);
       });
   };
 
-  static deleteById = (req: Request, res: Response) => {
+  /**
+   * Delete sales return by ID
+   * @param req
+   * @param res
+   * @returns
+   */
+  static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    SalesReturnModel.fetchById(id).then((salesReturn) => {
-      if (salesReturn == null || salesReturn.is_delete) {
-        return res.status(404).send("Data tidak ditemukan.");
-      } else {
-        SalesReturnModel.deleteById(id, req.body.userId)
-          .then((result) => {
-            SalesReturnModel.fetchById(id)
-              .then(() => {
-                ProductStockModel.updateStock(
-                  salesReturn.sales_return.map((x) => {
-                    const quantity =
-                      parseFloat(x.quantity.toString()) *
-                      -1 *
-                      (x.bill.item_unit == null
-                        ? 1
-                        : parseFloat(x.bill.item_unit.conversion.toString()));
-                    return {
-                      item_id: x.bill.item.id,
-                      quantity: quantity,
-                    };
-                  })
-                )
-                  .then(() => {
-                    return res.status(201).send(result);
-                  })
-                  .catch(() => {
-                    return res.status(201).send(result);
-                  });
-              })
-              .catch(() => {
-                return res.status(201).send(result);
-              });
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
+    const userID = req.body.userId;
+    SalesReturnModel.fetchByID(id).then((salesReturn) => {
+      if (!salesReturn) {
+        return res.status(404).send(ErrorList["Not found"]);
       }
+
+      if (salesReturn.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      SalesReturnModel.deleteByID(id, userID)
+        .then((result) => {
+          const updateArray: any[] = [];
+          result.sales_return.forEach((x) => {
+            if (x.bill.item != null) {
+              updateArray.push({
+                item_id: x.bill.item.id,
+                quantity:
+                  parseFloat(x.quantity.toString()) *
+                  (x.bill.item_unit == null
+                    ? 1
+                    : parseFloat(x.bill.item_unit.conversion.toString())),
+              });
+            } else if (x.bill.package_code != null) {
+              x.bill.package_code.package_content.forEach((y) => {
+                updateArray.push({
+                  item_id: y.item.id,
+                  quantity:
+                    parseFloat(x.quantity.toString()) *
+                    parseFloat(y.quantity.toString()) *
+                    (y.item_unit == null
+                      ? 1
+                      : parseFloat(y.item_unit.conversion.toString())),
+                });
+              });
+            }
+          });
+
+          Promise.all([
+            ProductStockModel.updateStock(updateArray),
+            queue.add("delete-sales-return", result),
+          ])
+            .then(() => {
+              return res.status(201).send(result);
+            })
+            .catch((error) => {
+              console.error(`[error]: Error on updating stock ${error}`);
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
     });
   };
 
-  static fetchCodeById = (req: Request, res: Response) => {
+  /**
+   * Fetch sales return code by ID
+   * @param req
+   * @param res
+   * @returns sales return code document
+   */
+  static fetchCodeByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    SalesReturnModel.fetchCodeById(id)
+    SalesReturnModel.fetchCodeByID(id)
       .then((result) => {
         return res.status(200).send(result);
       })

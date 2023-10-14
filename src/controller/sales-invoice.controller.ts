@@ -6,8 +6,16 @@ import ItemPriceModel from "../model/item_price.model";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import ProductStockModel from "../model/product-stock.model";
+import { ProductPackageCodeModel } from "../model/product-package.model";
+import { queue } from "../helper/queue.helper";
+import SalesReturnModel from "../model/sales_return.model";
 
 class SalesInvoiceController {
+  /**
+   * Create sales invoice data
+   * @param req
+   * @param res
+   */
   static create = (req: Request, res: Response) => {
     const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
@@ -20,165 +28,103 @@ class SalesInvoiceController {
       !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
+    const userID = req.body.userId;
 
-    const bill_code = new BillCodeModel(
-      customer_id,
-      req.body.userId,
-      payment_method_id,
-      discount,
-      delivery,
-      service,
-      date,
-      uuid
-    );
-
-    bill_code
-      .create()
-      .then((result) => {
-        Promise.all([
-          // Create bill items
-          BillModel.create(
-            bill.map((x) => {
-              return {
-                item_id: x.item_id,
-                item_unit_id: x.item_unit_id,
-                price: x.price,
-                discount: x.discount,
-                quantity: x.quantity,
-                bill_code_id: result.id,
-              };
-            })
-          ),
-          // Saving item price
-          ItemPriceModel.updateMany(
-            bill.filter((x) => x.save),
-            req.body.userId
-          ),
-        ])
-          .then((_) => {
-            BillCodeModel.fetchById(result.id).then((bills) => {
-              if (bills != null) {
-                ProductStockModel.updateStock(
-                  bills!.bill.map((x) => {
-                    const quantity =
-                      parseFloat(x.quantity.toString()) *
-                      (x.item_unit == null
-                        ? 1
-                        : parseFloat(x.item_unit!.conversion.toString())) *
-                      -1;
-                    return {
-                      item_id: x.item_id,
-                      quantity: quantity.toFixed(4),
-                    };
-                  })
-                )
-                  .then(() => {
-                    return res.status(201).send(result);
-                  })
-                  .catch(() => {
-                    return res.status(201).send(result);
-                  });
-              } else {
-                return res.status(201).send(result);
-              }
-            });
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  static fetchById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    BillCodeModel.fetchById(id)
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
+    BillCodeModel.create({
+      name: BillCodeModel.generateName(date),
+      customer_id: customer_id,
+      payment_method_id: payment_method_id,
+      discount: discount,
+      delivery: delivery,
+      service: service,
+      date: date,
+      uuid: uuid,
+      items: bill.map((x) => {
+        if (x.package_code_id != undefined) {
+          return {
+            package_code_id: x.package_code_id,
+            item_id: null,
+            item_unit_id: null,
+            quantity: x.quantity,
+            price: x.price,
+            discount: 0,
+          };
         } else {
-          let subTotal = 0;
-          for (let item of result.bill) {
-            subTotal +=
-              parseFloat(item.price.toString()) *
-              parseFloat(item.quantity.toString());
-          }
-          return res.status(200).send({
-            ...result,
-            subTotal: subTotal,
-            discount: parseFloat(result.discount.toString()),
-            delivery: parseFloat(result.delivery.toString()),
-            service: parseFloat(result.service.toString()),
+          return {
+            package_code_id: null,
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            quantity: x.quantity,
+            price: x.price,
+            discount: x.discount,
+          };
+        }
+      }),
+      created_by: userID,
+    })
+      .then(async (result) => {
+        try {
+          await ItemPriceModel.updateMany(
+            bill.filter((x) => x.save && x.item_id != null),
+            req.body.userId
+          );
+
+          await ProductPackageCodeModel.updatePrice(
+            bill.filter((x) => x.save && x.package_code_id != null)
+          );
+
+          const updateStockArray: any[] = [];
+          result.bill.forEach((x) => {
+            if (x.package_code != null) {
+              x.package_code.package_content.forEach((content) => {
+                updateStockArray.push({
+                  item_id: content.item_id,
+                  quantity: (
+                    parseFloat(content.quantity.toString()) *
+                    parseFloat(x.quantity.toString()) *
+                    (content.item_unit == null
+                      ? 1
+                      : parseFloat(content.item_unit.conversion.toString())) *
+                    -1
+                  ).toFixed(4),
+                });
+              });
+            } else {
+              const quantity =
+                parseFloat(x.quantity.toString()) *
+                (x.item_unit == null
+                  ? 1
+                  : parseFloat(x.item_unit!.conversion.toString())) *
+                -1;
+
+              updateStockArray.push({
+                item_id: x.item_id,
+                quantity: quantity.toFixed(4),
+              });
+            }
           });
+
+          await ProductStockModel.updateStock(updateStockArray);
+          await queue.add("create-sales-invoice", result);
+          return res.status(201).send(result);
+        } catch (error) {
+          console.error(`[error]: Error on updating stock ${error}`);
+          return res.status(500).send(error);
         }
       })
       .catch((error) => {
+        console.error(`[error]: Error on creating bill ${error}`);
         return res.status(500).send(error);
       });
   };
 
-  static deleteById = (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id.toString());
-      BillCodeModel.deleteById(id, req.body.userId)
-        .then((result) => {
-          if (result.is_delete) {
-            const socket = new SocketHelper("deleteBill", result);
-            socket.create();
-
-            BillCodeModel.fetchById(result.id).then((bills) => {
-              if (bills != null) {
-                ProductStockModel.updateStock(
-                  bills!.bill.map((x) => {
-                    const quantity =
-                      parseFloat(x.quantity.toString()) *
-                      (x.item_unit == null
-                        ? 1
-                        : parseFloat(x.item_unit!.conversion.toString()));
-                    return {
-                      item_id: x.item_id,
-                      quantity: quantity.toFixed(4),
-                    };
-                  })
-                )
-                  .then(() => {
-                    return res.status(201).send(result);
-                  })
-                  .catch(() => {
-                    return res.status(201).send(result);
-                  });
-              } else {
-                return res.status(201).send(result);
-              }
-            });
-
-            return res.status(201).send(result);
-          } else {
-            return res.status(404).send(ErrorList["Not found"]);
-          }
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    } catch (err) {
-      return res.status(500).send(ErrorList["Unknown error"]);
-    }
-  };
-
-  static fetchCodeById = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id.toString());
-    BillModel.fetchById(id)
-      .then((result) => {
-        return res.status(200).send(result?.bill_code);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  static search = (req: Request, res: Response) => {
+  /**
+   * Search sales invoice data
+   * Can be narrowed down by customer, item, date, page, keyword
+   * @param req
+   * @param res
+   */
+  static fetchSearch = (req: Request, res: Response) => {
     const customers = req.body.customers as number[];
     const items = req.body.items as number[];
     const date = req.body.date as any[];
@@ -230,6 +176,11 @@ class SalesInvoiceController {
       });
   };
 
+  /**
+   * Search sales invoice data archive
+   * @param req
+   * @param res
+   */
   static fetchArchive = (req: Request, res: Response) => {
     const mode =
       req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
@@ -295,6 +246,142 @@ class SalesInvoiceController {
           return res.status(500).send(error);
         });
     }
+  };
+
+  /**
+   * Fetch bill by ID
+   * @param req
+   * @param res
+   */
+  static fetchByID = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    BillCodeModel.fetchByID(id)
+      .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        let subTotal = 0;
+        for (let item of result.bill) {
+          subTotal +=
+            parseFloat(item.price.toString()) *
+            parseFloat(item.quantity.toString());
+        }
+        return res.status(200).send({
+          ...result,
+          subTotal: subTotal,
+          discount: parseFloat(result.discount.toString()),
+          delivery: parseFloat(result.delivery.toString()),
+          service: parseFloat(result.service.toString()),
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
+  };
+
+  /**
+   * Fetch bill code by ID
+   * @param req
+   * @param res
+   */
+  static fetchCodeByID = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    BillModel.fetchByID(id)
+      .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching bill code ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Delete bill by ID
+   * @param req
+   * @param res
+   * @returns
+   */
+  static deleteByID = async (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    const userID = req.body.userId;
+
+    const result = await BillCodeModel.fetchByID(id);
+    if (!result) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+
+    if (!result.is_delete) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+
+    // Check if there is any sales return on this bill
+    const salesReturn = await SalesReturnModel.fetchByBillIDs(
+      result.bill.map((x) => {
+        return x.id;
+      })
+    );
+
+    if (salesReturn.length > 0) {
+      return res
+        .status(400)
+        .send(ErrorList["Delete bill sales return constraint"]);
+    }
+
+    const socket = new SocketHelper("deleteBill", result);
+    socket.create();
+
+    BillCodeModel.deleteByID(id, userID)
+      .then((updateBill) => {
+        const updateStockArray: any[] = [];
+        result.bill.forEach((x) => {
+          if (x.package_code != null) {
+            x.package_code.package_content.forEach((content) => {
+              updateStockArray.push({
+                item_id: content.item_id,
+                quantity: (
+                  parseFloat(content.quantity.toString()) *
+                  parseFloat(x.quantity.toString()) *
+                  (content.item_unit == null
+                    ? 1
+                    : parseFloat(content.item_unit.conversion.toString()))
+                ).toFixed(4),
+              });
+            });
+          } else {
+            const quantity =
+              parseFloat(x.quantity.toString()) *
+              (x.item_unit == null
+                ? 1
+                : parseFloat(x.item_unit!.conversion.toString()));
+            return {
+              item_id: x.item_id,
+              quantity: quantity.toFixed(4),
+            };
+          }
+        });
+
+        Promise.all([
+          ProductStockModel.updateStock(updateStockArray),
+          queue.add("delete-sales-invoice", result),
+        ])
+          .then(() => {
+            return res.status(201).send(updateBill);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on updating stock ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on deleting bill ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 }
 

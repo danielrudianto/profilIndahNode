@@ -1,23 +1,38 @@
 import { PrismaClient } from "@prisma/client";
+import { fetchMode } from "../interface/fetch.interface";
 
 const prisma = new PrismaClient();
 
-class ItemTypeModel {
-  id: number | null;
+interface ICreateItemType {
   name: string;
+  userID: number;
+}
+
+interface IUpdateItemType extends ICreateItemType {
+  id: number;
+}
+
+interface IFetchItemType {
+  id: number;
+  name: string;
+  created_at: string;
   created_by: number;
+  createdByName: string;
+  is_delete: number;
+  count: number;
+}
 
-  constructor(name: string, created_by: number, id: number | null = null) {
-    this.id = id;
-    this.name = name;
-    this.created_by = created_by;
-  }
-
-  create() {
+class ItemTypeModel {
+  /**
+   * Create a new item type data
+   * @param data
+   * @returns ItemType
+   */
+  static create(data: ICreateItemType) {
     return prisma.item_type.create({
       data: {
-        name: this.name,
-        created_by: this.created_by,
+        name: data.name,
+        created_by: data.userID,
       },
       select: {
         id: true,
@@ -34,54 +49,67 @@ class ItemTypeModel {
     });
   }
 
-  update() {
+  /**
+   * Fetch item type by ID
+   * @param data
+   * @returns
+   */
+  static fetchByID(id: number) {
+    return prisma.$queryRaw<IFetchItemType[]>`
+      SELECT item_type.id, item_type.created_at, item_type.name, 
+      item_type.created_by, user.name AS createdByName, item_type.is_delete,
+      COALESCE(itemCount.count, 0) AS count
+      FROM item_type
+      LEFT JOIN (
+        SELECT COUNT(id) AS count, item_type_id
+        FROM item
+        WHERE item.is_delete = 0
+        GROUP BY item.item_type_id
+      ) AS itemCount
+      ON item_type.id = itemCount.item_type_id
+      JOIN user ON item_type.created_by = user.id
+      WHERE item_type.id = ${id}
+    `;
+  }
+
+  /**
+   * Update item type data by ID
+   * @param data
+   * @returns
+   */
+  static updateByID(data: IUpdateItemType) {
     return prisma.item_type.update({
       where: {
-        id: this.id!,
+        id: data.id,
       },
       data: {
-        name: this.name,
+        name: data.name,
         updated_at: new Date(),
-        updated_by: this.created_by,
+        updated_by: data.userID,
+      },
+      include: {
+        item: {
+          select: {
+            id: true,
+          },
+        },
       },
     });
   }
 
-  static fetchItemById(id: number) {
-    return prisma.$queryRaw`
-      SELECT item_type.*, (SELECT COUNT(id) AS count FROM item WHERE item.is_delete = 0 AND item.item_type_id = ${id}) AS count
-      FROM item_type
-      WHERE item_type.id = ${id}`;
-  }
-
-  static fetchItems(keyword: string, offset: number, limit: number) {
-    if (keyword == "") {
+  static fetch(
+    keyword: string,
+    limit: number,
+    offset: number,
+    mode: fetchMode
+  ) {
+    if (mode == fetchMode.Pagination) {
       return prisma.$transaction([
-        prisma.$queryRaw`
-          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, COALESCE(itemCount.count, 0) AS count
-          FROM item_type
-          LEFT JOIN (
-            SELECT COUNT(id) AS count, item_type_id
-            FROM item
-            WHERE item.is_delete = 0
-            GROUP BY item.item_type_id
-          ) AS itemCount
-          ON item_type.id = itemCount.item_type_id
-          JOIN user ON item_type.created_by = user.id
-          WHERE item_type.is_delete = 0
-          ORDER BY item_type.name ASC
-          LIMIT ${limit} OFFSET ${offset}`,
-        prisma.item_type.count({
-          where: {
-            is_delete: false,
-          },
-        }),
-      ]);
-    } else {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe(
+        prisma.$queryRawUnsafe<IFetchItemType[]>(
           `
-          SELECT item_type.id, item_type.name, item_type.created_at, item_type.created_by, user.name AS createdByName, COALESCE(itemCount.count, 0) AS count
+          SELECT item_type.id, item_type.name, item_type.created_at, 
+          item_type.created_by, user.name AS createdByName, 
+          COALESCE(itemCount.count, 0) AS count, item_type.is_delete
           FROM item_type
           LEFT JOIN (
             SELECT COUNT(id) AS count, item_type_id
@@ -105,22 +133,7 @@ class ItemTypeModel {
           },
         }),
       ]);
-    }
-  }
-
-  static fetchAutocomplete(keyword: string) {
-    if (keyword == "") {
-      return prisma.item_type.findMany({
-        where: {
-          is_delete: false,
-        },
-        orderBy: {
-          name: "asc",
-        },
-        take: 5,
-        skip: 0,
-      });
-    } else {
+    } else if (mode == fetchMode.Autocomplete) {
       return prisma.item_type.findMany({
         where: {
           is_delete: false,
@@ -211,14 +224,6 @@ class ItemTypeModel {
       ORDER BY ordered DESC
       LIMIT ${limit}
     `);
-  }
-
-  static fetchById(id: number) {
-    return prisma.item_type.findUnique({
-      where: {
-        id: id,
-      },
-    });
   }
 
   static deleteById(id: number, user_id: number) {

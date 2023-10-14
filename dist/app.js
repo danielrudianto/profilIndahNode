@@ -24,6 +24,7 @@ const auth_route_1 = __importDefault(require("./routes/authentication/auth.route
   Routes for master data
 */
 const product_route_1 = __importDefault(require("./routes/master/product.route"));
+const product_package_route_1 = __importDefault(require("./routes/master/product-package.route"));
 const product_price_sales_route_1 = __importDefault(require("./routes/master/product-price-sales.route"));
 const product_price_purchase_route_1 = __importDefault(require("./routes/master/product-price-purchase.route"));
 const product_brand_route_1 = __importDefault(require("./routes/master/product-brand.route"));
@@ -61,11 +62,7 @@ exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
-const allowedOrigins = [
-    "http://localhost:4200",
-    "https://app.profilindah.id",
-    "https://stock.profilindah.id",
-];
+const allowedOrigins = ["https://app.profilindah.id"];
 const options = {
     origin: allowedOrigins,
 };
@@ -81,6 +78,7 @@ app.use("/product-brand", auth_helper_1.authMiddleware, product_brand_route_1.de
 app.use("/product-type", auth_helper_1.authMiddleware, product_type_route_1.default);
 app.use("/product-unit", auth_helper_1.authMiddleware, product_unit_route_1.default);
 app.use("/product-stock", auth_helper_1.authMiddleware, stock_route_1.default);
+app.use("/product-package", auth_helper_1.authMiddleware, product_package_route_1.default);
 app.use("/supplier", auth_helper_1.authMiddleware, supplier_route_1.default);
 app.use("/customer", auth_helper_1.authMiddleware, customer_route_1.default);
 app.use("/company", auth_helper_1.authMiddleware, company_route_1.default);

@@ -1,101 +1,158 @@
 import { PrismaClient } from "@prisma/client";
+import { ICreateGoodReceipt, IGoodReceiptItem } from "./good_receipt.model";
 
 const prisma = new PrismaClient();
 
-class PurchaseInvoiceModel {
+export enum CalculatePurchaseMode {
+  Plain,
+  Supplier,
+  Type,
+  Brand,
+}
+
+export interface ICreatePurchaseInvoice extends ICreateGoodReceipt {
+  purchase_invoice: IPurchaseInvoice;
+}
+
+export interface IPurchaseInvoice {
   id?: number;
   name: string;
   date: Date;
   discount: number;
-  good_receipt_code_id: number;
   created_by: number;
-  created_at: Date;
-  is_delete: boolean = false;
-  is_confirm: boolean = true;
-  confirmed_by: number | null;
-  confirmed_at: Date | null;
-  faktur: string | null;
+  created_at?: Date;
+  is_delete?: boolean;
+  is_confirm?: boolean;
+  confirmed_by?: number;
+  confirmed_at?: Date;
+  faktur?: string;
+}
 
-  constructor(
-    name: string,
-    faktur: string | null,
-    date: Date,
-    discount: number,
-    good_receipt_code_id: number,
-    created_by: number,
-    confirmed_by: number | null = null,
-    id: number | null = null
-  ) {
-    if (id != null) {
-      this.id = id;
-    }
+export interface IUpdatePurchaseInvoice {
+  id: number;
+  purchase_invoice_name: string;
+  good_receipt_name: string;
+  date: Date;
+  discount: number;
+  confirmed_by: number;
 
-    this.name = name;
-    this.date = date;
-    this.discount = discount;
-    this.good_receipt_code_id = good_receipt_code_id;
-    this.created_by = created_by;
-    this.created_at = new Date();
-    if (confirmed_by == null) {
-      this.confirmed_by = null;
-      this.confirmed_at = null;
-    } else {
-      this.confirmed_by = confirmed_by;
-      this.confirmed_at = new Date();
-    }
+  good_receipt: IUpdatePurchaseInvoiceItems[];
+}
 
-    this.faktur = faktur;
-  }
+interface IUpdatePurchaseInvoiceItems {
+  id: number;
+  price: number;
+}
 
-  create() {
-    return prisma.purchase_invoice.create({
+class PurchaseInvoiceModel {
+  /**
+   * Create a new purchase invoice
+   * @param data
+   * @returns
+   */
+  static create(data: ICreatePurchaseInvoice) {
+    return prisma.good_receipt_code.create({
       data: {
-        name: this.name,
-        faktur: this.faktur,
-        date: this.date,
-        discount: this.discount,
-        good_receipt_code_id: this.good_receipt_code_id,
-        created_by: this.created_by,
-        created_at: this.created_at,
-        is_confirm: this.confirmed_by == null ? false : true,
-        confirmed_by: this.confirmed_by,
-        confirmed_at: this.confirmed_at,
+        name: data.name,
+        date: data.date,
+        created_by: data.created_by,
+        is_confirm: true,
+        is_delete: false,
+        confirmed_by: data.created_by,
+        confirmed_at: new Date(),
+        company_id: data.company_id,
+        supplier_id: data.supplier_id,
+        purchase_invoice: {
+          create: {
+            name: data.purchase_invoice.name,
+            date: data.purchase_invoice.date,
+            faktur: data.purchase_invoice.faktur,
+            created_at: new Date(),
+            created_by: data.created_by,
+            discount: data.purchase_invoice.discount,
+            is_paid: false,
+            is_confirm: true,
+            is_delete: false,
+            confirmed_by: data.created_by,
+            confirmed_at: new Date(),
+          },
+        },
+        good_receipt: {
+          createMany: {
+            data: data.good_receipt.map((item: IGoodReceiptItem) => {
+              return {
+                item_unit_id: item.item_unit_id,
+                quantity: item.quantity,
+                price: item.price,
+                item_id: item.item_id,
+                discount: item.discount,
+              };
+            }),
+          },
+        },
       },
       include: {
-        good_receipt_code: {
+        good_receipt: {
           select: {
-            company_id: true,
-            supplier_id: true,
+            id: true,
+            item: {
+              select: {
+                reference: true,
+                description: true,
+                unit: true,
+                id: true,
+              },
+            },
+            item_unit: {
+              select: {
+                unit: true,
+                conversion: true,
+              },
+            },
+            quantity: true,
+            price: true,
+          },
+        },
+        supplier: {
+          select: {
+            name: true,
+          },
+        },
+        purchase_invoice: {
+          select: {
+            discount: true,
           },
         },
       },
     });
   }
 
-  update() {
+  /**
+   * Update purchase invoice
+   * Updates the purchase invoice name, faktur, date, and discount
+   * @param data
+   * @returns
+   */
+  static update(data: IPurchaseInvoice) {
     return prisma.purchase_invoice.update({
       where: {
-        id: this.id,
+        id: data.id,
       },
       data: {
-        name: this.name,
-        faktur: this.faktur,
-        date: this.date,
-        discount: this.discount,
+        name: data.name,
+        faktur: data.faktur,
+        date: data.date,
+        discount: data.discount,
       },
     });
   }
 
-  delete() {
-    return prisma.purchase_invoice.update({
-      where: {
-        id: this.id,
-      },
-      data: {},
-    });
-  }
-
-  static fetchById(id: number) {
+  /**
+   * Fetch purchase invoice by ID
+   * @param id
+   * @returns
+   */
+  static fetchByID(id: number) {
     return prisma.purchase_invoice.findUnique({
       where: {
         id: id,
@@ -184,23 +241,44 @@ class PurchaseInvoiceModel {
     });
   }
 
-  static calculateTotalPurchase(month: number, year: number, mode: string) {
-    if (mode == "plain") {
-      return prisma.$transaction([
-        prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, DAY(purchase_invoice.date) AS day
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          WHERE good_receipt_code.is_confirm = 1
-          AND purchase_invoice.is_confirm = 1
-          AND good_receipt_code.is_delete = 0
-          AND purchase_invoice.is_delete = 0
-          AND YEAR(purchase_invoice.date) = ${year}
-          AND MONTH(purchase_invoice.date) = ${month}
-          GROUP BY DAY(purchase_invoice.date)
-        `,
-        prisma.$queryRaw<any[]>`
+  static calculateTotalPurchase(
+    month: number,
+    year: number,
+    mode: CalculatePurchaseMode
+  ) {
+    switch (mode) {
+      case CalculatePurchaseMode.Plain:
+        return prisma.$transaction([
+          prisma.$queryRaw<any[]>`
+            SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, DAY(purchase_invoice.date) AS day
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+            JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+            WHERE good_receipt_code.is_confirm = 1
+            AND purchase_invoice.is_confirm = 1
+            AND good_receipt_code.is_delete = 0
+            AND purchase_invoice.is_delete = 0
+            AND YEAR(purchase_invoice.date) = ${year}
+            AND MONTH(purchase_invoice.date) = ${month}
+            GROUP BY DAY(purchase_invoice.date)
+          `,
+          prisma.$queryRaw<any[]>`
+            SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+            JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+            JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+            WHERE good_receipt_code.is_confirm = 1
+            AND purchase_invoice.is_confirm = 1
+            AND good_receipt_code.is_delete = 0
+            AND purchase_invoice.is_delete = 0
+            AND YEAR(purchase_invoice.date) = ${year}
+            AND MONTH(purchase_invoice.date) = ${month}
+            GROUP BY good_receipt_code.supplier_id
+          `,
+        ]);
+      case CalculatePurchaseMode.Supplier:
+        return prisma.$queryRaw<any[]>`
           SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
@@ -213,120 +291,39 @@ class PurchaseInvoiceModel {
           AND YEAR(purchase_invoice.date) = ${year}
           AND MONTH(purchase_invoice.date) = ${month}
           GROUP BY good_receipt_code.supplier_id
-        `,
-      ]);
-    } else if (mode == "supplier") {
-      return prisma.$queryRaw<any[]>`
-      SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
-      FROM good_receipt
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-      WHERE good_receipt_code.is_confirm = 1
-      AND purchase_invoice.is_confirm = 1
-      AND good_receipt_code.is_delete = 0
-      AND purchase_invoice.is_delete = 0
-      AND YEAR(purchase_invoice.date) = ${year}
-      AND MONTH(purchase_invoice.date) = ${month}
-      GROUP BY good_receipt_code.supplier_id
-      `;
-    } else if (mode == "type") {
-      return prisma.$queryRaw<any[]>`
-      SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, item_type.id AS item_type_id, item_type.name AS item_type_name
-      FROM good_receipt
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-      JOIN item ON good_receipt.item_id = item.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      WHERE good_receipt_code.is_confirm = 1
-      AND purchase_invoice.is_confirm = 1
-      AND good_receipt_code.is_delete = 0
-      AND purchase_invoice.is_delete = 0
-      AND YEAR(purchase_invoice.date) = ${year}
-      AND MONTH(purchase_invoice.date) = ${month}
-      GROUP BY item.item_type_id
-      `;
-    } else if (mode == "brand") {
-      return prisma.$queryRaw<any[]>`
-      SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, item_brand.id AS item_brand_id, item_brand.name AS item_brand_name
-      FROM good_receipt
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-      JOIN item ON good_receipt.item_id = item.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      WHERE good_receipt_code.is_confirm = 1
-      AND purchase_invoice.is_confirm = 1
-      AND good_receipt_code.is_delete = 0
-      AND purchase_invoice.is_delete = 0
-      AND YEAR(purchase_invoice.date) = ${year}
-      AND MONTH(purchase_invoice.date) = ${month}
-      GROUP BY item.item_brand_id
-      `;
-    }
-  }
-
-  static fetchPurchaseByQuarter(quarter: number, year: number) {
-    switch (quarter) {
-      case 1:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
+        `;
+      case CalculatePurchaseMode.Type:
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, item_type.id AS item_type_id, item_type.name AS item_type_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
+          JOIN item ON good_receipt.item_id = item.id
+          JOIN item_type ON item.item_type_id = item_type.id
           WHERE good_receipt_code.is_confirm = 1
           AND purchase_invoice.is_confirm = 1
           AND good_receipt_code.is_delete = 0
           AND purchase_invoice.is_delete = 0
-          AND purchase_invoice.date <= '${year}-03-31';
-          AND purchase_invoice.date >= '${year}-01-01';
-        `);
-      case 2:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
+          AND YEAR(purchase_invoice.date) = ${year}
+          AND MONTH(purchase_invoice.date) = ${month}
+          GROUP BY item.item_type_id
+        `;
+      case CalculatePurchaseMode.Brand:
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, item_brand.id AS item_brand_id, item_brand.name AS item_brand_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
+          JOIN item ON good_receipt.item_id = item.id
+          JOIN item_brand ON item.item_brand_id = item_brand.id
           WHERE good_receipt_code.is_confirm = 1
           AND purchase_invoice.is_confirm = 1
           AND good_receipt_code.is_delete = 0
           AND purchase_invoice.is_delete = 0
-          AND purchase_invoice.date <= '${year}-06-30'
-          AND purchase_invoice.date >= '${year}-04-01';
-        `);
-      case 3:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
-          WHERE good_receipt_code.is_confirm = 1
-          AND purchase_invoice.is_confirm = 1
-          AND good_receipt_code.is_delete = 0
-          AND purchase_invoice.is_delete = 0
-          AND purchase_invoice.date <= '${year}-09-30'
-          AND purchase_invoice.date >= '${year}-07-01';
-        `);
-      case 4:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(good_receipt.quantity * good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS value, SUM(discount) AS discount
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          LEFT JOIN item_unit ON good_receipt.item_unit_id =  item_unit.id
-          WHERE good_receipt_code.is_confirm = 1
-          AND purchase_invoice.is_confirm = 1
-          AND good_receipt_code.is_delete = 0
-          AND purchase_invoice.is_delete = 0
-          AND purchase_invoice.date <= '${year}-12-31'
-          AND purchase_invoice.date >= '${year}-10-01';
-        `);
-      default:
-        const promise = new Promise((resolve, reject) => {
-          resolve(null);
-        });
+          AND YEAR(purchase_invoice.date) = ${year}
+          AND MONTH(purchase_invoice.date) = ${month}
+          GROUP BY item.item_brand_id
+        `;
     }
   }
 
@@ -656,17 +653,9 @@ class PurchaseInvoiceModel {
     ]);
   }
 
-  static confirmById(
-    id: number,
-    purchase_invoice_name: string,
-    good_receipt_name: string,
-    date: Date,
-    discount: number,
-    good_receipt: any[],
-    confirmed_by: number
-  ) {
+  static confirmByID(data: IUpdatePurchaseInvoice) {
     const transactions: any[] = [];
-    for (let x of good_receipt) {
+    for (let x of data.good_receipt) {
       transactions.push(
         prisma.good_receipt.update({
           where: {
@@ -682,33 +671,68 @@ class PurchaseInvoiceModel {
     return prisma.$transaction([
       prisma.purchase_invoice.update({
         where: {
-          id: id,
+          id: data.id,
         },
         data: {
-          name: purchase_invoice_name,
-          date: date,
-          discount: discount,
+          name: data.purchase_invoice_name,
+          date: data.date,
+          discount: data.discount,
           is_confirm: true,
           is_delete: false,
           confirmed_at: new Date(),
-          confirmed_by: confirmed_by,
+          confirmed_by: data.confirmed_by,
+        },
+        include: {
+          good_receipt_code: {
+            select: {
+              id: true,
+              name: true,
+              good_receipt: {
+                select: {
+                  id: true,
+                  price: true,
+                  quantity: true,
+                  item_unit: {
+                    select: {
+                      unit: true,
+                      conversion: true,
+                    },
+                  },
+                  item: {
+                    select: {
+                      id: true,
+                      reference: true,
+                      description: true,
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       }),
       prisma.good_receipt_code.updateMany({
         where: {
           purchase_invoice: {
-            id: id,
+            id: data.id,
           },
         },
         data: {
-          name: good_receipt_name,
+          name: data.good_receipt_name,
         },
       }),
       ...transactions,
     ]);
   }
 
-  static deleteById(id: number, confirmed_by: number) {
+  /**
+   * Delete purchase invoice by ID
+   * Including good receipt code
+   * @param id
+   * @param confirmed_by
+   * @returns
+   */
+  static deleteByID(id: number, confirmed_by: number) {
     return prisma.$transaction([
       prisma.purchase_invoice.update({
         where: {
@@ -967,6 +991,19 @@ class PurchaseInvoiceModel {
     `);
   }
 
+  /**
+   * Search for a particular purchase invoice
+   * Can be filtered by supplier, company, item, date,
+   * keyword, page, and status
+   * @param suppliers
+   * @param companies
+   * @param items
+   * @param date
+   * @param keyword
+   * @param page
+   * @param status
+   * @returns
+   */
   static search(
     suppliers: number[],
     companies: number[],
@@ -1027,6 +1064,61 @@ class PurchaseInvoiceModel {
         `SELECT COUNT(purchase_invoice.id) AS count FROM purchase_invoice JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id ${conditionalQueries}`
       ),
     ]);
+  }
+
+  /**
+   * Fetch all purchase invoices
+   * Used for development purpose only
+   * @remarks
+   * This method is only used for development purpose
+   *
+   * @returns All the purchase invoice data
+   */
+  static fetchAll() {
+    return prisma.purchase_invoice.findMany({
+      where: {
+        is_delete: false,
+      },
+      include: {
+        good_receipt_code: {
+          include: {
+            supplier: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            company: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            good_receipt: {
+              select: {
+                id: true,
+                item: {
+                  select: {
+                    id: true,
+                    reference: true,
+                    description: true,
+                    unit: true,
+                  },
+                },
+                item_unit: {
+                  select: {
+                    unit: true,
+                    conversion: true,
+                  },
+                },
+                quantity: true,
+                price: true,
+              },
+            },
+          },
+        },
+      },
+    });
   }
 }
 

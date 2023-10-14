@@ -122,7 +122,7 @@ class ProductStockController {
       case "input":
         const inputItemID = req.body.itemID;
         const inputDate = req.body.date;
-        ItemModel.fetchById(inputItemID)
+        ItemModel.fetchByID(inputItemID)
           .then((item) => {
             if (!item) {
               return res.status(404).send(ErrorList["Not found"]);
@@ -155,20 +155,24 @@ class ProductStockController {
                   );
                 })
                 .catch((error) => {
-                  console.log(error);
-                  return res.status(500).send(error);
+                  console.error(
+                    `[error]: Error on fetching stock data ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
                 });
             }
           })
           .catch((error) => {
-            console.log(error);
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching item ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
           });
         break;
       case "document":
         const documentItemID = req.body.itemID;
         const documentDate = req.body.date;
-        ItemModel.fetchById(documentItemID)
+        ItemModel.fetchByID(documentItemID)
           .then((item) => {
             if (!item) {
               return res.status(404).send(ErrorList["Not found"]);
@@ -201,8 +205,12 @@ class ProductStockController {
                   );
                 })
                 .catch((error) => {
-                  console.log(error);
-                  return res.status(500).send(error);
+                  console.error(
+                    `[error]: Error on fetching stock data ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
                 });
             }
           })
@@ -215,7 +223,7 @@ class ProductStockController {
         const cardFormat = req.body.format;
         const dateStart = req.body.dateStart;
         const dateEnd = req.body.dateEnd;
-        ItemModel.fetchById(itemID)
+        ItemModel.fetchByID(itemID)
           .then((item) => {
             if (!item) {
               return res.status(404).send(ErrorList["Not found"]);

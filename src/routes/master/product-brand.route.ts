@@ -9,8 +9,9 @@ router.get("/autocomplete", BrandController.fetchAutocomplete);
 router.get(
   "/:id",
   param("id").exists().withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  BrandController.fetchById
+  BrandController.fetchByID
 );
 router.get("/", BrandController.fetch);
 router.put(

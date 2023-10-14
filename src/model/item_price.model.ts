@@ -2,85 +2,43 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-class ItemPriceModel {
-  id?: number;
+interface ICreateProductPrice {
   price: number;
   discount: number;
-  item_id: number;
-  item_unit_id: number | null;
   created_by: number;
   created_at: Date;
-  effective_date: Date;
+  item_id: number;
+  item_unit_id: number | null;
+}
 
-  constructor(
-    price: number,
-    discount: number,
-    item_id: number,
-    item_unit_id: number | null,
-    created_by: number,
-    effective_date: Date | null = null
-  ) {
-    this.price = price;
-    this.discount = discount;
-    this.item_id = item_id;
-    this.item_unit_id = item_unit_id;
-    this.created_by = created_by;
-    this.created_at = new Date();
-    this.effective_date = effective_date == null ? new Date() : effective_date;
-  }
-
-  create() {
-    return prisma.item_price.create({
-      data: {
-        item_id: this.item_id,
-        item_unit_id: this.item_unit_id,
-        price: this.price,
-        discount: this.discount,
-        created_by: this.created_by,
-        created_at: this.created_at,
-        effective_date: this.effective_date,
-      },
-      select: {
-        price: true,
-        discount: true,
-        is_delete: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        item: {
-          select: {
-            reference: true,
-          },
-        },
-      },
-    });
-  }
-
-  update() {
+class ItemPriceModel {
+  /**
+   * Update item price
+   * @param data
+   * @returns
+   */
+  update(data: ICreateProductPrice) {
     return prisma.$transaction([
       prisma.item_price.updateMany({
         where: {
-          item_id: this.item_id,
-          item_unit_id: this.item_unit_id,
+          item_id: data.item_id,
+          item_unit_id: data.item_unit_id,
           is_delete: false,
         },
         data: {
           is_delete: true,
-          deleted_at: this.created_at,
-          deleted_by: this.created_by,
+          deleted_at: data.created_at,
+          deleted_by: data.created_by,
         },
       }),
       prisma.item_price.create({
         data: {
-          price: this.price,
-          discount: this.discount,
-          created_by: this.created_by,
-          created_at: this.created_at,
-          item_id: this.item_id,
-          item_unit_id: this.item_unit_id,
+          price: data.price,
+          discount: data.discount,
+          created_by: data.created_by,
+          created_at: data.created_at,
+          item_id: data.item_id,
+          item_unit_id: data.item_unit_id,
           effective_date: new Date(),
         },
         select: {

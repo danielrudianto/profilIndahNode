@@ -1,54 +1,74 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import {
+  AnnualArchive,
+  ArchiveCount,
+  GoodReceiptArchive,
+  MonthlyArchive,
+} from "../interface/archive.interface";
 
 const prisma = new PrismaClient();
 
-class GoodReceiptModel {
+export interface IGoodReceipt {
   id?: number;
   name: string;
+  purchase_invoice_name: string;
   date: Date;
-  created_by: number;
-  created_at: Date;
-  is_confirm: boolean = true;
-  is_delete: boolean = false;
-  confirmed_by: number;
-  confirmed_at: Date;
   supplier_id: number;
   company_id: number;
+  created_by: number;
+}
 
-  constructor(
-    name: string,
-    date: Date,
-    created_by: number,
-    supplier_id: number,
-    company_id: number,
-    id: number | null = null
-  ) {
-    if (id != null) {
-      this.id = id;
-    }
+export interface ICreateGoodReceipt extends IGoodReceipt {
+  good_receipt: IGoodReceiptItem[];
+}
 
-    this.name = name;
-    this.date = date;
-    this.created_by = created_by;
-    this.created_at = new Date();
-    this.confirmed_by = created_by;
-    this.confirmed_at = new Date();
-    this.supplier_id = supplier_id;
-    this.company_id = company_id;
-  }
+export interface IGoodReceiptItem {
+  id?: number;
+  good_receipt_id?: number;
+  item_id: number;
+  item_unit_id: number;
+  quantity: number;
+  price: number;
+  discount: number;
+}
 
-  create() {
+class GoodReceiptModel {
+  /**
+   * Create good receipt
+   * Create a good receipt and good receipt items
+   * @param name
+   * @param date
+   * @param created_by
+   * @param supplier_id
+   * @param company_id
+   * @param items
+   * @returns
+   */
+  static create(data: ICreateGoodReceipt) {
     return prisma.good_receipt_code.create({
       data: {
-        name: this.name,
-        date: this.date,
-        created_by: this.created_by,
-        created_at: this.created_at,
-        confirmed_by: this.confirmed_by,
-        confirmed_at: this.confirmed_at,
-        supplier_id: this.supplier_id,
-        company_id: this.company_id,
-        is_confirm: this.is_confirm,
+        name: data.name,
+        date: data.date,
+        created_by: data.created_by,
+        created_at: new Date(),
+        confirmed_by: data.created_by,
+        confirmed_at: new Date(),
+        supplier_id: data.supplier_id,
+        company_id: data.company_id,
+        is_confirm: true,
+        good_receipt: {
+          createMany: {
+            data: data.good_receipt.map((x) => {
+              return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                quantity: x.quantity,
+                price: x.price,
+                discount: x.discount,
+              };
+            }),
+          },
+        },
       },
       include: {
         user_good_receipt_code_created_byTouser: {
@@ -69,20 +89,136 @@ class GoodReceiptModel {
             id: true,
           },
         },
+        good_receipt: {
+          select: {
+            id: true,
+            item: {
+              select: {
+                id: true,
+                reference: true,
+                description: true,
+                unit: true,
+              },
+            },
+            item_unit: {
+              select: {
+                unit: true,
+                conversion: true,
+              },
+            },
+            quantity: true,
+            price: true,
+          },
+        },
       },
     });
   }
 
-  update() {
+  /**
+   * Fetch good receipt by ID
+   * @param id
+   * @returns
+   */
+  static fetchByID(id: number | number[]) {
+    if (typeof id === "number") {
+      return prisma.good_receipt_code.findUnique({
+        where: {
+          id: id,
+        },
+        select: {
+          name: true,
+          date: true,
+          user_good_receipt_code_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+          created_at: true,
+          user_good_receipt_code_confirmed_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+          confirmed_at: true,
+          is_confirm: true,
+          is_delete: true,
+          company: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+              npwp: true,
+            },
+          },
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              address: true,
+              npwp: true,
+            },
+          },
+          good_receipt: {
+            select: {
+              id: true,
+              item_unit: {
+                select: {
+                  unit: true,
+                  conversion: true,
+                },
+              },
+              item: {
+                select: {
+                  id: true,
+                  reference: true,
+                  description: true,
+                  unit: true,
+                },
+              },
+              quantity: true,
+            },
+          },
+          purchase_invoice: {
+            select: {
+              name: true,
+              date: true,
+              is_confirm: true,
+              is_delete: true,
+            },
+          },
+        },
+      });
+    } else {
+      return prisma.good_receipt.findMany({
+        where: {
+          id: {
+            in: id,
+          },
+        },
+      });
+    }
+  }
+
+  /**
+   * Update good receipt
+   * Update a good receipt and good receipt items
+   * @param name
+   * @param date
+   * @param created_by
+   * @param supplier_id
+   * @param company_id
+   * @param items
+   */
+  static update(data: IGoodReceipt) {
     return prisma.good_receipt_code.update({
       where: {
-        id: this.id,
+        id: data.id,
       },
       data: {
-        name: this.name,
-        date: this.date,
-        supplier_id: this.supplier_id,
-        company_id: this.company_id,
+        name: data.name,
+        date: data.date,
+        supplier_id: data.supplier_id,
+        company_id: data.company_id,
       },
       select: {
         id: true,
@@ -100,92 +236,6 @@ class GoodReceiptModel {
     });
   }
 
-  static insertItems(items: any[]) {
-    return prisma.good_receipt.createMany({
-      data: items,
-    });
-  }
-
-  static fetchById(id: number) {
-    return prisma.good_receipt_code.findUnique({
-      where: {
-        id: id,
-      },
-      select: {
-        name: true,
-        date: true,
-        user_good_receipt_code_created_byTouser: {
-          select: {
-            name: true,
-          },
-        },
-        created_at: true,
-        user_good_receipt_code_confirmed_byTouser: {
-          select: {
-            name: true,
-          },
-        },
-        confirmed_at: true,
-        is_confirm: true,
-        is_delete: true,
-        company: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            npwp: true,
-          },
-        },
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-            address: true,
-            npwp: true,
-          },
-        },
-        good_receipt: {
-          select: {
-            id: true,
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
-            item: {
-              select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            quantity: true,
-          },
-        },
-        purchase_invoice: {
-          select: {
-            name: true,
-            date: true,
-            is_confirm: true,
-            is_delete: true,
-          },
-        },
-      },
-    });
-  }
-
-  static fetchByIds(id: number[]) {
-    return prisma.good_receipt.findMany({
-      where: {
-        id: {
-          in: id,
-        },
-      },
-    });
-  }
-
   static deleteItemsByGoodReceiptCodeId(good_receipt_code_id: number) {
     return prisma.good_receipt.deleteMany({
       where: {
@@ -196,23 +246,26 @@ class GoodReceiptModel {
 
   static fetchArchiveYears(mode: number) {
     if (mode == 0) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, COUNT(id) AS count
+      return prisma.$queryRaw<AnnualArchive[]>`
+      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, 
+      COUNT(id) AS count
       FROM good_receipt_code
       GROUP BY YEAR(good_receipt_code.date)
       ORDER BY good_receipt_code.date ASC
     `;
     } else if (mode == 1) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, COUNT(id) AS count
+      return prisma.$queryRaw<AnnualArchive[]>`
+      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, 
+      COUNT(id) AS count
       FROM good_receipt_code
       WHERE good_receipt_code.is_delete = 1
       GROUP BY YEAR(good_receipt_code.date)
       ORDER BY good_receipt_code.date ASC
     `;
     } else if (mode == 2) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, COUNT(id) AS count
+      return prisma.$queryRaw<AnnualArchive[]>`
+      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, 
+      COUNT(id) AS count
       FROM good_receipt_code
       WHERE good_receipt_code.is_delete = 0
       GROUP BY YEAR(good_receipt_code.date)
@@ -223,16 +276,20 @@ class GoodReceiptModel {
 
   static fetchArchiveMonths(year: number, mode: number) {
     if (mode == 0) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, COUNT(id) AS count
+      return prisma.$queryRaw<MonthlyArchive[]>`
+      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, 
+      ${year} AS year,
+      COUNT(id) AS count
       FROM good_receipt_code
       WHERE YEAR(good_receipt_code.date) = ${year}
       GROUP BY MONTH(good_receipt_code.date)
       ORDER BY good_receipt_code.date ASC
     `;
     } else if (mode == 1) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, COUNT(id) AS count
+      return prisma.$queryRaw<MonthlyArchive[]>`
+      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month,
+      ${year} AS year,
+      COUNT(id) AS count
       FROM good_receipt_code
       WHERE YEAR(good_receipt_code.date) = ${year}
       AND good_receipt_code.is_delete = 1
@@ -240,8 +297,10 @@ class GoodReceiptModel {
       ORDER BY good_receipt_code.date ASC
     `;
     } else if (mode == 2) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, COUNT(id) AS count
+      return prisma.$queryRaw<MonthlyArchive[]>`
+      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, 
+      ${year} AS year,
+      COUNT(id) AS count
       FROM good_receipt_code
       WHERE YEAR(good_receipt_code.date) = ${year}
       AND good_receipt_code.is_delete = 0
@@ -251,149 +310,103 @@ class GoodReceiptModel {
     }
   }
 
+  /**
+   * Fetch archive
+   * Fetch good receipt archive
+   * @param year
+   * @param month
+   * @param page
+   * @param mode
+   * @returns
+   */
   static fetchArchive(year: number, month: number, page: number, mode: number) {
-    if (mode == 0) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-        SELECT good_receipt_code.id, good_receipt_code.date, good_receipt_code.name, good_receipt_code.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, good_receipt_code.is_confirm
+    switch (mode) {
+      case 0:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<GoodReceiptArchive[]>(`
+        SELECT good_receipt_code.id, good_receipt_code.date, 
+        good_receipt_code.name, good_receipt_code.is_delete, 
+        company_id AS company_id, company.name AS company_name, 
+        supplier.id AS supplier_id, supplier.name AS supplier_name, 
+        good_receipt_code.is_confirm
         FROM good_receipt_code
         JOIN company ON good_receipt_code.company_id = company.id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
         WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
+            month + 1
+          }
         ORDER BY good_receipt_code.date ASC
         LIMIT 10
         OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
+          prisma.$queryRaw<ArchiveCount[]>`
           SELECT COUNT(id) AS count FROM good_receipt_code
           WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
+            month + 1
+          }
         `,
-      ]);
-    } else if (mode == 1) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
+        ]);
+      case 1:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<GoodReceiptArchive[]>(`
         SELECT good_receipt_code.id, good_receipt_code.date, good_receipt_code.name, good_receipt_code.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, good_receipt_code.is_confirm
         FROM good_receipt_code
         JOIN company ON good_receipt_code.company_id = company.id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
         WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
+            month + 1
+          }
         AND good_receipt_code.is_delete = 1
         ORDER BY good_receipt_code.date ASC
         LIMIT 10
         OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
-          SELECT COUNT(id) AS count FROM good_receipt_code
+          prisma.$queryRaw<ArchiveCount[]>`
+          SELECT COUNT(id) AS count 
+          FROM good_receipt_code
           WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
+            month + 1
+          }
         AND good_receipt_code.is_delete = 1
         `,
-      ]);
-    } else if (mode == 2) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
+        ]);
+      case 2:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<GoodReceiptArchive[]>(`
         SELECT good_receipt_code.id, good_receipt_code.date, good_receipt_code.name, good_receipt_code.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, good_receipt_code.is_confirm
         FROM good_receipt_code
         JOIN company ON good_receipt_code.company_id = company.id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
         WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
+            month + 1
+          }
         AND good_receipt_code.is_delete = 0
         ORDER BY good_receipt_code.date ASC
         LIMIT 10
         OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
+          prisma.$queryRaw<ArchiveCount[]>`
           SELECT COUNT(id) AS count FROM good_receipt_code
           WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
+            month + 1
+          }
         AND good_receipt_code.is_delete = 0
         `,
-      ]);
+        ]);
     }
   }
 
-  static countByCompanyIds(company_ids: number[]) {
-    return prisma.good_receipt_code.groupBy({
-      by: ["company_id"],
-      where: {
-        company_id: {
-          in: company_ids,
-        },
-        is_delete: false,
-      },
-      _count: true,
-    });
-  }
-
-  static countBySupplierIds(supplier_ids: number[]) {
-    return prisma.good_receipt_code.groupBy({
-      by: ["supplier_id"],
-      where: {
-        supplier_id: {
-          in: supplier_ids,
-        },
-        is_delete: false,
-      },
-      _count: true,
-    });
-  }
-
-  static fetchCodeById(id: number) {
-    return prisma.good_receipt.findFirst({
-      where: {
-        id: id,
-      },
-      select: {
-        good_receipt_code: {
-          select: {
-            created_at: true,
-            name: true,
-            date: true,
-            user_good_receipt_code_created_byTouser: {
-              select: {
-                name: true,
-              },
-            },
-            supplier: {
-              select: {
-                name: true,
-                address: true,
-                npwp: true,
-              },
-            },
-            good_receipt: {
-              select: {
-                id: true,
-                quantity: true,
-                item: {
-                  select: {
-                    reference: true,
-                    description: true,
-                    unit: true,
-                  },
-                },
-                price: true,
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-  }
-
+  /**
+   * Search for good receipt code
+   * It will search for certain suppliers, companies,
+   * items, date, keyword, page, and status.
+   * Helping users to find a particular good receipt document
+   * @param suppliers
+   * @param companies
+   * @param items
+   * @param date
+   * @param keyword
+   * @param page
+   * @param status
+   * @returns
+   */
   static search(
     suppliers: number[],
     companies: number[],
@@ -453,55 +466,6 @@ class GoodReceiptModel {
         `SELECT COUNT(good_receipt_code.id) AS count FROM good_receipt_code ${conditionalQueries}`
       ),
     ]);
-  }
-
-  // improvement needed, create good receipt, good receipt item in one go
-  static createGoodReceipt(
-    name: string,
-    purchase_invoice_name: string,
-    date: Date,
-    supplier_id: number,
-    company_id: number,
-    user_id: number,
-    good_receipt_items: any[]
-  ) {
-    return prisma.good_receipt_code.create({
-      data: {
-        name: name,
-        date: date,
-        created_by: user_id,
-        created_at: new Date(),
-        confirmed_by: user_id,
-        confirmed_at: new Date(),
-        supplier_id: supplier_id,
-        company_id: company_id,
-        is_confirm: true,
-        is_delete: false,
-        purchase_invoice: {
-          create: {
-            name: purchase_invoice_name,
-            faktur: null,
-            date: date,
-            discount: 0,
-            created_by: user_id,
-            created_at: new Date(),
-            is_delete: false,
-          },
-        },
-        good_receipt: {
-          createMany: {
-            data: good_receipt_items.map((x) => {
-              return {
-                item_id: x.item_id,
-                price: x.price,
-                quantity: x.quantity,
-                item_unit_id: x.item_unit_id,
-              };
-            }),
-          },
-        },
-      },
-    });
   }
 }
 

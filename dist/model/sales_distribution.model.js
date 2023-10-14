@@ -35,7 +35,8 @@ class SalesDistributionModel {
             prisma.$queryRaw `
       SELECT SUM(value) AS value FROM distribution_stock`,
             prisma.$queryRaw `
-        SELECT SUM(value) AS value FROM stock_in
+        SELECT SUM(value) AS value 
+        FROM stock_in
       `,
         ]);
     }

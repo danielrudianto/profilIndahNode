@@ -20,15 +20,11 @@ router.post(
 router.get("/archives", GoodReceiptController.fetchArchive);
 
 router.get(
-  "/code/:id",
-  param("id").notEmpty().withMessage("Mohon isikan ID penerimaan barang."),
-  GoodReceiptController.fetchCodeById
-);
-router.get(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  GoodReceiptController.fetchById
+  GoodReceiptController.fetchByID
 );
 
 export default router;

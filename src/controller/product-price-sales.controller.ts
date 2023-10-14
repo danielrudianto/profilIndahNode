@@ -80,90 +80,85 @@ class ItemPriceController {
   };
 
   static update = (req: Request, res: Response) => {
-    const item_id = req.body.item_id;
-    const item_unit_id = req.body.item_unit_id;
-    const price = req.body.price;
-    const discount = req.body.discount;
-    const userID = req.body.userId;
-
-    ItemPriceModel.fetchByItemID(item_id, item_unit_id)
-      .then((item) => {
-        if (item == null || item.length == 0) {
-          const itemPrice = new ItemPriceModel(
-            price,
-            discount,
-            item_id,
-            item_unit_id,
-            userID,
-            new Date()
-          );
-          itemPrice.create().then((result) => {
-            return res.status(201).send(result);
-          });
-        } else {
-          const latest_price = item[0].price;
-          const latest_discount = item[0].discount;
-          if (latest_price == price && latest_discount == discount) {
-            return res.status(201).send(item[0]);
-          } else {
-            const itemPrice = new ItemPriceModel(
-              price,
-              discount,
-              item_id,
-              item_unit_id,
-              userID,
-              new Date()
-            );
-            itemPrice
-              .update()
-              .then((result) => {
-                return res.status(201).send(result);
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          }
-        }
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    // const item_id = req.body.item_id;
+    // const item_unit_id = req.body.item_unit_id;
+    // const price = req.body.price;
+    // const discount = req.body.discount;
+    // const userID = req.body.userId;
+    // ItemPriceModel.fetchByItemID(item_id, item_unit_id)
+    //   .then((item) => {
+    //     if (item == null || item.length == 0) {
+    //       const itemPrice = new ItemPriceModel(
+    //         price,
+    //         discount,
+    //         item_id,
+    //         item_unit_id,
+    //         userID,
+    //         new Date()
+    //       );
+    //       itemPrice.create().then((result) => {
+    //         return res.status(201).send(result);
+    //       });
+    //     } else {
+    //       const latest_price = item[0].price;
+    //       const latest_discount = item[0].discount;
+    //       if (latest_price == price && latest_discount == discount) {
+    //         return res.status(201).send(item[0]);
+    //       } else {
+    //         const itemPrice = new ItemPriceModel(
+    //           price,
+    //           discount,
+    //           item_id,
+    //           item_unit_id,
+    //           userID,
+    //           new Date()
+    //         );
+    //         itemPrice
+    //           .update()
+    //           .then((result) => {
+    //             return res.status(201).send(result);
+    //           })
+    //           .catch((error) => {
+    //             return res.status(500).send(error);
+    //           });
+    //       }
+    //     }
+    //   })
+    //   .catch((error) => {
+    //     return res.status(500).send(error);
+    //   });
   };
 
   static createBulk = (req: Request, res: Response) => {
-    const effective_date = new Date();
-    const items = req.body as any[];
-    const transactions: any[] = [];
-
-    items.forEach((x) => {
-      const id = x.id;
-      const item_unit_id = x.item_unit_id;
-      const price = x.price;
-      const discount = x.discount;
-
-      const item_price = new ItemPriceModel(
-        price,
-        discount,
-        id,
-        item_unit_id,
-        req.body.userId,
-        effective_date
-      );
-
-      transactions.push(
-        ItemPriceModel.delete(id, item_unit_id, req.body.userId)
-      );
-      transactions.push(item_price.create());
-    });
-
-    Promise.all(transactions)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(error);
-        return res.status(500).send(error);
-      });
+    // const effective_date = new Date();
+    // const items = req.body as any[];
+    // const transactions: any[] = [];
+    // items.forEach((x) => {
+    //   const id = x.id;
+    //   const item_unit_id = x.item_unit_id;
+    //   const price = x.price;
+    //   const discount = x.discount;
+    //   const item_price = new ItemPriceModel(
+    //     price,
+    //     discount,
+    //     id,
+    //     item_unit_id,
+    //     req.body.userId,
+    //     effective_date
+    //   );
+    //   transactions.push(
+    //     ItemPriceModel.delete(id, item_unit_id, req.body.userId)
+    //   );
+    //   transactions.push(item_price.create());
+    // });
+    // Promise.all(transactions)
+    //   .then((result) => {
+    //     return res.status(200).send(result);
+    //   })
+    //   .catch((error) => {
+    //     console.error(error);
+    //     return res.status(500).send(error);
+    //   });
   };
 
   static fetchByItemID = (req: Request, res: Response) => {

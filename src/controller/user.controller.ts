@@ -6,251 +6,163 @@ import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
 import CustomerModel from "../model/customer.model";
 import UserModel from "../model/user.model";
-import UserRoleModel from "../model/user_role.model";
 
 class UserController {
+  /**
+   * Create a new user
+   * @param req
+   * @param res
+   * @returns User
+   */
   static create = (req: Request, res: Response) => {
-    const roleId = parseInt(req.body.role);
-    const role = UserModel.roles.filter((x) => x.id == roleId && x.available);
+    const roleID = parseInt(req.body.role);
+    const role = UserModel.roles.filter((x) => x.id == roleID && x.available);
     const username = req.body.username;
     const nik = req.body.nik;
     const name = req.body.name;
+    const userID = req.body.userId;
 
     if (role.length == 0 || role == null) {
-      return res.status(500).send("Peran tidak ditemukan.");
+      return res.status(400).send(ErrorList["Role not found"]);
     }
 
-    UserModel.fetchByIdentifiers(username, nik).then((count) => {
-      if (count > 0) {
-        return res.status(400).send(ErrorList["Duplicate error"]);
-      } else {
-        let password = "";
-        const characters =
-          "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        for (var i = 0; i < 8; i++) {
-          password +=
-            characters[Math.floor(Math.random() * (characters.length - 1))];
-        }
-
-        hash(password, 12)
-          .then((hashedPassword) => {
-            const user = new UserModel(
-              name,
-              nik,
-              username,
-              hashedPassword,
-              req.body.userId
-            );
-            user
-              .create()
-              .then((user_create) => {
-                const user_role = new UserRoleModel(user_create.id, roleId);
-                user_role
-                  .create()
-                  .then((user_role_create) => {
-                    const socket = new SocketHelper("createUser", {
-                      id: user_create.id,
-                      name: user_create.name,
-                      nik: user_create.nik,
-                      username: user_create.username,
-                      password: password,
-                      role_id: user_role_create.role,
-                      role: UserModel.roles.filter(
-                        (x) => x.id == user_role_create.role
-                      )[0].name,
-                      user: user_create.user,
-                    });
-                    socket.create();
-
-                    return res.status(201).send({
-                      id: user_create.id,
-                      name: user_create.name,
-                      nik: user_create.nik,
-                      username: user_create.username,
-                      password: password,
-                      role_id: user_role_create.role,
-                      role: UserModel.roles.filter(
-                        (x) => x.id == user_role_create.role
-                      )[0].name,
-                    });
-                  })
-                  .catch((error) => {
-                    return res.status(500).send(error);
-                  });
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
+    UserModel.checkByCredential(username, nik).then((check) => {
+      if (!check) {
+        return res.status(404).send(ErrorList["User already exist"]);
       }
+
+      let password = "";
+      const characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+      for (var i = 0; i < 8; i++) {
+        password +=
+          characters[Math.floor(Math.random() * (characters.length - 1))];
+      }
+
+      hash(password, 12)
+        .then((hashedPassword) => {
+          UserModel.create({
+            name: name,
+            nik: nik,
+            username: username,
+            password: hashedPassword,
+            created_by: userID,
+            role: roleID,
+          })
+            .then((result) => {
+              const socket = new SocketHelper("createUser", {
+                id: result.id,
+                name: result.name,
+                nik: result.nik,
+                username: result.username,
+                password: password,
+                role_id: roleID,
+                role: UserModel.fetchRole(roleID)?.name || "",
+                user: result.user,
+              });
+              socket.create();
+
+              return res.status(201).send({
+                id: result.id,
+                name: result.name,
+                nik: result.nik,
+                username: result.username,
+                password: password,
+                role_id: roleID,
+                role: UserModel.fetchRole(roleID)?.name || "",
+              });
+            })
+            .catch((error) => {
+              console.error(`[error]: Error on creating user. ${error}`);
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
+        })
+        .catch((error) => {
+          console.error(`[error]: Error while hashing password. ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
     });
   };
 
-  static fetchById = (req: Request, res: Response) => {
+  /**
+   * Fetch user by ID
+   * @param req
+   * @param res
+   */
+  static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    UserModel.fetchById(id)
+    UserModel.fetchByID(id)
       .then((user) => {
-        if (user == null) {
+        if (!user) {
           return res.status(404).send(ErrorList["Not found"]);
         }
 
         return res.status(200).send({
           ...user,
-          role: UserModel.roles.filter(
-            (y) => y.id == user.user_department?.role
-          )[0].name,
+          role:
+            user.user_department == null
+              ? null
+              : UserModel.roles.filter(
+                  (y) => y.id == user.user_department?.role
+                )[0].name,
         });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching user ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
+  /**
+   * Fetch users using pagination
+   * @param req
+   * @param res
+   */
   static fetch = (req: Request, res: Response) => {
     const page = !req.query.page
       ? 1
       : Math.max(1, parseInt(req.query.page?.toString()));
-    const keyword = !req.query.keyword ? "" : req.query.keyword?.toString();
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     const limit = parseInt(process.env.LIMIT!.toString());
     const offset = (page - 1) * limit;
 
     UserModel.fetch(keyword, offset, limit)
       .then((result) => {
-        const response: any[] = [];
-        result[0].forEach((x) => {
-          response.push({
-            id: x.id,
-            nik: x.nik,
-            name: x.name,
-            username: x.username,
-            user_department: x.user_department,
-            role:
-              x.user_department == null
-                ? null
-                : UserModel.roles.filter(
-                    (y) => y.id == x.user_department?.role
-                  )[0].name,
-          });
-        });
         return res.status(200).send({
-          data: response,
+          data: result[0].map((x) => {
+            return {
+              id: x.id,
+              nik: x.nik,
+              name: x.name,
+              username: x.username,
+              user_department: x.user_department,
+              role:
+                x.user_department == null
+                  ? null
+                  : UserModel.roles.filter(
+                      (y) => y.id == x.user_department?.role
+                    )[0].name,
+            };
+          }),
           count: result[1],
         });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching user ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
-  static update = (req: Request, res: Response) => {
-    const name = req.body.name;
-    const id = req.body.id;
-    const roleId = req.body.role;
-    const role = UserModel.roles.filter((x) => x.id == roleId && x.available);
-    const userID = req.body.userId;
-
-    if (role == null || role.length == 0) {
-      return res.status(400).send(ErrorList["Parameter error"]);
-    } else {
-      UserModel.fetchById(id)
-        .then((user) => {
-          if (user == null || !user.is_active) {
-            return res.status(404).send(ErrorList["Not found"]);
-          } else {
-            const userRoleModel = new UserRoleModel(id, role[0].id);
-            Promise.all([
-              UserModel.update(id, name, null, userID),
-              userRoleModel.update(),
-            ])
-              .then((result) => {
-                const user_object = {
-                  id: result[0].id,
-                  name: result[0].name,
-                  nik: result[0].nik,
-                  username: result[0].username,
-                  password: null,
-                  role: UserModel.roles.filter(
-                    (x) => x.id == result[1].role
-                  )[0],
-                };
-
-                const socket = new SocketHelper("updateUser", user_object);
-                socket.create();
-
-                return res.status(201).send(user_object);
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          }
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    }
-  };
-
-  static toggleActive = (req: Request, res: Response) => {
-    const validation_result = validationResult(req);
-    if (!validation_result.isEmpty()) {
-      return res.status(400).send(validation_result.array()[0].msg);
-    }
-
-    try {
-      const id = parseInt(req.params.id);
-      UserModel.fetchById(id)
-        .then((user) => {
-          if (user == null) {
-            return res.status(404).send("Pengguna tidak ditemukan.");
-          }
-
-          UserModel.delete(user.id, !user.is_active, req.body.userId)
-            .then((user_delete) => {
-              // If user was active and no longer active
-              // Log him / her out from our system immidiately
-              if (user.is_active) {
-                const socket = new SocketHelper("deleteUser", user_delete);
-                socket.create();
-              }
-
-              return res.status(201).send(user_delete);
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
-            });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    } catch (err: unknown) {
-      if (err instanceof Error) {
-        return res.status(500).send(err);
-      } else {
-        return res.status(500).send(ErrorList["Unknown error"]);
-      }
-    }
-  };
-
-  static changePassword = (req: Request, res: Response) => {
-    const password = req.body.password;
-    hash(password, 12).then((hashed_password) => {
-      UserModel.updatePassword(hashed_password, req.body.userId)
-        .then((result) => {
-          return res.status(200).send(result);
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    });
-  };
-
+  /**
+   * Fetch user stats
+   * @param req
+   * @param res
+   * @returns The achievement of the user
+   */
   static fetchStats = (req: Request, res: Response) => {
     const id = req.body.userId;
     Promise.all([
-      BillModel.fetchBySales(id),
+      BillModel.fetchSalesByUserID(id),
       CustomerModel.fetchBySales(id),
     ]).then((result) => {
       const customers = result[1];
@@ -334,6 +246,119 @@ class UserController {
       ];
 
       return res.status(200).send(achivements);
+    });
+  };
+
+  /**
+   * Update user data
+   * @param req
+   * @param res
+   */
+  static update = (req: Request, res: Response) => {
+    const name = req.body.name;
+    const id = req.body.id;
+    const roleID = req.body.role;
+    const role = UserModel.fetchRole(roleID);
+    const userID = req.body.userId;
+
+    if (!role) {
+      return res.status(400).send(ErrorList["Role not found"]);
+    }
+
+    UserModel.fetchByID(id)
+      .then((user) => {
+        if (!user) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        if (!user.is_active) {
+          return res.status(400).send(ErrorList["User not active"]);
+        }
+
+        UserModel.update({
+          id: id,
+          username: user.username,
+          nik: user.nik,
+          name: name,
+          created_by: userID,
+          password: null,
+          role: roleID,
+        })
+          .then((result) => {
+            const socket = new SocketHelper("updateUser", {
+              id: result.id,
+              name: result.name,
+              nik: result.nik,
+              username: result.username,
+              password: null,
+              role: role,
+            });
+            socket.create();
+
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on updating user ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching user ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  static toggleActive = (req: Request, res: Response) => {
+    const validation_result = validationResult(req);
+    if (!validation_result.isEmpty()) {
+      return res.status(400).send(validation_result.array()[0].msg);
+    }
+
+    try {
+      const id = parseInt(req.params.id);
+      UserModel.fetchByID(id)
+        .then((user) => {
+          if (user == null) {
+            return res.status(404).send("Pengguna tidak ditemukan.");
+          }
+
+          UserModel.delete(user.id, !user.is_active, req.body.userId)
+            .then((user_delete) => {
+              // If user was active and no longer active
+              // Log him / her out from our system immidiately
+              if (user.is_active) {
+                const socket = new SocketHelper("deleteUser", user_delete);
+                socket.create();
+              }
+
+              return res.status(201).send(user_delete);
+            })
+            .catch((error) => {
+              return res.status(500).send(error);
+            });
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        return res.status(500).send(err);
+      } else {
+        return res.status(500).send(ErrorList["Unknown error"]);
+      }
+    }
+  };
+
+  static updatePassword = (req: Request, res: Response) => {
+    const password = req.body.password;
+    hash(password, 12).then((hashed_password) => {
+      UserModel.updatePassword(hashed_password, req.body.userId)
+        .then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          return res.status(500).send(error);
+        });
     });
   };
 }

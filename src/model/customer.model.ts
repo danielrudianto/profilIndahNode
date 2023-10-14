@@ -1,8 +1,10 @@
 import { PrismaClient } from "@prisma/client";
+import ErrorList from "../assets/error_list";
+import { fetchMode } from "../interface/fetch.interface";
 
 const prisma = new PrismaClient();
 
-class CustomerModel {
+export interface ICustomer {
   id?: number;
   name: string;
   address: string;
@@ -10,40 +12,26 @@ class CustomerModel {
   pic: string;
   phone_number: string;
   created_by: number;
-  created_at: Date;
+  is_delete?: boolean;
+  can_delete?: boolean;
+}
 
-  constructor(
-    name: string,
-    address: string,
-    npwp: string | null,
-    pic: string,
-    phone_number: string,
-    created_by: number,
-    id: number | null = null
-  ) {
-    if (id != null) {
-      this.id = id;
-    }
+export interface ICustomerResponse {
+  data: ICustomer[];
+  count: number;
+}
 
-    this.name = name;
-    this.address = address;
-    this.npwp = npwp;
-    this.pic = pic;
-    this.phone_number = phone_number;
-    this.created_by = created_by;
-    this.created_at = new Date();
-  }
-
-  create() {
+class CustomerModel {
+  static create(data: ICustomer) {
     return prisma.customer.create({
       data: {
-        name: this.name,
-        address: this.address,
-        npwp: this.npwp,
-        pic: this.pic,
-        phone_number: this.phone_number,
-        created_by: this.created_by,
-        created_at: this.created_at,
+        name: data.name,
+        address: data.address,
+        npwp: data.npwp,
+        pic: data.pic,
+        phone_number: data.phone_number,
+        created_by: data.created_by,
+        created_at: new Date(),
       },
       include: {
         user: {
@@ -56,19 +44,19 @@ class CustomerModel {
     });
   }
 
-  update() {
+  static update(data: ICustomer) {
     return prisma.customer.update({
       where: {
-        id: this.id,
+        id: data.id,
       },
       data: {
-        name: this.name,
-        address: this.address,
-        npwp: this.npwp,
-        pic: this.pic,
-        phone_number: this.phone_number,
-        updated_by: this.created_by,
-        updated_at: this.created_at,
+        name: data.name,
+        address: data.address,
+        npwp: data.npwp,
+        pic: data.pic,
+        phone_number: data.phone_number,
+        updated_by: data.created_by,
+        updated_at: new Date(),
       },
       include: {
         user_customer_updated_byTouser: {
@@ -107,80 +95,23 @@ class CustomerModel {
     });
   }
 
-  static fetchAutocomplete(keyword: string) {
-    return prisma.customer.findMany({
-      where: {
-        is_delete: false,
-        OR: [
-          {
-            name: {
-              contains: keyword,
-            },
-          },
-          {
-            address: {
-              contains: keyword,
-            },
-          },
-          {
-            npwp: {
-              contains: keyword,
-            },
-          },
-          {
-            pic: {
-              contains: keyword,
-            },
-          },
-          {
-            phone_number: {
-              contains: keyword,
-            },
-          },
-        ],
-      },
-      orderBy: {
-        name: "asc",
-      },
-      take: 5,
-      skip: 0,
-    });
-  }
-
-  static fetch(keyword: string, offset: number, limit: number) {
-    if (keyword == "") {
-      return prisma.$transaction([
-        prisma.$queryRaw<any[]>`
-          SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+  static async fetch(
+    keyword: string,
+    offset: number,
+    limit: number,
+    mode: fetchMode
+  ) {
+    if (mode == fetchMode.Pagination) {
+      const result = await prisma.$transaction([
+        prisma.$queryRawUnsafe<ICustomer[]>(`
+          SELECT customer.id, customer.name, customer.address, 
+          customer.pic, customer.npwp, customer.phone_number, 
+          customer.created_at, customer.is_delete,
+          IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
           FROM customer
           LEFT JOIN (
             SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
             FROM bill_code
-            JOIN customer ON bill_code.customer_id = customer.id
-            WHERE bill_code.is_delete = 0
-            GROUP BY bill_code.customer_id
-          ) itemCount
-          ON customer.id = itemCount.customer_id
-          WHERE customer.is_delete = 0
-          ORDER BY customer.name ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
-        `,
-        prisma.customer.count({
-          where: {
-            is_delete: false,
-          },
-        }),
-      ]);
-    } else {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-          SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
-          FROM customer
-          LEFT JOIN (
-            SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-            FROM bill_code
-            JOIN customer ON bill_code.customer_id = customer.id
             WHERE bill_code.is_delete = 0
             GROUP BY bill_code.customer_id
           ) itemCount
@@ -189,6 +120,9 @@ class CustomerModel {
           AND (
             customer.name LIKE '%${keyword}%'
             OR customer.address LIKE '%${keyword}%'
+            OR customer.npwp LIKE '%${keyword}%'
+            OR customer.pic LIKE '%${keyword}%'
+            OR customer.phone_number LIKE '%${keyword}%'
           )
           ORDER BY customer.name ASC
           LIMIT ${limit}
@@ -227,12 +161,77 @@ class CustomerModel {
           },
         }),
       ]);
+
+      if (!result[0]) {
+        throw Error(ErrorList["Not found"]);
+      }
+
+      return {
+        data: result[0].map((x: any) => {
+          return {
+            ...x,
+            can_delete: x.can_delete == "1" ? true : false,
+          };
+        }),
+        count: result[1],
+      };
+    } else if (mode == fetchMode.Autocomplete) {
+      return prisma.customer.findMany({
+        where: {
+          is_delete: false,
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              address: {
+                contains: keyword,
+              },
+            },
+            {
+              npwp: {
+                contains: keyword,
+              },
+            },
+            {
+              pic: {
+                contains: keyword,
+              },
+            },
+            {
+              phone_number: {
+                contains: keyword,
+              },
+            },
+          ],
+        },
+        orderBy: {
+          name: "asc",
+        },
+        take: limit,
+        skip: offset,
+      });
+    } else if (mode == fetchMode.All) {
+      return prisma.customer.findMany({
+        where: {
+          is_delete: false,
+        },
+      });
     }
   }
 
-  static fetchById(id: number) {
-    return prisma.$queryRaw<any[]>`
-      SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+  /**
+   * Fetch customer by ID
+   * @param id
+   * @returns
+   */
+  static async fetchByID(id: number): Promise<ICustomer> {
+    const customers = await prisma.$queryRaw<any[]>`
+      SELECT customer.id, customer.name, customer.address, 
+      customer.pic, customer.npwp, customer.phone_number, 
+      IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
       FROM customer
       LEFT JOIN (
         SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
@@ -243,6 +242,38 @@ class CustomerModel {
       ON customer.id = itemCount.customer_id
       WHERE customer.id = ${id}
     `;
+
+    if (!customers) {
+      throw Error(ErrorList["Not found"]);
+    }
+
+    if (customers.length == 0) {
+      throw Error(ErrorList["Not found"]);
+    }
+
+    return {
+      ...customers[0],
+      can_delete: customers[0].can_delete == "1" ? true : false,
+    };
+  }
+
+  /**
+   * Fetch customer by IDs
+   * @param id
+   * @returns
+   */
+  static async fetchByIDs(ids: number[]) {
+    return prisma.$queryRawUnsafe(`
+      SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
+      FROM customer
+      LEFT JOIN (
+        SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
+        FROM bill_code
+        WHERE bill_code.is_delete = 0
+      ) itemCount
+      ON customer.id = itemCount.customer_id
+      WHERE customer.id IN (${ids.join(",")})
+    `);
   }
 
   static fetchBySales(id: number) {

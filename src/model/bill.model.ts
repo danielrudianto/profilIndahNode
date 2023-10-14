@@ -1,121 +1,37 @@
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../app";
 
 class BillModel {
-  id?: number;
-  item_id: number;
-  price: number;
-  quantity: number;
-  discount: number;
-  bill_code_id: number;
-
-  constructor(
-    item_id: number,
-    price: number,
-    quantity: number,
-    discount: number,
-    bill_code_id: number
-  ) {
-    this.item_id = item_id;
-    this.price = price;
-    this.quantity = quantity;
-    this.discount = discount;
-    this.bill_code_id = bill_code_id;
-  }
-
-  static create(bill: BillModel[]) {
-    return prisma.bill.createMany({
-      data: bill,
-    });
-  }
-
-  static fetchQuantitySoldByDate(date: Date = new Date()) {
-    return prisma.$queryRaw`
-      SELECT SUM(quantity) AS quantity
+  /**
+   * Fetch bill based on ID array
+   * To check if bill is already returned
+   * @param ids
+   * @returns
+   */
+  static fetchByIDs(ids: number[]) {
+    // Need to calculate previously returned quantity
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT bill.id, bill_code_id, bill.quantity, 
+      COALESCE(salesReturn.return_quantity, 0) AS return_quantity
       FROM bill
-      JOIN bill_code
-      ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
-      date.getMonth() + 1
-    } AND DAY(bill_code.date) = ${date.getDate()}
-    `;
+      LEFT JOIN (
+        SELECT bill_id, SUM(quantity) AS return_quantity
+        FROM sales_return
+        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+        WHERE sales_return_code.is_confirm = 1
+        AND sales_return_code.is_delete = 0
+        GROUP BY bill_id
+      ) salesReturn
+      ON bill.id = salesReturn.bill_id
+      WHERE bill.id IN (${ids.join(",")})
+    `);
   }
 
-  static fetchMonthlyQuantitySoldByDate(date: Date = new Date()) {
-    return prisma.$queryRaw`
-      SELECT SUM(quantity) AS quantity
-      FROM bill
-      JOIN bill_code
-      ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
-      date.getMonth() + 1
-    }
-    `;
-  }
-
-  static fetchSoldByQuarter(quarter: number, year: number) {
-    switch (quarter) {
-      case 1:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(1, item_unit.conversion)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
-          JOIN item_unit ON bill.item_unit_id = item_unit.id
-          WHERE bill_code.is_confirm = 1
-          AND bill_code.is_delete = 0
-          AND bill_code.date <= '${year}-03-31'
-          AND bill_code.date >= '${year}-01-01'
-        `);
-      case 2:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(1, item_unit.conversion)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
-          JOIN item_unit ON bill.item_unit_id = item_unit.id
-          WHERE bill_code.is_confirm = 1
-          AND bill_code.is_delete = 0
-          AND bill_code.date <= '${year}-06-30'
-          AND bill_code.date >= '${year}-04-01'
-        `);
-      case 3:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(1, item_unit.conversion)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
-          JOIN item_unit ON bill.item_unit_id = item_unit.id
-          WHERE bill_code.is_confirm = 1
-          AND bill_code.is_delete = 0
-          AND bill_code.date <= '${year}-09-30'
-          AND bill_code.date >= '${year}-07-01'
-        `);
-      case 4:
-        return prisma.$queryRawUnsafe(`
-          SELECT SUM(bill.quantity * (bill.price - bill.discount) * COALESCE(1, item_unit.conversion)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
-          JOIN item_unit ON bill.item_unit_id = item_unit.id
-          WHERE bill_code.is_confirm = 1
-          AND bill_code.is_delete = 0
-          AND bill_code.date <= '${year}-12-31'
-          AND bill_code.date >= '${year}-10-01'
-        `);
-      default:
-        return new Promise((resolve, reject) => {
-          resolve([
-            {
-              value: 0,
-            },
-          ]);
-        });
-    }
-  }
-
-  static fetchById(id: number) {
+  /**
+   * Fetch bill document based on bill ID only
+   * @param id
+   * @returns
+   */
+  static fetchByID(id: number) {
     return prisma.bill.findUnique({
       where: {
         id: id,
@@ -171,14 +87,18 @@ class BillModel {
     });
   }
 
-  static fetchBySales(id: number) {
+  /**
+   * Calculate salesman's sales
+   * @param id
+   */
+  static fetchSalesByUserID(userID: number) {
     return prisma.$queryRawUnsafe<any[]>(`
       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery, SUM(bill_code.service) AS service
       FROM bill
       JOIN bill_code ON bill.bill_code_id = bill_code.id
       WHERE bill_code.is_confirm = 1
       AND bill_code.is_delete = 0
-      AND bill_code.created_by = ${id}
+      AND bill_code.created_by = ${userID}
     `);
   }
 }

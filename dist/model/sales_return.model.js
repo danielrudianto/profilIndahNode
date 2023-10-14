@@ -224,6 +224,31 @@ class SalesReturnModel {
                                         conversion: true,
                                     },
                                 },
+                                package_code: {
+                                    select: {
+                                        name: true,
+                                        description: true,
+                                        package_content: {
+                                            select: {
+                                                item: {
+                                                    select: {
+                                                        id: true,
+                                                        reference: true,
+                                                        description: true,
+                                                        unit: true,
+                                                    },
+                                                },
+                                                item_unit: {
+                                                    select: {
+                                                        unit: true,
+                                                        conversion: true,
+                                                    },
+                                                },
+                                                quantity: true,
+                                            },
+                                        },
+                                    },
+                                },
                                 bill_code: {
                                     select: {
                                         customer: {
@@ -311,7 +336,7 @@ class SalesReturnModel {
             },
         });
     }
-    static fetchSearch(date, items) {
+    static fetchSearch(date, items, packages) {
         let mysql_string = "";
         items.forEach((x) => {
             if (x.item_unit_id == null) {
@@ -334,6 +359,15 @@ class SalesReturnModel {
             AND bill.quantity >= ${x.quantity}
           )`;
             }
+        });
+        packages.forEach((x) => {
+            mysql_string += `
+        AND bill_code.id IN (
+          SELECT DISTINCT(bill.bill_code_id) AS id
+          FROM bill
+          WHERE bill.package_code_id = ${x.package_code_id}
+          AND bill.quantity >= ${x.quantity}
+        )`;
         });
         return prisma.$queryRawUnsafe(`
       SELECT bill_code.id, bill_code.date, bill_code.name, COALESCE(customer.name, 'Retail') AS customer_name

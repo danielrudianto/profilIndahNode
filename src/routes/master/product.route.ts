@@ -32,7 +32,7 @@ router.get(
   "/:id",
   param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductController.fetchById
+  ProductController.fetchByID
 );
 
 router.get("/", ProductController.fetch);
@@ -40,7 +40,7 @@ router.put(
   "/active",
   body("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductController.active
+  ProductController.activateByID
 );
 router.put(
   "/",
@@ -56,7 +56,7 @@ router.put(
     .withMessage(ErrorList["Parameter error"]),
   body("unit").exists().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductController.update
+  ProductController.updateByID
 );
 
 router.post(
@@ -74,9 +74,10 @@ router.post(
 router.delete(
   "/:id",
   administratorMiddleware,
-  param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductController.delete
+  ProductController.deleteByID
 );
 
 export default router;

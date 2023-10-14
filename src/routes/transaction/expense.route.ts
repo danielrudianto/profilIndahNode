@@ -10,7 +10,7 @@ router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ExpenseController.fetchById
+  ExpenseController.fetchByID
 );
 
 router.get(
@@ -39,14 +39,14 @@ router.put(
   body("expense_type_id").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ExpenseController.update
+  ExpenseController.updateByID
 );
 
 router.delete(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ExpenseController.deleteById
+  ExpenseController.deleteByID
 );
 
 export default router;

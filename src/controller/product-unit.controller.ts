@@ -21,7 +21,7 @@ class ItemUnitController {
     const item_units = req.body.item_units as any[];
     const userID = req.body.userId;
 
-    ItemModel.fetchById(item_id)
+    ItemModel.fetchByID(item_id)
       .then((itemArray) => {
         if (itemArray == null || itemArray.length == 0) {
           return res.status(404).send(ErrorList["Not found"]);
@@ -40,11 +40,10 @@ class ItemUnitController {
           }
         }
       })
-      .catch((error) => {});
-
-    console.log(item_id);
-    console.log(item_unit);
-    console.log(item_units);
+      .catch((error) => {
+        console.error(`[error]: Error on fetching item by ID ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 
   static fetchByID = (req: Request, res: Response) => {
@@ -84,7 +83,8 @@ class ItemUnitController {
         }
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching item by ID ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 }

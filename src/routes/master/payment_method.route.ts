@@ -11,17 +11,19 @@ router.get("/autocomplete", PaymentMethodController.fetchAutocomplete);
 router.get("/all", PaymentMethodController.fetchAll);
 router.get(
   "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PaymentMethodController.fetchById
+  PaymentMethodController.fetchByID
 );
 router.get("/", PaymentMethodController.fetch);
+
 router.post(
   "/",
   body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PaymentMethodController.submit
+  PaymentMethodController.create
 );
 
 router.put(
@@ -30,7 +32,7 @@ router.put(
   body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PaymentMethodController.update
+  PaymentMethodController.updateByID
 );
 
 router.delete("/:id", administratorMiddleware, PaymentMethodController.delete);

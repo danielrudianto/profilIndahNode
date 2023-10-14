@@ -22,6 +22,7 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const app_1 = require("../app");
 const escape_helper_1 = require("../helper/escape.helper");
 const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
+const queue_helper_1 = require("../helper/queue.helper");
 class ProductController {
 }
 _a = ProductController;
@@ -45,6 +46,14 @@ ProductController.create = (req, res) => {
             item
                 .create()
                 .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+                yield queue_helper_1.queue.add("insert-product", {
+                    reference: result.reference,
+                    description: result.description,
+                    id: result.id,
+                    itemTypeID: result.item_type_id,
+                    itemBrandID: result.item_brand_id,
+                    unit: result.unit,
+                });
                 if (units.length == 0) {
                     const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, userID);
                     const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, userID, null);

@@ -33,6 +33,7 @@ class ItemModel {
                 id: true,
                 reference: true,
                 description: true,
+                unit: true,
                 item_brand: {
                     select: {
                         name: true,

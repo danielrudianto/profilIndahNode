@@ -2,52 +2,36 @@ import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-class ExpenseModel {
+export interface IExpense {
   id?: number;
   date: Date;
-  created_by: number;
-  created_at: Date;
-  description: string;
   value: number;
-  is_delete: boolean = false;
-  deleted_by: number | null = null;
-  deleted_at: Date | null = null;
+  created_at?: Date;
+  created_by: number;
+  description: string;
   expense_type_id: number;
   company_id: number;
+  is_delete?: boolean;
+  deleted_by?: number;
+  deleted_at?: Date;
+}
 
-  constructor(
-    value: number,
-    description: string,
-    date: Date,
-    expense_type_id: number,
-    company_id: number,
-    created_by: number,
-    id: number | null = null
-  ) {
-    if (id != null) {
-      this.id = id;
-    }
-
-    this.date = date;
-    this.value = value;
-    this.created_at = new Date();
-    this.created_by = created_by;
-    this.description = description;
-    this.expense_type_id = expense_type_id;
-    this.company_id = company_id;
-  }
-
-  /** Create a new expense data */
-  create() {
+class ExpenseModel {
+  /**
+   * Create a new expense record
+   * @param data
+   * @returns
+   */
+  static create(data: IExpense) {
     return prisma.expense.create({
       data: {
-        date: this.date,
-        value: this.value,
-        created_at: this.created_at,
-        created_by: this.created_by,
-        description: this.description,
-        expense_type_id: this.expense_type_id,
-        company_id: this.company_id,
+        date: data.date,
+        value: data.value,
+        created_at: new Date(),
+        created_by: data.created_by,
+        description: data.description,
+        expense_type_id: data.expense_type_id,
+        company_id: data.company_id,
       },
       select: {
         id: true,
@@ -63,18 +47,98 @@ class ExpenseModel {
     });
   }
 
-  /** Update expense data */
-  update() {
+  /**
+   * Fetch expense by year and month
+   * @param year
+   * @param month
+   * @param offset
+   * @param limit
+   */
+  static fetch(year: number, month: number, offset: number, limit: number) {
+    const date = new Date(year, month, 1, 0, 0, 0, 0);
+    const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
+    return prisma.$transaction([
+      prisma.expense.findMany({
+        where: {
+          is_delete: false,
+          AND: [
+            {
+              date: {
+                gte: date,
+              },
+            },
+            {
+              date: {
+                lt: max_date,
+              },
+            },
+          ],
+        },
+        orderBy: {
+          date: "asc",
+        },
+        take: limit,
+        skip: offset,
+        select: {
+          description: true,
+          date: true,
+          user_expense_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
+          value: true,
+          created_at: true,
+          id: true,
+          expense_type: {
+            select: {
+              name: true,
+            },
+          },
+          company_id: true,
+          company: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.expense.count({
+        where: {
+          is_delete: false,
+          AND: [
+            {
+              date: {
+                gte: date,
+              },
+            },
+            {
+              date: {
+                lt: max_date,
+              },
+            },
+          ],
+        },
+      }),
+    ]);
+  }
+
+  /**
+   * Update expense record
+   * @param data
+   * @returns
+   */
+  static updateByID(data: IExpense) {
     return prisma.expense.update({
       where: {
-        id: this.id,
+        id: data.id,
       },
       data: {
-        date: this.date,
-        value: this.value,
-        expense_type_id: this.expense_type_id,
-        description: this.description,
-        company_id: this.company_id,
+        date: data.date,
+        value: data.value,
+        expense_type_id: data.expense_type_id,
+        description: data.description,
+        company_id: data.company_id,
       },
       include: {
         expense_type: {
@@ -87,79 +151,6 @@ class ExpenseModel {
             name: true,
           },
         },
-      },
-    });
-  }
-
-  /** Fetch expense data */
-  static fetch(year: number, month: number, offset: number, limit: number) {
-    const date = new Date(year, month, 1, 0, 0, 0, 0);
-    const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
-    return prisma.expense.findMany({
-      where: {
-        is_delete: false,
-        AND: [
-          {
-            date: {
-              gte: date,
-            },
-          },
-          {
-            date: {
-              lt: max_date,
-            },
-          },
-        ],
-      },
-      orderBy: {
-        date: "asc",
-      },
-      take: limit,
-      skip: offset,
-      select: {
-        description: true,
-        date: true,
-        user_expense_created_byTouser: {
-          select: {
-            name: true,
-          },
-        },
-        value: true,
-        created_at: true,
-        id: true,
-        expense_type: {
-          select: {
-            name: true,
-          },
-        },
-        company_id: true,
-        company: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  static count(year: number, month: number) {
-    const date = new Date(year, month, 1, 0, 0, 0, 0);
-    const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
-    return prisma.expense.count({
-      where: {
-        is_delete: false,
-        AND: [
-          {
-            date: {
-              gte: date,
-            },
-          },
-          {
-            date: {
-              lt: max_date,
-            },
-          },
-        ],
       },
     });
   }
@@ -232,7 +223,7 @@ class ExpenseModel {
       `);
   }
 
-  static fetchById(id: number) {
+  static fetchByID(id: number) {
     return prisma.expense.findUnique({
       where: {
         id: id,
@@ -266,7 +257,7 @@ class ExpenseModel {
     });
   }
 
-  static deleteById(id: number, deleted_by: number) {
+  static deleteByID(id: number, deleted_by: number) {
     return prisma.expense.update({
       where: {
         id: id,

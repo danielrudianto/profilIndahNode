@@ -7,9 +7,10 @@ import ErrorHelper from "../../helper/error.helper";
 
 const router = Router();
 
-router.post("/search", SalesInvoiceController.search);
+router.post("/search", SalesInvoiceController.fetchSearch);
 router.post(
   "/",
+  body("uuid").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("customer_id").exists().withMessage(ErrorList["Parameter error"]),
   body("payment_method_id").exists().withMessage(ErrorList["Parameter error"]),
   body("discount")
@@ -33,8 +34,13 @@ router.get("/archives", SalesInvoiceController.fetchArchive);
 router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  param("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SalesInvoiceController.fetchById
+  SalesInvoiceController.fetchByID
 );
 
 router.delete(
@@ -47,7 +53,7 @@ router.delete(
     })
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SalesInvoiceController.deleteById
+  SalesInvoiceController.deleteByID
 );
 
 export default router;

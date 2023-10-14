@@ -50,35 +50,35 @@ class ItemPurchasePriceController {
       });
   };
 
-  static create = (req: Request, res: Response) => {
-    const item_id = req.body.item_id;
-    const item_unit_id = req.body.item_unit_id;
-    const price = req.body.price;
-    const created_by = req.body.userId;
+  // static create = (req: Request, res: Response) => {
+  //   const item_id = req.body.item_id;
+  //   const item_unit_id = req.body.item_unit_id;
+  //   const price = req.body.price;
+  //   const created_by = req.body.userId;
 
-    const item_purchase_price = new ItemPurchasePriceModel(
-      price,
-      item_id,
-      created_by,
-      item_unit_id
-    );
+  //   const item_purchase_price = new ItemPurchasePriceModel(
+  //     price,
+  //     item_id,
+  //     created_by,
+  //     item_unit_id
+  //   );
 
-    item_purchase_price
-      .update()
-      .then((result) => {
-        ItemPurchasePriceModel.fetchById(result[1].id)
-          .then((item_purchase) => {
-            io.emit("updatePurchasingPrice", item_purchase);
-            return res.status(201).send(item_purchase);
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
+  //   item_purchase_price
+  //     .update()
+  //     .then((result) => {
+  //       ItemPurchasePriceModel.fetchById(result[1].id)
+  //         .then((item_purchase) => {
+  //           io.emit("updatePurchasingPrice", item_purchase);
+  //           return res.status(201).send(item_purchase);
+  //         })
+  //         .catch((error) => {
+  //           return res.status(500).send(error);
+  //         });
+  //     })
+  //     .catch((error) => {
+  //       return res.status(500).send(error);
+  //     });
+  // };
 
   static update = (req: Request, res: Response) => {
     const price = req.body.price;
@@ -87,79 +87,80 @@ class ItemPurchasePriceController {
     const userID = req.body.userId;
     ItemPurchasePriceModel.fetchByItemID(item_id, item_unit_id)
       .then((item) => {
-        if (item == null || item.length == 0) {
-          const itemPrice = new ItemPurchasePriceModel(
-            price,
-            item_id,
-            userID,
-            item_unit_id
-          );
-          itemPrice.create().then((result) => {
-            return res.status(201).send(result);
-          });
-        } else {
-          const latest_price = item[0].price;
-          if (latest_price == price) {
-            return res.status(201).send(item[0]);
-          } else {
-            const itemPrice = new ItemPurchasePriceModel(
-              price,
-              item_id,
-              userID,
-              item_unit_id
-            );
-            itemPrice
-              .update()
-              .then((result) => {
-                return res.status(201).send(result);
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-          }
-        }
+        throw Error("Not implemented yet");
+        // if (item == null || item.length == 0) {
+        //   const itemPrice = new ItemPurchasePriceModel(
+        //     price,
+        //     item_id,
+        //     userID,
+        //     item_unit_id
+        //   );
+        //   itemPrice.create().then((result) => {
+        //     return res.status(201).send(result);
+        //   });
+        // } else {
+        //   const latest_price = item[0].price;
+        //   if (latest_price == price) {
+        //     return res.status(201).send(item[0]);
+        //   } else {
+        //     const itemPrice = new ItemPurchasePriceModel(
+        //       price,
+        //       item_id,
+        //       userID,
+        //       item_unit_id
+        //     );
+        //     itemPrice
+        //       .update()
+        //       .then((result) => {
+        //         return res.status(201).send(result);
+        //       })
+        //       .catch((error) => {
+        //         return res.status(500).send(error);
+        //       });
+        //   }
+        // }
       })
       .catch((error) => {
         return res.status(500).send(error);
       });
   };
 
-  static createBulk = (req: Request, res: Response) => {
-    const transactions: any[] = [];
-    const insert_transactions: any[] = [];
-    const data = req.body as any[];
-    const userID = req.body.userId;
-    for (let x of data) {
-      const price = x.price;
-      const item_unit_id = x.item_unit_id == 0 ? null : x.item_unit_id;
-      const item_id = x.id;
-      const itemPurchasePrice = new ItemPurchasePriceModel(
-        price,
-        item_id,
-        userID,
-        item_unit_id
-      );
+  // static createBulk = (req: Request, res: Response) => {
+  //   const transactions: any[] = [];
+  //   const insert_transactions: any[] = [];
+  //   const data = req.body as any[];
+  //   const userID = req.body.userId;
+  //   for (let x of data) {
+  //     const price = x.price;
+  //     const item_unit_id = x.item_unit_id == 0 ? null : x.item_unit_id;
+  //     const item_id = x.id;
+  //     const itemPurchasePrice = new ItemPurchasePriceModel(
+  //       price,
+  //       item_id,
+  //       userID,
+  //       item_unit_id
+  //     );
 
-      transactions.push(
-        ItemPurchasePriceModel.delete(item_id, item_unit_id, userID)
-      );
-      insert_transactions.push(itemPurchasePrice.create());
-    }
+  //     transactions.push(
+  //       ItemPurchasePriceModel.delete(item_id, item_unit_id, userID)
+  //     );
+  //     insert_transactions.push(itemPurchasePrice.create());
+  //   }
 
-    Promise.all(transactions)
-      .then((result) => {
-        Promise.all(insert_transactions)
-          .then(() => {
-            return res.status(200).send(result);
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
+  //   Promise.all(transactions)
+  //     .then((result) => {
+  //       Promise.all(insert_transactions)
+  //         .then(() => {
+  //           return res.status(200).send(result);
+  //         })
+  //         .catch((error) => {
+  //           return res.status(500).send(error);
+  //         });
+  //     })
+  //     .catch((error) => {
+  //       return res.status(500).send(error);
+  //     });
+  // };
 
   static fetchFormat = (req: Request, res: Response) => {
     const brand_id = req.body.brand as number[];

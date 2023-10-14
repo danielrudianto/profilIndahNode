@@ -13,44 +13,62 @@ SalesReturnController.create = (req, res) => {
     const date = new Date(req.body.date);
     const payment_method_id = req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
     const items = req.body.sales_return;
-    if (items.length > 0) {
-        const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
-        const sales_return_code = new sales_return_model_1.default(name, date, req.body.userId, payment_method_id, items, null, true);
-        sales_return_code
-            .create()
-            .then((result) => {
-            sales_return_model_1.default.fetchById(result.id).then((salesReturn) => {
-                if (salesReturn == null) {
-                    return res.status(400).send(error_list_1.default["Not found"]);
-                }
-                else {
-                    product_stock_model_1.default.updateStock(salesReturn.sales_return.map((x) => {
-                        const quantity = parseFloat(x.quantity.toString()) *
+    if (items.length == 0) {
+        return res.status(400).send(error_list_1.default["Parameter error"]);
+    }
+    const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
+    const sales_return_code = new sales_return_model_1.default(name, date, req.body.userId, payment_method_id, items, null, true);
+    sales_return_code
+        .create()
+        .then((result) => {
+        sales_return_model_1.default.fetchById(result.id).then((salesReturn) => {
+            if (!salesReturn) {
+                return res.status(400).send(error_list_1.default["Not found"]);
+            }
+            const updateArray = [];
+            salesReturn.sales_return.forEach((x) => {
+                if (x.bill.item != null) {
+                    updateArray.push({
+                        item_id: x.bill.item.id,
+                        quantity: parseFloat(x.quantity.toString()) *
                             (x.bill.item_unit == null
                                 ? 1
-                                : parseFloat(x.bill.item_unit.conversion.toString()));
-                        return {
-                            item_id: x.bill.item.id,
-                            quantity: quantity,
-                        };
-                    })).then(() => {
-                        return res.status(201).send(result);
+                                : parseFloat(x.bill.item_unit.conversion.toString())),
+                    });
+                }
+                else if (x.bill.package_code != null) {
+                    x.bill.package_code.package_content.forEach((y) => {
+                        updateArray.push({
+                            item_id: y.item.id,
+                            quantity: parseFloat(x.quantity.toString()) *
+                                parseFloat(y.quantity.toString()) *
+                                (y.item_unit == null
+                                    ? 1
+                                    : parseFloat(y.item_unit.conversion.toString())),
+                        });
                     });
                 }
             });
-        })
-            .catch((error) => {
-            return res.status(500).send(error);
+            product_stock_model_1.default.updateStock(updateArray)
+                .then(() => {
+                return res.status(201).send(result);
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on updating stock ${error}`);
+                return res.status(500).send(error);
+            });
         });
-    }
-    else {
-        return res.status(400).send("Data barang tidak dilampirkan.");
-    }
+    })
+        .catch((error) => {
+        return res.status(500).send(error);
+    });
 };
 SalesReturnController.fetchSearch = (req, res) => {
+    console.log(req.body);
     const date = new Date(req.body.date);
     const items = req.body.items;
-    sales_return_model_1.default.fetchSearch(date, items)
+    const packages = req.body.packages;
+    sales_return_model_1.default.fetchSearch(date, items, packages)
         .then((result) => {
         return res.status(200).send(result.map((x) => {
             return {

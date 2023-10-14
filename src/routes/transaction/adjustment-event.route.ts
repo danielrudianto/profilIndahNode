@@ -11,18 +11,15 @@ router.get("/archives", AdjustmentCaseController.fetchArchives);
 router.get(
   "/code/:id",
   param("id").notEmpty().withMessage("Mohon isikan ID penyesuaian stock."),
-  AdjustmentCaseController.fetchCodeById
+  ErrorHelper.intercept,
+  AdjustmentCaseController.fetchCodeByID
 );
 
 router.get(
   "/:id",
-  param("id")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  AdjustmentCaseController.fetchById
+  AdjustmentCaseController.fetch
 );
 
 router.post(
@@ -35,8 +32,9 @@ router.post(
 
 router.delete(
   "/:id",
-  param("id").isInt({ min: 0 }).withMessage(""),
-  AdjustmentCaseController.deleteById
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  AdjustmentCaseController.deleteByID
 );
 
 export default router;

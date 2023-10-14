@@ -3,16 +3,31 @@ import { hashSync } from "bcrypt";
 
 const prisma = new PrismaClient();
 
-class UserModel {
-  id?: number;
+interface IUser {
   name: string;
-  nik: string;
   username: string;
-  password: string;
+  nik: string;
   created_by: number;
-  created_at: Date;
+  role: number;
+}
 
-  static roles = [
+interface ICreateUser extends IUser {
+  password: string;
+}
+
+interface IUpdateUser extends IUser {
+  id: number;
+  password: string | null;
+}
+
+interface IUserRole {
+  id: number;
+  name: string;
+  available: boolean;
+}
+
+class UserModel {
+  static roles: IUserRole[] = [
     {
       id: 1,
       name: "Pembelian",
@@ -40,29 +55,24 @@ class UserModel {
     },
   ];
 
-  constructor(
-    name: string,
-    nik: string,
-    username: string,
-    password: string,
-    created_by: number
-  ) {
-    this.name = name;
-    this.nik = nik;
-    this.password = password;
-    this.username = username;
-    this.created_by = created_by;
-    this.created_at = new Date();
-  }
-
-  create() {
+  /**
+   * Create a new user
+   * @param data
+   * @returns User
+   */
+  static create(data: ICreateUser) {
     return prisma.user.create({
       data: {
-        name: this.name,
-        username: this.username,
-        password: this.password,
-        nik: this.nik,
-        created_by: this.created_by,
+        name: data.name,
+        username: data.username,
+        password: data.password,
+        nik: data.nik,
+        created_by: data.created_by,
+        user_department: {
+          create: {
+            role: data.role,
+          },
+        },
       },
       select: {
         id: true,
@@ -78,19 +88,36 @@ class UserModel {
     });
   }
 
-  static fetchByIdentifiers(username: string, nik: string) {
-    return prisma.user.count({
-      where: {
-        OR: [
-          {
-            username: username,
-          },
-          {
-            nik: nik,
-          },
-        ],
-      },
-    });
+  /**
+   * Fetch role
+   * @param roleID
+   * @returns IUserRole | null
+   */
+  static fetchRole(roleID: number): IUserRole | null {
+    return this.roles.filter((x) => x.id == roleID)[0] || null;
+  }
+
+  /**
+   * Check if user with certain credential exists
+   * @param username
+   * @param nik
+   * @returns boolean
+   */
+  static async checkByCredential(username: string, nik: string) {
+    return (
+      (await prisma.user.count({
+        where: {
+          OR: [
+            {
+              username: username,
+            },
+            {
+              nik: nik,
+            },
+          ],
+        },
+      })) == 0
+    );
   }
 
   static fetch(keyword: string, offset: number, limit: number) {
@@ -189,7 +216,12 @@ class UserModel {
     }
   }
 
-  static fetchById(id: number) {
+  /**
+   * Fetch user by ID
+   * @param id
+   * @returns
+   */
+  static fetchByID(id: number) {
     return prisma.user.findUnique({
       where: {
         id: id,
@@ -228,36 +260,39 @@ class UserModel {
     });
   }
 
-  static update(
-    id: number,
-    name: string,
-    password: string | null,
-    created_by: number
-  ) {
-    if (password == null) {
-      return prisma.user.update({
-        where: {
-          id: id,
-        },
-        data: {
-          name: name,
-          updated_by: created_by,
-          updated_at: new Date(),
-        },
-      });
-    } else {
-      return prisma.user.update({
-        where: {
-          id: id,
-        },
-        data: {
-          name: name,
-          password: password,
-          updated_by: created_by,
-          updated_at: new Date(),
-        },
-      });
-    }
+  static update(data: IUpdateUser) {
+    return data.password == null
+      ? prisma.user.update({
+          where: {
+            id: data.id,
+          },
+          data: {
+            name: data.name,
+            updated_by: data.created_by,
+            updated_at: new Date(),
+            user_department: {
+              update: {
+                role: data.role,
+              },
+            },
+          },
+        })
+      : prisma.user.update({
+          where: {
+            id: data.id,
+          },
+          data: {
+            name: data.name,
+            updated_by: data.created_by,
+            updated_at: new Date(),
+            password: data.password,
+            user_department: {
+              update: {
+                role: data.role,
+              },
+            },
+          },
+        });
   }
 
   static delete(user_id: number, status: boolean, created_by: number) {

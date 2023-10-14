@@ -16,13 +16,13 @@ router.post(
   CompanyController.create
 );
 
-router.get("/autocomplete", CompanyController.getAutocomplete);
+router.get("/autocomplete", CompanyController.fetchAutocomplete);
 router.get(
   "/:id",
   administratorMiddleware,
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  CompanyController.fetchById
+  CompanyController.fetchByID
 );
 router.get("/", CompanyController.fetch);
 
@@ -32,8 +32,13 @@ router.delete(
   ErrorHelper.intercept,
   CompanyController.delete
 );
-router.put("/", CompanyController.update);
 
-// router.get("/available", CompanyController.fetchAvailable);
+router.put(
+  "/",
+  body("name").exists().withMessage(ErrorList["Parameter error"]),
+  body("address").exists().withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  CompanyController.update
+);
 
 export default router;

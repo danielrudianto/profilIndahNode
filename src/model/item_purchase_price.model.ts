@@ -2,128 +2,84 @@ import { PrismaClient, PrismaPromise } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
-class ItemPurchasePriceModel {
-  id?: number;
+interface ICreateItemPurchasePrice {
   price: number;
+  discount: number;
   item_id: number;
   created_by: number;
-  created_at: Date;
   item_unit_id: number | null;
+}
 
-  constructor(
-    price: number,
-    item_id: number,
-    created_by: number,
-    item_unit_id: number | null = null
-  ) {
-    this.item_id = item_id;
-    this.price = price;
-    this.created_by = created_by;
-    this.created_at = new Date();
-    this.item_unit_id = item_unit_id;
-  }
+interface IFetchCurrentItemPurchasePrice {
+  item_id: number;
+  item_unit_id: number | null;
+}
 
-  create() {
-    return prisma.item_price_purchase.create({
-      data: {
-        price: this.price,
-        created_by: this.created_by,
-        created_at: this.created_at,
-        item_id: this.item_id,
-        item_unit_id: this.item_unit_id,
-      },
-      select: {
-        id: true,
-        price: true,
-        is_delete: true,
-        user: {
-          select: {
-            name: true,
-          },
-        },
-        item: {
-          select: {
-            reference: true,
-            description: true,
-            item_brand: {
-              select: {
-                name: true,
-              },
-            },
-            item_type: {
-              select: {
-                name: true,
-              },
-            },
-          },
-        },
-        item_unit: {
-          select: {
-            unit: true,
-            conversion: true,
-          },
-        },
-      },
-    });
-  }
+interface IFetchCurrentItemPurchasePriceResult {
+  price: number;
+  discount: number;
+  item_id: number;
+  item_unit_id: number | null;
+}
 
-  update() {
-    return prisma.$transaction([
-      prisma.item_price_purchase.updateMany({
-        where: {
-          item_id: this.item_id,
-          item_unit_id: this.item_unit_id,
-          is_delete: false,
-        },
-        data: {
-          is_delete: true,
-          deleted_at: this.created_at,
-          deleted_by: this.created_by,
-        },
-      }),
-      prisma.item_price_purchase.create({
-        data: {
-          price: this.price,
-          created_by: this.created_by,
-          created_at: this.created_at,
-          item_id: this.item_id,
-          item_unit_id: this.item_unit_id,
-        },
-        select: {
-          id: true,
-          price: true,
-          is_delete: true,
-          user: {
-            select: {
-              name: true,
-            },
-          },
-          item: {
-            select: {
-              reference: true,
-              description: true,
-              item_brand: {
-                select: {
-                  name: true,
-                },
-              },
-              item_type: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-          item_unit: {
-            select: {
-              unit: true,
-              conversion: true,
-            },
-          },
-        },
-      }),
-    ]);
-  }
+class ItemPurchasePriceModel {
+  // update() {
+  //   return prisma.$transaction([
+  //     prisma.item_price_purchase.updateMany({
+  //       where: {
+  //         item_id: this.item_id,
+  //         item_unit_id: this.item_unit_id,
+  //         is_delete: false,
+  //       },
+  //       data: {
+  //         is_delete: true,
+  //         deleted_at: this.created_at,
+  //         deleted_by: this.created_by,
+  //       },
+  //     }),
+  //     prisma.item_price_purchase.create({
+  //       data: {
+  //         price: this.price,
+  //         created_by: this.created_by,
+  //         created_at: this.created_at,
+  //         item_id: this.item_id,
+  //         item_unit_id: this.item_unit_id,
+  //       },
+  //       select: {
+  //         id: true,
+  //         price: true,
+  //         is_delete: true,
+  //         user: {
+  //           select: {
+  //             name: true,
+  //           },
+  //         },
+  //         item: {
+  //           select: {
+  //             reference: true,
+  //             description: true,
+  //             item_brand: {
+  //               select: {
+  //                 name: true,
+  //               },
+  //             },
+  //             item_type: {
+  //               select: {
+  //                 name: true,
+  //               },
+  //             },
+  //           },
+  //         },
+  //         item_unit: {
+  //           select: {
+  //             unit: true,
+  //             conversion: true,
+  //           },
+  //         },
+  //       },
+  //     }),
+  //   ]);
+  // }
 
   static insertItems(item_price: any[]) {
     const transactions: PrismaPromise<any>[] = [];
@@ -181,7 +137,9 @@ class ItemPurchasePriceModel {
     if (keyword == "") {
       return prisma.$transaction([
         prisma.$queryRaw<any[]>`
-          SELECT item.reference, item.description, item.id, item.unit, COALESCE(price.price, 0) AS price, COALESCE(priceCount.count, 0) AS count
+          SELECT item.reference, item.description, item.id, item.unit, 
+          COALESCE(price.price, 0) AS price, 
+          COALESCE(priceCount.count, 0) AS count
           FROM item
           JOIN (
               SELECT item_price_purchase.price, item_price_purchase.item_id
@@ -311,7 +269,12 @@ class ItemPurchasePriceModel {
     }
   }
 
-  static fetchCurrentPrice(data: any[]) {
+  /**
+   * Fetch current price of items
+   * @param data
+   * @returns
+   */
+  static fetchCurrentPrice(data: IFetchCurrentItemPurchasePrice[]) {
     let whereQuery = "WHERE is_delete = 0";
     for (let x of data) {
       if (x.item_unit_id == null) {
@@ -321,15 +284,23 @@ class ItemPurchasePriceModel {
       }
     }
 
-    return prisma.$queryRawUnsafe<any[]>(`
-        SELECT item_price_purchase.price, item_price_purchase.item_id, item_price_purchase.item_unit_id
+    return prisma.$queryRawUnsafe<IFetchCurrentItemPurchasePriceResult[]>(`
+        SELECT item_price_purchase.price, item_price_purchase.discount,
+        item_price_purchase.item_id, item_price_purchase.item_unit_id
         FROM item_price_purchase
         ${whereQuery}
         ORDER BY item_price_purchase.id DESC
       `);
   }
 
-  static delete(
+  /**
+   * Delete item price purchase by item id and item unit id
+   * @param item_id
+   * @param item_unit_id
+   * @param created_by
+   * @returns ItemPricePurchase[]
+   */
+  static deleteByID(
     item_id: number,
     item_unit_id: number | null,
     created_by: number

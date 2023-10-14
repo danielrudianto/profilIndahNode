@@ -7,14 +7,13 @@ import ErrorHelper from "../../helper/error.helper";
 const router = Router();
 
 router.get("/autocomplete", ExpenseTypeController.fetchAutocomplete);
-
 router.get(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ExpenseTypeController.fetchByID
 );
-
 router.get("/", ExpenseTypeController.fetch);
 
 router.post(
@@ -27,9 +26,10 @@ router.post(
 
 router.delete(
   "/:id",
-  param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ExpenseTypeController.delete
+  ExpenseTypeController.deleteByID
 );
 
 router.put(
@@ -38,7 +38,7 @@ router.put(
   body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ExpenseTypeController.update
+  ExpenseTypeController.updateByID
 );
 
 export default router;
