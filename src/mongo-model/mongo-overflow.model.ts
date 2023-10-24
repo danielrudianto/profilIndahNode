@@ -9,10 +9,6 @@ export const overflowSchema = new Schema({
     type: Date,
     required: true,
   },
-  document: {
-    type: String,
-    required: true,
-  },
   quantity: {
     type: Number,
     required: true,

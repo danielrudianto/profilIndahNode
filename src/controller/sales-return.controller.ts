@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
+import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
@@ -63,7 +64,7 @@ class SalesReturnController {
             quantity: x.quantity,
           };
         }),
-      }).then((result) => {
+      }).then(async (result) => {
         const updateArray: any[] = [];
         result.sales_return.forEach((x) => {
           if (x.bill.item != null) {
@@ -90,17 +91,8 @@ class SalesReturnController {
           }
         });
 
-        Promise.all([
-          ProductStockModel.updateStock(updateArray),
-          queue.add("create-sales-return", result),
-        ])
-          .then(() => {
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on updating stock ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
+        await queue.add("create-sales-return", result);
+        return res.status(201).send(result);
       });
     });
   };
@@ -146,10 +138,10 @@ class SalesReturnController {
    * @return Sales return archive
    */
   static fetchArchives = (req: Request, res: Response) => {
-    const mode =
-      req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-      SalesReturnModel.fetchArchiveYears(mode)!
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null) {
+      SalesReturnModel.fetchArchiveYears()
         .then((result) => {
           return res.status(200).send(
             result.map((x) => {
@@ -163,9 +155,8 @@ class SalesReturnController {
         .catch((error) => {
           return res.status(500).send(error);
         });
-    } else if (req.query.year != undefined && req.query.month == undefined) {
-      const year = parseInt(req.query.year.toString());
-      SalesReturnModel.fetchArchiveMonths(year, mode)!
+    } else if (year != null && month == null) {
+      SalesReturnModel.fetchArchiveMonths(year)!
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
@@ -176,13 +167,19 @@ class SalesReturnController {
         .catch((error) => {
           return res.status(500).send(error);
         });
-    } else if (req.query.year != undefined && req.query.month != undefined) {
-      const year = parseInt(req.query.year.toString());
-      const month = parseInt(req.query.month.toString());
-      const page =
-        req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
+    } else {
+      const page = req.body.limit.page;
+      const keyword = req.body.search == null ? "" : req.body.search.keyword;
+      const mode = req.body.mode;
 
-      SalesReturnModel.fetchArchive(year, month, page, mode)!
+      SalesReturnModel.fetchArchive({
+        year: year,
+        month: month,
+        limit: 10,
+        offset: (page - 1) * 10,
+        keyword: mysql_real_escape_string(keyword),
+        mode: mode,
+      })!
         .then((result) => {
           return res.status(200).send({
             data: result[0].map((x) => {
@@ -279,44 +276,9 @@ class SalesReturnController {
       }
 
       SalesReturnModel.deleteByID(id, userID)
-        .then((result) => {
-          const updateArray: any[] = [];
-          result.sales_return.forEach((x) => {
-            if (x.bill.item != null) {
-              updateArray.push({
-                item_id: x.bill.item.id,
-                quantity:
-                  parseFloat(x.quantity.toString()) *
-                  (x.bill.item_unit == null
-                    ? 1
-                    : parseFloat(x.bill.item_unit.conversion.toString())),
-              });
-            } else if (x.bill.package_code != null) {
-              x.bill.package_code.package_content.forEach((y) => {
-                updateArray.push({
-                  item_id: y.item.id,
-                  quantity:
-                    parseFloat(x.quantity.toString()) *
-                    parseFloat(y.quantity.toString()) *
-                    (y.item_unit == null
-                      ? 1
-                      : parseFloat(y.item_unit.conversion.toString())),
-                });
-              });
-            }
-          });
-
-          Promise.all([
-            ProductStockModel.updateStock(updateArray),
-            queue.add("delete-sales-return", result),
-          ])
-            .then(() => {
-              return res.status(201).send(result);
-            })
-            .catch((error) => {
-              console.error(`[error]: Error on updating stock ${error}`);
-              return res.status(500).send(ErrorList["Internal server error"]);
-            });
+        .then(async (result) => {
+          await queue.add("delete-sales-return", result);
+          return res.status(201).send(result);
         })
         .catch((error) => {
           return res.status(500).send(error);

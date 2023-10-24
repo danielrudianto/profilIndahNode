@@ -10,6 +10,6 @@ router.get("/", ItemPriceController.fetch);
 router.post("/format", ItemPriceController.fetchFormat);
 router.post("/bulk", ItemPriceController.createBulk);
 
-router.put("/", ItemPriceController.update);
+router.put("/", ItemPriceController.updateByID);
 
 export default router;

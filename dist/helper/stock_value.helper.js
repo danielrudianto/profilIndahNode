@@ -21,3 +21,4 @@ class StockValueHelper {
     }
 }
 exports.default = StockValueHelper;
+//# sourceMappingURL=stock_value.helper.js.map

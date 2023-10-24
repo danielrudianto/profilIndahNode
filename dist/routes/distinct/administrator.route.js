@@ -11,7 +11,8 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const router = (0, express_1.Router)();
 router.post("/login", auth_controller_1.default.login);
 router.post("/refresh-token", auth_helper_1.authMiddleware, auth_controller_1.default.refreshToken);
-router.post("/product", auth_helper_1.authMiddleware, product_controller_1.default.search);
+router.post("/product", auth_helper_1.authMiddleware, product_controller_1.default.fetch);
 router.get("/product/:id", auth_helper_1.authMiddleware, product_controller_1.default.fetchCompleteById);
 router.get("/customer", auth_helper_1.authMiddleware, customer_controller_1.default.fetch);
 exports.default = router;
+//# sourceMappingURL=administrator.route.js.map

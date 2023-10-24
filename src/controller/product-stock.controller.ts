@@ -1,221 +1,356 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { mysql_real_escape_string } from "../helper/escape.helper";
 import StockCardHelper from "../helper/stock_card.helper";
 import { ItemModel } from "../model/item.model";
 import ProductStockModel from "../model/product-stock.model";
-import cron from "node-cron";
-import DistributionStockModel from "../model/distribution_stock.model";
+import { meili } from "../app";
+import { mongoProductModel } from "../mongo-model/mongo-product.model";
 
 class ProductStockController {
+  /**
+   * Fetch product stock
+   * @param req
+   * @param res
+   */
   static fetch = (req: Request, res: Response) => {
-    if (req.query.mode == "plain" || req.query.mode == "problem") {
-      const page: number = !req.query.page
-        ? 1
-        : Math.max(parseInt(req.query.page.toString()), 1);
-      const limit = parseInt(process.env.LIMIT!);
-      const offset = (page - 1) * limit;
-      const keyword = !req.query.keyword
-        ? ""
-        : decodeURIComponent(
-            mysql_real_escape_string(req.query.keyword.toString())
-          );
-      ProductStockModel.fetch(keyword, offset, limit, req.query.mode)
-        .then((result) => {
+    const page = !req.query.page ? 1 : parseInt(req.query.page.toString());
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const mode = req.query.mode;
+    switch (mode) {
+      case "problem":
+        Promise.all([
+          mongoProductModel
+            .find({
+              $or: [
+                {
+                  reference: {
+                    $regex: keyword,
+                  },
+                },
+                {
+                  description: {
+                    $regex: keyword,
+                  },
+                },
+              ],
+              currentStock: {
+                $lt: 0,
+              },
+            })
+            .sort({ reference: 1 })
+            .limit(10)
+            .skip((page - 1) * 10),
+          mongoProductModel.countDocuments({
+            currentStock: {
+              $lt: 0,
+            },
+          }),
+        ]).then((result) => {
           return res.status(200).send({
-            data: result[0],
+            data: result[0].map((x) => {
+              return {
+                id: x.itemID,
+                reference: x.reference,
+                description: x.description,
+                stock: x.currentStock,
+                unit: x.unit,
+                item_brand_id: x.itemBrandID,
+                item_type_id: x.itemTypeID,
+              };
+            }),
             count: result[1],
           });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
         });
+        break;
+      case "plain":
+      default:
+        meili
+          .index("item")
+          .search(keyword, {
+            limit: 10,
+            offset: (page - 1) * 10,
+          })
+          .then(async (result) => {
+            const productStock = await mongoProductModel.find(
+              {
+                itemID: {
+                  $in: result.hits.map((x) => x.id),
+                },
+              },
+              "itemID unit currentStock"
+            );
+
+            return res.status(200).send({
+              data: result.hits.map((x) => {
+                const stockIndex = productStock.findIndex(
+                  (y) => y.itemID == x.id
+                );
+                return {
+                  id: x.id,
+                  reference: x.reference,
+                  description: x.description,
+                  stock:
+                    stockIndex == -1
+                      ? 0
+                      : productStock[stockIndex].currentStock,
+                  unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                  item_brand_id: x.itemBrandID,
+                  item_type_id: x.itemTypeID,
+                  item_brand_name: x.brand,
+                  item_type_name: x.type,
+                };
+              }),
+              count: result.estimatedTotalHits,
+            });
+          });
+        break;
     }
   };
 
-  static fetchByID = (req: Request, res: Response) => {
+  /**
+   * Fetch product stock card by ID
+   * @param req
+   * @param res
+   */
+  static fetchByID = async (req: Request, res: Response) => {
     const itemID = parseInt(req.params.id);
-    const mode = req.query.mode;
-    switch (mode) {
-      case "card":
-        const page =
-          req.query.page == null ? 1 : parseInt(req.query.page.toString());
-        ProductStockModel.fetchByID(itemID, (page - 1) * 10)
-          .then((result) => {
-            return res.status(200).send({
-              data: (result[0] as any[]).map((x) => {
-                return {
-                  name: x.f0,
-                  date: x.f1,
-                  bill_id: x.f4,
-                  adjustment_case_id: x.f5,
-                  good_receipt_id: x.f6,
-                  sales_return_id: x.f7,
-                  quantity: x.f8,
-                  stock: x.f9,
-                  unit: x.f10,
-                  conversion: x.f11,
-                  document_id: x.f12,
-                };
-              }),
-              count: parseInt((result[1] as any[])[0].f0.toString()),
-            });
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
+    const page =
+      req.query.page == null ? 1 : parseInt(req.query.page.toString());
+
+    const product = await mongoProductModel.findOne(
+      { itemID: itemID },
+      {
+        stockCard: {
+          $slice: [(page - 1) * 10, 10],
+        },
+      }
+    );
+
+    const stockCardLength = await mongoProductModel.aggregate([
+      {
+        $match: {
+          itemID: itemID,
+        },
+      },
+      {
+        $project: {
+          stockCard: 1,
+          _id: 0,
+          length: { $size: "$stockCard" },
+        },
+      },
+    ]);
+
+    if (!product) {
+      return res.status(404).send(ErrorList["Not found"]);
     }
+
+    return res.status(200).send({
+      data: product.stockCard.map((x) => {
+        return {
+          name: x.document,
+          date: x.date,
+          bill_id: x.billID,
+          adjustment_case_id: x.adjustmentCaseID,
+          good_receipt_id: x.goodReceiptID,
+          sales_return_id: x.salesReturnID,
+          quantity: x.displayQuantity,
+          unit: x.unit,
+          stock: x.currentStock,
+          defaultUnit: product.unit,
+          document_id:
+            x.salesReturnID != null
+              ? x.salesReturnCodeID
+              : x.billID != null
+              ? x.billCodeID
+              : x.goodReceiptID != null
+              ? x.goodReceiptCodeID
+              : x.adjustmentCaseID != null
+              ? x.adjustmentCaseCodeID
+              : null,
+        };
+      }),
+      count: stockCardLength[0].length,
+    });
   };
 
   static create = (req: Request, res: Response) => {
     const mode = req.body.mode;
-    const format = req.body.format;
     switch (mode) {
       case "inadequate":
-        const brand_id = req.body.brand;
-        const type_id = req.body.type;
-        switch (format) {
-          case "PDF":
-            ProductStockModel.fetchInadequate(brand_id, type_id)
-              .then((result) => {
-                if (result.length == 0) {
-                  return res.status(404).send(ErrorList["Not found"]);
-                } else {
-                  StockCardHelper.createInsufficientPdf(
-                    result,
-                    function (binary: string) {
-                      return res.status(200).send({
-                        data: binary,
-                      });
-                    },
-                    function (error: any) {
-                      return res.status(500).send(error);
-                    }
+        const brand_id = req.body.brand as number[];
+        const type_id = req.body.type as number[];
+        ProductStockModel.fetchInadequate(brand_id, type_id)
+          .then(async (result) => {
+            const products = await mongoProductModel
+              .find({
+                itemID: {
+                  $in: result.map((x) => x.id),
+                },
+              })
+              .select("itemID currentStock");
+
+            return res.status(200).send({
+              data: result
+                .filter((x) => {
+                  const productIndex = products.findIndex(
+                    (y) => y.itemID == x.id
                   );
-                }
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-            break;
-          default:
-            ProductStockModel.fetchInadequate(brand_id, type_id)
-              .then((result) => {
-                return res.status(200).send({
-                  data: result.map((x) => {
-                    return {
-                      reference: x.reference,
-                      description: x.description,
-                      minimumStock: x.minimum_stock,
-                      unit: x.unit,
-                      stock: x.stock,
-                    };
-                  }),
-                });
-              })
-              .catch((error) => {
-                return res.status(500).send(error);
-              });
-            break;
-        }
-        break;
-      case "input":
-        const inputItemID = req.body.itemID;
-        const inputDate = req.body.date;
-        ItemModel.fetchByID(inputItemID)
-          .then((item) => {
-            if (!item) {
-              return res.status(404).send(ErrorList["Not found"]);
-            } else {
-              ProductStockModel.fetchStockData(
-                inputItemID,
-                "input",
-                `${inputDate} 00:00:00`,
-                `${inputDate} 23:59:59`
-              )!
-                .then((result) => {
-                  return res.status(200).send(
-                    (result as any[]).map((x) => {
-                      return {
-                        name: x.f0,
-                        date: new Date(x.f1),
-                        created_at: new Date(x.f2),
-                        item_id: x.f3,
-                        item_unit_id: x.f4,
-                        bill_id: x.f5,
-                        adjustment_case_id: x.f6,
-                        good_receipt_id: x.f7,
-                        sales_return_id: x.f8,
-                        quantity: x.f9,
-                        stock: x.f10,
-                        unit: x.f11,
-                        conversion: x.f12,
-                      };
-                    })
+                  return (
+                    productIndex != -1 &&
+                    products[productIndex].currentStock < x.minimum_stock &&
+                    products[productIndex].currentStock > 0
                   );
                 })
-                .catch((error) => {
-                  console.error(
-                    `[error]: Error on fetching stock data ${error}`
+                .map((x) => {
+                  const productIndex = products.findIndex(
+                    (y) => y.itemID == x.id
                   );
-                  return res
-                    .status(500)
-                    .send(ErrorList["Internal server error"]);
-                });
-            }
+
+                  return {
+                    id: x.id,
+                    reference: x.reference,
+                    description: x.description,
+                    stock: products[productIndex].currentStock,
+                    unit: x.unit,
+                    minimum_stock: x.minimum_stock,
+                  };
+                }),
+            });
           })
           .catch((error) => {
-            console.error(`[error]: Error on fetching item ${error}`);
+            console.error(`[error]: Error on fetching products ${error}`);
             return res.status(500).send(ErrorList["Internal server error"]);
           });
+
         break;
-      case "document":
-        const documentItemID = req.body.itemID;
-        const documentDate = req.body.date;
-        ItemModel.fetchByID(documentItemID)
-          .then((item) => {
-            if (!item) {
+      case "mutation":
+        const mutationItemID = req.body.itemID;
+        const date = req.body.date;
+        const offset = req.body.offset;
+
+        mongoProductModel
+          .findOne({
+            itemID: mutationItemID,
+          })
+          .then((result) => {
+            if (!result) {
               return res.status(404).send(ErrorList["Not found"]);
-            } else {
-              ProductStockModel.fetchStockData(
-                documentItemID,
-                "document",
-                documentDate,
-                documentDate
-              )!
-                .then((result) => {
-                  return res.status(200).send(
-                    (result as any[]).map((x) => {
-                      return {
-                        name: x.f0,
-                        date: new Date(x.f1),
-                        created_at: new Date(x.f2),
-                        item_id: x.f3,
-                        item_unit_id: x.f4,
-                        bill_id: x.f5,
-                        adjustment_case_id: x.f6,
-                        good_receipt_id: x.f7,
-                        sales_return_id: x.f8,
-                        quantity: x.f9,
-                        stock: x.f10,
-                        unit: x.f11,
-                        conversion: x.f12,
-                      };
-                    })
-                  );
-                })
-                .catch((error) => {
-                  console.error(
-                    `[error]: Error on fetching stock data ${error}`
-                  );
-                  return res
-                    .status(500)
-                    .send(ErrorList["Internal server error"]);
-                });
             }
+
+            const startDate = new Date(date);
+            startDate.setHours(0, 0, 0, 0);
+            startDate.setHours(startDate.getHours() - offset / 60);
+
+            const endDate = new Date(date);
+            endDate.setHours(23, 59, 59, 999);
+            endDate.setHours(endDate.getHours() - offset / 60);
+
+            const day = new Date(date).getDate();
+            const month = new Date(date).getMonth() + 1;
+            const year = new Date(date).getFullYear();
+
+            const documentStockCard = result.stockCard
+              .filter((x) => {
+                const date = new Date(x.date);
+                return (
+                  date.getDate() == day &&
+                  date.getMonth() + 1 == month &&
+                  date.getFullYear() == year
+                );
+              })
+              .sort((a, b) => {
+                return (
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime()
+                );
+              });
+
+            const inputStockCard = documentStockCard
+              .filter((x) => {
+                return (
+                  new Date(x.createdAt).getTime() >= startDate.getTime() &&
+                  new Date(x.createdAt).getTime() <= endDate.getTime()
+                );
+              })
+              .sort((a, b) => {
+                return (
+                  new Date(a.createdAt).getTime() -
+                  new Date(b.createdAt).getTime()
+                );
+              });
+
+            let documentStockCardStartStock =
+              documentStockCard.length == 0
+                ? 0
+                : documentStockCard[documentStockCard.length - 1].currentStock;
+            let inputStockCardStartStock =
+              inputStockCard.length == 0
+                ? 0
+                : inputStockCard[inputStockCard.length - 1].currentStock;
+
+            for (let i = 0; i < documentStockCard.length; i++) {
+              documentStockCard[i].currentStock =
+                documentStockCardStartStock + documentStockCard[i].quantity;
+              documentStockCardStartStock += documentStockCard[i].quantity;
+            }
+
+            for (let i = 0; i < inputStockCard.length; i++) {
+              inputStockCard[i].currentStock =
+                inputStockCardStartStock + inputStockCard[i].quantity;
+              inputStockCardStartStock += inputStockCard[i].quantity;
+            }
+
+            return res.status(200).send({
+              document: {
+                mutation: documentStockCard.map((x) => {
+                  return {
+                    name: x.document,
+                    date: x.date,
+                    createdAt: x.createdAt,
+                    opponent: x.opponent,
+                    displayQuantity: x.displayQuantity,
+                    quantity: x.quantity,
+                    unit: x.unit,
+                    stock: x.currentStock,
+                    defaultUnit: result.unit,
+                  };
+                }),
+                totalInput: documentStockCard.reduce((a, b) => {
+                  return a + (b.quantity > 0 ? b.quantity : 0);
+                }, 0),
+                totalOutput:
+                  documentStockCard.reduce((a, b) => {
+                    return a + (b.quantity < 0 ? b.quantity : 0);
+                  }, 0) * -1,
+              },
+              input: {
+                mutation: inputStockCard.map((x) => {
+                  return {
+                    name: x.document,
+                    date: x.date,
+                    createdAt: x.createdAt,
+                    opponent: x.opponent,
+                    displayQuantity: x.displayQuantity,
+                    quantity: x.quantity,
+                    unit: x.unit,
+                    stock: x.currentStock,
+                    defaultUnit: result.unit,
+                  };
+                }),
+                totalInput: inputStockCard.reduce((a, b) => {
+                  return a + (b.quantity > 0 ? b.quantity : 0);
+                }, 0),
+                totalOutput:
+                  inputStockCard.reduce((a, b) => {
+                    return a + (b.quantity < 0 ? b.quantity : 0);
+                  }, 0) * -1,
+              },
+            });
           })
           .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching product ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
           });
         break;
       case "download":
@@ -305,28 +440,6 @@ class ProductStockController {
             return res.status(500).send(error);
           });
     }
-  };
-
-  static scheduleData = async () => {
-    await ProductStockModel.syncData();
-    cron.schedule("0 */6 * * *", async () => {
-      await ProductStockModel.syncData();
-    });
-  };
-
-  static adjustDistibution = async () => {
-    console.log("[info]: Adjusting distribution stock.");
-    await DistributionStockModel.truncateDistributionStockTable();
-    await DistributionStockModel.fillDistributionStockTable();
-
-    console.log("[info]: Completed adjusting distribution stock.");
-
-    cron.schedule("0 1 * * *", async () => {
-      console.log("[info]: Adjusting distribution stock.");
-      await DistributionStockModel.truncateDistributionStockTable();
-      await DistributionStockModel.fillDistributionStockTable();
-      console.log("[info]: Completed adjusting distribution stock.");
-    });
   };
 }
 

@@ -35,6 +35,10 @@ router.put(
   PaymentMethodController.updateByID
 );
 
-router.delete("/:id", administratorMiddleware, PaymentMethodController.delete);
+router.delete(
+  "/:id",
+  administratorMiddleware,
+  PaymentMethodController.deleteByID
+);
 
 export default router;

@@ -1,23 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BrandModel = void 0;
-const client_1 = require("@prisma/client");
-const prisma = new client_1.PrismaClient();
+const app_1 = require("../app");
 class BrandModel {
-    constructor(name, created_by, id = null) {
-        if (id != null) {
-            this.id = id;
-        }
-        this.name = name;
-        this.created_by = created_by;
-        this.created_at = new Date();
-    }
-    create() {
-        return prisma.item_brand.create({
+    /**
+     * Create a new brand
+     * @param data
+     * @returns Promise<IProductBrand>
+     */
+    static create(data) {
+        return app_1.prisma.item_brand.create({
             data: {
-                name: this.name,
-                created_by: this.created_by,
-                created_at: this.created_at,
+                name: data.name,
+                created_by: data.created_by,
+                created_at: new Date(),
             },
             select: {
                 id: true,
@@ -32,15 +28,20 @@ class BrandModel {
             },
         });
     }
-    static update(id, name, updated_at, updated_by) {
-        return prisma.item_brand.update({
+    /**
+     * Update brand by ID
+     * @param data
+     * @returns
+     */
+    static updateByID(data) {
+        return app_1.prisma.item_brand.update({
             where: {
-                id: id,
+                id: data.id,
             },
             data: {
-                name: name,
-                updated_at: updated_at,
-                updated_by: updated_by,
+                name: data.name,
+                updated_at: new Date(),
+                updated_by: data.created_by,
             },
             select: {
                 id: true,
@@ -61,8 +62,14 @@ class BrandModel {
             },
         });
     }
-    static delete(id, created_by) {
-        return prisma.item_brand.update({
+    /**
+     * Delete brand by ID
+     * @param id
+     * @param created_by
+     * @returns
+     */
+    static deleteByID(id, created_by) {
+        return app_1.prisma.item_brand.update({
             where: {
                 id: id,
             },
@@ -86,38 +93,47 @@ class BrandModel {
             },
         });
     }
+    /**
+     * Fetch if any active brand has the same name
+     * @param name
+     * @returns
+     */
     static fetchByName(name) {
-        return prisma.item_brand.findFirst({
+        return app_1.prisma.item_brand.findFirst({
             where: {
                 name: name,
                 is_delete: false,
             },
         });
     }
-    static fetchById(id) {
-        return prisma.$transaction([
-            prisma.item_brand.findUnique({
-                where: {
-                    id: id,
-                },
-                include: {
-                    user: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                },
-            }),
-            prisma.item.count({
-                where: {
-                    item_brand_id: id,
-                    is_delete: false,
-                },
-            }),
-        ]);
+    /**
+     * Fetch brand by ID
+     * @param id
+     * @returns
+     */
+    static fetchByID(id) {
+        return app_1.prisma.$queryRaw `
+      SELECT item_brand.id, item_brand.name, user.name AS user_name, 
+      item_brand.created_at, item_brand.created_by, item_brand.is_delete, 
+      IF(COALESCE(itemCount.count, 0) = 0,"1", "0") AS can_delete
+      FROM item_brand
+      LEFT JOIN user ON user.id = item_brand.created_by
+      LEFT JOIN (
+        SELECT COUNT(*) AS count, item_brand_id 
+        FROM item 
+        WHERE is_delete = 0 
+        GROUP BY item_brand_id
+      ) itemCount ON itemCount.item_brand_id = item_brand.id
+      WHERE item_brand.id = ${id}
+    `;
     }
+    /**
+     * Fetch autocomplete brand
+     * @param keyword
+     * @returns
+     */
     static fetchAutocomplete(keyword) {
-        return prisma.item_brand.findMany({
+        return app_1.prisma.item_brand.findMany({
             where: {
                 name: {
                     contains: keyword,
@@ -133,8 +149,8 @@ class BrandModel {
     }
     static fetch(keyword, offset, limit) {
         if (keyword == "") {
-            return prisma.$transaction([
-                prisma.$queryRaw `
+            return app_1.prisma.$transaction([
+                app_1.prisma.$queryRaw `
           SELECT item_brand.id, item_brand.name, user.name AS created_by_name, item_brand.created_at, item_brand.created_by, COALESCE(itemCount.count, 0) AS count, item_brand.is_delete
           FROM item_brand
           LEFT JOIN (
@@ -150,7 +166,7 @@ class BrandModel {
           LIMIT ${limit}
           OFFSET ${offset}
         `,
-                prisma.item_brand.count({
+                app_1.prisma.item_brand.count({
                     where: {
                         is_delete: false,
                     },
@@ -158,8 +174,8 @@ class BrandModel {
             ]);
         }
         else {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
+            return app_1.prisma.$transaction([
+                app_1.prisma.$queryRawUnsafe(`
           SELECT item_brand.id, item_brand.name, user.name AS created_by_name, item_brand.created_at, item_brand.created_by, COALESCE(itemCount.count, 0) AS count, item_brand.is_delete
           FROM item_brand
           LEFT JOIN (
@@ -176,7 +192,7 @@ class BrandModel {
           LIMIT ${limit}
           OFFSET ${offset}
         `),
-                prisma.item_brand.count({
+                app_1.prisma.item_brand.count({
                     where: {
                         name: {
                             contains: keyword,
@@ -187,27 +203,8 @@ class BrandModel {
             ]);
         }
     }
-    static checkDeleteById(id) {
-        let count = false;
-        prisma.item
-            .count({
-            where: {
-                item_brand_id: id,
-                is_delete: false,
-            },
-        })
-            .then((result) => {
-            if (result > 0) {
-                count = false;
-            }
-            else {
-                count = true;
-            }
-        });
-        return count;
-    }
     static fetchSales(start_date, end_date) {
-        return prisma.$queryRawUnsafe(`
+        return app_1.prisma.$queryRawUnsafe(`
       SELECT item_brand.id, item_brand.name, SUM((bill.price - bill.discount) * bill.quantity) AS value
       FROM bill
       JOIN item ON bill.item_id = item.id
@@ -232,7 +229,7 @@ class BrandModel {
         const formatted_end_date = `${end_date.getFullYear()}-${(end_date.getMonth() + 1)
             .toString()
             .padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
-        return prisma.$queryRawUnsafe(`
+        return app_1.prisma.$queryRawUnsafe(`
       SELECT item.reference, item.description, item_brand.name AS brand_name, item_type.name AS type_name, SUM(bill.quantity * IF(bill.item_unit_id IS NULL, 1, item_unit.conversion)) AS ordered
       FROM bill
       JOIN item ON bill.item_id = item.id
@@ -252,8 +249,8 @@ class BrandModel {
     /**
      * Fetching brand data by IDs (array of ID)
      */
-    static fetchByIds(ids) {
-        return prisma.item_brand.findMany({
+    static fetchByIDs(ids) {
+        return app_1.prisma.item_brand.findMany({
             where: {
                 id: {
                     in: ids,
@@ -263,3 +260,4 @@ class BrandModel {
     }
 }
 exports.BrandModel = BrandModel;
+//# sourceMappingURL=brand.model.js.map

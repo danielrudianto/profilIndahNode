@@ -9,3 +9,4 @@ const redisConfiguration = {
     },
 };
 exports.queue = new bullmq_1.Queue("queue", redisConfiguration);
+//# sourceMappingURL=queue.helper.js.map

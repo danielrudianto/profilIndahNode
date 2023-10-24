@@ -61,6 +61,9 @@ class SupplierModel {
       return prisma.supplier.findMany({
         where: {
           is_delete: false,
+          name: {
+            contains: keyword,
+          },
         },
         select: {
           id: true,

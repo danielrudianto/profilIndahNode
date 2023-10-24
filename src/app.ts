@@ -22,7 +22,7 @@ import productStockRoutes from "./routes/report/stock.route";
 import supplierRoutes from "./routes/master/supplier.route";
 import customerRoutes from "./routes/master/customer.route";
 import companyRoutes from "./routes/master/company.route";
-import paymentMethodRoutes from "./routes/master/payment_method.route";
+import paymentMethodRoutes from "./routes/master/payment-method.route";
 import expenseTypeRoutes from "./routes/master/expense-type.route";
 /*
   Routes for transactions data
@@ -63,7 +63,7 @@ const options: cors.CorsOptions = {
 const app = express();
 app.use(cors(options));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
-app.use(express.json());
+app.use(express.json({ limit: "50mb" }));
 
 app.use("/auth", authRoutes);
 app.use("/product", authMiddleware, productRoutes);

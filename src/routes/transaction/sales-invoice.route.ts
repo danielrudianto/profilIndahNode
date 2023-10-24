@@ -29,7 +29,7 @@ router.post(
   SalesInvoiceController.create
 );
 
-router.get("/archives", SalesInvoiceController.fetchArchive);
+router.post("/archives", SalesInvoiceController.fetchArchive);
 
 router.get(
   "/:id",

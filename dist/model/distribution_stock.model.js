@@ -52,3 +52,4 @@ class DistributionStockModel {
     }
 }
 exports.default = DistributionStockModel;
+//# sourceMappingURL=distribution_stock.model.js.map

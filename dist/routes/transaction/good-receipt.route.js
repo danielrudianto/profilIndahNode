@@ -11,7 +11,7 @@ const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.post("/search", good_receipt_controller_1.default.search);
 router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("company_id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("supplier_id").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, good_receipt_controller_1.default.create);
-router.get("/archives", good_receipt_controller_1.default.fetchArchive);
-router.get("/code/:id", (0, express_validator_1.param)("id").notEmpty().withMessage("Mohon isikan ID penerimaan barang."), good_receipt_controller_1.default.fetchCodeById);
-router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, good_receipt_controller_1.default.fetchById);
+router.post("/archives", good_receipt_controller_1.default.fetchArchive);
+router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, good_receipt_controller_1.default.fetchByID);
 exports.default = router;
+//# sourceMappingURL=good-receipt.route.js.map

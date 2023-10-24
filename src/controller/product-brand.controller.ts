@@ -134,7 +134,7 @@ class BrandController {
    * @param req
    * @param res
    */
-  static update = (req: Request, res: Response) => {
+  static updateByID = (req: Request, res: Response) => {
     const id = req.body.id;
     const name = req.body.name;
     const userID = req.body.userId;
@@ -173,7 +173,7 @@ class BrandController {
    * @param req
    * @param res
    */
-  static delete = (req: Request, res: Response) => {
+  static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const userID = req.body.userId;
     BrandModel.fetchByID(id)

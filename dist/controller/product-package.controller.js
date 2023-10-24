@@ -15,56 +15,52 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = require("../app");
 const error_list_1 = __importDefault(require("../assets/error_list"));
+const queue_helper_1 = require("../helper/queue.helper");
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const product_package_model_1 = require("../model/product-package.model");
 class ProductPackageController {
 }
 _a = ProductPackageController;
+/**
+ * Create a new product package
+ * @param req
+ * @param res
+ */
 ProductPackageController.create = (req, res) => {
     const package_content = req.body.package_content;
     const name = req.body.name;
     const price = req.body.price;
     const description = req.body.description;
     const userID = req.body.userId;
-    const productPackage = new product_package_model_1.ProductPackageCodeModel(name, description, price, package_content.map((x) => {
-        return new product_package_model_1.ProductPackageModel(x.item_id, x.item_unit_id, x.quantity, x.price, x.discount);
-    }), userID, new Date());
-    productPackage
-        .create()
+    product_package_model_1.ProductPackageCodeModel.create({
+        name: name,
+        description: description,
+        price: price,
+        items: package_content.map((x) => {
+            return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                quantity: x.quantity,
+                price: x.price,
+                discount: x.discount,
+            };
+        }),
+        created_by: userID,
+    })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        yield app_1.meili.index("package").addDocuments([
-            {
-                id: result.id,
-                name: result.name,
-                description: result.description,
-                price: result.price,
-                product_content: result.package_content.map((y) => {
-                    return {
-                        quantity: y.quantity,
-                        item: {
-                            reference: y.item.reference,
-                            description: y.item.description,
-                            unit: y.item.unit,
-                        },
-                        item_unit: y.item_unit == null
-                            ? null
-                            : {
-                                unit: y.item_unit.unit,
-                                conversion: y.item_unit.conversion,
-                            },
-                    };
-                }),
-            },
-        ], {
-            primaryKey: "id",
-        });
+        yield queue_helper_1.queue.add("create-product-package", result);
         return res.status(201).send(result);
     }))
         .catch((error) => {
         console.error(`[error]: Error on creating product package: ${error}`);
-        return res.status(500).send(error);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
+/**
+ * Fetch product packages with pagination
+ * @param req
+ * @param res
+ */
 ProductPackageController.fetch = (req, res) => {
     const page = !req.query.page ? 1 : parseInt(req.query.page);
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
@@ -186,6 +182,11 @@ ProductPackageController.fetch = (req, res) => {
         }
     }
 };
+/**
+ * Fetch product package by ID
+ * @param req
+ * @param res
+ */
 ProductPackageController.fetchByID = (req, res) => {
     const id = parseInt(req.params.id);
     product_package_model_1.ProductPackageCodeModel.fetchByID(id)
@@ -200,28 +201,22 @@ ProductPackageController.fetchByID = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ProductPackageController.update = (req, res) => {
-    console.log(req.body);
+/**
+ * Update product package by ID
+ * @param req
+ * @param res
+ */
+ProductPackageController.updateByID = (req, res) => {
     const price = req.body.price;
     const description = req.body.description;
     const name = req.body.name;
     const id = req.body.id;
     product_package_model_1.ProductPackageCodeModel.update(name, description, price, id)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        console.log(result);
         if (!result) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
-        yield app_1.meili.index("package").updateDocuments([
-            {
-                id: result.id,
-                name: result.name,
-                description: result.description,
-                price: result.price,
-            },
-        ], {
-            primaryKey: "id",
-        });
+        yield queue_helper_1.queue.add("update-product-package", result);
         const socket = new socket_helper_1.default("updateItemPackage", result);
         socket.create();
         return res.status(201).send(result);
@@ -231,7 +226,12 @@ ProductPackageController.update = (req, res) => {
         return res.status(500).send(error);
     });
 };
-ProductPackageController.delete = (req, res) => {
+/**
+ * Delete product package by ID
+ * @param req
+ * @param res
+ */
+ProductPackageController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
     const userID = req.body.userId;
     product_package_model_1.ProductPackageCodeModel.delete(id, userID)
@@ -247,3 +247,4 @@ ProductPackageController.delete = (req, res) => {
     });
 };
 exports.default = ProductPackageController;
+//# sourceMappingURL=product-package.controller.js.map

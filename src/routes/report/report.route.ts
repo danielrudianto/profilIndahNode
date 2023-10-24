@@ -33,6 +33,16 @@ router.post(
   ErrorHelper.intercept,
   ReportController.fetchPurchaseReport
 );
+router.post(
+  "/purchase/download",
+  body("month")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(ErrorList["Parameter error"]),
+  body("year").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  ReportController.downloadPurchaseReport
+);
 
 router.get(
   "/profitloss/:month/:year/:report",
@@ -43,9 +53,7 @@ router.get(
 router.get("/quickStats", ReportController.fetchQuickStats);
 
 router.post("/sales", ReportController.fetchSalesReport);
-router.post("/purchase/download", ReportController.fetchPurchaseReportDownload);
-router.post("/purchase/detail", ReportController.fetchPurchaseItemDetail);
-router.post("/purchase", ReportController.fetchPurchaseReport);
+
 router.post(
   "/product-stock-problem",
   ReportController.fetchProductStockProblem
@@ -53,5 +61,6 @@ router.post(
 
 router.get("/inventory/download", ReportController.downloadInventoryReport);
 router.get("/inventory", ReportController.fetchInventoryReport);
+router.get("/expense/:month/:year", ReportController.fetchExpenseReport);
 
 export default router;

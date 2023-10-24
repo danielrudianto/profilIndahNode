@@ -35,6 +35,7 @@ enum ErrorList {
 
   "Good receipt not found" = "Data penerimaan barang tidak ditemukan.",
   "Good receipt already confirmed" = "Penerimaan barang sudah dikonfirmasi.",
+  "Good receipt already deleted" = "Penerimaan barang sudah dihapus.",
   "Date required" = "Tanggal tidak boleh kosong.",
   "Name required" = "Nama tidak boleh kosong.",
   "Supplier ID required" = "ID supplier tidak boleh kosong.",
@@ -45,6 +46,9 @@ enum ErrorList {
   "Delete bill sales return constraint" = "Tidak dapat menghapus faktur karena ada retur penjualan yang terkait.",
 
   "Expense type not found" = "Data jenis pengeluaran tidak ditemukan.",
+  "Expense type has child" = "Jenis pengeluaran memiliki sub jenis.",
+
+  "No changes" = "Tidak ada perubahan.",
 
   "Password required" = "Password tidak boleh kosong.",
   "User role required" = "Role pengguna tidak boleh kosong.",

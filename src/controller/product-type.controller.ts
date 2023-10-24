@@ -48,9 +48,6 @@ class ItemTypeController {
         );
     const limit = parseInt(process.env.LIMIT!);
     const offset = (page - 1) * limit;
-    console.log("keyword", keyword);
-    console.log("limit", limit);
-    console.log("offset", offset);
 
     ItemTypeModel.fetch(keyword, limit, offset, fetchMode.Pagination)!
       .then(([result, count]) => {

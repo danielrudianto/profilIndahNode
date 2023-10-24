@@ -3,24 +3,29 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const express_validator_1 = require("express-validator");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const fetch_interface_1 = require("../interface/fetch.interface");
 const supplier_model_1 = __importDefault(require("../model/supplier.model"));
 class SupplierController {
 }
+/**
+ * Create a new supplier data
+ * @param req
+ * @param res
+ */
 SupplierController.create = (req, res) => {
-    const validation_result = (0, express_validator_1.validationResult)(req);
-    if (!validation_result.isEmpty()) {
-        return res.status(400).send(validation_result.array()[0].msg);
-    }
     const name = req.body.name;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const supplier = new supplier_model_1.default(name, address, npwp, null, req.body.userId);
-    supplier
-        .create()
+    const userID = req.body.userId;
+    supplier_model_1.default.create({
+        name: name,
+        address: address,
+        npwp: npwp,
+        created_by: userID,
+    })
         .then((supplier_result) => {
         const socket = new socket_helper_1.default("createSupplier", supplier_result);
         socket.create();
@@ -30,23 +35,11 @@ SupplierController.create = (req, res) => {
         return res.status(500).send(error);
     });
 };
-SupplierController.update = (req, res) => {
-    const id = parseInt(req.body.id);
-    const name = req.body.name;
-    const address = req.body.address;
-    const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const supplier = new supplier_model_1.default(name, address, npwp, id);
-    supplier
-        .update()
-        .then((supplier_result) => {
-        const socket = new socket_helper_1.default("updateSupplier", supplier_result);
-        socket.create();
-        return res.status(201).send(supplier_result);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
+/**
+ * Fetch supplier data by keyword, page, and limit
+ * @param req
+ * @param res
+ */
 SupplierController.fetch = (req, res) => {
     const keyword = !req.query.keyword
         ? ""
@@ -56,54 +49,25 @@ SupplierController.fetch = (req, res) => {
         : Math.max(1, parseInt(req.query.page.toString()));
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    supplier_model_1.default.fetch(keyword, offset, limit)
+    supplier_model_1.default.fetch(keyword, limit, offset, fetch_interface_1.fetchMode.Pagination)
         .then((result) => {
-        return res.status(200).send({
-            data: result[0].map((x) => {
-                return {
-                    id: x.id,
-                    name: x.name,
-                    address: x.address,
-                    npwp: x.npwp,
-                    created_by: x.created_by,
-                    created_at: new Date(x.created_at),
-                    can_delete: x.count == 0 ? true : false,
-                    user: {
-                        name: x.created_by_name,
-                    },
-                };
-            }),
-            count: result[1],
-        });
+        return res.status(200).send(result);
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching supplier data ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
-SupplierController.delete = (req, res) => {
-    const id = parseInt(req.params.id);
-    const userID = req.body.userId;
-    supplier_model_1.default.fetchById(id).then((result) => {
-        if (result == null || result.length == 0) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        else if (result[0].count > 0) {
-            return res.status(400).send(error_list_1.default["Delete error"]);
-        }
-        else {
-            supplier_model_1.default.deleteById(id, req.body.UserID).then((supplier) => {
-                const socket = new socket_helper_1.default("deleteSupplier", supplier);
-                socket.create();
-                return res.status(201).send(supplier);
-            });
-        }
-    });
-};
-SupplierController.getAutocomplete = (req, res) => {
+/**
+ * Fetch supplier data autocomplete
+ * @param req
+ * @param res
+ */
+SupplierController.fetchAutocomplete = (req, res) => {
     const keyword = !req.query.keyword
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
-    supplier_model_1.default.getAutocomplete(keyword)
+    supplier_model_1.default.fetch(keyword, 5, 0, fetch_interface_1.fetchMode.Autocomplete)
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -111,20 +75,87 @@ SupplierController.getAutocomplete = (req, res) => {
         return res.status(500).send(error);
     });
 };
-SupplierController.fetchById = (req, res) => {
+/**
+ * Fetch supplier data by ID
+ * @param req
+ * @param res
+ */
+SupplierController.fetchByID = (req, res) => {
     const id = parseInt(req.params.id);
-    supplier_model_1.default.fetchById(id)
+    supplier_model_1.default.fetchByID(id)
         .then((result) => {
-        if (result == null || result.length == 0) {
+        if (!result) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
-        else {
-            return res.status(200).send(Object.assign(Object.assign({}, result[0]), { count: parseInt(result[0].count) }));
-        }
+        return res.status(200).send(result);
     })
         .catch((error) => {
-        console.log(error);
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching supplier ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Update supplier data
+ * @param req
+ * @param res
+ */
+SupplierController.updateByID = (req, res) => {
+    const id = parseInt(req.body.id);
+    const name = req.body.name;
+    const address = req.body.address;
+    const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
+    const userID = req.body.userId;
+    supplier_model_1.default.update({
+        id: id,
+        name: name,
+        address: address,
+        npwp: npwp,
+        created_by: userID,
+    })
+        .then((result) => {
+        const socket = new socket_helper_1.default("updateSupplier", result);
+        socket.create();
+        return res.status(201).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on updating supplier data ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Delete supplier data by ID
+ * @param req
+ * @param res
+ */
+SupplierController.deleteByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    const userID = req.body.userId;
+    supplier_model_1.default.fetchByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        if (result.is_delete) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        if (!result.can_delete) {
+            return res.status(403).send(error_list_1.default["Delete error"]);
+        }
+        supplier_model_1.default.deleteByID(id, userID)
+            .then((result) => {
+            const socket = new socket_helper_1.default("deleteSupplier", result);
+            socket.create();
+            return res.status(201).send(result);
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on deleting supplier data ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching supplier ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 exports.default = SupplierController;
+//# sourceMappingURL=supplier.controller.js.map

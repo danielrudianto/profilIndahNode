@@ -51,6 +51,27 @@ export interface BillArchive {
   is_confirm: number;
 }
 
+export interface PurchaseInvoiceArchive {
+  id: number;
+  date: string;
+  name: string;
+  is_delete: number;
+  company_id: number;
+  company_name: string;
+  supplier_id: number;
+  supplier_name: string;
+  is_confirm: number;
+}
+
 export interface ArchiveCount {
   count: number;
+}
+
+export interface IFetchArchive {
+  year: number;
+  month: number;
+  limit: number;
+  offset: number;
+  mode: number;
+  keyword: string;
 }

@@ -163,10 +163,10 @@ class GoodReceiptController {
    * @param res
    */
   static fetchArchive = (req: Request, res: Response) => {
-    const mode =
-      req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-      GoodReceiptModel.fetchArchiveYears(mode)!
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null) {
+      GoodReceiptModel.fetchArchiveYears()!
         .then((result) => {
           return res.status(200).send(
             result.map((x) => {
@@ -183,9 +183,8 @@ class GoodReceiptController {
           );
           return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month == undefined) {
-      const year = parseInt(req.query.year.toString());
-      GoodReceiptModel.fetchArchiveMonths(year, mode)!
+    } else if (year != null && month == null) {
+      GoodReceiptModel.fetchArchiveMonths(year)
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
@@ -199,13 +198,19 @@ class GoodReceiptController {
           );
           return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month != undefined) {
-      const year = parseInt(req.query.year.toString());
-      const month = parseInt(req.query.month.toString());
-      const page =
-        req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
+    } else {
+      const page = req.body.limit == null ? 1 : req.body.limit.page;
+      const keyword = req.body.search == null ? "" : req.body.search.keyword;
+      const mode = req.body.mode;
 
-      GoodReceiptModel.fetchArchive(year, month, page, mode)!
+      GoodReceiptModel.fetchArchive({
+        year: year,
+        month: month,
+        mode: mode,
+        keyword: mysql_real_escape_string(keyword),
+        limit: 10,
+        offset: (page - 1) * 10,
+      })!
         .then((result) => {
           return res.status(200).send({
             data: result[0].map((x) => {
@@ -215,14 +220,8 @@ class GoodReceiptController {
                 date: x.date,
                 is_delete: x.is_delete == 1,
                 is_confirm: x.is_confirm == 1,
-                supplier: {
-                  id: x.supplier_id,
-                  name: x.supplier_name,
-                },
-                company: {
-                  id: x.company_id,
-                  name: x.company_name,
-                },
+                supplier_name: x.supplier_name,
+                company_name: x.company_name,
               };
             }),
             count:

@@ -5,7 +5,6 @@ import BillCodeModel from "../model/bill_code.model";
 import ItemPriceModel from "../model/item_price.model";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
-import ProductStockModel from "../model/product-stock.model";
 import { ProductPackageCodeModel } from "../model/product-package.model";
 import { queue } from "../helper/queue.helper";
 import SalesReturnModel from "../model/sales_return.model";
@@ -104,12 +103,11 @@ class SalesInvoiceController {
             }
           });
 
-          await ProductStockModel.updateStock(updateStockArray);
           await queue.add("create-sales-invoice", result);
           return res.status(201).send(result);
         } catch (error) {
           console.error(`[error]: Error on updating stock ${error}`);
-          return res.status(500).send(error);
+          return res.status(500).send(ErrorList["Internal server error"]);
         }
       })
       .catch((error) => {
@@ -182,26 +180,33 @@ class SalesInvoiceController {
    * @param res
    */
   static fetchArchive = (req: Request, res: Response) => {
-    const mode =
-      req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-      BillCodeModel.fetchArchiveYears(mode)!
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null && month == null) {
+      BillCodeModel.fetchArchiveYears()!
         .then((result) => {
           return res.status(200).send(
-            result.map((x) => {
-              return {
-                year: x.year,
-                count: parseInt(x.count.toString().replace("n", "")),
-              };
-            })
+            result
+              .map((x) => {
+                return {
+                  year: x.year,
+                  count: parseInt(x.count.toString().replace("n", "")),
+                };
+              })
+              .sort((a, b) => {
+                return a.year - b.year;
+              })
           );
         })
         .catch((error) => {
-          return res.status(500).send(error);
+          console.error(
+            `[error]: Error on fetching sales invoice archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month == undefined) {
-      const year = parseInt(req.query.year.toString());
-      BillCodeModel.fetchArchiveMonths(year, mode)!
+    } else if (year != null && month == null) {
+      const year = req.body.year;
+      BillCodeModel.fetchArchiveMonths(year)
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
@@ -212,15 +217,23 @@ class SalesInvoiceController {
           return res.status(200).send(response);
         })
         .catch((error) => {
-          return res.status(500).send(error);
+          console.error(
+            `[error]: Error on fetching sales invoice archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month != undefined) {
-      const year = parseInt(req.query.year.toString());
-      const month = parseInt(req.query.month.toString());
-      const page =
-        req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
-
-      BillCodeModel.fetchArchive(year, month, page, mode)!
+    } else {
+      const mode = req.body.mode;
+      const page = req.body.limit.page;
+      const keyword = req.body.search.keyword;
+      BillCodeModel.fetchArchive({
+        year: year,
+        month: month,
+        mode: mode,
+        limit: 10,
+        offset: (page - 1) * 10,
+        keyword: mysql_real_escape_string(keyword),
+      })!
         .then((result) => {
           return res.status(200).send({
             data: result[0].map((x) => {
@@ -230,10 +243,7 @@ class SalesInvoiceController {
                 date: x.date,
                 is_delete: x.is_delete == 1,
                 is_confirm: x.is_confirm == 1,
-                customer: {
-                  id: x.customer_id,
-                  name: x.customer_name,
-                },
+                customer_name: x.customer_name,
               };
             }),
             count:
@@ -243,7 +253,10 @@ class SalesInvoiceController {
           });
         })
         .catch((error) => {
-          return res.status(500).send(error);
+          console.error(
+            `[error]: Error on fetching sales invoice archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
     }
   };
@@ -276,7 +289,10 @@ class SalesInvoiceController {
         });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(
+          `[error]: Error on fetching sales invoice by ID ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 
@@ -337,7 +353,7 @@ class SalesInvoiceController {
     socket.create();
 
     BillCodeModel.deleteByID(id, userID)
-      .then((updateBill) => {
+      .then(async (updateBill) => {
         const updateStockArray: any[] = [];
         result.bill.forEach((x) => {
           if (x.package_code != null) {
@@ -366,17 +382,8 @@ class SalesInvoiceController {
           }
         });
 
-        Promise.all([
-          ProductStockModel.updateStock(updateStockArray),
-          queue.add("delete-sales-invoice", result),
-        ])
-          .then(() => {
-            return res.status(201).send(updateBill);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on updating stock ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
+        await queue.add("delete-sales-invoice", result);
+        return res.status(201).send(updateBill);
       })
       .catch((error) => {
         console.error(`[error]: Error on deleting bill ${error}`);

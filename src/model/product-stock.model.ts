@@ -144,18 +144,20 @@ class ProductStockModel {
   }
 
   static fetchInadequate(brand_id: number[], type_id: number[]) {
-    return prisma.$queryRaw<any[]>`
-        SELECT item.id, item.reference, item.description, item_brand.name AS item_brand_name, item_type.name AS item_type_name, COALESCE(stock.stock, 0) AS stock, item.unit, item.minimum_stock
-        FROM item
-        JOIN item_brand ON item.item_brand_id = item_brand.id
-        JOIN item_type ON item.item_type_id = item_type.id
-        LEFT JOIN stock ON item.id = stock.id
-        WHERE item.item_brand_id IN (${join(brand_id)})
-        AND item.item_type_id IN (${join(type_id)})
-        AND COALESCE(stock.stock, 0) < item.minimum_stock
-        AND item.is_delete = 0
-        ORDER BY item.reference ASC
-    `;
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT item.id, item.reference, item.description, 
+      item_brand.name AS item_brand_name, 
+      item_type.name AS item_type_name, 
+      COALESCE(stock.stock, 0) AS stock, item.unit, item.minimum_stock
+      FROM item
+      JOIN item_brand ON item.item_brand_id = item_brand.id
+      JOIN item_type ON item.item_type_id = item_type.id
+      LEFT JOIN stock ON item.id = stock.id
+      WHERE item.item_brand_id IN (${brand_id.join(",")})
+      AND item.item_type_id IN (${type_id.join(",")})
+      AND item.is_delete = 0
+      ORDER BY item.reference ASC
+    `);
   }
 
   static fetchStockData(
@@ -242,32 +244,6 @@ class ProductStockModel {
     queryUpdate += ")";
 
     return prisma.$queryRawUnsafe(queryUpdate);
-  }
-
-  static async syncData() {
-    console.log("[info]: Syncing stock data.");
-    await prisma.stock.findMany({}).then(async (result) => {
-      console.log(`[info]: Updating ${result.length} stock data.`);
-      let queryUpdate = "INSERT INTO _stock (item_id, stock) VALUES ";
-      result.forEach((item) => {
-        queryUpdate += `(${item.id}, ${item.stock}),`;
-      });
-
-      Promise.all([
-        prisma.$queryRaw`
-            TRUNCATE TABLE _stock;
-          `,
-        prisma.$queryRawUnsafe(queryUpdate.slice(0, -1)),
-      ])
-        .then(() => {
-          console.log("[info]: Stock data has been synced.");
-        })
-        .catch(() => {
-          // Retry
-          console.log("[error]: Stock data sync failed. Retrying.");
-          this.syncData();
-        });
-    });
   }
 
   static fetchProblematic() {

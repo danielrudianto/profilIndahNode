@@ -175,7 +175,7 @@ class PaymentMethodController {
    * @param req
    * @param res
    */
-  static delete = (req: Request, res: Response) => {
+  static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const userID = req.body.userId;
     PaymentMethodModel.fetchByID(id)

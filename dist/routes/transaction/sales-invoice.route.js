@@ -10,8 +10,8 @@ const sales_invoice_controller_1 = __importDefault(require("../../controller/sal
 const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
-router.post("/search", sales_invoice_controller_1.default.search);
-router.post("/", (0, express_validator_1.body)("customer_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("payment_method_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("discount")
+router.post("/search", sales_invoice_controller_1.default.fetchSearch);
+router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("customer_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("payment_method_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("discount")
     .toInt()
     .isInt({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("delivery")
@@ -21,11 +21,16 @@ router.post("/", (0, express_validator_1.body)("customer_id").exists().withMessa
     .toInt()
     .isInt({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.create);
-router.get("/archives", sales_invoice_controller_1.default.fetchArchive);
-router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.fetchById);
+router.post("/archives", sales_invoice_controller_1.default.fetchArchive);
+router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id")
+    .isInt({
+    min: 0,
+})
+    .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.fetchByID);
 router.delete("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id")
     .isInt({
     min: 0,
 })
-    .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.deleteById);
+    .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.deleteByID);
 exports.default = router;
+//# sourceMappingURL=sales-invoice.route.js.map

@@ -17,7 +17,7 @@ router.post(
   GoodReceiptController.create
 );
 
-router.get("/archives", GoodReceiptController.fetchArchive);
+router.post("/archives", GoodReceiptController.fetchArchive);
 
 router.get(
   "/:id",

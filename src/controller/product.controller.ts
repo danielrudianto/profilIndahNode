@@ -13,7 +13,6 @@ import { meili } from "../app";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import ProductStockModel from "../model/product-stock.model";
 import { queue } from "../helper/queue.helper";
-import { fetchType } from "../interface/fetch.interface";
 
 class ProductController {
   /**
@@ -285,18 +284,20 @@ class ProductController {
           .index("item")
           .search(keyword, {
             limit: limit,
+            offset: offset,
           })
           .then((result) => {
             ItemModel.fetchByIDs(result.hits.map((x: any) => x.id)).then(
               (items) => {
-                return res.status(200).send(
-                  items.map((x) => {
+                return res.status(200).send({
+                  data: items.map((x) => {
                     return {
                       ...x,
                       can_delete: x.can_delete == "1" ? true : false,
                     };
-                  })
-                );
+                  }),
+                  count: result.estimatedTotalHits,
+                });
               }
             );
           });
@@ -332,38 +333,34 @@ class ProductController {
    */
   static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const mode = req.body.mode;
-    if (mode == fetchType.Complete) {
-    } else if (mode == fetchType.Simple) {
-      ItemModel.fetchByID(id)!
-        .then((result) => {
-          if (result.length == 0) {
-            return res.status(404).send(ErrorList["Not found"]);
-          }
+    ItemModel.fetchByID(id)!
+      .then((result) => {
+        if (result.length == 0) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
 
-          const item = result[0];
-          return res.status(200).send({
-            id: item.id,
-            reference: item.reference,
-            description: item.description,
-            unit: item.unit,
-            minimum_stock: item.minimum_stock,
-            item_brand_id: item.item_brand_id,
-            item_type_id: item.item_type_id,
-            item_type: {
-              name: item.item_type_name,
-            },
-            item_brand: {
-              name: item.item_brand_name,
-            },
-            can_delete: item.can_delete == "1",
-          });
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching item by id ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
+        const item = result[0];
+        return res.status(200).send({
+          id: item.id,
+          reference: item.reference,
+          description: item.description,
+          unit: item.unit,
+          minimum_stock: item.minimum_stock,
+          item_brand_id: item.item_brand_id,
+          item_type_id: item.item_type_id,
+          item_type: {
+            name: item.item_type_name,
+          },
+          item_brand: {
+            name: item.item_brand_name,
+          },
+          can_delete: item.can_delete == "1",
         });
-    }
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching item by id ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 
   /**
@@ -576,7 +573,14 @@ class ProductController {
       const currentStatus = item[0].is_active == 1;
 
       ItemModel.activateByID(id, !currentStatus)
-        .then((result) => {
+        .then(async (result) => {
+          await meili.index("item").updateDocuments([
+            {
+              id: id,
+              is_active: currentStatus ? 0 : 1,
+            },
+          ]);
+
           const socket = new SocketHelper("updateItemActive", result);
           socket.create();
 
@@ -587,102 +591,6 @@ class ProductController {
           return res.status(500).send(ErrorList["Internal server error"]);
         });
     });
-  };
-
-  static search = (req: Request, res: Response) => {
-    const keyword = req.body.keyword;
-    const page = req.body.page;
-    const offset = (page - 1) * 20 ?? 0;
-    meili
-      .index("item")
-      .search(keyword, {
-        limit: 20,
-        offset: offset,
-      })
-      .then((result) => {
-        if (result.hits.length == 0) {
-          return res.status(200).send({
-            data: [],
-            count: 0,
-          });
-        } else {
-          Promise.all([
-            ItemModel.fetchCompleteByIDs(
-              result.hits.map((x) => {
-                return x.id;
-              })
-            ),
-            ProductStockModel.fetchByIDs(
-              result.hits.map((x) => {
-                return x.id;
-              })
-            ),
-          ]).then((items) => {
-            const itemData = items[0];
-            const stockData = items[1];
-
-            return res.status(200).send({
-              data: result.hits.map((x) => {
-                const item = itemData[0];
-                const stockIndex = stockData.findIndex((y) => y.id == x.id);
-                const stock =
-                  stockIndex == -1 ? 0 : stockData[stockIndex].stock;
-
-                const itemIndex = item.findIndex((y) => y.id == x.id);
-                if (itemIndex != -1) {
-                  const priceIndex = item[itemIndex].item_price.findIndex(
-                    (z) => z.item_unit == null
-                  );
-
-                  const draftSumIndex = items[1].findIndex(
-                    (z) => z.item_id == x.id
-                  );
-
-                  return {
-                    id: x.id,
-                    reference: x.reference,
-                    description: x.description,
-                    item_type: {
-                      name: item[itemIndex].item_type?.name,
-                    },
-                    item_brand: {
-                      name: item[itemIndex].item_brand.name,
-                    },
-                    stock: {
-                      id: x.id,
-                      stock: stock,
-                    },
-                    price:
-                      priceIndex == -1
-                        ? 0
-                        : item[itemIndex].item_price[priceIndex].price,
-                    discount: 0,
-                    unit: item[itemIndex].unit,
-                    unit_price: item[itemIndex].item_price
-                      .filter((a) => a.item_unit != null)
-                      .map((b) => {
-                        return {
-                          id: b.item_unit?.id,
-                          unit: b.item_unit?.unit,
-                          price: b.price,
-                          discount: 0,
-                        };
-                      }),
-                    draft:
-                      draftSumIndex == -1
-                        ? 0
-                        : items[1][draftSumIndex].quantity,
-                  };
-                }
-              }),
-              count: result.estimatedTotalHits,
-            });
-          });
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      });
   };
 }
 

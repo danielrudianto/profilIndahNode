@@ -7,23 +7,22 @@ import ErrorHelper from "../../helper/error.helper";
 const router = Router();
 
 router.get("/unconfirmed", PurchaseInvoiceController.fetchUnconfirmed);
-router.get("/archives", PurchaseInvoiceController.fetchArchive);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   PurchaseInvoiceController.fetchByID
 );
 
-router.post("/search", PurchaseInvoiceController.searchArchive);
+router.post("/archives", PurchaseInvoiceController.fetchArchive);
+router.post("/search", PurchaseInvoiceController.search);
 router.post(
   "/",
   body("date").notEmpty().withMessage(ErrorList["Date required"]),
   body("name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("company_id").isNumeric().withMessage(ErrorList["Company ID required"]),
-  body("supplier_id")
-    .isNumeric()
-    .withMessage(ErrorList["Supplier ID required"]),
+  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
+  body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
   ErrorHelper.intercept,
   PurchaseInvoiceController.create
 );
@@ -47,6 +46,23 @@ router.put(
   },
   PurchaseInvoiceController.updateStatus
 );
-router.put("/", PurchaseInvoiceController.update);
+router.put(
+  "/",
+  body("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  body("name").notEmpty().withMessage(ErrorList["Name required"]),
+  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
+  body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  ErrorHelper.intercept,
+  PurchaseInvoiceController.update
+);
+router.delete(
+  "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  PurchaseInvoiceController.deleteByID
+);
 
 export default router;

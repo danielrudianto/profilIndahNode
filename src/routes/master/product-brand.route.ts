@@ -19,7 +19,7 @@ router.put(
   body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  BrandController.update
+  BrandController.updateByID
 );
 router.post(
   "/",
@@ -31,7 +31,7 @@ router.delete(
   "/:id",
   param("id").exists().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  BrandController.delete
+  BrandController.deleteByID
 );
 
 export default router;

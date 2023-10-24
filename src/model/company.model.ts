@@ -230,6 +230,18 @@ class CompanyModel {
       },
     });
   }
+
+  /**
+   * Fetch all company data
+   * @returns
+   */
+  static fetchAll() {
+    return prisma.company.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
+  }
 }
 
 export default CompanyModel;

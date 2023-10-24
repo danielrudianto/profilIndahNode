@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.io = exports.meili = void 0;
+exports.io = exports.prisma = exports.meili = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
@@ -34,7 +34,7 @@ const stock_route_1 = __importDefault(require("./routes/report/stock.route"));
 const supplier_route_1 = __importDefault(require("./routes/master/supplier.route"));
 const customer_route_1 = __importDefault(require("./routes/master/customer.route"));
 const company_route_1 = __importDefault(require("./routes/master/company.route"));
-const payment_method_route_1 = __importDefault(require("./routes/master/payment_method.route"));
+const payment_method_route_1 = __importDefault(require("./routes/master/payment-method.route"));
 const expense_type_route_1 = __importDefault(require("./routes/master/expense-type.route"));
 /*
   Routes for transactions data
@@ -46,18 +46,18 @@ const expense_route_1 = __importDefault(require("./routes/transaction/expense.ro
 const sales_invoice_route_1 = __importDefault(require("./routes/transaction/sales-invoice.route"));
 const adjustment_event_route_1 = __importDefault(require("./routes/transaction/adjustment-event.route"));
 const report_route_1 = __importDefault(require("./routes/report/report.route"));
-const sales_return_route_1 = __importDefault(require("./routes/transaction/sales_return.route"));
+const sales_return_route_1 = __importDefault(require("./routes/transaction/sales-return.route"));
 const draft_bill_route_1 = __importDefault(require("./routes/transaction/draft-bill.route"));
 const cashier_route_1 = __importDefault(require("./routes/distinct/cashier.route"));
-/*
-  Helpers
-*/
-const search_helper_1 = __importDefault(require("./helper/search.helper"));
-const product_stock_controller_1 = __importDefault(require("./controller/product-stock.controller"));
 /*
   Administrator Routes
 */
 const administrator_route_1 = __importDefault(require("./routes/distinct/administrator.route"));
+const development_routes_1 = __importDefault(require("./routes/development/development.routes"));
+const os_route_1 = __importDefault(require("./routes/distinct/os.route"));
+const changelog_route_1 = __importDefault(require("./routes/report/changelog.route"));
+const mongoose_1 = __importDefault(require("mongoose"));
+const client_1 = require("@prisma/client");
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -69,7 +69,7 @@ const options = {
 const app = (0, express_1.default)();
 app.use((0, cors_1.default)(options));
 app.use(express_1.default.urlencoded({ extended: true, limit: "100mb" }));
-app.use(express_1.default.json());
+app.use(express_1.default.json({ limit: "50mb" }));
 app.use("/auth", auth_route_1.default);
 app.use("/product", auth_helper_1.authMiddleware, product_route_1.default);
 app.use("/product-price-sales", auth_helper_1.authMiddleware, product_price_sales_route_1.default);
@@ -95,13 +95,22 @@ app.use("/user", auth_helper_1.authMiddleware, user_route_1.default);
 app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.use("/report", report_route_1.default);
 app.use("/administrator", administrator_route_1.default);
+app.use("/os", os_route_1.default);
+app.use("/changelog", changelog_route_1.default);
+app.use("/development", development_routes_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("[server]: Server is running on port 5000");
-    yield search_helper_1.default.scheduleData();
-    yield product_stock_controller_1.default.scheduleData();
-    yield product_stock_controller_1.default.adjustDistibution();
+    // await ProductStockController.scheduleData();
+    // await ProductStockController.adjustDistibution();
+    const url = "mongodb://localhost:27017/ProfilIndah";
+    yield mongoose_1.default.connect(url, {
+        dbName: "ProfilIndah",
+        autoCreate: true,
+    });
+    console.info("[info]: Connected with database");
 }));
+exports.prisma = new client_1.PrismaClient();
 exports.io = new socket_io_1.Server(server, {
     cors: {
         origin: "*",
@@ -110,3 +119,4 @@ exports.io = new socket_io_1.Server(server, {
 });
 exports.io.on("connection", () => { });
 exports.default = app;
+//# sourceMappingURL=app.js.map

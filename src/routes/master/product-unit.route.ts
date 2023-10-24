@@ -8,7 +8,8 @@ const router = Router();
 
 router.get(
   "/:id",
-  param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ItemUnitController.fetch
 );

@@ -15,6 +15,11 @@ export interface IExpenseType {
   deleted_at?: Date;
 }
 
+interface IDeleteExpenseType {
+  id: number;
+  deleted_by: number;
+}
+
 class ExpenseTypeModel {
   /**
    * Create new expense type
@@ -58,15 +63,15 @@ class ExpenseTypeModel {
    * @param created_by
    * @returns
    */
-  static deleteByID(id: number, created_by: number) {
+  static deleteByID(data: IDeleteExpenseType) {
     return prisma.expense_type.update({
       where: {
-        id: id,
+        id: data.id,
       },
       data: {
         is_delete: true,
         deleted_at: new Date(),
-        deleted_by: created_by,
+        deleted_by: data.deleted_by,
       },
       select: {
         id: true,
@@ -183,6 +188,15 @@ class ExpenseTypeModel {
     return prisma.expense_type.findUnique({
       where: {
         id: id,
+      },
+    });
+  }
+
+  static fetchByParentID(id: number) {
+    return prisma.expense_type.findMany({
+      where: {
+        parent_id: id,
+        is_delete: false,
       },
     });
   }

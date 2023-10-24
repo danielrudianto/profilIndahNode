@@ -31,10 +31,60 @@ exports.stockCardSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
+    billID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    billCodeID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    adjustmentCaseID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    adjustmentCaseCodeID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    goodReceiptID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    goodReceiptCodeID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    salesReturnID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    salesReturnCodeID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    customerID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
+    supplierID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
     currentStock: {
         type: Number,
         required: true,
+        default: 0,
     },
 });
-const mongoStockCardModel = (0, mongoose_1.model)("stock-cards", exports.stockCardSchema);
-exports.default = mongoStockCardModel;
+//# sourceMappingURL=mongo-stock-card.model.js.map

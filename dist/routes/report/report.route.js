@@ -16,13 +16,16 @@ router.post("/purchase", (0, express_validator_1.body)("month")
     .notEmpty()
     .isNumeric()
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("year").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.fetchPurchaseReport);
+router.post("/purchase/download", (0, express_validator_1.body)("month")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("year").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.downloadPurchaseReport);
 router.get("/profitloss/:month/:year/:report", auth_helper_1.administratorMiddleware, report_controller_1.default.fetchPLStats);
 router.get("/quickStats", report_controller_1.default.fetchQuickStats);
 router.post("/sales", report_controller_1.default.fetchSalesReport);
-router.post("/purchase/download", report_controller_1.default.fetchPurchaseReportDownload);
-router.post("/purchase/detail", report_controller_1.default.fetchPurchaseItemDetail);
-router.post("/purchase", report_controller_1.default.fetchPurchaseReport);
 router.post("/product-stock-problem", report_controller_1.default.fetchProductStockProblem);
 router.get("/inventory/download", report_controller_1.default.downloadInventoryReport);
 router.get("/inventory", report_controller_1.default.fetchInventoryReport);
+router.get("/expense/:month/:year", report_controller_1.default.fetchExpenseReport);
 exports.default = router;
+//# sourceMappingURL=report.route.js.map

@@ -25,11 +25,6 @@ const stockOutSchema = new Schema({
     type: Date,
     required: true,
   },
-  createdAt: {
-    type: Date,
-    required: true,
-    default: Date.now(),
-  },
   quantity: {
     type: Number,
     required: true,

@@ -16,6 +16,14 @@ export interface IExpense {
   deleted_at?: Date;
 }
 
+interface IReportExpense {
+  id: number;
+  name: string;
+  parent_id: number | null;
+  value: number;
+  company_id: number;
+}
+
 class ExpenseModel {
   /**
    * Create a new expense record
@@ -175,40 +183,22 @@ class ExpenseModel {
   }
 
   static fetchSum(month: number, year: number) {
-    if (month == 0) {
-      return prisma.$queryRawUnsafe(`
-      SELECT expense_type.id, expense_type.name, company.name AS company_name, expense_type.parent_id, COALESCE(exp.value, 0) AS value, company.id AS company_id
+    return prisma.$queryRawUnsafe<IReportExpense[]>(`
+      SELECT expense_type.id, expense_type.name, 
+      expense_type.parent_id, COALESCE(exp.value, 0) AS value, 
+      company_id
       FROM expense_type
-      JOIN company
       LEFT JOIN (
         SELECT SUM(expense.value) AS value, expense_type_id, company_id
           FROM expense
           WHERE expense.is_delete = 0
           AND YEAR(expense.date) = ${year}
+          ${month == 0 ? "" : `AND MONTH(expense.date) = ${month}`}
           GROUP BY expense_type_id, company_id
       ) AS exp
       ON expense_type.id = exp.expense_type_id
-      AND company.id = exp.company_id
-      ORDER BY company.id ASC, parent_id ASC
-      `);
-    } else {
-      return prisma.$queryRawUnsafe(`
-      SELECT expense_type.id, expense_type.name, company.name AS company_name, expense_type.parent_id, COALESCE(exp.value, 0) AS value, company.id AS company_id
-      FROM expense_type
-      JOIN company
-      LEFT JOIN (
-        SELECT SUM(expense.value) AS value, expense_type_id, company_id
-          FROM expense
-          WHERE expense.is_delete = 0
-          AND MONTH(expense.date) = ${month}
-          AND YEAR(expense.date) = ${year}
-          GROUP BY expense_type_id, company_id
-      ) AS exp
-      ON expense_type.id = exp.expense_type_id
-      AND company.id = exp.company_id
-      ORDER BY company.id ASC, parent_id ASC
-      `);
-    }
+      ORDER BY company_id ASC, parent_id ASC
+    `);
   }
 
   static fetchTodaySum() {
@@ -358,6 +348,18 @@ class ExpenseModel {
         },
       });
     }
+  }
+
+  static fetchReport(month: number, year: number) {
+    return prisma.$transaction([
+      prisma.expense.groupBy({
+        by: ["expense_type_id"],
+        _sum: {
+          value: true,
+        },
+      }),
+      prisma.expense_type.findMany({}),
+    ]);
   }
 }
 

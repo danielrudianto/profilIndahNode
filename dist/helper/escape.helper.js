@@ -28,3 +28,4 @@ function mysql_real_escape_string(string) {
     });
 }
 exports.mysql_real_escape_string = mysql_real_escape_string;
+//# sourceMappingURL=escape.helper.js.map

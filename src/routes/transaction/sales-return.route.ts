@@ -13,6 +13,7 @@ router.post(
   ErrorHelper.intercept,
   SalesReturnController.fetchSearch
 );
+router.post("/archives", SalesReturnController.fetchArchives);
 router.post(
   "/",
   body("date").notEmpty().withMessage(ErrorList["Date required"]),
@@ -34,7 +35,6 @@ router.get(
   ErrorHelper.intercept,
   SalesReturnController.fetchCodeByID
 );
-router.get("/archives", SalesReturnController.fetchArchives);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),

@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import {
   AnnualArchive,
   ArchiveCount,
+  IFetchArchive,
   MonthlyArchive,
   SalesReturnArchive,
 } from "../interface/archive.interface";
@@ -495,10 +496,8 @@ class SalesReturnModel {
    * @param mode
    * @returns sales return archive years and count
    */
-  static fetchArchiveYears(mode: number) {
-    switch (mode) {
-      case 0:
-        return prisma.$queryRaw<AnnualArchive[]>`
+  static fetchArchiveYears() {
+    return prisma.$queryRaw<AnnualArchive[]>`
       SELECT DISTINCT(YEAR(sales_return_code.date)) AS year, 
       COUNT(id) AS count
       FROM sales_return_code
@@ -506,27 +505,6 @@ class SalesReturnModel {
       GROUP BY YEAR(sales_return_code.date)
       ORDER BY sales_return_code.date ASC
     `;
-      case 1:
-        return prisma.$queryRaw<AnnualArchive[]>`
-      SELECT DISTINCT(YEAR(sales_return_code.date)) AS year, 
-      COUNT(id) AS count
-      FROM sales_return_code
-      WHERE sales_return_code.is_delete = 1
-      AND sales_return_code.date IS NOT NULL
-      GROUP BY YEAR(sales_return_code.date)
-      ORDER BY sales_return_code.date ASC
-    `;
-      case 2:
-        return prisma.$queryRaw<AnnualArchive[]>`
-      SELECT DISTINCT(YEAR(sales_return_code.date)) AS year, 
-      COUNT(id) AS count
-      FROM sales_return_code
-      WHERE sales_return_code.is_delete = 0
-      AND sales_return_code.date IS NOT NULL
-      GROUP BY YEAR(sales_return_code.date)
-      ORDER BY sales_return_code.date ASC
-    `;
-    }
   }
 
   /**
@@ -538,41 +516,16 @@ class SalesReturnModel {
    * @param mode
    * @returns
    */
-  static fetchArchiveMonths(year: number, mode: number) {
-    switch (mode) {
-      case 0:
-        return prisma.$queryRaw<MonthlyArchive[]>`
-          SELECT DISTINCT(MONTH(sales_return_code.date)) AS month,
-          YEAR(sales_return_code.date) AS year,
-          COUNT(id) AS count
-          FROM sales_return_code
-          WHERE YEAR(sales_return_code.date) = ${year}
-          GROUP BY MONTH(sales_return_code.date)
-          ORDER BY sales_return_code.date ASC
-        `;
-      case 1:
-        return prisma.$queryRaw<MonthlyArchive[]>`
-        SELECT DISTINCT(MONTH(sales_return_code.date)) AS month, 
-        YEAR(sales_return_code.date) AS year,
-        COUNT(id) AS count
-        FROM sales_return_code
-        WHERE YEAR(sales_return_code.date) = ${year}
-        AND sales_return_code.is_delete = 1
-        GROUP BY MONTH(sales_return_code.date)
-        ORDER BY sales_return_code.date ASC
-      `;
-      case 2:
-        return prisma.$queryRaw<MonthlyArchive[]>`
-        SELECT DISTINCT(MONTH(sales_return_code.date)) AS month,
-        YEAR(sales_return_code.date) AS year,
-        COUNT(id) AS count
-        FROM sales_return_code
-        WHERE YEAR(sales_return_code.date) = ${year}
-        AND sales_return_code.is_delete = 0
-        GROUP BY MONTH(sales_return_code.date)
-        ORDER BY sales_return_code.date ASC
-      `;
-    }
+  static fetchArchiveMonths(year: number) {
+    return prisma.$queryRaw<MonthlyArchive[]>`
+      SELECT DISTINCT(MONTH(sales_return_code.date)) AS month,
+      YEAR(sales_return_code.date) AS year,
+      COUNT(id) AS count
+      FROM sales_return_code
+      WHERE YEAR(sales_return_code.date) = ${year}
+      GROUP BY MONTH(sales_return_code.date)
+      ORDER BY sales_return_code.date ASC
+    `;
   }
 
   /**
@@ -584,8 +537,9 @@ class SalesReturnModel {
    * @param mode
    * @returns
    */
-  static fetchArchive(year: number, month: number, page: number, mode: number) {
-    switch (mode) {
+  static fetchArchive(data: IFetchArchive) {
+    console.log(data);
+    switch (data.mode) {
       case 0:
         return prisma.$transaction([
           prisma.$queryRawUnsafe<SalesReturnArchive[]>(`
@@ -605,18 +559,28 @@ class SalesReturnModel {
         ) salesReturnCount
         ON sales_return_code.id = salesReturnCount.sales_return_code_id
         LEFT JOIN customer ON salesReturnCount.customer_id = customer.id
-        WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${
-            month + 1
-          }
+        WHERE YEAR(sales_return_code.date) = ${
+          data.year
+        } AND MONTH(sales_return_code.date) = ${data.month + 1}
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND sales_return_code.name LIKE '%${data.keyword}%'`
+        }
         ORDER BY sales_return_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-          prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+          prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM sales_return_code
-          WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${
-            month + 1
+          WHERE YEAR(sales_return_code.date) = ${
+            data.year
+          } AND MONTH(sales_return_code.date) = ${data.month + 1}
+          ${
+            data.keyword == ""
+              ? ""
+              : `AND sales_return_code.name LIKE '%${data.keyword}%'`
           }
-        `,
+        `),
         ]);
       case 1:
         return prisma.$transaction([
@@ -637,20 +601,30 @@ class SalesReturnModel {
         ) salesReturnCount
         ON sales_return_code.id = salesReturnCount.sales_return_code_id
         LEFT JOIN customer ON salesReturnCount.customer_id = customer.id
-        WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${
-            month + 1
-          }
+        WHERE YEAR(sales_return_code.date) = ${
+          data.year
+        } AND MONTH(sales_return_code.date) = ${data.month + 1}
         AND sales_return_code.is_delete = 1
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND sales_return_code.name LIKE '%${data.keyword}%'`
+        }
         ORDER BY sales_return_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-          prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+          prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM sales_return_code
-          WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${
-            month + 1
+          WHERE YEAR(sales_return_code.date) = ${
+            data.year
+          } AND MONTH(sales_return_code.date) = ${data.month + 1}
+          AND sales_return_code.is_delete = 1
+          ${
+            data.keyword == ""
+              ? ""
+              : `AND sales_return_code.name LIKE '%${data.keyword}%'`
           }
-        AND sales_return_code.is_delete = 1
-        `,
+        `),
         ]);
       case 2:
         return prisma.$transaction([
@@ -671,20 +645,30 @@ class SalesReturnModel {
         ) salesReturnCount
         ON sales_return_code.id = salesReturnCount.sales_return_code_id
         LEFT JOIN customer ON salesReturnCount.customer_id = customer.id
-        WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${
-            month + 1
-          }
+        WHERE YEAR(sales_return_code.date) = ${
+          data.year
+        } AND MONTH(sales_return_code.date) = ${data.month + 1}
         AND sales_return_code.is_delete = 0
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND sales_return_code.name LIKE '%${data.keyword}%'`
+        }
         ORDER BY sales_return_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-          prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+          prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM sales_return_code
-          WHERE YEAR(sales_return_code.date) = ${year} AND MONTH(sales_return_code.date) = ${
-            month + 1
-          }
+          WHERE YEAR(sales_return_code.date) = ${
+            data.year
+          } AND MONTH(sales_return_code.date) = ${data.month + 1}
         AND sales_return_code.is_delete = 0
-        `,
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND sales_return_code.name LIKE '%${data.keyword}%'`
+        }
+        `),
         ]);
     }
   }

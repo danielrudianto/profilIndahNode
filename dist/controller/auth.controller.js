@@ -9,13 +9,21 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 class AuthController {
 }
+/**
+ * Login
+ * @param req
+ * @param res
+ */
 AuthController.login = (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     user_model_1.default.fetchByUsername(username)
         .then((user) => {
-        if (!user || !user.is_active) {
+        if (!user) {
             return res.status(400).send(error_list_1.default["Auth error"]);
+        }
+        if (!user.is_active) {
+            return res.status(400).send(error_list_1.default["User not active"]);
         }
         (0, bcrypt_1.compare)(password, user.password).then((result) => {
             if (!result) {
@@ -41,80 +49,15 @@ AuthController.login = (req, res) => {
         });
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error while login. ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
-AuthController.fetchProfile = (req, res) => {
-    user_model_1.default.fetchById(req.body.userId)
-        .then((result) => {
-        if (result == null || !result.is_active) {
-            return res.status(404).send(error_list_1.default["Auth error"]);
-        }
-        else {
-            return res.status(200).send({
-                name: result === null || result === void 0 ? void 0 : result.name,
-                username: result === null || result === void 0 ? void 0 : result.username,
-                nik: result === null || result === void 0 ? void 0 : result.nik,
-                role: user_model_1.default.roles.filter((x) => { var _a; return x.id == ((_a = result === null || result === void 0 ? void 0 : result.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0],
-                is_active: result === null || result === void 0 ? void 0 : result.is_active,
-            });
-        }
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-AuthController.updatePassword = (req, res) => {
-    const password = req.body.password;
-    const userId = req.body.userId;
-    (0, bcrypt_1.hash)(password, 12)
-        .then((hashed_password) => {
-        user_model_1.default.updatePassword(hashed_password, userId)
-            .then((result) => {
-            return res.status(200).send(result);
-        })
-            .catch((error) => {
-            return res.status(500).send(error);
-        });
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-AuthController.resetPassword = (req, res) => {
-    const user_id = parseInt(req.body.user_id);
-    user_model_1.default.fetchById(user_id)
-        .then((user) => {
-        if (user == null || !user.is_active) {
-            return res.status(404).send("Pengguna tidak ditemukan.");
-        }
-        else {
-            // User is found and it's password will be reseted.
-            let password = "";
-            const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-            for (var i = 0; i < 8; i++) {
-                password +=
-                    characters[Math.floor(Math.random() * (characters.length - 1))];
-            }
-            (0, bcrypt_1.hash)(password, 12)
-                .then((hashedPassword) => {
-                user_model_1.default.update(user === null || user === void 0 ? void 0 : user.id, user === null || user === void 0 ? void 0 : user.name, hashedPassword, req.body.userId)
-                    .then((result) => {
-                    return res.status(201).send(Object.assign(Object.assign({}, result), { password: password }));
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
-                });
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
-        }
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
+/**
+ * Refresh token
+ * @param req
+ * @param res
+ */
 AuthController.refreshToken = (req, res) => {
     var _a;
     let tokenHeader = (_a = req.headers["x-access-token"]) === null || _a === void 0 ? void 0 : _a.toString();
@@ -148,4 +91,116 @@ AuthController.refreshToken = (req, res) => {
         }
     });
 };
+/**
+ * Fetch profile
+ * @param req
+ * @param res
+ */
+AuthController.fetchProfile = (req, res) => {
+    user_model_1.default.fetchByID(req.body.userId)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Auth error"]);
+        }
+        if (!result.is_active) {
+            return res.status(400).send(error_list_1.default["User not active"]);
+        }
+        return res.status(200).send({
+            name: result === null || result === void 0 ? void 0 : result.name,
+            username: result === null || result === void 0 ? void 0 : result.username,
+            nik: result === null || result === void 0 ? void 0 : result.nik,
+            role: user_model_1.default.roles.filter((x) => { var _a; return x.id == ((_a = result === null || result === void 0 ? void 0 : result.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0],
+            is_active: result === null || result === void 0 ? void 0 : result.is_active,
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error while fetching profile. ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Reset password
+ * @param req
+ * @param res
+ */
+AuthController.updatePassword = (req, res) => {
+    const user_id = parseInt(req.body.user_id);
+    const password = req.body.password;
+    user_model_1.default.fetchByID(user_id)
+        .then((user) => {
+        if (!user) {
+            return res.status(404).send(error_list_1.default["User not found"]);
+        }
+        if (!user.is_active) {
+            return res.status(400).send(error_list_1.default["User not active"]);
+        }
+        // If password is not provided, generate random password
+        // But if password is provided, hash it
+        if (password == undefined || password == null) {
+            let password = "";
+            const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+            for (var i = 0; i < 8; i++) {
+                password +=
+                    characters[Math.floor(Math.random() * (characters.length - 1))];
+            }
+            (0, bcrypt_1.hash)(password, 12)
+                .then((hashedPassword) => {
+                user_model_1.default.update({
+                    id: user.id,
+                    username: user.username,
+                    nik: user.nik,
+                    name: user.name,
+                    password: hashedPassword,
+                    created_by: user.id,
+                    role: user.user_department == null ? 0 : user.user_department.role,
+                })
+                    .then((result) => {
+                    return res.status(201).send(Object.assign(Object.assign({}, result), { password: password }));
+                })
+                    .catch((error) => {
+                    console.error(`[error]: error on updating user ${error}`);
+                    return res
+                        .status(500)
+                        .send(error_list_1.default["Internal server error"]);
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on hashing password ${error}}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            });
+        }
+        else {
+            (0, bcrypt_1.hash)(password, 12)
+                .then((hashedPassword) => {
+                user_model_1.default.update({
+                    id: user.id,
+                    username: user.username,
+                    nik: user.nik,
+                    name: user.name,
+                    password: hashedPassword,
+                    created_by: user.id,
+                    role: user.user_department == null ? 0 : user.user_department.role,
+                })
+                    .then((result) => {
+                    return res.status(201).send(result);
+                })
+                    .catch((error) => {
+                    console.error(`[error]: error on updating user ${error}`);
+                    return res
+                        .status(500)
+                        .send(error_list_1.default["Internal server error"]);
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on hashing password ${error}}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            });
+        }
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching user ${error}}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
 exports.default = AuthController;
+//# sourceMappingURL=auth.controller.js.map

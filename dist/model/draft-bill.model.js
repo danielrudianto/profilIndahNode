@@ -7,30 +7,27 @@ exports.DraftBillModel = void 0;
 const client_1 = require("@prisma/client");
 const moment_1 = __importDefault(require("moment"));
 const uuid_1 = require("uuid");
+const fetch_interface_1 = require("../interface/fetch.interface");
 const prisma = new client_1.PrismaClient();
 class DraftBillModel {
-    constructor(customer_id, note, items, created_by, name, service, delivery) {
-        this.created_by = created_by;
-        this.customer_id = customer_id;
-        this.items = items;
-        this.note = note;
-        this.name = name;
-        this.service = service;
-        this.delivery = delivery;
-    }
-    create() {
+    /**
+     * Create draft bill
+     * @param data
+     * @returns
+     */
+    static create(data) {
         return prisma.draft_bill_code.create({
             data: {
-                name: this.name,
-                delivery: this.delivery,
-                service: this.service,
-                note: this.note,
+                name: data.name,
+                delivery: data.delivery,
+                service: data.service,
+                note: data.note,
                 created_at: new Date(),
-                created_by: this.created_by,
-                customer_id: this.customer_id,
+                created_by: data.created_by,
+                customer_id: data.customer_id,
                 draft_bill: {
                     createMany: {
-                        data: this.items.map((x) => {
+                        data: data.items.map((x) => {
                             return {
                                 item_id: x.item_id,
                                 quantity: x.quantity,
@@ -141,11 +138,22 @@ class DraftBillModel {
             },
         });
     }
-    static fetchUnconfirmed(page = 1, keyword) {
-        if (keyword == "") {
+    /**
+     * Fetch draft bill
+     * @param keyword
+     * @param limit
+     * @param offset
+     * @param mode
+     * @returns {Promise<IFetchDraftBill[]>}
+     */
+    static fetch(keyword, limit, offset, mode) {
+        if (mode == fetch_interface_1.fetchMode.Unconfirmed) {
             return prisma.$transaction([
                 prisma.$queryRawUnsafe(`
-        SELECT draft_bill_code.id, draft_bill_code.name, draft_bill_code.created_at, user.name as created_by, customer.name as customer_name, total.total
+        SELECT draft_bill_code.id, draft_bill_code.name, 
+        draft_bill_code.created_at, user.name as created_by, 
+        customer.name as customer_name, total.total,
+        draft_bill.is_delete
         FROM draft_bill_code
         INNER JOIN user ON draft_bill_code.created_by = user.id
         LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
@@ -156,34 +164,11 @@ class DraftBillModel {
         ) as total 
         ON total.draft_bill_code_id = draft_bill_code.id
         WHERE draft_bill_code.is_delete = 0
-        ORDER BY draft_bill_code.id DESC
-        LIMIT 10 OFFSET ${(page - 1) * 10}
-      `),
-                prisma.draft_bill_code.count({
-                    where: {
-                        is_delete: false,
-                    },
-                }),
-            ]);
-        }
-        else {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
-        SELECT draft_bill_code.id, draft_bill_code.name, draft_bill_code.created_at, user.name as created_by, customer.name as customer_name, total.total
-        FROM draft_bill_code
-        INNER JOIN user ON draft_bill_code.created_by = user.id
-        LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
-        JOIN (
-          SELECT SUM(draft_bill.quantity * draft_bill.price) as total, draft_bill.draft_bill_code_id
-          FROM draft_bill
-          GROUP BY draft_bill.draft_bill_code_id
-        ) as total 
-        ON total.draft_bill_code_id = draft_bill_code.id
-        WHERE draft_bill_code.is_delete = 0
+        AND draft_bill_code.is_confirmed = 0
         AND draft_bill_code.name LIKE '%${keyword}%'
         OR customer.name LIKE '%${keyword}%'
         ORDER BY draft_bill_code.id DESC
-        LIMIT 10 OFFSET ${(page - 1) * 10}
+        LIMIT ${limit} OFFSET ${offset}
       `),
                 prisma.draft_bill_code.count({
                     where: {
@@ -206,37 +191,83 @@ class DraftBillModel {
                 }),
             ]);
         }
+        else if (mode == fetch_interface_1.fetchMode.Pagination) {
+            return prisma.$transaction([
+                prisma.$queryRawUnsafe(`
+        SELECT draft_bill_code.id, draft_bill_code.name, 
+        draft_bill_code.created_at, user.name as created_by, 
+        customer.name as customer_name, total.total,
+        draft_bill.is_delete
+        FROM draft_bill_code
+        INNER JOIN user ON draft_bill_code.created_by = user.id
+        LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
+        JOIN (
+          SELECT SUM(draft_bill.quantity * draft_bill.price) as total, draft_bill.draft_bill_code_id
+          FROM draft_bill
+          GROUP BY draft_bill.draft_bill_code_id
+        ) as total 
+        ON total.draft_bill_code_id = draft_bill_code.id
+        WHERE draft_bill_code.name LIKE '%${keyword}%'
+        OR customer.name LIKE '%${keyword}%'
+        ORDER BY draft_bill_code.id DESC
+        LIMIT ${limit} OFFSET ${offset}
+      `),
+                prisma.draft_bill_code.count({
+                    where: {
+                        OR: [
+                            {
+                                name: {
+                                    contains: keyword,
+                                },
+                            },
+                            {
+                                customer: {
+                                    name: {
+                                        contains: keyword,
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                }),
+            ]);
+        }
     }
-    static confirm(id, name, date, customer_id, payment_method_id, service, delivery, discount, items, userID) {
+    /**
+     * Confirm draft bill and convert it to bill
+     * @param data
+     * @returns
+     */
+    static confirm(data) {
         return prisma.$transaction([
             prisma.draft_bill_code.update({
                 where: {
-                    id: id,
+                    id: data.id,
                 },
                 data: {
                     is_delete: true,
                     confirmed_at: new Date(),
-                    confirmed_by: userID,
+                    confirmed_by: data.userID,
                 },
             }),
             prisma.bill_code.create({
                 data: {
-                    name: name,
-                    date: new Date((0, moment_1.default)(date).format("YYYY-MM-DD")),
-                    customer_id: customer_id,
-                    payment_method_id: payment_method_id,
-                    service: service,
-                    delivery: delivery,
-                    discount: discount,
+                    name: data.name,
+                    date: new Date((0, moment_1.default)(data.date).format("YYYY-MM-DD")),
+                    customer_id: data.customer_id,
+                    payment_method_id: data.payment_method_id,
+                    service: data.service,
+                    delivery: data.delivery,
+                    discount: data.discount,
                     uuid: (0, uuid_1.v4)(),
                     created_at: new Date(),
-                    created_by: userID,
+                    created_by: data.userID,
                     is_confirm: true,
                     confirmed_at: new Date(),
-                    confirmed_by: userID,
+                    confirmed_by: data.userID,
                     bill: {
                         createMany: {
-                            data: items.map((x) => {
+                            data: data.items.map((x) => {
                                 return {
                                     item_id: x.item_id,
                                     quantity: x.quantity,
@@ -248,10 +279,66 @@ class DraftBillModel {
                         },
                     },
                 },
+                include: {
+                    bill: {
+                        include: {
+                            package_code: {
+                                include: {
+                                    package_content: {
+                                        select: {
+                                            quantity: true,
+                                            item_id: true,
+                                            item_unit: {
+                                                select: {
+                                                    unit: true,
+                                                    conversion: true,
+                                                },
+                                            },
+                                            item: {
+                                                select: {
+                                                    reference: true,
+                                                    description: true,
+                                                    unit: true,
+                                                },
+                                            },
+                                            price: true,
+                                            discount: true,
+                                        },
+                                    },
+                                },
+                            },
+                            item_unit: {
+                                select: {
+                                    unit: true,
+                                    conversion: true,
+                                },
+                            },
+                            item: {
+                                select: {
+                                    id: true,
+                                    reference: true,
+                                    description: true,
+                                    unit: true,
+                                },
+                            },
+                        },
+                    },
+                    customer: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                },
             }),
         ]);
     }
-    static delete(id, userID) {
+    /**
+     * Delete draft bill by ID
+     * @param id
+     * @param userID
+     * @returns
+     */
+    static deleteByID(id, userID) {
         return prisma.draft_bill_code.update({
             where: {
                 id: id,
@@ -263,18 +350,23 @@ class DraftBillModel {
             },
         });
     }
+    /**
+     * Fetch archive years and count
+     * @param mode
+     * @returns
+     */
     static fetchArchiveYears(mode) {
-        if (mode == 0) {
-            return prisma.$queryRaw `
+        switch (mode) {
+            case 0:
+                return prisma.$queryRaw `
       SELECT DISTINCT(YEAR(draft_bill_code.created_at)) AS year, COUNT(id) AS count
       FROM draft_bill_code
       WHERE draft_bill_code.created_at IS NOT NULL
       GROUP BY YEAR(draft_bill_code.created_at)
       ORDER BY draft_bill_code.created_at ASC
     `;
-        }
-        else if (mode == 1) {
-            return prisma.$queryRaw `
+            case 1:
+                return prisma.$queryRaw `
       SELECT DISTINCT(YEAR(draft_bill_code.created_at)) AS year, COUNT(id) AS count
       FROM draft_bill_code
       WHERE draft_bill_code.is_delete = 1
@@ -282,9 +374,8 @@ class DraftBillModel {
       GROUP BY YEAR(draft_bill_code.created_at)
       ORDER BY draft_bill_code.created_at ASC
     `;
-        }
-        else if (mode == 2) {
-            return prisma.$queryRaw `
+            case 2:
+                return prisma.$queryRaw `
       SELECT DISTINCT(YEAR(draft_bill_code.created_at)) AS year, COUNT(id) AS count
       FROM draft_bill_code
       WHERE draft_bill_code.is_delete = 0
@@ -294,18 +385,24 @@ class DraftBillModel {
     `;
         }
     }
+    /**
+     * Fetch archive months and count by year
+     * @param year
+     * @param mode
+     * @returns
+     */
     static fetchArchiveMonths(year, mode) {
-        if (mode == 0) {
-            return prisma.$queryRaw `
+        switch (mode) {
+            case 0:
+                return prisma.$queryRaw `
       SELECT DISTINCT(MONTH(draft_bill_code.created_at)) AS month, COUNT(id) AS count
       FROM draft_bill_code
       WHERE YEAR(draft_bill_code.created_at) = ${year}
       GROUP BY MONTH(draft_bill_code.created_at)
       ORDER BY draft_bill_code.created_at ASC
     `;
-        }
-        else if (mode == 1) {
-            return prisma.$queryRaw `
+            case 1:
+                return prisma.$queryRaw `
       SELECT DISTINCT(MONTH(draft_bill_code.created_at)) AS month, COUNT(id) AS count
       FROM draft_bill_code
       WHERE YEAR(draft_bill_code.created_at) = ${year}
@@ -313,9 +410,8 @@ class DraftBillModel {
       GROUP BY MONTH(draft_bill_code.created_at)
       ORDER BY draft_bill_code.created_at ASC
     `;
-        }
-        else if (mode == 2) {
-            return prisma.$queryRaw `
+            case 2:
+                return prisma.$queryRaw `
       SELECT DISTINCT(MONTH(draft_bill_code.created_at)) AS month, COUNT(id) AS count
       FROM draft_bill_code
       WHERE YEAR(draft_bill_code.created_at) = ${year}
@@ -325,56 +421,64 @@ class DraftBillModel {
     `;
         }
     }
+    /**
+     * Fetch archive by year and month and page
+     * @param year
+     * @param month
+     * @param page
+     * @param mode
+     * @returns
+     */
     static fetchArchive(year, month, page, mode) {
-        if (mode == 0) {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
-        SELECT draft_bill_code.id, draft_bill_code.created_at, draft_bill_code.name, draft_bill_code.is_delete
-        FROM draft_bill_code
-        WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
-        ORDER BY draft_bill_code.created_at ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-                prisma.$queryRaw `
-          SELECT COUNT(id) AS count FROM draft_bill_code
+        switch (mode) {
+            case 0:
+                return prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+          SELECT draft_bill_code.id, draft_bill_code.created_at, draft_bill_code.name, draft_bill_code.is_delete
+          FROM draft_bill_code
           WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
-        `,
-            ]);
-        }
-        else if (mode == 1) {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
-        SELECT draft_bill_code.id, draft_bill_code.created_at, draft_bill_code.name, draft_bill_code.is_delete
-        FROM draft_bill_code
-        WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
-        AND draft_bill_code.is_delete = 1
-        ORDER BY draft_bill_code.created_at ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-                prisma.$queryRaw `
-          SELECT COUNT(id) AS count FROM draft_bill_code
+          ORDER BY draft_bill_code.created_at ASC
+          LIMIT 10
+          OFFSET ${(page - 1) * 10}`),
+                    prisma.$queryRaw `
+            SELECT COUNT(id) AS count FROM draft_bill_code
+            WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
+          `,
+                ]);
+            case 1:
+                return prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+          SELECT draft_bill_code.id, draft_bill_code.created_at, draft_bill_code.name, draft_bill_code.is_delete
+          FROM draft_bill_code
           WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
-        AND draft_bill_code.is_delete = 1
-        `,
-            ]);
-        }
-        else if (mode == 2) {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
-        SELECT draft_bill_code.id, draft_bill_code.created_at, draft_bill_code.name, draft_bill_code.is_delete
-        FROM draft_bill_code
-        WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
-        AND draft_bill_code.is_delete = 0
-        ORDER BY draft_bill_code.created_at ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-                prisma.$queryRaw `
-          SELECT COUNT(id) AS count FROM draft_bill_code
+          AND draft_bill_code.is_delete = 1
+          ORDER BY draft_bill_code.created_at ASC
+          LIMIT 10
+          OFFSET ${(page - 1) * 10}`),
+                    prisma.$queryRaw `
+            SELECT COUNT(id) AS count FROM draft_bill_code
+            WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
+          AND draft_bill_code.is_delete = 1
+          `,
+                ]);
+            case 2:
+                return prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+          SELECT draft_bill_code.id, draft_bill_code.created_at, draft_bill_code.name, draft_bill_code.is_delete
+          FROM draft_bill_code
           WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
-        AND draft_bill_code.is_delete = 0
-        `,
-            ]);
+          AND draft_bill_code.is_delete = 0
+          ORDER BY draft_bill_code.created_at ASC
+          LIMIT 10
+          OFFSET ${(page - 1) * 10}`),
+                    prisma.$queryRaw `
+            SELECT COUNT(id) AS count FROM draft_bill_code
+            WHERE YEAR(draft_bill_code.created_at) = ${year} AND MONTH(draft_bill_code.created_at) = ${month + 1}
+          AND draft_bill_code.is_delete = 0
+          `,
+                ]);
         }
     }
 }
 exports.DraftBillModel = DraftBillModel;
+//# sourceMappingURL=draft-bill.model.js.map

@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
+import { model } from "mongoose";
 import ErrorList from "../assets/error_list";
+import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
 import AdjustmentCaseModel, {
@@ -19,6 +21,10 @@ class AdjustmentCaseController {
     const companyID = req.body.company_id;
     const userID = req.body.userId;
     const type = req.body.type;
+
+    if (type == 0 && companyID == null) {
+      return res.status(400).send(ErrorList["Parameter error"]);
+    }
 
     const adjustmentCase: IAdjustmentCaseCode = {
       name: name,
@@ -41,28 +47,8 @@ class AdjustmentCaseController {
           return res.status(500).send(ErrorList["Internal server error"]);
         }
 
-        try {
-          await ProductStockModel.updateStock(
-            result.adjustment_case.map((x) => {
-              const quantity =
-                parseFloat(x.quantity.toString()) *
-                (x.item_unit == null
-                  ? 1
-                  : parseFloat(x.item_unit.conversion.toString()));
-              return {
-                item_id: x.item.id,
-                quantity: quantity,
-              };
-            })
-          );
-
-          await queue.add("create-adjustment-case", result);
-
-          return res.status(201).send(result);
-        } catch (error) {
-          console.error(`[error]: Error on create adjustment case: ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        }
+        await queue.add("create-adjustment-case", result);
+        return res.status(201).send(result);
       })
       .catch((error) => {
         console.error(`[error]: Error on create adjustment case: ${error}`);
@@ -118,27 +104,31 @@ class AdjustmentCaseController {
    */
 
   static fetchArchives = (req: Request, res: Response) => {
-    const mode =
-      req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-      AdjustmentCaseModel.fetchArchiveYears(mode)!
+    const year = req.body.year;
+    const month = req.body.month;
+
+    if (year == null) {
+      AdjustmentCaseModel.fetchArchiveYears()
         .then((result) => {
           return res.status(200).send(
-            result.map((x) => {
-              return {
-                year: x.year,
-                count: parseInt(x.count.toString()),
-              };
-            })
+            result
+              .map((x) => {
+                return {
+                  year: x.year,
+                  count: parseInt(x.count.toString()),
+                };
+              })
+              .sort((a, b) => {
+                return a.year - b.year;
+              })
           );
         })
         .catch((error) => {
           console.error(`[error]: Error on fetching adjustment case: ${error}`);
           return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month == undefined) {
-      const year = parseInt(req.query.year.toString());
-      AdjustmentCaseModel.fetchArchiveMonths(year, mode)!
+    } else if (year != null && month == null) {
+      AdjustmentCaseModel.fetchArchiveMonths(year)!
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
@@ -150,13 +140,20 @@ class AdjustmentCaseController {
           console.error(`[error]: Error on fetching adjustment case: ${error}`);
           return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (req.query.year != undefined && req.query.month != undefined) {
-      const year = parseInt(req.query.year.toString());
-      const month = parseInt(req.query.month.toString());
-      const page =
-        req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
+    } else {
+      const page = req.body.limit.page;
+      req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
+      const keyword = req.body.search.keyword;
+      const mode = req.body.mode;
 
-      AdjustmentCaseModel.fetchArchive(year, month, page, mode)!
+      AdjustmentCaseModel.fetchArchive({
+        year: year,
+        month: month,
+        keyword: mysql_real_escape_string(keyword),
+        limit: 10,
+        offset: (page - 1) * 10,
+        mode: mode,
+      })!
         .then((result) => {
           return res.status(200).send({
             data: result[0].map((x) => {
@@ -166,13 +163,7 @@ class AdjustmentCaseController {
                 date: x.date,
                 is_delete: x.is_delete == 1,
                 is_confirm: x.is_confirm == 1,
-                company:
-                  (x.company_id == null) == null
-                    ? null
-                    : {
-                        id: x.company_id,
-                        name: x.company_name,
-                      },
+                company_name: x.company_name,
               };
             }),
             count:
@@ -185,8 +176,6 @@ class AdjustmentCaseController {
           console.error(`[error]: Error on fetching adjustment case: ${error}`);
           return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else {
-      return res.status(400).send(ErrorList["Parameter error"]);
     }
   };
 
@@ -234,28 +223,8 @@ class AdjustmentCaseController {
           const socket = new SocketHelper("deleteAdjustmentCase", result);
           socket.create();
 
-          try {
-            await ProductStockModel.updateStock(
-              result.adjustment_case.map((x) => {
-                return {
-                  item_id: x.item.id,
-                  quantity:
-                    parseFloat(x.quantity.toString()) *
-                    -1 *
-                    (x.item_unit == null
-                      ? 1
-                      : parseFloat(x.item_unit.conversion.toString())),
-                };
-              })
-            );
-
-            return res.status(200).send(result);
-          } catch (error) {
-            console.error(
-              `[error]: Error on deleting adjustment case: ${error}`
-            );
-            return res.status(500).send(ErrorList["Internal server error"]);
-          }
+          await queue.add("delete-adjustment-case", result);
+          return res.status(200).send(result);
         })
         .catch((error) => {
           console.error(`[error]: Error on deleting adjustment case: ${error}`);

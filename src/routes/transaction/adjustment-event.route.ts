@@ -6,7 +6,7 @@ import ErrorHelper from "../../helper/error.helper";
 
 const router = Router();
 
-router.get("/archives", AdjustmentCaseController.fetchArchives);
+router.post("/archives", AdjustmentCaseController.fetchArchives);
 
 router.get(
   "/code/:id",

@@ -2,6 +2,7 @@ import {
   AdjustmentCaseArchive,
   AnnualArchive,
   ArchiveCount,
+  IFetchArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
 import { prisma } from "../app";
@@ -153,6 +154,7 @@ class AdjustmentCaseModel {
         created_at: true,
         adjustment_case: {
           select: {
+            id: true,
             item: {
               select: {
                 id: true,
@@ -187,37 +189,14 @@ class AdjustmentCaseModel {
    * @param mode
    * @returns
    */
-  static fetchArchiveYears(mode: number) {
-    if (mode == 0) {
-      return prisma.$queryRaw<AnnualArchive[]>`
+  static fetchArchiveYears() {
+    return prisma.$queryRaw<AnnualArchive[]>`
       SELECT DISTINCT(YEAR(adjustment_case_code.date)) AS year, 
       COUNT(id) AS count
       FROM adjustment_case_code
       WHERE adjustment_case_code.date IS NOT NULL
       GROUP BY YEAR(adjustment_case_code.date)
-      ORDER BY adjustment_case_code.date ASC
     `;
-    } else if (mode == 1) {
-      return prisma.$queryRaw<AnnualArchive[]>`
-      SELECT DISTINCT(YEAR(adjustment_case_code.date)) AS year, 
-      COUNT(id) AS count
-      FROM adjustment_case_code
-      WHERE adjustment_case_code.is_delete = 1
-      AND adjustment_case_code.date IS NOT NULL
-      GROUP BY YEAR(adjustment_case_code.date)
-      ORDER BY adjustment_case_code.date ASC
-    `;
-    } else if (mode == 2) {
-      return prisma.$queryRaw<AnnualArchive[]>`
-      SELECT DISTINCT(YEAR(adjustment_case_code.date)) AS year, 
-      COUNT(id) AS count
-      FROM adjustment_case_code
-      WHERE adjustment_case_code.is_delete = 0
-      AND adjustment_case_code.date IS NOT NULL
-      GROUP BY YEAR(adjustment_case_code.date)
-      ORDER BY adjustment_case_code.date ASC
-    `;
-    }
   }
 
   /**
@@ -228,37 +207,14 @@ class AdjustmentCaseModel {
    * @param mode
    * @returns
    */
-  static fetchArchiveMonths(year: number, mode: number) {
-    if (mode == 0) {
-      return prisma.$queryRaw<MonthlyArchive[]>`
+  static fetchArchiveMonths(year: number) {
+    return prisma.$queryRaw<MonthlyArchive[]>`
       SELECT DISTINCT(MONTH(adjustment_case_code.date)) AS month, 
       COUNT(id) AS count
       FROM adjustment_case_code
       WHERE YEAR(adjustment_case_code.date) = ${year}
       GROUP BY MONTH(adjustment_case_code.date)
-      ORDER BY adjustment_case_code.date ASC
     `;
-    } else if (mode == 1) {
-      return prisma.$queryRaw<MonthlyArchive[]>`
-      SELECT DISTINCT(MONTH(adjustment_case_code.date)) AS month, 
-      COUNT(id) AS count
-      FROM adjustment_case_code
-      WHERE YEAR(adjustment_case_code.date) = ${year}
-      AND adjustment_case_code.is_delete = 1
-      GROUP BY MONTH(adjustment_case_code.date)
-      ORDER BY adjustment_case_code.date ASC
-    `;
-    } else if (mode == 2) {
-      return prisma.$queryRaw<MonthlyArchive[]>`
-      SELECT DISTINCT(MONTH(adjustment_case_code.date)) AS month, 
-      COUNT(id) AS count
-      FROM adjustment_case_code
-      WHERE YEAR(adjustment_case_code.date) = ${year}
-      AND adjustment_case_code.is_delete = 0
-      GROUP BY MONTH(adjustment_case_code.date)
-      ORDER BY adjustment_case_code.date ASC
-    `;
-    }
   }
 
   /**
@@ -271,111 +227,102 @@ class AdjustmentCaseModel {
    * @param mode
    * @returns
    */
-  static fetchArchive(year: number, month: number, page: number, mode: number) {
-    if (mode == 0) {
+  static fetchArchive(data: IFetchArchive) {
+    if (data.mode == 0) {
       return prisma.$transaction([
         prisma.$queryRawUnsafe<AdjustmentCaseArchive[]>(`
         SELECT adjustment_case_code.id, adjustment_case_code.date, 
         adjustment_case_code.name, adjustment_case_code.is_delete, 
-        company_id AS company_id, company.name AS company_name, 
+        company_id AS company_id, COALESCE(company.name, 'N/A') AS company_name, 
         adjustment_case_code.is_confirm
         FROM adjustment_case_code
         LEFT JOIN company ON adjustment_case_code.company_id = company.id
-        WHERE YEAR(adjustment_case_code.date) = ${year} 
-        AND MONTH(adjustment_case_code.date) = ${month + 1}
-        ORDER BY adjustment_case_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<ArchiveCount[]>`
-          SELECT COUNT(id) AS count FROM adjustment_case_code
-          WHERE YEAR(adjustment_case_code.date) = ${year} AND MONTH(adjustment_case_code.date) = ${
-          month + 1
+        WHERE YEAR(adjustment_case_code.date) = ${data.year} 
+        AND MONTH(adjustment_case_code.date) = ${data.month + 1}
+        ${
+          data.keyword == null
+            ? ""
+            : `AND (adjustment_case_code.name LIKE '%${data.keyword}%')`
         }
-        `,
+        ORDER BY adjustment_case_code.date ASC
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+        prisma.$queryRawUnsafe<ArchiveCount[]>(`
+          SELECT COUNT(id) AS count FROM adjustment_case_code
+          WHERE YEAR(adjustment_case_code.date) = ${data.year} 
+          AND MONTH(adjustment_case_code.date) = ${data.month + 1}
+          ${
+            data.keyword == null
+              ? ""
+              : `AND (adjustment_case_code.name LIKE '%${data.keyword}%')`
+          }
+        `),
       ]);
-    } else if (mode == 1) {
+    } else if (data.mode == 1) {
       return prisma.$transaction([
         prisma.$queryRawUnsafe<AdjustmentCaseArchive[]>(`
         SELECT adjustment_case_code.id, adjustment_case_code.date, 
         adjustment_case_code.name, adjustment_case_code.is_delete, 
-        company_id AS company_id, company.name AS company_name, 
+        company_id AS company_id, COALESCE(company.name, 'N/A') AS company_name, 
         adjustment_case_code.is_confirm
         FROM adjustment_case_code
         LEFT JOIN company ON adjustment_case_code.company_id = company.id
-        WHERE YEAR(adjustment_case_code.date) = ${year} 
-        AND MONTH(adjustment_case_code.date) = ${month + 1}
+        WHERE YEAR(adjustment_case_code.date) = ${data.year} 
+        AND MONTH(adjustment_case_code.date) = ${data.month + 1}
         AND adjustment_case_code.is_delete = 1
+        ${
+          data.keyword == null
+            ? ""
+            : `AND (adjustment_case_code.name LIKE '%${data.keyword}%')`
+        }
         ORDER BY adjustment_case_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+        prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM adjustment_case_code
-          WHERE YEAR(adjustment_case_code.date) = ${year} 
-          AND MONTH(adjustment_case_code.date) = ${month + 1}
-        AND adjustment_case_code.is_delete = 1
-        `,
+          WHERE YEAR(adjustment_case_code.date) = ${data.year} 
+          AND MONTH(adjustment_case_code.date) = ${data.month + 1}
+          AND adjustment_case_code.is_delete = 1
+          ${
+            data.keyword == null
+              ? ""
+              : `AND (adjustment_case_code.name LIKE '%${data.keyword}%')`
+          }
+        `),
       ]);
-    } else if (mode == 2) {
+    } else if (data.mode == 2) {
       return prisma.$transaction([
         prisma.$queryRawUnsafe<AdjustmentCaseArchive[]>(`
         SELECT adjustment_case_code.id, adjustment_case_code.date, 
         adjustment_case_code.name, adjustment_case_code.is_delete, 
-        company_id AS company_id, company.name AS company_name, 
+        company_id AS company_id, COALESCE(company.name, 'N/A') AS company_name, 
         adjustment_case_code.is_confirm
         FROM adjustment_case_code
         LEFT JOIN company ON adjustment_case_code.company_id = company.id
-        WHERE YEAR(adjustment_case_code.date) = ${year} 
-        AND MONTH(adjustment_case_code.date) = ${month + 1}
+        WHERE YEAR(adjustment_case_code.date) = ${data.year} 
+        AND MONTH(adjustment_case_code.date) = ${data.month + 1}
         AND adjustment_case_code.is_delete = 0
+        ${
+          data.keyword == null
+            ? ""
+            : `AND (adjustment_case_code.name LIKE '%${data.keyword}%')`
+        }
         ORDER BY adjustment_case_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+        prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM adjustment_case_code
-          WHERE YEAR(adjustment_case_code.date) = ${year} 
-          AND MONTH(adjustment_case_code.date) = ${month + 1}
-        AND adjustment_case_code.is_delete = 0
-        `,
+          WHERE YEAR(adjustment_case_code.date) = ${data.year} 
+          AND MONTH(adjustment_case_code.date) = ${data.month + 1}
+          AND adjustment_case_code.is_delete = 0
+          ${
+            data.keyword == null
+              ? ""
+              : `AND (adjustment_case_code.name LIKE '%${data.keyword}%')`
+          }
+        `),
       ]);
     }
-  }
-
-  /**
-   * Fetch all adjustment case code
-   * Used for development purpose only
-   * @remarks
-   * This method is only used for development purpose
-   *
-   * @returns
-   */
-  static fetchAll() {
-    return prisma.adjustment_case_code.findMany({
-      where: {
-        is_delete: false,
-      },
-      include: {
-        adjustment_case: {
-          select: {
-            id: true,
-            item: {
-              select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
-            quantity: true,
-          },
-        },
-      },
-    });
   }
 }
 

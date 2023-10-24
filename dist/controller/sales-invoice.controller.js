@@ -19,11 +19,17 @@ const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const item_price_model_1 = __importDefault(require("../model/item_price.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const product_package_model_1 = require("../model/product-package.model");
+const queue_helper_1 = require("../helper/queue.helper");
+const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
 class SalesInvoiceController {
 }
 _a = SalesInvoiceController;
+/**
+ * Create sales invoice data
+ * @param req
+ * @param res
+ */
 SalesInvoiceController.create = (req, res) => {
     const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
@@ -35,73 +41,77 @@ SalesInvoiceController.create = (req, res) => {
     const date = !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
-    bill_code_model_1.default.create(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date, uuid, bill.map((x) => {
-        if (x.package_code_id != undefined) {
-            return {
-                package_code_id: x.package_code_id,
-                item_id: null,
-                item_unit_id: null,
-                quantity: x.quantity,
-                price: x.price,
-                discount: 0,
-            };
-        }
-        else {
-            return {
-                package_code_id: null,
-                item_id: x.item_id,
-                item_unit_id: x.item_unit_id,
-                quantity: x.quantity,
-                price: x.price,
-                discount: x.discount,
-            };
-        }
-    }))
+    const userID = req.body.userId;
+    bill_code_model_1.default.create({
+        name: bill_code_model_1.default.generateName(date),
+        customer_id: customer_id,
+        payment_method_id: payment_method_id,
+        discount: discount,
+        delivery: delivery,
+        service: service,
+        date: date,
+        uuid: uuid,
+        items: bill.map((x) => {
+            if (x.package_code_id != undefined) {
+                return {
+                    package_code_id: x.package_code_id,
+                    item_id: null,
+                    item_unit_id: null,
+                    quantity: x.quantity,
+                    price: x.price,
+                    discount: 0,
+                };
+            }
+            else {
+                return {
+                    package_code_id: null,
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                    quantity: x.quantity,
+                    price: x.price,
+                    discount: x.discount,
+                };
+            }
+        }),
+        created_by: userID,
+    })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         try {
             yield item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId);
-            yield product_package_model_1.ProductPackageCodeModel.updatePrice(
-            // Array of object with price and package_code_id
-            bill.filter((x) => x.save && x.package_code_id != null));
-            const bills = yield bill_code_model_1.default.fetchById(result.id);
-            if (!bills) {
-                return res.status(404).send(error_list_1.default["Not found"]);
-            }
-            else {
-                const updateStockArray = [];
-                bills.bill.forEach((x) => {
-                    if (x.package_code != null) {
-                        x.package_code.package_content.forEach((content) => {
-                            updateStockArray.push({
-                                item_id: content.item_id,
-                                quantity: (parseFloat(content.quantity.toString()) *
-                                    parseFloat(x.quantity.toString()) *
-                                    (content.item_unit == null
-                                        ? 1
-                                        : parseFloat(content.item_unit.conversion.toString())) *
-                                    -1).toFixed(4),
-                            });
+            yield product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null));
+            const updateStockArray = [];
+            result.bill.forEach((x) => {
+                if (x.package_code != null) {
+                    x.package_code.package_content.forEach((content) => {
+                        updateStockArray.push({
+                            item_id: content.item_id,
+                            quantity: (parseFloat(content.quantity.toString()) *
+                                parseFloat(x.quantity.toString()) *
+                                (content.item_unit == null
+                                    ? 1
+                                    : parseFloat(content.item_unit.conversion.toString())) *
+                                -1).toFixed(4),
                         });
-                    }
-                    else {
-                        const quantity = parseFloat(x.quantity.toString()) *
-                            (x.item_unit == null
-                                ? 1
-                                : parseFloat(x.item_unit.conversion.toString())) *
-                            -1;
-                        return {
-                            item_id: x.item_id,
-                            quantity: quantity.toFixed(4),
-                        };
-                    }
-                });
-                yield product_stock_model_1.default.updateStock(updateStockArray);
-                return res.status(201).send(bills);
-            }
+                    });
+                }
+                else {
+                    const quantity = parseFloat(x.quantity.toString()) *
+                        (x.item_unit == null
+                            ? 1
+                            : parseFloat(x.item_unit.conversion.toString())) *
+                        -1;
+                    updateStockArray.push({
+                        item_id: x.item_id,
+                        quantity: quantity.toFixed(4),
+                    });
+                }
+            });
+            yield queue_helper_1.queue.add("create-sales-invoice", result);
+            return res.status(201).send(result);
         }
         catch (error) {
             console.error(`[error]: Error on updating stock ${error}`);
-            return res.status(500).send(error);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         }
     }))
         .catch((error) => {
@@ -109,89 +119,13 @@ SalesInvoiceController.create = (req, res) => {
         return res.status(500).send(error);
     });
 };
-SalesInvoiceController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id);
-    bill_code_model_1.default.fetchById(id)
-        .then((result) => {
-        if (!result) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        let subTotal = 0;
-        for (let item of result.bill) {
-            subTotal +=
-                parseFloat(item.price.toString()) *
-                    parseFloat(item.quantity.toString());
-        }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, discount: parseFloat(result.discount.toString()), delivery: parseFloat(result.delivery.toString()), service: parseFloat(result.service.toString()) }));
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-SalesInvoiceController.deleteById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const id = parseInt(req.params.id.toString());
-        const result = yield bill_code_model_1.default.deleteById(id, req.body.userId);
-        if (!result) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        if (!result.is_delete) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        const socket = new socket_helper_1.default("deleteBill", result);
-        socket.create();
-        const bills = yield bill_code_model_1.default.fetchById(result.id);
-        if (!bills) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        const updateStockArray = [];
-        bills.bill.forEach((x) => {
-            if (x.package_code != null) {
-                x.package_code.package_content.forEach((content) => {
-                    updateStockArray.push({
-                        item_id: content.item_id,
-                        quantity: (parseFloat(content.quantity.toString()) *
-                            parseFloat(x.quantity.toString()) *
-                            (content.item_unit == null
-                                ? 1
-                                : parseFloat(content.item_unit.conversion.toString()))).toFixed(4),
-                    });
-                });
-            }
-            else {
-                const quantity = parseFloat(x.quantity.toString()) *
-                    (x.item_unit == null
-                        ? 1
-                        : parseFloat(x.item_unit.conversion.toString()));
-                return {
-                    item_id: x.item_id,
-                    quantity: quantity.toFixed(4),
-                };
-            }
-        });
-        product_stock_model_1.default.updateStock(updateStockArray)
-            .then(() => {
-            return res.status(201).send(result);
-        })
-            .catch((error) => {
-            return res.status(500).send(error);
-        });
-    }
-    catch (err) {
-        return res.status(500).send(error_list_1.default["Unknown error"]);
-    }
-});
-SalesInvoiceController.fetchCodeById = (req, res) => {
-    const id = parseInt(req.params.id.toString());
-    bill_model_1.default.fetchById(id)
-        .then((result) => {
-        return res.status(200).send(result === null || result === void 0 ? void 0 : result.bill_code);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-SalesInvoiceController.search = (req, res) => {
+/**
+ * Search sales invoice data
+ * Can be narrowed down by customer, item, date, page, keyword
+ * @param req
+ * @param res
+ */
+SalesInvoiceController.fetchSearch = (req, res) => {
     const customers = req.body.customers;
     const items = req.body.items;
     const date = req.body.date;
@@ -228,25 +162,36 @@ SalesInvoiceController.search = (req, res) => {
         return res.status(500).send(error);
     });
 };
+/**
+ * Search sales invoice data archive
+ * @param req
+ * @param res
+ */
 SalesInvoiceController.fetchArchive = (req, res) => {
-    const mode = req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-        bill_code_model_1.default.fetchArchiveYears(mode)
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null && month == null) {
+        bill_code_model_1.default.fetchArchiveYears()
             .then((result) => {
-            return res.status(200).send(result.map((x) => {
+            return res.status(200).send(result
+                .map((x) => {
                 return {
                     year: x.year,
                     count: parseInt(x.count.toString().replace("n", "")),
                 };
+            })
+                .sort((a, b) => {
+                return a.year - b.year;
             }));
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching sales invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
-    else if (req.query.year != undefined && req.query.month == undefined) {
-        const year = parseInt(req.query.year.toString());
-        bill_code_model_1.default.fetchArchiveMonths(year, mode)
+    else if (year != null && month == null) {
+        const year = req.body.year;
+        bill_code_model_1.default.fetchArchiveMonths(year)
             .then((result) => {
             const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             result.forEach((x) => {
@@ -255,14 +200,22 @@ SalesInvoiceController.fetchArchive = (req, res) => {
             return res.status(200).send(response);
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching sales invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
-    else if (req.query.year != undefined && req.query.month != undefined) {
-        const year = parseInt(req.query.year.toString());
-        const month = parseInt(req.query.month.toString());
-        const page = req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
-        bill_code_model_1.default.fetchArchive(year, month, page, mode)
+    else {
+        const mode = req.body.mode;
+        const page = req.body.limit.page;
+        const keyword = req.body.search.keyword;
+        bill_code_model_1.default.fetchArchive({
+            year: year,
+            month: month,
+            mode: mode,
+            limit: 10,
+            offset: (page - 1) * 10,
+            keyword: (0, escape_helper_1.mysql_real_escape_string)(keyword),
+        })
             .then((result) => {
             return res.status(200).send({
                 data: result[0].map((x) => {
@@ -272,10 +225,7 @@ SalesInvoiceController.fetchArchive = (req, res) => {
                         date: x.date,
                         is_delete: x.is_delete == 1,
                         is_confirm: x.is_confirm == 1,
-                        customer: {
-                            id: x.customer_id,
-                            name: x.customer_name,
-                        },
+                        customer_name: x.customer_name,
                     };
                 }),
                 count: result[1] == null || result[1].length == 0
@@ -284,8 +234,116 @@ SalesInvoiceController.fetchArchive = (req, res) => {
             });
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching sales invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
 };
+/**
+ * Fetch bill by ID
+ * @param req
+ * @param res
+ */
+SalesInvoiceController.fetchByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    bill_code_model_1.default.fetchByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        let subTotal = 0;
+        for (let item of result.bill) {
+            subTotal +=
+                parseFloat(item.price.toString()) *
+                    parseFloat(item.quantity.toString());
+        }
+        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, discount: parseFloat(result.discount.toString()), delivery: parseFloat(result.delivery.toString()), service: parseFloat(result.service.toString()) }));
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching sales invoice by ID ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Fetch bill code by ID
+ * @param req
+ * @param res
+ */
+SalesInvoiceController.fetchCodeByID = (req, res) => {
+    const id = parseInt(req.params.id.toString());
+    bill_model_1.default.fetchByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching bill code ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Delete bill by ID
+ * @param req
+ * @param res
+ * @returns
+ */
+SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = parseInt(req.params.id.toString());
+    const userID = req.body.userId;
+    const result = yield bill_code_model_1.default.fetchByID(id);
+    if (!result) {
+        return res.status(404).send(error_list_1.default["Not found"]);
+    }
+    if (!result.is_delete) {
+        return res.status(404).send(error_list_1.default["Not found"]);
+    }
+    // Check if there is any sales return on this bill
+    const salesReturn = yield sales_return_model_1.default.fetchByBillIDs(result.bill.map((x) => {
+        return x.id;
+    }));
+    if (salesReturn.length > 0) {
+        return res
+            .status(400)
+            .send(error_list_1.default["Delete bill sales return constraint"]);
+    }
+    const socket = new socket_helper_1.default("deleteBill", result);
+    socket.create();
+    bill_code_model_1.default.deleteByID(id, userID)
+        .then((updateBill) => __awaiter(void 0, void 0, void 0, function* () {
+        const updateStockArray = [];
+        result.bill.forEach((x) => {
+            if (x.package_code != null) {
+                x.package_code.package_content.forEach((content) => {
+                    updateStockArray.push({
+                        item_id: content.item_id,
+                        quantity: (parseFloat(content.quantity.toString()) *
+                            parseFloat(x.quantity.toString()) *
+                            (content.item_unit == null
+                                ? 1
+                                : parseFloat(content.item_unit.conversion.toString()))).toFixed(4),
+                    });
+                });
+            }
+            else {
+                const quantity = parseFloat(x.quantity.toString()) *
+                    (x.item_unit == null
+                        ? 1
+                        : parseFloat(x.item_unit.conversion.toString()));
+                return {
+                    item_id: x.item_id,
+                    quantity: quantity.toFixed(4),
+                };
+            }
+        });
+        yield queue_helper_1.queue.add("delete-sales-invoice", result);
+        return res.status(201).send(updateBill);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on deleting bill ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+});
 exports.default = SalesInvoiceController;
+//# sourceMappingURL=sales-invoice.controller.js.map

@@ -10,5 +10,6 @@ router.get("/", product_price_purchase_controller_1.default.fetch);
 router.put("/", product_price_purchase_controller_1.default.update);
 router.post("/format", product_price_purchase_controller_1.default.fetchFormat);
 router.post("/bulk", product_price_purchase_controller_1.default.createBulk);
-router.post("/", product_price_purchase_controller_1.default.create);
+// router.post("/", ItemPurchasePriceController.create);
 exports.default = router;
+//# sourceMappingURL=product-price-purchase.route.js.map

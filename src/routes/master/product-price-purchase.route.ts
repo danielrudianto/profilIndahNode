@@ -7,7 +7,7 @@ router.get("/", ItemPurchasePriceController.fetch);
 router.put("/", ItemPurchasePriceController.update);
 
 router.post("/format", ItemPurchasePriceController.fetchFormat);
-// router.post("/bulk", ItemPurchasePriceController.createBulk);
+router.post("/bulk", ItemPurchasePriceController.createBulk);
 // router.post("/", ItemPurchasePriceController.create);
 
 export default router;

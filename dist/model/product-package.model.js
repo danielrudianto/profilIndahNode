@@ -1,50 +1,21 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ProductPackageCodeModel = exports.ProductPackageModel = void 0;
+exports.ProductPackageCodeModel = void 0;
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
-class ProductPackageModel {
-    constructor(item_id, item_unit_id, quantity, price, discount, id) {
-        this.id = id;
-        this.item_id = item_id;
-        this.item_unit_id = item_unit_id;
-        this.quantity = quantity;
-        this.price = price;
-        this.discount = discount;
-    }
-}
-exports.ProductPackageModel = ProductPackageModel;
 class ProductPackageCodeModel {
-    constructor(name, description, price, items, created_by, created_at, is_delete, deleted_by, deleted_at, id) {
-        if (id != null)
-            this.id = id;
-        this.name = name;
-        this.description = description;
-        this.price = price;
-        this.items = items;
-        if (created_by != null)
-            this.created_by = created_by;
-        if (created_at != null)
-            this.created_at = created_at;
-        if (is_delete != null)
-            this.is_delete = is_delete;
-        if (deleted_by != null)
-            this.deleted_by = deleted_by;
-        if (deleted_at != null)
-            this.deleted_at = deleted_at;
-    }
-    create() {
+    static create(data) {
         return prisma.package_code.create({
             data: {
-                name: this.name,
-                description: this.description,
-                price: this.price,
-                created_by: this.created_by,
-                is_delete: this.is_delete,
+                name: data.name,
+                description: data.description,
+                price: data.price,
+                created_by: data.created_by,
+                is_delete: data.is_delete,
                 created_at: new Date(),
                 package_content: {
                     createMany: {
-                        data: this.items.map((x) => {
+                        data: data.items.map((x) => {
                             return {
                                 item_id: x.item_id,
                                 item_unit_id: x.item_unit_id,
@@ -252,3 +223,4 @@ ProductPackageCodeModel.updatePrice = (data) => {
     });
     return prisma.$transaction(transactions);
 };
+//# sourceMappingURL=product-package.model.js.map

@@ -8,3 +8,4 @@ const user_controller_1 = __importDefault(require("../../controller/user.control
 const router = (0, express_1.Router)();
 router.get("/", user_controller_1.default.fetchStats);
 exports.default = router;
+//# sourceMappingURL=cashier.route.js.map

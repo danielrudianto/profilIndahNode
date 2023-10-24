@@ -3,6 +3,7 @@ import {
   AnnualArchive,
   ArchiveCount,
   GoodReceiptArchive,
+  IFetchArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
 
@@ -69,6 +70,18 @@ class GoodReceiptModel {
             }),
           },
         },
+        purchase_invoice: {
+          create: {
+            name: "",
+            date: data.date,
+            created_by: data.created_by,
+            created_at: new Date(),
+            is_confirm: false,
+            is_delete: false,
+            confirmed_at: null,
+            confirmed_by: null,
+          },
+        },
       },
       include: {
         user_good_receipt_code_created_byTouser: {
@@ -108,6 +121,7 @@ class GoodReceiptModel {
             },
             quantity: true,
             price: true,
+            discount: true,
           },
         },
       },
@@ -126,6 +140,7 @@ class GoodReceiptModel {
           id: id,
         },
         select: {
+          id: true,
           name: true,
           date: true,
           user_good_receipt_code_created_byTouser: {
@@ -236,7 +251,13 @@ class GoodReceiptModel {
     });
   }
 
-  static deleteItemsByGoodReceiptCodeId(good_receipt_code_id: number) {
+  /**
+   * Delete good receipt by good receipt code ID
+   * Used when updating good receipt code
+   * @param good_receipt_code_id
+   * @returns
+   */
+  static deleteByGoodReceiptCodeID(good_receipt_code_id: number) {
     return prisma.good_receipt.deleteMany({
       where: {
         good_receipt_code_id: good_receipt_code_id,
@@ -244,39 +265,29 @@ class GoodReceiptModel {
     });
   }
 
-  static fetchArchiveYears(mode: number) {
-    if (mode == 0) {
-      return prisma.$queryRaw<AnnualArchive[]>`
+  /**
+   * Fetch good receipt archive years
+   * @returns Promise<AnnualArchive[]>
+   */
+  static fetchArchiveYears() {
+    return prisma.$queryRaw<AnnualArchive[]>`
       SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, 
       COUNT(id) AS count
       FROM good_receipt_code
       GROUP BY YEAR(good_receipt_code.date)
       ORDER BY good_receipt_code.date ASC
     `;
-    } else if (mode == 1) {
-      return prisma.$queryRaw<AnnualArchive[]>`
-      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, 
-      COUNT(id) AS count
-      FROM good_receipt_code
-      WHERE good_receipt_code.is_delete = 1
-      GROUP BY YEAR(good_receipt_code.date)
-      ORDER BY good_receipt_code.date ASC
-    `;
-    } else if (mode == 2) {
-      return prisma.$queryRaw<AnnualArchive[]>`
-      SELECT DISTINCT(YEAR(good_receipt_code.date)) AS year, 
-      COUNT(id) AS count
-      FROM good_receipt_code
-      WHERE good_receipt_code.is_delete = 0
-      GROUP BY YEAR(good_receipt_code.date)
-      ORDER BY good_receipt_code.date ASC
-    `;
-    }
   }
 
-  static fetchArchiveMonths(year: number, mode: number) {
-    if (mode == 0) {
-      return prisma.$queryRaw<MonthlyArchive[]>`
+  /**
+   * Fetch good receipt archive months
+   * by year
+   * @param year
+   * @param mode
+   * @returns
+   */
+  static fetchArchiveMonths(year: number) {
+    return prisma.$queryRaw<MonthlyArchive[]>`
       SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, 
       ${year} AS year,
       COUNT(id) AS count
@@ -285,29 +296,6 @@ class GoodReceiptModel {
       GROUP BY MONTH(good_receipt_code.date)
       ORDER BY good_receipt_code.date ASC
     `;
-    } else if (mode == 1) {
-      return prisma.$queryRaw<MonthlyArchive[]>`
-      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month,
-      ${year} AS year,
-      COUNT(id) AS count
-      FROM good_receipt_code
-      WHERE YEAR(good_receipt_code.date) = ${year}
-      AND good_receipt_code.is_delete = 1
-      GROUP BY MONTH(good_receipt_code.date)
-      ORDER BY good_receipt_code.date ASC
-    `;
-    } else if (mode == 2) {
-      return prisma.$queryRaw<MonthlyArchive[]>`
-      SELECT DISTINCT(MONTH(good_receipt_code.date)) AS month, 
-      ${year} AS year,
-      COUNT(id) AS count
-      FROM good_receipt_code
-      WHERE YEAR(good_receipt_code.date) = ${year}
-      AND good_receipt_code.is_delete = 0
-      GROUP BY MONTH(good_receipt_code.date)
-      ORDER BY good_receipt_code.date ASC
-      `;
-    }
   }
 
   /**
@@ -319,8 +307,8 @@ class GoodReceiptModel {
    * @param mode
    * @returns
    */
-  static fetchArchive(year: number, month: number, page: number, mode: number) {
-    switch (mode) {
+  static fetchArchive(data: IFetchArchive) {
+    switch (data.mode) {
       case 0:
         return prisma.$transaction([
           prisma.$queryRawUnsafe<GoodReceiptArchive[]>(`
@@ -332,18 +320,28 @@ class GoodReceiptModel {
         FROM good_receipt_code
         JOIN company ON good_receipt_code.company_id = company.id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-            month + 1
-          }
+        WHERE YEAR(good_receipt_code.date) = ${
+          data.year
+        } AND MONTH(good_receipt_code.date) = ${data.month + 1}
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND good_receipt_code.name LIKE '%${data.keyword}%'`
+        }
         ORDER BY good_receipt_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-          prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+          prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM good_receipt_code
-          WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-            month + 1
+          WHERE YEAR(good_receipt_code.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
+          ${
+            data.keyword == ""
+              ? ""
+              : `AND good_receipt_code.name LIKE '%${data.keyword}%'`
           }
-        `,
+          `),
         ]);
       case 1:
         return prisma.$transaction([
@@ -352,21 +350,31 @@ class GoodReceiptModel {
         FROM good_receipt_code
         JOIN company ON good_receipt_code.company_id = company.id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-            month + 1
-          }
+        WHERE YEAR(good_receipt_code.date) = ${
+          data.year
+        } AND MONTH(good_receipt_code.date) = ${data.month + 1}
         AND good_receipt_code.is_delete = 1
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND good_receipt_code.name LIKE '%${data.keyword}%'`
+        }
         ORDER BY good_receipt_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-          prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+          prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count 
           FROM good_receipt_code
-          WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-            month + 1
-          }
+          WHERE YEAR(good_receipt_code.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
         AND good_receipt_code.is_delete = 1
-        `,
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND good_receipt_code.name LIKE '%${data.keyword}%'`
+        }
+        `),
         ]);
       case 2:
         return prisma.$transaction([
@@ -375,20 +383,30 @@ class GoodReceiptModel {
         FROM good_receipt_code
         JOIN company ON good_receipt_code.company_id = company.id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-            month + 1
-          }
+        WHERE YEAR(good_receipt_code.date) = ${
+          data.year
+        } AND MONTH(good_receipt_code.date) = ${data.month + 1}
         AND good_receipt_code.is_delete = 0
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND good_receipt_code.name LIKE '%${data.keyword}%'`
+        }
         ORDER BY good_receipt_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-          prisma.$queryRaw<ArchiveCount[]>`
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}`),
+          prisma.$queryRawUnsafe<ArchiveCount[]>(`
           SELECT COUNT(id) AS count FROM good_receipt_code
-          WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-            month + 1
-          }
+          WHERE YEAR(good_receipt_code.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
         AND good_receipt_code.is_delete = 0
-        `,
+        ${
+          data.keyword == ""
+            ? ""
+            : `AND good_receipt_code.name LIKE '%${data.keyword}%'`
+        }
+        `),
         ]);
     }
   }

@@ -1,158 +1,35 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
+const queue_helper_1 = require("../helper/queue.helper");
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
-const company_model_1 = __importDefault(require("../model/company.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const purchase_invoice_model_1 = __importDefault(require("../model/purchase-invoice.model"));
-const supplier_model_1 = __importDefault(require("../model/supplier.model"));
 class PurchaseInvoiceController {
 }
-PurchaseInvoiceController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id);
-    purchase_invoice_model_1.default.fetchById(id)
-        .then((result) => {
-        if (result == null) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        else {
-            let subTotal = 0;
-            for (let item of result.good_receipt_code.good_receipt) {
-                subTotal +=
-                    parseFloat(item.price.toString()) *
-                        parseFloat(item.quantity.toString());
-            }
-            return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, total: subTotal -
-                    (result.discount == null
-                        ? 0
-                        : parseFloat(result.discount.toString())) }));
-        }
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-PurchaseInvoiceController.update = (req, res) => {
-    const id = req.body.id;
-    purchase_invoice_model_1.default.fetchById(id).then((purchase_invoice) => {
-        var _a;
-        if (!purchase_invoice || purchase_invoice.is_delete) {
-            return res.status(404).send(error_list_1.default["Not found"]);
-        }
-        else {
-            const date = new Date(req.body.date);
-            const name = req.body.name;
-            const company_id = req.body.company_id;
-            const supplier_id = req.body.supplier_id;
-            const good_receipt_items = req.body.good_receipt;
-            const purchase_invoice = req.body.purchase_invoice;
-            const discount = purchase_invoice.discount;
-            const purchase_invoice_name = purchase_invoice.name;
-            const faktur = !purchase_invoice.faktur || ((_a = purchase_invoice.faktur) === null || _a === void 0 ? void 0 : _a.length) < 16
-                ? null
-                : purchase_invoice.faktur;
-            const userID = req.body.userId;
-            Promise.all([
-                company_model_1.default.fetchById(company_id),
-                supplier_model_1.default.fetchById(supplier_id),
-            ])
-                .then((validation) => {
-                if (validation[0] == null ||
-                    validation[1] == null ||
-                    validation[0].length == 0 ||
-                    validation[1].length == 0 ||
-                    validation[0][0].is_delete ||
-                    validation[1][0].is_delete) {
-                    return res.status(400).send(error_list_1.default["Not found"]);
-                }
-                else {
-                    good_receipt_model_1.default.fetchById(purchase_invoice.good_receipt_code_id)
-                        .then((document) => {
-                        if (document == null) {
-                            return res.status(404).send(error_list_1.default["Not found"]);
-                        }
-                        else {
-                            const good_receipt_code = new good_receipt_model_1.default(name, date, userID, supplier_id, company_id, purchase_invoice.good_receipt_code_id);
-                            good_receipt_code.update().then((good_receipt_result) => {
-                                const good_receipt = [];
-                                for (let idx = 0; idx < good_receipt_items.length; idx++) {
-                                    good_receipt.push({
-                                        item_id: good_receipt_items[idx].item_id,
-                                        quantity: good_receipt_items[idx].quantity,
-                                        good_receipt_code_id: good_receipt_result.id,
-                                        price: good_receipt_items[idx].price,
-                                        item_unit_id: good_receipt_items[idx].item_unit_id,
-                                    });
-                                }
-                                const purchase_document = new purchase_invoice_model_1.default(purchase_invoice_name, faktur, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
-                                Promise.all([
-                                    product_stock_model_1.default.updateStock(document.good_receipt.map((x) => {
-                                        const quantity = parseFloat(x.quantity.toString()) *
-                                            (x.item_unit == null
-                                                ? 1
-                                                : parseFloat(x.item_unit.conversion.toString())) *
-                                            -1;
-                                        return {
-                                            item_id: x.item.id,
-                                            quantity: quantity,
-                                        };
-                                    })),
-                                    good_receipt_model_1.default.deleteItemsByGoodReceiptCodeId(purchase_invoice.good_receipt_code_id),
-                                    good_receipt_model_1.default.insertItems(good_receipt),
-                                    purchase_document.update(),
-                                ])
-                                    .then(() => {
-                                    good_receipt_model_1.default.fetchById(purchase_invoice.good_receipt_code_id)
-                                        .then((document) => {
-                                        if (document == null) {
-                                            return res
-                                                .status(400)
-                                                .send(error_list_1.default["Not found"]);
-                                        }
-                                        else {
-                                            product_stock_model_1.default.updateStock(document === null || document === void 0 ? void 0 : document.good_receipt.map((x) => {
-                                                const quantity = parseFloat(x.quantity.toString()) *
-                                                    (x.item_unit == null
-                                                        ? 1
-                                                        : parseFloat(x.item_unit.conversion.toString()));
-                                                return {
-                                                    item_id: x.item.id,
-                                                    quantity: quantity,
-                                                };
-                                            })).then(() => {
-                                                return res.status(201).send(purchase_invoice);
-                                            });
-                                        }
-                                    })
-                                        .catch(() => {
-                                        return res.status(201).send(purchase_invoice);
-                                    });
-                                })
-                                    .catch((error) => {
-                                    return res.status(500).send(error);
-                                });
-                            });
-                        }
-                    })
-                        .catch(() => {
-                        return res.status(404).send(error_list_1.default["Not found"]);
-                    });
-                }
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
-        }
-    });
-};
+_a = PurchaseInvoiceController;
+/**
+ * Create a new purchase invoice
+ * @param req
+ * @param res
+ */
 PurchaseInvoiceController.create = (req, res) => {
-    var _a;
+    var _b;
     const date = new Date(req.body.date);
     const name = req.body.name;
     const company_id = req.body.company_id;
@@ -161,99 +38,169 @@ PurchaseInvoiceController.create = (req, res) => {
     const purchase_invoice = req.body.purchase_invoice;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur = !purchase_invoice.faktur || ((_a = purchase_invoice.faktur) === null || _a === void 0 ? void 0 : _a.length) < 16
+    const faktur = !purchase_invoice.faktur || ((_b = purchase_invoice.faktur) === null || _b === void 0 ? void 0 : _b.length) < 16
         ? null
         : purchase_invoice.faktur;
     const userID = req.body.userId;
-    Promise.all([
-        company_model_1.default.fetchById(company_id),
-        supplier_model_1.default.fetchById(supplier_id),
-    ])
-        .then((validation) => {
-        if (validation[0] == null ||
-            validation[1] == null ||
-            validation[0].length == 0 ||
-            validation[1].length == 0 ||
-            validation[0][0].is_delete ||
-            validation[1][0].is_delete) {
-            return res.status(400).send(error_list_1.default["Not found"]);
+    purchase_invoice_model_1.default.create({
+        name: name,
+        date: date,
+        supplier_id: supplier_id,
+        company_id: company_id,
+        created_by: userID,
+        purchase_invoice: {
+            date: date,
+            name: purchase_invoice_name,
+            faktur: faktur,
+            discount: discount,
+            created_by: userID,
+        },
+        good_receipt: good_receipt_items.map((x) => {
+            return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                quantity: x.quantity,
+                price: x.price,
+                discount: x.discount,
+            };
+        }),
+        purchase_invoice_name: purchase_invoice_name,
+    })
+        .then((good_receipt_result) => __awaiter(void 0, void 0, void 0, function* () {
+        yield item_purchase_price_model_1.default.delete(good_receipt_items
+            .filter((x) => x.save)
+            .map((x) => {
+            return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                deleted_by: userID,
+            };
+        }));
+        yield item_purchase_price_model_1.default.create(good_receipt_items
+            .filter((x) => x.save)
+            .map((x) => {
+            return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                created_by: userID,
+                price: x.price,
+                discount: x.discount,
+            };
+        }));
+        const socket = new socket_helper_1.default("createGoodReceipt", {
+            supplier_id: good_receipt_result.supplier_id,
+            company_id: good_receipt_result.company_id,
+        });
+        socket.create();
+        yield queue_helper_1.queue.add("create-purchase-invoice", good_receipt_result);
+        return res.status(201).send(good_receipt_result);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on creating purchase invoice ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Fetch purchase invoice by ID
+ * @param req
+ * @param res
+ */
+PurchaseInvoiceController.fetchByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    purchase_invoice_model_1.default.fetchByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
         }
-        else {
-            const good_receipt_code = new good_receipt_model_1.default(name, date, userID, supplier_id, company_id);
-            good_receipt_code.create().then((good_receipt_result) => {
-                const good_receipt = [];
-                const delete_price = [];
-                const insert_price = [];
-                for (let idx = 0; idx < good_receipt_items.length; idx++) {
-                    good_receipt.push({
-                        item_id: good_receipt_items[idx].item_id,
-                        quantity: good_receipt_items[idx].quantity,
-                        good_receipt_code_id: good_receipt_result.id,
-                        price: good_receipt_items[idx].price,
-                        item_unit_id: good_receipt_items[idx].item_unit_id,
-                    });
-                    if (good_receipt_items[idx].save == true) {
-                        delete_price.push(item_purchase_price_model_1.default.delete(good_receipt_items[idx].item_id, good_receipt_items[idx].item_unit_id, req.body.userId));
-                        const purchase_price = new item_purchase_price_model_1.default(parseFloat(good_receipt_items[idx].price), good_receipt_items[idx].item_id, req.body.userId, good_receipt_items[idx].item_unit_id);
-                        insert_price.push(purchase_price.create());
-                    }
-                }
-                const purchase_document = new purchase_invoice_model_1.default(purchase_invoice_name, faktur, date, discount, good_receipt_result.id, req.body.userId, req.body.userId);
-                Promise.all([
-                    good_receipt_model_1.default.insertItems(good_receipt),
-                    delete_price,
-                    purchase_document.create(),
-                ])
-                    .then(() => {
-                    Promise.all(insert_price)
-                        .then(() => {
-                        const socket = new socket_helper_1.default("createGoodReceipt", {
-                            supplier_id: good_receipt_result.supplier_id,
-                            company_id: good_receipt_result.company_id,
-                        });
-                        socket.create();
-                        good_receipt_model_1.default.fetchById(good_receipt_result.id)
-                            .then((item) => {
-                            if (item == null) {
-                                return res.status(400).send(error_list_1.default["Not found"]);
-                            }
-                            else {
-                                product_stock_model_1.default.updateStock(item === null || item === void 0 ? void 0 : item.good_receipt.map((x) => {
-                                    const quantity = parseFloat(x.quantity.toString()) *
-                                        (x.item_unit == null
-                                            ? 1
-                                            : parseFloat(x.item_unit.conversion.toString()));
-                                    return {
-                                        item_id: x.item.id,
-                                        quantity: quantity,
-                                    };
-                                }))
-                                    .then(() => {
-                                    return res.status(201).send(item);
-                                })
-                                    .catch(() => {
-                                    return res.status(201).send(item);
-                                });
-                            }
-                        })
-                            .catch((error) => {
-                            return res.status(500).send(error);
-                        });
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
-                    });
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
-                });
-            });
+        let subTotal = 0;
+        for (let item of result.good_receipt_code.good_receipt) {
+            subTotal +=
+                parseFloat(item.price.toString()) *
+                    parseFloat(item.quantity.toString());
         }
+        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, total: subTotal -
+                (result.discount == null
+                    ? 0
+                    : parseFloat(result.discount.toString())) }));
     })
         .catch((error) => {
         return res.status(500).send(error);
     });
 };
+/**
+ * Update purchase invoice
+ * @param req
+ * @param res
+ */
+PurchaseInvoiceController.update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = req.body.id;
+    const date = new Date(req.body.date);
+    const name = req.body.name;
+    const company_id = req.body.company_id;
+    const supplier_id = req.body.supplier_id;
+    const good_receipt_items = req.body.good_receipt;
+    const updatePurchaseInvoice = req.body.purchase_invoice;
+    const faktur = updatePurchaseInvoice.faktur == null
+        ? null
+        : updatePurchaseInvoice.faktur.toString().length < 16
+            ? null
+            : updatePurchaseInvoice.faktur;
+    const discount = updatePurchaseInvoice.discount;
+    const purchase_invoice_name = updatePurchaseInvoice.name;
+    const purchaseInvoice = yield purchase_invoice_model_1.default.fetchByID(id);
+    if (!purchaseInvoice) {
+        return res.status(404).send(error_list_1.default["Not found"]);
+    }
+    if (purchaseInvoice.is_delete) {
+        return res
+            .status(400)
+            .send(error_list_1.default["Purchase invoice already deleted"]);
+    }
+    const goodReceipt = yield good_receipt_model_1.default.fetchByID(purchaseInvoice.good_receipt_code_id);
+    if (!goodReceipt) {
+        return res.status(404).send(error_list_1.default["Not found"]);
+    }
+    if (goodReceipt.is_delete) {
+        return res.status(400).send(error_list_1.default["Good receipt already deleted"]);
+    }
+    purchase_invoice_model_1.default.update({
+        id: id,
+        name: purchase_invoice_name,
+        date: date,
+        faktur: faktur,
+        discount: discount,
+        good_receipt_code: {
+            supplier_id: supplier_id,
+            company_id: company_id,
+            name: name,
+            date: date,
+            good_receipt: good_receipt_items.map((x) => {
+                return {
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                    quantity: x.quantity,
+                    price: x.price,
+                    discount: x.discount,
+                };
+            }),
+        },
+    })
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        // Next thing to do is to update the stock
+        yield queue_helper_1.queue.add("delete-purchase-invoice", purchaseInvoice);
+        yield queue_helper_1.queue.add("update-purchase-invoice", result);
+        return res.status(201).send(result);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on updating good receipt ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+});
+/**
+ * Fetch unconfirmed purchase invoice
+ * @param req
+ * @param res
+ */
 PurchaseInvoiceController.fetchUnconfirmed = (req, res) => {
     const page = !req.query.page
         ? 1
@@ -261,158 +208,150 @@ PurchaseInvoiceController.fetchUnconfirmed = (req, res) => {
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
     purchase_invoice_model_1.default.fetchUnconfirmed(offset, limit)
-        .then((result) => {
+        .then(([purchaseInvoiceResult, purchaseInvoiceCount]) => {
         return res.status(200).send({
-            data: result[0],
-            count: result[1],
+            data: purchaseInvoiceResult,
+            count: purchaseInvoiceCount,
         });
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching unconfirmed purchase invoice ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
-PurchaseInvoiceController.confirm = (req, res) => {
-    const id = req.body.id;
-    const discount = req.body.discount;
-    const good_receipt = req.body.good_receipt;
-    const good_receipt_name = req.body.good_receipt_name;
-    const purchase_invoice_name = req.body.name;
-    const date = new Date(req.body.date);
-    good_receipt_model_1.default.fetchById(id)
-        .then((good_receipt_code) => {
-        if (good_receipt_code == null ||
-            good_receipt_code.purchase_invoice == null) {
-            return res.status(404).send(error_list_1.default["Not found"]);
+/**
+ * Update purchase invoice status
+ * Either confirm or delete
+ * @param req
+ * @param res
+ * @returns
+ */
+PurchaseInvoiceController.updateStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = parseInt(req.body.id);
+    const is_confirm = req.body.is_confirm;
+    const is_delete = req.body.is_delete;
+    const userID = req.body.userId;
+    const purchaseInvoice = yield purchase_invoice_model_1.default.fetchByID(id);
+    if (!purchaseInvoice) {
+        return res.status(404).send(error_list_1.default["Invoice not found"]);
+    }
+    if (purchaseInvoice.is_confirm) {
+        return res.status(400).send(error_list_1.default["Invoice already confirmed"]);
+    }
+    if (purchaseInvoice.is_delete) {
+        return res.status(400).send(error_list_1.default["Invoice already deleted"]);
+    }
+    const goodReceiptCodeID = purchaseInvoice.good_receipt_code_id;
+    const goodReceipt = (yield good_receipt_model_1.default.fetchByID(goodReceiptCodeID));
+    if (!goodReceipt) {
+        return res.status(404).send(error_list_1.default["Good receipt not found"]);
+    }
+    if (is_confirm) {
+        const discount = req.body.discount;
+        const good_receipt = req.body.good_receipt;
+        const good_receipt_name = req.body.good_receipt_name;
+        const purchase_invoice_name = req.body.name;
+        const date = new Date(req.body.date);
+        if (goodReceipt.purchase_invoice == null) {
+            return res.status(404).send(error_list_1.default["Purchase invoice not found"]);
         }
-        else if (good_receipt_code.purchase_invoice.is_confirm ||
-            good_receipt_code.purchase_invoice.is_delete) {
-            return res.status(400).send(error_list_1.default["Not found"]);
+        if (goodReceipt.purchase_invoice.is_confirm) {
+            return res
+                .status(400)
+                .send(error_list_1.default["Purchase invoice already confirmed"]);
         }
-        else {
-            purchase_invoice_model_1.default.confirmById(id, purchase_invoice_name, good_receipt_name, date, discount, good_receipt, req.body.userId)
-                .then((result) => {
-                const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
-                socket.create();
-                if (good_receipt.filter((x) => x.save).length > 0) {
-                    // Search for saved items
-                    const filtered_good_receipt = good_receipt.filter((x) => x.save);
-                    good_receipt_model_1.default.fetchByIds(filtered_good_receipt.map((y) => {
-                        return y.id;
-                    }))
-                        .then((good_receipts) => {
-                        if (filtered_good_receipt.length == 0) {
-                            return res.status(200).send(result[0]);
-                        }
-                        else {
-                            const insert_transaction = [];
-                            const delete_transaction = [];
-                            for (let good_receipt_item of good_receipts) {
-                                const priceIndex = filtered_good_receipt.findIndex((idx) => idx.id == good_receipt_item.id);
-                                if (priceIndex != -1) {
-                                    delete_transaction.push(item_purchase_price_model_1.default.delete(good_receipt_item.item_id, good_receipt_item.item_unit_id, req.body.userId));
-                                    const itemPurchasePrice = new item_purchase_price_model_1.default(parseFloat(good_receipt_item.price.toString()), good_receipt_item.item_id, req.body.userId, good_receipt_item.item_unit_id);
-                                    insert_transaction.push(itemPurchasePrice.create());
-                                }
-                            }
-                            Promise.all(delete_transaction)
-                                .then(() => {
-                                Promise.all(insert_transaction)
-                                    .then(() => {
-                                    return res.status(200).send(result[0]);
-                                })
-                                    .catch((error) => {
-                                    console.error(error);
-                                    return res.status(500).send(error);
-                                });
-                            })
-                                .catch((error) => {
-                                return res.status(500).send(error);
-                            });
-                        }
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
-                    });
-                }
-                else {
-                    return res.status(200).send(result[0]);
-                }
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
+        if (goodReceipt.purchase_invoice.is_delete) {
+            return res
+                .status(400)
+                .send(error_list_1.default["Purchase invoice already deleted"]);
         }
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-PurchaseInvoiceController.delete = (req, res) => {
-    try {
-        const id = parseInt(req.body.id);
-        purchase_invoice_model_1.default.fetchById(id).then((purchase_invoice) => {
-            if (purchase_invoice == null || purchase_invoice.is_delete) {
-                return res.status(404).send(error_list_1.default["Not found"]);
+        purchase_invoice_model_1.default.confirmByID({
+            id: id,
+            discount: discount,
+            good_receipt: good_receipt.map((x) => {
+                return {
+                    id: x.id,
+                    price: x.price,
+                    discount: x.discount,
+                };
+            }),
+            good_receipt_name: good_receipt_name,
+            purchase_invoice_name: purchase_invoice_name,
+            date: date,
+            confirmed_by: userID,
+        }).then((updatePurchaseInvoiceResult) => __awaiter(void 0, void 0, void 0, function* () {
+            const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", updatePurchaseInvoiceResult[0]);
+            socket.create();
+            const updatedPurchaseInvoice = yield purchase_invoice_model_1.default.fetchByID(id);
+            yield queue_helper_1.queue.add("confirm-purchase-invoice", updatedPurchaseInvoice);
+            if (good_receipt.filter((x) => x.save).length > 0) {
+                // Search for saved items
+                yield item_purchase_price_model_1.default.delete(good_receipt
+                    .filter((x) => x.save)
+                    .map((x) => {
+                    return {
+                        item_id: x.item.id,
+                        item_unit_id: x.item_unit_id,
+                        deleted_by: userID,
+                    };
+                }));
+                // Then save the price
+                yield item_purchase_price_model_1.default.create(good_receipt
+                    .filter((x) => x.save)
+                    .map((x) => {
+                    return {
+                        item_id: x.item_id,
+                        item_unit_id: x.item_unit_id,
+                        price: x.price,
+                        discount: x.discount,
+                        created_by: userID,
+                    };
+                }));
             }
-            else {
-                purchase_invoice_model_1.default.deleteById(id, req.body.userId)
-                    .then((result) => {
-                    good_receipt_model_1.default.fetchById(result[0].good_receipt_code_id).then((document) => {
-                        if (document == null) {
-                            return res.status(404).send(error_list_1.default["Not found"]);
-                        }
-                        else {
-                            product_stock_model_1.default.updateStock(document.good_receipt.map((x) => {
-                                const quantity = parseFloat(x.quantity.toString()) *
-                                    -1 *
-                                    (x.item_unit == null
-                                        ? 1
-                                        : parseFloat(x.item_unit.conversion.toString()));
-                                return {
-                                    item_id: x.item.id,
-                                    quantity: quantity,
-                                };
-                            }))
-                                .then(() => {
-                                const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", result[0]);
-                                socket.create();
-                                return res.status(200).send(result[0]);
-                            })
-                                .catch((error) => {
-                                return res.status(500).send(error);
-                            });
-                        }
-                    });
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
-                });
-            }
+            return res.status(200).send(updatePurchaseInvoiceResult);
+        }));
+    }
+    else if (is_delete) {
+        const [purchaseInvoiceUpdate, _] = yield purchase_invoice_model_1.default.deleteByID({
+            id: id,
+            deleted_by: userID,
         });
+        yield queue_helper_1.queue.add("delete-purchase-invoice", goodReceipt);
+        const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", purchaseInvoiceUpdate);
+        socket.create();
+        return res.status(200).send(purchaseInvoiceUpdate);
     }
-    catch (error) {
-        return res.status(400).send(error);
-    }
-};
+});
+/**
+ * Fetch purchase invoice archive
+ * @param req
+ * @param res
+ */
 PurchaseInvoiceController.fetchArchive = (req, res) => {
-    const mode = req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
-    if (req.query.year == undefined) {
-        purchase_invoice_model_1.default.fetchArchiveYears(mode)
+    const mode = req.body.mode;
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null) {
+        purchase_invoice_model_1.default.fetchArchiveYears()
             .then((result) => {
-            return res.status(200).send(result.map((x) => {
+            return res.status(200).send(result
+                .map((x) => {
                 return {
                     year: x.year,
                     count: parseInt(x.count.toString()),
                 };
+            })
+                .sort((a, b) => {
+                return a.year - b.year;
             }));
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching purchase invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
-    else if (req.query.year != undefined && req.query.month == undefined) {
-        const year = parseInt(req.query.year.toString());
-        purchase_invoice_model_1.default.fetchArchiveMonths(year, mode)
+    else if (year != null && month == null) {
+        purchase_invoice_model_1.default.fetchArchiveMonths(year)
             .then((result) => {
             const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
             result.forEach((x) => {
@@ -421,14 +360,21 @@ PurchaseInvoiceController.fetchArchive = (req, res) => {
             return res.status(200).send(response);
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching purchase invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
-    else if (req.query.year != undefined && req.query.month != undefined) {
-        const year = parseInt(req.query.year.toString());
-        const month = parseInt(req.query.month.toString());
-        const page = req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
-        purchase_invoice_model_1.default.fetchArchive(year, month, page, mode)
+    else {
+        const page = req.body.limit.page;
+        const keyword = req.body.search.keyword;
+        purchase_invoice_model_1.default.fetchArchive({
+            year: year,
+            month: month,
+            mode: mode,
+            limit: 10,
+            offset: (page - 1) * 10,
+            keyword: (0, escape_helper_1.mysql_real_escape_string)(keyword),
+        })
             .then((result) => {
             return res.status(200).send({
                 data: result[0].map((x) => {
@@ -438,14 +384,8 @@ PurchaseInvoiceController.fetchArchive = (req, res) => {
                         date: x.date,
                         is_delete: x.is_delete == 1,
                         is_confirm: x.is_confirm == 1,
-                        supplier: {
-                            id: x.supplier_id,
-                            name: x.supplier_name,
-                        },
-                        company: {
-                            id: x.company_id,
-                            name: x.company_name,
-                        },
+                        supplier_name: x.supplier_name,
+                        company_name: x.company_name,
                     };
                 }),
                 count: result[1] == null || result[1].length == 0
@@ -454,11 +394,17 @@ PurchaseInvoiceController.fetchArchive = (req, res) => {
             });
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on fetching purchase invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
 };
-PurchaseInvoiceController.searchArchive = (req, res) => {
+/**
+ * Search purchase invoices
+ * @param req
+ * @param res
+ */
+PurchaseInvoiceController.search = (req, res) => {
     const suppliers = req.body.suppliers;
     const items = req.body.items;
     const companies = req.body.companies;
@@ -490,8 +436,42 @@ PurchaseInvoiceController.searchArchive = (req, res) => {
         });
     })
         .catch((error) => {
-        console.log(error);
-        return res.status(500).send(error);
+        console.error(`[error]: Error while searching purchase invoices ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
+/**
+ * Delete purchase invoice by ID
+ * @param req
+ * @param res
+ * @returns
+ */
+PurchaseInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const id = parseInt(req.params.id);
+    const userID = req.body.userID;
+    const purchaseInvoice = yield purchase_invoice_model_1.default.fetchByID(id);
+    if (!purchaseInvoice) {
+        return res.status(404).send(error_list_1.default["Not found"]);
+    }
+    if (purchaseInvoice.is_delete) {
+        return res
+            .status(400)
+            .send(error_list_1.default["Purchase invoice already deleted"]);
+    }
+    const goodReceiptCodeID = purchaseInvoice.good_receipt_code_id;
+    const goodReceipt = (yield good_receipt_model_1.default.fetchByID(goodReceiptCodeID));
+    purchase_invoice_model_1.default.deleteByID({
+        id: id,
+        deleted_by: userID,
+    })
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        yield queue_helper_1.queue.add("delete-purchase-invoice", goodReceipt);
+        return res.status(201).send(result);
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error while deleting purchase invoice ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+});
 exports.default = PurchaseInvoiceController;
+//# sourceMappingURL=purchase-invoice.controller.js.map

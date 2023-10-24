@@ -818,76 +818,14 @@ export class ItemModel {
         break;
       case 3:
       default:
-        if (keyword == "") {
-          return prisma.$transaction([
-            prisma.$queryRaw<any[]>`
-              SELECT item_unit.item_id, item_unit.id, item_unit.unit, 
-              item_unit.conversion
-              FROM item_unit
-              JOIN (
-                SELECT item.id
-                FROM item
-                WHERE item.is_delete = 0
-                AND item.is_active = 1
-                ORDER BY reference ASC
-                LIMIT ${limit}
-                OFFSET	${offset}
-              ) item_count
-              ON item_unit.item_id = item_count.id
-              WHERE item_unit.is_delete = 0
-            `,
-            prisma.$queryRaw`
-              SELECT item.id, item.reference, item.description, 
-              item.minimum_stock, item.unit, 
-              item_type.name AS item_type_name, 
-              item_brand.name AS item_brand_name, 
-              item.item_type_id, item.item_brand_id, 
-              item.is_active
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<any[]>(`
+            SELECT item_unit.item_id, item_unit.id, item_unit.unit, 
+            item_unit.conversion
+            FROM item_unit
+            JOIN (
+              SELECT item.id
               FROM item
-              JOIN item_brand ON item.item_brand_id = item_brand.id
-              JOIN item_type ON item.item_type_id = item_type.id
-              WHERE item.is_delete = 0
-              ORDER BY reference ASC
-              LIMIT ${limit} OFFSET ${offset}
-            `,
-            prisma.item.count({
-              where: {
-                is_delete: false,
-              },
-            }),
-          ]);
-        } else {
-          return prisma.$transaction([
-            prisma.$queryRawUnsafe<any[]>(`
-              SELECT item_unit.item_id, item_unit.id, item_unit.unit, 
-              item_unit.conversion
-              FROM item_unit
-              JOIN (
-                SELECT item.id
-                FROM item
-                WHERE item.is_delete = 0
-                AND item.is_active = 1
-                AND (
-                  item.reference LIKE '%${keyword}%'
-                  OR item.description LIKE '%${keyword}%'
-                )
-                ORDER BY reference ASC
-                LIMIT ${limit}
-                OFFSET	${offset}
-              ) item_count
-              ON item_unit.item_id = item_count.id
-              WHERE item_unit.is_delete = 0
-            `),
-            prisma.$queryRawUnsafe(`
-              SELECT item.id, item.reference, item.description, 
-              item.minimum_stock, item.unit, 
-              item_type.name AS item_type_name, 
-              item_brand.name AS item_brand_name, 
-              item.item_type_id, item.item_brand_id, 
-              item.is_active
-              FROM item
-              JOIN item_brand ON item.item_brand_id = item_brand.id
-              JOIN item_type ON item.item_type_id = item_type.id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               AND (
@@ -895,29 +833,50 @@ export class ItemModel {
                 OR item.description LIKE '%${keyword}%'
               )
               ORDER BY reference ASC
-              LIMIT ${limit} OFFSET ${offset}
-            `),
-            prisma.item.count({
-              where: {
-                is_delete: false,
-                is_active: true,
-                OR: [
-                  {
-                    reference: {
-                      contains: keyword,
-                    },
+              LIMIT ${limit}
+              OFFSET	${offset}
+            ) item_count
+            ON item_unit.item_id = item_count.id
+            WHERE item_unit.is_delete = 0
+          `),
+          prisma.$queryRawUnsafe(`
+            SELECT item.id, item.reference, item.description, 
+            item.minimum_stock, item.unit, 
+            item_type.name AS item_type_name, 
+            item_brand.name AS item_brand_name, 
+            item.item_type_id, item.item_brand_id, 
+            item.is_active
+            FROM item
+            JOIN item_brand ON item.item_brand_id = item_brand.id
+            JOIN item_type ON item.item_type_id = item_type.id
+            WHERE item.is_delete = 0
+            AND item.is_active = 1
+            AND (
+              item.reference LIKE '%${keyword}%'
+              OR item.description LIKE '%${keyword}%'
+            )
+            ORDER BY reference ASC
+            LIMIT ${limit} OFFSET ${offset}
+          `),
+          prisma.item.count({
+            where: {
+              is_delete: false,
+              is_active: true,
+              OR: [
+                {
+                  reference: {
+                    contains: keyword,
                   },
-                  {
-                    description: {
-                      contains: keyword,
-                    },
+                },
+                {
+                  description: {
+                    contains: keyword,
                   },
-                ],
-              },
-            }),
-          ]);
-        }
-        break;
+                },
+              ],
+            },
+          }),
+        ]);
     }
   }
 
@@ -1266,6 +1225,14 @@ export class ItemModel {
     });
   }
 
+  /**
+   * Fetch current itme price by Brand and Type
+   * Used for item price bulk update
+   * @param brand_id
+   * @param type_id
+   * @param setting
+   * @returns
+   */
   static fetchItemPriceByBrandType(
     brand_id: number[],
     type_id: number[],
@@ -1285,6 +1252,9 @@ export class ItemModel {
               is_delete: false,
             },
             is_delete: false,
+            item_unit: {
+              is_delete: false,
+            },
           },
           select: {
             id: true,
@@ -1445,6 +1415,13 @@ export class ItemModel {
     }
   }
 
+  /**
+   * Fetch item price by brand and type
+   * @param brand_id
+   * @param type_id
+   * @param setting
+   * @returns
+   */
   static fetchItemPurchasePriceByBrandType(
     brand_id: number[],
     type_id: number[],
@@ -1487,6 +1464,7 @@ export class ItemModel {
               },
             },
             price: true,
+            discount: true,
             item_unit: {
               select: {
                 unit: true,
@@ -1542,6 +1520,7 @@ export class ItemModel {
               },
             },
             price: true,
+            discount: true,
             item_unit: {
               select: {
                 unit: true,
@@ -1597,6 +1576,7 @@ export class ItemModel {
               },
             },
             price: true,
+            discount: true,
             item_unit: {
               select: {
                 unit: true,
@@ -2203,6 +2183,7 @@ export class ItemModel {
         unit: true,
         item_brand_id: true,
         item_type_id: true,
+        is_active: true,
         item_brand: {
           select: {
             name: true,

@@ -12,10 +12,17 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.get("/profile", auth_controller_1.default.fetchProfile);
-router.get("/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.fetchById);
+router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.fetchByID);
 router.get("/", user_controller_1.default.fetch);
-router.post("/changePassword", user_controller_1.default.changePassword);
-router.post("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("role").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("username").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("nik").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.create);
-router.put("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("id").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("role").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("username").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("nik").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.update);
-router.delete("/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), user_controller_1.default.toggleActive);
+router.post("/changePassword", (0, express_validator_1.body)("password").notEmpty().withMessage(error_list_1.default["Password required"]), error_helper_1.default.intercept, user_controller_1.default.updatePassword);
+router.post("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("role")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(error_list_1.default["User role required"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Name required"]), (0, express_validator_1.body)("username").notEmpty().withMessage(error_list_1.default["Username is required"]), (0, express_validator_1.body)("nik").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.create);
+router.put("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("id").notEmpty().isNumeric().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("role")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(error_list_1.default["User role required"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Name required"]), (0, express_validator_1.body)("username").notEmpty().withMessage(error_list_1.default["Username is required"]), (0, express_validator_1.body)("nik").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.update);
+router.delete("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.toggleActive);
 exports.default = router;
+//# sourceMappingURL=user.route.js.map

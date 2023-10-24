@@ -9,7 +9,7 @@ const router = Router();
 router.get(
   "/:id",
   param("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
-  query("mode").exists().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ProductStockController.fetchByID
 );

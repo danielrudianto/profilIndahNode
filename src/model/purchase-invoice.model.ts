@@ -1,4 +1,11 @@
 import { PrismaClient } from "@prisma/client";
+import {
+  AnnualArchive,
+  ArchiveCount,
+  IFetchArchive,
+  MonthlyArchive,
+  PurchaseInvoiceArchive,
+} from "../interface/archive.interface";
 import { ICreateGoodReceipt, IGoodReceiptItem } from "./good_receipt.model";
 
 const prisma = new PrismaClient();
@@ -8,6 +15,7 @@ export enum CalculatePurchaseMode {
   Supplier,
   Type,
   Brand,
+  Sum,
 }
 
 export interface ICreatePurchaseInvoice extends ICreateGoodReceipt {
@@ -42,6 +50,38 @@ export interface IUpdatePurchaseInvoice {
 interface IUpdatePurchaseInvoiceItems {
   id: number;
   price: number;
+  discount: number;
+}
+
+interface IDeletePurchaseInvoice {
+  id: number;
+  deleted_by: number;
+}
+
+export interface IFetchPurchaseReport {
+  month: number;
+  year: number;
+}
+
+export interface IUpdatePurchaseInvoiceGoodReceipt {
+  id: number;
+  name: string;
+  faktur: string;
+  date: Date;
+  discount: number;
+  good_receipt_code: {
+    name: string;
+    date: Date;
+    supplier_id: number;
+    company_id: number;
+    good_receipt: {
+      item_id: number;
+      item_unit_id: number | null;
+      quantity: number;
+      price: number;
+      discount: number;
+    }[];
+  };
 }
 
 class PurchaseInvoiceModel {
@@ -111,6 +151,7 @@ class PurchaseInvoiceModel {
             },
             quantity: true,
             price: true,
+            discount: true,
           },
         },
         supplier: {
@@ -123,26 +164,6 @@ class PurchaseInvoiceModel {
             discount: true,
           },
         },
-      },
-    });
-  }
-
-  /**
-   * Update purchase invoice
-   * Updates the purchase invoice name, faktur, date, and discount
-   * @param data
-   * @returns
-   */
-  static update(data: IPurchaseInvoice) {
-    return prisma.purchase_invoice.update({
-      where: {
-        id: data.id,
-      },
-      data: {
-        name: data.name,
-        faktur: data.faktur,
-        date: data.date,
-        discount: data.discount,
       },
     });
   }
@@ -222,11 +243,13 @@ class PurchaseInvoiceModel {
                 },
                 quantity: true,
                 price: true,
+                discount: true,
               },
             },
           },
         },
         created_at: true,
+        created_by: true,
         confirmed_at: true,
         is_confirm: true,
         is_delete: true,
@@ -241,16 +264,119 @@ class PurchaseInvoiceModel {
     });
   }
 
+  /**
+   * Return a calculate-purchase mode
+   * By string
+   * @param mode
+   * @returns
+   */
+  static calculatePurchaseMode(mode: string): CalculatePurchaseMode | null {
+    switch (mode) {
+      case "plain":
+        return CalculatePurchaseMode.Plain;
+      case "supplier":
+        return CalculatePurchaseMode.Supplier;
+      case "type":
+        return CalculatePurchaseMode.Type;
+      case "brand":
+        return CalculatePurchaseMode.Brand;
+      case "sum":
+        return CalculatePurchaseMode.Sum;
+      default:
+        return null;
+    }
+  }
+
+  /**
+   * Update purchase invoice
+   * Updates the purchase invoice name, faktur, date, and discount
+   * @param data
+   * @returns
+   */
+  static update(data: IUpdatePurchaseInvoiceGoodReceipt) {
+    return prisma.purchase_invoice.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        name: data.name,
+        faktur: data.faktur,
+        date: data.date,
+        discount: data.discount,
+        good_receipt_code: {
+          update: {
+            supplier_id: data.good_receipt_code.supplier_id,
+            date: data.good_receipt_code.date,
+            name: data.good_receipt_code.name,
+            company_id: data.good_receipt_code.company_id,
+            good_receipt: {
+              deleteMany: {},
+              createMany: {
+                data: data.good_receipt_code.good_receipt,
+              },
+            },
+          },
+        },
+      },
+      include: {
+        good_receipt_code: {
+          select: {
+            name: true,
+            id: true,
+            date: true,
+            supplier_id: true,
+            company_id: true,
+            supplier: {
+              select: {
+                name: true,
+              },
+            },
+            created_at: true,
+            good_receipt: {
+              select: {
+                quantity: true,
+                price: true,
+                discount: true,
+                item: {
+                  select: {
+                    id: true,
+                    reference: true,
+                    description: true,
+                  },
+                },
+                item_unit: {
+                  select: {
+                    unit: true,
+                    conversion: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Calculate total purchase
+   * @param month
+   * @param year
+   * @param mode
+   * @param day
+   * @returns
+   */
   static calculateTotalPurchase(
     month: number,
     year: number,
-    mode: CalculatePurchaseMode
+    mode: CalculatePurchaseMode,
+    day: number | null = null
   ) {
     switch (mode) {
       case CalculatePurchaseMode.Plain:
         return prisma.$transaction([
           prisma.$queryRaw<any[]>`
-            SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, DAY(purchase_invoice.date) AS day
+            SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, DAY(purchase_invoice.date) AS day
             FROM good_receipt
             JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
             JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -263,7 +389,7 @@ class PurchaseInvoiceModel {
             GROUP BY DAY(purchase_invoice.date)
           `,
           prisma.$queryRaw<any[]>`
-            SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
+            SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
             FROM good_receipt
             JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
             JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -279,7 +405,7 @@ class PurchaseInvoiceModel {
         ]);
       case CalculatePurchaseMode.Supplier:
         return prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -294,7 +420,7 @@ class PurchaseInvoiceModel {
         `;
       case CalculatePurchaseMode.Type:
         return prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, item_type.id AS item_type_id, item_type.name AS item_type_name
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, item_type.id AS item_type_id, item_type.name AS item_type_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -310,7 +436,7 @@ class PurchaseInvoiceModel {
         `;
       case CalculatePurchaseMode.Brand:
         return prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, SUM(discount) AS discount, item_brand.id AS item_brand_id, item_brand.name AS item_brand_name
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, item_brand.id AS item_brand_id, item_brand.name AS item_brand_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -324,286 +450,233 @@ class PurchaseInvoiceModel {
           AND MONTH(purchase_invoice.date) = ${month}
           GROUP BY item.item_brand_id
         `;
+      case CalculatePurchaseMode.Sum:
+        return prisma.$queryRawUnsafe<any[]>(`
+          SELECT SUM(goodReceipt.value) AS value, 
+          SUM(discount) AS discount, 
+          company.id as company_id, company.name
+          FROM purchase_invoice
+          JOIN (
+            SELECT SUM(good_receipt.quantity * 
+              (good_receipt.price - good_receipt.discount) * 
+              COALESCE(item_unit.conversion, 1)) AS value, 
+              good_receipt_code_id, good_receipt_code.company_id
+            FROM good_receipt
+            LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+            GROUP BY good_receipt.good_receipt_code_id
+          ) goodReceipt
+          ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
+          JOIN company ON goodReceipt.company_id = company.id
+          WHERE YEAR(purchase_invoice.date) = ${year}
+          ${month == 0 ? "" : "AND MONTH(purchase_invoice.date) = " + month}
+          ${day == null ? "" : "AND DAY(purchase_invoice.date) = " + day}
+          AND purchase_invoice.is_confirm = 1
+          AND purchase_invoice.is_delete = 0
+          GROUP BY company.id
+        `);
     }
   }
 
-  static fetchSum(month: number, year: number) {
-    if (month == 0) {
-      return prisma.$queryRawUnsafe(`
-        SELECT SUM(goodReceipt.value) AS value, SUM(discount) AS discount, company.id as company_id, company.name
-        FROM purchase_invoice
-        JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price * COALESCE(item_unit.conversion, 1)) AS value, good_receipt_code_id, good_receipt_code.company_id
-          FROM good_receipt
-          LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          GROUP BY good_receipt.good_receipt_code_id
-        ) goodReceipt
-        ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
-        JOIN company ON goodReceipt.company_id = company.id
-        AND YEAR(purchase_invoice.date) = ${year}
-        AND purchase_invoice.is_confirm = 1
-        AND purchase_invoice.is_delete = 0
-        GROUP BY company.id
-      `);
-    } else {
-      return prisma.$queryRawUnsafe(`
-        SELECT SUM(goodReceipt.value) AS value, SUM(discount) AS discount, company.id as company_id, company.name
-        FROM purchase_invoice
-        JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price * COALESCE(item_unit.conversion, 1)) AS value, good_receipt_code_id, good_receipt_code.company_id
-          FROM good_receipt
-          LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          GROUP BY good_receipt.good_receipt_code_id
-        ) goodReceipt
-        ON purchase_invoice.good_receipt_code_id = goodReceipt.good_receipt_code_id
-        JOIN company ON goodReceipt.company_id = company.id
-        WHERE MONTH(purchase_invoice.date) = ${month}
-        AND YEAR(purchase_invoice.date) = ${year}
-        AND purchase_invoice.is_confirm = 1
-        AND purchase_invoice.is_delete = 0
-        GROUP BY company.id
-      `);
-    }
-  }
-
-  static fetchArchiveYears(mode: number) {
-    if (mode == 0) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year, COUNT(id) AS count
+  /**
+   * Fetch archive years
+   * @param mode
+   * @returns AnnualArchive[]
+   */
+  static fetchArchiveYears() {
+    return prisma.$queryRaw<AnnualArchive[]>`
+      SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year, 
+      COUNT(id) AS count
       FROM purchase_invoice
       WHERE purchase_invoice.date IS NOT NULL
       GROUP BY YEAR(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
     `;
-    } else if (mode == 1) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year, COUNT(id) AS count
+  }
+
+  /**
+   * Fetch archive by year
+   * @param year
+   * @param mode
+   * @returns MonthlyArchive[]
+   */
+  static fetchArchiveMonths(year: number) {
+    return prisma.$queryRaw<MonthlyArchive[]>`
+      SELECT DISTINCT(MONTH(purchase_invoice.date)) AS month, 
+      YEAR(purchase_invoice.date) AS year,
+      COUNT(id) AS count
       FROM purchase_invoice
-      WHERE purchase_invoice.is_delete = 1
+      WHERE YEAR(purchase_invoice.date) = ${year}
       AND purchase_invoice.date IS NOT NULL
-      GROUP BY YEAR(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
+      GROUP BY MONTH(purchase_invoice.date)
     `;
-    } else if (mode == 2) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE purchase_invoice.is_delete = 0
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY YEAR(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-    `;
-    } else if (mode == 3) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE purchase_invoice.is_delete = 0
-      AND purchase_invoice.is_confirm = 1
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY YEAR(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-    `;
-    } else if (mode == 4) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(YEAR(purchase_invoice.date)) AS year, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE purchase_invoice.is_delete = 0
-      AND purchase_invoice.is_confirm = 0
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY YEAR(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-      `;
+  }
+
+  /**
+   * Fetch archive by year and month
+   * @param year
+   * @param month
+   * @param page
+   * @param mode
+   * @returns [PurchaseInvoiceArchive[], ArchiveCount]
+   */
+  static fetchArchive(data: IFetchArchive) {
+    switch (data.mode) {
+      case 0:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<PurchaseInvoiceArchive[]>(`
+          SELECT purchase_invoice.id, purchase_invoice.date, 
+          purchase_invoice.name, purchase_invoice.is_delete, 
+          company_id AS company_id, company.name AS company_name, 
+          supplier.id AS supplier_id, supplier.name AS supplier_name, 
+          purchase_invoice.is_confirm
+          FROM purchase_invoice
+          JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          JOIN company ON good_receipt_code.company_id = company.id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+          WHERE YEAR(purchase_invoice.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
+          AND purchase_invoice.date IS NOT NULL
+          ORDER BY good_receipt_code.date ASC
+          LIMIT ${data.limit}
+          OFFSET ${data.offset}`),
+          prisma.$queryRaw<ArchiveCount[]>`
+            SELECT COUNT(id) AS count FROM purchase_invoice
+            WHERE YEAR(purchase_invoice.date) = ${
+              data.year
+            } AND MONTH(purchase_invoice.date) = ${data.month + 1}
+          AND purchase_invoice.date IS NOT NULL
+          `,
+        ]);
+      case 1:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<PurchaseInvoiceArchive[]>(`
+          SELECT purchase_invoice.id, purchase_invoice.date, 
+          purchase_invoice.name, purchase_invoice.is_delete, 
+          company_id AS company_id, company.name AS company_name, 
+          supplier.id AS supplier_id, supplier.name AS supplier_name,
+          purchase_invoice.is_confirm
+          FROM purchase_invoice
+          JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          JOIN company ON good_receipt_code.company_id = company.id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+          WHERE YEAR(good_receipt_code.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 1
+          AND purchase_invoice.date IS NOT NULL
+          ORDER BY purchase_invoice.date ASC
+          LIMIT ${data.limit}
+          OFFSET ${data.offset}`),
+          prisma.$queryRaw<ArchiveCount[]>`
+            SELECT COUNT(id) AS count FROM purchase_invoice
+            WHERE YEAR(purchase_invoice.date) = ${
+              data.year
+            } AND MONTH(purchase_invoice.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 1
+          AND purchase_invoice.date IS NOT NULL
+          `,
+        ]);
+      case 2:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<PurchaseInvoiceArchive[]>(`
+          SELECT purchase_invoice.id, purchase_invoice.date, 
+          purchase_invoice.name, purchase_invoice.is_delete, 
+          company_id AS company_id, company.name AS company_name, 
+          supplier.id AS supplier_id, supplier.name AS supplier_name,
+          purchase_invoice.is_confirm
+          FROM purchase_invoice
+          JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          JOIN company ON good_receipt_code.company_id = company.id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+          WHERE YEAR(good_receipt_code.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.date IS NOT NULL
+          ORDER BY good_receipt_code.date ASC
+          LIMIT ${data.limit}
+          OFFSET ${data.offset}`),
+          prisma.$queryRaw<ArchiveCount[]>`
+            SELECT COUNT(id) AS count FROM purchase_invoice
+            WHERE YEAR(purchase_invoice.date) = ${
+              data.year
+            } AND MONTH(purchase_invoice.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.date IS NOT NULL
+          `,
+        ]);
+      case 3:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<PurchaseInvoiceArchive[]>(`
+          SELECT purchase_invoice.id, purchase_invoice.date, 
+          purchase_invoice.name, purchase_invoice.is_delete, 
+          company_id AS company_id, company.name AS company_name, 
+          supplier.id AS supplier_id, supplier.name AS supplier_name,
+          purchase_invoice.is_confirm
+          FROM purchase_invoice
+          JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          JOIN company ON good_receipt_code.company_id = company.id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+          WHERE YEAR(purchase_invoice.date) = ${
+            data.year
+          } AND MONTH(purchase_invoice.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.is_confirm = 1
+          AND purchase_invoice.date IS NOT NULL
+          ORDER BY purchase_invoice.date ASC
+          LIMIT ${data.limit}
+          OFFSET ${data.offset}`),
+          prisma.$queryRaw<ArchiveCount[]>`
+            SELECT COUNT(id) AS count FROM purchase_invoice
+            WHERE YEAR(purchase_invoice.date) = ${
+              data.year
+            } AND MONTH(purchase_invoice.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.is_confirm = 1
+          AND purchase_invoice.date IS NOT NULL
+          `,
+        ]);
+      case 4:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<PurchaseInvoiceArchive[]>(`
+          SELECT purchase_invoice.id, purchase_invoice.date, 
+          purchase_invoice.name, purchase_invoice.is_delete, 
+          company_id AS company_id, company.name AS company_name, 
+          supplier.id AS supplier_id, supplier.name AS supplier_name, 
+          purchase_invoice.is_confirm
+          FROM purchase_invoice
+          JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          JOIN company ON good_receipt_code.company_id = company.id
+          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+          WHERE YEAR(good_receipt_code.date) = ${
+            data.year
+          } AND MONTH(good_receipt_code.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.is_confirm = 0
+          AND purchase_invoice.date IS NOT NULL
+          ORDER BY purchase_invoice.date ASC
+          LIMIT ${data.limit}
+          OFFSET ${data.offset}`),
+          prisma.$queryRaw<ArchiveCount[]>`
+            SELECT COUNT(id) AS count FROM purchase_invoice
+            WHERE YEAR(purchase_invoice.date) = ${
+              data.year
+            } AND MONTH(purchase_invoice.date) = ${data.month + 1}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.is_confirm = 0
+          AND purchase_invoice.date IS NOT NULL
+          `,
+        ]);
     }
   }
 
-  static fetchArchiveMonths(year: number, mode: number) {
-    if (mode == 0) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(purchase_invoice.date)) AS month, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE YEAR(purchase_invoice.date) = ${year}
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY MONTH(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-    `;
-    } else if (mode == 1) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(purchase_invoice.date)) AS month, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE YEAR(purchase_invoice.date) = ${year}
-      AND purchase_invoice.is_delete = 1
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY MONTH(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-    `;
-    } else if (mode == 2) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(purchase_invoice.date)) AS month, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE YEAR(purchase_invoice.date) = ${year}
-      AND purchase_invoice.is_delete = 0
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY MONTH(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-      `;
-    } else if (mode == 3) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(purchase_invoice.date)) AS month, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE YEAR(purchase_invoice.date) = ${year}
-      AND purchase_invoice.is_delete = 0
-      AND purchase_invoice.is_confirm = 1
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY MONTH(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-      `;
-    } else if (mode == 4) {
-      return prisma.$queryRaw<any[]>`
-      SELECT DISTINCT(MONTH(purchase_invoice.date)) AS month, COUNT(id) AS count
-      FROM purchase_invoice
-      WHERE YEAR(purchase_invoice.date) = ${year}
-      AND purchase_invoice.is_delete = 0
-      AND purchase_invoice.is_confirm = 0
-      AND purchase_invoice.date IS NOT NULL
-      GROUP BY MONTH(purchase_invoice.date)
-      ORDER BY purchase_invoice.date ASC
-      `;
-    }
-  }
-
-  static fetchArchive(year: number, month: number, page: number, mode: number) {
-    if (mode == 0) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-        SELECT purchase_invoice.id, purchase_invoice.date, purchase_invoice.name, purchase_invoice.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, purchase_invoice.is_confirm
-        FROM purchase_invoice
-        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
-        JOIN company ON good_receipt_code.company_id = company.id
-        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.date IS NOT NULL
-        ORDER BY good_receipt_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
-          SELECT COUNT(id) AS count FROM purchase_invoice
-          WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(purchase_invoice.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.date IS NOT NULL
-        `,
-      ]);
-    } else if (mode == 1) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-        SELECT purchase_invoice.id, purchase_invoice.date, purchase_invoice.name, purchase_invoice.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, purchase_invoice.is_confirm
-        FROM purchase_invoice
-        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
-        JOIN company ON good_receipt_code.company_id = company.id
-        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 1
-        AND purchase_invoice.date IS NOT NULL
-        ORDER BY purchase_invoice.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
-          SELECT COUNT(id) AS count FROM purchase_invoice
-          WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(purchase_invoice.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 1
-        AND purchase_invoice.date IS NOT NULL
-        `,
-      ]);
-    } else if (mode == 2) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-        SELECT purchase_invoice.id, purchase_invoice.date, purchase_invoice.name, purchase_invoice.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, purchase_invoice.is_confirm
-        FROM purchase_invoice
-        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
-        JOIN company ON good_receipt_code.company_id = company.id
-        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 0
-        AND purchase_invoice.date IS NOT NULL
-        ORDER BY good_receipt_code.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
-          SELECT COUNT(id) AS count FROM purchase_invoice
-          WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(purchase_invoice.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 0
-        AND purchase_invoice.date IS NOT NULL
-        `,
-      ]);
-    } else if (mode == 3) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-        SELECT purchase_invoice.id, purchase_invoice.date, purchase_invoice.name, purchase_invoice.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, purchase_invoice.is_confirm
-        FROM purchase_invoice
-        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
-        JOIN company ON good_receipt_code.company_id = company.id
-        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(purchase_invoice.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 0
-        AND purchase_invoice.is_confirm = 1
-        AND purchase_invoice.date IS NOT NULL
-        ORDER BY purchase_invoice.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
-          SELECT COUNT(id) AS count FROM purchase_invoice
-          WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(purchase_invoice.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 0
-        AND purchase_invoice.is_confirm = 1
-        AND purchase_invoice.date IS NOT NULL
-        `,
-      ]);
-    } else if (mode == 4) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<any[]>(`
-        SELECT purchase_invoice.id, purchase_invoice.date, purchase_invoice.name, purchase_invoice.is_delete, company_id AS company_id, company.name AS company_name, supplier.id AS supplier_id, supplier.name AS supplier_name, purchase_invoice.is_confirm
-        FROM purchase_invoice
-        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
-        JOIN company ON good_receipt_code.company_id = company.id
-        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        WHERE YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 0
-        AND purchase_invoice.is_confirm = 0
-        AND purchase_invoice.date IS NOT NULL
-        ORDER BY purchase_invoice.date ASC
-        LIMIT 10
-        OFFSET ${(page - 1) * 10}`),
-        prisma.$queryRaw<any[]>`
-          SELECT COUNT(id) AS count FROM purchase_invoice
-          WHERE YEAR(purchase_invoice.date) = ${year} AND MONTH(purchase_invoice.date) = ${
-          month + 1
-        }
-        AND purchase_invoice.is_delete = 0
-        AND purchase_invoice.is_confirm = 0
-        AND purchase_invoice.date IS NOT NULL
-        `,
-      ]);
-    }
-  }
-
+  /**
+   * Fetch unconfirmed purchase invoice
+   * @param offset
+   * @param limit
+   * @returns Promise<PurchaseInvoice[]>
+   */
   static fetchUnconfirmed(offset: number, limit: number) {
     return prisma.$transaction([
       prisma.purchase_invoice.findMany({
@@ -653,6 +726,11 @@ class PurchaseInvoiceModel {
     ]);
   }
 
+  /**
+   * Confirm purchase invoice by ID
+   * @param data
+   * @returns
+   */
   static confirmByID(data: IUpdatePurchaseInvoice) {
     const transactions: any[] = [];
     for (let x of data.good_receipt) {
@@ -663,6 +741,7 @@ class PurchaseInvoiceModel {
           },
           data: {
             price: x.price,
+            discount: x.discount,
           },
         })
       );
@@ -691,6 +770,7 @@ class PurchaseInvoiceModel {
                 select: {
                   id: true,
                   price: true,
+                  discount: true,
                   quantity: true,
                   item_unit: {
                     select: {
@@ -732,262 +812,112 @@ class PurchaseInvoiceModel {
    * @param confirmed_by
    * @returns
    */
-  static deleteByID(id: number, confirmed_by: number) {
+  static deleteByID(data: IDeletePurchaseInvoice) {
     return prisma.$transaction([
       prisma.purchase_invoice.update({
         where: {
-          id: id,
+          id: data.id,
         },
         data: {
           is_confirm: false,
           is_delete: true,
           confirmed_at: new Date(),
-          confirmed_by: confirmed_by,
+          confirmed_by: data.deleted_by,
         },
       }),
       prisma.good_receipt_code.updateMany({
         where: {
           purchase_invoice: {
-            id: id,
+            id: data.id,
           },
         },
         data: {
           is_confirm: false,
           is_delete: true,
           confirmed_at: new Date(),
-          confirmed_by: confirmed_by,
+          confirmed_by: data.deleted_by,
         },
       }),
     ]);
   }
 
-  static fetchReport(start: Date, end: Date, type: number) {
-    if (type == 0) {
-      return prisma.$queryRawUnsafe(`
-        SELECT item_brand.id, item_brand.name, a.value
-        FROM item_brand
-        JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, item.item_brand_id
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          JOIN item ON good_receipt.item_id = item.id
-          WHERE purchase_invoice.is_delete = 0
-          AND purchase_invoice.date >= '${start.getFullYear()}-${(
-        start.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-        AND purchase_invoice.date <= '${end.getFullYear()}-${(
-        end.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
-          GROUP BY item.item_brand_id
-        ) AS a
-        ON item_brand.id = a.item_brand_id
-      `);
-    } else if (type == 1) {
-      return prisma.$queryRawUnsafe(`
-        SELECT item_type.id, item_type.name, a.value
-        FROM item_type
-        JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, item.item_type_id
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          JOIN item ON good_receipt.item_id = item.id
-          WHERE purchase_invoice.is_delete = 0
-          AND purchase_invoice.date >= '${start.getFullYear()}-${(
-        start.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-        AND purchase_invoice.date <= '${end.getFullYear()}-${(
-        end.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
-          GROUP BY item.item_type_id
-        ) AS a
-        ON item_type.id = a.item_type_id
-      `);
-    } else {
-      return prisma.$queryRawUnsafe(`
-        SELECT supplier.id, supplier.name, SUM(a.value - purchase_invoice.discount) AS value
-        FROM purchase_invoice
-        JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, good_receipt_code.supplier_id
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          GROUP BY good_receipt_code.id
-        ) AS a
-        ON purchase_invoice.good_receipt_code_id = a.id
-        JOIN supplier ON a.supplier_id = supplier.id
-        WHERE purchase_invoice.is_delete = 0
-        AND purchase_invoice.date >= '${start.getFullYear()}-${(
-        start.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-        AND purchase_invoice.date <= '${end.getFullYear()}-${(
-        end.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
-        GROUP BY supplier.id
-      `);
-    }
-  }
-
-  static fetchReportById(start: Date, end: Date, type: number, id: number) {
-    if (type == 0) {
-      return prisma.$queryRawUnsafe(`
-      SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
-      FROM good_receipt
-      JOIN item ON good_receipt.item_id = item.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-      JOIN company ON good_receipt_code.company_id = company.id
-      WHERE purchase_invoice.is_delete = 0
-        AND purchase_invoice.date >= '${start.getFullYear()}-${(
-        start.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-      AND purchase_invoice.date <= '${end.getFullYear()}-${(end.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
-        AND item.item_brand_id = ${id}
-    `);
-    } else if (type == 1) {
-      return prisma.$queryRawUnsafe(`
-      SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
-      FROM good_receipt
-      JOIN item ON good_receipt.item_id = item.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-      JOIN company ON good_receipt_code.company_id = company.id
-      WHERE purchase_invoice.is_delete = 0
-        AND purchase_invoice.date >= '${start.getFullYear()}-${(
-        start.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-      AND purchase_invoice.date <= '${end.getFullYear()}-${(end.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
-        AND item.item_type_id = ${id}
-    `);
-    } else {
-      return prisma.$queryRawUnsafe(`
-      SELECT item.reference, item.description, good_receipt.quantity, good_receipt.price, good_receipt_code.name AS good_receipt_name, purchase_invoice.name AS purchase_invoice_name, supplier.name AS supplier_name, item_type.name AS item_type_name, item_brand.name AS item_brand_name, company.name AS company_name
-      FROM good_receipt
-      JOIN item ON good_receipt.item_id = item.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-      JOIN company ON good_receipt_code.company_id = company.id
-      WHERE purchase_invoice.is_delete = 0
-        AND purchase_invoice.date >= '${start.getFullYear()}-${(
-        start.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${start.getDate().toString().padStart(2, "0")}'
-      AND purchase_invoice.date <= '${end.getFullYear()}-${(end.getMonth() + 1)
-        .toString()
-        .padStart(2, "0")}-${end.getDate().toString().padStart(2, "0")}'
-        AND good_receipt_code.supplier_id = ${id}
-    `);
-    }
-  }
-
-  static confirmByIdUnchanged(id: number, user_id: number) {
-    return prisma.purchase_invoice.update({
-      where: {
-        id: id,
-      },
-      data: {
-        is_confirm: true,
-        is_delete: false,
-        confirmed_at: new Date(),
-        confirmed_by: user_id,
-      },
-    });
-  }
-
-  static fetchAppendix(month: number, year: number) {
-    if (month == 0) {
-      return prisma.$queryRawUnsafe(`
-        SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
+  static fetchReport(data: IFetchPurchaseReport) {
+    return prisma.$transaction([
+      prisma.$queryRawUnsafe(`
+        SELECT good_receipt_code.name, good_receipt_code.date, 
+        purchase_invoice.name AS purchase_invoice_name, 
+        purchase_invoice.faktur, purchase_invoice.discount,
+        supplier.name AS supplier_name, company.name AS company_name,
+        goodReceipt.value
         FROM purchase_invoice
         JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
-        JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt.good_receipt_code_id
-          FROM good_receipt
-          GROUP BY good_receipt.good_receipt_code_id
-        ) goodReceipt
-        ON good_receipt_code.id = goodReceipt.good_receipt_code_id
         JOIN supplier ON good_receipt_code.supplier_id = supplier.id
         JOIN company ON good_receipt_code.company_id = company.id
-        WHERE good_receipt_code.is_confirm = 1
-        AND good_receipt_code.is_delete = 0
-        AND purchase_invoice.is_confirm = 1
-        AND purchase_invoice.is_delete = 0
-        AND YEAR(purchase_invoice.date) = ${year}
-      `);
-    } else {
-      return prisma.$queryRawUnsafe(`
-        SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
-        FROM purchase_invoice
-        JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
         JOIN (
-          SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt.good_receipt_code_id
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt_code_id
           FROM good_receipt
-          GROUP BY good_receipt.good_receipt_code_id
+          GROUP BY good_receipt_code_id
         ) goodReceipt
         ON good_receipt_code.id = goodReceipt.good_receipt_code_id
-        JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-        JOIN company ON good_receipt_code.company_id = company.id
-        WHERE good_receipt_code.is_confirm = 1
-        AND good_receipt_code.is_delete = 0
-        AND purchase_invoice.is_confirm = 1
+        WHERE YEAR(purchase_invoice.date) = ${data.year}
+        AND MONTH(purchase_invoice.date) = ${data.month}
         AND purchase_invoice.is_delete = 0
-        AND YEAR(purchase_invoice.date) = ${year}
-        AND MONTH(purchase_invoice.date) = ${month}
-      `);
-    }
+        AND purchase_invoice.is_confirm = 1
+      `),
+      prisma.$queryRawUnsafe(`
+          SELECT item.reference, item.description, good_receipt.quantity, 
+          COALESCE(item_unit.unit, item.unit) AS unit, 
+          COALESCE(item_unit.conversion, 1) AS conversion, 
+          good_receipt.price, 
+          IF(item_unit.unit IS NULL, '', item.unit) AS default_unit,
+          good_receipt.discount, item_type.name AS item_type_name,
+          item_brand.name AS item_brand_name, good_receipt_code.name,
+          good_receipt_code.date
+          FROM good_receipt
+          JOIN item ON good_receipt.item_id = item.id
+          LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+          JOIN item_type ON item.item_type_id = item_type.id
+          JOIN item_brand ON item.item_brand_id = item_brand.id
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          JOIN purchase_invoice ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          WHERE YEAR(good_receipt_code.date) = ${data.year}
+          AND MONTH(good_receipt_code.date) = ${data.month}
+          AND purchase_invoice.is_delete = 0
+          AND purchase_invoice.is_confirm = 1
+      `),
+    ]);
   }
 
-  static fetchTodayPurchase(date: Date) {
+  /**
+   * Fetch appendix for purchase invoice
+   * @param month
+   * @param year
+   * @returns
+   */
+  static fetchAppendix(
+    month: number,
+    year: number,
+    date: number | null = null
+  ) {
     return prisma.$queryRawUnsafe(`
-      SELECT COALESCE(SUM(a.value), 0) AS value, COALESCE(SUM(a.discount), 0) AS discount
-      FROM (
-        SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, purchase_invoice.discount
+      SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
+      FROM purchase_invoice
+      JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+      JOIN (
+        SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt.good_receipt_code_id
         FROM good_receipt
-        JOIN good_receipt_code
-        ON good_receipt.good_receipt_code_id = good_receipt_code.id
-        JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-        WHERE good_receipt_code.is_confirm = 1
-        AND good_receipt_code.is_delete = 0
-        AND good_receipt_code.date = '${date.getFullYear()}-${(
-      date.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
         GROUP BY good_receipt.good_receipt_code_id
-      ) AS a
+      ) goodReceipt
+      ON good_receipt_code.id = goodReceipt.good_receipt_code_id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      JOIN company ON good_receipt_code.company_id = company.id
+      WHERE good_receipt_code.is_confirm = 1
+      AND good_receipt_code.is_delete = 0
+      AND purchase_invoice.is_confirm = 1
+      AND purchase_invoice.is_delete = 0
+      AND YEAR(purchase_invoice.date) = ${year}
+      ${month == 0 ? "" : `AND MONTH(purchase_invoice.date) = ${month}`}
+      ${date == null ? "" : `AND DAY(purchase_invoice.date) = ${date}`}
     `);
   }
 
@@ -1064,61 +994,6 @@ class PurchaseInvoiceModel {
         `SELECT COUNT(purchase_invoice.id) AS count FROM purchase_invoice JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id ${conditionalQueries}`
       ),
     ]);
-  }
-
-  /**
-   * Fetch all purchase invoices
-   * Used for development purpose only
-   * @remarks
-   * This method is only used for development purpose
-   *
-   * @returns All the purchase invoice data
-   */
-  static fetchAll() {
-    return prisma.purchase_invoice.findMany({
-      where: {
-        is_delete: false,
-      },
-      include: {
-        good_receipt_code: {
-          include: {
-            supplier: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            company: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-            good_receipt: {
-              select: {
-                id: true,
-                item: {
-                  select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    unit: true,
-                  },
-                },
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-                quantity: true,
-                price: true,
-              },
-            },
-          },
-        },
-      },
-    });
   }
 }
 

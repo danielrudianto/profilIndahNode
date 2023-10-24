@@ -20,8 +20,9 @@ router.post("/", (0, express_validator_1.body)("price").notEmpty().withMessage(e
     .withMessage(error_list_1.default["Package items required"]), error_helper_1.default.intercept, product_package_controller_1.default.create);
 router.put("/", (0, express_validator_1.body)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("price").notEmpty().withMessage(error_list_1.default["Price is required"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Package name required"]), (0, express_validator_1.body)("description")
     .notEmpty()
-    .withMessage(error_list_1.default["Package description required"]), error_helper_1.default.intercept, product_package_controller_1.default.update);
-router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_package_controller_1.default.fetchByID);
-router.delete("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_package_controller_1.default.delete);
+    .withMessage(error_list_1.default["Package description required"]), error_helper_1.default.intercept, product_package_controller_1.default.updateByID);
+router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_package_controller_1.default.fetchByID);
+router.delete("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, product_package_controller_1.default.deleteByID);
 router.get("/", product_package_controller_1.default.fetch);
 exports.default = router;
+//# sourceMappingURL=product-package.route.js.map

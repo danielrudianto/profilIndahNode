@@ -1,30 +1,32 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
+const error_list_1 = __importDefault(require("../assets/error_list"));
+const fetch_interface_1 = require("../interface/fetch.interface");
 const prisma = new client_1.PrismaClient();
 class CustomerModel {
-    constructor(name, address, npwp, pic, phone_number, created_by, id = null) {
-        if (id != null) {
-            this.id = id;
-        }
-        this.name = name;
-        this.address = address;
-        this.npwp = npwp;
-        this.pic = pic;
-        this.phone_number = phone_number;
-        this.created_by = created_by;
-        this.created_at = new Date();
-    }
-    create() {
+    static create(data) {
         return prisma.customer.create({
             data: {
-                name: this.name,
-                address: this.address,
-                npwp: this.npwp,
-                pic: this.pic,
-                phone_number: this.phone_number,
-                created_by: this.created_by,
-                created_at: this.created_at,
+                name: data.name,
+                address: data.address,
+                npwp: data.npwp,
+                pic: data.pic,
+                phone_number: data.phone_number,
+                created_by: data.created_by,
+                created_at: new Date(),
             },
             include: {
                 user: {
@@ -36,19 +38,19 @@ class CustomerModel {
             },
         });
     }
-    update() {
+    static update(data) {
         return prisma.customer.update({
             where: {
-                id: this.id,
+                id: data.id,
             },
             data: {
-                name: this.name,
-                address: this.address,
-                npwp: this.npwp,
-                pic: this.pic,
-                phone_number: this.phone_number,
-                updated_by: this.created_by,
-                updated_at: this.created_at,
+                name: data.name,
+                address: data.address,
+                npwp: data.npwp,
+                pic: data.pic,
+                phone_number: data.phone_number,
+                updated_by: data.created_by,
+                updated_at: new Date(),
             },
             include: {
                 user_customer_updated_byTouser: {
@@ -85,80 +87,19 @@ class CustomerModel {
             },
         });
     }
-    static fetchAutocomplete(keyword) {
-        return prisma.customer.findMany({
-            where: {
-                is_delete: false,
-                OR: [
-                    {
-                        name: {
-                            contains: keyword,
-                        },
-                    },
-                    {
-                        address: {
-                            contains: keyword,
-                        },
-                    },
-                    {
-                        npwp: {
-                            contains: keyword,
-                        },
-                    },
-                    {
-                        pic: {
-                            contains: keyword,
-                        },
-                    },
-                    {
-                        phone_number: {
-                            contains: keyword,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                name: "asc",
-            },
-            take: 5,
-            skip: 0,
-        });
-    }
-    static fetch(keyword, offset, limit) {
-        if (keyword == "") {
-            return prisma.$transaction([
-                prisma.$queryRaw `
-          SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+    static fetch(keyword, offset, limit, mode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (mode == fetch_interface_1.fetchMode.Pagination) {
+                const result = yield prisma.$transaction([
+                    prisma.$queryRawUnsafe(`
+          SELECT customer.id, customer.name, customer.address, 
+          customer.pic, customer.npwp, customer.phone_number, 
+          customer.created_at, customer.is_delete,
+          IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
           FROM customer
           LEFT JOIN (
             SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
             FROM bill_code
-            JOIN customer ON bill_code.customer_id = customer.id
-            WHERE bill_code.is_delete = 0
-            GROUP BY bill_code.customer_id
-          ) itemCount
-          ON customer.id = itemCount.customer_id
-          WHERE customer.is_delete = 0
-          ORDER BY customer.name ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
-        `,
-                prisma.customer.count({
-                    where: {
-                        is_delete: false,
-                    },
-                }),
-            ]);
-        }
-        else {
-            return prisma.$transaction([
-                prisma.$queryRawUnsafe(`
-          SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
-          FROM customer
-          LEFT JOIN (
-            SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-            FROM bill_code
-            JOIN customer ON bill_code.customer_id = customer.id
             WHERE bill_code.is_delete = 0
             GROUP BY bill_code.customer_id
           ) itemCount
@@ -167,12 +108,59 @@ class CustomerModel {
           AND (
             customer.name LIKE '%${keyword}%'
             OR customer.address LIKE '%${keyword}%'
+            OR customer.npwp LIKE '%${keyword}%'
+            OR customer.pic LIKE '%${keyword}%'
+            OR customer.phone_number LIKE '%${keyword}%'
           )
           ORDER BY customer.name ASC
           LIMIT ${limit}
           OFFSET ${offset}
         `),
-                prisma.customer.count({
+                    prisma.customer.count({
+                        where: {
+                            is_delete: false,
+                            OR: [
+                                {
+                                    name: {
+                                        contains: keyword,
+                                    },
+                                },
+                                {
+                                    address: {
+                                        contains: keyword,
+                                    },
+                                },
+                                {
+                                    npwp: {
+                                        contains: keyword,
+                                    },
+                                },
+                                {
+                                    pic: {
+                                        contains: keyword,
+                                    },
+                                },
+                                {
+                                    phone_number: {
+                                        contains: keyword,
+                                    },
+                                },
+                            ],
+                        },
+                    }),
+                ]);
+                if (!result[0]) {
+                    throw Error(error_list_1.default["Not found"]);
+                }
+                return {
+                    data: result[0].map((x) => {
+                        return Object.assign(Object.assign({}, x), { can_delete: x.can_delete == "1" ? true : false });
+                    }),
+                    count: result[1],
+                };
+            }
+            else if (mode == fetch_interface_1.fetchMode.Autocomplete) {
+                return prisma.customer.findMany({
                     where: {
                         is_delete: false,
                         OR: [
@@ -203,13 +191,33 @@ class CustomerModel {
                             },
                         ],
                     },
-                }),
-            ]);
-        }
+                    orderBy: {
+                        name: "asc",
+                    },
+                    take: limit,
+                    skip: offset,
+                });
+            }
+            else if (mode == fetch_interface_1.fetchMode.All) {
+                return prisma.customer.findMany({
+                    where: {
+                        is_delete: false,
+                    },
+                });
+            }
+        });
     }
-    static fetchById(id) {
-        return prisma.$queryRaw `
-      SELECT customer.id, customer.name, customer.address, customer.pic, customer.npwp, customer.phone_number, COALESCE(itemCount.count, 0) AS count
+    /**
+     * Fetch customer by ID
+     * @param id
+     * @returns
+     */
+    static fetchByID(id) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const customers = yield prisma.$queryRaw `
+      SELECT customer.id, customer.name, customer.address, 
+      customer.pic, customer.npwp, customer.phone_number, 
+      IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
       FROM customer
       LEFT JOIN (
         SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
@@ -220,6 +228,34 @@ class CustomerModel {
       ON customer.id = itemCount.customer_id
       WHERE customer.id = ${id}
     `;
+            if (!customers) {
+                throw Error(error_list_1.default["Not found"]);
+            }
+            if (customers.length == 0) {
+                throw Error(error_list_1.default["Not found"]);
+            }
+            return Object.assign(Object.assign({}, customers[0]), { can_delete: customers[0].can_delete == "1" ? true : false });
+        });
+    }
+    /**
+     * Fetch customer by IDs
+     * @param id
+     * @returns
+     */
+    static fetchByIDs(ids) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return prisma.$queryRawUnsafe(`
+      SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
+      FROM customer
+      LEFT JOIN (
+        SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
+        FROM bill_code
+        WHERE bill_code.is_delete = 0
+      ) itemCount
+      ON customer.id = itemCount.customer_id
+      WHERE customer.id IN (${ids.join(",")})
+    `);
+        });
     }
     static fetchBySales(id) {
         return prisma.customer.count({
@@ -231,3 +267,4 @@ class CustomerModel {
     }
 }
 exports.default = CustomerModel;
+//# sourceMappingURL=customer.model.js.map

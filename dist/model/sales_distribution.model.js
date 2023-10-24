@@ -42,3 +42,4 @@ class SalesDistributionModel {
     }
 }
 exports.default = SalesDistributionModel;
+//# sourceMappingURL=sales_distribution.model.js.map

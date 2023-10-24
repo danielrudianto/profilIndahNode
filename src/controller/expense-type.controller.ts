@@ -100,108 +100,116 @@ class ExpenseTypeController {
               );
               return res.status(500).send(ErrorList["Internal server error"]);
             });
-        }
-
-        ExpenseModel.countByType(result?.id!)
-          .then((count) => {
-            return res.status(200).send({
-              ...result,
-              count: count,
+        } else {
+          ExpenseModel.countByType(result?.id!)
+            .then((count) => {
+              return res.status(200).send({
+                ...result,
+                count: count,
+              });
+            })
+            .catch((error) => {
+              console.error(
+                `[error]: Error on counting expense type by id ${error}`
+              );
+              return res.status(500).send(ErrorList["Internal server error"]);
             });
-          })
-          .catch((error) => {
-            console.error(
-              `[error]: Error on counting expense type by id ${error}`
-            );
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
+        }
       })
       .catch((error) => {
         return res.status(500).send(error);
       });
   };
 
+  /**
+   * Fetch expense type autocomplete
+   * @param req
+   * @param res
+   */
   static fetchAutocomplete = (req: Request, res: Response) => {
-    // const mode = req.query.mode;
-    // const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    // if (mode == "child") {
-    //   ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ChildAutocomplete)?.then(
-    //     (result) => {
-    //       return res.status(200).send(result);
-    //     }
-    //   );
-    // } else if (mode == "parent") {
-    //   ExpenseTypeModel.fetchAutocomplete(
-    //     keyword,
-    //     5,
-    //     0,
-    //     fetchMode.ChildAutocomplete
-    //   )?.then((result) => {
-    //     return res.status(200).send(result);
-    //   });
-    // }
+    const mode = req.query.mode;
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    if (mode == "child") {
+      ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ChildAutocomplete)
+        ?.then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on fetching autocomplete ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    } else if (mode == "parent") {
+      ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ParentAutocomplete)
+        ?.then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on fetching autocomplete ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    }
   };
 
+  /**
+   * Delete expense type by ID
+   * @param req
+   * @param res
+   */
   static deleteByID = (req: Request, res: Response) => {
-    // const id = parseInt(req.params.id);
-    // ExpenseTypeModel.fetchById(id)
-    //   .then((expense) => {
-    //     if (expense == null || expense.is_delete) {
-    //       return res.status(404).send("Data pengeluaran tidak ditemukan.");
-    //     }
-    //     if (expense.parent_id == null) {
-    //       ExpenseTypeModel.fetch(expense.id)
-    //         .then((children) => {
-    //           if (children.length == 0) {
-    //             ExpenseTypeModel.delete(expense.id, req.body.userId)
-    //               .then((result_delete) => {
-    //                 const socket = new SocketHelper(
-    //                   "deleteExpenseType",
-    //                   result_delete
-    //                 );
-    //                 socket.create();
-    //                 return res.status(201).send(result_delete);
-    //               })
-    //               .catch((error) => {
-    //                 return res.status(500).send(error);
-    //               });
-    //           } else {
-    //             return res.status(500).send(ErrorList["Delete error"]);
-    //           }
-    //         })
-    //         .catch((error) => {
-    //           return res.status(500).send(error);
-    //         });
-    //     } else {
-    //       // Data is a child
-    //       // Check whether there is still expense data that uses this type
-    //       ExpenseModel.countByType(expense.id)
-    //         .then((expenses) => {
-    //           if (expenses == 0) {
-    //             ExpenseTypeModel.delete(expense.id, req.body.userId)
-    //               .then((result_delete) => {
-    //                 const socket = new SocketHelper(
-    //                   "deleteExpenseType",
-    //                   result_delete
-    //                 );
-    //                 socket.create();
-    //                 return res.status(201).send(result_delete);
-    //               })
-    //               .catch((error) => {
-    //                 return res.status(500).send(error);
-    //               });
-    //           } else {
-    //             return res.status(500).send(ErrorList["Delete error"]);
-    //           }
-    //         })
-    //         .catch((error) => {
-    //           return res.status(500).send(error);
-    //         });
-    //     }
-    //   })
-    //   .catch((error) => {
-    //     return res.status(500).send(error);
-    //   });
+    const id = parseInt(req.params.id);
+    const userID = req.body.userId;
+    ExpenseTypeModel.fetchByID(id).then((expense) => {
+      if (!expense) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      if (expense.parent_id == null) {
+        ExpenseTypeModel.fetchByParentID(expense.id)
+          .then((children) => {
+            if (children.length == 0) {
+              ExpenseTypeModel.deleteByID({
+                id: expense.id,
+                deleted_by: userID,
+              })
+                .then((result) => {
+                  const socket = new SocketHelper("deleteExpenseType", result);
+                  socket.create();
+
+                  return res.status(201).send(result);
+                })
+                .catch((error) => {
+                  console.error(
+                    `[error]: Error on deleting expense type ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
+                });
+            } else {
+              return res.status(400).send(ErrorList["Expense type has child"]);
+            }
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on fetching children ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      } else {
+        ExpenseTypeModel.deleteByID({
+          id: expense.id,
+          deleted_by: userID,
+        })
+          .then((result) => {
+            const socket = new SocketHelper("deleteExpenseType", result);
+            socket.create();
+
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on deleting expense type ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      }
+    });
   };
 
   /**
@@ -227,7 +235,8 @@ class ExpenseTypeController {
         return res.status(200).send(result);
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on updating expense type ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 }

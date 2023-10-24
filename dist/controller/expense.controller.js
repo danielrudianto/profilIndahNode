@@ -6,50 +6,109 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const expense_model_1 = __importDefault(require("../model/expense.model"));
 const expense_type_model_1 = __importDefault(require("../model/expense.type.model"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class ExpenseController {
 }
+/**
+ * Create new expense record
+ * Expense record is created by user
+ * in order to calculate the company's expense
+ * and used to calculate the company's profit
+ * @param req
+ * @param res
+ */
 ExpenseController.create = (req, res) => {
     const description = req.body.description;
     const date = new Date(req.body.date);
     const expense_type_id = req.body.expense_type_id;
     const value = req.body.value;
     const company_id = req.body.company_id;
-    expense_type_model_1.default.fetchById(expense_type_id).then((type) => {
-        if (type == null || type.is_delete) {
-            return res.status(404).send("Tipe pengeluaran tidak ditemukan.");
+    const userID = req.body.userId;
+    expense_type_model_1.default.fetchByID(expense_type_id).then((type) => {
+        if (!type) {
+            return res.status(404).send(error_list_1.default["Expense type not found"]);
         }
-        const expense = new expense_model_1.default(value, description, date, expense_type_id, company_id, req.body.userId);
-        expense
-            .create()
+        if (type.is_delete) {
+            return res.status(404).send(error_list_1.default["Expense type not found"]);
+        }
+        expense_model_1.default.create({
+            value: value,
+            description: description,
+            date: date,
+            expense_type_id: expense_type_id,
+            company_id: company_id,
+            created_by: userID,
+        })
             .then((result) => {
             const socket = new socket_helper_1.default("createExpense", result);
             socket.create();
             return res.status(201).send(result);
         })
             .catch((error) => {
-            return res.status(500).send(error);
+            console.error(`[error]: Error on creating expense: ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     });
 };
-ExpenseController.update = (req, res) => {
+/**
+ * Fetch expense record by ID
+ * @param req
+ * @param res
+ */
+ExpenseController.fetchByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    expense_model_1.default.fetchByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send("Pengeluaran tidak ditemukan.");
+        }
+        return res.status(200).send(Object.assign(Object.assign({}, result), { value: parseFloat(result.value.toString()) }));
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on deleting expense: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Update expense record
+ * Expense record is created by user
+ * in order to calculate the company's expense
+ * and used to calculate the company's profit
+ * @param req
+ * @param res
+ */
+ExpenseController.updateByID = (req, res) => {
     const id = req.body.id;
     const description = req.body.description;
     const date = new Date(req.body.date);
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
     const company_id = req.body.company_id;
-    const expense = new expense_model_1.default(value, description, date, type_id, company_id, req.body.userId, id);
-    expense
-        .update()
+    const userID = req.body.userId;
+    expense_model_1.default.updateByID({
+        id: id,
+        value: value,
+        description: description,
+        date: date,
+        expense_type_id: type_id,
+        company_id: company_id,
+        created_by: userID,
+    })
         .then((result) => {
         const socket = new socket_helper_1.default("updateExpense", result);
         socket.create();
         return res.status(200).send(result);
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on updating expense: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
+/**
+ * Fetch expense record by year and month
+ * @param req
+ * @param res
+ */
 ExpenseController.fetch = (req, res) => {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
@@ -58,10 +117,7 @@ ExpenseController.fetch = (req, res) => {
         : Math.max(parseInt(req.query.page.toString()), 1);
     const limit = parseInt(process.env.LIMIT);
     const offset = (page - 1) * limit;
-    Promise.all([
-        expense_model_1.default.fetch(year, month, offset, limit),
-        expense_model_1.default.count(year, month),
-    ])
+    expense_model_1.default.fetch(year, month, offset, limit)
         .then((result) => {
         return res.status(200).send({
             data: result[0],
@@ -69,35 +125,28 @@ ExpenseController.fetch = (req, res) => {
         });
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching expense: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
-ExpenseController.fetchById = (req, res) => {
-    const id = parseInt(req.params.id);
-    expense_model_1.default.fetchById(id)
-        .then((result) => {
-        if (result == null) {
-            return res.status(404).send("Pengeluaran tidak ditemukan.");
-        }
-        else {
-            return res.status(200).send(Object.assign(Object.assign({}, result), { value: parseFloat(result.value.toString()) }));
-        }
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
-};
-ExpenseController.deleteById = (req, res) => {
+/**
+ * Delete expense record by ID
+ * @param req
+ * @param res
+ */
+ExpenseController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
     const user_id = req.body.userId;
-    expense_model_1.default.deleteById(id, user_id)
+    expense_model_1.default.deleteByID(id, user_id)
         .then((result) => {
         const socket = new socket_helper_1.default("deleteExpense", result);
         socket.create();
         return res.status(200).send(result);
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on deleting expense: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 exports.default = ExpenseController;
+//# sourceMappingURL=expense.controller.js.map

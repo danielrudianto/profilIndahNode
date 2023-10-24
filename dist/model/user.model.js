@@ -1,24 +1,35 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class UserModel {
-    constructor(name, nik, username, password, created_by) {
-        this.name = name;
-        this.nik = nik;
-        this.password = password;
-        this.username = username;
-        this.created_by = created_by;
-        this.created_at = new Date();
-    }
-    create() {
+    /**
+     * Create a new user
+     * @param data
+     * @returns User
+     */
+    static create(data) {
         return prisma.user.create({
             data: {
-                name: this.name,
-                username: this.username,
-                password: this.password,
-                nik: this.nik,
-                created_by: this.created_by,
+                name: data.name,
+                username: data.username,
+                password: data.password,
+                nik: data.nik,
+                created_by: data.created_by,
+                user_department: {
+                    create: {
+                        role: data.role,
+                    },
+                },
             },
             select: {
                 id: true,
@@ -33,18 +44,34 @@ class UserModel {
             },
         });
     }
-    static fetchByIdentifiers(username, nik) {
-        return prisma.user.count({
-            where: {
-                OR: [
-                    {
-                        username: username,
-                    },
-                    {
-                        nik: nik,
-                    },
-                ],
-            },
+    /**
+     * Fetch role
+     * @param roleID
+     * @returns IUserRole | null
+     */
+    static fetchRole(roleID) {
+        return this.roles.filter((x) => x.id == roleID)[0] || null;
+    }
+    /**
+     * Check if user with certain credential exists
+     * @param username
+     * @param nik
+     * @returns boolean
+     */
+    static checkByCredential(username, nik) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return ((yield prisma.user.count({
+                where: {
+                    OR: [
+                        {
+                            username: username,
+                        },
+                        {
+                            nik: nik,
+                        },
+                    ],
+                },
+            })) == 0);
         });
     }
     static fetch(keyword, offset, limit) {
@@ -143,7 +170,12 @@ class UserModel {
             ]);
         }
     }
-    static fetchById(id) {
+    /**
+     * Fetch user by ID
+     * @param id
+     * @returns
+     */
+    static fetchByID(id) {
         return prisma.user.findUnique({
             where: {
                 id: id,
@@ -180,32 +212,39 @@ class UserModel {
             },
         });
     }
-    static update(id, name, password, created_by) {
-        if (password == null) {
-            return prisma.user.update({
+    static update(data) {
+        return data.password == null
+            ? prisma.user.update({
                 where: {
-                    id: id,
+                    id: data.id,
                 },
                 data: {
-                    name: name,
-                    updated_by: created_by,
+                    name: data.name,
+                    updated_by: data.created_by,
                     updated_at: new Date(),
+                    user_department: {
+                        update: {
+                            role: data.role,
+                        },
+                    },
                 },
-            });
-        }
-        else {
-            return prisma.user.update({
+            })
+            : prisma.user.update({
                 where: {
-                    id: id,
+                    id: data.id,
                 },
                 data: {
-                    name: name,
-                    password: password,
-                    updated_by: created_by,
+                    name: data.name,
+                    updated_by: data.created_by,
                     updated_at: new Date(),
+                    password: data.password,
+                    user_department: {
+                        update: {
+                            role: data.role,
+                        },
+                    },
                 },
             });
-        }
     }
     static delete(user_id, status, created_by) {
         return prisma.user.update({
@@ -270,3 +309,4 @@ UserModel.roles = [
     },
 ];
 exports.default = UserModel;
+//# sourceMappingURL=user.model.js.map

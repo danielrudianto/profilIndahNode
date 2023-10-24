@@ -3,32 +3,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
 class ExpenseModel {
-    constructor(value, description, date, expense_type_id, company_id, created_by, id = null) {
-        this.is_delete = false;
-        this.deleted_by = null;
-        this.deleted_at = null;
-        if (id != null) {
-            this.id = id;
-        }
-        this.date = date;
-        this.value = value;
-        this.created_at = new Date();
-        this.created_by = created_by;
-        this.description = description;
-        this.expense_type_id = expense_type_id;
-        this.company_id = company_id;
-    }
-    /** Create a new expense data */
-    create() {
+    /**
+     * Create a new expense record
+     * @param data
+     * @returns
+     */
+    static create(data) {
         return prisma.expense.create({
             data: {
-                date: this.date,
-                value: this.value,
-                created_at: this.created_at,
-                created_by: this.created_by,
-                description: this.description,
-                expense_type_id: this.expense_type_id,
-                company_id: this.company_id,
+                date: data.date,
+                value: data.value,
+                created_at: new Date(),
+                created_by: data.created_by,
+                description: data.description,
+                expense_type_id: data.expense_type_id,
+                company_id: data.company_id,
             },
             select: {
                 id: true,
@@ -43,18 +32,97 @@ class ExpenseModel {
             },
         });
     }
-    /** Update expense data */
-    update() {
+    /**
+     * Fetch expense by year and month
+     * @param year
+     * @param month
+     * @param offset
+     * @param limit
+     */
+    static fetch(year, month, offset, limit) {
+        const date = new Date(year, month, 1, 0, 0, 0, 0);
+        const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
+        return prisma.$transaction([
+            prisma.expense.findMany({
+                where: {
+                    is_delete: false,
+                    AND: [
+                        {
+                            date: {
+                                gte: date,
+                            },
+                        },
+                        {
+                            date: {
+                                lt: max_date,
+                            },
+                        },
+                    ],
+                },
+                orderBy: {
+                    date: "asc",
+                },
+                take: limit,
+                skip: offset,
+                select: {
+                    description: true,
+                    date: true,
+                    user_expense_created_byTouser: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    value: true,
+                    created_at: true,
+                    id: true,
+                    expense_type: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    company_id: true,
+                    company: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                },
+            }),
+            prisma.expense.count({
+                where: {
+                    is_delete: false,
+                    AND: [
+                        {
+                            date: {
+                                gte: date,
+                            },
+                        },
+                        {
+                            date: {
+                                lt: max_date,
+                            },
+                        },
+                    ],
+                },
+            }),
+        ]);
+    }
+    /**
+     * Update expense record
+     * @param data
+     * @returns
+     */
+    static updateByID(data) {
         return prisma.expense.update({
             where: {
-                id: this.id,
+                id: data.id,
             },
             data: {
-                date: this.date,
-                value: this.value,
-                expense_type_id: this.expense_type_id,
-                description: this.description,
-                company_id: this.company_id,
+                date: data.date,
+                value: data.value,
+                expense_type_id: data.expense_type_id,
+                description: data.description,
+                company_id: data.company_id,
             },
             include: {
                 expense_type: {
@@ -67,77 +135,6 @@ class ExpenseModel {
                         name: true,
                     },
                 },
-            },
-        });
-    }
-    /** Fetch expense data */
-    static fetch(year, month, offset, limit) {
-        const date = new Date(year, month, 1, 0, 0, 0, 0);
-        const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
-        return prisma.expense.findMany({
-            where: {
-                is_delete: false,
-                AND: [
-                    {
-                        date: {
-                            gte: date,
-                        },
-                    },
-                    {
-                        date: {
-                            lt: max_date,
-                        },
-                    },
-                ],
-            },
-            orderBy: {
-                date: "asc",
-            },
-            take: limit,
-            skip: offset,
-            select: {
-                description: true,
-                date: true,
-                user_expense_created_byTouser: {
-                    select: {
-                        name: true,
-                    },
-                },
-                value: true,
-                created_at: true,
-                id: true,
-                expense_type: {
-                    select: {
-                        name: true,
-                    },
-                },
-                company_id: true,
-                company: {
-                    select: {
-                        name: true,
-                    },
-                },
-            },
-        });
-    }
-    static count(year, month) {
-        const date = new Date(year, month, 1, 0, 0, 0, 0);
-        const max_date = new Date(year, month + 1, 1, 0, 0, 0, 0);
-        return prisma.expense.count({
-            where: {
-                is_delete: false,
-                AND: [
-                    {
-                        date: {
-                            gte: date,
-                        },
-                    },
-                    {
-                        date: {
-                            lt: max_date,
-                        },
-                    },
-                ],
             },
         });
     }
@@ -159,41 +156,22 @@ class ExpenseModel {
         });
     }
     static fetchSum(month, year) {
-        if (month == 0) {
-            return prisma.$queryRawUnsafe(`
-      SELECT expense_type.id, expense_type.name, company.name AS company_name, expense_type.parent_id, COALESCE(exp.value, 0) AS value, company.id AS company_id
+        return prisma.$queryRawUnsafe(`
+      SELECT expense_type.id, expense_type.name, 
+      expense_type.parent_id, COALESCE(exp.value, 0) AS value, 
+      company_id
       FROM expense_type
-      JOIN company
       LEFT JOIN (
         SELECT SUM(expense.value) AS value, expense_type_id, company_id
           FROM expense
           WHERE expense.is_delete = 0
           AND YEAR(expense.date) = ${year}
+          ${month == 0 ? "" : `AND MONTH(expense.date) = ${month}`}
           GROUP BY expense_type_id, company_id
       ) AS exp
       ON expense_type.id = exp.expense_type_id
-      AND company.id = exp.company_id
-      ORDER BY company.id ASC, parent_id ASC
-      `);
-        }
-        else {
-            return prisma.$queryRawUnsafe(`
-      SELECT expense_type.id, expense_type.name, company.name AS company_name, expense_type.parent_id, COALESCE(exp.value, 0) AS value, company.id AS company_id
-      FROM expense_type
-      JOIN company
-      LEFT JOIN (
-        SELECT SUM(expense.value) AS value, expense_type_id, company_id
-          FROM expense
-          WHERE expense.is_delete = 0
-          AND MONTH(expense.date) = ${month}
-          AND YEAR(expense.date) = ${year}
-          GROUP BY expense_type_id, company_id
-      ) AS exp
-      ON expense_type.id = exp.expense_type_id
-      AND company.id = exp.company_id
-      ORDER BY company.id ASC, parent_id ASC
-      `);
-        }
+      ORDER BY company_id ASC, parent_id ASC
+    `);
     }
     static fetchTodaySum() {
         const date = new Date();
@@ -206,7 +184,7 @@ class ExpenseModel {
         AND expense.is_delete = 0
       `);
     }
-    static fetchById(id) {
+    static fetchByID(id) {
         return prisma.expense.findUnique({
             where: {
                 id: id,
@@ -239,7 +217,7 @@ class ExpenseModel {
             },
         });
     }
-    static deleteById(id, deleted_by) {
+    static deleteByID(id, deleted_by) {
         return prisma.expense.update({
             where: {
                 id: id,
@@ -341,5 +319,17 @@ class ExpenseModel {
             });
         }
     }
+    static fetchReport(month, year) {
+        return prisma.$transaction([
+            prisma.expense.groupBy({
+                by: ["expense_type_id"],
+                _sum: {
+                    value: true,
+                },
+            }),
+            prisma.expense_type.findMany({}),
+        ]);
+    }
 }
 exports.default = ExpenseModel;
+//# sourceMappingURL=expense.model.js.map
