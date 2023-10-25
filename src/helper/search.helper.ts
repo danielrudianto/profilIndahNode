@@ -121,7 +121,7 @@ class SearchHelper {
         ItemModel.fetchAll(new Date())
           .then(async (items) => {
             for (let i = 0; i < items.length; i++) {
-              await meili.index("item").addDocuments([
+              const result = await meili.index("item").addDocuments([
                 {
                   id: items[i].id,
                   reference: items[i].reference,
@@ -133,6 +133,8 @@ class SearchHelper {
                   is_active: items[i].is_active ? 1 : 0,
                 },
               ]);
+
+              console.log(result);
             }
 
             return res.status(200).send({

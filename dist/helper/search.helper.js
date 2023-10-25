@@ -128,7 +128,7 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
             item_model_1.ItemModel.fetchAll(new Date())
                 .then((items) => __awaiter(void 0, void 0, void 0, function* () {
                 for (let i = 0; i < items.length; i++) {
-                    yield app_1.meili.index("item").addDocuments([
+                    const result = yield app_1.meili.index("item").addDocuments([
                         {
                             id: items[i].id,
                             reference: items[i].reference,
@@ -140,6 +140,7 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
                             is_active: items[i].is_active ? 1 : 0,
                         },
                     ]);
+                    console.log(result);
                 }
                 return res.status(200).send({
                     message: "Sync product success",
