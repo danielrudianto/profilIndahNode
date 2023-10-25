@@ -474,7 +474,7 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
           NULL AS adjustmentCaseID, NULL AS adjustmentCaseCodeID,
           bill_code.date, (bill.quantity - COALESCE(sr.quantity, 0)) * COALESCE(item_unit.conversion, 1) AS quantity,
           bill.item_id AS itemID,
-          IF(total.value = 0, 0, (bill.price - bill.discount) * (total.value + bill_code.service + bill_code.delivery - bill_code.discount) / total.value) AS value
+          IF(total.value = 0, 0, (bill.price - bill.discount) * (total.value + bill_code.service + bill_code.delivery - bill_code.discount) / (total.value * COALESCE(item_unit.conversion, 1))) AS value
           FROM bill
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
@@ -561,7 +561,7 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
       SELECT * FROM (
         SELECT good_receipt_code.created_at COLLATE utf8mb4_unicode_ci AS createdAt, good_receipt_code.date COLLATE utf8mb4_unicode_ci AS date,
         good_receipt_code.name COLLATE utf8mb4_unicode_ci AS document,
-        supplier.name COLLATE utf8mb4_unicode_ci AS oponent,
+        supplier.name COLLATE utf8mb4_unicode_ci AS opponent,
         good_receipt.item_id AS itemID,
         good_receipt.quantity AS displayQuantity,
         good_receipt.quantity * COALESCE(item_unit.conversion, 1) AS quantity,
@@ -618,7 +618,7 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         JOIN bill_code ON bill.bill_code_id = bill_code.id
         LEFT JOIN customer ON bill_code.customer_id = customer.id
         JOIN item ON bill.item_id = item.id
-        JOIN item_unit ON bill.item_unit_id = item_unit.id
+        LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
         WHERE bill_code.is_delete= 0
         UNION ALL
         SELECT sales_return_code.created_at COLLATE utf8mb4_unicode_ci AS createdAt, sales_return_code.date COLLATE utf8mb4_unicode_ci,
@@ -648,7 +648,6 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         ORDER BY a.itemID ASC, a.date DESC
       `);
     for (let i = 0; i < products.length; i++) {
-        console.log("updating product");
         yield mongo_product_model_1.mongoProductModel.findByIdAndUpdate(products[i]._id, {
             currentStock: stockCards
                 .filter((x) => x.itemID == products[i].itemID)
@@ -688,6 +687,34 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         });
         console.log("updated product");
     }
+    return res.status(200).send({
+        message: "Stock card arranged successfully",
+    });
+});
+/**
+ * Sync product card
+ */
+SearchHelper.arrangeStockCard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    mongo_product_model_1.mongoProductModel.find({}).then((products) => __awaiter(void 0, void 0, void 0, function* () {
+        for (let i = 0; i < products.length; i++) {
+            console.log("arranging stock card for product " + products[i].reference);
+            products[i].stockCard.sort((a, b) => {
+                return (new Date(a.date).getTime() - new Date(b.date).getTime() ||
+                    b.quantity - a.quantity);
+            });
+            let currentStock = 0;
+            for (let n = 0; n < products[i].stockCard.length; n++) {
+                products[i].stockCard[n].currentStock =
+                    currentStock + products[i].stockCard[n].quantity;
+                currentStock += products[i].stockCard[n].quantity;
+            }
+            products[i].stockCard.reverse();
+            yield products[i].save();
+        }
+        return res.status(200).send({
+            message: "Arrange stock card successfully",
+        });
+    }));
 });
 exports.default = SearchHelper;
 //# sourceMappingURL=search.helper.js.map

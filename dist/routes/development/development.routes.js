@@ -45,5 +45,6 @@ router.post("/sync-customer", (req, _, next) => {
 router.post("/sync-product-in", search_helper_1.default.syncProductIn);
 router.post("/sync-product-out", search_helper_1.default.syncProductOut);
 router.post("/sync-product-out-calculation", search_helper_1.default.syncProductOutCalculation);
+router.post("/arrange-stock-card", search_helper_1.default.arrangeStockCard);
 exports.default = router;
 //# sourceMappingURL=development.routes.js.map

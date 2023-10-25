@@ -182,8 +182,15 @@ class ExpenseModel {
     });
   }
 
+  /**
+   * Fetch expenses by month and year
+   * @param month
+   * @param year
+   * @returns
+   */
   static fetchSum(month: number, year: number) {
-    return prisma.$queryRawUnsafe<IReportExpense[]>(`
+    return prisma.$transaction([
+      prisma.$queryRawUnsafe<IReportExpense[]>(`
       SELECT expense_type.id, expense_type.name, 
       expense_type.parent_id, COALESCE(exp.value, 0) AS value, 
       company_id
@@ -197,8 +204,11 @@ class ExpenseModel {
           GROUP BY expense_type_id, company_id
       ) AS exp
       ON expense_type.id = exp.expense_type_id
+      JOIN company ON company.id = exp.company_id
       ORDER BY company_id ASC, parent_id ASC
-    `);
+    `),
+      prisma.expense_type.findMany({}),
+    ]);
   }
 
   static fetchTodaySum() {

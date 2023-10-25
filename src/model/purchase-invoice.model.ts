@@ -774,6 +774,7 @@ class PurchaseInvoiceModel {
                   quantity: true,
                   item_unit: {
                     select: {
+                      id: true,
                       unit: true,
                       conversion: true,
                     },

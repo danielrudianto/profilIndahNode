@@ -324,21 +324,55 @@ class PurchaseInvoiceController {
             good_receipt
               .filter((x) => x.save)
               .map((x) => {
+                const itemIndex =
+                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
+                    (y) => y.id == x.id
+                  );
+
+                const itemID =
+                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
+                    itemIndex
+                  ].item.id;
+                const itemUnitID =
+                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
+                    itemIndex
+                  ].item_unit == null
+                    ? null
+                    : updatePurchaseInvoiceResult[0].good_receipt_code
+                        .good_receipt[itemIndex].item_unit!.id;
                 return {
-                  item_id: x.item.id,
-                  item_unit_id: x.item_unit_id,
+                  item_id: itemID,
+                  item_unit_id: itemUnitID,
                   deleted_by: userID,
                 };
               })
           );
+
           // Then save the price
           await ItemPurchasePriceModel.create(
             good_receipt
               .filter((x) => x.save)
               .map((x) => {
+                const itemIndex =
+                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
+                    (y) => y.id == x.id
+                  );
+
+                const itemID =
+                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
+                    itemIndex
+                  ].item.id;
+                const itemUnitID =
+                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
+                    itemIndex
+                  ].item_unit == null
+                    ? null
+                    : updatePurchaseInvoiceResult[0].good_receipt_code
+                        .good_receipt[itemIndex].item_unit!.id;
+
                 return {
-                  item_id: x.item_id,
-                  item_unit_id: x.item_unit_id,
+                  item_id: itemID,
+                  item_unit_id: itemUnitID,
                   price: x.price,
                   discount: x.discount,
                   created_by: userID,
