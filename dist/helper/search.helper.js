@@ -159,6 +159,10 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
                     return res.status(200).send({
                         message: "Sync product success",
                     });
+                })
+                    .catch((error) => {
+                    console.error(`[error]: Error on indexing search data. ${error}`);
+                    return res.status(500).send(error);
                 });
             }))
                 .catch((error) => {
