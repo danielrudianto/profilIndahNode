@@ -127,6 +127,19 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
             yield app_1.meili.index("item").deleteAllDocuments();
             item_model_1.ItemModel.fetchAll(new Date())
                 .then((items) => __awaiter(void 0, void 0, void 0, function* () {
+                console.log(items);
+                console.log(items.map((x) => {
+                    return {
+                        id: x.id,
+                        reference: x.reference,
+                        description: x.description,
+                        brand: x.item_brand.name,
+                        type: x.item_type.name,
+                        itemBrandID: x.item_brand_id,
+                        itemTypeID: x.item_type_id,
+                        is_active: x.is_active ? 1 : 0,
+                    };
+                }));
                 app_1.meili
                     .index("item")
                     .addDocuments(items.map((x) => {
