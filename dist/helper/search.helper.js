@@ -37,6 +37,50 @@ _a = SearchHelper;
  * Sync product, customer, or package data to meilisearch
  * @param req
  * @param res
+ * @returns
+ */
+SearchHelper.createIndex = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    yield app_1.meili.deleteIndexIfExists("item");
+    yield app_1.meili.deleteIndexIfExists("customer");
+    yield app_1.meili.deleteIndexIfExists("package");
+    yield app_1.meili.createIndex("item");
+    yield app_1.meili.createIndex("customer");
+    yield app_1.meili.createIndex("package");
+    yield app_1.meili.index("item").updateSettings({
+        searchableAttributes: ["reference", "description", "brand", "type"],
+        rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
+        filterableAttributes: ["is_active", "itemBrandID", "itemTypeID"],
+        distinctAttribute: "id",
+        synonyms: {
+            "rel fe": ["Rel full extension"],
+            shelf: ["rak"],
+            knob: ["handle", "knop"],
+            double: ["doble", "dobel", "dubel", "dobel", "dubbel", "dubbel"],
+            "double bracket": ["doble bracket", "dobel bracket", "dubel bracket"],
+            bracket: ["breket"],
+            profile: ["profil"],
+            hinge: ["engsel"],
+            hing: ["engsel"],
+            lis: ["list"],
+            "lubang angin": ["lubang udara", "lubang hawa"],
+            tacosheet: ["sheet"],
+            sss: ["stainless steel"],
+            ss: ["stainless steel"],
+            bb: ["ball bearing"],
+            "ball bearing": ["bb"],
+        },
+        typoTolerance: {
+            enabled: true,
+        },
+    });
+    return res.status(200).send({
+        message: "Create index success",
+    });
+});
+/**
+ * Sync product, customer, or package data to meilisearch
+ * @param req
+ * @param res
  */
 SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const mode = req.body.mode;

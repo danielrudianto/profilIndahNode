@@ -3,6 +3,8 @@ import SearchHelper, { syncMode } from "../../helper/search.helper";
 
 const router = Router();
 
+router.post("/create-index", SearchHelper.createIndex);
+
 router.post(
   "/sync-product-group",
   (req: Request, _, next: NextFunction) => {

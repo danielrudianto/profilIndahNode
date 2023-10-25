@@ -26,6 +26,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const search_helper_1 = __importStar(require("../../helper/search.helper"));
 const router = (0, express_1.Router)();
+router.post("/create-index", search_helper_1.default.createIndex);
 router.post("/sync-product-group", (req, _, next) => {
     req.body.mode = search_helper_1.syncMode.ProductNoSQL;
     next();

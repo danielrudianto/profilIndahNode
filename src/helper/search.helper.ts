@@ -26,6 +26,54 @@ class SearchHelper {
    * Sync product, customer, or package data to meilisearch
    * @param req
    * @param res
+   * @returns
+   */
+  static createIndex = async (req: Request, res: Response) => {
+    await meili.deleteIndexIfExists("item");
+    await meili.deleteIndexIfExists("customer");
+    await meili.deleteIndexIfExists("package");
+
+    await meili.createIndex("item");
+    await meili.createIndex("customer");
+    await meili.createIndex("package");
+
+    await meili.index("item").updateSettings({
+      searchableAttributes: ["reference", "description", "brand", "type"],
+      rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
+      filterableAttributes: ["is_active", "itemBrandID", "itemTypeID"],
+      distinctAttribute: "id",
+      synonyms: {
+        "rel fe": ["Rel full extension"],
+        shelf: ["rak"],
+        knob: ["handle", "knop"],
+        double: ["doble", "dobel", "dubel", "dobel", "dubbel", "dubbel"],
+        "double bracket": ["doble bracket", "dobel bracket", "dubel bracket"],
+        bracket: ["breket"],
+        profile: ["profil"],
+        hinge: ["engsel"],
+        hing: ["engsel"],
+        lis: ["list"],
+        "lubang angin": ["lubang udara", "lubang hawa"],
+        tacosheet: ["sheet"],
+        sss: ["stainless steel"],
+        ss: ["stainless steel"],
+        bb: ["ball bearing"],
+        "ball bearing": ["bb"],
+      },
+      typoTolerance: {
+        enabled: true,
+      },
+    });
+
+    return res.status(200).send({
+      message: "Create index success",
+    });
+  };
+
+  /**
+   * Sync product, customer, or package data to meilisearch
+   * @param req
+   * @param res
    */
   static syncMasterData = async (req: Request, res: Response) => {
     const mode = req.body.mode as syncMode;
