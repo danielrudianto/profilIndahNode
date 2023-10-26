@@ -225,11 +225,12 @@ ProductStockController.create = (req, res) => {
                     return res.status(404).send(error_list_1.default["Not found"]);
                 }
                 const startDate = new Date(date);
-                startDate.setHours(0, 0, 0, 0);
-                startDate.setHours(startDate.getHours() - offset / 60);
+                const startUTCDate = new Date(startDate.getTime() + offset * 60000);
                 const endDate = new Date(date);
-                endDate.setHours(23, 59, 59, 999);
-                endDate.setHours(endDate.getHours() - offset / 60);
+                endDate.setDate(endDate.getDate() + 1);
+                const endUTCDate = new Date(endDate.getTime() + offset * 60000);
+                console.log(startUTCDate);
+                console.log(endUTCDate);
                 const day = new Date(date).getDate();
                 const month = new Date(date).getMonth() + 1;
                 const year = new Date(date).getFullYear();
@@ -246,8 +247,8 @@ ProductStockController.create = (req, res) => {
                 });
                 const inputStockCard = documentStockCard
                     .filter((x) => {
-                    return (new Date(x.createdAt).getTime() >= startDate.getTime() &&
-                        new Date(x.createdAt).getTime() <= endDate.getTime());
+                    return (new Date(x.createdAt).getTime() >= startUTCDate.getTime() &&
+                        new Date(x.createdAt).getTime() <= endUTCDate.getTime());
                 })
                     .sort((a, b) => {
                     return (new Date(a.createdAt).getTime() -
