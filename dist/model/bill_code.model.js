@@ -589,12 +589,16 @@ class BillCodeModel {
     `);
     }
     static fetchAppendix(month, year) {
-        if (month == 0) {
-            return app_1.prisma.$queryRawUnsafe(`
-        SELECT bill_code.date, bill_code.name, COALESCE(customer.name, "Retail") AS customer_name, billValue.value
+        return app_1.prisma.$queryRawUnsafe(`
+        SELECT bill_code.date, bill_code.name, 
+        COALESCE(customer.name, "Retail") AS customer_name, 
+        billValue.discount, billValue.value, bill_code.delivery, 
+        bill_code.service
         FROM bill_code
         JOIN (
-          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value, bill.bill_code_id
+          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value, 
+          SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.discount) AS discount, 
+          bill.bill_code_id
           FROM bill
           LEFT JOIN (
             SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
@@ -612,34 +616,9 @@ class BillCodeModel {
         WHERE bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
         AND YEAR(bill_code.date) = ${year}
+        ${month == 0 ? "" : `AND MONTH(bill_code.date) = ${month}`}
+        ORDER BY bill_code.date ASC
     `);
-        }
-        else {
-            return app_1.prisma.$queryRawUnsafe(`
-        SELECT bill_code.date, bill_code.name, COALESCE(customer.name, "Retail") AS customer_name, billValue.value
-        FROM bill_code
-        JOIN (
-          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value, bill.bill_code_id
-          FROM bill
-          LEFT JOIN (
-            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_confirm = 1
-            AND sales_return_code.is_delete = 0
-            GROUP BY sales_return.bill_id
-          ) returnTable
-          ON bill.id = returnTable.bill_id
-          GROUP BY bill.bill_code_id
-        ) billValue
-        ON bill_code.id = billValue.bill_code_id
-        LEFT JOIN customer ON bill_code.customer_id = customer.id
-        WHERE bill_code.is_confirm = 1
-        AND bill_code.is_delete = 0
-        AND YEAR(bill_code.date) = ${year}
-        AND MONTH(bill_code.date) = ${month}
-    `);
-        }
     }
     static calculateTotalSales(month, year, mode) {
         if (mode == "plain") {

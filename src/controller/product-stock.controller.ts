@@ -245,9 +245,6 @@ class ProductStockController {
             endDate.setDate(endDate.getDate() + 1);
             const endUTCDate = new Date(endDate.getTime() + offset * 60000);
 
-            console.log(startUTCDate);
-            console.log(endUTCDate);
-
             const day = new Date(date).getDate();
             const month = new Date(date).getMonth() + 1;
             const year = new Date(date).getFullYear();
@@ -268,7 +265,7 @@ class ProductStockController {
                 );
               });
 
-            const inputStockCard = documentStockCard
+            const inputStockCard = result.stockCard
               .filter((x) => {
                 return (
                   new Date(x.createdAt).getTime() >= startUTCDate.getTime() &&

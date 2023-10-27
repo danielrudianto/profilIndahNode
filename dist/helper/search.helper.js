@@ -704,7 +704,7 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
                             .map((x) => {
                             return {
                                 date: (0, moment_1.default)(x.date).format("YYYY-MM-DD"),
-                                createdAt: new Date(x.createdAt),
+                                createdAt: `${x.createdAt.replace(" ", "T")}+00:00`,
                                 document: x.document,
                                 opponent: x.opponent,
                                 displayQuantity: parseFloat(x.displayQuantity.toString()),

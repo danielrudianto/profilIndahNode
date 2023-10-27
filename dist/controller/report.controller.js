@@ -469,8 +469,6 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const report = parseInt(req.params.report);
-    const startCOGSDate = month == 0 ? new Date(year - 1, 11, 31) : new Date(year, month - 1, 0);
-    const endCOGSDate = month == 0 ? new Date(year, 11, 31) : new Date(year, month, 0);
     const [bills, purchases, companies, [expenses, expenseType], cogs] = yield Promise.all([
         bill_code_model_1.default.fetchSum(month, year),
         purchase_invoice_model_1.default.calculateTotalPurchase(month, year, purchase_invoice_model_1.CalculatePurchaseMode.Sum),
@@ -478,19 +476,23 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
         expense_model_1.default.fetchSum(month, year),
         mongo_stock_in_model_1.mongoStockInModel.aggregate([
             {
-                $match: {
-                    date: {
-                        $lt: endCOGSDate,
-                    },
-                    "stockOut.date": {
-                        $gt: startCOGSDate,
-                        $lte: endCOGSDate,
-                    },
+                $unwind: {
+                    path: "$stockOut",
                 },
             },
             {
-                $unwind: {
-                    path: "$stockOut",
+                $project: {
+                    companyID: "$companyID",
+                    stockOut: "$stockOut",
+                    price: "$price",
+                    month: { $month: "$stockOut.date" },
+                    year: { $year: "$stockOut.date" },
+                },
+            },
+            {
+                $match: {
+                    month: month,
+                    year: year,
                 },
             },
             {
@@ -500,105 +502,110 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                         $sum: { $multiply: ["$stockOut.quantity", "$stockOut.value"] },
                     },
                     totalCOGS: {
-                        $sum: { $multiply: ["$price", "$stockOut.quantity"] },
+                        $sum: { $multiply: ["$stockOut.quantity", "$price"] },
                     },
                 },
             },
         ]),
     ]);
-    return res.status(200).send({
-        companies: companies,
-        bills: bills.length == 0
-            ? {
-                delivery: 0,
-                discount: 0,
-                value: 0,
-                service: 0,
-            }
-            : {
-                delivery: parseFloat(bills[0].delivery.toString()),
-                discount: parseFloat(bills[0].discount.toString()),
-                value: parseFloat(bills[0].value.toString()),
-                service: parseFloat(bills[0].service.toString()),
+    if (report == 0) {
+        return res.status(200).send({
+            companies: companies,
+            bills: bills.length == 0
+                ? {
+                    delivery: 0,
+                    discount: 0,
+                    value: 0,
+                    service: 0,
+                }
+                : {
+                    delivery: parseFloat(bills[0].delivery.toString()),
+                    discount: parseFloat(bills[0].discount.toString()),
+                    value: parseFloat(bills[0].value.toString()),
+                    service: parseFloat(bills[0].service.toString()),
+                },
+            purchases: purchases.map((x) => {
+                return {
+                    value: parseFloat(x.value.toString()),
+                    discount: parseFloat(x.discount.toString()),
+                    name: x.name,
+                    company_id: x.company_id,
+                };
+            }),
+            expenses: expenses,
+            expenseType: expenseType
+                .filter((x) => x.parent_id == null)
+                .map((x) => {
+                return {
+                    name: x.name,
+                    id: x.id,
+                    children: expenseType
+                        .filter((y) => y.parent_id == x.id)
+                        .map((y) => {
+                        return {
+                            name: y.name,
+                            id: y.id,
+                        };
+                    }),
+                };
+            }),
+            cogs: cogs,
+        });
+    }
+    else {
+        const [billAppendix, purchaseAppendix, expenseAppendix] = yield Promise.all([
+            bill_code_model_1.default.fetchAppendix(month, year),
+            purchase_invoice_model_1.default.fetchAppendix(month, year),
+            expense_model_1.default.fetchAppendix(month, year),
+        ]);
+        return res.status(200).send({
+            companies: companies,
+            bills: bills.length == 0
+                ? {
+                    delivery: 0,
+                    discount: 0,
+                    value: 0,
+                    service: 0,
+                }
+                : {
+                    delivery: parseFloat(bills[0].delivery.toString()),
+                    discount: parseFloat(bills[0].discount.toString()),
+                    value: parseFloat(bills[0].value.toString()),
+                    service: parseFloat(bills[0].service.toString()),
+                },
+            purchases: purchases.map((x) => {
+                return {
+                    value: parseFloat(x.value.toString()),
+                    discount: parseFloat(x.discount.toString()),
+                    name: x.name,
+                    company_id: x.company_id,
+                };
+            }),
+            expenses: expenses,
+            expenseType: expenseType
+                .filter((x) => x.parent_id == null)
+                .map((x) => {
+                return {
+                    name: x.name,
+                    id: x.id,
+                    children: expenseType
+                        .filter((y) => y.parent_id == x.id)
+                        .map((y) => {
+                        return {
+                            name: y.name,
+                            id: y.id,
+                        };
+                    }),
+                };
+            }),
+            cogs: cogs,
+            appendix: {
+                bills: billAppendix,
+                purchases: purchaseAppendix,
+                expenses: expenseAppendix,
             },
-        purchases: purchases.map((x) => {
-            return {
-                value: parseFloat(x.value.toString()),
-                discount: parseFloat(x.discount.toString()),
-                name: x.name,
-                company_id: x.company_id,
-            };
-        }),
-        expenses: expenses,
-        expenseType: expenseType
-            .filter((x) => x.parent_id == null)
-            .map((x) => {
-            return {
-                name: x.name,
-                id: x.id,
-                children: expenseType
-                    .filter((y) => y.parent_id == x.id)
-                    .map((y) => {
-                    return {
-                        name: y.name,
-                        id: y.id,
-                    };
-                }),
-            };
-        }),
-        cogs: cogs,
-    });
-    // if (report == 0) {
-    // } else {
-    //   const [billAppendix, purchaseAppendix, expenseAppendix] =
-    //     await Promise.all([
-    //       BillCodeModel.fetchAppendix(month, year),
-    //       PurchaseInvoiceModel.fetchAppendix(month, year),
-    //       ExpenseModel.fetchAppendix(month, year),
-    //     ]);
-    //   return res.status(200).send({
-    //     data: {
-    //       companies: companies,
-    //       bills:
-    //         bills.length == 0
-    //           ? {
-    //               delivery: 0,
-    //               discount: 0,
-    //               value: 0,
-    //               service: 0,
-    //             }
-    //           : {
-    //               delivery: parseFloat(bills[0].delivery.toString()),
-    //               discount: parseFloat(bills[0].discount.toString()),
-    //               value: parseFloat(bills[0].value.toString()),
-    //               service: parseFloat(bills[0].service.toString()),
-    //             },
-    //       purchases: purchases.map((x) => {
-    //         return {
-    //           value: parseFloat(x.value.toString()),
-    //           discount: parseFloat(x.discount.toString()),
-    //           name: x.name,
-    //           company_id: x.company_id,
-    //         };
-    //       }),
-    //       expenses: expenses.map((x) => {
-    //         return {
-    //           id: x.id,
-    //           name: x.name,
-    //           parent_id: x.parent_id,
-    //           value: parseFloat(x.value.toString()),
-    //           company_id: x.company_id,
-    //         };
-    //       }),
-    //       cogs: cogs,
-    //     },
-    //     appendix: {
-    //       bills: billAppendix,
-    //       purchases: purchaseAppendix,
-    //       expenses: expenseAppendix,
-    //     },
-    //   });
-    // }
+        });
+    }
 });
 ReportController.fetchQuickStats = (req, res) => {
     const todayDate = new Date();

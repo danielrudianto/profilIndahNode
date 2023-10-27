@@ -755,7 +755,7 @@ class SearchHelper {
                 .map((x) => {
                   return {
                     date: moment(x.date).format("YYYY-MM-DD"),
-                    createdAt: new Date(x.createdAt),
+                    createdAt: `${x.createdAt.replace(" ", "T")}+00:00`,
                     document: x.document,
                     opponent: x.opponent,
                     displayQuantity: parseFloat(x.displayQuantity.toString()),

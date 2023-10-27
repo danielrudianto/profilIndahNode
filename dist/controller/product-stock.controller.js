@@ -229,8 +229,6 @@ ProductStockController.create = (req, res) => {
                 const endDate = new Date(date);
                 endDate.setDate(endDate.getDate() + 1);
                 const endUTCDate = new Date(endDate.getTime() + offset * 60000);
-                console.log(startUTCDate);
-                console.log(endUTCDate);
                 const day = new Date(date).getDate();
                 const month = new Date(date).getMonth() + 1;
                 const year = new Date(date).getFullYear();
@@ -245,7 +243,7 @@ ProductStockController.create = (req, res) => {
                     return (new Date(a.createdAt).getTime() -
                         new Date(b.createdAt).getTime());
                 });
-                const inputStockCard = documentStockCard
+                const inputStockCard = result.stockCard
                     .filter((x) => {
                     return (new Date(x.createdAt).getTime() >= startUTCDate.getTime() &&
                         new Date(x.createdAt).getTime() <= endUTCDate.getTime());

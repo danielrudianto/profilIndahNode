@@ -1149,7 +1149,9 @@ const workerHandler = async (job: Job<any>) => {
       break;
     case "create-sales-invoice":
       const createSalesInvoiceID = job.data.id;
-      const createSalesInvoiceCreatedAt = job.data.created_at;
+      const createSalesInvoiceCreatedAt = `${job.data.created_at
+        .toString()
+        .replace(" ", "T")}+00:00`;
       const createSalesInvoiceDate = new Date(job.data.date);
       const createSalesInvoiceName = job.data.name;
       const createSalesInvoiceItems = job.data.bill;
