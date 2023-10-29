@@ -254,201 +254,6 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
  * @param res
  */
 SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    // Promise.all([
-    // ]).then(([purchaseInvoiceResult, adjustmentCaseCodeResult]) => {
-    //   mongoStockInModel.deleteMany({}).then(() => {
-    //     purchaseInvoiceResult.forEach((purchaseInvoice) => {
-    //       // Insert all stock in
-    //       const goodReceiptCreatedAt =
-    //         purchaseInvoice.good_receipt_code.created_at;
-    //       const companyID = purchaseInvoice.good_receipt_code.company_id;
-    //       const goodReceiptCodeID = purchaseInvoice.good_receipt_code.id;
-    //       const goodReceiptDate = purchaseInvoice.good_receipt_code.date;
-    //       const goodReceiptName = purchaseInvoice.good_receipt_code.name;
-    //       const goodReceiptSupplier =
-    //         purchaseInvoice.good_receipt_code.supplier;
-    //       const discount = purchaseInvoice.discount;
-    //       const goodReceiptPrice =
-    //         purchaseInvoice.good_receipt_code.good_receipt.reduce((a, b) => {
-    //           return (
-    //             a +
-    //             parseFloat(b.price.toString()) *
-    //               parseFloat(b.quantity.toString())
-    //           );
-    //         }, 0);
-    //       const goodReceiptNetPrice =
-    //         goodReceiptPrice -
-    //         (discount == null ? 0 : parseFloat(discount.toString()));
-    //       purchaseInvoice.good_receipt_code.good_receipt.forEach(
-    //         async (goodReceipt) => {
-    //           const quantity = parseFloat(goodReceipt.quantity.toString());
-    //           const conversion =
-    //             goodReceipt.item_unit == null
-    //               ? 1
-    //               : parseFloat(goodReceipt.item_unit.conversion.toString());
-    //           const unit =
-    //             goodReceipt.item_unit == null
-    //               ? goodReceipt.item.unit
-    //               : goodReceipt.item_unit.unit;
-    //           const finalUnitPrice =
-    //             (parseFloat(goodReceipt.price.toString()) *
-    //               goodReceiptNetPrice) /
-    //             (goodReceiptPrice *
-    //               (goodReceipt.item_unit == null
-    //                 ? 1
-    //                 : parseFloat(goodReceipt.item_unit.conversion.toString())));
-    //           console.log(
-    //             `[info]: Inserting stock in for ${goodReceipt.item.reference}`
-    //           );
-    //           await mongoProductModel.findOneAndUpdate(
-    //             {
-    //               itemID: goodReceipt.item.id,
-    //             },
-    //             {
-    //               $inc: {
-    //                 currentStock:
-    //                   parseFloat(goodReceipt.quantity.toString()) *
-    //                   (goodReceipt.item_unit == null
-    //                     ? 1
-    //                     : parseFloat(
-    //                         goodReceipt.item_unit.conversion.toString()
-    //                       )),
-    //               },
-    //               $push: {
-    //                 stockCard: {
-    //                   createdAt: goodReceiptCreatedAt,
-    //                   date: goodReceiptDate,
-    //                   document: goodReceiptName,
-    //                   quantity: quantity * conversion,
-    //                   displayQuantity: goodReceipt.quantity,
-    //                   unit: unit,
-    //                   billID: null,
-    //                   billCodeID: null,
-    //                   adjustmentCaseID: null,
-    //                   adjustmentCaseCodeID: null,
-    //                   goodReceiptCodeID: goodReceiptCodeID,
-    //                   goodReceiptID: goodReceipt.id,
-    //                   salesReturnID: null,
-    //                   salesReturnCodeID: null,
-    //                   opponent: goodReceiptSupplier.name,
-    //                   supplierID: goodReceiptSupplier.id,
-    //                   customerID: null,
-    //                 },
-    //               },
-    //             }
-    //           );
-    //           await mongoStockInModel.create({
-    //             companyID: companyID,
-    //             adjustmentCaseID: null,
-    //             adjustmentCaseCodeID: null,
-    //             goodReceiptCodeID: goodReceiptCodeID,
-    //             date: goodReceiptDate,
-    //             price: finalUnitPrice,
-    //             itemID: goodReceipt.item.id,
-    //             residue:
-    //               parseFloat(goodReceipt.quantity.toString()) *
-    //               (goodReceipt.item_unit == null
-    //                 ? 1
-    //                 : parseFloat(goodReceipt.item_unit.conversion.toString())),
-    //             quantity:
-    //               parseFloat(goodReceipt.quantity.toString()) *
-    //               (goodReceipt.item_unit == null
-    //                 ? 1
-    //                 : parseFloat(goodReceipt.item_unit.conversion.toString())),
-    //           });
-    //         }
-    //       );
-    //     });
-    //     adjustmentCaseCodeResult.forEach((adjustmentCaseCode) => {
-    //       const companyID = adjustmentCaseCode.company_id;
-    //       const adjustmentCaseCodeID = adjustmentCaseCode.id;
-    //       const adjustmentCaseCodeName = adjustmentCaseCode.name;
-    //       const adjustmentCaseCodeDate = adjustmentCaseCode.date;
-    //       const adjustmentCaseCreatedAt = adjustmentCaseCode.created_at;
-    //       adjustmentCaseCode.adjustment_case.forEach(async (adjustmentCase) => {
-    //         if (parseFloat(adjustmentCase.quantity.toString()) > 0) {
-    //           const quantity = parseFloat(adjustmentCase.quantity.toString());
-    //           const conversion =
-    //             adjustmentCase.item_unit == null
-    //               ? 1
-    //               : parseFloat(adjustmentCase.item_unit.conversion.toString());
-    //           const unit =
-    //             adjustmentCase.item_unit == null
-    //               ? adjustmentCase.item.unit
-    //               : adjustmentCase.item_unit.unit;
-    //           console.log(
-    //             `[info]: Inserting stock in for ${adjustmentCase.item.reference}`
-    //           );
-    //           await mongoProductModel.findOneAndUpdate(
-    //             {
-    //               itemID: adjustmentCase.item.id,
-    //             },
-    //             {
-    //               $inc: {
-    //                 currentStock:
-    //                   parseFloat(adjustmentCase.quantity.toString()) *
-    //                   (adjustmentCase.item_unit == null
-    //                     ? 1
-    //                     : parseFloat(
-    //                         adjustmentCase.item_unit.conversion.toString()
-    //                       )),
-    //               },
-    //               $push: {
-    //                 stockCard: {
-    //                   createdAt: adjustmentCaseCreatedAt,
-    //                   date: adjustmentCaseCodeDate,
-    //                   opponent: "Internal",
-    //                   document: adjustmentCaseCodeName,
-    //                   quantity: quantity * conversion,
-    //                   displayQuantity: quantity,
-    //                   unit: unit,
-    //                   billID: null,
-    //                   billCodeID: null,
-    //                   adjustmentCaseID: adjustmentCase.id,
-    //                   adjustmentCaseCodeID: adjustmentCaseCodeID,
-    //                   goodReceiptCodeID: null,
-    //                   goodReceiptID: null,
-    //                   salesReturnID: null,
-    //                   salesReturnCodeID: null,
-    //                 },
-    //               },
-    //             }
-    //           );
-    //           console.log(
-    //             `[info]: Inserting stock in for ${adjustmentCase.item.reference}`
-    //           );
-    //           await mongoStockInModel.create({
-    //             companyID: companyID,
-    //             adjustmentCaseID: adjustmentCase.id,
-    //             adjustmentCaseCodeID: adjustmentCaseCodeID,
-    //             goodReceiptCodeID: null,
-    //             goodReceiptDate: null,
-    //             date: adjustmentCaseCodeDate,
-    //             itemID: adjustmentCase.item.id,
-    //             price: 0,
-    //             residue:
-    //               parseFloat(adjustmentCase.quantity.toString()) *
-    //               (adjustmentCase.item_unit == null
-    //                 ? 1
-    //                 : parseFloat(
-    //                     adjustmentCase.item_unit.conversion.toString()
-    //                   )),
-    //             quantity:
-    //               parseFloat(adjustmentCase.quantity.toString()) *
-    //               (adjustmentCase.item_unit == null
-    //                 ? 1
-    //                 : parseFloat(
-    //                     adjustmentCase.item_unit.conversion.toString()
-    //                   )),
-    //           });
-    //         }
-    //       });
-    //     });
-    //     return res.status(200).send({
-    //       message: "Stock in sync success",
-    //     });
-    //   });
-    // });
     app_1.prisma
         .$queryRawUnsafe(`SELECT adjustment_case_code.company_id AS companyID, adjustment_case.id AS adjustmentCaseID, adjustment_case_code.id AS adjustmentCaseCodeID, 
         NULL AS goodReceiptID, NULL AS goodReceiptCodeID,
@@ -481,7 +286,7 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
         AND good_receipt_code.is_delete = 0`)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         yield mongo_stock_in_model_1.mongoStockInModel.insertMany(result.map((x) => {
-            return Object.assign(Object.assign({}, x), { date: new Date(x.date), createdAt: new Date(x.created_at), stockOut: [] });
+            return Object.assign(Object.assign({}, x), { date: new Date(x.date), companyID: x.companyID, stockOut: [] });
         }));
         return res.status(200).send({
             message: "Stock in sync success",
@@ -499,6 +304,7 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
     const stockOuts = yield app_1.prisma.$queryRawUnsafe(`
         SELECT * FROM 
         (
+          # Adjustment case
           SELECT 
           NULL AS billID, NULL as billCodeID,
           adjustment_case.id AS adjustmentCaseID, adjustment_case_code.id AS adjustmentCaseCodeID,
@@ -511,6 +317,7 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
           WHERE adjustment_case_code.is_delete = 0
           AND adjustment_case.quantity < 0
           UNION ALL
+          # Bill
           SELECT 
           bill.id AS billID, bill_code.id as billCodeID,
           NULL AS adjustmentCaseID, NULL AS adjustmentCaseCodeID,
@@ -542,6 +349,49 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
               GROUP BY bill.bill_code_id
           ) AS total
           ON bill_code.id = total.bill_code_id
+          WHERE bill_code.is_delete = 0
+          UNION ALL
+          # Bill with package
+          SELECT 
+          bill.id AS billID, bill_code.id as billCodeID,
+          NULL AS adjustmentCaseID, NULL AS adjustmentCaseCodeID,
+          bill_code.date, (package_content.quantity * bill.quantity - COALESCE(sr.quantity, 0)) * COALESCE(item_unit.conversion, 1) AS quantity,
+          package_content.item_id AS itemID,
+          IF(total.value = 0, 0, IF(pv.value = 0, 0, ((package_content.price - package_content.discount) / pv.value) * (bill.price - bill.discount) * (total.value + bill_code.service + bill_code.delivery - bill_code.discount) / (total.value * COALESCE(item_unit.conversion, 1)))) AS value
+          FROM bill
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          JOIN package_code ON bill.package_code_id = package_code.id
+          JOIN package_content ON package_code.id = package_content.package_code_id
+          JOIN item ON package_content.item_id = item.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          LEFT JOIN (
+          SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+          ) AS sr
+          ON sr.bill_id = bill.id
+          JOIN (
+          SELECT SUM((bill.price - bill.discount) * (bill.quantity - COALESCE(sra.quantity, 0))) AS value, bill.bill_code_id
+            FROM bill
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+          )  AS sra
+          ON bill.id = sra.bill_id
+            GROUP BY bill.bill_code_id
+          ) AS total
+          ON bill_code.id = total.bill_code_id
+          JOIN (
+          SELECT SUM(package_content.quantity * (package_content.price - package_content.discount)) AS value, package_content.package_code_id
+          FROM package_content
+          GROUP BY package_code_id
+          ) AS pv
+          ON package_code.id = pv.package_code_id
           WHERE bill_code.is_delete = 0
         ) AS a
         ORDER BY a.date ASC
@@ -601,6 +451,7 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
     const products = yield mongo_product_model_1.mongoProductModel.find({});
     const stockCards = yield app_1.prisma.$queryRawUnsafe(`
       SELECT * FROM (
+        # Good receipt
         SELECT good_receipt_code.created_at COLLATE utf8mb4_unicode_ci AS createdAt, good_receipt_code.date COLLATE utf8mb4_unicode_ci AS date,
         good_receipt_code.name COLLATE utf8mb4_unicode_ci AS document,
         supplier.name COLLATE utf8mb4_unicode_ci AS opponent,
@@ -622,6 +473,7 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
         WHERE good_receipt_code.is_delete= 0
         UNION ALL 
+        # Adjustment case
         SELECT adjustment_case_code.created_at COLLATE utf8mb4_unicode_ci, adjustment_case_code.date COLLATE utf8mb4_unicode_ci, 
         adjustment_case_code.name COLLATE utf8mb4_unicode_ci AS document,
         "Internal" COLLATE utf8mb4_unicode_ci AS opponent,
@@ -642,6 +494,7 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
         WHERE adjustment_case_code.is_delete= 0
         UNION ALL 
+        # Bill
         SELECT bill_code.created_at COLLATE utf8mb4_unicode_ci, bill_code.date COLLATE utf8mb4_unicode_ci, 
         bill_code.name COLLATE utf8mb4_unicode_ci AS document,
         COALESCE(customer.name, 'Retail customer') COLLATE utf8mb4_unicode_ci AS opponent,
@@ -662,7 +515,32 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         JOIN item ON bill.item_id = item.id
         LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
         WHERE bill_code.is_delete= 0
+        UNION ALL 
+        # Bill with package
+        SELECT bill_code.created_at COLLATE utf8mb4_unicode_ci, bill_code.date COLLATE utf8mb4_unicode_ci, 
+        bill_code.name COLLATE utf8mb4_unicode_ci AS document,
+        COALESCE(customer.name, 'Retail customer') COLLATE utf8mb4_unicode_ci AS opponent,
+        package_content.item_id AS itemID,
+        package_content.quantity * bill.quantity * -1  AS displayQuantity,
+        package_content.quantity * bill.quantity * COALESCE(item_unit.conversion, 1) * -1 AS quantity,
+        COALESCE(item_unit.unit, item.unit) COLLATE utf8mb4_unicode_ci AS unit,
+        bill.id AS billID, bill_code.id AS billCodeID,
+        NULL AS adjustmentCaseID, NULL AS adjustmentCaseCodeID,
+        NULL AS goodReceiptID, NULL AS goodReceiptCodeID,
+        NULL AS sales_return_id, NULL AS salesReturnCodeID,
+        bill_code.customer_id AS customerID,
+        NULL AS supplierID,
+        0 AS currentStock
+        FROM bill
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        LEFT JOIN customer ON bill_code.customer_id = customer.id
+        JOIN package_code ON bill.package_code_id = package_code.id
+        JOIN package_content ON package_content.package_code_id = package_code.id
+        JOIN item ON package_content.item_id = item.id
+        LEFT JOIN item_unit ON package_content.item_unit_id = item_unit.id
+        WHERE bill_code.is_delete= 0
         UNION ALL
+        # Sales return
         SELECT sales_return_code.created_at COLLATE utf8mb4_unicode_ci AS createdAt, sales_return_code.date COLLATE utf8mb4_unicode_ci,
         sales_return_code.name COLLATE utf8mb4_unicode_ci AS document,
         COALESCE(customer.name, 'Retail customer') AS opponent,
@@ -684,6 +562,33 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         LEFT JOIN customer ON bill_code.customer_id = customer.id
         JOIN item ON bill.item_id = item.id
         LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+        WHERE bill_code.is_delete= 0
+        AND sales_return_code.is_delete = 0
+        UNION ALL
+        # Sales return with package
+        SELECT sales_return_code.created_at COLLATE utf8mb4_unicode_ci AS createdAt, sales_return_code.date COLLATE utf8mb4_unicode_ci,
+        sales_return_code.name COLLATE utf8mb4_unicode_ci AS document,
+        COALESCE(customer.name, 'Retail customer') AS opponent,
+        package_content.item_id AS itemID,
+        package_content.quantity * sales_return.quantity AS quantity,
+        package_content.quantity * sales_return.quantity * COALESCE(item_unit.conversion, 1) AS quantity,
+        COALESCE(item_unit.unit, item.unit) COLLATE utf8mb4_unicode_ci AS unit,
+        bill.id AS billID, bill_code.id AS billCodeID,
+        NULL AS adjustmentCaseID, NULL AS adjustmentCaseCodeID,
+        NULL AS goodReceiptID, NULL AS goodReceiptCodeID,
+        sales_return.id AS salesReturnID, sales_return_code.id AS salesReturnCodeID,
+        bill_code.customer_id AS customerID,
+        NULL AS supplierID,
+        0 AS currentStock
+        FROM sales_return
+        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+        JOIN bill ON bill.id = sales_return.bill_id
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        LEFT JOIN customer ON bill_code.customer_id = customer.id
+        JOIN package_code ON bill.package_code_id = package_code.id
+        JOIN package_content ON package_content.package_code_id = package_code.id
+        JOIN item ON package_content.item_id = item.id
+        LEFT JOIN item_unit ON package_content.item_unit_id = item_unit.id
         WHERE bill_code.is_delete= 0
         AND sales_return_code.is_delete = 0
         ) a

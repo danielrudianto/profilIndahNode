@@ -293,10 +293,11 @@ SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void
     const id = parseInt(req.params.id.toString());
     const userID = req.body.userId;
     const result = yield bill_code_model_1.default.fetchByID(id);
+    console.log(result);
     if (!result) {
         return res.status(404).send(error_list_1.default["Not found"]);
     }
-    if (!result.is_delete) {
+    if (result.is_delete) {
         return res.status(404).send(error_list_1.default["Not found"]);
     }
     // Check if there is any sales return on this bill
@@ -312,31 +313,6 @@ SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void
     socket.create();
     bill_code_model_1.default.deleteByID(id, userID)
         .then((updateBill) => __awaiter(void 0, void 0, void 0, function* () {
-        const updateStockArray = [];
-        result.bill.forEach((x) => {
-            if (x.package_code != null) {
-                x.package_code.package_content.forEach((content) => {
-                    updateStockArray.push({
-                        item_id: content.item_id,
-                        quantity: (parseFloat(content.quantity.toString()) *
-                            parseFloat(x.quantity.toString()) *
-                            (content.item_unit == null
-                                ? 1
-                                : parseFloat(content.item_unit.conversion.toString()))).toFixed(4),
-                    });
-                });
-            }
-            else {
-                const quantity = parseFloat(x.quantity.toString()) *
-                    (x.item_unit == null
-                        ? 1
-                        : parseFloat(x.item_unit.conversion.toString()));
-                return {
-                    item_id: x.item_id,
-                    quantity: quantity.toFixed(4),
-                };
-            }
-        });
         yield queue_helper_1.queue.add("delete-sales-invoice", result);
         return res.status(201).send(updateBill);
     }))

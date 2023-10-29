@@ -103,9 +103,6 @@ const server = http.createServer(app);
 server.listen(5000, async () => {
   console.log("[server]: Server is running on port 5000");
 
-  // await ProductStockController.scheduleData();
-  // await ProductStockController.adjustDistibution();
-
   const url = "mongodb://localhost:27017/ProfilIndah";
   await mongoose.connect(url, {
     dbName: "ProfilIndah",

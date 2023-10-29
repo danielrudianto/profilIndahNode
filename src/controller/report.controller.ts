@@ -28,6 +28,7 @@ import { fetchMode } from "../interface/fetch.interface";
 import { mongoStockInModel } from "../mongo-model/mongo-stock-in.model";
 import ErrorList from "../assets/error_list";
 import moment from "moment";
+import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 
 var formatter = new Intl.NumberFormat("en-US", {
   style: "currency",
@@ -532,12 +533,18 @@ class ReportController {
               year: { $year: "$stockOut.date" },
             },
           },
-          {
-            $match: {
-              month: month,
-              year: year,
-            },
-          },
+          month == 0
+            ? {
+                $match: {
+                  year: year,
+                },
+              }
+            : {
+                $match: {
+                  month: month,
+                  year: year,
+                },
+              },
           {
             $group: {
               _id: "$companyID",
@@ -546,6 +553,26 @@ class ReportController {
               },
               totalCOGS: {
                 $sum: { $multiply: ["$stockOut.quantity", "$price"] },
+              },
+            },
+          },
+        ]),
+        mongoOverflowModel.aggregate([
+          {
+            $project: {
+              month: { $month: "date" },
+              year: { $year: "$date" },
+              value: "$value",
+              quantity: "$quantity",
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalValue: {
+                $sum: {
+                  $multiply: ["$value", "$quantity"],
+                },
               },
             },
           },

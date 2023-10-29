@@ -50,6 +50,7 @@ const fetch_interface_1 = require("../interface/fetch.interface");
 const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const moment_1 = __importDefault(require("moment"));
+const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
 var formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "IDR",
@@ -489,12 +490,18 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                     year: { $year: "$stockOut.date" },
                 },
             },
-            {
-                $match: {
-                    month: month,
-                    year: year,
+            month == 0
+                ? {
+                    $match: {
+                        year: year,
+                    },
+                }
+                : {
+                    $match: {
+                        month: month,
+                        year: year,
+                    },
                 },
-            },
             {
                 $group: {
                     _id: "$companyID",
@@ -503,6 +510,26 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                     },
                     totalCOGS: {
                         $sum: { $multiply: ["$stockOut.quantity", "$price"] },
+                    },
+                },
+            },
+        ]),
+        mongo_overflow_model_1.mongoOverflowModel.aggregate([
+            {
+                $project: {
+                    month: { $month: "date" },
+                    year: { $year: "$date" },
+                    value: "$value",
+                    quantity: "$quantity",
+                },
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalValue: {
+                        $sum: {
+                            $multiply: ["$value", "$quantity"],
+                        },
                     },
                 },
             },

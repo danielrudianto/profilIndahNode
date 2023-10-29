@@ -28,6 +28,7 @@ const workerOptions = {
         host: "localhost",
         port: 6379,
     },
+    concurrency: 1,
 };
 const url = "mongodb://127.0.0.1:27017";
 // Establish connection to database
@@ -184,7 +185,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             for (let i = 0; i < createAdjustmentEventItems.length; i++) {
                 const createAdjustmentEventItem = createAdjustmentEventItems[i];
                 const createAdjustmentEventItemID = createAdjustmentEventItem.item.id;
-                const createAdjustmentEventItemQuantity = createAdjustmentEventItem.quantity;
+                const createAdjustmentEventItemQuantity = parseFloat(createAdjustmentEventItem.quantity.toString());
                 const createAdjustmentEventItemConversion = createAdjustmentEventItem.item_unit == null
                     ? 1
                     : createAdjustmentEventItem.item_unit.conversion;
@@ -400,7 +401,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 const createGoodReceiptItem = createGoodReceiptItems[i];
                 console.log(createGoodReceiptItem);
                 const createGoodReceiptItemID = createGoodReceiptItem.item.id;
-                const createGoodReceiptItemQuantity = createGoodReceiptItem.quantity;
+                const createGoodReceiptItemQuantity = parseFloat(createGoodReceiptItem.quantity.toString());
                 const createGoodReceiptItemPrice = parseFloat(createGoodReceiptItem.price.toString());
                 const createGoodReceiptItemDiscount = parseFloat(createGoodReceiptItem.discount.toString());
                 const CreateGoodReceiptItemConversion = createGoodReceiptItem.item_unit == null
@@ -564,7 +565,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             }
             break;
         case "delete-purchase-invoice":
-            console.log(job.data);
             const deletePurchaseInvoiceItems = job.data.good_receipt;
             for (let i = 0; i < deletePurchaseInvoiceItems.length; i++) {
                 const deletePurchaseInvoiceGoodReceiptID = deletePurchaseInvoiceItems[i].id;
@@ -582,8 +582,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             deletePurchaseInvoiceItemQuantity *
                                 deletePurchaseInvoiceItemConversion;
                     const stockCardIndex = updateProduct.stockCard.findIndex((x) => x.goodReceiptID == deletePurchaseInvoiceGoodReceiptID);
-                    console.log(deletePurchaseInvoiceGoodReceiptID);
-                    console.log(stockCardIndex);
                     if (stockCardIndex != -1) {
                         updateProduct.stockCard.splice(stockCardIndex, 1);
                     }
@@ -633,8 +631,8 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             // Distribute discount to each item
             for (let i = 0; i < updatePurchaseInvoiceGoodReceipts.length; i++) {
                 const updatePurchaseInvoiceGoodReceipt = updatePurchaseInvoiceGoodReceipts[i];
-                const updatePurchaseInvoiceGoodReceiptPrice = updatePurchaseInvoiceGoodReceipt.price;
-                const updatePurchaseInvoiceGoodReceiptDiscount = updatePurchaseInvoiceGoodReceipt.discount;
+                const updatePurchaseInvoiceGoodReceiptPrice = parseFloat(updatePurchaseInvoiceGoodReceipt.price.toString());
+                const updatePurchaseInvoiceGoodReceiptDiscount = parseFloat(updatePurchaseInvoiceGoodReceipt.discount.toString());
                 const updatePurchaseInvoiceGoodReceiptUnit = updatePurchaseInvoiceGoodReceipt.item_unit == null
                     ? updatePurchaseInvoiceGoodReceipt.item.unit
                     : updatePurchaseInvoiceGoodReceipt.item_unit.unit;
@@ -707,16 +705,14 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 const createSalesReturnCustomer = createSalesReturnBill.bill_code.customer == null
                     ? "Retail customer"
                     : createSalesReturnBill.bill_code.customer.name;
-                const createSalesReturnItemQuantity = createSalesReturnItems[i].quantity;
+                const createSalesReturnItemQuantity = parseFloat(createSalesReturnItems[i].quantity.toString());
                 if (createSalesReturnBill.package_code != null) {
                     for (let n = 0; n < createSalesReturnBill.package_code.package_content.length; n++) {
                         const updateProduct = yield mongo_product_model_1.mongoProductModel.findOne({
                             itemID: createSalesReturnBill.package_code.package_content[n].item.id,
                         });
                         const createSalesReturnItem = createSalesReturnBill.package_code.package_content[n];
-                        let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity *
-                            createSalesReturnItem.quantity *
-                            createSalesReturnItem.item_unit ==
+                        let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity * createSalesReturnItem.item_unit ==
                             null
                             ? 1
                             : createSalesReturnItem.item_unit.conversion;
@@ -875,7 +871,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             }
             break;
         case "delete-sales-return":
-            console.log(job.data);
             const deleteSalesReturnItems = job.data.sales_return;
             for (let i = 0; i < deleteSalesReturnItems.length; i++) {
                 // We need to delete every stock card that has sales return id
@@ -890,7 +885,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             (deleteSalesReturnItem.bill.package_content[n].item_unit == null
                                 ? 1
                                 : parseFloat(deleteSalesReturnItem.bill.package_content[n].item_unit.conversion.toString())) *
-                            parseFloat(deleteSalesReturnItemQuantity.toString());
+                            deleteSalesReturnItemQuantity;
                         yield mongo_product_model_1.mongoProductModel.findOneAndUpdate({
                             itemID: deleteSalesReturnItemItemID,
                         }, {
@@ -899,39 +894,86 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                     salesReturnID: deleteSalesReturnItemID,
                                 },
                             },
-                            $set: {
-                                currentStock: {
-                                    $inc: deleteSalesReturnItemItemQuantity,
-                                },
+                            $inc: {
+                                currentStock: deleteSalesReturnItemItemQuantity * -1,
                             },
                         });
                         yield queue_helper_1.queue.add("rearange-stock-card", deleteSalesReturnItemID);
+                        const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.findOne({
+                            itemID: deleteSalesReturnItemItemID,
+                            stockOut: {
+                                $elemMatch: {
+                                    billID: deleteSalesReturnItem.bill.id,
+                                },
+                            },
+                        });
+                        if (!stockIn) {
+                            throw Error("Stock in not found");
+                        }
+                        const stockOutIndex = stockIn.stockOut.findIndex((stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id);
+                        if (stockOutIndex == -1) {
+                            throw Error("Stock out not found");
+                        }
+                        yield mongo_overflow_model_1.mongoOverflowModel.create({
+                            itemID: deleteSalesReturnItemItemID,
+                            quantity: deleteSalesReturnItemItemQuantity,
+                            date: new Date(),
+                            billID: deleteSalesReturnItem.bill.id,
+                            billCodeID: deleteSalesReturnItem.bill.bill_code.id,
+                            adjustmentCaseID: null,
+                            adjustmentCaseCodeID: null,
+                            value: stockIn.stockOut[stockOutIndex].value,
+                        });
+                        yield queue_helper_1.queue.add("check-overflow", deleteSalesReturnItemItemID);
                     }
                 }
-                else if (deleteSalesReturnItem.bill.item_id != null) {
+                else {
+                    console.log(deleteSalesReturnItem);
                     yield mongo_product_model_1.mongoProductModel.findOneAndUpdate({
-                        itemID: deleteSalesReturnItem.bill.item_id,
+                        itemID: deleteSalesReturnItem.bill.item.id,
                     }, {
                         $pull: {
                             stockCard: {
                                 salesReturnID: deleteSalesReturnItemID,
                             },
                         },
-                        $set: {
-                            currentStock: {
-                                $inc: deleteSalesReturnItemQuantity,
+                        $inc: {
+                            currentStock: deleteSalesReturnItemQuantity * -1,
+                        },
+                    });
+                    yield queue_helper_1.queue.add("rearange-stock-card", deleteSalesReturnItem.bill.item.id);
+                    const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.findOne({
+                        itemID: deleteSalesReturnItem.bill.item.id,
+                        stockOut: {
+                            $elemMatch: {
+                                billID: deleteSalesReturnItem.bill.id,
                             },
                         },
                     });
-                    yield queue_helper_1.queue.add("rearange-stock-card", deleteSalesReturnItemID);
+                    if (!stockIn) {
+                        throw Error("Stock in not found");
+                    }
+                    const stockOutIndex = stockIn.stockOut.findIndex((stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id);
+                    if (stockOutIndex == -1) {
+                        throw Error("Stock out not found");
+                    }
+                    yield mongo_overflow_model_1.mongoOverflowModel.create({
+                        itemID: deleteSalesReturnItem.bill.item.id,
+                        quantity: deleteSalesReturnItemQuantity,
+                        date: new Date(),
+                        billID: deleteSalesReturnItem.bill.id,
+                        billCodeID: deleteSalesReturnItem.bill.bill_code.id,
+                        adjustmentCaseID: null,
+                        adjustmentCaseCodeID: null,
+                        value: stockIn.stockOut[stockOutIndex].value,
+                    });
+                    yield queue_helper_1.queue.add("check-overflow", deleteSalesReturnItem.bill.item.id);
                 }
             }
             break;
         case "create-sales-invoice":
             const createSalesInvoiceID = job.data.id;
-            const createSalesInvoiceCreatedAt = `${job.data.created_at
-                .toString()
-                .replace(" ", "T")}+00:00`;
+            const createSalesInvoiceCreatedAt = job.data.created_at;
             const createSalesInvoiceDate = new Date(job.data.date);
             const createSalesInvoiceName = job.data.name;
             const createSalesInvoiceItems = job.data.bill;
@@ -1092,7 +1134,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             for (let i = 0; i < createSalesInvoiceInsertItems.length; i++) {
                 const createSalesInvoiceInsertItem = createSalesInvoiceInsertItems[i];
                 const createSalesInvoiceItemID = createSalesInvoiceInsertItem.itemID;
-                let createSalesInvoiceItemQuantity = createSalesInvoiceInsertItem.quantity;
+                let createSalesInvoiceItemQuantity = parseFloat(createSalesInvoiceInsertItem.quantity.toString());
                 while (createSalesInvoiceItemQuantity > 0) {
                     if (createSalesInvoiceItemQuantity == 0) {
                         break;
@@ -1115,7 +1157,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             createSalesInvoiceItemQuantity = 0;
                         }
                         else {
-                            stockIn.stockOut.unshift(createSalesInvoiceInsertItem);
+                            stockIn.stockOut.unshift(Object.assign(Object.assign({}, createSalesInvoiceInsertItem), { quantity: stockIn.residue }));
                             createSalesInvoiceItemQuantity =
                                 createSalesInvoiceItemQuantity - stockIn.residue;
                             stockIn.residue = 0;
@@ -1154,9 +1196,78 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         }
                         yield updateProduct.save();
                     }
+                    // Remove from stock out
+                    const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.find({
+                        itemID: deleteSalesInvoiceItems[i].item_id,
+                        stockOut: {
+                            $elemMatch: {
+                                billID: deleteSalesInvoiceItems[i].id,
+                                billCodeID: deleteSalesInvoiceID,
+                            },
+                        },
+                    });
+                    if (stockIn.length > 0) {
+                        for (let j = 0; j < stockIn.length; j++) {
+                            const stockInItem = stockIn[j];
+                            const stockOutIndex = stockInItem.stockOut.findIndex((item) => item.billID == deleteSalesInvoiceItems[i].id &&
+                                item.billCodeID == deleteSalesInvoiceID);
+                            if (stockOutIndex != -1) {
+                                stockInItem.stockOut.splice(stockOutIndex, 1);
+                                stockInItem.residue += quantity * conversion;
+                                yield stockInItem.save();
+                            }
+                        }
+                    }
                 }
                 else if (deleteSalesInvoiceItems[i].package_code_id != null) {
-                    throw new Error("Method not implemented yet");
+                    const quantity = parseFloat(deleteSalesInvoiceItems[i].quantity.toString());
+                    const packageContent = deleteSalesInvoiceItems[i].package_code
+                        .package_content;
+                    for (let n = 0; n < packageContent.length; n++) {
+                        const itemID = packageContent[n].item_id;
+                        const packageContentQuantity = packageContent[n].quantity *
+                            quantity *
+                            (packageContent[n].item_unit == null
+                                ? 1
+                                : parseFloat(packageContent[n].item_unit.conversion));
+                        const updateProduct = yield mongo_product_model_1.mongoProductModel.findOne({
+                            itemID: itemID,
+                        });
+                        if (updateProduct) {
+                            updateProduct.currentStock += packageContentQuantity;
+                            // Remove from stock card
+                            const stockCardIndex = updateProduct.stockCard.findIndex((item) => item.billID == deleteSalesInvoiceItems[i].id &&
+                                item.billCodeID == deleteSalesInvoiceID &&
+                                item.salesReturnCodeID == null &&
+                                item.salesReturnID == null);
+                            if (stockCardIndex != -1) {
+                                updateProduct.stockCard.splice(stockCardIndex, 1);
+                            }
+                            yield updateProduct.save();
+                        }
+                        // Remove from stock out
+                        const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.find({
+                            itemID: itemID,
+                            stockOut: {
+                                $elemMatch: {
+                                    billID: deleteSalesInvoiceItems[i].id,
+                                    billCodeID: deleteSalesInvoiceID,
+                                },
+                            },
+                        });
+                        if (stockIn.length > 0) {
+                            for (let j = 0; j < stockIn.length; j++) {
+                                const stockInItem = stockIn[j];
+                                const stockOutIndex = stockInItem.stockOut.findIndex((item) => item.billID == deleteSalesInvoiceItems[i].id &&
+                                    item.billCodeID == deleteSalesInvoiceID);
+                                if (stockOutIndex != -1) {
+                                    stockInItem.stockOut.splice(stockOutIndex, 1);
+                                    stockInItem.residue += packageContentQuantity;
+                                    yield stockInItem.save();
+                                }
+                            }
+                        }
+                    }
                 }
             }
             break;

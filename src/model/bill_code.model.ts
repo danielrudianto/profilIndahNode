@@ -145,6 +145,7 @@ class BillCodeModel {
         id: id,
       },
       select: {
+        id: true,
         name: true,
         date: true,
         discount: true,

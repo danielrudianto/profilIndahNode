@@ -328,11 +328,12 @@ class SalesInvoiceController {
     const userID = req.body.userId;
 
     const result = await BillCodeModel.fetchByID(id);
+    console.log(result);
     if (!result) {
       return res.status(404).send(ErrorList["Not found"]);
     }
 
-    if (!result.is_delete) {
+    if (result.is_delete) {
       return res.status(404).send(ErrorList["Not found"]);
     }
 
@@ -354,34 +355,6 @@ class SalesInvoiceController {
 
     BillCodeModel.deleteByID(id, userID)
       .then(async (updateBill) => {
-        const updateStockArray: any[] = [];
-        result.bill.forEach((x) => {
-          if (x.package_code != null) {
-            x.package_code.package_content.forEach((content) => {
-              updateStockArray.push({
-                item_id: content.item_id,
-                quantity: (
-                  parseFloat(content.quantity.toString()) *
-                  parseFloat(x.quantity.toString()) *
-                  (content.item_unit == null
-                    ? 1
-                    : parseFloat(content.item_unit.conversion.toString()))
-                ).toFixed(4),
-              });
-            });
-          } else {
-            const quantity =
-              parseFloat(x.quantity.toString()) *
-              (x.item_unit == null
-                ? 1
-                : parseFloat(x.item_unit!.conversion.toString()));
-            return {
-              item_id: x.item_id,
-              quantity: quantity.toFixed(4),
-            };
-          }
-        });
-
         await queue.add("delete-sales-invoice", result);
         return res.status(201).send(updateBill);
       })

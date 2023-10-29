@@ -250,7 +250,7 @@ class ProductStockController {
             const year = new Date(date).getFullYear();
 
             const documentStockCard = result.stockCard
-              .filter((x) => {
+              .filter((x: any) => {
                 const date = new Date(x.date);
                 return (
                   date.getDate() == day &&
@@ -266,7 +266,7 @@ class ProductStockController {
               });
 
             const inputStockCard = result.stockCard
-              .filter((x) => {
+              .filter((x: any) => {
                 return (
                   new Date(x.createdAt).getTime() >= startUTCDate.getTime() &&
                   new Date(x.createdAt).getTime() <= endUTCDate.getTime()
@@ -282,39 +282,37 @@ class ProductStockController {
             let documentStockCardStartStock =
               documentStockCard.length == 0
                 ? 0
-                : documentStockCard[documentStockCard.length - 1].currentStock;
+                : documentStockCard[0].currentStock;
             let inputStockCardStartStock =
-              inputStockCard.length == 0
-                ? 0
-                : inputStockCard[inputStockCard.length - 1].currentStock;
+              inputStockCard.length == 0 ? 0 : inputStockCard[0].currentStock;
 
             for (let i = 0; i < documentStockCard.length; i++) {
-              documentStockCard[i].currentStock =
-                documentStockCardStartStock + documentStockCard[i].quantity;
+              documentStockCard[i].currentStock = documentStockCardStartStock;
               documentStockCardStartStock += documentStockCard[i].quantity;
             }
 
             for (let i = 0; i < inputStockCard.length; i++) {
-              inputStockCard[i].currentStock =
-                inputStockCardStartStock + inputStockCard[i].quantity;
+              inputStockCard[i].currentStock = inputStockCardStartStock;
               inputStockCardStartStock += inputStockCard[i].quantity;
             }
 
             return res.status(200).send({
               document: {
-                mutation: documentStockCard.map((x) => {
-                  return {
-                    name: x.document,
-                    date: x.date,
-                    createdAt: x.createdAt,
-                    opponent: x.opponent,
-                    displayQuantity: x.displayQuantity,
-                    quantity: x.quantity,
-                    unit: x.unit,
-                    stock: x.currentStock,
-                    defaultUnit: result.unit,
-                  };
-                }),
+                mutation: documentStockCard
+                  .map((x) => {
+                    return {
+                      name: x.document,
+                      date: x.date,
+                      createdAt: x.createdAt,
+                      opponent: x.opponent,
+                      displayQuantity: x.displayQuantity,
+                      quantity: x.quantity,
+                      unit: x.unit,
+                      stock: x.currentStock,
+                      defaultUnit: result.unit,
+                    };
+                  })
+                  .reverse(),
                 totalInput: documentStockCard.reduce((a, b) => {
                   return a + (b.quantity > 0 ? b.quantity : 0);
                 }, 0),
@@ -322,21 +320,27 @@ class ProductStockController {
                   documentStockCard.reduce((a, b) => {
                     return a + (b.quantity < 0 ? b.quantity : 0);
                   }, 0) * -1,
+                initialStock:
+                  documentStockCard.length == 0
+                    ? 0
+                    : documentStockCard[0].currentStock,
               },
               input: {
-                mutation: inputStockCard.map((x) => {
-                  return {
-                    name: x.document,
-                    date: x.date,
-                    createdAt: x.createdAt,
-                    opponent: x.opponent,
-                    displayQuantity: x.displayQuantity,
-                    quantity: x.quantity,
-                    unit: x.unit,
-                    stock: x.currentStock,
-                    defaultUnit: result.unit,
-                  };
-                }),
+                mutation: inputStockCard
+                  .map((x) => {
+                    return {
+                      name: x.document,
+                      date: x.date,
+                      createdAt: x.createdAt,
+                      opponent: x.opponent,
+                      displayQuantity: x.displayQuantity,
+                      quantity: x.quantity,
+                      unit: x.unit,
+                      stock: x.currentStock,
+                      defaultUnit: result.unit,
+                    };
+                  })
+                  .reverse(),
                 totalInput: inputStockCard.reduce((a, b) => {
                   return a + (b.quantity > 0 ? b.quantity : 0);
                 }, 0),
@@ -344,6 +348,10 @@ class ProductStockController {
                   inputStockCard.reduce((a, b) => {
                     return a + (b.quantity < 0 ? b.quantity : 0);
                   }, 0) * -1,
+                initialStock:
+                  inputStockCard.length == 0
+                    ? 0
+                    : inputStockCard[0].currentStock,
               },
             });
           })
