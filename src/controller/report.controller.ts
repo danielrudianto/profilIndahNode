@@ -508,76 +508,82 @@ class ReportController {
     const month = parseInt(req.params.month);
     const report = parseInt(req.params.report);
 
-    const [bills, purchases, companies, [expenses, expenseType], cogs] =
-      await Promise.all([
-        BillCodeModel.fetchSum(month, year),
-        PurchaseInvoiceModel.calculateTotalPurchase(
-          month,
-          year,
-          CalculatePurchaseMode.Sum
-        ),
-        CompanyModel.fetch("", 0, 0, fetchMode.All),
-        ExpenseModel.fetchSum(month, year),
-        mongoStockInModel.aggregate([
-          {
-            $unwind: {
-              path: "$stockOut",
-            },
+    const [
+      bills,
+      purchases,
+      companies,
+      [expenses, expenseType],
+      cogs,
+      overflows,
+    ] = await Promise.all([
+      BillCodeModel.fetchSum(month, year),
+      PurchaseInvoiceModel.calculateTotalPurchase(
+        month,
+        year,
+        CalculatePurchaseMode.Sum
+      ),
+      CompanyModel.fetch("", 0, 0, fetchMode.All),
+      ExpenseModel.fetchSum(month, year),
+      mongoStockInModel.aggregate([
+        {
+          $unwind: {
+            path: "$stockOut",
           },
-          {
-            $project: {
-              companyID: "$companyID",
-              stockOut: "$stockOut",
-              price: "$price",
-              month: { $month: "$stockOut.date" },
-              year: { $year: "$stockOut.date" },
-            },
+        },
+        {
+          $project: {
+            companyID: "$companyID",
+            stockOut: "$stockOut",
+            price: "$price",
+            month: { $month: "$stockOut.date" },
+            year: { $year: "$stockOut.date" },
           },
-          month == 0
-            ? {
-                $match: {
-                  year: year,
-                },
-              }
-            : {
-                $match: {
-                  month: month,
-                  year: year,
-                },
+        },
+        month == 0
+          ? {
+              $match: {
+                year: year,
               },
-          {
-            $group: {
-              _id: "$companyID",
-              totalStockoutValue: {
-                $sum: { $multiply: ["$stockOut.quantity", "$stockOut.value"] },
-              },
-              totalCOGS: {
-                $sum: { $multiply: ["$stockOut.quantity", "$price"] },
+            }
+          : {
+              $match: {
+                month: month,
+                year: year,
               },
             },
-          },
-        ]),
-        mongoOverflowModel.aggregate([
-          {
-            $project: {
-              month: { $month: "date" },
-              year: { $year: "$date" },
-              value: "$value",
-              quantity: "$quantity",
+        {
+          $group: {
+            _id: "$companyID",
+            totalStockoutValue: {
+              $sum: { $multiply: ["$stockOut.quantity", "$stockOut.value"] },
+            },
+            totalCOGS: {
+              $sum: { $multiply: ["$stockOut.quantity", "$price"] },
             },
           },
-          {
-            $group: {
-              _id: null,
-              totalValue: {
-                $sum: {
-                  $multiply: ["$value", "$quantity"],
-                },
+        },
+      ]),
+      mongoOverflowModel.aggregate([
+        {
+          $project: {
+            month: { $month: "$date" },
+            year: { $year: "$date" },
+            value: "$value",
+            quantity: "$quantity",
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalValue: {
+              $sum: {
+                $multiply: ["$value", "$quantity"],
               },
             },
           },
-        ]),
-      ]);
+        },
+      ]),
+    ]);
 
     if (report == 0) {
       return res.status(200).send({
@@ -622,6 +628,7 @@ class ReportController {
             };
           }),
         cogs: cogs,
+        overflows: overflows.length == 0 ? 0 : overflows[0].totalValue,
       });
     } else {
       const [billAppendix, purchaseAppendix, expenseAppendix] =

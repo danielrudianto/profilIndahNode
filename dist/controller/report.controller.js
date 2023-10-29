@@ -470,7 +470,7 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const report = parseInt(req.params.report);
-    const [bills, purchases, companies, [expenses, expenseType], cogs] = yield Promise.all([
+    const [bills, purchases, companies, [expenses, expenseType], cogs, overflows,] = yield Promise.all([
         bill_code_model_1.default.fetchSum(month, year),
         purchase_invoice_model_1.default.calculateTotalPurchase(month, year, purchase_invoice_model_1.CalculatePurchaseMode.Sum),
         company_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All),
@@ -517,7 +517,7 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
         mongo_overflow_model_1.mongoOverflowModel.aggregate([
             {
                 $project: {
-                    month: { $month: "date" },
+                    month: { $month: "$date" },
                     year: { $year: "$date" },
                     value: "$value",
                     quantity: "$quantity",
@@ -577,6 +577,7 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                 };
             }),
             cogs: cogs,
+            overflows: overflows.length == 0 ? 0 : overflows[0].totalValue,
         });
     }
     else {
