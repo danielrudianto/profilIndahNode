@@ -523,6 +523,18 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                     quantity: "$quantity",
                 },
             },
+            month == 0
+                ? {
+                    $match: {
+                        year: year,
+                    },
+                }
+                : {
+                    $match: {
+                        month: month,
+                        year: year,
+                    },
+                },
             {
                 $group: {
                     _id: null,

@@ -572,6 +572,18 @@ class ReportController {
             quantity: "$quantity",
           },
         },
+        month == 0
+          ? {
+              $match: {
+                year: year,
+              },
+            }
+          : {
+              $match: {
+                month: month,
+                year: year,
+              },
+            },
         {
           $group: {
             _id: null,
