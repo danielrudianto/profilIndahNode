@@ -810,45 +810,103 @@ class ReportController {
       });
   };
 
+  /**
+   * Fetch sales item report
+   * Get output report (item quantity)
+   * @param req
+   * @param res
+   */
   static fetchSalesItemReport = (req: Request, res: Response) => {
     const brand = req.body.brand as number[];
     const type = req.body.type as number[];
-    const format = req.body.format;
     const month = req.body.month;
     const year = req.body.year;
     const group = req.body.group;
 
-    ItemModel.fetchValueByBrandType(brand, type, month, year)
-      .then((result) => {
-        StockCardHelper.createStockReport(
-          format,
-          group,
-          brand,
-          type,
-          result,
-          function (buffer: any) {
-            if (format == "xlsx") {
-              return res.status(200).send({
-                data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
-                  buffer
-                ).toString("base64")}`,
-              });
-            } else if (format == "PDF") {
-              return res.status(200).send({
-                data: `data:application/pdf;base64,${Buffer.from(
-                  buffer
-                ).toString("base64")}`,
-              });
-            }
-          },
-          function (error: any) {
-            return res.status(500).send(error);
-          }
-        );
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    ItemModel.fetchValueByBrandType(brand, type, month, year).then(
+      ([result, brands, types]) => {
+        switch (group) {
+          case "brand":
+            const brandResponse = brands.map((x) => {
+              return {
+                id: x.id,
+                name: x.name,
+                items: result
+                  .filter((y) => y.item_brand_id == x.id)
+                  .map((y) => {
+                    return {
+                      id: y.id,
+                      reference: y.reference,
+                      description: y.description,
+                      brand: y.item_brand_name,
+                      type: y.item_type_name,
+                      input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
+                      output:
+                        y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
+                    };
+                  }),
+              };
+            });
+
+            return res.status(200).send(brandResponse);
+          case "type":
+            const typeResponse = types.map((x) => {
+              return {
+                id: x.id,
+                name: x.name,
+                items: result
+                  .filter((y) => y.item_type_id == x.id)
+                  .map((y) => {
+                    return {
+                      id: y.id,
+                      reference: y.reference,
+                      description: y.description,
+                      brand: y.item_brand_name,
+                      type: y.item_type_name,
+                      input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
+                      output:
+                        y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
+                    };
+                  }),
+              };
+            });
+
+            return res.status(200).send(typeResponse);
+        }
+      }
+    );
+
+    // ItemModel.fetchValueByBrandType(brand, type, month, year)
+    //   .then((result) => {
+    // StockCardHelper.createStockReport(
+    //       format,
+    //       group,
+    //       brand,
+    //       type,
+    //       result,
+    //       function (buffer: any) {
+    //         if (format == "xlsx") {
+    //           return res.status(200).send({
+    //             data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(
+    //               buffer
+    //             ).toString("base64")}`,
+    //           });
+    //         } else if (format == "PDF") {
+    //           return res.status(200).send({
+    //             data: `data:application/pdf;base64,${Buffer.from(
+    //               buffer
+    //             ).toString("base64")}`,
+    //           });
+    //         }
+    //       },
+    //       function (error: any) {
+    //         return res.status(500).send(error);
+    //       }
+    //     );
+    //   })
+    //   .catch((error) => {
+    //     return res.status(500).send(error);
+    //   });
   };
 
   static fetchProductStockProblem = (req: Request, res: Response) => {
