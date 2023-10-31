@@ -102,15 +102,17 @@ class DraftBillController {
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
 
-    DraftBillModel.fetch(keyword, limit, offset, mode)!.then(
-      ([result, count]) => {
+    DraftBillModel.fetch(keyword, limit, offset, mode)!
+      .then(([result, count]) => {
         return res.status(200).send({
           data: result,
           count: count,
         });
-      }
-    );
-    throw new Error("Method not implemented.");
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching draft bills: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 
   /**

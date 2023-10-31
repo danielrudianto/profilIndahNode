@@ -601,14 +601,13 @@ class BillCodeModel {
   }
 
   static fetchSum(month: number = 0, year: number) {
-    if (month == 0) {
-      // Fetch annual sales
-      return prisma.$queryRawUnsafe<IReportBill[]>(`
+    return prisma.$queryRawUnsafe<IReportBill[]>(`
         SELECT SUM(value) AS value, SUM(discount) AS discount, 
         SUM(delivery) AS delivery, SUM(service) AS service
         FROM bill_code
         JOIN (
-          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * (bill.price - bill.discount)) AS value, bill_code_id
+          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * (bill.price - bill.discount)) AS value, 
+          bill_code_id
           FROM bill
           LEFT JOIN (
             SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id AS id
@@ -622,37 +621,11 @@ class BillCodeModel {
           GROUP BY bill.bill_code_id
         ) bills
         ON bill_code.id = bills.bill_code_id
-        AND YEAR(bill_code.date) = ${year}
+        WHERE YEAR(bill_code.date) = ${year}
+        ${month == 0 ? "" : `AND MONTH(bill_code.date) = ${month}`}
         AND bill_code.is_confirm = 1
         AND bill_code.is_delete = 0
       `);
-    } else {
-      // Fetch monthly sales
-      return prisma.$queryRawUnsafe<IReportBill[]>(`
-        SELECT SUM(value) AS value, SUM(discount) AS discount, 
-        SUM(delivery) AS delivery, SUM(service) AS service
-        FROM bill_code
-        JOIN (
-          SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * (bill.price - bill.discount)) AS value, bill_code_id
-          FROM bill
-          LEFT JOIN (
-            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id AS id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_delete = 0
-            AND sales_return_code.is_confirm = 1
-            GROUP BY sales_return.bill_id
-          ) returnTable
-          ON returnTable.id = bill.id
-          GROUP BY bill.bill_code_id
-        ) bills
-        ON bill_code.id = bills.bill_code_id
-        WHERE MONTH(bill_code.date) = ${month}
-        AND YEAR(bill_code.date) = ${year}
-        AND bill_code.is_confirm = 1
-        AND bill_code.is_delete = 0
-      `);
-    }
   }
 
   static fetchMoneyReceipt(formattedDate: string) {
