@@ -51,30 +51,9 @@ class GoodReceiptController {
           };
         }),
       })
-        .then((goodReceiptResult) => {
-          Promise.all([
-            ProductStockModel.updateStock(
-              goodReceiptResult.good_receipt.map((x) => {
-                const quantity =
-                  parseFloat(x.quantity.toString()) *
-                  (x.item_unit == null
-                    ? 1
-                    : parseFloat(x.item_unit.conversion.toString()));
-                return {
-                  item_id: x.item.id,
-                  quantity: quantity,
-                };
-              })
-            ),
-            queue.add("create-good-receipt", goodReceiptResult),
-          ])
-            .then(() => {
-              return res.status(201).send(goodReceiptResult);
-            })
-            .catch((error) => {
-              console.error(`[error]: Error on creating good receipt ${error}`);
-              return res.status(500).send(ErrorList["Internal server error"]);
-            });
+        .then(async (goodReceiptResult) => {
+          await queue.add("create-good-receipt", goodReceiptResult);
+          return res.status(201).send(goodReceiptResult);
         })
         .catch((error) => {
           console.error(`[error]: Error on fetching price ${error}`);
