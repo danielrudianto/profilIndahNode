@@ -729,11 +729,60 @@ class BillCodeModel {
     `);
   }
 
+  /**
+   * Calculate total sales for a month
+   * @param month
+   * @param year
+   * @param mode
+   * @returns
+   */
   static calculateTotalSales(month: number, year: number, mode: string) {
-    if (mode == "plain") {
-      return prisma.$transaction([
-        prisma.$queryRaw<any[]>`
-          SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, DAY(bill_code.date) AS day
+    switch (mode) {
+      case "plain":
+        return prisma.$transaction([
+          prisma.$queryRaw<any[]>`
+            SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, DAY(bill_code.date) AS day
+            FROM bill
+            JOIN bill_code ON bill.bill_code_id = bill_code.id
+            LEFT JOIN (
+              SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+              FROM sales_return
+              JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+              WHERE sales_return_code.is_confirm = 1
+              AND sales_return_code.is_delete = 0
+              GROUP BY sales_return.bill_id
+            ) salesReturn
+            ON bill.id = salesReturn.bill_id
+            WHERE bill_code.is_confirm = 1
+            AND bill_code.is_delete = 0
+            AND YEAR(bill_code.date) = ${year}
+            AND MONTH(bill_code.date) = ${month}
+            GROUP BY DAY(bill_code.date)
+          `,
+          prisma.$queryRaw<any[]>`
+            SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, customer.id AS customer_id, COALESCE(customer.name, "Retail customer") AS customer_name
+            FROM bill
+            JOIN bill_code ON bill.bill_code_id = bill_code.id
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            LEFT JOIN (
+              SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+              FROM sales_return
+              JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+              WHERE sales_return_code.is_confirm = 1
+              AND sales_return_code.is_delete = 0
+              GROUP BY sales_return.bill_id
+            ) salesReturn
+            ON bill.id = salesReturn.bill_id
+            WHERE bill_code.is_confirm = 1
+            AND bill_code.is_delete = 0
+            AND YEAR(bill_code.date) = ${year}
+            AND MONTH(bill_code.date) = ${month}
+            GROUP BY bill_code.customer_id
+          `,
+        ]);
+      case "customer":
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, customer.id AS customer_id, COALESCE(customer.name, "Retail customer") AS customer_name
           FROM bill
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           LEFT JOIN (
@@ -745,186 +794,182 @@ class BillCodeModel {
             GROUP BY sales_return.bill_id
           ) salesReturn
           ON bill.id = salesReturn.bill_id
-          WHERE bill_code.is_confirm = 1
-          AND bill_code.is_delete = 0
-          AND YEAR(bill_code.date) = ${year}
-          AND MONTH(bill_code.date) = ${month}
-          GROUP BY DAY(bill_code.date)
-        `,
-        prisma.$queryRaw<any[]>`
-          SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, customer.id AS customer_id, COALESCE(customer.name, "Retail customer") AS customer_name
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
           LEFT JOIN customer ON bill_code.customer_id = customer.id
-          LEFT JOIN (
-            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_confirm = 1
-            AND sales_return_code.is_delete = 0
-            GROUP BY sales_return.bill_id
-          ) salesReturn
-          ON bill.id = salesReturn.bill_id
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           AND YEAR(bill_code.date) = ${year}
           AND MONTH(bill_code.date) = ${month}
           GROUP BY bill_code.customer_id
-        `,
-      ]);
-    } else if (mode == "customer") {
-      return prisma.$queryRaw<any[]>`
-      SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, customer.id AS customer_id, COALESCE(customer.name, "Retail customer") AS customer_name
-      FROM bill
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      LEFT JOIN (
-        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-        FROM sales_return
-        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-        WHERE sales_return_code.is_confirm = 1
-        AND sales_return_code.is_delete = 0
-        GROUP BY sales_return.bill_id
-      ) salesReturn
-      ON bill.id = salesReturn.bill_id
-      LEFT JOIN customer ON bill_code.customer_id = customer.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${year}
-      AND MONTH(bill_code.date) = ${month}
-      GROUP BY bill_code.customer_id
-    `;
-    } else if (mode == "type") {
-      return prisma.$queryRaw<any[]>`
-      SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_type.name AS item_type_name
-      FROM bill
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      JOIN item ON bill.item_id = item.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      LEFT JOIN (
-        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-        FROM sales_return
-        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-        WHERE sales_return_code.is_confirm = 1
-        AND sales_return_code.is_delete = 0
-        GROUP BY sales_return.bill_id
-      ) salesReturn
-      ON bill.id = salesReturn.bill_id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${year}
-      AND MONTH(bill_code.date) = ${month}
-      GROUP BY item_type.id
-      `;
-    } else if (mode == "brand") {
-      return prisma.$queryRaw<any[]>`
-      SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_brand.name AS item_brand_name
-      FROM bill
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      JOIN item ON bill.item_id = item.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      LEFT JOIN (
-        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-        FROM sales_return
-        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-        WHERE sales_return_code.is_confirm = 1
-        AND sales_return_code.is_delete = 0
-        GROUP BY sales_return.bill_id
-      ) salesReturn
-      ON bill.id = salesReturn.bill_id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${year}
-      AND MONTH(bill_code.date) = ${month}
-      GROUP BY item_brand.id
-      `;
-    } else if (mode == "package") {
-      return prisma.$queryRaw<any[]>`
-        SELECT SUM(bill.quantity - coalesce(salesReturn.quantity, 0)) AS quantity, SUM((bill.quantity - coalesce(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, package_code_id, package_code.name, package_code.description
-        FROM bill
-        LEFT JOIN (
-          SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+        `;
+      case "type":
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_type.name AS item_type_name
+          FROM bill
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          JOIN item ON bill.item_id = item.id
+          JOIN item_type ON item.item_type_id = item_type.id
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
             FROM sales_return
-            JOIN sales_return_code 
-            ON sales_return.sales_return_code_id = sales_return_code.id
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
             WHERE sales_return_code.is_confirm = 1
             AND sales_return_code.is_delete = 0
             GROUP BY sales_return.bill_id
-        ) AS salesReturn
-        ON bill.id = salesReturn.bill_id
-        JOIN package_code ON bill.package_code_id = package_code.id
-        JOIN bill_code ON bill.bill_code_id = bill_code.id
-        WHERE bill_code.is_confirm = 1
-        AND bill_code.is_delete = 0 
-        AND YEAR(bill_code.date) = ${year}
-        AND MONTH(bill_code.date) = ${month}
-        group by bill.package_code_id
-        ORDER BY value DESC
-      `;
-    } else {
-      return prisma.$transaction([
-        prisma.$queryRaw<any[]>`
-      SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, customer.id AS customer_id, COALESCE(customer.name, "Retail customer") AS customer_name
-      FROM bill
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      LEFT JOIN (
-        SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-        FROM sales_return
-        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-        WHERE sales_return_code.is_confirm = 1
-        AND sales_return_code.is_delete = 0
-        GROUP BY sales_return.bill_id
-      ) salesReturn
-      ON bill.id = salesReturn.bill_id
-      LEFT JOIN customer ON bill_code.customer_id = customer.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${year}
-      AND MONTH(bill_code.date) = ${month}
-      GROUP BY bill_code.customer_id
-    `,
-        prisma.$queryRaw<any[]>`
-    SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_type.name AS item_type_name
-    FROM bill
-    JOIN bill_code ON bill.bill_code_id = bill_code.id
-    JOIN item ON bill.item_id = item.id
-    JOIN item_type ON item.item_type_id = item_type.id
-    LEFT JOIN (
-      SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-      FROM sales_return
-      JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-      WHERE sales_return_code.is_confirm = 1
-      AND sales_return_code.is_delete = 0
-      GROUP BY sales_return.bill_id
-    ) salesReturn
-    ON bill.id = salesReturn.bill_id
-    WHERE bill_code.is_confirm = 1
-    AND bill_code.is_delete = 0
-    AND YEAR(bill_code.date) = ${year}
-    AND MONTH(bill_code.date) = ${month}
-    GROUP BY item_type.id
-    `,
-        prisma.$queryRaw<any[]>`
-    SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_brand.name AS item_brand_name
-    FROM bill
-    JOIN bill_code ON bill.bill_code_id = bill_code.id
-    JOIN item ON bill.item_id = item.id
-    JOIN item_brand ON item.item_brand_id = item_brand.id
-    LEFT JOIN (
-      SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-      FROM sales_return
-      JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-      WHERE sales_return_code.is_confirm = 1
-      AND sales_return_code.is_delete = 0
-      GROUP BY sales_return.bill_id
-    ) salesReturn
-    ON bill.id = salesReturn.bill_id
-    WHERE bill_code.is_confirm = 1
-    AND bill_code.is_delete = 0
-    AND YEAR(bill_code.date) = ${year}
-    AND MONTH(bill_code.date) = ${month}
-    GROUP BY item_brand.id
-    `,
-      ]);
+          ) salesReturn
+          ON bill.id = salesReturn.bill_id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${year}
+          AND MONTH(bill_code.date) = ${month}
+          GROUP BY item_type.id
+        `;
+      case "brand":
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_brand.name AS item_brand_name
+          FROM bill
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          JOIN item ON bill.item_id = item.id
+          JOIN item_brand ON item.item_brand_id = item_brand.id
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_confirm = 1
+            AND sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+          ) salesReturn
+          ON bill.id = salesReturn.bill_id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${year}
+          AND MONTH(bill_code.date) = ${month}
+          GROUP BY item_brand.id
+        `;
+      case "package":
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM(bill.quantity - coalesce(salesReturn.quantity, 0)) AS quantity, SUM((bill.quantity - coalesce(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, package_code_id, package_code.name, package_code.description
+          FROM bill
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+              FROM sales_return
+              JOIN sales_return_code 
+              ON sales_return.sales_return_code_id = sales_return_code.id
+              WHERE sales_return_code.is_confirm = 1
+              AND sales_return_code.is_delete = 0
+              GROUP BY sales_return.bill_id
+          ) AS salesReturn
+          ON bill.id = salesReturn.bill_id
+          JOIN package_code ON bill.package_code_id = package_code.id
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0 
+          AND YEAR(bill_code.date) = ${year}
+          AND MONTH(bill_code.date) = ${month}
+          group by bill.package_code_id
+          ORDER BY value DESC
+        `;
+      default:
+        return prisma.$queryRawUnsafe<any[]>(`
+            SELECT bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name,
+            bill_code.name, pv.value, bill_code.discount, bill_code.service, bill_code.delivery
+            FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            JOIN (
+              SELECT (bill.quantity - COALESCE(sr.quantity, 0)) * (bill.price - bill.discount) AS value, 
+              bill.bill_code_id
+              FROM bill
+              LEFT JOIN (
+                SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+                FROM sales_return
+                JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+                WHERE sales_return_code.is_confirm = 1
+                AND sales_return_code.is_delete = 0
+                GROUP BY sales_return.bill_id
+              ) sr
+              ON bill.id = sr.bill_id
+              GROUP BY bill.bill_code_id
+            ) pv
+            ON bill_code.id = pv.bill_code_id
+            WHERE bill_code.is_delete = 0
+            AND YEAR(bill_code.date) = ${year}
+            AND MONTH(bill_code.date) = ${month}
+            ORDER BY bill_code.date ASC
+        `);
+        break;
+      // }
+      // if (mode == "plain") {
+      // } else if (mode == "customer") {
+      // } else if (mode == "type") {
+
+      // } else if (mode == "brand") {
+
+      // } else if (mode == "package") {
+
+      // } else {
+      //   return prisma.$transaction([
+      //     prisma.$queryRaw<any[]>`
+      //   SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, customer.id AS customer_id, COALESCE(customer.name, "Retail customer") AS customer_name
+      //   FROM bill
+      //   JOIN bill_code ON bill.bill_code_id = bill_code.id
+      //   LEFT JOIN (
+      //     SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+      //     FROM sales_return
+      //     JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+      //     WHERE sales_return_code.is_confirm = 1
+      //     AND sales_return_code.is_delete = 0
+      //     GROUP BY sales_return.bill_id
+      //   ) salesReturn
+      //   ON bill.id = salesReturn.bill_id
+      //   LEFT JOIN customer ON bill_code.customer_id = customer.id
+      //   WHERE bill_code.is_confirm = 1
+      //   AND bill_code.is_delete = 0
+      //   AND YEAR(bill_code.date) = ${year}
+      //   AND MONTH(bill_code.date) = ${month}
+      //   GROUP BY bill_code.customer_id
+      // `,
+      //     prisma.$queryRaw<any[]>`
+      // SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_type.name AS item_type_name
+      // FROM bill
+      // JOIN bill_code ON bill.bill_code_id = bill_code.id
+      // JOIN item ON bill.item_id = item.id
+      // JOIN item_type ON item.item_type_id = item_type.id
+      // LEFT JOIN (
+      //   SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+      //   FROM sales_return
+      //   JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+      //   WHERE sales_return_code.is_confirm = 1
+      //   AND sales_return_code.is_delete = 0
+      //   GROUP BY sales_return.bill_id
+      // ) salesReturn
+      // ON bill.id = salesReturn.bill_id
+      // WHERE bill_code.is_confirm = 1
+      // AND bill_code.is_delete = 0
+      // AND YEAR(bill_code.date) = ${year}
+      // AND MONTH(bill_code.date) = ${month}
+      // GROUP BY item_type.id
+      // `,
+      //     prisma.$queryRaw<any[]>`
+      // SELECT SUM(((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, item_brand.name AS item_brand_name
+      // FROM bill
+      // JOIN bill_code ON bill.bill_code_id = bill_code.id
+      // JOIN item ON bill.item_id = item.id
+      // JOIN item_brand ON item.item_brand_id = item_brand.id
+      // LEFT JOIN (
+      //   SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+      //   FROM sales_return
+      //   JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+      //   WHERE sales_return_code.is_confirm = 1
+      //   AND sales_return_code.is_delete = 0
+      //   GROUP BY sales_return.bill_id
+      // ) salesReturn
+      // ON bill.id = salesReturn.bill_id
+      // WHERE bill_code.is_confirm = 1
+      // AND bill_code.is_delete = 0
+      // AND YEAR(bill_code.date) = ${year}
+      // AND MONTH(bill_code.date) = ${month}
+      // GROUP BY item_brand.id
+      // `,
+      //   ]);
     }
   }
 

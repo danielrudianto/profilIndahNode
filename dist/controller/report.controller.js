@@ -36,59 +36,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
-const pdfmake_1 = __importDefault(require("pdfmake"));
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const expense_model_1 = __importDefault(require("../model/expense.model"));
 const purchase_invoice_model_1 = __importStar(require("../model/purchase-invoice.model"));
-const path_1 = __importDefault(require("path"));
-const exceljs_1 = __importDefault(require("exceljs"));
 const item_model_1 = require("../model/item.model");
 const company_model_1 = __importDefault(require("../model/company.model"));
-const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper"));
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const fetch_interface_1 = require("../interface/fetch.interface");
 const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const moment_1 = __importDefault(require("moment"));
 const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
-var formatter = new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "IDR",
-});
-var percentage_formatter = new Intl.NumberFormat("en-US", {
-    style: "percent",
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
-});
+const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 class ReportController {
 }
 _a = ReportController;
-ReportController.monthNames = [
-    "Januari",
-    "Februari",
-    "Maret",
-    "April",
-    "Mei",
-    "Juni",
-    "Juli",
-    "Agustus",
-    "September",
-    "Oktober",
-    "November",
-    "Desember",
-];
-ReportController.fontDescriptors = {
-    Roboto: {
-        normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-        bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-        italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-        bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
-    },
-    Cairo: {
-        normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Cairo-Regular.ttf"),
-        bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Cairo-Bold.ttf"),
-    },
-};
 /**
  * Fetch money receipt
  * @param req
@@ -299,83 +260,15 @@ ReportController.fetchSalesReport = (req, res) => {
                 break;
             case "package":
                 return res.status(200).send(result);
-                break;
             case "download":
-                const workbook = new exceljs_1.default.Workbook();
-                // Setting up workbook properties
-                workbook.creator = "Toko Profil Indah";
-                workbook.created = new Date();
-                workbook.modified = new Date();
-                workbook.lastModifiedBy = "Toko Profil Indah";
-                const customerSheet = workbook.addWorksheet("Customers", {
-                    state: "visible",
-                });
-                customerSheet.addRow([
-                    "Name",
-                    "Value",
-                    "Discount",
-                    "Delivery",
-                    "Service",
-                ]);
-                result[0].forEach((data) => {
-                    customerSheet.addRow([
-                        data.customer_name,
-                        parseFloat(data.value.toString()),
-                        parseFloat(data.discount.toString()),
-                        parseFloat(data.delivery.toString()),
-                        parseFloat(data.service.toString()),
-                    ]);
-                });
-                customerSheet.getColumn(2).numFmt = "#,###.00";
-                customerSheet.getColumn(3).numFmt = "#,###.00";
-                customerSheet.getColumn(4).numFmt = "#,###.00";
-                customerSheet.getColumn(5).numFmt = "#,###.00";
-                customerSheet.getColumn(1).width = 18;
-                customerSheet.getColumn(2).width = 25;
-                customerSheet.getColumn(3).width = 25;
-                customerSheet.getColumn(4).width = 25;
-                customerSheet.getColumn(5).width = 25;
-                const typeSheet = workbook.addWorksheet("Types", {
-                    state: "visible",
-                });
-                typeSheet.addRow(["Name", "Value"]);
-                result[1].forEach((data) => {
-                    typeSheet.addRow([
-                        data.item_type_name,
-                        parseFloat(data.value.toString()),
-                    ]);
-                });
-                typeSheet.getColumn(2).numFmt = "#,###.00";
-                typeSheet.getColumn(1).width = 18;
-                typeSheet.getColumn(2).width = 25;
-                const brandSheet = workbook.addWorksheet("Brands", {
-                    state: "visible",
-                });
-                brandSheet.addRow(["Name", "Value"]);
-                result[2].forEach((data) => {
-                    brandSheet.addRow([
-                        data.item_brand_name,
-                        parseFloat(data.value.toString()),
-                    ]);
-                });
-                brandSheet.getColumn(2).numFmt = "#,###.00";
-                brandSheet.getColumn(1).width = 18;
-                brandSheet.getColumn(2).width = 25;
-                workbook.xlsx
-                    .writeBuffer()
-                    .then((buffer) => {
-                    return res.status(200).send({
-                        data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
-                    });
-                })
-                    .catch((error) => {
-                    return res.status(500).send(error);
-                });
-                break;
+                return res.status(200).send(result.map((x) => {
+                    return Object.assign(Object.assign({}, x), { value: parseFloat(x.value.toString()), discount: parseFloat(x.discount.toString()), delivery: parseFloat(x.delivery.toString()), service: parseFloat(x.service.toString()) });
+                }));
         }
     })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetching sales report ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 /**
@@ -466,6 +359,12 @@ ReportController.downloadInventoryReport = (req, res) => {
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
+/**
+ * Fetch profit and loss report data
+ * @param req
+ * @param res
+ * @returns
+ */
 ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
@@ -730,183 +629,142 @@ ReportController.fetchQuickStats = (req, res) => {
         return res.status(500).send(error);
     });
 };
+/**
+ * Fetch sales item report
+ * Get output report (item quantity)
+ * @param req
+ * @param res
+ */
 ReportController.fetchSalesItemReport = (req, res) => {
     const brand = req.body.brand;
     const type = req.body.type;
-    const format = req.body.format;
     const month = req.body.month;
     const year = req.body.year;
     const group = req.body.group;
-    item_model_1.ItemModel.fetchValueByBrandType(brand, type, month, year)
-        .then((result) => {
-        stock_card_helper_1.default.createStockReport(format, group, brand, type, result, function (buffer) {
-            if (format == "xlsx") {
-                return res.status(200).send({
-                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
+    item_model_1.ItemModel.fetchValueByBrandType(brand, type, month, year).then(([result, brands, types]) => __awaiter(void 0, void 0, void 0, function* () {
+        const stocks = yield mongo_product_model_1.mongoProductModel.aggregate([
+            {
+                $match: {
+                    "stockCard.date": {
+                        $lt: new Date(`2023-${month}-01T00:00:00.000Z`),
+                    },
+                    itemTypeID: {
+                        $in: type,
+                    },
+                    itemBrandID: {
+                        $in: brand,
+                    },
+                },
+            },
+            {
+                $unwind: "$stockCard",
+            },
+            {
+                $match: {
+                    "stockCard.date": {
+                        $lt: new Date(`2023-${month}-01T00:00:00.000Z`),
+                    },
+                },
+            },
+            {
+                $sort: {
+                    "stockCard.date": -1,
+                },
+            },
+            {
+                $group: {
+                    _id: "$_id",
+                    product: { $first: "$$ROOT" },
+                },
+            },
+            {
+                $replaceRoot: {
+                    newRoot: "$product",
+                },
+            },
+        ]);
+        switch (group) {
+            case "brand":
+                const brandResponse = brands.map((x) => {
+                    return {
+                        id: x.id,
+                        name: x.name,
+                        items: result
+                            .filter((y) => y.item_brand_id == x.id)
+                            .map((y) => {
+                            const stockIndex = stocks.findIndex((z) => z.itemID == y.id);
+                            return {
+                                id: y.id,
+                                reference: y.reference,
+                                description: y.description,
+                                unit: y.unit,
+                                brand: y.item_brand_name,
+                                type: y.item_type_name,
+                                input: parseFloat(y.adjustmentQuantityPlus.toString()) +
+                                    parseFloat(y.goodReceiptQuantity.toString()),
+                                output: y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
+                                initialStock: stockIndex == -1
+                                    ? 0
+                                    : stocks[stockIndex].stockCard.currentStock,
+                            };
+                        }),
+                    };
                 });
-            }
-            else if (format == "PDF") {
-                return res.status(200).send({
-                    data: `data:application/pdf;base64,${Buffer.from(buffer).toString("base64")}`,
+                return res.status(200).send(brandResponse);
+            case "type":
+                const typeResponse = types.map((x) => {
+                    return {
+                        id: x.id,
+                        name: x.name,
+                        items: result
+                            .filter((y) => y.item_type_id == x.id)
+                            .map((y) => {
+                            const stockIndex = stocks.findIndex((z) => z.itemID == y.id);
+                            return {
+                                id: y.id,
+                                reference: y.reference,
+                                description: y.description,
+                                unit: y.unit,
+                                brand: y.item_brand_name,
+                                type: y.item_type_name,
+                                input: parseFloat(y.adjustmentQuantityPlus.toString()) +
+                                    parseFloat(y.goodReceiptQuantity.toString()),
+                                output: y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
+                                initialStock: stockIndex == -1
+                                    ? 0
+                                    : stocks[stockIndex].stockCard.currentStock,
+                            };
+                        }),
+                    };
                 });
-            }
-        }, function (error) {
-            return res.status(500).send(error);
-        });
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+                return res.status(200).send(typeResponse);
+        }
+    }));
 };
 ReportController.fetchProductStockProblem = (req, res) => {
-    const mode = req.body.mode;
-    product_stock_model_1.default.fetchProblematic().then((result) => {
-        if (mode == "excel") {
-            const rows = [["No", "Referensi", "Deskripsi", "Stock"]];
-            result.forEach((data, index) => {
-                rows.push([
-                    index + 1,
-                    data.item.reference,
-                    data.item.description,
-                    parseFloat(data.stock.toString()),
-                ]);
-            });
-            // Create an excel file
-            const workbook = new exceljs_1.default.Workbook();
-            workbook.creator = "Toko Profil Indah";
-            workbook.created = new Date();
-            workbook.modified = new Date();
-            workbook.lastModifiedBy = "Toko Profil Indah";
-            const sheet = workbook.addWorksheet("Stock bermasalah", {
-                state: "visible",
-                views: [
-                    {
-                        state: "frozen",
-                        xSplit: 9,
-                        ySplit: 1,
-                    },
-                ],
-            });
-            sheet.state = "visible";
-            rows.forEach((data) => {
-                sheet.addRow(data);
-            });
-            sheet.columns = [
-                { header: "No", key: "no", width: 5 },
-                { header: "Referensi", key: "reference", width: 20 },
-                { header: "Deskripsi", key: "description", width: 50 },
-                { header: "Stock", key: "stock", width: 10 },
-            ];
-            sheet.getRow(1).font = { bold: true };
-            sheet.getRow(1).alignment = { horizontal: "center" };
-            sheet.getRow(1).height = 20;
-            workbook.xlsx
-                .writeBuffer()
-                .then((buffer) => {
-                return res.status(200).send({
-                    data: `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${Buffer.from(buffer).toString("base64")}`,
-                });
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
-        }
-        else {
-            // Create PDF
-            const content = [];
-            content.push({
-                text: "Laporan Stok Bermasalah",
-                bold: true,
-                fontSize: 16,
-                font: "Roboto",
-                alignment: "center",
-                margin: [0, 0, 0, 15],
-            });
-            const table = [];
-            table.push([
-                {
-                    text: "No",
-                    bold: true,
-                    alignment: "center",
-                },
-                {
-                    text: "Referensi",
-                    bold: true,
-                    alignment: "center",
-                },
-                {
-                    text: "Deskripsi",
-                    bold: true,
-                    alignment: "center",
-                },
-                {
-                    text: "Stock",
-                    bold: true,
-                    alignment: "center",
-                },
-            ]);
-            if (result.length > 0) {
-                result.forEach((item, index) => {
-                    table.push([
-                        {
-                            text: index + 1,
-                            bold: false,
-                            alignment: "center",
-                        },
-                        {
-                            text: item.item.reference,
-                            bold: false,
-                            alignment: "left",
-                        },
-                        {
-                            text: item.item.description,
-                            bold: false,
-                            alignment: "left",
-                        },
-                        {
-                            text: `${item.stock} ${item.item.unit}`,
-                            bold: false,
-                            alignment: "left",
-                        },
-                    ]);
-                });
-                content.push({
-                    layout: "lightHorizontalLines",
-                    table: {
-                        headerRows: 1,
-                        widths: ["auto", "auto", "*", "auto"],
-                        body: table,
-                    },
-                    margin: [0, 0, 0, 15],
-                    pageBreak: "after",
-                });
-                let documentDefinition = {
-                    pageSize: "A4",
-                    content: content,
-                };
-                const fontDescriptors = {
-                    Roboto: {
-                        normal: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Regular.ttf"),
-                        bold: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Medium.ttf"),
-                        italics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-Italic.ttf"),
-                        bolditalics: path_1.default.join(__dirname, "..", "assets", "/fonts/Roboto-MediumItalic.ttf"),
-                    },
-                };
-                const printer = new pdfmake_1.default(fontDescriptors);
-                const pdfDocument = printer.createPdfKitDocument(documentDefinition);
-                let chunks = [];
-                pdfDocument.on("data", function (chunk) {
-                    chunks.push(chunk);
-                });
-                pdfDocument.on("end", function () {
-                    var doc = Buffer.concat(chunks);
-                    return res.status(200).send({
-                        data: `data:application/pdf;base64,${doc.toString("base64")}`,
-                    });
-                });
-                pdfDocument.end();
-            }
-        }
+    Promise.all([
+        mongo_product_model_1.mongoProductModel
+            .find({
+            currentStock: {
+                $lt: 0,
+            },
+        })
+            .sort({ reference: 1 }),
+    ])
+        .then((result) => {
+        return res.status(200).send(result[0].map((x) => {
+            return {
+                id: x.itemID,
+                reference: x.reference,
+                description: x.description,
+                stock: x.currentStock,
+                unit: x.unit,
+            };
+        }));
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching problematic stock data: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 /**
@@ -914,17 +772,48 @@ ReportController.fetchProductStockProblem = (req, res) => {
  * @param req
  * @param res
  */
-ReportController.fetchExpenseReport = (req, res) => {
+ReportController.fetchExpenseReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const month = parseInt(req.params.month);
     const year = parseInt(req.params.year);
-    expense_model_1.default.fetchReport(month, year)
-        .then((result) => {
-        return res.status(200).send(result);
-    })
-        .catch((error) => {
-        console.error(`[error]: Error on fetching expense report ${error}`);
-        return res.status(500).send(error_list_1.default["Internal server error"]);
+    const [expenses, expenseTypes, companies] = yield expense_model_1.default.fetchReport(month, year);
+    const typeResponse = expenseTypes
+        .filter((x) => x.parent_id == null)
+        .map((x) => {
+        return {
+            name: x.name,
+            id: x.id,
+            children: expenseTypes
+                .filter((y) => y.parent_id == x.id)
+                .map((y) => {
+                return {
+                    name: y.name,
+                    value: expenses
+                        .filter((z) => z.expense_type_id == y.id)
+                        .reduce((a, b) => {
+                        return a + parseFloat(b.value.toString());
+                    }, 0),
+                };
+            }),
+            value: expenses
+                .filter((y) => y.id == x.id)
+                .reduce((a, b) => {
+                return a + parseFloat(b.value.toString());
+            }, 0),
+        };
     });
-};
+    return res.status(200).send({
+        companies: companies.map((company) => {
+            return {
+                name: company.name,
+                value: expenses
+                    .filter((x) => x.company_id == company.id)
+                    .reduce((a, b) => {
+                    return a + parseFloat(b.value.toString());
+                }, 0),
+            };
+        }),
+        types: typeResponse,
+    });
+});
 exports.default = ReportController;
 //# sourceMappingURL=report.controller.js.map

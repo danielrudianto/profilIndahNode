@@ -784,7 +784,10 @@ class PurchaseInvoiceModel {
      */
     static fetchAppendix(month, year, date = null) {
         return prisma.$queryRawUnsafe(`
-      SELECT purchase_invoice.name AS purchase_invoice_name, purchase_invoice.date, (goodReceipt.value - purchase_invoice.discount) AS value, supplier.name AS supplier_name, company.name AS company_name
+      SELECT purchase_invoice.name AS purchase_invoice_name, 
+      purchase_invoice.date, goodReceipt.value AS value,
+      purchase_invoice.discount discount, supplier.name AS supplier_name, 
+      company.name AS company_name
       FROM purchase_invoice
       JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
       JOIN (
@@ -802,6 +805,7 @@ class PurchaseInvoiceModel {
       AND YEAR(purchase_invoice.date) = ${year}
       ${month == 0 ? "" : `AND MONTH(purchase_invoice.date) = ${month}`}
       ${date == null ? "" : `AND DAY(purchase_invoice.date) = ${date}`}
+      ORDER BY purchase_invoice.date ASC
     `);
     }
     /**

@@ -270,105 +270,48 @@ class ExpenseModel {
     });
   }
 
+  /**
+   * Fetch appendix for report
+   * @param month
+   * @param year
+   * @returns
+   */
   static fetchAppendix(month: number, year: number) {
-    if (month == 0) {
-      const start_date = new Date(year, 0, 1);
-      const end_date = new Date(year, 11, 31);
-      return prisma.expense.findMany({
-        where: {
-          AND: [
-            {
-              date: {
-                gte: start_date,
-              },
-            },
-            {
-              date: {
-                lte: end_date,
-              },
-            },
-          ],
-          is_delete: false,
-        },
-        select: {
-          value: true,
-          description: true,
-          company: {
-            select: {
-              name: true,
-            },
-          },
-          expense_type: {
-            select: {
-              name: true,
-              expense_type: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-          date: true,
-        },
-        orderBy: {
-          date: "asc",
-        },
-      });
-    } else {
-      const start_date = new Date(year, month - 1, 1);
-      const end_date = new Date(year, month, 1);
-      return prisma.expense.findMany({
-        where: {
-          AND: [
-            {
-              date: {
-                gte: start_date,
-              },
-            },
-            {
-              date: {
-                lt: end_date,
-              },
-            },
-          ],
-          is_delete: false,
-        },
-        select: {
-          value: true,
-          description: true,
-          company: {
-            select: {
-              name: true,
-            },
-          },
-          expense_type: {
-            select: {
-              name: true,
-              expense_type: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-          date: true,
-        },
-        orderBy: {
-          date: "asc",
-        },
-      });
-    }
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT expense_type.name, expense.value, expense_type.description,
+      company.name AS company_name, expense.date
+      FROM expense
+      JOIN expense_type ON expense_type.id = expense.expense_type_id
+      JOIN company ON expense.company_id = company.id
+      WHERE YEAR(expense.date) = ${year}
+      ${month == 0 ? "" : `AND MONTH(expense.date) = ${month}`}
+      AND expense.is_delete = 0
+      ORDER BY expense.date ASC
+    `);
   }
 
+  /**
+   * Fetch report
+   * @param month
+   * @param year
+   * @returns
+   */
   static fetchReport(month: number, year: number) {
     return prisma.$transaction([
-      prisma.expense.groupBy({
-        by: ["expense_type_id"],
-        _sum: {
-          value: true,
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM(expense.value) AS value, expense.expense_type_id,
+         expense.company_id
+        FROM expense
+        WHERE YEAR(expense.date) = ${year}
+        ${month == 0 ? "" : `AND MONTH(expense.date) = ${month}`}
+        GROUP BY expense.company_id, expense.expense_type_id
+      `),
+      prisma.expense_type.findMany({
+        where: {
+          is_delete: false,
         },
       }),
-      prisma.expense_type.findMany({}),
+      prisma.company.findMany({}),
     ]);
   }
 }

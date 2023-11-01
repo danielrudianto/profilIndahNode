@@ -97,13 +97,17 @@ DraftBillController.fetch = (req, res) => {
     const keyword = req.query.keyword == undefined
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
-    draft_bill_model_1.DraftBillModel.fetch(keyword, limit, offset, mode).then(([result, count]) => {
+    draft_bill_model_1.DraftBillModel.fetch(keyword, limit, offset, mode)
+        .then(([result, count]) => {
         return res.status(200).send({
             data: result,
             count: count,
         });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching draft bills: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
-    throw new Error("Method not implemented.");
 };
 /**
  * Confirm bill and create new bill
