@@ -4,7 +4,6 @@ import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
-import ProductStockModel from "../model/product-stock.model";
 import SalesReturnModel from "../model/sales_return.model";
 
 class SalesReturnController {
@@ -65,32 +64,6 @@ class SalesReturnController {
           };
         }),
       }).then(async (result) => {
-        const updateArray: any[] = [];
-        result.sales_return.forEach((x) => {
-          if (x.bill.item != null) {
-            updateArray.push({
-              item_id: x.bill.item.id,
-              quantity:
-                parseFloat(x.quantity.toString()) *
-                (x.bill.item_unit == null
-                  ? 1
-                  : parseFloat(x.bill.item_unit.conversion.toString())),
-            });
-          } else if (x.bill.package_code != null) {
-            x.bill.package_code.package_content.forEach((y) => {
-              updateArray.push({
-                item_id: y.item.id,
-                quantity:
-                  parseFloat(x.quantity.toString()) *
-                  parseFloat(y.quantity.toString()) *
-                  (y.item_unit == null
-                    ? 1
-                    : parseFloat(y.item_unit.conversion.toString())),
-              });
-            });
-          }
-        });
-
         await queue.add("create-sales-return", result);
         return res.status(201).send(result);
       });

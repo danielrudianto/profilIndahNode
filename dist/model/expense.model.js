@@ -162,6 +162,23 @@ class ExpenseModel {
      * @returns
      */
     static fetchSum(month, year) {
+        console.log(`
+    SELECT expense_type.id, expense_type.name, 
+    expense_type.parent_id, COALESCE(exp.value, 0) AS value, 
+    company_id
+    FROM expense_type
+    LEFT JOIN (
+      SELECT SUM(expense.value) AS value, expense_type_id, company_id
+        FROM expense
+        WHERE expense.is_delete = 0
+        AND YEAR(expense.date) = ${year}
+        ${month == 0 ? "" : `AND MONTH(expense.date) = ${month}`}
+        GROUP BY expense_type_id, company_id
+    ) AS exp
+    ON expense_type.id = exp.expense_type_id
+    JOIN company ON company.id = exp.company_id
+    ORDER BY company_id ASC, parent_id ASC
+  `);
         return prisma.$transaction([
             prisma.$queryRawUnsafe(`
       SELECT expense_type.id, expense_type.name, 

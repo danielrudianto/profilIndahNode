@@ -44,12 +44,13 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
     const name = job.name;
     switch (name) {
         case "insert-product":
+            console.log(job.data);
             const insertProductRreference = job.data.reference;
             const insertProductDescription = job.data.description;
             const insertProductID = job.data.id;
             const insertProductUnit = job.data.unit;
-            const insertProductBrand = job.data.item_brand.name;
-            const insertProductType = job.data.item_type.name;
+            const insertProductBrand = job.data.itemBrand;
+            const insertProductType = job.data.itemType;
             const insertProductItemTypeID = job.data.itemTypeID;
             const insertProductItemBrandID = job.data.itemBrandID;
             yield mongo_product_model_1.mongoProductModel.create({
@@ -70,7 +71,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                     brandID: insertProductItemBrandID,
                     type: insertProductType,
                     typeID: insertProductItemTypeID,
-                    is_active: true,
+                    is_active: 1,
                 },
             ], {
                 primaryKey: "id",
@@ -712,10 +713,10 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             itemID: createSalesReturnBill.package_code.package_content[n].item.id,
                         });
                         const createSalesReturnItem = createSalesReturnBill.package_code.package_content[n];
-                        let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity * createSalesReturnItem.item_unit ==
-                            null
-                            ? 1
-                            : createSalesReturnItem.item_unit.conversion;
+                        let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity *
+                            (createSalesReturnItem.item_unit == null
+                                ? 1
+                                : createSalesReturnItem.item_unit.conversion);
                         if (!updateProduct) {
                             throw Error("Product not found");
                         }
@@ -743,6 +744,9 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         yield updateProduct.save();
                         yield queue_helper_1.queue.add("rearange-stock-card", updateProduct.itemID);
                         while (createSalesReturnItemQuantityEdit > 0) {
+                            if (createSalesReturnItemQuantityEdit == 0) {
+                                break;
+                            }
                             const stockIns = yield mongo_stock_in_model_1.mongoStockInModel
                                 .findOne({
                                 stockOut: {
@@ -825,46 +829,66 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         if (createSalesReturnItemQuantityEdit == 0) {
                             break;
                         }
-                        const stockIns = yield mongo_stock_in_model_1.mongoStockInModel
-                            .findOne({
-                            stockOut: {
-                                $elemMatch: {
-                                    billID: createSalesReturnBillID,
-                                    quantity: {
-                                        $gt: 0,
-                                    },
-                                },
-                            },
-                        })
-                            .sort({
-                            date: -1,
+                        // First, fetch the overflow stock in
+                        const overflow = yield mongo_overflow_model_1.mongoOverflowModel.findOne({
+                            itemID: createSalesReturnBill.item.id,
+                            billID: createSalesReturnBillID,
                         });
-                        if (!stockIns) {
-                            throw Error("Stock in not found");
-                        }
-                        console.log(`[info]: Stock in found.`);
-                        const stockOutIndex = stockIns.stockOut.findIndex((stockOut) => stockOut.billID == createSalesReturnBillID);
-                        if (stockOutIndex == -1) {
-                            throw Error("Stock out not found");
-                        }
-                        console.log(`[info]: Stock out found.`);
-                        if (createSalesReturnItemQuantityEdit >
-                            stockIns.stockOut[stockOutIndex].quantity) {
-                            console.log(`[info]: Quantity is greater than stock out quantity.`);
-                            stockIns.stockOut[stockOutIndex].quantity = 0;
-                            stockIns.residue += createSalesReturnItemQuantityEdit;
-                            createSalesReturnItemQuantityEdit -=
-                                stockIns.stockOut[stockOutIndex].quantity;
-                            yield stockIns.save();
+                        if (overflow) {
+                            if (overflow.quantity > createSalesReturnItemQuantityEdit) {
+                                overflow.quantity -= createSalesReturnItemQuantityEdit;
+                                createSalesReturnItemQuantityEdit = 0;
+                                yield overflow.save();
+                            }
+                            else {
+                                createSalesReturnItemQuantityEdit -= overflow.quantity;
+                                // Delete the overflow
+                                yield mongo_overflow_model_1.mongoOverflowModel.deleteOne({
+                                    itemID: createSalesReturnBill.item.id,
+                                    billID: createSalesReturnBillID,
+                                });
+                            }
                         }
                         else {
-                            console.log(`[info]: Quantity is less than or equal to stock out quantity.`);
-                            stockIns.stockOut[stockOutIndex].quantity -=
-                                createSalesReturnItemQuantityEdit;
-                            stockIns.residue += createSalesReturnItemQuantityEdit;
-                            createSalesReturnItemQuantityEdit = 0;
-                            yield stockIns.save();
-                            break;
+                            const stockIns = yield mongo_stock_in_model_1.mongoStockInModel
+                                .findOne({
+                                stockOut: {
+                                    $elemMatch: {
+                                        billID: createSalesReturnBillID,
+                                        quantity: {
+                                            $gt: 0,
+                                        },
+                                    },
+                                },
+                            })
+                                .sort({
+                                date: -1,
+                            });
+                            if (!stockIns) {
+                                throw Error("Stock in not found");
+                            }
+                            console.log(`[info]: Stock in found.`);
+                            const stockOutIndex = stockIns.stockOut.findIndex((stockOut) => stockOut.billID == createSalesReturnBillID);
+                            if (stockOutIndex == -1) {
+                                throw Error("Stock out not found");
+                            }
+                            console.log(`[info]: Stock out found.`);
+                            if (createSalesReturnItemQuantityEdit >
+                                stockIns.stockOut[stockOutIndex].quantity) {
+                                stockIns.stockOut[stockOutIndex].quantity = 0;
+                                stockIns.residue += createSalesReturnItemQuantityEdit;
+                                createSalesReturnItemQuantityEdit -=
+                                    stockIns.stockOut[stockOutIndex].quantity;
+                                yield stockIns.save();
+                            }
+                            else {
+                                stockIns.stockOut[stockOutIndex].quantity -=
+                                    createSalesReturnItemQuantityEdit;
+                                stockIns.residue += createSalesReturnItemQuantityEdit;
+                                createSalesReturnItemQuantityEdit = 0;
+                                yield stockIns.save();
+                                break;
+                            }
                         }
                     }
                 }
@@ -981,14 +1005,9 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             const createSalesInvoiceDelivery = parseFloat(job.data.delivery.toString());
             const createSalesInvoiceService = parseFloat(job.data.service.toString());
             const createSalesInvoiceDiscount = parseFloat(job.data.discount.toString());
-            let createSalesInvoiceTotal = 0;
-            // We need to calculate the total price of the bill
-            for (let i = 0; i < createSalesInvoiceItems.length; i++) {
-                createSalesInvoiceTotal +=
-                    (createSalesInvoiceItems[i].price -
-                        createSalesInvoiceItems[i].discount) *
-                        createSalesInvoiceItems[i].quantity;
-            }
+            let createSalesInvoiceTotal = createSalesInvoiceItems.reduce((a, b) => {
+                return a + (b.price - b.discount) * b.quantity;
+            }, 0);
             const createSalesInvoiceNetTotal = createSalesInvoiceTotal +
                 createSalesInvoiceService -
                 createSalesInvoiceDiscount +
@@ -1006,18 +1025,19 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         createSalesInvoiceNetTotal;
                     const createSalesInvoicePackageContent = createSalesInvoiceItem
                         .package_code.package_content;
-                    console.log(createSalesInvoicePackageContent);
                     const createSalesInvoicePackageContentValue = createSalesInvoicePackageContent.reduce((a, b) => {
                         return a + b.quantity * (b.price - b.discount);
                     }, 0);
                     for (let n = 0; n < createSalesInvoicePackageContent.length; n++) {
                         const createSalesInvoicePackageContentItem = createSalesInvoicePackageContent[n];
                         const createSalesInvoiceItemID = createSalesInvoiceItem.id;
-                        const createSalesInvoiceItemItemID = createSalesInvoiceItem.item_id;
+                        const createSalesInvoiceItemItemID = createSalesInvoicePackageContentItem.item_id;
                         const createSalesInvoiceItemQuantity = createSalesInvoicePackageContentItem.quantity;
                         const createSalesInvoiceItemPrice = createSalesInvoicePackageContentItem.price;
                         const createSalesInvoiceItemDiscount = createSalesInvoicePackageContentItem.discount;
-                        const createSalesInvoiceItemUnit = createSalesInvoicePackageContentItem.unit;
+                        const createSalesInvoiceItemUnit = createSalesInvoicePackageContentItem.item_unit == null
+                            ? createSalesInvoicePackageContentItem.item.unit
+                            : createSalesInvoicePackageContentItem.item_unit.unit;
                         const createSalesInvoiceItemConversion = createSalesInvoicePackageContentItem.item_unit == null
                             ? 1
                             : createSalesInvoiceItem.item_unit.conversion;
@@ -1165,7 +1185,16 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         }
                     }
                     else {
-                        yield mongo_overflow_model_1.mongoOverflowModel.create(createSalesInvoiceInsertItem);
+                        yield mongo_overflow_model_1.mongoOverflowModel.create({
+                            itemID: createSalesInvoiceItemID,
+                            quantity: createSalesInvoiceItemQuantity,
+                            date: createSalesInvoiceInsertItem.date,
+                            billID: createSalesInvoiceInsertItem.billID,
+                            billCodeID: createSalesInvoiceInsertItem.billCodeID,
+                            adjustmentCaseID: createSalesInvoiceInsertItem.adjustmentCaseID,
+                            adjustmentCaseCodeID: createSalesInvoiceInsertItem.adjustmentCaseCodeID,
+                            value: createSalesInvoiceInsertItem.value,
+                        });
                         createSalesInvoiceItemQuantity = 0;
                         break;
                     }

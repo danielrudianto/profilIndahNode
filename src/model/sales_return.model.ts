@@ -431,7 +431,6 @@ class SalesReturnModel {
               ON sales_return.sales_return_code_id = sales_return_code.id
               WHERE sales_return_code.is_delete = 0
               GROUP BY sales_return.bill_id
-
             ) salesReturn
             ON bill.id = salesReturn.bill_id
             WHERE bill.item_id = ${x.item_id}
@@ -450,7 +449,6 @@ class SalesReturnModel {
               ON sales_return.sales_return_code_id = sales_return_code.id
               WHERE sales_return_code.is_delete = 0
               GROUP BY sales_return.bill_id
-
             ) salesReturn
             ON bill.id = salesReturn.bill_id
             WHERE bill.item_id = ${x.item_id}
@@ -465,7 +463,7 @@ class SalesReturnModel {
         AND bill_code.id IN (
           SELECT DISTINCT(bill.bill_code_id) AS id
           FROM bill
-          JOIN (
+          LEFT JOIN (
             SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
             FROM sales_return
             JOIN sales_return_code 
@@ -475,9 +473,11 @@ class SalesReturnModel {
           ) salesReturn
           ON bill.id = salesReturn.bill_id/*  */
           WHERE bill.package_code_id = ${x.package_code_id}
-          AND (bill.quantity - COALESCE(salesReturn.quantity, 0)) >= ${x.quantity} >= ${x.quantity}
+          AND (bill.quantity - COALESCE(salesReturn.quantity, 0)) >= ${x.quantity}
         )`;
     });
+
+    console.log(mysql_string);
 
     return prisma.$queryRawUnsafe(`
       SELECT bill_code.id, bill_code.date, bill_code.name,

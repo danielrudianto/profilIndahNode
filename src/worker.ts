@@ -33,12 +33,13 @@ const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
     case "insert-product":
+      console.log(job.data);
       const insertProductRreference = job.data.reference;
       const insertProductDescription = job.data.description;
       const insertProductID = job.data.id;
       const insertProductUnit = job.data.unit;
-      const insertProductBrand = job.data.item_brand.name;
-      const insertProductType = job.data.item_type.name;
+      const insertProductBrand = job.data.itemBrand;
+      const insertProductType = job.data.itemType;
       const insertProductItemTypeID = job.data.itemTypeID;
       const insertProductItemBrandID = job.data.itemBrandID;
 
@@ -62,7 +63,7 @@ const workerHandler = async (job: Job<any>) => {
             brandID: insertProductItemBrandID,
             type: insertProductType,
             typeID: insertProductItemTypeID,
-            is_active: true,
+            is_active: 1,
           },
         ],
         {
@@ -873,10 +874,10 @@ const workerHandler = async (job: Job<any>) => {
               createSalesReturnBill.package_code.package_content[n];
 
             let createSalesReturnItemQuantityEdit =
-              createSalesReturnItemQuantity * createSalesReturnItem.item_unit ==
-              null
+              createSalesReturnItemQuantity *
+              (createSalesReturnItem.item_unit == null
                 ? 1
-                : createSalesReturnItem.item_unit.conversion;
+                : createSalesReturnItem.item_unit.conversion);
 
             if (!updateProduct) {
               throw Error("Product not found");
@@ -910,6 +911,10 @@ const workerHandler = async (job: Job<any>) => {
             await queue.add("rearange-stock-card", updateProduct.itemID);
 
             while (createSalesReturnItemQuantityEdit > 0) {
+              if (createSalesReturnItemQuantityEdit == 0) {
+                break;
+              }
+
               const stockIns = await mongoStockInModel
                 .findOne({
                   stockOut: {
@@ -1009,61 +1014,76 @@ const workerHandler = async (job: Job<any>) => {
               break;
             }
 
-            const stockIns = await mongoStockInModel
-              .findOne({
-                stockOut: {
-                  $elemMatch: {
-                    billID: createSalesReturnBillID,
-                    quantity: {
-                      $gt: 0,
+            // First, fetch the overflow stock in
+            const overflow = await mongoOverflowModel.findOne({
+              itemID: createSalesReturnBill.item.id,
+              billID: createSalesReturnBillID,
+            });
+
+            if (overflow) {
+              if (overflow.quantity > createSalesReturnItemQuantityEdit) {
+                overflow.quantity -= createSalesReturnItemQuantityEdit;
+                createSalesReturnItemQuantityEdit = 0;
+                await overflow.save();
+              } else {
+                createSalesReturnItemQuantityEdit -= overflow.quantity;
+                // Delete the overflow
+                await mongoOverflowModel.deleteOne({
+                  itemID: createSalesReturnBill.item.id,
+                  billID: createSalesReturnBillID,
+                });
+              }
+            } else {
+              const stockIns = await mongoStockInModel
+                .findOne({
+                  stockOut: {
+                    $elemMatch: {
+                      billID: createSalesReturnBillID,
+                      quantity: {
+                        $gt: 0,
+                      },
                     },
                   },
-                },
-              })
-              .sort({
-                date: -1,
-              });
+                })
+                .sort({
+                  date: -1,
+                });
 
-            if (!stockIns) {
-              throw Error("Stock in not found");
-            }
+              if (!stockIns) {
+                throw Error("Stock in not found");
+              }
 
-            console.log(`[info]: Stock in found.`);
+              console.log(`[info]: Stock in found.`);
 
-            const stockOutIndex = stockIns.stockOut.findIndex(
-              (stockOut) => stockOut.billID == createSalesReturnBillID
-            );
-
-            if (stockOutIndex == -1) {
-              throw Error("Stock out not found");
-            }
-
-            console.log(`[info]: Stock out found.`);
-
-            if (
-              createSalesReturnItemQuantityEdit >
-              stockIns.stockOut[stockOutIndex].quantity
-            ) {
-              console.log(
-                `[info]: Quantity is greater than stock out quantity.`
+              const stockOutIndex = stockIns.stockOut.findIndex(
+                (stockOut) => stockOut.billID == createSalesReturnBillID
               );
-              stockIns.stockOut[stockOutIndex].quantity = 0;
-              stockIns.residue += createSalesReturnItemQuantityEdit;
-              createSalesReturnItemQuantityEdit -=
-                stockIns.stockOut[stockOutIndex].quantity;
 
-              await stockIns.save();
-            } else {
-              console.log(
-                `[info]: Quantity is less than or equal to stock out quantity.`
-              );
-              stockIns.stockOut[stockOutIndex].quantity -=
-                createSalesReturnItemQuantityEdit;
-              stockIns.residue += createSalesReturnItemQuantityEdit;
-              createSalesReturnItemQuantityEdit = 0;
+              if (stockOutIndex == -1) {
+                throw Error("Stock out not found");
+              }
 
-              await stockIns.save();
-              break;
+              console.log(`[info]: Stock out found.`);
+
+              if (
+                createSalesReturnItemQuantityEdit >
+                stockIns.stockOut[stockOutIndex].quantity
+              ) {
+                stockIns.stockOut[stockOutIndex].quantity = 0;
+                stockIns.residue += createSalesReturnItemQuantityEdit;
+                createSalesReturnItemQuantityEdit -=
+                  stockIns.stockOut[stockOutIndex].quantity;
+
+                await stockIns.save();
+              } else {
+                stockIns.stockOut[stockOutIndex].quantity -=
+                  createSalesReturnItemQuantityEdit;
+                stockIns.residue += createSalesReturnItemQuantityEdit;
+                createSalesReturnItemQuantityEdit = 0;
+
+                await stockIns.save();
+                break;
+              }
             }
           }
         }
@@ -1220,7 +1240,7 @@ const workerHandler = async (job: Job<any>) => {
       const createSalesInvoiceCreatedAt = job.data.created_at;
       const createSalesInvoiceDate = new Date(job.data.date);
       const createSalesInvoiceName = job.data.name;
-      const createSalesInvoiceItems = job.data.bill;
+      const createSalesInvoiceItems = job.data.bill as any[];
       const createSalesInvoiceCustomer = job.data.customer;
 
       const createSalesInvoiceDelivery = parseFloat(
@@ -1231,14 +1251,9 @@ const workerHandler = async (job: Job<any>) => {
         job.data.discount.toString()
       );
 
-      let createSalesInvoiceTotal = 0;
-      // We need to calculate the total price of the bill
-      for (let i = 0; i < createSalesInvoiceItems.length; i++) {
-        createSalesInvoiceTotal +=
-          (createSalesInvoiceItems[i].price -
-            createSalesInvoiceItems[i].discount) *
-          createSalesInvoiceItems[i].quantity;
-      }
+      let createSalesInvoiceTotal = createSalesInvoiceItems.reduce((a, b) => {
+        return a + (b.price - b.discount) * b.quantity;
+      }, 0);
 
       const createSalesInvoiceNetTotal =
         createSalesInvoiceTotal +
@@ -1264,7 +1279,7 @@ const workerHandler = async (job: Job<any>) => {
             createSalesInvoiceNetTotal;
           const createSalesInvoicePackageContent = createSalesInvoiceItem
             .package_code.package_content as any[];
-          console.log(createSalesInvoicePackageContent);
+
           const createSalesInvoicePackageContentValue =
             createSalesInvoicePackageContent.reduce((a, b) => {
               return a + b.quantity * (b.price - b.discount);
@@ -1274,7 +1289,8 @@ const workerHandler = async (job: Job<any>) => {
             const createSalesInvoicePackageContentItem =
               createSalesInvoicePackageContent[n];
             const createSalesInvoiceItemID = createSalesInvoiceItem.id;
-            const createSalesInvoiceItemItemID = createSalesInvoiceItem.item_id;
+            const createSalesInvoiceItemItemID =
+              createSalesInvoicePackageContentItem.item_id;
             const createSalesInvoiceItemQuantity =
               createSalesInvoicePackageContentItem.quantity;
             const createSalesInvoiceItemPrice =
@@ -1282,7 +1298,9 @@ const workerHandler = async (job: Job<any>) => {
             const createSalesInvoiceItemDiscount =
               createSalesInvoicePackageContentItem.discount;
             const createSalesInvoiceItemUnit =
-              createSalesInvoicePackageContentItem.unit;
+              createSalesInvoicePackageContentItem.item_unit == null
+                ? createSalesInvoicePackageContentItem.item.unit
+                : createSalesInvoicePackageContentItem.item_unit.unit;
             const createSalesInvoiceItemConversion =
               createSalesInvoicePackageContentItem.item_unit == null
                 ? 1
@@ -1470,7 +1488,17 @@ const workerHandler = async (job: Job<any>) => {
               await stockIn.save();
             }
           } else {
-            await mongoOverflowModel.create(createSalesInvoiceInsertItem);
+            await mongoOverflowModel.create({
+              itemID: createSalesInvoiceItemID,
+              quantity: createSalesInvoiceItemQuantity,
+              date: createSalesInvoiceInsertItem.date,
+              billID: createSalesInvoiceInsertItem.billID,
+              billCodeID: createSalesInvoiceInsertItem.billCodeID,
+              adjustmentCaseID: createSalesInvoiceInsertItem.adjustmentCaseID,
+              adjustmentCaseCodeID:
+                createSalesInvoiceInsertItem.adjustmentCaseCodeID,
+              value: createSalesInvoiceInsertItem.value,
+            });
             createSalesInvoiceItemQuantity = 0;
             break;
           }

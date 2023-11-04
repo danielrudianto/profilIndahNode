@@ -62,30 +62,6 @@ SalesReturnController.create = (req, res) => {
                 };
             }),
         }).then((result) => __awaiter(void 0, void 0, void 0, function* () {
-            const updateArray = [];
-            result.sales_return.forEach((x) => {
-                if (x.bill.item != null) {
-                    updateArray.push({
-                        item_id: x.bill.item.id,
-                        quantity: parseFloat(x.quantity.toString()) *
-                            (x.bill.item_unit == null
-                                ? 1
-                                : parseFloat(x.bill.item_unit.conversion.toString())),
-                    });
-                }
-                else if (x.bill.package_code != null) {
-                    x.bill.package_code.package_content.forEach((y) => {
-                        updateArray.push({
-                            item_id: y.item.id,
-                            quantity: parseFloat(x.quantity.toString()) *
-                                parseFloat(y.quantity.toString()) *
-                                (y.item_unit == null
-                                    ? 1
-                                    : parseFloat(y.item_unit.conversion.toString())),
-                        });
-                    });
-                }
-            });
             yield queue_helper_1.queue.add("create-sales-return", result);
             return res.status(201).send(result);
         }));

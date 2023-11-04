@@ -65,6 +65,8 @@ class ProductController {
           itemTypeID: item.item_type_id,
           itemBrandID: item.item_brand_id,
           unit: item.unit,
+          itemBrand: item.item_brand.name,
+          itemType: item.item_type.name,
         });
 
         await ProductStockModel.createStockData(item.id);

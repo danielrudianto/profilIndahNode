@@ -79,33 +79,6 @@ SalesInvoiceController.create = (req, res) => {
         try {
             yield item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId);
             yield product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null));
-            const updateStockArray = [];
-            result.bill.forEach((x) => {
-                if (x.package_code != null) {
-                    x.package_code.package_content.forEach((content) => {
-                        updateStockArray.push({
-                            item_id: content.item_id,
-                            quantity: (parseFloat(content.quantity.toString()) *
-                                parseFloat(x.quantity.toString()) *
-                                (content.item_unit == null
-                                    ? 1
-                                    : parseFloat(content.item_unit.conversion.toString())) *
-                                -1).toFixed(4),
-                        });
-                    });
-                }
-                else {
-                    const quantity = parseFloat(x.quantity.toString()) *
-                        (x.item_unit == null
-                            ? 1
-                            : parseFloat(x.item_unit.conversion.toString())) *
-                        -1;
-                    updateStockArray.push({
-                        item_id: x.item_id,
-                        quantity: quantity.toFixed(4),
-                    });
-                }
-            });
             yield queue_helper_1.queue.add("create-sales-invoice", result);
             return res.status(201).send(result);
         }
