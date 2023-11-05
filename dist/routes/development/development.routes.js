@@ -27,10 +27,14 @@ const express_1 = require("express");
 const search_helper_1 = __importStar(require("../../helper/search.helper"));
 const router = (0, express_1.Router)();
 router.post("/create-index", search_helper_1.default.createIndex);
-router.post("/sync-product-group", (req, _, next) => {
-    req.body.mode = search_helper_1.syncMode.ProductNoSQL;
-    next();
-}, search_helper_1.default.syncMasterData);
+// router.post(
+//   "/sync-product-group",
+//   (req: Request, _, next: NextFunction) => {
+//     req.body.mode = syncMode.ProductNoSQL;
+//     next();
+//   },
+//   SearchHelper.syncMasterData
+// );
 router.post("/sync-product", (req, _, next) => {
     req.body.mode = search_helper_1.syncMode.Product;
     next();
@@ -43,9 +47,12 @@ router.post("/sync-customer", (req, _, next) => {
     req.body.mode = search_helper_1.syncMode.Customer;
     next();
 }, search_helper_1.default.syncMasterData);
-router.post("/sync-product-in", search_helper_1.default.syncProductIn);
-router.post("/sync-product-out", search_helper_1.default.syncProductOut);
-router.post("/sync-product-out-calculation", search_helper_1.default.syncProductOutCalculation);
-router.post("/arrange-stock-card", search_helper_1.default.arrangeStockCard);
+// router.post("/sync-product-in", SearchHelper.syncProductIn);
+// router.post("/sync-product-out", SearchHelper.syncProductOut);
+// router.post(
+//   "/sync-product-out-calculation",
+//   SearchHelper.syncProductOutCalculation
+// );
+// router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
 exports.default = router;
 //# sourceMappingURL=development.routes.js.map

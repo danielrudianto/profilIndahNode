@@ -44,7 +44,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
     const name = job.name;
     switch (name) {
         case "insert-product":
-            console.log(job.data);
             const insertProductRreference = job.data.reference;
             const insertProductDescription = job.data.description;
             const insertProductID = job.data.id;
@@ -714,6 +713,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         });
                         const createSalesReturnItem = createSalesReturnBill.package_code.package_content[n];
                         let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity *
+                            createSalesReturnItem.quantity *
                             (createSalesReturnItem.item_unit == null
                                 ? 1
                                 : createSalesReturnItem.item_unit.conversion);
@@ -1015,14 +1015,15 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             const createSalesInvoiceInsertItems = [];
             for (let i = 0; i < createSalesInvoiceItems.length; i++) {
                 const createSalesInvoiceItem = createSalesInvoiceItems[i];
+                const createSalesInvoiceItemID = createSalesInvoiceItem.id;
                 if (createSalesInvoiceItem.package_code != null) {
                     const createSalesInvoicePackagePrice = createSalesInvoiceItem.price;
                     const createSalesInvoicePackageDiscount = createSalesInvoiceItem.discount;
                     const createSalesInvoicePackageQuantity = createSalesInvoiceItem.quantity;
                     const createSalesInvoicePackageFinalPrice = ((createSalesInvoicePackagePrice -
                         createSalesInvoicePackageDiscount) *
-                        createSalesInvoiceTotal) /
-                        createSalesInvoiceNetTotal;
+                        createSalesInvoiceNetTotal) /
+                        createSalesInvoiceTotal;
                     const createSalesInvoicePackageContent = createSalesInvoiceItem
                         .package_code.package_content;
                     const createSalesInvoicePackageContentValue = createSalesInvoicePackageContent.reduce((a, b) => {
@@ -1030,7 +1031,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                     }, 0);
                     for (let n = 0; n < createSalesInvoicePackageContent.length; n++) {
                         const createSalesInvoicePackageContentItem = createSalesInvoicePackageContent[n];
-                        const createSalesInvoiceItemID = createSalesInvoiceItem.id;
                         const createSalesInvoiceItemItemID = createSalesInvoicePackageContentItem.item_id;
                         const createSalesInvoiceItemQuantity = createSalesInvoicePackageContentItem.quantity;
                         const createSalesInvoiceItemPrice = createSalesInvoicePackageContentItem.price;
@@ -1066,7 +1066,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                     createSalesInvoicePackageQuantity *
                                     -1,
                                 unit: createSalesInvoiceItemUnit,
-                                billID: createSalesInvoiceID,
+                                billID: createSalesInvoiceItemID,
                                 billCodeID: createSalesInvoiceID,
                                 adjustmentCaseID: null,
                                 adjustmentCaseCodeID: null,
@@ -1093,7 +1093,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                     }
                 }
                 else {
-                    const createSalesInvoiceItemID = createSalesInvoiceItem.id;
                     const createSalesInvoiceItemItemID = createSalesInvoiceItem.item_id;
                     const createSalesInvoiceItemQuantity = createSalesInvoiceItem.quantity;
                     const createSalesInvoiceItemPrice = createSalesInvoiceItem.price;

@@ -5,14 +5,14 @@ const router = Router();
 
 router.post("/create-index", SearchHelper.createIndex);
 
-router.post(
-  "/sync-product-group",
-  (req: Request, _, next: NextFunction) => {
-    req.body.mode = syncMode.ProductNoSQL;
-    next();
-  },
-  SearchHelper.syncMasterData
-);
+// router.post(
+//   "/sync-product-group",
+//   (req: Request, _, next: NextFunction) => {
+//     req.body.mode = syncMode.ProductNoSQL;
+//     next();
+//   },
+//   SearchHelper.syncMasterData
+// );
 router.post(
   "/sync-product",
   (req: Request, _, next: NextFunction) => {
@@ -37,13 +37,13 @@ router.post(
   },
   SearchHelper.syncMasterData
 );
-router.post("/sync-product-in", SearchHelper.syncProductIn);
-router.post("/sync-product-out", SearchHelper.syncProductOut);
-router.post(
-  "/sync-product-out-calculation",
-  SearchHelper.syncProductOutCalculation
-);
+// router.post("/sync-product-in", SearchHelper.syncProductIn);
+// router.post("/sync-product-out", SearchHelper.syncProductOut);
+// router.post(
+//   "/sync-product-out-calculation",
+//   SearchHelper.syncProductOutCalculation
+// );
 
-router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
+// router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
 
 export default router;

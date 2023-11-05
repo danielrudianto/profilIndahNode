@@ -53,6 +53,7 @@ const cashier_route_1 = __importDefault(require("./routes/distinct/cashier.route
   Administrator Routes
 */
 const administrator_route_1 = __importDefault(require("./routes/distinct/administrator.route"));
+const development_routes_1 = __importDefault(require("./routes/development/development.routes"));
 const os_route_1 = __importDefault(require("./routes/distinct/os.route"));
 const changelog_route_1 = __importDefault(require("./routes/report/changelog.route"));
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -96,7 +97,7 @@ app.use("/report", report_route_1.default);
 app.use("/administrator", administrator_route_1.default);
 app.use("/os", os_route_1.default);
 app.use("/changelog", changelog_route_1.default);
-// app.use("/development", developmentRoutes);
+app.use("/development", development_routes_1.default);
 const server = http_1.default.createServer(app);
 server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("[server]: Server is running on port 5000");

@@ -33,7 +33,6 @@ const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
     case "insert-product":
-      console.log(job.data);
       const insertProductRreference = job.data.reference;
       const insertProductDescription = job.data.description;
       const insertProductID = job.data.id;
@@ -875,6 +874,7 @@ const workerHandler = async (job: Job<any>) => {
 
             let createSalesReturnItemQuantityEdit =
               createSalesReturnItemQuantity *
+              createSalesReturnItem.quantity *
               (createSalesReturnItem.item_unit == null
                 ? 1
                 : createSalesReturnItem.item_unit.conversion);
@@ -1265,6 +1265,7 @@ const workerHandler = async (job: Job<any>) => {
 
       for (let i = 0; i < createSalesInvoiceItems.length; i++) {
         const createSalesInvoiceItem = createSalesInvoiceItems[i];
+        const createSalesInvoiceItemID = createSalesInvoiceItem.id;
 
         if (createSalesInvoiceItem.package_code != null) {
           const createSalesInvoicePackagePrice = createSalesInvoiceItem.price;
@@ -1275,8 +1276,8 @@ const workerHandler = async (job: Job<any>) => {
           const createSalesInvoicePackageFinalPrice =
             ((createSalesInvoicePackagePrice -
               createSalesInvoicePackageDiscount) *
-              createSalesInvoiceTotal) /
-            createSalesInvoiceNetTotal;
+              createSalesInvoiceNetTotal) /
+            createSalesInvoiceTotal;
           const createSalesInvoicePackageContent = createSalesInvoiceItem
             .package_code.package_content as any[];
 
@@ -1288,7 +1289,6 @@ const workerHandler = async (job: Job<any>) => {
           for (let n = 0; n < createSalesInvoicePackageContent.length; n++) {
             const createSalesInvoicePackageContentItem =
               createSalesInvoicePackageContent[n];
-            const createSalesInvoiceItemID = createSalesInvoiceItem.id;
             const createSalesInvoiceItemItemID =
               createSalesInvoicePackageContentItem.item_id;
             const createSalesInvoiceItemQuantity =
@@ -1336,7 +1336,7 @@ const workerHandler = async (job: Job<any>) => {
                   createSalesInvoicePackageQuantity *
                   -1,
                 unit: createSalesInvoiceItemUnit,
-                billID: createSalesInvoiceID,
+                billID: createSalesInvoiceItemID,
                 billCodeID: createSalesInvoiceID,
                 adjustmentCaseID: null,
                 adjustmentCaseCodeID: null,
@@ -1369,7 +1369,6 @@ const workerHandler = async (job: Job<any>) => {
             }
           }
         } else {
-          const createSalesInvoiceItemID = createSalesInvoiceItem.id;
           const createSalesInvoiceItemItemID = createSalesInvoiceItem.item_id;
           const createSalesInvoiceItemQuantity =
             createSalesInvoiceItem.quantity;

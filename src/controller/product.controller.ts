@@ -13,6 +13,7 @@ import { meili } from "../app";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import ProductStockModel from "../model/product-stock.model";
 import { queue } from "../helper/queue.helper";
+import { mongoProductModel } from "../mongo-model/mongo-product.model";
 
 class ProductController {
   /**
@@ -95,7 +96,7 @@ class ProductController {
    * @param res
    * @returns {Promise<Response<any, Record<string, any>, number>>}
    */
-  static fetch = (req: Request, res: Response) => {
+  static fetch = async (req: Request, res: Response) => {
     const page: number = !req.query.page
       ? 1
       : Math.max(parseInt(req.query.page.toString()), 1);
@@ -157,52 +158,67 @@ class ProductController {
           });
         break;
       case "sales":
-        ItemModel.fetch(keyword, offset, limit, 2)
-          .then((result) => {
-            return res.status(200).send({
-              data: (result[1] as any[]).map((x) => {
-                const priceIndex = (result[0] as any[]).findIndex(
-                  (item) => item.item_id == x.id && item.item_unit_id == null
-                );
+        const [prices, products, count] = await ItemModel.fetch(
+          keyword,
+          offset,
+          limit,
+          2
+        );
 
-                return {
-                  id: x.id,
-                  reference: x.reference,
-                  description: x.description,
-                  unit: x.unit,
-                  stock: x.stock,
-                  price:
-                    priceIndex == -1
-                      ? 0
-                      : (result[0] as any[])[priceIndex].price,
-                  discount:
-                    priceIndex == -1
-                      ? 0
-                      : (result[0] as any[])[priceIndex].discount,
-                  unit_price: (result[0] as any[])
-                    .filter(
-                      (item) =>
-                        item.item_id == x.id && item.item_unit_id != null
-                    )
-                    .map((unit) => {
-                      return {
-                        id: unit.id,
-                        unit: unit.unit,
-                        conversion: unit.conversion,
-                        price: unit.price,
-                        discount: unit.discount,
-                        item_unit_id: unit.item_unit_id,
-                      };
-                    }),
-                };
-              }),
-              count: result[2],
-            });
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-        break;
+        const productStock = await mongoProductModel.aggregate([
+          {
+            $match: {
+              itemID: {
+                $in: (products as any[]).map((x) => x.id),
+              },
+            },
+          },
+          {
+            $project: {
+              itemID: "$itemID",
+              currentStock: "$currentStock",
+            },
+          },
+        ]);
+
+        return res.status(200).send({
+          data: (products as any[]).map((x) => {
+            const priceIndex = (products as any[]).findIndex(
+              (item) => item.item_id == x.id && item.item_unit_id == null
+            );
+
+            const stockIndex = productStock.findIndex(
+              (item) => item.itemID == x.id
+            );
+
+            return {
+              id: x.id,
+              reference: x.reference,
+              description: x.description,
+              unit: x.unit,
+              stock:
+                stockIndex == -1 ? 0 : productStock[stockIndex].currentStock,
+              price: priceIndex == -1 ? 0 : (prices as any[])[priceIndex].price,
+              discount:
+                priceIndex == -1 ? 0 : (prices as any[])[priceIndex].discount,
+              unit_price: (products as any[])
+                .filter(
+                  (item) => item.item_id == x.id && item.item_unit_id != null
+                )
+                .map((unit) => {
+                  return {
+                    id: unit.id,
+                    unit: unit.unit,
+                    conversion: unit.conversion,
+                    price: unit.price,
+                    discount: unit.discount,
+                    item_unit_id: unit.item_unit_id,
+                  };
+                }),
+            };
+          }),
+          count: count,
+        });
       case "plain":
         ItemModel.fetch(keyword, offset, limit, 3)
           .then((result) => {

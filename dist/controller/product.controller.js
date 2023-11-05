@@ -20,6 +20,7 @@ const app_1 = require("../app");
 const escape_helper_1 = require("../helper/escape.helper");
 const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const queue_helper_1 = require("../helper/queue.helper");
+const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 class ProductController {
 }
 _a = ProductController;
@@ -89,7 +90,7 @@ ProductController.create = (req, res) => __awaiter(void 0, void 0, void 0, funct
  * @param res
  * @returns {Promise<Response<any, Record<string, any>, number>>}
  */
-ProductController.fetch = (req, res) => {
+ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
@@ -144,44 +145,50 @@ ProductController.fetch = (req, res) => {
             });
             break;
         case "sales":
-            item_model_1.ItemModel.fetch(keyword, offset, limit, 2)
-                .then((result) => {
-                return res.status(200).send({
-                    data: result[1].map((x) => {
-                        const priceIndex = result[0].findIndex((item) => item.item_id == x.id && item.item_unit_id == null);
-                        return {
-                            id: x.id,
-                            reference: x.reference,
-                            description: x.description,
-                            unit: x.unit,
-                            stock: x.stock,
-                            price: priceIndex == -1
-                                ? 0
-                                : result[0][priceIndex].price,
-                            discount: priceIndex == -1
-                                ? 0
-                                : result[0][priceIndex].discount,
-                            unit_price: result[0]
-                                .filter((item) => item.item_id == x.id && item.item_unit_id != null)
-                                .map((unit) => {
-                                return {
-                                    id: unit.id,
-                                    unit: unit.unit,
-                                    conversion: unit.conversion,
-                                    price: unit.price,
-                                    discount: unit.discount,
-                                    item_unit_id: unit.item_unit_id,
-                                };
-                            }),
-                        };
-                    }),
-                    count: result[2],
-                });
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
+            const [prices, products, count] = yield item_model_1.ItemModel.fetch(keyword, offset, limit, 2);
+            const productStock = yield mongo_product_model_1.mongoProductModel.aggregate([
+                {
+                    $match: {
+                        itemID: {
+                            $in: products.map((x) => x.id),
+                        },
+                    },
+                },
+                {
+                    $project: {
+                        itemID: "$itemID",
+                        currentStock: "$currentStock",
+                    },
+                },
+            ]);
+            return res.status(200).send({
+                data: products.map((x) => {
+                    const priceIndex = products.findIndex((item) => item.item_id == x.id && item.item_unit_id == null);
+                    const stockIndex = productStock.findIndex((item) => item.itemID == x.id);
+                    return {
+                        id: x.id,
+                        reference: x.reference,
+                        description: x.description,
+                        unit: x.unit,
+                        stock: stockIndex == -1 ? 0 : productStock[stockIndex].currentStock,
+                        price: priceIndex == -1 ? 0 : prices[priceIndex].price,
+                        discount: priceIndex == -1 ? 0 : prices[priceIndex].discount,
+                        unit_price: products
+                            .filter((item) => item.item_id == x.id && item.item_unit_id != null)
+                            .map((unit) => {
+                            return {
+                                id: unit.id,
+                                unit: unit.unit,
+                                conversion: unit.conversion,
+                                price: unit.price,
+                                discount: unit.discount,
+                                item_unit_id: unit.item_unit_id,
+                            };
+                        }),
+                    };
+                }),
+                count: count,
             });
-            break;
         case "plain":
             item_model_1.ItemModel.fetch(keyword, offset, limit, 3)
                 .then((result) => {
@@ -279,7 +286,7 @@ ProductController.fetch = (req, res) => {
             });
             break;
     }
-};
+});
 /**
  * Fetch autocomplete items
  * @param req

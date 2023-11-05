@@ -264,7 +264,7 @@ export class ItemModel {
     item.unit, item.minimum_stock, item_type.name AS item_type_name, 
     item_brand.name AS item_brand_name, 
     IF(COALESCE(item_count.count, 0) = 0, "1", "0") AS can_delete, 
-    item.is_active, _stock.stock
+    item.is_active
       FROM item
       JOIN item_brand ON item.item_brand_id = item_brand.id
       JOIN item_type ON item.item_type_id = item_type.id
@@ -294,7 +294,6 @@ export class ItemModel {
       GROUP BY a.item_id
       ) item_count
       ON item_count.item_id = item.id
-      LEFT JOIN _stock ON item.id = _stock.item_id
       WHERE item.id = ${id}`;
   }
 
@@ -392,13 +391,17 @@ export class ItemModel {
    * @returns
    */
   static fetchByIDs(id: number[]) {
-    return prisma.$queryRawUnsafe<IFetchProductSimple[]>(`
+    return id.length == 0
+      ? new Promise<IFetchProductSimple[]>((resolve, _) => {
+          resolve([]);
+        })
+      : prisma.$queryRawUnsafe<IFetchProductSimple[]>(`
       SELECT item.id, item.reference, item.description, 
       item.is_delete, item.item_brand_id, item.item_type_id, 
       item.unit, item.minimum_stock, item_type.name AS item_type_name, 
       item_brand.name AS item_brand_name, 
       IF(COALESCE(item_count.count, 0) = 0, "1", "0") AS can_delete, 
-      item.is_active, _stock.stock
+      item.is_active
       FROM item
       JOIN item_brand ON item.item_brand_id = item_brand.id
       JOIN item_type ON item.item_type_id = item_type.id
@@ -428,7 +431,6 @@ export class ItemModel {
         GROUP BY a.item_id
       ) item_count
       ON item_count.item_id = item.id
-      LEFT JOIN _stock ON item.id = _stock.item_id
       WHERE item.id IN (${id.join(",")})            
     `);
   }
@@ -674,9 +676,8 @@ export class ItemModel {
               GROUP BY item_id, item_unit_id
             `,
             prisma.$queryRaw<any[]>`
-              SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
+              SELECT item.id, item.reference, item.description, item.unit
               FROM item
-              LEFT JOIN _stock ON item.id = _stock.item_id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               ORDER BY item.reference ASC
@@ -711,9 +712,8 @@ export class ItemModel {
               GROUP BY item_id, item_unit_id
             `),
             prisma.$queryRawUnsafe<any[]>(`
-              SELECT item.id, item.reference, item.description, item.unit, COALESCE(_stock.stock, 0) AS stock
+              SELECT item.id, item.reference, item.description, item.unit
               FROM item
-              LEFT JOIN _stock ON item.id = _stock.item_id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')

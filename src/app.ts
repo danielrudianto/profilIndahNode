@@ -97,7 +97,7 @@ app.use("/report", reportRoutes);
 app.use("/administrator", administratorRoutes);
 app.use("/os", osRoutes);
 app.use("/changelog", changelogRoutes);
-// app.use("/development", developmentRoutes);
+app.use("/development", developmentRoutes);
 
 const server = http.createServer(app);
 server.listen(5000, async () => {
