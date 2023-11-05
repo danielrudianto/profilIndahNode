@@ -1141,42 +1141,61 @@ const workerHandler = async (job: Job<any>) => {
 
             await queue.add("rearange-stock-card", deleteSalesReturnItemID);
 
-            const stockIn = await mongoStockInModel.findOne({
+            const overflow = await mongoOverflowModel.findOne({
               itemID: deleteSalesReturnItemItemID,
-              stockOut: {
-                $elemMatch: {
-                  billID: deleteSalesReturnItem.bill.id,
-                },
-              },
-            });
-
-            if (!stockIn) {
-              throw Error("Stock in not found");
-            }
-
-            const stockOutIndex = stockIn.stockOut.findIndex(
-              (stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id
-            );
-
-            if (stockOutIndex == -1) {
-              throw Error("Stock out not found");
-            }
-
-            await mongoOverflowModel.create({
-              itemID: deleteSalesReturnItemItemID,
-              quantity: deleteSalesReturnItemItemQuantity,
-              date: new Date(),
               billID: deleteSalesReturnItem.bill.id,
-              billCodeID: deleteSalesReturnItem.bill.bill_code.id,
-              adjustmentCaseID: null,
-              adjustmentCaseCodeID: null,
-              value: stockIn.stockOut[stockOutIndex].value,
             });
 
-            await queue.add("check-overflow", deleteSalesReturnItemItemID);
+            if (overflow) {
+              await mongoOverflowModel.create({
+                itemID: deleteSalesReturnItemItemID,
+                quantity: deleteSalesReturnItemItemQuantity,
+                date: new Date(),
+                billID: deleteSalesReturnItem.bill.id,
+                billCodeID: deleteSalesReturnItem.bill.bill_code.id,
+                adjustmentCaseID: null,
+                adjustmentCaseCodeID: null,
+                value: overflow.value,
+              });
+
+              await queue.add("check-overflow", deleteSalesReturnItemItemID);
+            } else {
+              const stockIn = await mongoStockInModel.findOne({
+                itemID: deleteSalesReturnItemItemID,
+                stockOut: {
+                  $elemMatch: {
+                    billID: deleteSalesReturnItem.bill.id,
+                  },
+                },
+              });
+
+              if (!stockIn) {
+                throw Error("Stock in not found");
+              }
+
+              const stockOutIndex = stockIn.stockOut.findIndex(
+                (stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id
+              );
+
+              if (stockOutIndex == -1) {
+                throw Error("Stock out not found");
+              }
+
+              await mongoOverflowModel.create({
+                itemID: deleteSalesReturnItemItemID,
+                quantity: deleteSalesReturnItemItemQuantity,
+                date: new Date(),
+                billID: deleteSalesReturnItem.bill.id,
+                billCodeID: deleteSalesReturnItem.bill.bill_code.id,
+                adjustmentCaseID: null,
+                adjustmentCaseCodeID: null,
+                value: stockIn.stockOut[stockOutIndex].value,
+              });
+
+              await queue.add("check-overflow", deleteSalesReturnItemItemID);
+            }
           }
         } else {
-          console.log(deleteSalesReturnItem);
           await mongoProductModel.findOneAndUpdate(
             {
               itemID: deleteSalesReturnItem.bill.item.id,

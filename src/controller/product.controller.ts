@@ -183,7 +183,7 @@ class ProductController {
 
         return res.status(200).send({
           data: (products as any[]).map((x) => {
-            const priceIndex = (products as any[]).findIndex(
+            const priceIndex = (prices as any[]).findIndex(
               (item) => item.item_id == x.id && item.item_unit_id == null
             );
 

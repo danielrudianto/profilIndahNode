@@ -163,7 +163,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
             ]);
             return res.status(200).send({
                 data: products.map((x) => {
-                    const priceIndex = products.findIndex((item) => item.item_id == x.id && item.item_unit_id == null);
+                    const priceIndex = prices.findIndex((item) => item.item_id == x.id && item.item_unit_id == null);
                     const stockIndex = productStock.findIndex((item) => item.itemID == x.id);
                     return {
                         id: x.id,

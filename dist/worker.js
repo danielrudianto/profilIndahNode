@@ -923,36 +923,54 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             },
                         });
                         yield queue_helper_1.queue.add("rearange-stock-card", deleteSalesReturnItemID);
-                        const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.findOne({
+                        const overflow = yield mongo_overflow_model_1.mongoOverflowModel.findOne({
                             itemID: deleteSalesReturnItemItemID,
-                            stockOut: {
-                                $elemMatch: {
-                                    billID: deleteSalesReturnItem.bill.id,
-                                },
-                            },
-                        });
-                        if (!stockIn) {
-                            throw Error("Stock in not found");
-                        }
-                        const stockOutIndex = stockIn.stockOut.findIndex((stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id);
-                        if (stockOutIndex == -1) {
-                            throw Error("Stock out not found");
-                        }
-                        yield mongo_overflow_model_1.mongoOverflowModel.create({
-                            itemID: deleteSalesReturnItemItemID,
-                            quantity: deleteSalesReturnItemItemQuantity,
-                            date: new Date(),
                             billID: deleteSalesReturnItem.bill.id,
-                            billCodeID: deleteSalesReturnItem.bill.bill_code.id,
-                            adjustmentCaseID: null,
-                            adjustmentCaseCodeID: null,
-                            value: stockIn.stockOut[stockOutIndex].value,
                         });
-                        yield queue_helper_1.queue.add("check-overflow", deleteSalesReturnItemItemID);
+                        if (overflow) {
+                            yield mongo_overflow_model_1.mongoOverflowModel.create({
+                                itemID: deleteSalesReturnItemItemID,
+                                quantity: deleteSalesReturnItemItemQuantity,
+                                date: new Date(),
+                                billID: deleteSalesReturnItem.bill.id,
+                                billCodeID: deleteSalesReturnItem.bill.bill_code.id,
+                                adjustmentCaseID: null,
+                                adjustmentCaseCodeID: null,
+                                value: overflow.value,
+                            });
+                            yield queue_helper_1.queue.add("check-overflow", deleteSalesReturnItemItemID);
+                        }
+                        else {
+                            const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.findOne({
+                                itemID: deleteSalesReturnItemItemID,
+                                stockOut: {
+                                    $elemMatch: {
+                                        billID: deleteSalesReturnItem.bill.id,
+                                    },
+                                },
+                            });
+                            if (!stockIn) {
+                                throw Error("Stock in not found");
+                            }
+                            const stockOutIndex = stockIn.stockOut.findIndex((stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id);
+                            if (stockOutIndex == -1) {
+                                throw Error("Stock out not found");
+                            }
+                            yield mongo_overflow_model_1.mongoOverflowModel.create({
+                                itemID: deleteSalesReturnItemItemID,
+                                quantity: deleteSalesReturnItemItemQuantity,
+                                date: new Date(),
+                                billID: deleteSalesReturnItem.bill.id,
+                                billCodeID: deleteSalesReturnItem.bill.bill_code.id,
+                                adjustmentCaseID: null,
+                                adjustmentCaseCodeID: null,
+                                value: stockIn.stockOut[stockOutIndex].value,
+                            });
+                            yield queue_helper_1.queue.add("check-overflow", deleteSalesReturnItemItemID);
+                        }
                     }
                 }
                 else {
-                    console.log(deleteSalesReturnItem);
                     yield mongo_product_model_1.mongoProductModel.findOneAndUpdate({
                         itemID: deleteSalesReturnItem.bill.item.id,
                     }, {
