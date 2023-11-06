@@ -120,22 +120,20 @@ class SearchHelper {
         await meili.index("item").deleteAllDocuments();
         ItemModel.fetchAll(new Date())
           .then(async (items) => {
-            for (let i = 0; i < items.length; i++) {
-              const result = await meili.index("item").addDocuments([
-                {
-                  id: items[i].id,
-                  reference: items[i].reference,
-                  description: items[i].description,
-                  brand: items[i].item_brand.name,
-                  type: items[i].item_type.name,
-                  itemBrandID: items[i].item_brand_id,
-                  itemTypeID: items[i].item_type_id,
-                  is_active: items[i].is_active ? 1 : 0,
-                },
-              ]);
-
-              console.log(result);
-            }
+            await meili.index("item").addDocuments([
+              items.map((x) => {
+                return {
+                  id: x.id,
+                  reference: x.reference,
+                  description: x.description,
+                  brand: x.item_brand.name,
+                  type: x.item_type.name,
+                  itemBrandID: x.item_brand_id,
+                  itemTypeID: x.item_type_id,
+                  is_active: x.is_active ? 1 : 0,
+                };
+              }),
+            ]);
 
             return res.status(200).send({
               message: "Sync product success",

@@ -173,7 +173,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                         stock: stockIndex == -1 ? 0 : productStock[stockIndex].currentStock,
                         price: priceIndex == -1 ? 0 : prices[priceIndex].price,
                         discount: priceIndex == -1 ? 0 : prices[priceIndex].discount,
-                        unit_price: products
+                        unit_price: prices
                             .filter((item) => item.item_id == x.id && item.item_unit_id != null)
                             .map((unit) => {
                             return {

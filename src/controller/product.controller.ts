@@ -201,7 +201,7 @@ class ProductController {
               price: priceIndex == -1 ? 0 : (prices as any[])[priceIndex].price,
               discount:
                 priceIndex == -1 ? 0 : (prices as any[])[priceIndex].discount,
-              unit_price: (products as any[])
+              unit_price: (prices as any[])
                 .filter(
                   (item) => item.item_id == x.id && item.item_unit_id != null
                 )
