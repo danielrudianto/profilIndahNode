@@ -53,6 +53,6 @@ router.post("/sync-customer", (req, _, next) => {
 //   "/sync-product-out-calculation",
 //   SearchHelper.syncProductOutCalculation
 // );
-// router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
+router.post("/arrange-stock-card", search_helper_1.default.arrangeStockCard);
 exports.default = router;
 //# sourceMappingURL=development.routes.js.map

@@ -44,6 +44,6 @@ router.post(
 //   SearchHelper.syncProductOutCalculation
 // );
 
-// router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
+router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
 
 export default router;

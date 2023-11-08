@@ -908,7 +908,10 @@ const workerHandler = async (job: Job<any>) => {
 
             updateProduct.currentStock += createSalesReturnItemQuantityEdit;
             await updateProduct.save();
-            await queue.add("rearange-stock-card", updateProduct.itemID);
+            await queue.add(
+              "rearange-stock-card",
+              createSalesReturnBill.package_code.package_content[n].item.id
+            );
 
             while (createSalesReturnItemQuantityEdit > 0) {
               if (createSalesReturnItemQuantityEdit == 0) {
@@ -1004,6 +1007,8 @@ const workerHandler = async (job: Job<any>) => {
               ? 1
               : createSalesReturnBill.item_unit.conversion);
           await updateProduct.save();
+
+          await queue.add("rearange-stock-card", createSalesReturnBill.item.id);
 
           let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
           while (createSalesReturnItemQuantityEdit > 0) {

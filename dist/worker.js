@@ -742,7 +742,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         });
                         updateProduct.currentStock += createSalesReturnItemQuantityEdit;
                         yield updateProduct.save();
-                        yield queue_helper_1.queue.add("rearange-stock-card", updateProduct.itemID);
+                        yield queue_helper_1.queue.add("rearange-stock-card", createSalesReturnBill.package_code.package_content[n].item.id);
                         while (createSalesReturnItemQuantityEdit > 0) {
                             if (createSalesReturnItemQuantityEdit == 0) {
                                 break;
@@ -823,6 +823,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                 ? 1
                                 : createSalesReturnBill.item_unit.conversion);
                     yield updateProduct.save();
+                    yield queue_helper_1.queue.add("rearange-stock-card", createSalesReturnBill.item.id);
                     let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
                     while (createSalesReturnItemQuantityEdit > 0) {
                         console.log(`Current quantity: ${createSalesReturnItemQuantityEdit}`);
