@@ -298,27 +298,206 @@ class ProductController {
           });
         break;
       default:
-        meili
-          .index("item")
-          .search(keyword, {
-            limit: limit,
-            offset: offset,
-          })
-          .then((result) => {
-            ItemModel.fetchByIDs(result.hits.map((x: any) => x.id)).then(
-              (items) => {
-                return res.status(200).send({
-                  data: items.map((x) => {
-                    return {
-                      ...x,
-                      can_delete: x.can_delete == "1" ? true : false,
-                    };
-                  }),
-                  count: result.estimatedTotalHits,
-                });
-              }
-            );
-          });
+        // First we need to sanitize the input before entering RegExp
+        // Such as changing " to \" and etc
+
+        const [defaultResult, defaultCount] = await Promise.all([
+          mongoProductModel
+            .find({
+              $or: [
+                {
+                  reference: {
+                    $regex: RegExp(
+                      keyword
+                        .replace(/\\/g, "\\\\")
+                        .replace(/\^/g, "\\^")
+                        .replace(/\$/g, "\\$")
+                        .replace(/\*/g, "\\*")
+                        .replace(/\+/g, "\\+")
+                        .replace(/\?/g, "\\?")
+                        .replace(/\./g, "\\.")
+                        .replace(/\(/g, "\\(")
+                        .replace(/\)/g, "\\)")
+                        .replace(/\[/g, "\\[")
+                        .replace(/\]/g, "\\]")
+                        .replace(/\{/g, "\\{")
+                        .replace(/\}/g, "\\}")
+                        .replace(/\,/g, "\\,")
+                        .replace(/\=/g, "\\=")
+                        .replace(/\!/g, "\\!")
+                        .replace(/\:/g, "\\:")
+                        .replace(/\//g, "\\/")
+                        .replace(/\'/g, "\\'")
+                        .replace(/\"/g, '\\"')
+                        .replace(/\-/g, "\\-")
+                        .replace(/\_/g, "\\_")
+                        .replace(/\#/g, "\\#")
+                        .replace(/\@/g, "\\@")
+                        .replace(/\%/g, "\\%")
+                        .replace(/\&/g, "\\&")
+                        .replace(/\|/g, "\\|")
+                        .replace(/\~/g, "\\~")
+                        .replace(/\`/g, "\\`")
+                        .replace(/\s{2,}/g, " "),
+                      "i"
+                    ),
+                  },
+                },
+                {
+                  description: {
+                    $regex: RegExp(
+                      keyword
+                        .replace(/\\/g, "\\\\")
+                        .replace(/\^/g, "\\^")
+                        .replace(/\$/g, "\\$")
+                        .replace(/\*/g, "\\*")
+                        .replace(/\+/g, "\\+")
+                        .replace(/\?/g, "\\?")
+                        .replace(/\./g, "\\.")
+                        .replace(/\(/g, "\\(")
+                        .replace(/\)/g, "\\)")
+                        .replace(/\[/g, "\\[")
+                        .replace(/\]/g, "\\]")
+                        .replace(/\{/g, "\\{")
+                        .replace(/\}/g, "\\}")
+                        .replace(/\,/g, "\\,")
+                        .replace(/\=/g, "\\=")
+                        .replace(/\!/g, "\\!")
+                        .replace(/\:/g, "\\:")
+                        .replace(/\//g, "\\/")
+                        .replace(/\'/g, "\\'")
+                        .replace(/\"/g, '\\"')
+                        .replace(/\-/g, "\\-")
+                        .replace(/\_/g, "\\_")
+                        .replace(/\#/g, "\\#")
+                        .replace(/\@/g, "\\@")
+                        .replace(/\%/g, "\\%")
+                        .replace(/\&/g, "\\&")
+                        .replace(/\|/g, "\\|")
+                        .replace(/\~/g, "\\~")
+                        .replace(/\`/g, "\\`")
+                        .replace(/\s{2,}/g, " "),
+                      "i"
+                    ),
+                  },
+                },
+              ],
+            })
+            .sort({
+              reference: 1,
+            })
+            .select("itemID")
+            .limit(limit)
+            .skip(offset),
+          mongoProductModel.countDocuments({
+            $or: [
+              {
+                reference: {
+                  $regex: RegExp(
+                    keyword
+                      .replace(/\\/g, "\\\\")
+                      .replace(/\^/g, "\\^")
+                      .replace(/\$/g, "\\$")
+                      .replace(/\*/g, "\\*")
+                      .replace(/\+/g, "\\+")
+                      .replace(/\?/g, "\\?")
+                      .replace(/\./g, "\\.")
+                      .replace(/\(/g, "\\(")
+                      .replace(/\)/g, "\\)")
+                      .replace(/\[/g, "\\[")
+                      .replace(/\]/g, "\\]")
+                      .replace(/\{/g, "\\{")
+                      .replace(/\}/g, "\\}")
+                      .replace(/\,/g, "\\,")
+                      .replace(/\=/g, "\\=")
+                      .replace(/\!/g, "\\!")
+                      .replace(/\:/g, "\\:")
+                      .replace(/\//g, "\\/")
+                      .replace(/\'/g, "\\'")
+                      .replace(/\"/g, '\\"')
+                      .replace(/\-/g, "\\-")
+                      .replace(/\_/g, "\\_")
+                      .replace(/\#/g, "\\#")
+                      .replace(/\@/g, "\\@")
+                      .replace(/\%/g, "\\%")
+                      .replace(/\&/g, "\\&")
+                      .replace(/\|/g, "\\|")
+                      .replace(/\~/g, "\\~")
+                      .replace(/\`/g, "\\`")
+                      .replace(/\s{2,}/g, " "),
+                    "i"
+                  ),
+                },
+              },
+              {
+                description: {
+                  $regex: RegExp(
+                    keyword
+                      .replace(/\\/g, "\\\\")
+                      .replace(/\^/g, "\\^")
+                      .replace(/\$/g, "\\$")
+                      .replace(/\*/g, "\\*")
+                      .replace(/\+/g, "\\+")
+                      .replace(/\?/g, "\\?")
+                      .replace(/\./g, "\\.")
+                      .replace(/\(/g, "\\(")
+                      .replace(/\)/g, "\\)")
+                      .replace(/\[/g, "\\[")
+                      .replace(/\]/g, "\\]")
+                      .replace(/\{/g, "\\{")
+                      .replace(/\}/g, "\\}")
+                      .replace(/\,/g, "\\,")
+                      .replace(/\=/g, "\\=")
+                      .replace(/\!/g, "\\!")
+                      .replace(/\:/g, "\\:")
+                      .replace(/\//g, "\\/")
+                      .replace(/\'/g, "\\'")
+                      .replace(/\"/g, '\\"')
+                      .replace(/\-/g, "\\-")
+                      .replace(/\_/g, "\\_")
+                      .replace(/\#/g, "\\#")
+                      .replace(/\@/g, "\\@")
+                      .replace(/\%/g, "\\%")
+                      .replace(/\&/g, "\\&")
+                      .replace(/\|/g, "\\|")
+                      .replace(/\~/g, "\\~")
+                      .replace(/\`/g, "\\`")
+                      .replace(/\s{2,}/g, " "),
+                    "i"
+                  ),
+                },
+              },
+            ],
+          }),
+        ]);
+
+        ItemModel.fetchByIDs(defaultResult.map((x: any) => x.itemID)).then(
+          (items) => {
+            return res.status(200).send({
+              data: defaultResult
+                .filter((x) => {
+                  // Check if exist in items
+                  const itemIndex = items.findIndex(
+                    (item) => item.id == x.itemID
+                  );
+
+                  return itemIndex != -1;
+                })
+                .map((x) => {
+                  const itemIndex = items.findIndex(
+                    (item) => item.id == x.itemID
+                  );
+
+                  return {
+                    ...items[itemIndex],
+                    can_delete:
+                      items[itemIndex].can_delete == "1" ? true : false,
+                  };
+                }),
+              count: defaultCount,
+            });
+          }
+        );
         break;
     }
   };
