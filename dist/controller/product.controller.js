@@ -110,6 +110,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                             id: x.id,
                             reference: x.reference,
                             description: x.description,
+                            brand: x.item_brand.name,
                             unit: x.unit,
                             price: x.item_price_purchase == null ||
                                 x.item_price_purchase.length == 0
@@ -169,6 +170,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                         id: x.id,
                         reference: x.reference,
                         description: x.description,
+                        brand: x.brand,
                         unit: x.unit,
                         stock: stockIndex == -1 ? 0 : productStock[stockIndex].currentStock,
                         price: priceIndex == -1 ? 0 : prices[priceIndex].price,
@@ -198,6 +200,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                             id: x.id,
                             reference: x.reference,
                             description: x.description,
+                            brand: x.item_brand_name,
                             minimum_stock: x.minimum_stock,
                             unit: x.unit,
                             item_type_id: x.item_type_id,
@@ -237,6 +240,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                             id: x.id,
                             reference: x.reference,
                             description: x.description,
+                            brand: x.item_brand_name,
                             minimum_stock: x.minimum_stock,
                             unit: x.unit,
                             item_type_id: x.item_type_id,

@@ -119,6 +119,7 @@ class ProductController {
                   id: x.id,
                   reference: x.reference,
                   description: x.description,
+                  brand: x.item_brand.name,
                   unit: x.unit,
                   price:
                     x.item_price_purchase == null ||
@@ -195,6 +196,7 @@ class ProductController {
               id: x.id,
               reference: x.reference,
               description: x.description,
+              brand: x.brand,
               unit: x.unit,
               stock:
                 stockIndex == -1 ? 0 : productStock[stockIndex].currentStock,
@@ -228,6 +230,7 @@ class ProductController {
                   id: x.id,
                   reference: x.reference,
                   description: x.description,
+                  brand: x.item_brand_name,
                   minimum_stock: x.minimum_stock,
                   unit: x.unit,
                   item_type_id: x.item_type_id,
@@ -267,6 +270,7 @@ class ProductController {
                   id: x.id,
                   reference: x.reference,
                   description: x.description,
+                  brand: x.item_brand_name,
                   minimum_stock: x.minimum_stock,
                   unit: x.unit,
                   item_type_id: x.item_type_id,

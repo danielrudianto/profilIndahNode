@@ -510,6 +510,11 @@ class ItemModel {
                             reference: true,
                             description: true,
                             unit: true,
+                            item_brand: {
+                                select: {
+                                    name: true,
+                                },
+                            },
                             item_unit: {
                                 select: {
                                     unit: true,
@@ -602,8 +607,10 @@ class ItemModel {
               GROUP BY item_id, item_unit_id
             `,
                         prisma.$queryRaw `
-              SELECT item.id, item.reference, item.description, item.unit
+              SELECT item.id, item.reference, item.description, 
+              item.unit, item_brand.name AS brand
               FROM item
+              JOIN item_brand ON item.item_brand_id = item_brand.id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               ORDER BY item.reference ASC
@@ -639,8 +646,10 @@ class ItemModel {
               GROUP BY item_id, item_unit_id
             `),
                         prisma.$queryRawUnsafe(`
-              SELECT item.id, item.reference, item.description, item.unit
+              SELECT item.id, item.reference, item.description, 
+              item.unit, item_brand.name AS brand
               FROM item
+              JOIN item_brand ON item.item_brand_id = item_brand.id
               WHERE item.is_delete = 0
               AND item.is_active = 1
               AND (item.reference LIKE '%${keyword}%' OR item.description LIKE '%${keyword}%')
@@ -668,7 +677,6 @@ class ItemModel {
                         }),
                     ]);
                 }
-                break;
             case 4:
                 if (keyword == "") {
                     return prisma.$transaction([
