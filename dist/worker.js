@@ -220,7 +220,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         salesReturnCodeID: null,
                     });
                     yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearrage-stock-card", updateProduct.itemID);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", updateProduct.itemID);
                 }
                 if (createAdjustmentEventItemQuantity > 0) {
                     // insert to stock card
@@ -325,7 +325,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         updateProduct.stockCard.splice(stockCardIndex, 1);
                     }
                     yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearrage-stock-card", updateProduct.itemID);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", updateProduct.itemID);
                 }
                 if (quantity > 0) {
                     // Found event
@@ -434,7 +434,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         salesReturnCodeID: null,
                     });
                     yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearrage-stock-card", createGoodReceiptItemID);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", createGoodReceiptItemID);
                 }
                 yield mongo_stock_in_model_1.mongoStockInModel.create({
                     companyID: createGoodReceiptCompanyID,
@@ -509,7 +509,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         salesReturnCodeID: null,
                     });
                     yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearrage-stock-card", updateProduct.itemID);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", updateProduct.itemID);
                 }
                 yield mongo_stock_in_model_1.mongoStockInModel.create({
                     companyID: createPurchaseInvoiceCompanyID,
@@ -586,7 +586,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         updateProduct.stockCard.splice(stockCardIndex, 1);
                     }
                     yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearrage-stock-card", deletePurchaseInvoiceItemID);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", deletePurchaseInvoiceItemID);
                 }
                 const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.findOne({
                     goodReceiptID: deletePurchaseInvoiceGoodReceiptID,
@@ -672,7 +672,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         salesReturnCodeID: null,
                     });
                     yield updateProduct.save();
-                    queue_helper_1.queue.add("rearrage-stock-card", updatePurchaseInvoiceGoodReceiptItemID);
+                    queue_helper_1.queue.add("rearrange-stock-card", updatePurchaseInvoiceGoodReceiptItemID);
                 }
                 yield mongo_stock_in_model_1.mongoStockInModel.create({
                     companyID: updatePurchaseInvoiceCompanyID,
@@ -742,7 +742,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         });
                         updateProduct.currentStock += createSalesReturnItemQuantityEdit;
                         yield updateProduct.save();
-                        yield queue_helper_1.queue.add("rearange-stock-card", createSalesReturnBill.package_code.package_content[n].item.id);
+                        yield queue_helper_1.queue.add("rearrange-stock-card", createSalesReturnBill.package_code.package_content[n].item.id);
                         while (createSalesReturnItemQuantityEdit > 0) {
                             if (createSalesReturnItemQuantityEdit == 0) {
                                 break;
@@ -823,7 +823,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                 ? 1
                                 : createSalesReturnBill.item_unit.conversion);
                     yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearange-stock-card", createSalesReturnBill.item.id);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", createSalesReturnBill.item.id);
                     let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
                     while (createSalesReturnItemQuantityEdit > 0) {
                         console.log(`Current quantity: ${createSalesReturnItemQuantityEdit}`);
@@ -923,7 +923,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                 currentStock: deleteSalesReturnItemItemQuantity * -1,
                             },
                         });
-                        yield queue_helper_1.queue.add("rearange-stock-card", deleteSalesReturnItemID);
+                        yield queue_helper_1.queue.add("rearrange-stock-card", deleteSalesReturnItemID);
                         const overflow = yield mongo_overflow_model_1.mongoOverflowModel.findOne({
                             itemID: deleteSalesReturnItemItemID,
                             billID: deleteSalesReturnItem.bill.id,
@@ -984,7 +984,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             currentStock: deleteSalesReturnItemQuantity * -1,
                         },
                     });
-                    yield queue_helper_1.queue.add("rearange-stock-card", deleteSalesReturnItem.bill.item.id);
+                    yield queue_helper_1.queue.add("rearrange-stock-card", deleteSalesReturnItem.bill.item.id);
                     const stockIn = yield mongo_stock_in_model_1.mongoStockInModel.findOne({
                         itemID: deleteSalesReturnItem.bill.item.id,
                         stockOut: {
@@ -1107,7 +1107,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                 adjustmentCaseCodeID: null,
                                 itemID: createSalesInvoiceItemItemID,
                             });
-                            yield queue_helper_1.queue.add("rearrage-stock-card", createSalesInvoiceItemItemID);
+                            yield queue_helper_1.queue.add("rearrange-stock-card", createSalesInvoiceItemItemID);
                         }
                     }
                 }
@@ -1165,7 +1165,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                             adjustmentCaseCodeID: null,
                             itemID: createSalesInvoiceItemItemID,
                         });
-                        yield queue_helper_1.queue.add("rearrage-stock-card", createSalesInvoiceItemItemID);
+                        yield queue_helper_1.queue.add("rearrange-stock-card", createSalesInvoiceItemItemID);
                     }
                 }
             }
@@ -1318,10 +1318,10 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 }
             }
             break;
-        case "rearrage-stock-card":
+        case "rearrange-stock-card":
             // Check if queue has a similar job
             queue_helper_1.queue.getDelayed().then((jobs) => __awaiter(void 0, void 0, void 0, function* () {
-                const jobIndex = jobs.findIndex((job) => job.name == "rearrage-stock-card" && job.data == job.data);
+                const jobIndex = jobs.findIndex((job) => job.name == "rearrange-stock-card" && job.data == job.data);
                 if (jobIndex != -1) {
                     jobs[jobIndex].remove();
                 }

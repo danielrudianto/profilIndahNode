@@ -239,7 +239,7 @@ const workerHandler = async (job: Job<any>) => {
           });
 
           await updateProduct.save();
-          await queue.add("rearrage-stock-card", updateProduct.itemID);
+          await queue.add("rearrange-stock-card", updateProduct.itemID);
         }
 
         if (createAdjustmentEventItemQuantity > 0) {
@@ -356,7 +356,7 @@ const workerHandler = async (job: Job<any>) => {
           }
 
           await updateProduct.save();
-          await queue.add("rearrage-stock-card", updateProduct.itemID);
+          await queue.add("rearrange-stock-card", updateProduct.itemID);
         }
 
         if (quantity > 0) {
@@ -487,7 +487,7 @@ const workerHandler = async (job: Job<any>) => {
           });
 
           await updateProduct.save();
-          await queue.add("rearrage-stock-card", createGoodReceiptItemID);
+          await queue.add("rearrange-stock-card", createGoodReceiptItemID);
         }
 
         await mongoStockInModel.create({
@@ -589,7 +589,7 @@ const workerHandler = async (job: Job<any>) => {
           });
 
           await updateProduct.save();
-          await queue.add("rearrage-stock-card", updateProduct.itemID);
+          await queue.add("rearrange-stock-card", updateProduct.itemID);
         }
 
         await mongoStockInModel.create({
@@ -695,7 +695,7 @@ const workerHandler = async (job: Job<any>) => {
           }
 
           await updateProduct.save();
-          await queue.add("rearrage-stock-card", deletePurchaseInvoiceItemID);
+          await queue.add("rearrange-stock-card", deletePurchaseInvoiceItemID);
         }
 
         const stockIn = await mongoStockInModel.findOne({
@@ -810,7 +810,7 @@ const workerHandler = async (job: Job<any>) => {
 
           await updateProduct.save();
           queue.add(
-            "rearrage-stock-card",
+            "rearrange-stock-card",
             updatePurchaseInvoiceGoodReceiptItemID
           );
         }
@@ -909,7 +909,7 @@ const workerHandler = async (job: Job<any>) => {
             updateProduct.currentStock += createSalesReturnItemQuantityEdit;
             await updateProduct.save();
             await queue.add(
-              "rearange-stock-card",
+              "rearrange-stock-card",
               createSalesReturnBill.package_code.package_content[n].item.id
             );
 
@@ -1008,7 +1008,7 @@ const workerHandler = async (job: Job<any>) => {
               : createSalesReturnBill.item_unit.conversion);
           await updateProduct.save();
 
-          await queue.add("rearange-stock-card", createSalesReturnBill.item.id);
+          await queue.add("rearrange-stock-card", createSalesReturnBill.item.id);
 
           let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
           while (createSalesReturnItemQuantityEdit > 0) {
@@ -1144,7 +1144,7 @@ const workerHandler = async (job: Job<any>) => {
               }
             );
 
-            await queue.add("rearange-stock-card", deleteSalesReturnItemID);
+            await queue.add("rearrange-stock-card", deleteSalesReturnItemID);
 
             const overflow = await mongoOverflowModel.findOne({
               itemID: deleteSalesReturnItemItemID,
@@ -1218,7 +1218,7 @@ const workerHandler = async (job: Job<any>) => {
           );
 
           await queue.add(
-            "rearange-stock-card",
+            "rearrange-stock-card",
             deleteSalesReturnItem.bill.item.id
           );
 
@@ -1387,7 +1387,7 @@ const workerHandler = async (job: Job<any>) => {
               });
 
               await queue.add(
-                "rearrage-stock-card",
+                "rearrange-stock-card",
                 createSalesInvoiceItemItemID
               );
             }
@@ -1461,7 +1461,7 @@ const workerHandler = async (job: Job<any>) => {
             });
 
             await queue.add(
-              "rearrage-stock-card",
+              "rearrange-stock-card",
               createSalesInvoiceItemItemID
             );
           }
@@ -1656,11 +1656,11 @@ const workerHandler = async (job: Job<any>) => {
         }
       }
       break;
-    case "rearrage-stock-card":
+    case "rearrange-stock-card":
       // Check if queue has a similar job
       queue.getDelayed().then(async (jobs) => {
         const jobIndex = jobs.findIndex(
-          (job) => job.name == "rearrage-stock-card" && job.data == job.data
+          (job) => job.name == "rearrange-stock-card" && job.data == job.data
         );
 
         if (jobIndex != -1) {
