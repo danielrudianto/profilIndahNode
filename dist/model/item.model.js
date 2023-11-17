@@ -1817,6 +1817,7 @@ class ItemModel {
                 item_brand_id: true,
                 item_type_id: true,
                 is_active: true,
+                minimum_stock: true,
                 item_brand: {
                     select: {
                         name: true,

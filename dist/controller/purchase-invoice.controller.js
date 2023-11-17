@@ -485,5 +485,39 @@ PurchaseInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, v
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 });
+/**
+ * Fetch purchase invoice dashboard
+ * @param req
+ * @param res
+ */
+PurchaseInvoiceController.fetchDashboard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // 1 Fetch today's sales
+    // 2 Fetch this month's sales
+    // 3 Fetch yesterday's sales
+    // 4 Fetch last month's sales
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    Promise.all([
+        purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+        purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate() - 1),
+        purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, null),
+        purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), null),
+        purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), -today.getDate()),
+    ])
+        .then(([purchase1, purchase2, purchase3, purchase4, purchase5]) => {
+        return res.status(200).send({
+            today: purchase1[0].value == null ? 0 : parseFloat(purchase1[0].value),
+            yesterday: purchase2[0].value == null ? 0 : parseFloat(purchase2[0].value),
+            thisMonth: purchase3[0].value == null ? 0 : parseFloat(purchase3[0].value),
+            lastMonth: purchase4[0].value == null ? 0 : parseFloat(purchase4[0].value),
+            monthOnMonth: purchase5[0].value == null ? 0 : parseFloat(purchase5[0].value),
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching sales data. ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+});
 exports.default = PurchaseInvoiceController;
 //# sourceMappingURL=purchase-invoice.controller.js.map

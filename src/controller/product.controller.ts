@@ -68,6 +68,7 @@ class ProductController {
           unit: item.unit,
           itemBrand: item.item_brand.name,
           itemType: item.item_type.name,
+          minimumStock: item.minimum_stock,
         });
 
         await ProductStockModel.createStockData(item.id);
@@ -698,6 +699,7 @@ class ProductController {
           unit: unit,
           item_type_id: type,
           item_brand_id: brand,
+          minimumStock: minimum_stock,
         }),
       ])
         .then(([updateItemResult, _, __]) => {

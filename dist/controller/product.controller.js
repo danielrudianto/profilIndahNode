@@ -72,6 +72,7 @@ ProductController.create = (req, res) => __awaiter(void 0, void 0, void 0, funct
             unit: item.unit,
             itemBrand: item.item_brand.name,
             itemType: item.item_type.name,
+            minimumStock: item.minimum_stock,
         });
         yield product_stock_model_1.default.createStockData(item.id);
         const response = Object.assign(Object.assign({}, item), { item_price: item.item_price[0], item_price_purchase: item.item_price_purchase[0], units: unitResult });
@@ -610,6 +611,7 @@ ProductController.updateByID = (req, res) => {
                 unit: unit,
                 item_type_id: type,
                 item_brand_id: brand,
+                minimumStock: minimum_stock,
             }),
         ])
             .then(([updateItemResult, _, __]) => {

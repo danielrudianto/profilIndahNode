@@ -21,7 +21,6 @@ router.post("/purchase/download", (0, express_validator_1.body)("month")
     .isNumeric()
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("year").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.downloadPurchaseReport);
 router.get("/profitloss/:month/:year/:report", auth_helper_1.administratorMiddleware, report_controller_1.default.fetchPLStats);
-router.get("/quickStats", report_controller_1.default.fetchQuickStats);
 router.post("/sales", report_controller_1.default.fetchSalesReport);
 router.post("/product-stock-problem", report_controller_1.default.fetchProductStockProblem);
 router.get("/inventory/download", report_controller_1.default.downloadInventoryReport);

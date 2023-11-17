@@ -20,12 +20,12 @@ const mongo_overflow_model_1 = require("./mongo-model/mongo-overflow.model");
 const mongo_product_model_1 = require("./mongo-model/mongo-product.model");
 const mongo_stock_in_model_1 = require("./mongo-model/mongo-stock-in.model");
 const meili = new meilisearch_1.default({
-    host: "http://localhost:7700",
+    host: "http://127.0.0.1:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
 const workerOptions = {
     connection: {
-        host: "localhost",
+        host: "127.0.0.1",
         port: 6379,
     },
     concurrency: 1,
@@ -52,6 +52,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             const insertProductType = job.data.itemType;
             const insertProductItemTypeID = job.data.itemTypeID;
             const insertProductItemBrandID = job.data.itemBrandID;
+            const insertProductMinimumStock = job.data.minimumStock;
             yield mongo_product_model_1.mongoProductModel.create({
                 reference: insertProductRreference,
                 description: insertProductDescription,
@@ -60,6 +61,8 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 currentStock: 0,
                 itemTypeID: insertProductItemTypeID,
                 itemBrandID: insertProductItemBrandID,
+                minimumStock: insertProductMinimumStock,
+                calculatedMinimumStock: 0,
             });
             yield meili.index("item").addDocuments([
                 {
@@ -538,7 +541,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 return a + (b.price - b.discount) * b.quantity;
             }, 0);
             const confirmPurchaseInvoiceNet = confirmPurchaseInvoiceTotal - confirmPurchaseInvoiceDiscount;
-            console.log(confirmPurchaseInvoiceNet);
             // Distribute discount to each item
             for (let i = 0; i < confirmPurchaseInvoiceGoodReceipts.length; i++) {
                 const confirmPurchaseInvoiceGoodReceipt = confirmPurchaseInvoiceGoodReceipts[i];
@@ -565,7 +567,8 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             }
             break;
         case "delete-purchase-invoice":
-            const deletePurchaseInvoiceItems = job.data.good_receipt;
+            const deletePurchaseInvoiceItems = job.data.good_receipt_code
+                .good_receipt;
             for (let i = 0; i < deletePurchaseInvoiceItems.length; i++) {
                 const deletePurchaseInvoiceGoodReceiptID = deletePurchaseInvoiceItems[i].id;
                 const deletePurchaseInvoiceItemID = deletePurchaseInvoiceItems[i].item.id;
@@ -631,6 +634,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             // Distribute discount to each item
             for (let i = 0; i < updatePurchaseInvoiceGoodReceipts.length; i++) {
                 const updatePurchaseInvoiceGoodReceipt = updatePurchaseInvoiceGoodReceipts[i];
+                console.log(updatePurchaseInvoiceGoodReceipt);
                 const updatePurchaseInvoiceGoodReceiptPrice = parseFloat(updatePurchaseInvoiceGoodReceipt.price.toString());
                 const updatePurchaseInvoiceGoodReceiptDiscount = parseFloat(updatePurchaseInvoiceGoodReceipt.discount.toString());
                 const updatePurchaseInvoiceGoodReceiptUnit = updatePurchaseInvoiceGoodReceipt.item_unit == null

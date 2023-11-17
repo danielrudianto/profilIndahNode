@@ -266,6 +266,7 @@ class PurchaseInvoiceModel {
                                         id: true,
                                         reference: true,
                                         description: true,
+                                        unit: true,
                                     },
                                 },
                                 item_unit: {
@@ -858,6 +859,24 @@ class PurchaseInvoiceModel {
             prisma.$queryRawUnsafe(`${query} ${conditionalQueries} ORDER BY purchase_invoice.date DESC LIMIT 10 OFFSET ${(page - 1) * 10}`),
             prisma.$queryRawUnsafe(`SELECT COUNT(purchase_invoice.id) AS count FROM purchase_invoice JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id ${conditionalQueries}`),
         ]);
+    }
+    static fetchByDate(year, month, day) {
+        return prisma.$queryRawUnsafe(`
+      SELECT (a.value - a.discount) AS value 
+      FROM (
+        SELECT SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value, purchase_invoice.discount
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+        WHERE purchase_invoice.is_confirm = 1
+        AND purchase_invoice.is_delete = 0
+        AND YEAR(good_receipt_code.date) = ${year} AND MONTH(good_receipt_code.date) = ${month}
+        ${day == null
+            ? ""
+            : day < 0
+                ? "AND DAY(purchase_invoice.date) <= " + Math.abs(day)
+                : "AND DAY(purchase_invoice.date) = " + day}
+      ) AS a`);
     }
 }
 exports.default = PurchaseInvoiceModel;

@@ -35,6 +35,16 @@ const productSchema = new Schema({
     type: [stockCardSchema],
     default: [],
   },
+  minimumStock: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
+  calculatedMinimumStock: {
+    type: Number,
+    required: true,
+    default: 0,
+  },
 });
 
 export const mongoProductModel = model("products", productSchema);

@@ -332,6 +332,60 @@ class SalesInvoiceController {
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
+
+  /**
+   * Fetch dashboard data
+   * @param req
+   * @param res
+   */
+  static fetchDashboard = async (req: Request, res: Response) => {
+    // 1 Fetch today's sales
+    // 2 Fetch this month's sales
+    // 3 Fetch yesterday's sales
+    // 4 Fetch last month's sales
+
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    Promise.all([
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate()
+      ),
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate() - 1
+      ),
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        null
+      ),
+      BillCodeModel.fetchByDate(today.getFullYear(), today.getMonth(), null),
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth(),
+        -today.getDate()
+      ),
+    ])
+      .then(([sales1, sales2, sales3, sales4, sales5]: any[]) => {
+        return res.status(200).send({
+          today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
+          yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
+          thisMonth: sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
+          lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
+          monthOnMonth:
+            sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+        });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching sales data. ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
 }
 
 export default SalesInvoiceController;

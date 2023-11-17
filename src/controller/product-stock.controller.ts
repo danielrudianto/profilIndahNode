@@ -3,7 +3,7 @@ import ErrorList from "../assets/error_list";
 import StockCardHelper from "../helper/stock_card.helper";
 import { ItemModel } from "../model/item.model";
 import ProductStockModel from "../model/product-stock.model";
-import { meili } from "../app";
+import { meili, prisma } from "../app";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 
 class ProductStockController {
@@ -63,6 +63,25 @@ class ProductStockController {
         });
         break;
       case "plain":
+      case "dashboard":
+        mongoProductModel
+          .countDocuments({
+            $expr: {
+              $lt: ["$currentStock", "$minimumStock"],
+            },
+          })
+          .then((result) => {
+            return res.status(200).send({
+              count: result,
+            });
+          })
+          .catch((error) => {
+            console.error(
+              `[error]: Error while fetching product stock. ${error}`
+            );
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+        break;
       default:
         meili
           .index("item")

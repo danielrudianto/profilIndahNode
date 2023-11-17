@@ -294,5 +294,39 @@ SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 });
+/**
+ * Fetch dashboard data
+ * @param req
+ * @param res
+ */
+SalesInvoiceController.fetchDashboard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // 1 Fetch today's sales
+    // 2 Fetch this month's sales
+    // 3 Fetch yesterday's sales
+    // 4 Fetch last month's sales
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    Promise.all([
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate() - 1),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, null),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), null),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), -today.getDate()),
+    ])
+        .then(([sales1, sales2, sales3, sales4, sales5]) => {
+        return res.status(200).send({
+            today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
+            yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
+            thisMonth: sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
+            lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
+            monthOnMonth: sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching sales data. ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+});
 exports.default = SalesInvoiceController;
 //# sourceMappingURL=sales-invoice.controller.js.map

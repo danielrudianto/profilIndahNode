@@ -37,6 +37,16 @@ const productSchema = new mongoose_1.Schema({
         type: [mongo_stock_card_model_1.stockCardSchema],
         default: [],
     },
+    minimumStock: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
+    calculatedMinimumStock: {
+        type: Number,
+        required: true,
+        default: 0,
+    },
 });
 exports.mongoProductModel = (0, mongoose_1.model)("products", productSchema);
 //# sourceMappingURL=mongo-product.model.js.map

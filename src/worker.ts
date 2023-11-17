@@ -7,13 +7,13 @@ import { mongoProductModel } from "./mongo-model/mongo-product.model";
 import { mongoStockInModel } from "./mongo-model/mongo-stock-in.model";
 
 const meili = new MeiliSearch({
-  host: "http://localhost:7700",
+  host: "http://127.0.0.1:7700",
   apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
 
 const workerOptions = {
   connection: {
-    host: "localhost",
+    host: "127.0.0.1",
     port: 6379,
   },
   concurrency: 1,
@@ -41,6 +41,7 @@ const workerHandler = async (job: Job<any>) => {
       const insertProductType = job.data.itemType;
       const insertProductItemTypeID = job.data.itemTypeID;
       const insertProductItemBrandID = job.data.itemBrandID;
+      const insertProductMinimumStock = job.data.minimumStock;
 
       await mongoProductModel.create({
         reference: insertProductRreference,
@@ -50,6 +51,8 @@ const workerHandler = async (job: Job<any>) => {
         currentStock: 0,
         itemTypeID: insertProductItemTypeID,
         itemBrandID: insertProductItemBrandID,
+        minimumStock: insertProductMinimumStock,
+        calculatedMinimumStock: 0,
       });
 
       await meili.index("item").addDocuments(
@@ -626,7 +629,6 @@ const workerHandler = async (job: Job<any>) => {
 
       const confirmPurchaseInvoiceNet =
         confirmPurchaseInvoiceTotal - confirmPurchaseInvoiceDiscount;
-      console.log(confirmPurchaseInvoiceNet);
 
       // Distribute discount to each item
       for (let i = 0; i < confirmPurchaseInvoiceGoodReceipts.length; i++) {
@@ -663,7 +665,8 @@ const workerHandler = async (job: Job<any>) => {
 
       break;
     case "delete-purchase-invoice":
-      const deletePurchaseInvoiceItems = job.data.good_receipt as any[];
+      const deletePurchaseInvoiceItems = job.data.good_receipt_code
+        .good_receipt as any[];
       for (let i = 0; i < deletePurchaseInvoiceItems.length; i++) {
         const deletePurchaseInvoiceGoodReceiptID =
           deletePurchaseInvoiceItems[i].id;
@@ -754,6 +757,7 @@ const workerHandler = async (job: Job<any>) => {
       for (let i = 0; i < updatePurchaseInvoiceGoodReceipts.length; i++) {
         const updatePurchaseInvoiceGoodReceipt =
           updatePurchaseInvoiceGoodReceipts[i];
+        console.log(updatePurchaseInvoiceGoodReceipt);
         const updatePurchaseInvoiceGoodReceiptPrice = parseFloat(
           updatePurchaseInvoiceGoodReceipt.price.toString()
         );
@@ -1008,7 +1012,10 @@ const workerHandler = async (job: Job<any>) => {
               : createSalesReturnBill.item_unit.conversion);
           await updateProduct.save();
 
-          await queue.add("rearrange-stock-card", createSalesReturnBill.item.id);
+          await queue.add(
+            "rearrange-stock-card",
+            createSalesReturnBill.item.id
+          );
 
           let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
           while (createSalesReturnItemQuantityEdit > 0) {

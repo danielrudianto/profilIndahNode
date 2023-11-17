@@ -50,8 +50,6 @@ router.get(
   ReportController.fetchPLStats
 );
 
-router.get("/quickStats", ReportController.fetchQuickStats);
-
 router.post("/sales", ReportController.fetchSalesReport);
 
 router.post(

@@ -487,6 +487,13 @@ class BillCodeModel {
     });
   }
 
+  /**
+   * Fetch chart items
+   * @param monthly
+   * @param limit
+   * @param offset
+   * @returns
+   */
   static fetchChartItems(monthly: boolean, limit: number, offset: number) {
     const date = new Date();
     const start_date = new Date();
@@ -572,6 +579,11 @@ class BillCodeModel {
     }
   }
 
+  /**
+   * Fetch by CustomerID
+   * @param customer_id
+   * @returns
+   */
   static fetchByCustomerId(customer_id: number | null) {
     if (customer_id == null) {
       return prisma.$queryRaw`
@@ -647,24 +659,6 @@ class BillCodeModel {
       ) pm
       ON payment_method.id = pm.payment_method_id
       ORDER BY payment_method.id ASC
-    `);
-  }
-
-  static fetchTodaySales(date: Date = new Date()) {
-    return prisma.$queryRawUnsafe(`
-      SELECT COALESCE(SUM(a.value), 0) AS value, COALESCE(SUM(a.discount), 0) AS discount, COALESCE(SUM(a.service), 0) AS service, COALESCE(SUM(a.delivery), 0) AS delivery
-      FROM (
-        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill_code.discount, bill_code.service, bill_code.delivery
-        FROM bill
-        JOIN bill_code
-        ON bill.bill_code_id = bill_code.id
-        WHERE bill_code.is_confirm = 1
-        AND bill_code.is_delete = 0
-        AND bill_code.date = '${date.getFullYear()}-${(date.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
-        GROUP BY bill.bill_code_id
-      ) AS a
     `);
   }
 
@@ -985,28 +979,24 @@ class BillCodeModel {
     });
   }
 
-  static fetchByDate(date: Date = new Date()) {
-    return prisma.$queryRaw`
-      SELECT (a.delivery + a.value - a.discount + a.service) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service
-      FROM bill
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
-      date.getMonth() + 1
-    } AND DAY(bill_code.date) = ${date.getDate()}) AS a`;
-  }
-
-  static fetchMonthlyByDate(date: Date = new Date()) {
-    return prisma.$queryRaw`
-      SELECT (a.delivery + a.value - a.discount + a.service) AS value FROM (SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service
-      FROM bill
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND YEAR(bill_code.date) = ${date.getFullYear()} AND MONTH(bill_code.date) = ${
-      date.getMonth() + 1
-    }) AS a`;
+  static fetchByDate(year: number, month: number, day: number | null) {
+    return prisma.$queryRawUnsafe(`
+      SELECT (a.delivery + a.value - a.discount + a.service) AS value 
+      FROM (
+        SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service
+        FROM bill
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND YEAR(bill_code.date) = ${year} AND MONTH(bill_code.date) = ${month}
+        ${
+          day == null
+            ? ""
+            : day < 0
+            ? "AND DAY(bill_code.date) <= " + Math.abs(day)
+            : "AND DAY(bill_code.date) = " + day
+        }
+      ) AS a`);
   }
 
   /**

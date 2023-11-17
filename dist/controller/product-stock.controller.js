@@ -78,6 +78,23 @@ ProductStockController.fetch = (req, res) => {
             });
             break;
         case "plain":
+        case "dashboard":
+            mongo_product_model_1.mongoProductModel
+                .countDocuments({
+                $expr: {
+                    $lt: ["$currentStock", "$minimumStock"],
+                },
+            })
+                .then((result) => {
+                return res.status(200).send({
+                    count: result,
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error while fetching product stock. ${error}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            });
+            break;
         default:
             app_1.meili
                 .index("item")

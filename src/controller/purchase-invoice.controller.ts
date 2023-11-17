@@ -587,6 +587,70 @@ class PurchaseInvoiceController {
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
+
+  /**
+   * Fetch purchase invoice dashboard
+   * @param req
+   * @param res
+   */
+  static fetchDashboard = async (req: Request, res: Response) => {
+    // 1 Fetch today's sales
+    // 2 Fetch this month's sales
+    // 3 Fetch yesterday's sales
+    // 4 Fetch last month's sales
+
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    Promise.all([
+      PurchaseInvoiceModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate()
+      ),
+      PurchaseInvoiceModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate() - 1
+      ),
+      PurchaseInvoiceModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        null
+      ),
+      PurchaseInvoiceModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth(),
+        null
+      ),
+      PurchaseInvoiceModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth(),
+        -today.getDate()
+      ),
+    ])
+      .then(
+        ([purchase1, purchase2, purchase3, purchase4, purchase5]: any[]) => {
+          return res.status(200).send({
+            today:
+              purchase1[0].value == null ? 0 : parseFloat(purchase1[0].value),
+            yesterday:
+              purchase2[0].value == null ? 0 : parseFloat(purchase2[0].value),
+            thisMonth:
+              purchase3[0].value == null ? 0 : parseFloat(purchase3[0].value),
+            lastMonth:
+              purchase4[0].value == null ? 0 : parseFloat(purchase4[0].value),
+            monthOnMonth:
+              purchase5[0].value == null ? 0 : parseFloat(purchase5[0].value),
+          });
+        }
+      )
+      .catch((error) => {
+        console.error(`[error]: Error on fetching sales data. ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
 }
 
 export default PurchaseInvoiceController;

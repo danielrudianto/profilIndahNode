@@ -228,6 +228,8 @@ class SearchHelper {
                       itemBrandID: x.item_brand_id,
                       currentStock: 0,
                       unit: x.unit,
+                      minimumStock: x.minimum_stock,
+                      calculatedMinimumStock: 0,
                       stockCard: [],
                     };
                   })
