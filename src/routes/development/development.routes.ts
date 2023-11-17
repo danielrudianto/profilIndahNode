@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response, Router } from "express";
+import { ArimaHelper } from "../../helper/arima.helper";
 import SearchHelper, { syncMode } from "../../helper/search.helper";
 
 const router = Router();
@@ -45,5 +46,6 @@ router.post(
 );
 
 router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
+router.post("/arima", ArimaHelper.predict);
 
 export default router;

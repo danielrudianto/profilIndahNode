@@ -62,7 +62,6 @@ class ProductStockController {
           });
         });
         break;
-      case "plain":
       case "dashboard":
         mongoProductModel
           .countDocuments({
@@ -82,6 +81,7 @@ class ProductStockController {
             return res.status(500).send(ErrorList["Internal server error"]);
           });
         break;
+      case "plain":
       default:
         meili
           .index("item")
