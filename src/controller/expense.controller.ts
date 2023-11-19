@@ -142,8 +142,8 @@ class ExpenseController {
 
   /**
    * Delete expense record by ID
-   * @param req 
-   * @param res 
+   * @param req
+   * @param res
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
@@ -158,6 +158,50 @@ class ExpenseController {
       })
       .catch((error) => {
         console.error(`[error]: Error on deleting expense: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Fetch expense
+   * @param req
+   * @param res
+   */
+  static fetchDashboard = async (req: Request, res: Response) => {
+    const todayDate = new Date();
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+
+    Promise.all([
+      ExpenseModel.fetchTodaySum(
+        todayDate.getFullYear(),
+        todayDate.getMonth(),
+        todayDate.getDate()
+      ),
+      ExpenseModel.fetchTodaySum(
+        yesterdayDate.getFullYear(),
+        yesterdayDate.getMonth(),
+        yesterdayDate.getDate()
+      ),
+      ExpenseModel.fetchTodaySum(
+        todayDate.getFullYear(),
+        todayDate.getMonth() + 1
+      ),
+      ExpenseModel.fetchTodaySum(todayDate.getFullYear(), todayDate.getMonth()),
+    ])
+      .then(([expense1, expense2, expense3, expense4]: any[]) => {
+        return res.status(200).send({
+          today: expense1[0].value == null ? 0 : parseFloat(expense1[0].value),
+          yesterday:
+            expense2[0].value == null ? 0 : parseFloat(expense2[0].value),
+          thisMonth:
+            expense3[0].value == null ? 0 : parseFloat(expense3[0].value),
+          lastMonth:
+            expense4[0].value == null ? 0 : parseFloat(expense4[0].value),
+        });
+      })
+      .catch((error) => {
+        console.error(error);
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };

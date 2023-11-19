@@ -250,7 +250,7 @@ class ItemModel {
      */
     static fetchByIDWithPrice(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            return prisma.item.findUnique({
+            return prisma.item.findFirst({
                 where: {
                     id: id,
                 },
@@ -277,6 +277,24 @@ class ItemModel {
                             unit: true,
                             conversion: true,
                             id: true,
+                            item_price: {
+                                select: {
+                                    price: true,
+                                    discount: true,
+                                },
+                                where: {
+                                    is_delete: false,
+                                },
+                            },
+                            item_price_purchase: {
+                                select: {
+                                    price: true,
+                                    discount: true,
+                                },
+                                where: {
+                                    is_delete: false,
+                                },
+                            },
                         },
                         where: {
                             is_delete: false,
@@ -288,28 +306,23 @@ class ItemModel {
                         select: {
                             price: true,
                             discount: true,
-                            item_unit: {
-                                select: {
-                                    id: true,
-                                },
-                            },
                         },
                         where: {
                             is_delete: false,
+                            item_unit_id: null,
                         },
+                        take: 1,
                     },
                     item_price_purchase: {
                         select: {
                             price: true,
-                            item_unit: {
-                                select: {
-                                    id: true,
-                                },
-                            },
+                            discount: true,
                         },
                         where: {
                             is_delete: false,
+                            item_unit_id: null,
                         },
+                        take: 1,
                     },
                 },
             });

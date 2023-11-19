@@ -228,14 +228,13 @@ class ExpenseModel {
     ]);
   }
 
-  static fetchTodaySum() {
-    const date = new Date();
+  static fetchTodaySum(year: number, month: number, day: number | null = null) {
     return prisma.$queryRawUnsafe(`
         SELECT COALESCE(SUM(expense.value), 0) AS value
         FROM expense
-        WHERE expense.date = '${date.getFullYear()}-${(date.getMonth() + 1)
-      .toString()
-      .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+        WHERE YEAR(expense.date) = '${year}'
+        AND MONTH(expense.date) = '${month + 1}'
+        ${day == null ? "" : `AND DAY(expense.date) = '${day}'`}
         AND expense.is_delete = 0
       `);
   }

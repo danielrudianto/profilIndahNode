@@ -578,66 +578,55 @@ class ProductController {
           return res.status(404).send(ErrorList["Not found"]);
         }
 
-        const priceIdx = item.item_price.findIndex((x) => {
-          x.item_unit == null;
-        });
-
-        const purchasePriceIdx = item.item_price_purchase.findIndex((x) => {
-          x.item_unit == null;
-        });
-
-        const price =
-          priceIdx == -1
-            ? 0
-            : parseFloat(item.item_price[priceIdx].price.toString());
-        const discount =
-          priceIdx == -1
-            ? 0
-            : parseFloat(item.item_price[priceIdx].discount.toString());
-        const purchasePrice =
-          purchasePriceIdx == -1
-            ? 0
-            : parseFloat(
-                item.item_price_purchase[purchasePriceIdx].price.toString()
-              );
         return res.status(200).send({
           reference: item.reference,
           description: item.description,
           unit: item.unit,
           item_brand: item.item_brand.name,
-          item_type: item.item_type!.name,
-          price: price,
-          discount: discount,
-          purchase_price: purchasePrice,
+          item_type: item.item_type.name,
+          price:
+            item.item_price == null || item.item_price.length == 0
+              ? 0
+              : parseFloat(item.item_price[0].price.toString()),
+          discount:
+            item.item_price == null || item.item_price.length == 0
+              ? 0
+              : parseFloat(item.item_price[0].discount.toString()),
+          purchase_price:
+            item.item_price_purchase == null ||
+            item.item_price_purchase.length == 0
+              ? 0
+              : parseFloat(item.item_price_purchase[0].price.toString()),
+          purchase_discount:
+            item.item_price_purchase == null ||
+            item.item_price_purchase.length == 0
+              ? 0
+              : parseFloat(item.item_price_purchase[0].discount.toString()),
           units: item.item_unit.map((x) => {
-            const priceIndex = item.item_price.findIndex(
-              (y) => y.item_unit != null && y.item_unit.id == x.id
-            );
-
-            const purchasePriceIndex = item.item_price_purchase.findIndex(
-              (y) => y.item_unit != null && y.item_unit.id == x.id
-            );
+            const unitID = x.id;
 
             return {
               id: x.id,
               unit: x.unit,
               conversion: parseFloat(x.conversion.toString()),
               price:
-                priceIndex == -1
+                x.item_price == null || x.item_price.length == 0
                   ? 0
-                  : parseFloat(item.item_price[priceIndex].price.toString()),
+                  : parseFloat(x.item_price[0].price.toString()),
               discount:
-                priceIndex == -1
+                x.item_price == null || x.item_price.length == 0
                   ? 0
-                  : parseFloat(item.item_price[priceIndex].discount.toString()),
+                  : parseFloat(x.item_price[0].discount.toString()),
               price_purchase:
-                purchasePriceIndex == -1
+                x.item_price_purchase == null ||
+                x.item_price_purchase.length == 0
                   ? 0
-                  : parseFloat(
-                      item.item_price_purchase[
-                        purchasePriceIndex
-                      ].price.toString()
-                    ),
+                  : parseFloat(x.item_price_purchase[0].price.toString()),
+              discount_purchase:
+                x.item_price_purchase == null ||
+                x.item_price_purchase.length == 0
+                  ? 0
+                  : parseFloat(x.item_price_purchase[0].discount.toString()),
             };
           }),
         });

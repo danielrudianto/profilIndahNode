@@ -1,8 +1,10 @@
 import { Router } from "express";
 import AuthController from "../../controller/auth.controller";
 import CustomerController from "../../controller/customer.controller";
+import ExpenseController from "../../controller/expense.controller";
 import ProductController from "../../controller/product.controller";
 import PurchaseInvoiceController from "../../controller/purchase-invoice.controller";
+import ReportController from "../../controller/report.controller";
 import SalesInvoiceController from "../../controller/sales-invoice.controller";
 import { authMiddleware } from "../../helper/auth.helper";
 
@@ -18,6 +20,7 @@ router.get(
   authMiddleware,
   PurchaseInvoiceController.fetchDashboard
 );
+router.post("/expense", ExpenseController.fetchDashboard);
 router.get("/product/:id", authMiddleware, ProductController.fetchCompleteById);
 router.get("/customer", authMiddleware, CustomerController.fetch);
 
