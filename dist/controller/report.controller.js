@@ -617,7 +617,8 @@ ReportController.fetchSalesItemReport = (req, res) => {
                                 unit: y.unit,
                                 brand: y.item_brand_name,
                                 type: y.item_type_name,
-                                input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
+                                input: parseFloat(y.adjustmentQuantityPlus.toString()) +
+                                    parseFloat(y.goodReceiptQuantity.toString()),
                                 output: y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
                                 initialStock: stockIndex == -1
                                     ? 0
@@ -642,7 +643,8 @@ ReportController.fetchSalesItemReport = (req, res) => {
                                 description: y.description,
                                 brand: y.item_brand_name,
                                 type: y.item_type_name,
-                                input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
+                                input: parseFloat(y.adjustmentQuantityPlus.toString()) +
+                                    parseFloat(y.goodReceiptQuantity.toString()),
                                 output: y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
                                 initialStock: stockIndex == -1
                                     ? 0

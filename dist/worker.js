@@ -567,8 +567,8 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             }
             break;
         case "delete-purchase-invoice":
-            const deletePurchaseInvoiceItems = job.data.good_receipt_code
-                .good_receipt;
+            console.log(job.data);
+            const deletePurchaseInvoiceItems = job.data.good_receipt;
             for (let i = 0; i < deletePurchaseInvoiceItems.length; i++) {
                 const deletePurchaseInvoiceGoodReceiptID = deletePurchaseInvoiceItems[i].id;
                 const deletePurchaseInvoiceItemID = deletePurchaseInvoiceItems[i].item.id;

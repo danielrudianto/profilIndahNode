@@ -665,8 +665,8 @@ const workerHandler = async (job: Job<any>) => {
 
       break;
     case "delete-purchase-invoice":
-      const deletePurchaseInvoiceItems = job.data.good_receipt_code
-        .good_receipt as any[];
+      console.log(job.data);
+      const deletePurchaseInvoiceItems = job.data.good_receipt as any[];
       for (let i = 0; i < deletePurchaseInvoiceItems.length; i++) {
         const deletePurchaseInvoiceGoodReceiptID =
           deletePurchaseInvoiceItems[i].id;

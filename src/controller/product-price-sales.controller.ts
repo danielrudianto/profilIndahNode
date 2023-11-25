@@ -213,12 +213,13 @@ class ItemPriceController {
    * @param res
    */
   static fetchFormat = async (req: Request, res: Response) => {
-    const brand_id = req.body.brand_id as number[];
-    const type_id = req.body.type_id as number[];
+    const brand_id = req.body.brand as number[];
+    const type_id = req.body.type as number[];
     const setting = 0;
 
     ItemModel.fetchItemPriceByBrandType(brand_id, type_id, setting)
       .then((items) => {
+        console.log(items);
         return res.status(200).send(
           items.map((x) => {
             return [

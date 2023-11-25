@@ -203,11 +203,12 @@ ItemPriceController.fetchByItemID = (req, res) => {
  * @param res
  */
 ItemPriceController.fetchFormat = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const brand_id = req.body.brand_id;
-    const type_id = req.body.type_id;
+    const brand_id = req.body.brand;
+    const type_id = req.body.type;
     const setting = 0;
     item_model_1.ItemModel.fetchItemPriceByBrandType(brand_id, type_id, setting)
         .then((items) => {
+        console.log(items);
         return res.status(200).send(items.map((x) => {
             var _b;
             return [
