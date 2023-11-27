@@ -44,7 +44,13 @@ class AuthController {
                 expiresIn: process.env.EXPIRATION,
               }
             ),
-            exp: new Date().getTime() + parseInt(process.env.EXPIRATION!),
+            exp:
+              new Date().getTime() +
+              parseInt(process.env.EXPIRATION!.toString().replace("d", "")) *
+                24 *
+                60 *
+                60 *
+                1000,
             refreshToken: sign(
               {
                 id: user.id,
@@ -102,7 +108,13 @@ class AuthController {
 
         return res.status(200).send({
           token: jwtToken,
-          exp: new Date().getTime() + parseInt(process.env.EXPIRATION!),
+          exp:
+            new Date().getTime() +
+            parseInt(process.env.EXPIRATION!.toString().replace("d", "")) *
+              24 *
+              60 *
+              60 *
+              1000,
         });
       }
     });

@@ -40,7 +40,12 @@ AuthController.login = (req, res) => {
                 }, process.env.TOKEN_KEY.toString(), {
                     expiresIn: process.env.EXPIRATION,
                 }),
-                exp: new Date().getTime() + parseInt(process.env.EXPIRATION),
+                exp: new Date().getTime() +
+                    parseInt(process.env.EXPIRATION.toString().replace("d", "")) *
+                        24 *
+                        60 *
+                        60 *
+                        1000,
                 refreshToken: (0, jsonwebtoken_1.sign)({
                     id: user.id,
                 }, process.env.REFRESH_TOKEN_KEY.toString(), {
@@ -88,7 +93,12 @@ AuthController.refreshToken = (req, res) => {
             });
             return res.status(200).send({
                 token: jwtToken,
-                exp: new Date().getTime() + parseInt(process.env.EXPIRATION),
+                exp: new Date().getTime() +
+                    parseInt(process.env.EXPIRATION.toString().replace("d", "")) *
+                        24 *
+                        60 *
+                        60 *
+                        1000,
             });
         }
     });
