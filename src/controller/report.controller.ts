@@ -99,9 +99,7 @@ class ReportController {
                 .map((x) => {
                   return {
                     name: x.item_type_name,
-                    value:
-                      parseFloat(x.value.toString()) -
-                      parseFloat(x.discount.toString()),
+                    value: parseFloat(x.value.toString()),
                   };
                 })
                 .sort((a, b) => {
@@ -114,9 +112,7 @@ class ReportController {
                 .map((x) => {
                   return {
                     name: x.item_brand_name,
-                    value:
-                      parseFloat(x.value.toString()) -
-                      parseFloat(x.discount.toString()),
+                    value: parseFloat(x.value.toString()),
                   };
                 })
                 .sort((a, b) => {
@@ -240,9 +236,16 @@ class ReportController {
                   return b.value - a.value;
                 }),
             });
-            break;
           case "package":
-            return res.status(200).send(result);
+            return res.status(200).send({
+              sales_detail: result.map((x) => {
+                return {
+                  name: x.name,
+                  description: x.description,
+                  value: parseFloat(x.value.toString()),
+                };
+              }),
+            });
           case "download":
             return res.status(200).send(
               (result as any[]).map((x) => {

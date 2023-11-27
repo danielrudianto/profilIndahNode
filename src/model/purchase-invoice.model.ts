@@ -377,27 +377,37 @@ class PurchaseInvoiceModel {
       case CalculatePurchaseMode.Plain:
         return prisma.$transaction([
           prisma.$queryRaw<any[]>`
-            SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, DAY(purchase_invoice.date) AS day
-            FROM good_receipt
-            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-            JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-            WHERE good_receipt_code.is_confirm = 1
-            AND purchase_invoice.is_confirm = 1
-            AND good_receipt_code.is_delete = 0
+            SELECT SUM(a.value) AS value,  SUM(purchase_invoice.discount) AS discount, DAY(purchase_invoice.date) AS day
+            FROM purchase_invoice
+            JOIN (
+              SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt_code.id
+              FROM good_receipt
+              JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+              WHERE good_receipt_code.is_delete = 0
+              AND good_receipt_code.is_confirm = 1
+              GROUP BY good_receipt_code.id
+            ) AS a
+            ON purchase_invoice.good_receipt_code_id = a.id
+            WHERE purchase_invoice.is_confirm = 1
             AND purchase_invoice.is_delete = 0
             AND YEAR(purchase_invoice.date) = ${year}
             AND MONTH(purchase_invoice.date) = ${month}
             GROUP BY DAY(purchase_invoice.date)
           `,
           prisma.$queryRaw<any[]>`
-            SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
-            FROM good_receipt
-            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-            JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-            JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-            WHERE good_receipt_code.is_confirm = 1
-            AND purchase_invoice.is_confirm = 1
-            AND good_receipt_code.is_delete = 0
+            SELECT SUM(a.value) AS value,  SUM(purchase_invoice.discount) AS discount, DAY(purchase_invoice.date) AS day
+            FROM purchase_invoice
+            JOIN (
+              SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt_code.id
+              FROM good_receipt
+              JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+              WHERE good_receipt_code.is_delete = 0
+              AND good_receipt_code.is_confirm = 1
+              GROUP BY good_receipt_code.id
+            ) AS a
+            ON purchase_invoice.good_receipt_code_id = a.id
+            JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+            WHERE purchase_invoice.is_confirm = 1
             AND purchase_invoice.is_delete = 0
             AND YEAR(purchase_invoice.date) = ${year}
             AND MONTH(purchase_invoice.date) = ${month}
@@ -406,14 +416,19 @@ class PurchaseInvoiceModel {
         ]);
       case CalculatePurchaseMode.Supplier:
         return prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, supplier.id AS supplier_id, supplier.name AS supplier_name
-          FROM good_receipt
-          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-          JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
-          JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-          WHERE good_receipt_code.is_confirm = 1
-          AND purchase_invoice.is_confirm = 1
-          AND good_receipt_code.is_delete = 0
+          SELECT SUM(a.value) AS value,  SUM(purchase_invoice.discount) AS discount, DAY(purchase_invoice.date) AS day
+          FROM purchase_invoice
+          JOIN (
+            SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt_code.id
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+            WHERE good_receipt_code.is_delete = 0
+            AND good_receipt_code.is_confirm = 1
+            GROUP BY good_receipt_code.id
+          ) AS a
+          ON purchase_invoice.good_receipt_code_id = a.id
+          JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+          WHERE purchase_invoice.is_confirm = 1
           AND purchase_invoice.is_delete = 0
           AND YEAR(purchase_invoice.date) = ${year}
           AND MONTH(purchase_invoice.date) = ${month}
@@ -421,7 +436,7 @@ class PurchaseInvoiceModel {
         `;
       case CalculatePurchaseMode.Type:
         return prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, item_type.id AS item_type_id, item_type.name AS item_type_name
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, item_type.id AS item_type_id, item_type.name AS item_type_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -437,7 +452,7 @@ class PurchaseInvoiceModel {
         `;
       case CalculatePurchaseMode.Brand:
         return prisma.$queryRaw<any[]>`
-          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, SUM(purchase_invoice.discount) AS discount, item_brand.id AS item_brand_id, item_brand.name AS item_brand_name
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value item_brand.id AS item_brand_id, item_brand.name AS item_brand_name
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
