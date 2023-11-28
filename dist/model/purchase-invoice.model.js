@@ -313,7 +313,7 @@ class PurchaseInvoiceModel {
             GROUP BY DAY(purchase_invoice.date)
           `,
                     prisma.$queryRaw `
-            SELECT SUM(a.value) AS value,  SUM(purchase_invoice.discount) AS discount, DAY(purchase_invoice.date) AS day
+            SELECT SUM(a.value) AS value,  SUM(purchase_invoice.discount) AS discount, supplier.name
             FROM purchase_invoice
             JOIN (
               SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt_code.id
@@ -325,6 +325,7 @@ class PurchaseInvoiceModel {
             ) AS a
             ON purchase_invoice.good_receipt_code_id = a.id
             JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+            JOIN supplier ON good_receipt_code.supplier_id = supplier.id
             WHERE purchase_invoice.is_confirm = 1
             AND purchase_invoice.is_delete = 0
             AND YEAR(purchase_invoice.date) = ${year}

@@ -95,7 +95,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
                     purchase_detail: result[1]
                         .map((x) => {
                         return {
-                            name: x.supplier_name,
+                            name: x.name,
                             value: parseFloat(x.value.toString()) -
                                 parseFloat(x.discount.toString()),
                         };
