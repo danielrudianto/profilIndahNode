@@ -193,38 +193,21 @@ class ItemModel {
     item.is_delete, item.item_brand_id, item.item_type_id, 
     item.unit, item.minimum_stock, item_type.name AS item_type_name, 
     item_brand.name AS item_brand_name, 
-    IF(COALESCE(item_count.count, 0) = 0, "1", "0") AS can_delete, 
+    IF(bill.id IS NULL AND adjustment_case.id IS NULL AND good_receipt.id IS NULL, "0", "1") AS can_delete,
     item.is_active
-      FROM item
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      LEFT JOIN (
-        SELECT SUM(count) AS count, item_id
-        FROM (
-          SELECT COUNT(bill.id) AS count, bill.item_id
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
-          WHERE bill_code.is_delete = 0
-          AND bill.item_id = ${id}
-          UNION ALL (
-            SELECT COUNT(adjustment_case.id) AS count, adjustment_case.item_id
-            FROM adjustment_case
-            JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
-            WHERE adjustment_case_code.is_delete = 0
-            AND adjustment_case.item_id = ${id}
-          )
-          UNION ALL (
-            SELECT COUNT(good_receipt.id) AS count, good_receipt.item_id
-            FROM good_receipt
-            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-            WHERE good_receipt_code.is_delete = 0
-            AND good_receipt.item_id = ${id}
-          )
-        ) a
-      GROUP BY a.item_id
-      ) item_count
-      ON item_count.item_id = item.id
-      WHERE item.id = ${id}`;
+    FROM item
+    JOIN item_brand ON item.item_brand_id = item_brand.id
+    JOIN item_type ON item.item_type_id = item_type.id
+    LEFT JOIN bill ON bill.item_id = item.id
+    LEFT JOIN bill_code ON bill.bill_code_id = bill_code.id
+    LEFT JOIN adjustment_case ON adjustment_case.item_id = item.id
+    LEFT JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
+    LEFT JOIN good_receipt ON good_receipt.item_id = item.id
+    LEFT JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+    WHERE bill_code.is_delete = 0
+    AND adjustment_case_code.is_delete = 0
+    AND good_receipt_code.is_delete = 0
+    AND item.id = ${id}`;
         });
     }
     /**
@@ -250,82 +233,46 @@ class ItemModel {
      */
     static fetchByIDWithPrice(id) {
         return __awaiter(this, void 0, void 0, function* () {
-            return prisma.item.findFirst({
-                where: {
-                    id: id,
-                },
-                select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    item_type_id: true,
-                    item_brand_id: true,
-                    is_active: true,
-                    is_delete: true,
-                    item_type: {
-                        select: {
-                            name: true,
-                        },
+            return prisma.$transaction([
+                prisma.item.findUnique({
+                    where: {
+                        id: id,
                     },
-                    item_brand: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                    item_unit: {
-                        select: {
-                            unit: true,
-                            conversion: true,
-                            id: true,
-                            item_price: {
-                                select: {
-                                    price: true,
-                                    discount: true,
-                                },
-                                where: {
-                                    is_delete: false,
-                                },
-                            },
-                            item_price_purchase: {
-                                select: {
-                                    price: true,
-                                    discount: true,
-                                },
-                                where: {
-                                    is_delete: false,
-                                },
+                    select: {
+                        reference: true,
+                        description: true,
+                        unit: true,
+                        item_brand: {
+                            select: {
+                                name: true,
                             },
                         },
-                        where: {
-                            is_delete: false,
+                        item_type: {
+                            select: {
+                                name: true,
+                            },
                         },
                     },
-                    unit: true,
-                    stock: true,
-                    item_price: {
-                        select: {
-                            price: true,
-                            discount: true,
-                        },
-                        where: {
-                            is_delete: false,
-                            item_unit_id: null,
-                        },
-                        take: 1,
+                }),
+                prisma.item_unit.findMany({
+                    where: {
+                        item_id: id,
+                        is_delete: false,
                     },
-                    item_price_purchase: {
-                        select: {
-                            price: true,
-                            discount: true,
-                        },
-                        where: {
-                            is_delete: false,
-                            item_unit_id: null,
-                        },
-                        take: 1,
+                }),
+                prisma.item_price.findMany({
+                    where: {
+                        item_id: id,
+                        is_delete: false,
                     },
-                },
-            });
+                }),
+                prisma.item_price_purchase.findMany({
+                    where: {
+                        item_id: id,
+                        is_delete: false,
+                    },
+                }),
+            ]);
         });
     }
     /**

@@ -512,50 +512,56 @@ ProductController.fetchByID = (req, res) => {
 ProductController.fetchCompleteById = (req, res) => {
     const id = parseInt(req.params.id.toString());
     item_model_1.ItemModel.fetchByIDWithPrice(id)
-        .then((item) => {
+        .then(([item, item_unit, item_price, item_price_purchase]) => {
         if (!item) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
+        const price = item_price.filter((x) => x.item_unit_id == null).length == 0
+            ? 0
+            : parseFloat(item_price
+                .filter((x) => x.item_unit_id == null)[0]
+                .price.toString());
+        const discount = item_price.filter((x) => x.item_unit_id == null).length == 0
+            ? 0
+            : parseFloat(item_price
+                .filter((x) => x.item_unit_id == null)[0]
+                .discount.toString());
+        const purchase_price = item_price_purchase.filter((x) => x.item_unit_id == null).length == 0
+            ? 0
+            : parseFloat(item_price_purchase
+                .filter((x) => x.item_unit_id == null)[0]
+                .price.toString());
+        const purchase_discount = item_price_purchase.filter((x) => x.item_unit_id == null).length == 0
+            ? 0
+            : parseFloat(item_price_purchase
+                .filter((x) => x.item_unit_id == null)[0]
+                .discount.toString());
         return res.status(200).send({
             reference: item.reference,
             description: item.description,
             unit: item.unit,
             item_brand: item.item_brand.name,
             item_type: item.item_type.name,
-            price: item.item_price == null || item.item_price.length == 0
-                ? 0
-                : parseFloat(item.item_price[0].price.toString()),
-            discount: item.item_price == null || item.item_price.length == 0
-                ? 0
-                : parseFloat(item.item_price[0].discount.toString()),
-            purchase_price: item.item_price_purchase == null ||
-                item.item_price_purchase.length == 0
-                ? 0
-                : parseFloat(item.item_price_purchase[0].price.toString()),
-            purchase_discount: item.item_price_purchase == null ||
-                item.item_price_purchase.length == 0
-                ? 0
-                : parseFloat(item.item_price_purchase[0].discount.toString()),
-            units: item.item_unit.map((x) => {
+            price: price,
+            discount: discount,
+            purchase_price: purchase_price,
+            purchase_discount: purchase_discount,
+            units: item_unit.map((x) => {
                 const unitID = x.id;
+                const unitPrice = item_price.filter((y) => y.item_unit_id == unitID);
+                const unitPricePurchase = item_price_purchase.filter((y) => y.item_unit_id == unitID);
+                const unitPrice_price = unitPrice.length == 0 ? 0 : unitPrice[0].price;
+                const unitPrice_discount = unitPrice.length == 0 ? 0 : unitPrice[0].discount;
+                const unitPricePurchase_price = unitPricePurchase.length == 0 ? 0 : unitPricePurchase[0].price;
+                const unitPricePurchase_discount = unitPricePurchase.length == 0 ? 0 : unitPricePurchase[0].discount;
                 return {
                     id: x.id,
                     unit: x.unit,
                     conversion: parseFloat(x.conversion.toString()),
-                    price: x.item_price == null || x.item_price.length == 0
-                        ? 0
-                        : parseFloat(x.item_price[0].price.toString()),
-                    discount: x.item_price == null || x.item_price.length == 0
-                        ? 0
-                        : parseFloat(x.item_price[0].discount.toString()),
-                    price_purchase: x.item_price_purchase == null ||
-                        x.item_price_purchase.length == 0
-                        ? 0
-                        : parseFloat(x.item_price_purchase[0].price.toString()),
-                    discount_purchase: x.item_price_purchase == null ||
-                        x.item_price_purchase.length == 0
-                        ? 0
-                        : parseFloat(x.item_price_purchase[0].discount.toString()),
+                    price: unitPrice_price,
+                    discount: unitPrice_discount,
+                    price_purchase: unitPricePurchase_price,
+                    discount_purchase: unitPricePurchase_discount,
                 };
             }),
         });
