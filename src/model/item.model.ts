@@ -274,9 +274,9 @@ export class ItemModel {
     LEFT JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
     LEFT JOIN good_receipt ON good_receipt.item_id = item.id
     LEFT JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-    WHERE bill_code.is_delete = 0
-    AND adjustment_case_code.is_delete = 0
-    AND good_receipt_code.is_delete = 0
+    WHERE COALESCE(bill_code.is_delete, 0) = 0
+    AND COALESCE(adjustment_case_code.is_delete, 0) = 0
+    AND COALESCE(good_receipt_code.is_delete, 0) = 0
     AND item.id = ${id}`;
   }
 

@@ -537,6 +537,7 @@ class ProductController {
     const id = parseInt(req.params.id);
     ItemModel.fetchByID(id)!
       .then((result) => {
+        console.log(result);
         if (result.length == 0) {
           return res.status(404).send(ErrorList["Not found"]);
         }

@@ -63,10 +63,15 @@ class SalesReturnController {
             quantity: x.quantity,
           };
         }),
-      }).then(async (result) => {
-        await queue.add("create-sales-return", result);
-        return res.status(201).send(result);
-      });
+      })
+        .then(async (result) => {
+          await queue.add("create-sales-return", result);
+          return res.status(201).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on creating sales return ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
     });
   };
 

@@ -5,6 +5,7 @@ import { queue } from "./helper/queue.helper";
 import { mongoOverflowModel } from "./mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "./mongo-model/mongo-product.model";
 import { mongoStockInModel } from "./mongo-model/mongo-stock-in.model";
+import { mongoErrorModel } from "./mongo-model/mongo-error.model";
 
 const meili = new MeiliSearch({
   host: "http://127.0.0.1:7700",
@@ -43,35 +44,43 @@ const workerHandler = async (job: Job<any>) => {
       const insertProductItemBrandID = job.data.itemBrandID;
       const insertProductMinimumStock = job.data.minimumStock;
 
-      await mongoProductModel.create({
-        reference: insertProductRreference,
-        description: insertProductDescription,
-        itemID: insertProductID,
-        unit: insertProductUnit,
-        currentStock: 0,
-        itemTypeID: insertProductItemTypeID,
-        itemBrandID: insertProductItemBrandID,
-        minimumStock: insertProductMinimumStock,
-        calculatedMinimumStock: 0,
-      });
+      try {
+        await mongoProductModel.create({
+          reference: insertProductRreference,
+          description: insertProductDescription,
+          itemID: insertProductID,
+          unit: insertProductUnit,
+          currentStock: 0,
+          itemTypeID: insertProductItemTypeID,
+          itemBrandID: insertProductItemBrandID,
+          minimumStock: insertProductMinimumStock,
+          calculatedMinimumStock: 0,
+        });
 
-      await meili.index("item").addDocuments(
-        [
+        await meili.index("item").addDocuments(
+          [
+            {
+              id: insertProductID,
+              reference: insertProductRreference,
+              description: insertProductDescription,
+              brand: insertProductBrand,
+              brandID: insertProductItemBrandID,
+              type: insertProductType,
+              typeID: insertProductItemTypeID,
+              is_active: 1,
+            },
+          ],
           {
-            id: insertProductID,
-            reference: insertProductRreference,
-            description: insertProductDescription,
-            brand: insertProductBrand,
-            brandID: insertProductItemBrandID,
-            type: insertProductType,
-            typeID: insertProductItemTypeID,
-            is_active: 1,
-          },
-        ],
-        {
-          primaryKey: "id",
-        }
-      );
+            primaryKey: "id",
+          }
+        );
+      } catch (error: any) {
+        await mongoErrorModel.create({
+          date: new Date(),
+          error: error.toString(),
+          function: "insert-product",
+        });
+      }
       break;
     case "update-product":
       const updateProductRreference = job.data.reference;
@@ -95,29 +104,38 @@ const workerHandler = async (job: Job<any>) => {
         updateProduct.itemBrandID = updateProductItemBrandID;
         await updateProduct.save();
       } else {
-        await mongoProductModel.create({
-          reference: updateProductRreference,
-          description: updateProductDescription,
-          itemID: updateProductID,
-          unit: updateProductUnit,
-          currentStock: 0,
-          itemTypeID: updateProductItemTypeID,
-          itemBrandID: updateProductItemBrandID,
-        });
+        try {
+          await mongoProductModel.create({
+            reference: updateProductRreference,
+            description: updateProductDescription,
+            itemID: updateProductID,
+            unit: updateProductUnit,
+            currentStock: 0,
+            itemTypeID: updateProductItemTypeID,
+            itemBrandID: updateProductItemBrandID,
+          });
+
+          await meili.index("item").updateDocuments([
+            {
+              id: updateProductID,
+              reference: updateProductRreference,
+              description: updateProductDescription,
+              brand: updateProductBrand,
+              brandID: updateProductItemBrandID,
+              type: updateProductType,
+              typeID: updateProductItemTypeID,
+              is_active: true,
+            },
+          ]);
+        } catch (error: any) {
+          await mongoErrorModel.create({
+            date: new Date(),
+            error: error.toString(),
+            function: "update-product",
+          });
+        }
       }
 
-      await meili.index("item").updateDocuments([
-        {
-          id: updateProductID,
-          reference: updateProductRreference,
-          description: updateProductDescription,
-          brand: updateProductBrand,
-          brandID: updateProductItemBrandID,
-          type: updateProductType,
-          typeID: updateProductItemTypeID,
-          is_active: true,
-        },
-      ]);
       break;
     case "update-product-type":
       let updateProductTypeName = job.data.name;
@@ -125,14 +143,22 @@ const workerHandler = async (job: Job<any>) => {
         id: number;
       }[];
 
-      await meili.index("product").updateDocuments(
-        updateProductTypeItemID.map((x) => {
-          return {
-            id: x.id,
-            type: updateProductTypeName,
-          };
-        })
-      );
+      try {
+        await meili.index("product").updateDocuments(
+          updateProductTypeItemID.map((x) => {
+            return {
+              id: x.id,
+              type: updateProductTypeName,
+            };
+          })
+        );
+      } catch (error: any) {
+        await mongoErrorModel.create({
+          date: new Date(),
+          errror: error.toString(),
+          function: "update-product-type",
+        });
+      }
       break;
     case "create-product-package":
       const createProductPackageID = job.data.id;
@@ -140,53 +166,69 @@ const workerHandler = async (job: Job<any>) => {
       const createProductPackageDescription = job.data.description;
       const createProductPackagePackageContent = job.data
         .package_content as any[];
-      await meili.index("package").addDocuments(
-        [
+      try {
+        await meili.index("package").addDocuments(
+          [
+            {
+              id: createProductPackageID,
+              name: createProductPackageName,
+              description: createProductPackageDescription,
+              product_content: createProductPackagePackageContent.map((y) => {
+                return {
+                  quantity: y.quantity,
+                  item: {
+                    reference: y.item.reference,
+                    description: y.item.description,
+                    unit: y.item.unit,
+                  },
+                  item_unit:
+                    y.item_unit == null
+                      ? null
+                      : {
+                          unit: y.item_unit.unit,
+                          conversion: y.item_unit.conversion,
+                        },
+                };
+              }),
+            },
+          ],
           {
-            id: createProductPackageID,
-            name: createProductPackageName,
-            description: createProductPackageDescription,
-            product_content: createProductPackagePackageContent.map((y) => {
-              return {
-                quantity: y.quantity,
-                item: {
-                  reference: y.item.reference,
-                  description: y.item.description,
-                  unit: y.item.unit,
-                },
-                item_unit:
-                  y.item_unit == null
-                    ? null
-                    : {
-                        unit: y.item_unit.unit,
-                        conversion: y.item_unit.conversion,
-                      },
-              };
-            }),
-          },
-        ],
-        {
-          primaryKey: "id",
-        }
-      );
+            primaryKey: "id",
+          }
+        );
+      } catch (error: any) {
+        await mongoErrorModel.create({
+          date: new Date(),
+          error: error.toString(),
+          function: "create-package",
+        });
+      }
       break;
     case "update-product-package":
       const updateProductPackageID = job.data.id;
       const updateProductPackageName = job.data.name;
       const updateProductPackageDescription = job.data.description;
 
-      await meili.index("package").updateDocuments(
-        [
+      try {
+        await meili.index("package").updateDocuments(
+          [
+            {
+              id: updateProductPackageID,
+              name: updateProductPackageName,
+              description: updateProductPackageDescription,
+            },
+          ],
           {
-            id: updateProductPackageID,
-            name: updateProductPackageName,
-            description: updateProductPackageDescription,
-          },
-        ],
-        {
-          primaryKey: "id",
-        }
-      );
+            primaryKey: "id",
+          }
+        );
+      } catch (error: any) {
+        await mongoErrorModel.create({
+          date: new Date(),
+          error: error.toString(),
+          function: "update-package",
+        });
+      }
     case "create-adjustment-case":
       const createAdjustmentCaseID = job.data.id;
       const createAdjustmentCaseCreatedAt = job.data.created_at;
@@ -241,29 +283,45 @@ const workerHandler = async (job: Job<any>) => {
             salesReturnCodeID: null,
           });
 
-          await updateProduct.save();
-          await queue.add("rearrange-stock-card", updateProduct.itemID);
+          try {
+            await updateProduct.save();
+            await queue.add("rearrange-stock-card", updateProduct.itemID);
+          } catch (error: any) {
+            await mongoErrorModel.create({
+              date: new Date(),
+              error: error.toString(),
+              function: "create-adjustment-case/update-product",
+            });
+          }
         }
 
         if (createAdjustmentEventItemQuantity > 0) {
           // insert to stock card
-          await mongoStockInModel.create({
-            companyID: createAdjustmentEventCompanyID,
-            adjustmentCaseID: createAdjustmentEventItem.id,
-            adjustmentCaseCodeID: createAdjustmentCaseID,
-            goodReceiptCodeID: null,
-            goodReceiptID: null,
-            date: createAdjustmentCaseDate,
-            price: 0,
-            quantity:
-              createAdjustmentEventItemQuantity *
-              createAdjustmentEventItemConversion,
-            residue:
-              createAdjustmentEventItemQuantity *
-              createAdjustmentEventItemConversion,
-            itemID: createAdjustmentEventItemID,
-            stockOut: [],
-          });
+          try {
+            await mongoStockInModel.create({
+              companyID: createAdjustmentEventCompanyID,
+              adjustmentCaseID: createAdjustmentEventItem.id,
+              adjustmentCaseCodeID: createAdjustmentCaseID,
+              goodReceiptCodeID: null,
+              goodReceiptID: null,
+              date: createAdjustmentCaseDate,
+              price: 0,
+              quantity:
+                createAdjustmentEventItemQuantity *
+                createAdjustmentEventItemConversion,
+              residue:
+                createAdjustmentEventItemQuantity *
+                createAdjustmentEventItemConversion,
+              itemID: createAdjustmentEventItemID,
+              stockOut: [],
+            });
+          } catch (error: any) {
+            await mongoErrorModel.create({
+              date: new Date(),
+              error: error.toString(),
+              function: "create-adjustment-case/update-stock-in",
+            });
+          }
         } else {
           let quantity = createAdjustmentEventItemQuantity * -1;
           while (quantity > 0) {
@@ -293,7 +351,15 @@ const workerHandler = async (job: Job<any>) => {
                   unit: createAdjustmentEventItemUnit,
                 });
                 quantity = 0;
-                await stockIn.save();
+                try {
+                  await stockIn.save();
+                } catch (error: any) {
+                  await mongoErrorModel.create({
+                    date: new Date(),
+                    error: error.toString(),
+                    function: "create-adjustment-case/update-stock-in",
+                  });
+                }
               } else {
                 stockIn.stockOut.unshift({
                   adjustmentCaseID: createAdjustmentEventItem.id,
@@ -308,7 +374,15 @@ const workerHandler = async (job: Job<any>) => {
                 });
                 quantity -= stockInResidue;
                 stockIn.residue = 0;
-                await stockIn.save();
+                try {
+                  await stockIn.save();
+                } catch (error: any) {
+                  await mongoErrorModel.create({
+                    date: new Date(),
+                    error: error.toString(),
+                    function: "create-adjustment-case/update-stock-in",
+                  });
+                }
               }
             } else {
               await mongoOverflowModel.create({

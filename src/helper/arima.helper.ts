@@ -81,6 +81,9 @@ export class ArimaHelper {
       { $sort: { itemID: 1 } },
     ]);
 
+    // Determine the ARIMA parameters
+    // Starting with the p parameter
+
     const arima = new ARIMA({
       auto: false,
       p: 1,
