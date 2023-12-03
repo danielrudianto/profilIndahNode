@@ -13,6 +13,10 @@ export const queueErrorSchema = new Schema({
     type: String,
     required: true,
   },
+  data: {
+    type: Object,
+    required: true,
+  },
 });
 
 export const mongoErrorModel = model("queue-error", queueErrorSchema);

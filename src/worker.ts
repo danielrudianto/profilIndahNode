@@ -79,6 +79,7 @@ const workerHandler = async (job: Job<any>) => {
           date: new Date(),
           error: error.toString(),
           function: "insert-product",
+          data: job.data,
         });
       }
       break;
@@ -132,6 +133,7 @@ const workerHandler = async (job: Job<any>) => {
             date: new Date(),
             error: error.toString(),
             function: "update-product",
+            data: job.data,
           });
         }
       }
@@ -157,6 +159,7 @@ const workerHandler = async (job: Job<any>) => {
           date: new Date(),
           errror: error.toString(),
           function: "update-product-type",
+          data: job.data,
         });
       }
       break;
@@ -201,6 +204,7 @@ const workerHandler = async (job: Job<any>) => {
           date: new Date(),
           error: error.toString(),
           function: "create-package",
+          data: job.data,
         });
       }
       break;
@@ -227,6 +231,7 @@ const workerHandler = async (job: Job<any>) => {
           date: new Date(),
           error: error.toString(),
           function: "update-package",
+          data: job.data,
         });
       }
     case "create-adjustment-case":
@@ -291,6 +296,7 @@ const workerHandler = async (job: Job<any>) => {
               date: new Date(),
               error: error.toString(),
               function: "create-adjustment-case/update-product",
+              data: job.data,
             });
           }
         }
@@ -320,6 +326,7 @@ const workerHandler = async (job: Job<any>) => {
               date: new Date(),
               error: error.toString(),
               function: "create-adjustment-case/update-stock-in",
+              data: job.data,
             });
           }
         } else {
@@ -381,6 +388,7 @@ const workerHandler = async (job: Job<any>) => {
                     date: new Date(),
                     error: error.toString(),
                     function: "create-adjustment-case/update-stock-in",
+                    data: job.data,
                   });
                 }
               }
@@ -1093,9 +1101,6 @@ const workerHandler = async (job: Job<any>) => {
 
           let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
           while (createSalesReturnItemQuantityEdit > 0) {
-            console.log(
-              `Current quantity: ${createSalesReturnItemQuantityEdit}`
-            );
             if (createSalesReturnItemQuantityEdit == 0) {
               break;
             }

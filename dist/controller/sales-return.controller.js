@@ -61,10 +61,15 @@ SalesReturnController.create = (req, res) => {
                     quantity: x.quantity,
                 };
             }),
-        }).then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        })
+            .then((result) => __awaiter(void 0, void 0, void 0, function* () {
             yield queue_helper_1.queue.add("create-sales-return", result);
             return res.status(201).send(result);
-        }));
+        }))
+            .catch((error) => {
+            console.error(`[error]: Error on creating sales return ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
     });
 };
 /**

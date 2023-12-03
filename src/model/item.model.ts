@@ -263,21 +263,48 @@ export class ItemModel {
     item.is_delete, item.item_brand_id, item.item_type_id, 
     item.unit, item.minimum_stock, item_type.name AS item_type_name, 
     item_brand.name AS item_brand_name, 
-    IF(bill.id IS NULL AND adjustment_case.id IS NULL AND good_receipt.id IS NULL, "0", "1") AS can_delete,
+    IF(COALESCE(b.count, 0) = 0 AND COALESCE(c.count, 0) = 0 AND COALESCE(d.count, 0) = 0, "0", "1") AS can_delete,
     item.is_active
     FROM item
     JOIN item_brand ON item.item_brand_id = item_brand.id
     JOIN item_type ON item.item_type_id = item_type.id
-    LEFT JOIN bill ON bill.item_id = item.id
-    LEFT JOIN bill_code ON bill.bill_code_id = bill_code.id
-    LEFT JOIN adjustment_case ON adjustment_case.item_id = item.id
-    LEFT JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
-    LEFT JOIN good_receipt ON good_receipt.item_id = item.id
-    LEFT JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-    WHERE COALESCE(bill_code.is_delete, 0) = 0
-    AND COALESCE(adjustment_case_code.is_delete, 0) = 0
-    AND COALESCE(good_receipt_code.is_delete, 0) = 0
-    AND item.id = ${id}`;
+    LEFT JOIN (
+		SELECT COUNT(bill.id) AS count, bill.item_id
+        FROM bill
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill.item_id = ${id}
+        AND bill_code.is_delete = 0
+        GROUP BY bill.item_id) AS b
+        ON item.id = b.item_id
+    LEFT JOIN (
+		SELECT COUNT(adjustment_case.id) AS count, adjustment_case.item_id
+        FROM adjustment_case
+        JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
+        WHERE adjustment_case.item_id = ${id}
+        AND adjustment_case_code.is_delete = 0
+        GROUP BY adjustment_case.item_id) AS c
+        ON item.id = c.item_id
+    LEFT JOIN (
+		SELECT COUNT(good_receipt.id) AS count, good_receipt.item_id
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        WHERE good_receipt.item_id = ${id}
+        AND good_receipt_code.is_delete = 0
+		GROUP BY good_receipt.item_id
+        ) AS d
+        ON item.id = d.item_id
+	LEFT JOIN (
+		SELECT COUNT(bill.id) AS count, bill.item_id
+        FROM bill
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        JOIN package_code ON bill.package_code_id = package_code.id
+        JOIN package_content ON package_code.id = package_content.package_code_id
+        WHERE package_content.item_id = ${id}
+        AND bill_code.is_delete = 0
+        GROUP BY bill.item_id) AS e
+        ON item.id = e.item_id
+        WHERE item.id = ${id}
+`;
   }
 
   /**

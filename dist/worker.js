@@ -19,6 +19,7 @@ const queue_helper_1 = require("./helper/queue.helper");
 const mongo_overflow_model_1 = require("./mongo-model/mongo-overflow.model");
 const mongo_product_model_1 = require("./mongo-model/mongo-product.model");
 const mongo_stock_in_model_1 = require("./mongo-model/mongo-stock-in.model");
+const mongo_error_model_1 = require("./mongo-model/mongo-error.model");
 const meili = new meilisearch_1.default({
     host: "http://127.0.0.1:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -53,31 +54,41 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             const insertProductItemTypeID = job.data.itemTypeID;
             const insertProductItemBrandID = job.data.itemBrandID;
             const insertProductMinimumStock = job.data.minimumStock;
-            yield mongo_product_model_1.mongoProductModel.create({
-                reference: insertProductRreference,
-                description: insertProductDescription,
-                itemID: insertProductID,
-                unit: insertProductUnit,
-                currentStock: 0,
-                itemTypeID: insertProductItemTypeID,
-                itemBrandID: insertProductItemBrandID,
-                minimumStock: insertProductMinimumStock,
-                calculatedMinimumStock: 0,
-            });
-            yield meili.index("item").addDocuments([
-                {
-                    id: insertProductID,
+            try {
+                yield mongo_product_model_1.mongoProductModel.create({
                     reference: insertProductRreference,
                     description: insertProductDescription,
-                    brand: insertProductBrand,
-                    brandID: insertProductItemBrandID,
-                    type: insertProductType,
-                    typeID: insertProductItemTypeID,
-                    is_active: 1,
-                },
-            ], {
-                primaryKey: "id",
-            });
+                    itemID: insertProductID,
+                    unit: insertProductUnit,
+                    currentStock: 0,
+                    itemTypeID: insertProductItemTypeID,
+                    itemBrandID: insertProductItemBrandID,
+                    minimumStock: insertProductMinimumStock,
+                    calculatedMinimumStock: 0,
+                });
+                yield meili.index("item").addDocuments([
+                    {
+                        id: insertProductID,
+                        reference: insertProductRreference,
+                        description: insertProductDescription,
+                        brand: insertProductBrand,
+                        brandID: insertProductItemBrandID,
+                        type: insertProductType,
+                        typeID: insertProductItemTypeID,
+                        is_active: 1,
+                    },
+                ], {
+                    primaryKey: "id",
+                });
+            }
+            catch (error) {
+                yield mongo_error_model_1.mongoErrorModel.create({
+                    date: new Date(),
+                    error: error.toString(),
+                    function: "insert-product",
+                    data: job.data,
+                });
+            }
             break;
         case "update-product":
             const updateProductRreference = job.data.reference;
@@ -100,38 +111,58 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 yield updateProduct.save();
             }
             else {
-                yield mongo_product_model_1.mongoProductModel.create({
-                    reference: updateProductRreference,
-                    description: updateProductDescription,
-                    itemID: updateProductID,
-                    unit: updateProductUnit,
-                    currentStock: 0,
-                    itemTypeID: updateProductItemTypeID,
-                    itemBrandID: updateProductItemBrandID,
-                });
+                try {
+                    yield mongo_product_model_1.mongoProductModel.create({
+                        reference: updateProductRreference,
+                        description: updateProductDescription,
+                        itemID: updateProductID,
+                        unit: updateProductUnit,
+                        currentStock: 0,
+                        itemTypeID: updateProductItemTypeID,
+                        itemBrandID: updateProductItemBrandID,
+                    });
+                    yield meili.index("item").updateDocuments([
+                        {
+                            id: updateProductID,
+                            reference: updateProductRreference,
+                            description: updateProductDescription,
+                            brand: updateProductBrand,
+                            brandID: updateProductItemBrandID,
+                            type: updateProductType,
+                            typeID: updateProductItemTypeID,
+                            is_active: true,
+                        },
+                    ]);
+                }
+                catch (error) {
+                    yield mongo_error_model_1.mongoErrorModel.create({
+                        date: new Date(),
+                        error: error.toString(),
+                        function: "update-product",
+                        data: job.data,
+                    });
+                }
             }
-            yield meili.index("item").updateDocuments([
-                {
-                    id: updateProductID,
-                    reference: updateProductRreference,
-                    description: updateProductDescription,
-                    brand: updateProductBrand,
-                    brandID: updateProductItemBrandID,
-                    type: updateProductType,
-                    typeID: updateProductItemTypeID,
-                    is_active: true,
-                },
-            ]);
             break;
         case "update-product-type":
             let updateProductTypeName = job.data.name;
             let updateProductTypeItemID = job.data.item;
-            yield meili.index("product").updateDocuments(updateProductTypeItemID.map((x) => {
-                return {
-                    id: x.id,
-                    type: updateProductTypeName,
-                };
-            }));
+            try {
+                yield meili.index("product").updateDocuments(updateProductTypeItemID.map((x) => {
+                    return {
+                        id: x.id,
+                        type: updateProductTypeName,
+                    };
+                }));
+            }
+            catch (error) {
+                yield mongo_error_model_1.mongoErrorModel.create({
+                    date: new Date(),
+                    errror: error.toString(),
+                    function: "update-product-type",
+                    data: job.data,
+                });
+            }
             break;
         case "create-product-package":
             const createProductPackageID = job.data.id;
@@ -139,45 +170,65 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             const createProductPackageDescription = job.data.description;
             const createProductPackagePackageContent = job.data
                 .package_content;
-            yield meili.index("package").addDocuments([
-                {
-                    id: createProductPackageID,
-                    name: createProductPackageName,
-                    description: createProductPackageDescription,
-                    product_content: createProductPackagePackageContent.map((y) => {
-                        return {
-                            quantity: y.quantity,
-                            item: {
-                                reference: y.item.reference,
-                                description: y.item.description,
-                                unit: y.item.unit,
-                            },
-                            item_unit: y.item_unit == null
-                                ? null
-                                : {
-                                    unit: y.item_unit.unit,
-                                    conversion: y.item_unit.conversion,
+            try {
+                yield meili.index("package").addDocuments([
+                    {
+                        id: createProductPackageID,
+                        name: createProductPackageName,
+                        description: createProductPackageDescription,
+                        product_content: createProductPackagePackageContent.map((y) => {
+                            return {
+                                quantity: y.quantity,
+                                item: {
+                                    reference: y.item.reference,
+                                    description: y.item.description,
+                                    unit: y.item.unit,
                                 },
-                        };
-                    }),
-                },
-            ], {
-                primaryKey: "id",
-            });
+                                item_unit: y.item_unit == null
+                                    ? null
+                                    : {
+                                        unit: y.item_unit.unit,
+                                        conversion: y.item_unit.conversion,
+                                    },
+                            };
+                        }),
+                    },
+                ], {
+                    primaryKey: "id",
+                });
+            }
+            catch (error) {
+                yield mongo_error_model_1.mongoErrorModel.create({
+                    date: new Date(),
+                    error: error.toString(),
+                    function: "create-package",
+                    data: job.data,
+                });
+            }
             break;
         case "update-product-package":
             const updateProductPackageID = job.data.id;
             const updateProductPackageName = job.data.name;
             const updateProductPackageDescription = job.data.description;
-            yield meili.index("package").updateDocuments([
-                {
-                    id: updateProductPackageID,
-                    name: updateProductPackageName,
-                    description: updateProductPackageDescription,
-                },
-            ], {
-                primaryKey: "id",
-            });
+            try {
+                yield meili.index("package").updateDocuments([
+                    {
+                        id: updateProductPackageID,
+                        name: updateProductPackageName,
+                        description: updateProductPackageDescription,
+                    },
+                ], {
+                    primaryKey: "id",
+                });
+            }
+            catch (error) {
+                yield mongo_error_model_1.mongoErrorModel.create({
+                    date: new Date(),
+                    error: error.toString(),
+                    function: "update-package",
+                    data: job.data,
+                });
+            }
         case "create-adjustment-case":
             const createAdjustmentCaseID = job.data.id;
             const createAdjustmentCaseCreatedAt = job.data.created_at;
@@ -222,26 +273,46 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         salesReturnID: null,
                         salesReturnCodeID: null,
                     });
-                    yield updateProduct.save();
-                    yield queue_helper_1.queue.add("rearrange-stock-card", updateProduct.itemID);
+                    try {
+                        yield updateProduct.save();
+                        yield queue_helper_1.queue.add("rearrange-stock-card", updateProduct.itemID);
+                    }
+                    catch (error) {
+                        yield mongo_error_model_1.mongoErrorModel.create({
+                            date: new Date(),
+                            error: error.toString(),
+                            function: "create-adjustment-case/update-product",
+                            data: job.data,
+                        });
+                    }
                 }
                 if (createAdjustmentEventItemQuantity > 0) {
                     // insert to stock card
-                    yield mongo_stock_in_model_1.mongoStockInModel.create({
-                        companyID: createAdjustmentEventCompanyID,
-                        adjustmentCaseID: createAdjustmentEventItem.id,
-                        adjustmentCaseCodeID: createAdjustmentCaseID,
-                        goodReceiptCodeID: null,
-                        goodReceiptID: null,
-                        date: createAdjustmentCaseDate,
-                        price: 0,
-                        quantity: createAdjustmentEventItemQuantity *
-                            createAdjustmentEventItemConversion,
-                        residue: createAdjustmentEventItemQuantity *
-                            createAdjustmentEventItemConversion,
-                        itemID: createAdjustmentEventItemID,
-                        stockOut: [],
-                    });
+                    try {
+                        yield mongo_stock_in_model_1.mongoStockInModel.create({
+                            companyID: createAdjustmentEventCompanyID,
+                            adjustmentCaseID: createAdjustmentEventItem.id,
+                            adjustmentCaseCodeID: createAdjustmentCaseID,
+                            goodReceiptCodeID: null,
+                            goodReceiptID: null,
+                            date: createAdjustmentCaseDate,
+                            price: 0,
+                            quantity: createAdjustmentEventItemQuantity *
+                                createAdjustmentEventItemConversion,
+                            residue: createAdjustmentEventItemQuantity *
+                                createAdjustmentEventItemConversion,
+                            itemID: createAdjustmentEventItemID,
+                            stockOut: [],
+                        });
+                    }
+                    catch (error) {
+                        yield mongo_error_model_1.mongoErrorModel.create({
+                            date: new Date(),
+                            error: error.toString(),
+                            function: "create-adjustment-case/update-stock-in",
+                            data: job.data,
+                        });
+                    }
                 }
                 else {
                     let quantity = createAdjustmentEventItemQuantity * -1;
@@ -270,7 +341,16 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                     unit: createAdjustmentEventItemUnit,
                                 });
                                 quantity = 0;
-                                yield stockIn.save();
+                                try {
+                                    yield stockIn.save();
+                                }
+                                catch (error) {
+                                    yield mongo_error_model_1.mongoErrorModel.create({
+                                        date: new Date(),
+                                        error: error.toString(),
+                                        function: "create-adjustment-case/update-stock-in",
+                                    });
+                                }
                             }
                             else {
                                 stockIn.stockOut.unshift({
@@ -285,7 +365,17 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                                 });
                                 quantity -= stockInResidue;
                                 stockIn.residue = 0;
-                                yield stockIn.save();
+                                try {
+                                    yield stockIn.save();
+                                }
+                                catch (error) {
+                                    yield mongo_error_model_1.mongoErrorModel.create({
+                                        date: new Date(),
+                                        error: error.toString(),
+                                        function: "create-adjustment-case/update-stock-in",
+                                        data: job.data,
+                                    });
+                                }
                             }
                         }
                         else {
@@ -830,7 +920,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                     yield queue_helper_1.queue.add("rearrange-stock-card", createSalesReturnBill.item.id);
                     let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
                     while (createSalesReturnItemQuantityEdit > 0) {
-                        console.log(`Current quantity: ${createSalesReturnItemQuantityEdit}`);
                         if (createSalesReturnItemQuantityEdit == 0) {
                             break;
                         }
