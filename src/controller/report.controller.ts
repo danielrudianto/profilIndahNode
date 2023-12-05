@@ -331,6 +331,9 @@ class ReportController {
           },
         },
       ])
+      .sort({
+        reference: 1,
+      })
       .then(async (result) => {
         const items = await ItemModel.fetchByIDs(
           result.map((x) => {

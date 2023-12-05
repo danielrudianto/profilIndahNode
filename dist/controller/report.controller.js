@@ -340,6 +340,9 @@ ReportController.downloadInventoryReport = (req, res) => {
             },
         },
     ])
+        .sort({
+        reference: 1,
+    })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         const items = yield item_model_1.ItemModel.fetchByIDs(result.map((x) => {
             return x._id;
