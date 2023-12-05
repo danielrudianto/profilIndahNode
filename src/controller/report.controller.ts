@@ -331,9 +331,6 @@ class ReportController {
           },
         },
       ])
-      .sort({
-        reference: 1,
-      })
       .then(async (result) => {
         const items = await ItemModel.fetchByIDs(
           result.map((x) => {
@@ -342,20 +339,25 @@ class ReportController {
         );
 
         return res.status(200).send(
-          result.map((x) => {
-            const itemIndex = items.findIndex((y) => y.id == x._id);
-            if (itemIndex != -1) {
-              return {
-                reference: items[itemIndex].reference,
-                description: items[itemIndex].description,
-                quantity: x.quantity,
-                unit: items[itemIndex].unit,
-                value: x.quantity == 0 ? 0 : x.value / x.quantity,
-                brand: items[itemIndex].item_brand_name,
-                type: items[itemIndex].item_type_name,
-              };
-            }
-          })
+          result
+            .map((x) => {
+              const itemIndex = items.findIndex((y) => y.id == x._id);
+              if (itemIndex != -1) {
+                return {
+                  reference: items[itemIndex].reference,
+                  description: items[itemIndex].description,
+                  quantity: x.quantity,
+                  unit: items[itemIndex].unit,
+                  value: x.quantity == 0 ? 0 : x.value / x.quantity,
+                  brand: items[itemIndex].item_brand_name,
+                  type: items[itemIndex].item_type_name,
+                };
+              }
+            })
+            .filter((x) => x != undefined)
+            .sort((a, b) => {
+              return a!.reference.localeCompare(b!.reference);
+            })
         );
       })
       .catch((error) => {

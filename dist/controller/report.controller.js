@@ -340,14 +340,12 @@ ReportController.downloadInventoryReport = (req, res) => {
             },
         },
     ])
-        .sort({
-        reference: 1,
-    })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         const items = yield item_model_1.ItemModel.fetchByIDs(result.map((x) => {
             return x._id;
         }));
-        return res.status(200).send(result.map((x) => {
+        return res.status(200).send(result
+            .map((x) => {
             const itemIndex = items.findIndex((y) => y.id == x._id);
             if (itemIndex != -1) {
                 return {
@@ -360,6 +358,10 @@ ReportController.downloadInventoryReport = (req, res) => {
                     type: items[itemIndex].item_type_name,
                 };
             }
+        })
+            .filter((x) => x != undefined)
+            .sort((a, b) => {
+            return a.reference.localeCompare(b.reference);
         }));
     }))
         .catch((error) => {
