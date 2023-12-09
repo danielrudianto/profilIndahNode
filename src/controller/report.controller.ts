@@ -317,6 +317,14 @@ class ReportController {
   static downloadInventoryReport = (req: Request, res: Response) => {
     mongoStockInModel
       .aggregate([
+        // Match where residue > 0
+        {
+          $match: {
+            $expr: {
+              $gt: ["$residue", 0],
+            },
+          },
+        },
         {
           $group: {
             _id: "$itemID",
