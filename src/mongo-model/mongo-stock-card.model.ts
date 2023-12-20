@@ -1,4 +1,4 @@
-import { Schema } from "mongoose";
+import { Schema, model } from "mongoose";
 
 export const stockCardSchema = new Schema({
   createdAt: {
@@ -84,4 +84,10 @@ export const stockCardSchema = new Schema({
     required: true,
     default: 0,
   },
+  itemID: {
+    type: Number,
+    required: true,
+  },
 });
+
+export const mongoStockCardModel = model("stock-cards", stockCardSchema);

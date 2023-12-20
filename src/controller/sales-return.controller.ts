@@ -5,6 +5,9 @@ import { queue } from "../helper/queue.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import SalesReturnModel from "../model/sales_return.model";
+import { StockReturnInterface } from "../interface/stock-in.interface";
+import { mongoStockOutModel } from "../mongo-model/mongo-stock-in.model";
+import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 
 class SalesReturnController {
   /**
@@ -65,7 +68,97 @@ class SalesReturnController {
         }),
       })
         .then(async (result) => {
-          await queue.add("create-sales-return", result);
+          for (let i = 0; i < result.sales_return.length; i++) {
+            if (result.sales_return[i].bill.item != null) {
+              const stockReturn: StockReturnInterface = {
+                itemID: result.sales_return[i].bill.item!.id,
+                createdAt: result.created_at!,
+                date: date,
+                document: name,
+                opponent:
+                  result.sales_return[i].bill.bill_code.customer == null
+                    ? "Retail customer"
+                    : result.sales_return[i].bill.bill_code.customer!.name,
+                displayQuantity: Number(result.sales_return[i].quantity),
+                unit:
+                  result.sales_return[i].bill.item_unit == null
+                    ? result.sales_return[i].bill.item!.unit
+                    : result.sales_return[i].bill.item_unit!.unit,
+                quantity:
+                  Number(result.sales_return[i].quantity) *
+                  (result.sales_return[i].bill.item_unit == null
+                    ? 1
+                    : Number(
+                        result.sales_return[i].bill.item_unit!.conversion
+                      )),
+                billID: result.sales_return[i].bill_id,
+                billCodeID: result.sales_return[i].bill.bill_code.id,
+                salesReturnCodeID: result.id,
+                salesReturnID: result.sales_return[i].id,
+                customerID:
+                  result.sales_return[i].bill.bill_code.customer == null
+                    ? null
+                    : result.sales_return[i].bill.bill_code.customer!.id,
+              };
+              await queue.add("insert-stock-return", stockReturn);
+            } else if (result.sales_return[i].bill.package_code != null) {
+              for (
+                let n = 0;
+                n <
+                result.sales_return[i].bill.package_code!.package_content
+                  .length;
+                n++
+              ) {
+                const stockReturn: StockReturnInterface = {
+                  itemID:
+                    result.sales_return[i].bill.package_code!.package_content[n]
+                      .item.id,
+                  createdAt: result.created_at!,
+                  date: date,
+                  document: name,
+                  opponent:
+                    result.sales_return[i].bill.bill_code.customer == null
+                      ? "Retail customer"
+                      : result.sales_return[i].bill.bill_code.customer!.name,
+                  displayQuantity:
+                    Number(result.sales_return[i].bill.quantity) *
+                    Number(
+                      result.sales_return[i].bill.package_code!.package_content[
+                        n
+                      ].quantity
+                    ),
+                  unit:
+                    result.sales_return[i].bill.package_code!.package_content[n]
+                      .item_unit == null
+                      ? result.sales_return[i].bill.package_code!
+                          .package_content[n].item!.unit
+                      : result.sales_return[i].bill.package_code!
+                          .package_content[n].item_unit!.unit,
+                  quantity:
+                    Number(result.sales_return[i].quantity) *
+                    Number(
+                      result.sales_return[i].bill.package_code!.package_content[
+                        n
+                      ].quantity
+                    ) *
+                    (result.sales_return[i].bill.item_unit == null
+                      ? 1
+                      : Number(
+                          result.sales_return[i].bill.item_unit!.conversion
+                        )),
+                  billID: result.sales_return[i].bill_id,
+                  billCodeID: result.sales_return[i].bill.bill_code.id,
+                  salesReturnCodeID: result.id,
+                  salesReturnID: result.sales_return[i].id,
+                  customerID:
+                    result.sales_return[i].bill.bill_code.customer == null
+                      ? null
+                      : result.sales_return[i].bill.bill_code.customer!.id,
+                };
+                await queue.add("insert-stock-return", stockReturn);
+              }
+            }
+          }
           return res.status(201).send(result);
         })
         .catch((error) => {
@@ -255,7 +348,97 @@ class SalesReturnController {
 
       SalesReturnModel.deleteByID(id, userID)
         .then(async (result) => {
-          await queue.add("delete-sales-return", result);
+          for (let i = 0; i < result.sales_return.length; i++) {
+            await queue.add("delete-stock-return", {
+              salesReturnID: result.sales_return[i].id,
+            });
+
+            if (result.sales_return[i].bill.item != null) {
+              const overflowBill = await mongoOverflowModel.findOne({
+                billID: result.sales_return[i].bill_id,
+                itemID: result.sales_return[i].bill.item!.id,
+              });
+
+              if (overflowBill) {
+                const itemUnit = result.sales_return[i].bill.item_unit;
+                const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+                await queue.add("insert-stock-out-plain", {
+                  itemID: overflowBill.itemID,
+                  billID: result.sales_return[i].bill_id,
+                  billCodeID: result.sales_return[i].bill.bill_code.id,
+                  adjustmentCaseID: null,
+                  adjustmentCaseCodeID: null,
+                  date: result.date,
+                  quantity:
+                    Number(result.sales_return[i].quantity) * conversion,
+                  value: overflowBill.value,
+                });
+              } else {
+                const bill = await mongoStockOutModel.findOne({
+                  billID: result.sales_return[i].bill_id,
+                  itemID: result.sales_return[i].bill.item!.id,
+                });
+
+                if (!bill) {
+                  console.error(`[error]: Bill not found`);
+                } else {
+                  const itemUnit = result.sales_return[i].bill.item_unit;
+                  const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+                  await queue.add("insert-stock-out-plain", {
+                    itemID: bill.itemID,
+                    billID: result.sales_return[i].bill_id,
+                    billCodeID: result.sales_return[i].bill.bill_code.id,
+                    adjustmentCaseID: null,
+                    adjustmentCaseCodeID: null,
+                    date: result.date,
+                    quantity:
+                      Number(result.sales_return[i].quantity) * conversion,
+                    value: bill.value,
+                  });
+                }
+              }
+            } else if (result.sales_return[i].bill.package_code != null) {
+              for (
+                let n = 0;
+                n <
+                result.sales_return[i].bill.package_code!.package_content
+                  .length;
+                n++
+              ) {
+                const bill = await mongoStockOutModel.findOne({
+                  billID: result.sales_return[i].bill_id,
+                  itemID:
+                    result.sales_return[i].bill.package_code!.package_content[n]
+                      .item.id,
+                });
+
+                if (!bill) {
+                  console.error(`[error]: Bill not found`);
+                } else {
+                  const itemUnit =
+                    result.sales_return[i].bill.package_code!.package_content[n]
+                      .item_unit;
+                  const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+                  await queue.add("insert-stock-out", {
+                    itemID: bill.itemID,
+                    billID: result.sales_return[i].bill_id,
+                    billCodeID: result.sales_return[i].bill.bill_code.id,
+                    adjustmentCaseID: null,
+                    adjustmentCaseCodeID: null,
+                    date: result.date,
+                    quantity:
+                      Number(result.sales_return[i].quantity) *
+                      Number(
+                        result.sales_return[i].bill.package_code!
+                          .package_content[n].quantity
+                      ) *
+                      conversion,
+                    value: bill.value,
+                  });
+                }
+              }
+            }
+          }
           return res.status(201).send(result);
         })
         .catch((error) => {

@@ -36,6 +36,10 @@ router.post("/sync-product", (req, _, next) => {
     req.body.mode = search_helper_1.syncMode.Product;
     next();
 }, search_helper_1.default.syncMasterData);
+router.post("/sync-product-minimum-stock", (req, _, next) => {
+    req.body.mode = search_helper_1.syncMode.ProductMinimumStock;
+    next();
+}, search_helper_1.default.syncMasterData);
 router.post("/sync-package", (req, _, next) => {
     req.body.mode = search_helper_1.syncMode.Package;
     next();

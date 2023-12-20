@@ -111,6 +111,7 @@ class SalesReturnModel {
                     id: true,
                     customer: {
                       select: {
+                        id: true,
                         name: true,
                       },
                     },
@@ -476,8 +477,6 @@ class SalesReturnModel {
           AND (bill.quantity - COALESCE(salesReturn.quantity, 0)) >= ${x.quantity}
         )`;
     });
-
-    console.log(mysql_string);
 
     return prisma.$queryRawUnsafe(`
       SELECT bill_code.id, bill_code.date, bill_code.name,

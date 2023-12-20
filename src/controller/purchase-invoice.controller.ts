@@ -6,6 +6,7 @@ import SocketHelper from "../helper/socket.helper";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import PurchaseInvoiceModel from "../model/purchase-invoice.model";
+import { StockInInterface } from "../interface/stock-in.interface";
 
 class PurchaseInvoiceController {
   /**
@@ -86,7 +87,61 @@ class PurchaseInvoiceController {
         });
         socket.create();
 
-        await queue.add("create-purchase-invoice", good_receipt_result);
+        const createPurchaseInvoiceTotalValue =
+          good_receipt_result.good_receipt.reduce((a, b) => {
+            return (
+              a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+            );
+          }, 0);
+
+        const createPurchaseInvoiceDiscount =
+          good_receipt_result.purchase_invoice == null
+            ? 0
+            : Number(good_receipt_result.purchase_invoice.discount || 0);
+
+        const createPurchaseInvoiceNetValue =
+          createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
+
+        for (let i = 0; i < good_receipt_result.good_receipt.length; i++) {
+          const goodReceiptItem = good_receipt_result.good_receipt[i];
+          const stockIn: StockInInterface = {
+            itemID: goodReceiptItem.item.id,
+            createdAt: good_receipt_result.created_at,
+            date: good_receipt_result.date,
+            document: good_receipt_result.name,
+            opponent: good_receipt_result.supplier.name,
+            displayQuantity: parseFloat(goodReceiptItem.quantity.toString()),
+            unit:
+              goodReceiptItem.item_unit == null
+                ? goodReceiptItem.item.unit
+                : goodReceiptItem.item_unit.unit,
+            quantity:
+              parseFloat(goodReceiptItem.quantity.toString()) *
+              (goodReceiptItem.item_unit == null
+                ? 1
+                : parseFloat(goodReceiptItem.item_unit.conversion.toString())),
+            billID: null,
+            billCodeID: null,
+            adjustmentCaseID: null,
+            adjustmentCaseCodeID: null,
+            goodReceiptID: goodReceiptItem.id,
+            goodReceiptCodeID: good_receipt_result.id,
+            salesReturnID: null,
+            salesReturnCodeID: null,
+            customerID: null,
+            supplierID: good_receipt_result.supplier_id,
+            companyID: good_receipt_result.company_id,
+            price:
+              createPurchaseInvoiceTotalValue == 0
+                ? 0
+                : ((Number(goodReceiptItem.price) -
+                    Number(goodReceiptItem.discount)) *
+                    createPurchaseInvoiceNetValue) /
+                  createPurchaseInvoiceTotalValue,
+          };
+
+          await queue.add("insert-stock-in", stockIn);
+        }
         return res.status(201).send(good_receipt_result);
       })
       .catch((error) => {
@@ -197,10 +252,78 @@ class PurchaseInvoiceController {
       },
     })
       .then(async (result) => {
-        // Next thing to do is to update the stock
-        await queue.add("delete-purchase-invoice", purchaseInvoice);
-        await queue.add("update-purchase-invoice", result);
+        for (let i = 0; i < goodReceipt.good_receipt.length; i++) {
+          await queue.add("delete-stock-in", {
+            goodReceiptID: goodReceipt.good_receipt[i].id,
+            adjustmentCaseID: null,
+            itemID: goodReceipt.good_receipt[i].item.id,
+            quantity:
+              Number(goodReceipt.good_receipt[i].quantity) *
+              (goodReceipt.good_receipt[i].item_unit == null
+                ? 1
+                : Number(goodReceipt.good_receipt[i].item_unit.conversion)),
+          });
+        }
 
+        const createPurchaseInvoiceTotalValue =
+          result.good_receipt_code.good_receipt.reduce((a, b) => {
+            return (
+              a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+            );
+          }, 0);
+
+        const createPurchaseInvoiceDiscount =
+          result.discount == null ? 0 : Number(result.discount || 0);
+
+        const createPurchaseInvoiceNetValue =
+          createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
+
+        for (let n = 0; n < result.good_receipt_code.good_receipt.length; n++) {
+          const stockIn: StockInInterface = {
+            itemID: result.good_receipt_code.good_receipt[n].item.id,
+            createdAt: result.created_at,
+            date: result.good_receipt_code.date,
+            document: result.good_receipt_code.name,
+            opponent: result.good_receipt_code.supplier.name,
+            displayQuantity: parseFloat(
+              result.good_receipt_code.good_receipt[n].quantity.toString()
+            ),
+            unit:
+              result.good_receipt_code.good_receipt[n].item_unit == null
+                ? result.good_receipt_code.good_receipt[n].item.unit
+                : result.good_receipt_code.good_receipt[n].item_unit!.unit,
+            quantity:
+              parseFloat(
+                result.good_receipt_code.good_receipt[n].quantity.toString()
+              ) *
+              (result.good_receipt_code.good_receipt[n].item_unit == null
+                ? 1
+                : Number(
+                    result.good_receipt_code.good_receipt[n].item_unit!
+                      .conversion
+                  )),
+            billID: null,
+            billCodeID: null,
+            adjustmentCaseID: null,
+            adjustmentCaseCodeID: null,
+            goodReceiptID: result.good_receipt_code.good_receipt[n]!.id,
+            goodReceiptCodeID: result.good_receipt_code.id,
+            salesReturnID: null,
+            salesReturnCodeID: null,
+            customerID: null,
+            supplierID: result.good_receipt_code.supplier_id,
+            companyID: result.good_receipt_code.company_id,
+            price:
+              createPurchaseInvoiceTotalValue == 0
+                ? 0
+                : ((Number(result.good_receipt_code.good_receipt[n].price) -
+                    Number(result.good_receipt_code.good_receipt[n].discount)) *
+                    createPurchaseInvoiceNetValue) /
+                  createPurchaseInvoiceTotalValue,
+          };
+
+          await queue.add("insert-stock-in", stockIn);
+        }
         return res.status(201).send(result);
       })
       .catch((error) => {
@@ -316,8 +439,54 @@ class PurchaseInvoiceController {
         socket.create();
 
         const updatedPurchaseInvoice = await PurchaseInvoiceModel.fetchByID(id);
-        await queue.add("confirm-purchase-invoice", updatedPurchaseInvoice);
+        if (!updatedPurchaseInvoice) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
 
+        const createPurchaseInvoiceTotalValue =
+          updatedPurchaseInvoice.good_receipt_code.good_receipt.reduce(
+            (a, b) => {
+              return (
+                a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+              );
+            },
+            0
+          );
+
+        const createPurchaseInvoiceDiscount = Number(
+          updatePurchaseInvoiceResult[0].discount
+        );
+
+        for (
+          let i = 0;
+          i < updatedPurchaseInvoice.good_receipt_code.good_receipt.length;
+          i++
+        ) {
+          const itemID =
+            updatedPurchaseInvoice.good_receipt_code.good_receipt[i].item.id;
+          const goodReceiptID =
+            updatedPurchaseInvoice.good_receipt_code.good_receipt[i].id;
+          const price =
+            createPurchaseInvoiceTotalValue == 0
+              ? 0
+              : ((Number(
+                  updatedPurchaseInvoice.good_receipt_code.good_receipt[i].price
+                ) -
+                  Number(
+                    updatedPurchaseInvoice.good_receipt_code.good_receipt[i]
+                      .discount
+                  )) *
+                  (createPurchaseInvoiceTotalValue -
+                    createPurchaseInvoiceDiscount)) /
+                createPurchaseInvoiceTotalValue;
+
+          await queue.add("update-stock-in", {
+            itemID: itemID,
+            goodReceiptID: goodReceiptID,
+            goodReceiptCodeID: goodReceiptCodeID,
+            price: price,
+          });
+        }
         if (good_receipt.filter((x) => x.save).length > 0) {
           // Search for saved items
           await ItemPurchasePriceModel.delete(
@@ -389,7 +558,31 @@ class PurchaseInvoiceController {
         deleted_by: userID,
       });
 
-      await queue.add("delete-purchase-invoice", goodReceipt);
+      // Create delete good receipt
+      for (
+        let i = 0;
+        i < purchaseInvoiceUpdate.good_receipt_code.good_receipt.length;
+        i++
+      ) {
+        await queue.add("delete-stock-in", {
+          itemID:
+            purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].item_id,
+          goodReceiptID:
+            purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].id,
+          adjustmentCaseID: null,
+          quantity:
+            Number(
+              purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].quantity
+            ) *
+            (purchaseInvoiceUpdate.good_receipt_code.good_receipt[i]
+              .item_unit == null
+              ? 1
+              : Number(
+                  purchaseInvoiceUpdate.good_receipt_code.good_receipt[i]
+                    .item_unit?.conversion
+                )),
+        });
+      }
 
       const socket = new SocketHelper(
         "updatePurchaseDocumentStatus",
@@ -497,7 +690,7 @@ class PurchaseInvoiceController {
     const companies = req.body.companies as number[];
     const date = req.body.date as any[];
     const page = req.body.page as number;
-    const keyword = req.body.keyword as string;
+    const search = req.body.search as any;
     const status = req.body.status;
 
     const formattedDate_1 =
@@ -527,7 +720,7 @@ class PurchaseInvoiceController {
       companies,
       items,
       [formattedDate_1, formattedDate_2],
-      mysql_real_escape_string(keyword),
+      mysql_real_escape_string(search.keyword ?? ""),
       page,
       status
     )
@@ -577,7 +770,18 @@ class PurchaseInvoiceController {
       deleted_by: userID,
     })
       .then(async (result) => {
-        await queue.add("delete-purchase-invoice", goodReceipt);
+        for (let i = 0; i < goodReceipt.good_receipt.length; i++) {
+          await queue.add("delete-stock-in", {
+            itemID: goodReceipt.good_receipt[i].item.id,
+            goodReceiptID: goodReceipt.good_receipt[i].id,
+            adjustmentCaseID: null,
+            quantity:
+              Number(goodReceipt.good_receipt[i].quantity) *
+              (goodReceipt.good_receipt[i].item_unit == null
+                ? 1
+                : Number(goodReceipt.good_receipt[i].item_unit.conversion)),
+          });
+        }
         return res.status(201).send(result);
       })
       .catch((error) => {

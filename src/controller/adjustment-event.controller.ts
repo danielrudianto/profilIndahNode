@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { model } from "mongoose";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
@@ -7,7 +6,7 @@ import SocketHelper from "../helper/socket.helper";
 import AdjustmentCaseModel, {
   IAdjustmentCaseCode,
 } from "../model/adjustment-case.model";
-import ProductStockModel from "../model/product-stock.model";
+import { StockInInterface } from "../interface/stock-in.interface";
 
 class AdjustmentCaseController {
   /**
@@ -47,7 +46,85 @@ class AdjustmentCaseController {
           return res.status(500).send(ErrorList["Internal server error"]);
         }
 
-        await queue.add("create-adjustment-case", result);
+        // Start inserting using queue
+        for (let i = 0; i < result.adjustment_case.length; i++) {
+          if (parseFloat(result.adjustment_case[i].quantity.toString()) > 0) {
+            // Added item
+            const stockIn: StockInInterface = {
+              itemID: result.adjustment_case[i].item.id,
+              createdAt: result.created_at,
+              date: result.date,
+              document: result.name,
+              opponent: "Internal",
+              displayQuantity: parseFloat(
+                result.adjustment_case[i].quantity.toString()
+              ),
+              unit:
+                result.adjustment_case[i].item_unit == null
+                  ? result.adjustment_case[i].item.unit
+                  : result.adjustment_case[i].item_unit!.unit,
+              quantity:
+                parseFloat(result.adjustment_case[i].quantity.toString()) *
+                (result.adjustment_case[i].item_unit == null
+                  ? 1
+                  : parseFloat(
+                      result.adjustment_case[i].item_unit!.conversion.toString()
+                    )),
+              billID: null,
+              billCodeID: null,
+              adjustmentCaseID: result.adjustment_case[i].id,
+              adjustmentCaseCodeID: result.id,
+              goodReceiptID: null,
+              goodReceiptCodeID: null,
+              salesReturnID: null,
+              salesReturnCodeID: null,
+              customerID: null,
+              supplierID: null,
+              companyID: result.company_id,
+              price: 0,
+            };
+
+            await queue.add("insert-stock-in", stockIn);
+          } else {
+            // Removed item
+            const stockIn: StockInInterface = {
+              itemID: result.adjustment_case[i].item.id,
+              createdAt: result.created_at,
+              date: result.date,
+              document: result.name,
+              opponent: "Internal",
+              displayQuantity: parseFloat(
+                result.adjustment_case[i].quantity.toString()
+              ),
+              unit:
+                result.adjustment_case[i].item_unit == null
+                  ? result.adjustment_case[i].item.unit
+                  : result.adjustment_case[i].item_unit!.unit,
+              quantity:
+                parseFloat(result.adjustment_case[i].quantity.toString()) *
+                (result.adjustment_case[i].item_unit == null
+                  ? 1
+                  : parseFloat(
+                      result.adjustment_case[i].item_unit!.conversion.toString()
+                    )),
+              billID: null,
+              billCodeID: null,
+              adjustmentCaseID: result.adjustment_case[i].id,
+              adjustmentCaseCodeID: result.id,
+              goodReceiptID: null,
+              goodReceiptCodeID: null,
+              salesReturnID: null,
+              salesReturnCodeID: null,
+              customerID: null,
+              supplierID: null,
+              companyID: result.company_id,
+              price: 0,
+            };
+
+            await queue.add("insert-stock-out", stockIn);
+          }
+        }
+
         return res.status(201).send(result);
       })
       .catch((error) => {
@@ -223,7 +300,36 @@ class AdjustmentCaseController {
           const socket = new SocketHelper("deleteAdjustmentCase", result);
           socket.create();
 
-          await queue.add("delete-adjustment-case", result);
+          for (let i = 0; i < adjustmentCase.adjustment_case.length; i++) {
+            const quantity = Number(adjustmentCase.adjustment_case[i].quantity);
+            if (quantity > 0) {
+              await queue.add("delete-stock-in", {
+                itemID: adjustmentCase.adjustment_case[i]?.item?.id,
+                goodReceiptID: null,
+                adjustmentCaseID: adjustmentCase.adjustment_case[i].id,
+                quantity:
+                  Number(adjustmentCase.adjustment_case[i].quantity) *
+                  (adjustmentCase.adjustment_case[i].item_unit == null
+                    ? 1
+                    : Number(
+                        adjustmentCase.adjustment_case[i].item_unit!.conversion
+                      )),
+              });
+            } else if (quantity < 0) {
+              await queue.add("delete-stock-out", {
+                itemID: adjustmentCase.adjustment_case[i]?.item?.id,
+                billID: null,
+                adjustmentCaseID: adjustmentCase.adjustment_case[i].id,
+                quantity:
+                  Number(adjustmentCase.adjustment_case[i].quantity) *
+                  (adjustmentCase.adjustment_case[i].item_unit == null
+                    ? 1
+                    : Number(
+                        adjustmentCase.adjustment_case[i].item_unit!.conversion
+                      )),
+              });
+            }
+          }
           return res.status(200).send(result);
         })
         .catch((error) => {

@@ -14,7 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.syncMode = void 0;
-const moment_1 = __importDefault(require("moment"));
 const app_1 = require("../app");
 const fetch_interface_1 = require("../interface/fetch.interface");
 const customer_model_1 = __importDefault(require("../model/customer.model"));
@@ -23,12 +22,14 @@ const product_package_model_1 = require("../model/product-package.model");
 const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
+const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
 var syncMode;
 (function (syncMode) {
     syncMode[syncMode["Product"] = 0] = "Product";
     syncMode[syncMode["Customer"] = 1] = "Customer";
     syncMode[syncMode["Package"] = 2] = "Package";
     syncMode[syncMode["ProductNoSQL"] = 3] = "ProductNoSQL";
+    syncMode[syncMode["ProductMinimumStock"] = 4] = "ProductMinimumStock";
 })(syncMode = exports.syncMode || (exports.syncMode = {}));
 class SearchHelper {
 }
@@ -55,15 +56,15 @@ SearchHelper.createIndex = (req, res) => __awaiter(void 0, void 0, void 0, funct
             "rel fe": ["Rel full extension"],
             shelf: ["rak"],
             knob: ["handle", "knop"],
-            double: ["doble", "dobel", "dubel", "dobel", "dubbel", "dubbel"],
+            double: ["doble", "dobel", "dubel", "dobel", "dubbel"],
             "double bracket": ["doble bracket", "dobel bracket", "dubel bracket"],
             bracket: ["breket"],
-            profile: ["profil"],
+            profile: ["profil", "profill"],
             hinge: ["engsel"],
             hing: ["engsel"],
             lis: ["list"],
             "lubang angin": ["lubang udara", "lubang hawa"],
-            tacosheet: ["sheet"],
+            tacosheet: ["sheet", "sheeting", "shit"],
             sss: ["stainless steel"],
             ss: ["stainless steel"],
             bb: ["ball bearing"],
@@ -227,9 +228,8 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
                             itemBrandID: x.item_brand_id,
                             currentStock: 0,
                             unit: x.unit,
-                            minimumStock: x.minimum_stock,
+                            minimumStock: x.minimum_stock || 0,
                             calculatedMinimumStock: 0,
-                            stockCard: [],
                         };
                     }));
                     console.log("[info]: Sync product NoSQL completed.");
@@ -244,6 +244,27 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
             })
                 .catch((error) => {
                 console.error(`[error]: Error on deleting product NoSQL. ${error}`);
+                return res.status(500).send(error);
+            });
+            break;
+        case syncMode.ProductMinimumStock:
+            item_model_1.ItemModel.fetchAll(new Date())
+                .then((items) => __awaiter(void 0, void 0, void 0, function* () {
+                for (let i = 0; i < items.length; i++) {
+                    yield mongo_product_model_1.mongoProductModel.findOneAndUpdate({ itemID: items[i].id }, {
+                        $set: {
+                            minimumStock: items[0].minimum_stock || 0,
+                            calculatedMinimumStock: 0,
+                        },
+                    });
+                }
+                console.log("[info]: Sync product NoSQL completed.");
+                return res.status(200).send({
+                    message: "Sync product NoSQL success",
+                });
+            }))
+                .catch((error) => {
+                console.error(`[error]: Error on sync product NoSQL. ${error}`);
                 return res.status(500).send(error);
             });
             break;
@@ -287,7 +308,7 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
         AND good_receipt_code.is_delete = 0`)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         yield mongo_stock_in_model_1.mongoStockInModel.insertMany(result.map((x) => {
-            return Object.assign(Object.assign({}, x), { date: new Date(x.date), companyID: x.companyID, stockOut: [] });
+            return Object.assign(Object.assign({}, x), { date: new Date(x.date), companyID: x.companyID });
         }));
         return res.status(200).send({
             message: "Stock in sync success",
@@ -300,8 +321,6 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
  * @param res
  */
 SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const overflows = [];
-    const stockIns = yield mongo_stock_in_model_1.mongoStockInModel.find({});
     const stockOuts = yield app_1.prisma.$queryRawUnsafe(`
         SELECT * FROM 
         (
@@ -351,6 +370,7 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
           ) AS total
           ON bill_code.id = total.bill_code_id
           WHERE bill_code.is_delete = 0
+          AND bill.item_id IS NOT NULL
           UNION ALL
           # Bill with package
           SELECT 
@@ -402,43 +422,82 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
         const progress = Math.round((i / stockOuts.length) * 100);
         const loadingBar = new Array(Math.round(progress / 10)).fill("=");
         console.log(`Stock out sync progress: ${loadingBar.join("")} ${progress}% ${i}/${stockOuts.length}`);
-        let quantity = parseFloat(stockOuts[i].quantity.toString());
+        let quantity = Number(stockOuts[i].quantity);
         while (quantity > 0) {
             if (quantity == 0) {
                 break;
             }
-            const stockInIndex = stockIns
-                .sort((a, b) => {
-                return a.date.getTime() - b.date.getTime();
-            })
-                .findIndex((x) => {
-                return x.itemID == stockOuts[i].itemID && x.residue > 0;
-            });
-            if (stockInIndex != -1) {
-                const stockIn = stockIns[stockInIndex];
-                const stockInResidue = stockIn.residue;
-                if (stockInResidue >= quantity) {
-                    stockIn.residue = stockInResidue - quantity;
-                    stockIn.stockOut.push(Object.assign(Object.assign({}, stockOuts[i]), { quantity: quantity }));
-                    quantity = 0;
+            else {
+                const stockIn = yield mongo_stock_in_model_1.mongoStockInModel
+                    .findOne({
+                    itemID: stockOuts[i].itemID,
+                    residue: { $gt: 0 },
+                })
+                    .sort({ date: 1 });
+                if (stockIn == null) {
+                    yield mongo_overflow_model_1.mongoOverflowModel.create({
+                        itemID: stockOuts[i].itemID,
+                        date: stockOuts[i].date,
+                        quantity: quantity,
+                        billCodeID: stockOuts[i].billCodeID,
+                        billID: stockOuts[i].billID,
+                        adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+                        adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+                        value: Number(stockOuts[i].value),
+                    });
                     break;
                 }
                 else {
-                    stockIn.residue = 0;
-                    stockIn.stockOut.push(Object.assign(Object.assign({}, stockOuts[i]), { quantity: stockInResidue }));
-                    quantity -= stockInResidue;
+                    const stockInResidue = stockIn.residue;
+                    if (stockInResidue >= quantity) {
+                        try {
+                            stockIn.residue = stockInResidue - quantity;
+                            yield mongo_stock_in_model_1.mongoStockOutModel.create({
+                                billCodeID: stockOuts[i].billCodeID,
+                                billID: stockOuts[i].billID,
+                                adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+                                adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+                                date: stockOuts[i].date,
+                                quantity: Number(quantity),
+                                value: Number(stockOuts[i].value),
+                                stockInID: stockIn._id,
+                                itemID: stockOuts[i].itemID,
+                            });
+                            quantity = 0;
+                            yield stockIn.save();
+                        }
+                        catch (e) {
+                            console.error(e.toString());
+                            throw new Error(e);
+                        }
+                        break;
+                    }
+                    else {
+                        try {
+                            stockIn.residue = 0;
+                            yield mongo_stock_in_model_1.mongoStockOutModel.create({
+                                billCodeID: stockOuts[i].billCodeID,
+                                billID: stockOuts[i].billID,
+                                adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+                                adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+                                date: stockOuts[i].date,
+                                quantity: stockInResidue,
+                                value: Number(stockOuts[i].value),
+                                stockInID: stockIn._id,
+                                itemID: stockOuts[i].itemID,
+                            });
+                            quantity -= stockInResidue;
+                            yield stockIn.save();
+                        }
+                        catch (e) {
+                            console.error(e.toString());
+                            throw new Error(e);
+                        }
+                    }
                 }
-            }
-            else {
-                overflows.push(Object.assign(Object.assign({}, stockOuts[i]), { quantity: quantity }));
-                quantity = 0;
-                break;
             }
         }
     }
-    yield mongo_stock_in_model_1.mongoStockInModel.deleteMany({});
-    yield mongo_stock_in_model_1.mongoStockInModel.insertMany(stockIns);
-    yield mongo_overflow_model_1.mongoOverflowModel.insertMany(overflows);
     return res.status(200).send({
         message: "Stock out sync success",
     });
@@ -595,46 +654,30 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
         ) a
         ORDER BY a.itemID ASC, a.date DESC
       `);
-    for (let i = 0; i < products.length; i++) {
-        yield mongo_product_model_1.mongoProductModel.findByIdAndUpdate(products[i]._id, {
-            currentStock: stockCards
-                .filter((x) => x.itemID == products[i].itemID)
-                .reduce((a, b) => {
-                return a + parseFloat(b.quantity.toString());
-            }, 0),
-            $push: {
-                stockCard: {
-                    $each: [
-                        ...stockCards
-                            .filter((x) => x.itemID == products[i].itemID)
-                            .map((x) => {
-                            return {
-                                date: (0, moment_1.default)(x.date).format("YYYY-MM-DD"),
-                                createdAt: `${x.createdAt.replace(" ", "T")}+00:00`,
-                                document: x.document,
-                                opponent: x.opponent,
-                                displayQuantity: parseFloat(x.displayQuantity.toString()),
-                                quantity: parseFloat(x.quantity.toString()),
-                                unit: x.unit,
-                                billID: x.billID,
-                                billCodeID: x.billCodeID,
-                                adjustmentCaseID: x.adjustmentCaseID,
-                                adjustmentCaseCodeID: x.adjustmentCaseCodeID,
-                                goodReceiptID: x.goodReceiptID,
-                                goodReceiptCodeID: x.goodReceiptCodeID,
-                                salesReturnID: x.salesReturnID,
-                                salesReturnCodeID: x.salesReturnCodeID,
-                                customerID: x.customerID,
-                                supplierID: x.supplierID,
-                                currentStock: 0,
-                            };
-                        }),
-                    ],
-                },
-            },
-        });
-        console.log("updated product");
-    }
+    const stockCardItems = stockCards.map((x) => {
+        return {
+            createdAt: x.createdAt,
+            date: x.date,
+            document: x.document,
+            opponent: x.opponent,
+            displayQuantity: x.displayQuantity,
+            quantity: x.quantity,
+            unit: x.unit,
+            billID: x.billID,
+            billCodeID: x.billCodeID,
+            adjustmentCaseID: x.adjustmentCaseID,
+            adjustmentCaseCodeID: x.adjustmentCaseCodeID,
+            goodReceiptID: x.goodReceiptID,
+            goodReceiptCodeID: x.goodReceiptCodeID,
+            salesReturnID: x.salesReturnID,
+            salesReturnCodeID: x.salesReturnCodeID,
+            customerID: x.customerID,
+            supplierID: x.supplierID,
+            currentStock: 0,
+            itemID: x.itemID,
+        };
+    });
+    yield mongo_stock_card_model_1.mongoStockCardModel.insertMany(stockCardItems);
     return res.status(200).send({
         message: "Stock card arranged successfully",
     });
@@ -644,21 +687,43 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
  */
 SearchHelper.arrangeStockCard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     mongo_product_model_1.mongoProductModel.find({}).then((products) => __awaiter(void 0, void 0, void 0, function* () {
-        for (let i = 0; i < products.length; i++) {
-            console.log("arranging stock card for product " + products[i].reference);
-            products[i].stockCard.sort((a, b) => {
-                return (new Date(a.date).getTime() - new Date(b.date).getTime() ||
-                    b.quantity - a.quantity);
-            });
-            let currentStock = 0;
-            for (let n = 0; n < products[i].stockCard.length; n++) {
-                products[i].stockCard[n].currentStock =
-                    currentStock + products[i].stockCard[n].quantity;
-                currentStock += products[i].stockCard[n].quantity;
-            }
-            products[i].stockCard.reverse();
-            yield products[i].save();
-        }
+        // Select from stock cards, group by itemID, sort by date
+        const stockCards = yield mongo_stock_card_model_1.mongoStockCardModel.aggregate([
+            {
+                $group: {
+                    _id: "$itemID",
+                    stockCards: {
+                        $push: {
+                            _id: "$_id",
+                            createdAt: "$createdAt",
+                            date: "$date",
+                            document: "$document",
+                            opponent: "$opponent",
+                            displayQuantity: "$displayQuantity",
+                            quantity: "$quantity",
+                            unit: "$unit",
+                            billID: "$billID",
+                            billCodeID: "$billCodeID",
+                            adjustmentCaseID: "$adjustmentCaseID",
+                            adjustmentCaseCodeID: "$adjustmentCaseCodeID",
+                            goodReceiptID: "$goodReceiptID",
+                            goodReceiptCodeID: "$goodReceiptCodeID",
+                            salesReturnID: "$salesReturnID",
+                            salesReturnCodeID: "$salesReturnCodeID",
+                            customerID: "$customerID",
+                            supplierID: "$supplierID",
+                            currentStock: "$currentStock",
+                            itemID: "$itemID",
+                        },
+                    },
+                },
+            },
+            {
+                $sort: {
+                    "stockCards.date": 1,
+                },
+            },
+        ]);
         return res.status(200).send({
             message: "Arrange stock card successfully",
         });

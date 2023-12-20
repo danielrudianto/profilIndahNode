@@ -1,8 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.mongoStockInModel = void 0;
+exports.mongoStockOutModel = exports.mongoStockInModel = void 0;
 const mongoose_1 = require("mongoose");
 const stockOutSchema = new mongoose_1.Schema({
+    itemID: {
+        type: Number,
+        required: true,
+    },
     billID: {
         type: Number,
         required: false,
@@ -35,6 +39,10 @@ const stockOutSchema = new mongoose_1.Schema({
         type: Number,
         required: true,
         default: 0,
+    },
+    stockInID: {
+        type: mongoose_1.Types.ObjectId,
+        required: true,
     },
 });
 const StockInSchema = new mongoose_1.Schema({
@@ -82,10 +90,7 @@ const StockInSchema = new mongoose_1.Schema({
         type: Number,
         required: true,
     },
-    stockOut: {
-        type: [stockOutSchema],
-        default: [],
-    },
 });
 exports.mongoStockInModel = (0, mongoose_1.model)("stock-ins", StockInSchema);
+exports.mongoStockOutModel = (0, mongoose_1.model)("stock-outs", stockOutSchema);
 //# sourceMappingURL=mongo-stock-in.model.js.map

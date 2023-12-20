@@ -334,6 +334,7 @@ class PurchaseInvoiceModel {
             created_at: true,
             good_receipt: {
               select: {
+                id: true,
                 quantity: true,
                 price: true,
                 discount: true,
@@ -841,6 +842,25 @@ class PurchaseInvoiceModel {
           is_delete: true,
           confirmed_at: new Date(),
           confirmed_by: data.deleted_by,
+        },
+        include: {
+          good_receipt_code: {
+            select: {
+              good_receipt: {
+                select: {
+                  id: true,
+                  item_id: true,
+                  item_unit: {
+                    select: {
+                      unit: true,
+                      conversion: true,
+                    },
+                  },
+                  quantity: true,
+                },
+              },
+            },
+          },
         },
       }),
       prisma.good_receipt_code.updateMany({

@@ -1,16 +1,26 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const item_purchase_price_model_1 = __importDefault(require("../model/item_purchase_price.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const queue_helper_1 = require("../helper/queue.helper");
 class GoodReceiptController {
 }
+_a = GoodReceiptController;
 /**
  * Create new good receipt
  * @param req
@@ -49,20 +59,36 @@ GoodReceiptController.create = (req, res) => {
                 };
             }),
         })
-            .then((goodReceiptResult) => {
-            Promise.all([
-                product_stock_model_1.default.updateStock(goodReceiptResult.good_receipt.map((x) => {
-                    const quantity = parseFloat(x.quantity.toString()) *
+            .then((goodReceiptResult) => __awaiter(void 0, void 0, void 0, function* () {
+            Promise.all(goodReceiptResult.good_receipt.map((x) => {
+                const stockIn = {
+                    itemID: x.item.id,
+                    createdAt: goodReceiptResult.created_at,
+                    date: goodReceiptResult.date,
+                    document: goodReceiptResult.name,
+                    opponent: goodReceiptResult.supplier.name,
+                    displayQuantity: parseFloat(x.quantity.toString()),
+                    unit: x.item_unit == null ? x.item.unit : x.item_unit.unit,
+                    quantity: parseFloat(x.quantity.toString()) *
                         (x.item_unit == null
                             ? 1
-                            : parseFloat(x.item_unit.conversion.toString()));
-                    return {
-                        item_id: x.item.id,
-                        quantity: quantity,
-                    };
-                })),
-                queue_helper_1.queue.add("create-good-receipt", goodReceiptResult),
-            ])
+                            : parseFloat(x.item_unit.conversion.toString())),
+                    billID: null,
+                    billCodeID: null,
+                    adjustmentCaseID: null,
+                    adjustmentCaseCodeID: null,
+                    goodReceiptID: x.id,
+                    goodReceiptCodeID: goodReceiptResult.id,
+                    salesReturnID: null,
+                    salesReturnCodeID: null,
+                    customerID: null,
+                    supplierID: goodReceiptResult.supplier_id,
+                    companyID: goodReceiptResult.company_id,
+                    price: parseFloat(x.price.toString()) -
+                        parseFloat(x.discount.toString()),
+                };
+                return queue_helper_1.queue.add("insert-stock-in", stockIn);
+            }))
                 .then(() => {
                 return res.status(201).send(goodReceiptResult);
             })
@@ -70,7 +96,7 @@ GoodReceiptController.create = (req, res) => {
                 console.error(`[error]: Error on creating good receipt ${error}`);
                 return res.status(500).send(error_list_1.default["Internal server error"]);
             });
-        })
+        }))
             .catch((error) => {
             console.error(`[error]: Error on fetching price ${error}`);
             return res.status(500).send(error_list_1.default["Internal server error"]);

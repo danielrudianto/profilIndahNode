@@ -12,13 +12,18 @@ import PurchaseInvoiceModel from "../model/purchase-invoice.model";
 import SalesReturnModel from "../model/sales_return.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
-import { mongoStockInModel } from "../mongo-model/mongo-stock-in.model";
+import {
+  mongoStockInModel,
+  mongoStockOutModel,
+} from "../mongo-model/mongo-stock-in.model";
+import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 
 export enum syncMode {
   Product,
   Customer,
   Package,
   ProductNoSQL,
+  ProductMinimumStock,
 }
 
 class SearchHelper {
@@ -46,15 +51,15 @@ class SearchHelper {
         "rel fe": ["Rel full extension"],
         shelf: ["rak"],
         knob: ["handle", "knop"],
-        double: ["doble", "dobel", "dubel", "dobel", "dubbel", "dubbel"],
+        double: ["doble", "dobel", "dubel", "dobel", "dubbel"],
         "double bracket": ["doble bracket", "dobel bracket", "dubel bracket"],
         bracket: ["breket"],
-        profile: ["profil"],
+        profile: ["profil", "profill"],
         hinge: ["engsel"],
         hing: ["engsel"],
         lis: ["list"],
         "lubang angin": ["lubang udara", "lubang hawa"],
-        tacosheet: ["sheet"],
+        tacosheet: ["sheet", "sheeting", "shit"],
         sss: ["stainless steel"],
         ss: ["stainless steel"],
         bb: ["ball bearing"],
@@ -228,9 +233,8 @@ class SearchHelper {
                       itemBrandID: x.item_brand_id,
                       currentStock: 0,
                       unit: x.unit,
-                      minimumStock: x.minimum_stock,
+                      minimumStock: x.minimum_stock || 0,
                       calculatedMinimumStock: 0,
-                      stockCard: [],
                     };
                   })
                 );
@@ -250,6 +254,31 @@ class SearchHelper {
             return res.status(500).send(error);
           });
 
+        break;
+      case syncMode.ProductMinimumStock:
+        ItemModel.fetchAll(new Date())
+          .then(async (items) => {
+            for (let i = 0; i < items.length; i++) {
+              await mongoProductModel.findOneAndUpdate(
+                { itemID: items[i].id },
+                {
+                  $set: {
+                    minimumStock: items[0].minimum_stock || 0,
+                    calculatedMinimumStock: 0,
+                  },
+                }
+              );
+            }
+
+            console.log("[info]: Sync product NoSQL completed.");
+            return res.status(200).send({
+              message: "Sync product NoSQL success",
+            });
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on sync product NoSQL. ${error}`);
+            return res.status(500).send(error);
+          });
         break;
     }
   };
@@ -299,7 +328,6 @@ class SearchHelper {
               ...x,
               date: new Date(x.date),
               companyID: x.companyID,
-              stockOut: [],
             };
           })
         );
@@ -316,8 +344,6 @@ class SearchHelper {
    * @param res
    */
   static syncProductOutCalculation = async (req: Request, res: Response) => {
-    const overflows = [];
-    const stockIns = await mongoStockInModel.find({});
     const stockOuts = await prisma.$queryRawUnsafe<any[]>(
       `
         SELECT * FROM 
@@ -368,6 +394,7 @@ class SearchHelper {
           ) AS total
           ON bill_code.id = total.bill_code_id
           WHERE bill_code.is_delete = 0
+          AND bill.item_id IS NOT NULL
           UNION ALL
           # Bill with package
           SELECT 
@@ -426,53 +453,79 @@ class SearchHelper {
         }`
       );
 
-      let quantity = parseFloat(stockOuts[i].quantity.toString());
+      let quantity = Number(stockOuts[i].quantity);
       while (quantity > 0) {
         if (quantity == 0) {
           break;
-        }
+        } else {
+          const stockIn = await mongoStockInModel
+            .findOne({
+              itemID: stockOuts[i].itemID,
+              residue: { $gt: 0 },
+            })
+            .sort({ date: 1 });
 
-        const stockInIndex = stockIns
-          .sort((a, b) => {
-            return a.date.getTime() - b.date.getTime();
-          })
-          .findIndex((x) => {
-            return x.itemID == stockOuts[i].itemID && x.residue > 0;
-          });
-
-        if (stockInIndex != -1) {
-          const stockIn = stockIns[stockInIndex];
-          const stockInResidue = stockIn.residue;
-          if (stockInResidue >= quantity) {
-            stockIn.residue = stockInResidue - quantity;
-            stockIn.stockOut.push({
-              ...stockOuts[i],
+          if (stockIn == null) {
+            await mongoOverflowModel.create({
+              itemID: stockOuts[i].itemID,
+              date: stockOuts[i].date,
               quantity: quantity,
+              billCodeID: stockOuts[i].billCodeID,
+              billID: stockOuts[i].billID,
+              adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+              adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+              value: Number(stockOuts[i].value),
             });
-            quantity = 0;
             break;
           } else {
-            stockIn.residue = 0;
-            stockIn.stockOut.push({
-              ...stockOuts[i],
-              quantity: stockInResidue,
-            });
-            quantity -= stockInResidue;
+            const stockInResidue = stockIn.residue;
+            if (stockInResidue >= quantity) {
+              try {
+                stockIn.residue = stockInResidue - quantity;
+                await mongoStockOutModel.create({
+                  billCodeID: stockOuts[i].billCodeID,
+                  billID: stockOuts[i].billID,
+                  adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+                  adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+                  date: stockOuts[i].date,
+                  quantity: Number(quantity),
+                  value: Number(stockOuts[i].value),
+                  stockInID: stockIn._id,
+                  itemID: stockOuts[i].itemID,
+                });
+
+                quantity = 0;
+                await stockIn.save();
+              } catch (e: any) {
+                console.error(e.toString());
+                throw new Error(e);
+              }
+              break;
+            } else {
+              try {
+                stockIn.residue = 0;
+                await mongoStockOutModel.create({
+                  billCodeID: stockOuts[i].billCodeID,
+                  billID: stockOuts[i].billID,
+                  adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+                  adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+                  date: stockOuts[i].date,
+                  quantity: stockInResidue,
+                  value: Number(stockOuts[i].value),
+                  stockInID: stockIn._id,
+                  itemID: stockOuts[i].itemID,
+                });
+                quantity -= stockInResidue;
+                await stockIn.save();
+              } catch (e: any) {
+                console.error(e.toString());
+                throw new Error(e);
+              }
+            }
           }
-        } else {
-          overflows.push({
-            ...stockOuts[i],
-            quantity: quantity,
-          });
-          quantity = 0;
-          break;
         }
       }
     }
-
-    await mongoStockInModel.deleteMany({});
-    await mongoStockInModel.insertMany(stockIns);
-    await mongoOverflowModel.insertMany(overflows);
 
     return res.status(200).send({
       message: "Stock out sync success",
@@ -634,47 +687,31 @@ class SearchHelper {
       `
     );
 
-    for (let i = 0; i < products.length; i++) {
-      await mongoProductModel.findByIdAndUpdate(products[i]._id, {
-        currentStock: stockCards
-          .filter((x) => x.itemID == products[i].itemID)
-          .reduce((a, b) => {
-            return a + parseFloat(b.quantity.toString());
-          }, 0),
-        $push: {
-          stockCard: {
-            $each: [
-              ...stockCards
-                .filter((x) => x.itemID == products[i].itemID)
-                .map((x) => {
-                  return {
-                    date: moment(x.date).format("YYYY-MM-DD"),
-                    createdAt: `${x.createdAt.replace(" ", "T")}+00:00`,
-                    document: x.document,
-                    opponent: x.opponent,
-                    displayQuantity: parseFloat(x.displayQuantity.toString()),
-                    quantity: parseFloat(x.quantity.toString()),
-                    unit: x.unit,
-                    billID: x.billID,
-                    billCodeID: x.billCodeID,
-                    adjustmentCaseID: x.adjustmentCaseID,
-                    adjustmentCaseCodeID: x.adjustmentCaseCodeID,
-                    goodReceiptID: x.goodReceiptID,
-                    goodReceiptCodeID: x.goodReceiptCodeID,
-                    salesReturnID: x.salesReturnID,
-                    salesReturnCodeID: x.salesReturnCodeID,
-                    customerID: x.customerID,
-                    supplierID: x.supplierID,
-                    currentStock: 0,
-                  };
-                }),
-            ],
-          },
-        },
-      });
+    const stockCardItems = stockCards.map((x) => {
+      return {
+        createdAt: x.createdAt,
+        date: x.date,
+        document: x.document,
+        opponent: x.opponent,
+        displayQuantity: x.displayQuantity,
+        quantity: x.quantity,
+        unit: x.unit,
+        billID: x.billID,
+        billCodeID: x.billCodeID,
+        adjustmentCaseID: x.adjustmentCaseID,
+        adjustmentCaseCodeID: x.adjustmentCaseCodeID,
+        goodReceiptID: x.goodReceiptID,
+        goodReceiptCodeID: x.goodReceiptCodeID,
+        salesReturnID: x.salesReturnID,
+        salesReturnCodeID: x.salesReturnCodeID,
+        customerID: x.customerID,
+        supplierID: x.supplierID,
+        currentStock: 0,
+        itemID: x.itemID,
+      };
+    });
 
-      console.log("updated product");
-    }
+    await mongoStockCardModel.insertMany(stockCardItems);
 
     return res.status(200).send({
       message: "Stock card arranged successfully",
@@ -686,28 +723,43 @@ class SearchHelper {
    */
   static arrangeStockCard = async (req: Request, res: Response) => {
     mongoProductModel.find({}).then(async (products) => {
-      for (let i = 0; i < products.length; i++) {
-        console.log(
-          "arranging stock card for product " + products[i].reference
-        );
-        products[i].stockCard.sort((a, b) => {
-          return (
-            new Date(a.date).getTime() - new Date(b.date).getTime() ||
-            b.quantity - a.quantity
-          );
-        });
-
-        let currentStock = 0;
-        for (let n = 0; n < products[i].stockCard.length; n++) {
-          products[i].stockCard[n].currentStock =
-            currentStock + products[i].stockCard[n].quantity;
-          currentStock += products[i].stockCard[n].quantity;
-        }
-
-        products[i].stockCard.reverse();
-        await products[i].save();
-      }
-
+      // Select from stock cards, group by itemID, sort by date
+      const stockCards = await mongoStockCardModel.aggregate([
+        {
+          $group: {
+            _id: "$itemID",
+            stockCards: {
+              $push: {
+                _id: "$_id",
+                createdAt: "$createdAt",
+                date: "$date",
+                document: "$document",
+                opponent: "$opponent",
+                displayQuantity: "$displayQuantity",
+                quantity: "$quantity",
+                unit: "$unit",
+                billID: "$billID",
+                billCodeID: "$billCodeID",
+                adjustmentCaseID: "$adjustmentCaseID",
+                adjustmentCaseCodeID: "$adjustmentCaseCodeID",
+                goodReceiptID: "$goodReceiptID",
+                goodReceiptCodeID: "$goodReceiptCodeID",
+                salesReturnID: "$salesReturnID",
+                salesReturnCodeID: "$salesReturnCodeID",
+                customerID: "$customerID",
+                supplierID: "$supplierID",
+                currentStock: "$currentStock",
+                itemID: "$itemID",
+              },
+            },
+          },
+        },
+        {
+          $sort: {
+            "stockCards.date": 1,
+          },
+        },
+      ]);
       return res.status(200).send({
         message: "Arrange stock card successfully",
       });

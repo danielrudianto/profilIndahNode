@@ -54,7 +54,71 @@ AdjustmentCaseController.create = (req, res) => {
         if (!result) {
             return res.status(500).send(error_list_1.default["Internal server error"]);
         }
-        yield queue_helper_1.queue.add("create-adjustment-case", result);
+        // Start inserting using queue
+        for (let i = 0; i < result.adjustment_case.length; i++) {
+            if (parseFloat(result.adjustment_case[i].quantity.toString()) > 0) {
+                // Added item
+                const stockIn = {
+                    itemID: result.adjustment_case[i].item.id,
+                    createdAt: result.created_at,
+                    date: result.date,
+                    document: result.name,
+                    opponent: "Internal",
+                    displayQuantity: parseFloat(result.adjustment_case[i].quantity.toString()),
+                    unit: result.adjustment_case[i].item_unit == null
+                        ? result.adjustment_case[i].item.unit
+                        : result.adjustment_case[i].item_unit.unit,
+                    quantity: parseFloat(result.adjustment_case[i].quantity.toString()) *
+                        (result.adjustment_case[i].item_unit == null
+                            ? 1
+                            : parseFloat(result.adjustment_case[i].item_unit.conversion.toString())),
+                    billID: null,
+                    billCodeID: null,
+                    adjustmentCaseID: result.adjustment_case[i].id,
+                    adjustmentCaseCodeID: result.id,
+                    goodReceiptID: null,
+                    goodReceiptCodeID: null,
+                    salesReturnID: null,
+                    salesReturnCodeID: null,
+                    customerID: null,
+                    supplierID: null,
+                    companyID: result.company_id,
+                    price: 0,
+                };
+                yield queue_helper_1.queue.add("insert-stock-in", stockIn);
+            }
+            else {
+                // Removed item
+                const stockIn = {
+                    itemID: result.adjustment_case[i].item.id,
+                    createdAt: result.created_at,
+                    date: result.date,
+                    document: result.name,
+                    opponent: "Internal",
+                    displayQuantity: parseFloat(result.adjustment_case[i].quantity.toString()),
+                    unit: result.adjustment_case[i].item_unit == null
+                        ? result.adjustment_case[i].item.unit
+                        : result.adjustment_case[i].item_unit.unit,
+                    quantity: parseFloat(result.adjustment_case[i].quantity.toString()) *
+                        (result.adjustment_case[i].item_unit == null
+                            ? 1
+                            : parseFloat(result.adjustment_case[i].item_unit.conversion.toString())),
+                    billID: null,
+                    billCodeID: null,
+                    adjustmentCaseID: result.adjustment_case[i].id,
+                    adjustmentCaseCodeID: result.id,
+                    goodReceiptID: null,
+                    goodReceiptCodeID: null,
+                    salesReturnID: null,
+                    salesReturnCodeID: null,
+                    customerID: null,
+                    supplierID: null,
+                    companyID: result.company_id,
+                    price: 0,
+                };
+                yield queue_helper_1.queue.add("insert-stock-out", stockIn);
+            }
+        }
         return res.status(201).send(result);
     }))
         .catch((error) => {
@@ -203,12 +267,37 @@ AdjustmentCaseController.deleteByID = (req, res) => {
         }
         adjustment_case_model_1.default.deleteByID(id)
             .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+            var _b, _c, _d, _e;
             if (!result) {
                 return res.status(404).send(error_list_1.default["Not found"]);
             }
             const socket = new socket_helper_1.default("deleteAdjustmentCase", result);
             socket.create();
-            yield queue_helper_1.queue.add("delete-adjustment-case", result);
+            for (let i = 0; i < adjustmentCase.adjustment_case.length; i++) {
+                const quantity = Number(adjustmentCase.adjustment_case[i].quantity);
+                if (quantity > 0) {
+                    yield queue_helper_1.queue.add("delete-stock-in", {
+                        itemID: (_c = (_b = adjustmentCase.adjustment_case[i]) === null || _b === void 0 ? void 0 : _b.item) === null || _c === void 0 ? void 0 : _c.id,
+                        goodReceiptID: null,
+                        adjustmentCaseID: adjustmentCase.adjustment_case[i].id,
+                        quantity: Number(adjustmentCase.adjustment_case[i].quantity) *
+                            (adjustmentCase.adjustment_case[i].item_unit == null
+                                ? 1
+                                : Number(adjustmentCase.adjustment_case[i].item_unit.conversion)),
+                    });
+                }
+                else if (quantity < 0) {
+                    yield queue_helper_1.queue.add("delete-stock-out", {
+                        itemID: (_e = (_d = adjustmentCase.adjustment_case[i]) === null || _d === void 0 ? void 0 : _d.item) === null || _e === void 0 ? void 0 : _e.id,
+                        billID: null,
+                        adjustmentCaseID: adjustmentCase.adjustment_case[i].id,
+                        quantity: Number(adjustmentCase.adjustment_case[i].quantity) *
+                            (adjustmentCase.adjustment_case[i].item_unit == null
+                                ? 1
+                                : Number(adjustmentCase.adjustment_case[i].item_unit.conversion)),
+                    });
+                }
+            }
             return res.status(200).send(result);
         }))
             .catch((error) => {

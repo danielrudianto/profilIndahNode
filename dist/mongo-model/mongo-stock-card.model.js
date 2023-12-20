@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.stockCardSchema = void 0;
+exports.mongoStockCardModel = exports.stockCardSchema = void 0;
 const mongoose_1 = require("mongoose");
 exports.stockCardSchema = new mongoose_1.Schema({
     createdAt: {
@@ -86,5 +86,10 @@ exports.stockCardSchema = new mongoose_1.Schema({
         required: true,
         default: 0,
     },
+    itemID: {
+        type: Number,
+        required: true,
+    },
 });
+exports.mongoStockCardModel = (0, mongoose_1.model)("stock-cards", exports.stockCardSchema);
 //# sourceMappingURL=mongo-stock-card.model.js.map

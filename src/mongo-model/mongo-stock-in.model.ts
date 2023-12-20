@@ -1,6 +1,10 @@
-import { model, Schema } from "mongoose";
+import { model, Schema, Types } from "mongoose";
 
 const stockOutSchema = new Schema({
+  itemID: {
+    type: Number,
+    required: true,
+  },
   billID: {
     type: Number,
     required: false,
@@ -33,6 +37,10 @@ const stockOutSchema = new Schema({
     type: Number,
     required: true,
     default: 0,
+  },
+  stockInID: {
+    type: Types.ObjectId,
+    required: true,
   },
 });
 
@@ -81,10 +89,7 @@ const StockInSchema = new Schema({
     type: Number,
     required: true,
   },
-  stockOut: {
-    type: [stockOutSchema],
-    default: [],
-  },
 });
 
 export const mongoStockInModel = model("stock-ins", StockInSchema);
+export const mongoStockOutModel = model("stock-outs", stockOutSchema);

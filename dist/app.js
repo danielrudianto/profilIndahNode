@@ -18,6 +18,7 @@ const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const meilisearch_1 = require("meilisearch");
+const node_cron_1 = __importDefault(require("node-cron"));
 const auth_helper_1 = require("./helper/auth.helper");
 const auth_route_1 = __importDefault(require("./routes/authentication/auth.route"));
 /*
@@ -58,6 +59,7 @@ const os_route_1 = __importDefault(require("./routes/distinct/os.route"));
 const changelog_route_1 = __importDefault(require("./routes/report/changelog.route"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const client_1 = require("@prisma/client");
+const queue_helper_1 = require("./helper/queue.helper");
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -107,6 +109,11 @@ server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
         autoCreate: true,
     });
     console.info("[info]: Connected with database");
+    // Every day at midnight check for overflow
+    node_cron_1.default.schedule("0 0 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("[info]: Checking for overflow");
+        yield queue_helper_1.queue.add("check-all-overflow", {});
+    }));
 }));
 exports.prisma = new client_1.PrismaClient();
 exports.io = new socket_io_1.Server(server, {

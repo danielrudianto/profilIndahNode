@@ -76,10 +76,115 @@ SalesInvoiceController.create = (req, res) => {
         created_by: userID,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
+            return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
+        }, 0);
+        const createSalesInvoiceNetTotal = createSalesInvoiceTotal - discount + delivery + service;
         try {
             yield item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId);
             yield product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null));
-            yield queue_helper_1.queue.add("create-sales-invoice", result);
+            for (let i = 0; i < result.bill.length; i++) {
+                if (result.bill[i].package_code != null) {
+                    const packagePrice = Number(result.bill[i].price);
+                    const packageQuantity = Number(result.bill[i].quantity);
+                    const packageDiscount = Number(result.bill[i].discount);
+                    const packageFinalPrice = ((packagePrice - packageDiscount) *
+                        createSalesInvoiceNetTotal) /
+                        createSalesInvoiceTotal;
+                    const packageContentValue = result.bill[i].package_code.package_content.reduce((a, b) => {
+                        return (a +
+                            Number(b.quantity) * (Number(b.price) - Number(b.discount)));
+                    }, 0);
+                    for (let n = 0; n < result.bill[i].package_code.package_content.length; n++) {
+                        const createSalesInvoicePackageContentItem = result.bill[i].package_code.package_content[n];
+                        const createSalesInvoiceItemItemID = createSalesInvoicePackageContentItem.item_id;
+                        const createSalesInvoiceItemQuantity = Number(createSalesInvoicePackageContentItem.quantity);
+                        const createSalesInvoiceItemPrice = Number(createSalesInvoicePackageContentItem.price);
+                        const createSalesInvoiceItemDiscount = Number(createSalesInvoicePackageContentItem.discount);
+                        const createSalesInvoiceItemUnit = createSalesInvoicePackageContentItem.item_unit == null
+                            ? createSalesInvoicePackageContentItem.item.unit
+                            : createSalesInvoicePackageContentItem.item_unit.unit;
+                        const createSalesInvoiceItemConversion = createSalesInvoicePackageContentItem.item_unit == null
+                            ? 1
+                            : Number(createSalesInvoicePackageContentItem.item_unit
+                                .conversion);
+                        const finalUnitPrice = packageContentValue == 0
+                            ? 0
+                            : Number(((createSalesInvoiceItemPrice -
+                                createSalesInvoiceItemDiscount) *
+                                packageFinalPrice) /
+                                (packageContentValue *
+                                    createSalesInvoiceItemConversion));
+                        const stockOut = {
+                            itemID: createSalesInvoiceItemItemID,
+                            createdAt: result.created_at,
+                            date: date,
+                            document: result.name,
+                            opponent: result.customer == null
+                                ? "Retail customer"
+                                : result.customer.name,
+                            displayQuantity: packageQuantity * createSalesInvoiceItemQuantity * -1,
+                            quantity: packageQuantity *
+                                -1 *
+                                createSalesInvoiceItemQuantity *
+                                createSalesInvoiceItemConversion,
+                            unit: createSalesInvoiceItemUnit,
+                            billID: result.bill[i].id,
+                            billCodeID: result.id,
+                            adjustmentCaseID: null,
+                            adjustmentCaseCodeID: null,
+                            goodReceiptID: null,
+                            goodReceiptCodeID: null,
+                            salesReturnID: null,
+                            salesReturnCodeID: null,
+                            customerID: result.customer_id,
+                            supplierID: null,
+                            companyID: null,
+                            price: finalUnitPrice,
+                        };
+                        yield queue_helper_1.queue.add("insert-stock-out", stockOut);
+                    }
+                }
+                else if (result.bill[i].item != null) {
+                    const stockOut = {
+                        itemID: result.bill[i].item.id,
+                        createdAt: result.created_at,
+                        date: date,
+                        document: result.name,
+                        opponent: result.customer == null
+                            ? "Retail customer"
+                            : result.customer.name,
+                        displayQuantity: bill[i].quantity * -1,
+                        quantity: parseFloat(result.bill[i].quantity.toString()) *
+                            -1 *
+                            (result.bill[i].item_unit != null
+                                ? parseFloat(result.bill[i].item_unit.conversion.toString())
+                                : 1),
+                        unit: bill[i].item_unit == null
+                            ? result.bill[i].item.unit
+                            : result.bill[i].item_unit.unit,
+                        billID: result.bill[i].id,
+                        billCodeID: result.id,
+                        adjustmentCaseID: null,
+                        adjustmentCaseCodeID: null,
+                        goodReceiptID: null,
+                        goodReceiptCodeID: null,
+                        salesReturnID: null,
+                        salesReturnCodeID: null,
+                        customerID: result.customer_id,
+                        supplierID: null,
+                        companyID: null,
+                        price: ((Number(result.bill[i].price) -
+                            Number(result.bill[i].discount)) *
+                            createSalesInvoiceNetTotal) /
+                            (createSalesInvoiceTotal *
+                                (result.bill[i].item_unit == null
+                                    ? 1
+                                    : Number(result.bill[i].item_unit.conversion))),
+                    };
+                    yield queue_helper_1.queue.add("insert-stock-out", stockOut);
+                }
+            }
             return res.status(201).send(result);
         }
         catch (error) {
@@ -266,7 +371,6 @@ SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void
     const id = parseInt(req.params.id.toString());
     const userID = req.body.userId;
     const result = yield bill_code_model_1.default.fetchByID(id);
-    console.log(result);
     if (!result) {
         return res.status(404).send(error_list_1.default["Not found"]);
     }
@@ -286,7 +390,38 @@ SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void
     socket.create();
     bill_code_model_1.default.deleteByID(id, userID)
         .then((updateBill) => __awaiter(void 0, void 0, void 0, function* () {
-        yield queue_helper_1.queue.add("delete-sales-invoice", result);
+        for (let i = 0; i < updateBill.bill.length; i++) {
+            if (updateBill.bill[i].item != null) {
+                const stockOut = {
+                    itemID: updateBill.bill[i].item.id,
+                    billID: updateBill.bill[i].id,
+                    quantity: Number(updateBill.bill[i].quantity) *
+                        -1 *
+                        Number(updateBill.bill[i].item_unit != null
+                            ? updateBill.bill[i].item_unit.conversion
+                            : 1),
+                    adjustmentCaseID: null,
+                };
+                yield queue_helper_1.queue.add("delete-stock-out", stockOut);
+            }
+            else if (updateBill.bill[i].package_code != null) {
+                for (let n = 0; n < updateBill.bill[i].package_code.package_content.length; n++) {
+                    const packageContent = updateBill.bill[i].package_code.package_content[n];
+                    const stockOut = {
+                        itemID: packageContent.item_id,
+                        billID: updateBill.bill[i].id,
+                        quantity: Number(updateBill.bill[i].quantity) *
+                            -1 *
+                            Number(packageContent.quantity) *
+                            Number(packageContent.item_unit != null
+                                ? packageContent.item_unit.conversion
+                                : 1),
+                        adjustmentCaseID: null,
+                    };
+                    yield queue_helper_1.queue.add("delete-stock-out", stockOut);
+                }
+            }
+        }
         return res.status(201).send(updateBill);
     }))
         .catch((error) => {

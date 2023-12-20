@@ -77,6 +77,7 @@ class AdjustmentCaseModel {
                 created_at: true,
                 adjustment_case: {
                     select: {
+                        id: true,
                         item: {
                             select: {
                                 id: true,

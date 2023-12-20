@@ -19,6 +19,8 @@ const queue_helper_1 = require("../helper/queue.helper");
 const bill_model_1 = __importDefault(require("../model/bill.model"));
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
+const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
+const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
 class SalesReturnController {
 }
 _a = SalesReturnController;
@@ -63,7 +65,72 @@ SalesReturnController.create = (req, res) => {
             }),
         })
             .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-            yield queue_helper_1.queue.add("create-sales-return", result);
+            for (let i = 0; i < result.sales_return.length; i++) {
+                if (result.sales_return[i].bill.item != null) {
+                    const stockReturn = {
+                        itemID: result.sales_return[i].bill.item.id,
+                        createdAt: result.created_at,
+                        date: date,
+                        document: name,
+                        opponent: result.sales_return[i].bill.bill_code.customer == null
+                            ? "Retail customer"
+                            : result.sales_return[i].bill.bill_code.customer.name,
+                        displayQuantity: Number(result.sales_return[i].quantity),
+                        unit: result.sales_return[i].bill.item_unit == null
+                            ? result.sales_return[i].bill.item.unit
+                            : result.sales_return[i].bill.item_unit.unit,
+                        quantity: Number(result.sales_return[i].quantity) *
+                            (result.sales_return[i].bill.item_unit == null
+                                ? 1
+                                : Number(result.sales_return[i].bill.item_unit.conversion)),
+                        billID: result.sales_return[i].bill_id,
+                        billCodeID: result.sales_return[i].bill.bill_code.id,
+                        salesReturnCodeID: result.id,
+                        salesReturnID: result.sales_return[i].id,
+                        customerID: result.sales_return[i].bill.bill_code.customer == null
+                            ? null
+                            : result.sales_return[i].bill.bill_code.customer.id,
+                    };
+                    yield queue_helper_1.queue.add("insert-stock-return", stockReturn);
+                }
+                else if (result.sales_return[i].bill.package_code != null) {
+                    for (let n = 0; n <
+                        result.sales_return[i].bill.package_code.package_content
+                            .length; n++) {
+                        const stockReturn = {
+                            itemID: result.sales_return[i].bill.package_code.package_content[n]
+                                .item.id,
+                            createdAt: result.created_at,
+                            date: date,
+                            document: name,
+                            opponent: result.sales_return[i].bill.bill_code.customer == null
+                                ? "Retail customer"
+                                : result.sales_return[i].bill.bill_code.customer.name,
+                            displayQuantity: Number(result.sales_return[i].bill.quantity) *
+                                Number(result.sales_return[i].bill.package_code.package_content[n].quantity),
+                            unit: result.sales_return[i].bill.package_code.package_content[n]
+                                .item_unit == null
+                                ? result.sales_return[i].bill.package_code
+                                    .package_content[n].item.unit
+                                : result.sales_return[i].bill.package_code
+                                    .package_content[n].item_unit.unit,
+                            quantity: Number(result.sales_return[i].quantity) *
+                                Number(result.sales_return[i].bill.package_code.package_content[n].quantity) *
+                                (result.sales_return[i].bill.item_unit == null
+                                    ? 1
+                                    : Number(result.sales_return[i].bill.item_unit.conversion)),
+                            billID: result.sales_return[i].bill_id,
+                            billCodeID: result.sales_return[i].bill.bill_code.id,
+                            salesReturnCodeID: result.id,
+                            salesReturnID: result.sales_return[i].id,
+                            customerID: result.sales_return[i].bill.bill_code.customer == null
+                                ? null
+                                : result.sales_return[i].bill.bill_code.customer.id,
+                        };
+                        yield queue_helper_1.queue.add("insert-stock-return", stockReturn);
+                    }
+                }
+            }
             return res.status(201).send(result);
         }))
             .catch((error) => {
@@ -231,7 +298,86 @@ SalesReturnController.deleteByID = (req, res) => {
         }
         sales_return_model_1.default.deleteByID(id, userID)
             .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-            yield queue_helper_1.queue.add("delete-sales-return", result);
+            for (let i = 0; i < result.sales_return.length; i++) {
+                yield queue_helper_1.queue.add("delete-stock-return", {
+                    salesReturnID: result.sales_return[i].id,
+                });
+                if (result.sales_return[i].bill.item != null) {
+                    const overflowBill = yield mongo_overflow_model_1.mongoOverflowModel.findOne({
+                        billID: result.sales_return[i].bill_id,
+                        itemID: result.sales_return[i].bill.item.id,
+                    });
+                    if (overflowBill) {
+                        const itemUnit = result.sales_return[i].bill.item_unit;
+                        const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+                        yield queue_helper_1.queue.add("insert-stock-out-plain", {
+                            itemID: overflowBill.itemID,
+                            billID: result.sales_return[i].bill_id,
+                            billCodeID: result.sales_return[i].bill.bill_code.id,
+                            adjustmentCaseID: null,
+                            adjustmentCaseCodeID: null,
+                            date: result.date,
+                            quantity: Number(result.sales_return[i].quantity) * conversion,
+                            value: overflowBill.value,
+                        });
+                    }
+                    else {
+                        const bill = yield mongo_stock_in_model_1.mongoStockOutModel.findOne({
+                            billID: result.sales_return[i].bill_id,
+                            itemID: result.sales_return[i].bill.item.id,
+                        });
+                        if (!bill) {
+                            console.error(`[error]: Bill not found`);
+                        }
+                        else {
+                            const itemUnit = result.sales_return[i].bill.item_unit;
+                            const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+                            yield queue_helper_1.queue.add("insert-stock-out-plain", {
+                                itemID: bill.itemID,
+                                billID: result.sales_return[i].bill_id,
+                                billCodeID: result.sales_return[i].bill.bill_code.id,
+                                adjustmentCaseID: null,
+                                adjustmentCaseCodeID: null,
+                                date: result.date,
+                                quantity: Number(result.sales_return[i].quantity) * conversion,
+                                value: bill.value,
+                            });
+                        }
+                    }
+                }
+                else if (result.sales_return[i].bill.package_code != null) {
+                    for (let n = 0; n <
+                        result.sales_return[i].bill.package_code.package_content
+                            .length; n++) {
+                        const bill = yield mongo_stock_in_model_1.mongoStockOutModel.findOne({
+                            billID: result.sales_return[i].bill_id,
+                            itemID: result.sales_return[i].bill.package_code.package_content[n]
+                                .item.id,
+                        });
+                        if (!bill) {
+                            console.error(`[error]: Bill not found`);
+                        }
+                        else {
+                            const itemUnit = result.sales_return[i].bill.package_code.package_content[n]
+                                .item_unit;
+                            const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+                            yield queue_helper_1.queue.add("insert-stock-out", {
+                                itemID: bill.itemID,
+                                billID: result.sales_return[i].bill_id,
+                                billCodeID: result.sales_return[i].bill.bill_code.id,
+                                adjustmentCaseID: null,
+                                adjustmentCaseCodeID: null,
+                                date: result.date,
+                                quantity: Number(result.sales_return[i].quantity) *
+                                    Number(result.sales_return[i].bill.package_code
+                                        .package_content[n].quantity) *
+                                    conversion,
+                                value: bill.value,
+                            });
+                        }
+                    }
+                }
+            }
             return res.status(201).send(result);
         }))
             .catch((error) => {

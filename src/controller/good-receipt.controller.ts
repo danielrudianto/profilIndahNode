@@ -3,8 +3,8 @@ import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
-import ProductStockModel from "../model/product-stock.model";
 import { queue } from "../helper/queue.helper";
+import { StockInInterface } from "../interface/stock-in.interface";
 
 class GoodReceiptController {
   /**
@@ -51,23 +51,41 @@ class GoodReceiptController {
           };
         }),
       })
-        .then((goodReceiptResult) => {
-          Promise.all([
-            ProductStockModel.updateStock(
-              goodReceiptResult.good_receipt.map((x) => {
-                const quantity =
+        .then(async (goodReceiptResult) => {
+          Promise.all(
+            goodReceiptResult.good_receipt.map((x) => {
+              const stockIn: StockInInterface = {
+                itemID: x.item.id,
+                createdAt: goodReceiptResult.created_at,
+                date: goodReceiptResult.date,
+                document: goodReceiptResult.name,
+                opponent: goodReceiptResult.supplier.name,
+                displayQuantity: parseFloat(x.quantity.toString()),
+                unit: x.item_unit == null ? x.item.unit : x.item_unit.unit,
+                quantity:
                   parseFloat(x.quantity.toString()) *
                   (x.item_unit == null
                     ? 1
-                    : parseFloat(x.item_unit.conversion.toString()));
-                return {
-                  item_id: x.item.id,
-                  quantity: quantity,
-                };
-              })
-            ),
-            queue.add("create-good-receipt", goodReceiptResult),
-          ])
+                    : parseFloat(x.item_unit.conversion.toString())),
+                billID: null,
+                billCodeID: null,
+                adjustmentCaseID: null,
+                adjustmentCaseCodeID: null,
+                goodReceiptID: x.id,
+                goodReceiptCodeID: goodReceiptResult.id,
+                salesReturnID: null,
+                salesReturnCodeID: null,
+                customerID: null,
+                supplierID: goodReceiptResult.supplier_id,
+                companyID: goodReceiptResult.company_id,
+                price:
+                  parseFloat(x.price.toString()) -
+                  parseFloat(x.discount.toString()),
+              };
+
+              return queue.add("insert-stock-in", stockIn);
+            })
+          )
             .then(() => {
               return res.status(201).send(goodReceiptResult);
             })

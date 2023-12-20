@@ -2,7 +2,6 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.mongoProductModel = void 0;
 const mongoose_1 = require("mongoose");
-const mongo_stock_card_model_1 = require("./mongo-stock-card.model");
 const productSchema = new mongoose_1.Schema({
     reference: {
         type: String,
@@ -33,19 +32,15 @@ const productSchema = new mongoose_1.Schema({
         type: String,
         required: true,
     },
-    stockCard: {
-        type: [mongo_stock_card_model_1.stockCardSchema],
-        default: [],
-    },
     minimumStock: {
         type: Number,
-        required: true,
         default: 0,
+        required: true,
     },
     calculatedMinimumStock: {
         type: Number,
-        required: true,
         default: 0,
+        required: true,
     },
 });
 exports.mongoProductModel = (0, mongoose_1.model)("products", productSchema);

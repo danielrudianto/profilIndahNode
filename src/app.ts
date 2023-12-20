@@ -3,6 +3,7 @@ import cors from "cors";
 import http from "http";
 import { Server } from "socket.io";
 import { MeiliSearch } from "meilisearch";
+import cron from "node-cron";
 
 import { authMiddleware } from "./helper/auth.helper";
 
@@ -48,6 +49,7 @@ import osRoutes from "./routes/distinct/os.route";
 import changelogRoutes from "./routes/report/changelog.route";
 import mongoose from "mongoose";
 import { PrismaClient } from "@prisma/client";
+import { queue } from "./helper/queue.helper";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -109,6 +111,12 @@ server.listen(5000, async () => {
     autoCreate: true,
   });
   console.info("[info]: Connected with database");
+
+  // Every day at midnight check for overflow
+  cron.schedule("0 0 * * *", async () => {
+    console.log("[info]: Checking for overflow");
+    await queue.add("check-all-overflow", {});
+  });
 });
 
 export const prisma = new PrismaClient();

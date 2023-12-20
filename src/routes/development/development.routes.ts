@@ -23,6 +23,14 @@ router.post(
   SearchHelper.syncMasterData
 );
 router.post(
+  "/sync-product-minimum-stock",
+  (req: Request, _, next: NextFunction) => {
+    req.body.mode = syncMode.ProductMinimumStock;
+    next();
+  },
+  SearchHelper.syncMasterData
+);
+router.post(
   "/sync-package",
   (req: Request, _, next: NextFunction) => {
     req.body.mode = syncMode.Package;

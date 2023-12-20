@@ -1,5 +1,4 @@
 import { model, Schema } from "mongoose";
-import { stockCardSchema } from "./mongo-stock-card.model";
 
 const productSchema = new Schema({
   reference: {
@@ -31,19 +30,15 @@ const productSchema = new Schema({
     type: String,
     required: true,
   },
-  stockCard: {
-    type: [stockCardSchema],
-    default: [],
-  },
   minimumStock: {
     type: Number,
-    required: true,
     default: 0,
+    required: true,
   },
   calculatedMinimumStock: {
     type: Number,
-    required: true,
     default: 0,
+    required: true,
   },
 });
 

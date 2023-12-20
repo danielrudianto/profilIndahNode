@@ -387,6 +387,40 @@ class BillCodeModel {
                 confirmed_at: new Date(),
                 confirmed_by: deleted_by,
             },
+            include: {
+                bill: {
+                    include: {
+                        package_code: {
+                            select: {
+                                package_content: {
+                                    select: {
+                                        quantity: true,
+                                        item_id: true,
+                                        item_unit: {
+                                            select: {
+                                                unit: true,
+                                                conversion: true,
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        item: {
+                            select: {
+                                id: true,
+                                unit: true,
+                            },
+                        },
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
+                    },
+                },
+            },
         });
     }
     /**

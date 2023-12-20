@@ -92,7 +92,49 @@ PurchaseInvoiceController.create = (req, res) => {
             company_id: good_receipt_result.company_id,
         });
         socket.create();
-        yield queue_helper_1.queue.add("create-purchase-invoice", good_receipt_result);
+        const createPurchaseInvoiceTotalValue = good_receipt_result.good_receipt.reduce((a, b) => {
+            return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
+        }, 0);
+        const createPurchaseInvoiceDiscount = good_receipt_result.purchase_invoice == null
+            ? 0
+            : Number(good_receipt_result.purchase_invoice.discount || 0);
+        const createPurchaseInvoiceNetValue = createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
+        for (let i = 0; i < good_receipt_result.good_receipt.length; i++) {
+            const goodReceiptItem = good_receipt_result.good_receipt[i];
+            const stockIn = {
+                itemID: goodReceiptItem.item.id,
+                createdAt: good_receipt_result.created_at,
+                date: good_receipt_result.date,
+                document: good_receipt_result.name,
+                opponent: good_receipt_result.supplier.name,
+                displayQuantity: parseFloat(goodReceiptItem.quantity.toString()),
+                unit: goodReceiptItem.item_unit == null
+                    ? goodReceiptItem.item.unit
+                    : goodReceiptItem.item_unit.unit,
+                quantity: parseFloat(goodReceiptItem.quantity.toString()) *
+                    (goodReceiptItem.item_unit == null
+                        ? 1
+                        : parseFloat(goodReceiptItem.item_unit.conversion.toString())),
+                billID: null,
+                billCodeID: null,
+                adjustmentCaseID: null,
+                adjustmentCaseCodeID: null,
+                goodReceiptID: goodReceiptItem.id,
+                goodReceiptCodeID: good_receipt_result.id,
+                salesReturnID: null,
+                salesReturnCodeID: null,
+                customerID: null,
+                supplierID: good_receipt_result.supplier_id,
+                companyID: good_receipt_result.company_id,
+                price: createPurchaseInvoiceTotalValue == 0
+                    ? 0
+                    : ((Number(goodReceiptItem.price) -
+                        Number(goodReceiptItem.discount)) *
+                        createPurchaseInvoiceNetValue) /
+                        createPurchaseInvoiceTotalValue,
+            };
+            yield queue_helper_1.queue.add("insert-stock-in", stockIn);
+        }
         return res.status(201).send(good_receipt_result);
     }))
         .catch((error) => {
@@ -186,9 +228,58 @@ PurchaseInvoiceController.update = (req, res) => __awaiter(void 0, void 0, void 
         },
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        // Next thing to do is to update the stock
-        yield queue_helper_1.queue.add("delete-purchase-invoice", purchaseInvoice);
-        yield queue_helper_1.queue.add("update-purchase-invoice", result);
+        for (let i = 0; i < goodReceipt.good_receipt.length; i++) {
+            yield queue_helper_1.queue.add("delete-stock-in", {
+                goodReceiptID: goodReceipt.good_receipt[i].id,
+                adjustmentCaseID: null,
+                itemID: goodReceipt.good_receipt[i].item.id,
+                quantity: Number(goodReceipt.good_receipt[i].quantity) *
+                    (goodReceipt.good_receipt[i].item_unit == null
+                        ? 1
+                        : Number(goodReceipt.good_receipt[i].item_unit.conversion)),
+            });
+        }
+        const createPurchaseInvoiceTotalValue = result.good_receipt_code.good_receipt.reduce((a, b) => {
+            return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
+        }, 0);
+        const createPurchaseInvoiceDiscount = result.discount == null ? 0 : Number(result.discount || 0);
+        const createPurchaseInvoiceNetValue = createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
+        for (let n = 0; n < result.good_receipt_code.good_receipt.length; n++) {
+            const stockIn = {
+                itemID: result.good_receipt_code.good_receipt[n].item.id,
+                createdAt: result.created_at,
+                date: result.good_receipt_code.date,
+                document: result.good_receipt_code.name,
+                opponent: result.good_receipt_code.supplier.name,
+                displayQuantity: parseFloat(result.good_receipt_code.good_receipt[n].quantity.toString()),
+                unit: result.good_receipt_code.good_receipt[n].item_unit == null
+                    ? result.good_receipt_code.good_receipt[n].item.unit
+                    : result.good_receipt_code.good_receipt[n].item_unit.unit,
+                quantity: parseFloat(result.good_receipt_code.good_receipt[n].quantity.toString()) *
+                    (result.good_receipt_code.good_receipt[n].item_unit == null
+                        ? 1
+                        : Number(result.good_receipt_code.good_receipt[n].item_unit
+                            .conversion)),
+                billID: null,
+                billCodeID: null,
+                adjustmentCaseID: null,
+                adjustmentCaseCodeID: null,
+                goodReceiptID: result.good_receipt_code.good_receipt[n].id,
+                goodReceiptCodeID: result.good_receipt_code.id,
+                salesReturnID: null,
+                salesReturnCodeID: null,
+                customerID: null,
+                supplierID: result.good_receipt_code.supplier_id,
+                companyID: result.good_receipt_code.company_id,
+                price: createPurchaseInvoiceTotalValue == 0
+                    ? 0
+                    : ((Number(result.good_receipt_code.good_receipt[n].price) -
+                        Number(result.good_receipt_code.good_receipt[n].discount)) *
+                        createPurchaseInvoiceNetValue) /
+                        createPurchaseInvoiceTotalValue,
+            };
+            yield queue_helper_1.queue.add("insert-stock-in", stockIn);
+        }
         return res.status(201).send(result);
     }))
         .catch((error) => {
@@ -227,6 +318,7 @@ PurchaseInvoiceController.fetchUnconfirmed = (req, res) => {
  * @returns
  */
 PurchaseInvoiceController.updateStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _b;
     const id = parseInt(req.body.id);
     const is_confirm = req.body.is_confirm;
     const is_delete = req.body.is_delete;
@@ -283,7 +375,31 @@ PurchaseInvoiceController.updateStatus = (req, res) => __awaiter(void 0, void 0,
             const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", updatePurchaseInvoiceResult[0]);
             socket.create();
             const updatedPurchaseInvoice = yield purchase_invoice_model_1.default.fetchByID(id);
-            yield queue_helper_1.queue.add("confirm-purchase-invoice", updatedPurchaseInvoice);
+            if (!updatedPurchaseInvoice) {
+                return res.status(404).send(error_list_1.default["Not found"]);
+            }
+            const createPurchaseInvoiceTotalValue = updatedPurchaseInvoice.good_receipt_code.good_receipt.reduce((a, b) => {
+                return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
+            }, 0);
+            const createPurchaseInvoiceDiscount = Number(updatePurchaseInvoiceResult[0].discount);
+            for (let i = 0; i < updatedPurchaseInvoice.good_receipt_code.good_receipt.length; i++) {
+                const itemID = updatedPurchaseInvoice.good_receipt_code.good_receipt[i].item.id;
+                const goodReceiptID = updatedPurchaseInvoice.good_receipt_code.good_receipt[i].id;
+                const price = createPurchaseInvoiceTotalValue == 0
+                    ? 0
+                    : ((Number(updatedPurchaseInvoice.good_receipt_code.good_receipt[i].price) -
+                        Number(updatedPurchaseInvoice.good_receipt_code.good_receipt[i]
+                            .discount)) *
+                        (createPurchaseInvoiceTotalValue -
+                            createPurchaseInvoiceDiscount)) /
+                        createPurchaseInvoiceTotalValue;
+                yield queue_helper_1.queue.add("update-stock-in", {
+                    itemID: itemID,
+                    goodReceiptID: goodReceiptID,
+                    goodReceiptCodeID: goodReceiptCodeID,
+                    price: price,
+                });
+            }
             if (good_receipt.filter((x) => x.save).length > 0) {
                 // Search for saved items
                 yield item_purchase_price_model_1.default.delete(good_receipt
@@ -328,7 +444,20 @@ PurchaseInvoiceController.updateStatus = (req, res) => __awaiter(void 0, void 0,
             id: id,
             deleted_by: userID,
         });
-        yield queue_helper_1.queue.add("delete-purchase-invoice", goodReceipt);
+        // Create delete good receipt
+        for (let i = 0; i < purchaseInvoiceUpdate.good_receipt_code.good_receipt.length; i++) {
+            yield queue_helper_1.queue.add("delete-stock-in", {
+                itemID: purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].item_id,
+                goodReceiptID: purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].id,
+                adjustmentCaseID: null,
+                quantity: Number(purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].quantity) *
+                    (purchaseInvoiceUpdate.good_receipt_code.good_receipt[i]
+                        .item_unit == null
+                        ? 1
+                        : Number((_b = purchaseInvoiceUpdate.good_receipt_code.good_receipt[i]
+                            .item_unit) === null || _b === void 0 ? void 0 : _b.conversion)),
+            });
+        }
         const socket = new socket_helper_1.default("updatePurchaseDocumentStatus", purchaseInvoiceUpdate);
         socket.create();
         return res.status(200).send(purchaseInvoiceUpdate);
@@ -417,12 +546,13 @@ PurchaseInvoiceController.fetchArchive = (req, res) => {
  * @param res
  */
 PurchaseInvoiceController.search = (req, res) => {
+    var _b;
     const suppliers = req.body.suppliers;
     const items = req.body.items;
     const companies = req.body.companies;
     const date = req.body.date;
     const page = req.body.page;
-    const keyword = req.body.keyword;
+    const search = req.body.search;
     const status = req.body.status;
     const formattedDate_1 = date[0] == null
         ? null
@@ -440,7 +570,7 @@ PurchaseInvoiceController.search = (req, res) => {
             .getDate()
             .toString()
             .padStart(2, "0")}`;
-    purchase_invoice_model_1.default.search(suppliers, companies, items, [formattedDate_1, formattedDate_2], (0, escape_helper_1.mysql_real_escape_string)(keyword), page, status)
+    purchase_invoice_model_1.default.search(suppliers, companies, items, [formattedDate_1, formattedDate_2], (0, escape_helper_1.mysql_real_escape_string)((_b = search.keyword) !== null && _b !== void 0 ? _b : ""), page, status)
         .then((result) => {
         return res.status(200).send({
             data: result[0],
@@ -477,7 +607,17 @@ PurchaseInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, v
         deleted_by: userID,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        yield queue_helper_1.queue.add("delete-purchase-invoice", goodReceipt);
+        for (let i = 0; i < goodReceipt.good_receipt.length; i++) {
+            yield queue_helper_1.queue.add("delete-stock-in", {
+                itemID: goodReceipt.good_receipt[i].item.id,
+                goodReceiptID: goodReceipt.good_receipt[i].id,
+                adjustmentCaseID: null,
+                quantity: Number(goodReceipt.good_receipt[i].quantity) *
+                    (goodReceipt.good_receipt[i].item_unit == null
+                        ? 1
+                        : Number(goodReceipt.good_receipt[i].item_unit.conversion)),
+            });
+        }
         return res.status(201).send(result);
     }))
         .catch((error) => {

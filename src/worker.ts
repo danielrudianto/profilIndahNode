@@ -1,11 +1,21 @@
 import { Job, Worker } from "bullmq";
 import MeiliSearch from "meilisearch";
-import mongoose from "mongoose";
+import mongoose, { mongo } from "mongoose";
 import { queue } from "./helper/queue.helper";
 import { mongoOverflowModel } from "./mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "./mongo-model/mongo-product.model";
-import { mongoStockInModel } from "./mongo-model/mongo-stock-in.model";
+import {
+  mongoStockInModel,
+  mongoStockOutModel,
+} from "./mongo-model/mongo-stock-in.model";
 import { mongoErrorModel } from "./mongo-model/mongo-error.model";
+import {
+  StockInInterface,
+  StockInUpdateInterface,
+  StockOutDeleteInterface,
+  StockReturnInterface,
+} from "./interface/stock-in.interface";
+import { mongoStockCardModel } from "./mongo-model/mongo-stock-card.model";
 
 const meili = new MeiliSearch({
   host: "http://127.0.0.1:7700",
@@ -33,6 +43,476 @@ async function connectToDatabase() {
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
+    case "insert-stock-in":
+      const stockInData = job.data as StockInInterface;
+      try {
+        await mongoStockInModel.create({
+          companyID: stockInData.companyID,
+          adjustmentCaseCodeID: stockInData.adjustmentCaseCodeID,
+          adjustmentCaseID: stockInData.adjustmentCaseID,
+          goodReceiptCodeID: stockInData.goodReceiptCodeID,
+          goodReceiptID: stockInData.goodReceiptID,
+          date: stockInData.date,
+          price: stockInData.price,
+          quantity: stockInData.quantity,
+          residue: stockInData.quantity,
+          itemID: stockInData.itemID,
+          stockOut: [],
+        });
+
+        const product = await mongoProductModel.findOne({
+          itemID: stockInData.itemID,
+        });
+
+        if (!product) {
+          throw new Error("Product not found");
+        }
+
+        product.currentStock += stockInData.quantity;
+        await product.save();
+        await mongoStockCardModel.create({
+          createdAt: stockInData.createdAt,
+          date: stockInData.date,
+          document: stockInData.document,
+          opponent: stockInData.opponent,
+          displayQuantity: stockInData.displayQuantity,
+          quantity: stockInData.quantity,
+          unit: stockInData.unit,
+          billID: stockInData.billID,
+          billCodeID: stockInData.billCodeID,
+          adjustmentCaseID: stockInData.adjustmentCaseID,
+          adjustmentCaseCodeID: stockInData.adjustmentCaseCodeID,
+          goodReceiptID: stockInData.goodReceiptID,
+          goodReceiptCodeID: stockInData.goodReceiptCodeID,
+          salesReturnID: stockInData.salesReturnID,
+          salesReturnCodeID: stockInData.salesReturnCodeID,
+          customerID: stockInData.customerID,
+          supplierID: stockInData.supplierID,
+          itemID: stockInData.itemID,
+          currentStock: 0,
+        });
+        await queue.add("rearrange-stock-card", product.itemID);
+        await queue.add("check-overflow", product.itemID);
+      } catch (error: any) {
+        console.log(error);
+        await mongoErrorModel.create({
+          name: "insert-stock-in",
+          error: error,
+          data: stockInData,
+        });
+        throw new Error(error);
+      }
+      // DOMBA
+      // complete overflow checking process
+      break;
+    case "insert-stock-out":
+      const stockOutData = job.data as StockInInterface;
+      const product = await mongoProductModel.findOne({
+        itemID: stockOutData.itemID,
+      });
+
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      product.currentStock += stockOutData.quantity;
+      await product.save();
+
+      try {
+        // Add to stock card
+        await mongoStockCardModel.create({
+          createdAt: stockOutData.createdAt,
+          date: stockOutData.date,
+          document: stockOutData.document,
+          opponent: stockOutData.opponent,
+          displayQuantity: stockOutData.displayQuantity,
+          quantity: stockOutData.quantity,
+          unit: stockOutData.unit,
+          billID: stockOutData.billID,
+          billCodeID: stockOutData.billCodeID,
+          adjustmentCaseID: stockOutData.adjustmentCaseID,
+          adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+          goodReceiptID: stockOutData.goodReceiptID,
+          goodReceiptCodeID: stockOutData.goodReceiptCodeID,
+          salesReturnID: stockOutData.salesReturnID,
+          salesReturnCodeID: stockOutData.salesReturnCodeID,
+          customerID: stockOutData.customerID,
+          supplierID: stockOutData.supplierID,
+          itemID: stockOutData.itemID,
+          currentStock: 0,
+        });
+
+        let quantity = stockOutData.quantity * -1;
+        while (quantity >= 0) {
+          if (quantity == 0) {
+            await queue.add("rearrange-stock-card", product.itemID);
+            break;
+          } else {
+            const stockIn = await mongoStockInModel
+              .findOne({
+                itemID: stockOutData.itemID,
+                residue: { $gt: 0 },
+              })
+              .sort({ date: 1 });
+
+            if (stockIn) {
+              const stockInResidue = stockIn.residue;
+              if (stockInResidue > quantity) {
+                stockIn.residue = stockInResidue - quantity;
+                await stockIn.save();
+
+                await mongoStockOutModel.create({
+                  companyID: stockOutData.companyID,
+                  adjustmentCaseID: stockOutData.adjustmentCaseID,
+                  adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+                  billID: stockOutData.billID,
+                  billCodeID: stockOutData.billCodeID,
+                  date: stockOutData.date,
+                  value: stockOutData.price,
+                  quantity: quantity,
+                  unit: stockOutData.unit,
+                  itemID: stockOutData.itemID,
+                  stockInID: stockIn._id,
+                });
+                quantity = 0;
+                await stockIn.save();
+              } else {
+                await mongoStockOutModel.create({
+                  companyID: stockOutData.companyID,
+                  adjustmentCaseID: stockOutData.adjustmentCaseID,
+                  adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+                  billID: stockOutData.billID,
+                  billCodeID: stockOutData.billCodeID,
+                  date: stockOutData.date,
+                  value: stockOutData.price,
+                  quantity: stockInResidue,
+                  unit: stockOutData.unit,
+                  itemID: stockOutData.itemID,
+                  stockInID: stockIn._id,
+                });
+
+                quantity -= stockInResidue;
+                stockIn.residue = 0;
+                await stockIn.save();
+              }
+            } else {
+              await mongoOverflowModel.create({
+                itemID: stockOutData.itemID,
+                date: stockOutData.date,
+                quantity: quantity,
+                billID: stockOutData.billID,
+                billCodeID: stockOutData.billCodeID,
+                adjustmentCaseID: stockOutData.adjustmentCaseID,
+                adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+                value: stockOutData.price,
+              });
+              quantity = 0;
+            }
+          }
+        }
+      } catch (error: any) {
+        await mongoErrorModel.create({
+          name: "insert-stock-out",
+          error: error,
+          data: stockOutData,
+        });
+        throw new Error(error);
+      }
+      break;
+    case "delete-stock-out":
+      const deleteStockOutData = job.data as StockOutDeleteInterface;
+      const stockOuts = await mongoStockOutModel.find({
+        itemID: deleteStockOutData.itemID,
+        billID: deleteStockOutData.billID,
+        adjustmentCaseID: deleteStockOutData.adjustmentCaseID,
+      });
+
+      for (let i = 0; i < stockOuts.length; i++) {
+        const stockOut = stockOuts[i];
+        const stockIn = await mongoStockInModel.findById(stockOut.stockInID);
+        if (!stockIn) {
+          throw new Error("Stock in not found");
+        }
+
+        stockIn.residue += stockOut.quantity;
+        await stockIn.save();
+        await mongoStockOutModel.findByIdAndDelete(stockOut._id);
+      }
+
+      await mongoOverflowModel.deleteMany({
+        itemID: deleteStockOutData.itemID,
+        billID: deleteStockOutData.billID,
+        adjustmentCaseID: deleteStockOutData.adjustmentCaseID,
+      });
+
+      // Remove from stockCard
+      await mongoStockCardModel.deleteMany({
+        itemID: deleteStockOutData.itemID,
+        billID: deleteStockOutData.billID,
+        adjustmentCaseID: deleteStockOutData.adjustmentCaseID,
+      });
+
+      // Update product current stock
+      const deleteStockOutProduct = await mongoProductModel.findOne({
+        itemID: deleteStockOutData.itemID,
+      });
+
+      if (!deleteStockOutProduct) {
+        throw new Error("Product not found");
+      }
+
+      deleteStockOutProduct.currentStock -= deleteStockOutData.quantity;
+      await deleteStockOutProduct.save();
+
+      await queue.add("rearrange-stock-card", deleteStockOutData.itemID);
+      break;
+    case "delete-stock-in":
+      const deleteStockInStockOuts = await mongoStockOutModel.aggregate([
+        // Match goodReceiptID in stockIn
+        {
+          $match: {
+            itemID: job.data.itemID,
+          },
+        },
+        {
+          $lookup: {
+            from: "stock-ins",
+            localField: "stockInID",
+            foreignField: "_id",
+            as: "stockIn",
+          },
+        },
+        {
+          $match: {
+            "stockIn.goodReceiptID": job.data.goodReceiptID,
+            "stockIn.adjustmentCaseID": job.data.adjustmentCaseID,
+          },
+        },
+      ]);
+
+      // Move the stock out that depends on the stock in to overflow
+      for (let i = 0; i < deleteStockInStockOuts.length; i++) {
+        const stockOut = deleteStockInStockOuts[i];
+        await mongoOverflowModel.create({
+          itemID: stockOut.itemID,
+          date: stockOut.date,
+          quantity: stockOut.quantity,
+          billID: stockOut.billID,
+          billCodeID: stockOut.billCodeID,
+          adjustmentCaseID: stockOut.adjustmentCaseID,
+          adjustmentCaseCodeID: stockOut.adjustmentCaseCodeID,
+          value: stockOut.value,
+        });
+
+        await mongoStockOutModel.findByIdAndDelete(stockOut._id);
+      }
+
+      // Delete the stock in
+      await mongoStockInModel.deleteMany({
+        goodReceiptID: job.data.goodReceiptID,
+        itemID: job.data.itemID,
+        adjustmentCaseID: job.data.adjustmentCaseID,
+      });
+
+      // Delete stock card
+      await mongoStockCardModel.deleteMany({
+        goodReceiptID: job.data.goodReceiptID,
+        itemID: job.data.itemID,
+        adjustmentCaseID: job.data.adjustmentCaseID,
+      });
+
+      const deleteStockInProduct = await mongoProductModel.findOne({
+        itemID: job.data.itemID,
+      });
+
+      if (!deleteStockInProduct) {
+        throw new Error("Product not found");
+      }
+
+      deleteStockInProduct.currentStock -= job.data.quantity;
+      await deleteStockInProduct.save();
+
+      await queue.add("rearange-stock-card", job.data.itemID);
+      break;
+    case "update-stock-in":
+      const updateStockInData = job.data as StockInUpdateInterface;
+      // Find the stock in that needs to be updated
+      const stockIn = await mongoStockInModel.find({
+        itemID: updateStockInData.itemID,
+        goodReceiptID: updateStockInData.goodReceiptID,
+        goodReceiptCodeID: updateStockInData.goodReceiptCodeID,
+      });
+
+      for (let i = 0; i < stockIn.length; i++) {
+        const stockInItem = stockIn[i];
+        stockInItem.price = updateStockInData.price;
+        await stockInItem.save();
+      }
+
+      break;
+
+    case "insert-stock-return":
+      const stockReturnData = job.data as StockReturnInterface;
+      // Insert to stock card
+      await mongoStockCardModel.create({
+        createdAt: stockReturnData.createdAt,
+        date: stockReturnData.date,
+        document: stockReturnData.document,
+        opponent: stockReturnData.opponent,
+        displayQuantity: stockReturnData.displayQuantity,
+        quantity: stockReturnData.quantity,
+        unit: stockReturnData.unit,
+        billID: stockReturnData.billID,
+        billCodeID: stockReturnData.billCodeID,
+        salesReturnID: stockReturnData.salesReturnID,
+        salesReturnCodeID: stockReturnData.salesReturnCodeID,
+        customerID: stockReturnData.customerID,
+        itemID: stockReturnData.itemID,
+        currentStock: 0,
+      });
+
+      await queue.add("rearrange-stock-card", stockReturnData.itemID);
+
+      let salesReturnQuantity = stockReturnData.quantity;
+      while (salesReturnQuantity > 0) {
+        if (salesReturnQuantity == 0) {
+          break;
+        }
+
+        // First search from overflow
+        const overflow = await mongoOverflowModel.findOne({
+          itemID: stockReturnData.itemID,
+          billID: stockReturnData.billID,
+          billCodeID: stockReturnData.billCodeID,
+        });
+
+        if (overflow) {
+          if (overflow.quantity > salesReturnQuantity) {
+            overflow.quantity -= salesReturnQuantity;
+            await overflow.save();
+            salesReturnQuantity = 0;
+            break;
+          } else {
+            salesReturnQuantity -= overflow.quantity;
+            await mongoOverflowModel.findByIdAndDelete(overflow._id);
+          }
+        } else {
+          // Search from stock out
+          const stockOut = await mongoStockOutModel.findOne({
+            itemID: stockReturnData.itemID,
+            billID: stockReturnData.billID,
+            billCodeID: stockReturnData.billCodeID,
+          });
+
+          if (!stockOut) {
+            throw new Error("Stock out not found");
+          }
+
+          const stockIn = await mongoStockInModel.findById(stockOut.stockInID);
+          if (!stockIn) {
+            throw new Error("Stock in not found");
+          }
+
+          if (stockOut.quantity > salesReturnQuantity) {
+            stockOut.quantity -= salesReturnQuantity;
+            await stockOut.save();
+            salesReturnQuantity = 0;
+
+            stockIn.residue += salesReturnQuantity;
+            await stockIn.save();
+            break;
+          } else {
+            salesReturnQuantity -= stockOut.quantity;
+            stockIn.residue += stockOut.quantity;
+            await stockIn.save();
+            await mongoStockOutModel.findByIdAndDelete(stockOut._id);
+          }
+        }
+      }
+      break;
+    case "delete-stock-return":
+      const stockCard = await mongoStockCardModel.find({
+        salesReturnID: job.data.salesReturnID,
+      });
+
+      for (let i = 0; i < stockCard.length; i++) {
+        // Delete stock card document then rearrange stock card
+        const stockCardItem = stockCard[i];
+        await mongoStockCardModel.findByIdAndDelete(stockCardItem._id);
+        await queue.add("rearrange-stock-card", stockCardItem.itemID);
+      }
+      break;
+
+    case "insert-stock-out-plain":
+      // Only to calculate stock out, not to insert to stock cards
+      const stockOutPlainData = job.data as any;
+      let quantity = stockOutPlainData.quantity;
+      while (quantity > 0) {
+        if (quantity == 0) {
+          break;
+        } else {
+          const stockIn = await mongoStockInModel
+            .findOne({
+              itemID: stockOutPlainData.itemID,
+              residue: { $gt: 0 },
+            })
+            .sort({ date: 1 });
+
+          if (stockIn) {
+            const stockInResidue = stockIn.residue;
+            if (stockInResidue > quantity) {
+              stockIn.residue = stockInResidue - quantity;
+              await stockIn.save();
+
+              await mongoStockOutModel.create({
+                itemID: stockOutPlainData.itemID,
+                adjustmentCaseID: stockOutPlainData.adjustmentCaseID,
+                adjustmentCaseCodeID: stockOutPlainData.adjustmentCaseCodeID,
+                billID: stockOutPlainData.billID,
+                billCodeID: stockOutPlainData.billCodeID,
+                date: stockOutPlainData.date,
+                value: stockOutPlainData.value,
+                quantity: quantity,
+                stockInID: stockIn._id,
+              });
+              quantity = 0;
+              await stockIn.save();
+            } else {
+              await mongoStockOutModel.create({
+                itemID: stockOutPlainData.itemID,
+                adjustmentCaseID: stockOutPlainData.adjustmentCaseID,
+                adjustmentCaseCodeID: stockOutPlainData.adjustmentCaseCodeID,
+                billID: stockOutPlainData.billID,
+                billCodeID: stockOutPlainData.billCodeID,
+                date: stockOutPlainData.date,
+                value: stockOutPlainData.value,
+                quantity: stockInResidue,
+                stockInID: stockIn._id,
+              });
+
+              quantity -= stockInResidue;
+              stockIn.residue = 0;
+              await stockIn.save();
+            }
+          } else {
+            await mongoOverflowModel.create({
+              itemID: stockOutPlainData.itemID,
+              date: stockOutPlainData.date,
+              quantity: quantity,
+              billID: stockOutPlainData.billID,
+              billCodeID: stockOutPlainData.billCodeID,
+              adjustmentCaseID: stockOutPlainData.adjustmentCaseID,
+              adjustmentCaseCodeID: stockOutPlainData.adjustmentCaseCodeID,
+              value: stockOutPlainData.value,
+            });
+
+            quantity = 0;
+            break;
+          }
+        }
+      }
+      break;
+
     case "insert-product":
       const insertProductRreference = job.data.reference;
       const insertProductDescription = job.data.description;
@@ -234,1552 +714,82 @@ const workerHandler = async (job: Job<any>) => {
           data: job.data,
         });
       }
-    case "create-adjustment-case":
-      const createAdjustmentCaseID = job.data.id;
-      const createAdjustmentCaseCreatedAt = job.data.created_at;
-      const createAdjustmentCaseName = job.data.name;
-      const createAdjustmentCaseDate = job.data.date;
-      const createAdjustmentEventItems = job.data.adjustment_case as any[];
-      const createAdjustmentEventCompanyID = job.data.company_id;
+      break;
 
-      for (let i = 0; i < createAdjustmentEventItems.length; i++) {
-        const createAdjustmentEventItem = createAdjustmentEventItems[i];
-        const createAdjustmentEventItemID = createAdjustmentEventItem.item.id;
-        const createAdjustmentEventItemQuantity = parseFloat(
-          createAdjustmentEventItem.quantity.toString()
-        );
-        const createAdjustmentEventItemConversion =
-          createAdjustmentEventItem.item_unit == null
-            ? 1
-            : createAdjustmentEventItem.item_unit.conversion;
-        const createAdjustmentEventItemUnit =
-          createAdjustmentEventItem.item_unit == null
-            ? createAdjustmentEventItem.item.unit
-            : createAdjustmentEventItem.item_unit.unit;
+    case "delete-good-receipt":
+      const goodReceiptID = job.data.id;
+      const deleteGoodReceiptItems = job.data.items;
+      const deleteGoodReceiptStockInIds = await mongoStockInModel.find({
+        goodReceiptCodeID: goodReceiptID,
+      });
+      // Move the stock out that depends on the good receipt to overflow
+      const stockOut = await mongoStockOutModel.find({
+        goodReceiptCodeID: goodReceiptID,
+      });
 
-        const updateProduct = await mongoProductModel.findOne({
-          itemID: createAdjustmentEventItemID,
+      for (let i = 0; i < stockOut.length; i++) {
+        const stockOutItem = stockOut[i];
+        await mongoOverflowModel.create({
+          itemID: stockOutItem.itemID,
+          date: stockOutItem.date,
+          quantity: stockOutItem.quantity,
+          billID: stockOutItem.billID,
+          billCodeID: stockOutItem.billCodeID,
+          adjustmentCaseID: stockOutItem.adjustmentCaseID,
+          adjustmentCaseCodeID: stockOutItem.adjustmentCaseCodeID,
+          value: stockOutItem.value,
         });
-
-        if (updateProduct) {
-          updateProduct.currentStock =
-            updateProduct.currentStock +
-            createAdjustmentEventItemQuantity *
-              createAdjustmentEventItemConversion;
-
-          updateProduct.stockCard.unshift({
-            createdAt: createAdjustmentCaseCreatedAt,
-            date: createAdjustmentCaseDate,
-            document: createAdjustmentCaseName,
-            opponent: "Internal",
-            displayQuantity: createAdjustmentEventItemQuantity,
-            quantity:
-              createAdjustmentEventItemQuantity *
-              createAdjustmentEventItemConversion,
-            unit: createAdjustmentEventItemUnit,
-            currentStock: 0,
-            billID: null,
-            billCodeID: null,
-            adjustmentCaseID: createAdjustmentEventItem.id,
-            adjustmentCaseCodeID: createAdjustmentCaseID,
-            goodReceiptID: null,
-            goodReceiptCodeID: null,
-            salesReturnID: null,
-            salesReturnCodeID: null,
-          });
-
-          try {
-            await updateProduct.save();
-            await queue.add("rearrange-stock-card", updateProduct.itemID);
-          } catch (error: any) {
-            await mongoErrorModel.create({
-              date: new Date(),
-              error: error.toString(),
-              function: "create-adjustment-case/update-product",
-              data: job.data,
-            });
-          }
-        }
-
-        if (createAdjustmentEventItemQuantity > 0) {
-          // insert to stock card
-          try {
-            await mongoStockInModel.create({
-              companyID: createAdjustmentEventCompanyID,
-              adjustmentCaseID: createAdjustmentEventItem.id,
-              adjustmentCaseCodeID: createAdjustmentCaseID,
-              goodReceiptCodeID: null,
-              goodReceiptID: null,
-              date: createAdjustmentCaseDate,
-              price: 0,
-              quantity:
-                createAdjustmentEventItemQuantity *
-                createAdjustmentEventItemConversion,
-              residue:
-                createAdjustmentEventItemQuantity *
-                createAdjustmentEventItemConversion,
-              itemID: createAdjustmentEventItemID,
-              stockOut: [],
-            });
-          } catch (error: any) {
-            await mongoErrorModel.create({
-              date: new Date(),
-              error: error.toString(),
-              function: "create-adjustment-case/update-stock-in",
-              data: job.data,
-            });
-          }
-        } else {
-          let quantity = createAdjustmentEventItemQuantity * -1;
-          while (quantity > 0) {
-            if (quantity == 0) {
-              break;
-            }
-
-            const stockIn = await mongoStockInModel
-              .findOne({
-                itemID: createAdjustmentEventItemID,
-                residue: { $gt: 0 },
-              })
-              .sort({ date: 1 });
-
-            if (stockIn) {
-              const stockInResidue = stockIn.residue;
-              if (stockInResidue > quantity) {
-                stockIn.residue = stockInResidue - quantity;
-                stockIn.stockOut.unshift({
-                  adjustmentCaseID: createAdjustmentEventItem.id,
-                  adjustmentCaseCodeID: createAdjustmentCaseID,
-                  billID: null,
-                  billCodeID: null,
-                  date: createAdjustmentCaseDate,
-                  displayQuantity: quantity,
-                  quantity: quantity * createAdjustmentEventItemConversion,
-                  unit: createAdjustmentEventItemUnit,
-                });
-                quantity = 0;
-                try {
-                  await stockIn.save();
-                } catch (error: any) {
-                  await mongoErrorModel.create({
-                    date: new Date(),
-                    error: error.toString(),
-                    function: "create-adjustment-case/update-stock-in",
-                  });
-                }
-              } else {
-                stockIn.stockOut.unshift({
-                  adjustmentCaseID: createAdjustmentEventItem.id,
-                  adjustmentCaseCodeID: createAdjustmentCaseID,
-                  billID: null,
-                  billCodeID: null,
-                  date: createAdjustmentCaseDate,
-                  displayQuantity: stockInResidue,
-                  quantity:
-                    stockInResidue * createAdjustmentEventItemConversion,
-                  unit: createAdjustmentEventItemUnit,
-                });
-                quantity -= stockInResidue;
-                stockIn.residue = 0;
-                try {
-                  await stockIn.save();
-                } catch (error: any) {
-                  await mongoErrorModel.create({
-                    date: new Date(),
-                    error: error.toString(),
-                    function: "create-adjustment-case/update-stock-in",
-                    data: job.data,
-                  });
-                }
-              }
-            } else {
-              await mongoOverflowModel.create({
-                itemID: createAdjustmentEventItemID,
-                date: createAdjustmentCaseDate,
-                quantity: quantity * createAdjustmentEventItemConversion,
-                billID: null,
-                billCodeID: null,
-                adjustmentCaseID: createAdjustmentEventItem.id,
-                adjustmentCaseCodeID: createAdjustmentCaseID,
-                value: 0,
-              });
-
-              quantity = 0;
-            }
-          }
-        }
       }
 
-      break;
-    case "delete-adjustment-case":
-      const deleteAdjustmentCaseID = job.data.id;
-      const deleteAdjustmentEventItems = job.data.adjustment_case as any[];
+      // Delete the stock out
+      await mongoStockOutModel.deleteMany({
+        stockInID: {
+          $in: deleteGoodReceiptStockInIds,
+        },
+      });
 
-      for (let i = 0; i < deleteAdjustmentEventItems.length; i++) {
-        const id = deleteAdjustmentEventItems[i].id;
-        const quantity = deleteAdjustmentEventItems[i].quantity;
-        const itemID = deleteAdjustmentEventItems[i].item.id;
-        const conversion =
-          deleteAdjustmentEventItems[i].item_unit == null
-            ? 1
-            : deleteAdjustmentEventItems[i].item_unit.conversion;
+      // Delete the stock in
+      await mongoStockInModel.deleteMany({
+        goodReceiptCodeID: goodReceiptID,
+      });
 
-        const updateProduct = await mongoProductModel.findOne({
+      // Delete stock card
+      await mongoStockCardModel.deleteMany({
+        goodReceiptCodeID: goodReceiptID,
+      });
+
+      // Update product current stock
+      for (let i = 0; i < deleteGoodReceiptItems.length; i++) {
+        const quantity = deleteGoodReceiptItems[i].quantity;
+        const itemID = deleteGoodReceiptItems[i].item_id;
+
+        const product = await mongoProductModel.findOne({
           itemID: itemID,
         });
 
-        if (updateProduct) {
-          updateProduct.currentStock =
-            updateProduct.currentStock - quantity * conversion;
-
-          const stockCardIndex = updateProduct.stockCard.findIndex((x) => {
-            return x.adjustmentCaseID == id;
-          });
-
-          if (stockCardIndex != -1) {
-            updateProduct.stockCard.splice(stockCardIndex, 1);
-          }
-
-          await updateProduct.save();
-          await queue.add("rearrange-stock-card", updateProduct.itemID);
+        if (!product) {
+          throw new Error("Product not found");
         }
 
-        if (quantity > 0) {
-          // Found event
-          // Remove from stock in
-          const stockIn = await mongoStockInModel.findOne({
-            itemID: itemID,
-            adjustmentCaseID: id,
-          });
-
-          if (stockIn) {
-            await mongoOverflowModel.create(
-              stockIn.stockOut.map((x) => {
-                return {
-                  itemID: itemID,
-                  date: x.date,
-                  quantity: x.quantity,
-                  billID: null,
-                  billCodeID: null,
-                  adjustmentCaseID: id,
-                  adjustmentCaseCodeID: deleteAdjustmentCaseID,
-                  value: x.value,
-                };
-              })
-            );
-
-            await mongoStockInModel.findOneAndDelete({
-              itemID: itemID,
-              adjustmentCaseID: id,
-            });
-          }
-        } else {
-          // Lost event
-          // If exist in overflow, remove from overflow
-          const overflow = await mongoOverflowModel.findOne({
-            itemID: itemID,
-            adjustmentCaseID: id,
-          });
-
-          if (overflow) {
-            await mongoOverflowModel.findOneAndDelete({
-              itemID: itemID,
-              adjustmentCaseID: id,
-            });
-          }
-
-          // If exist in stock out, remove from stock out
-          const stockIns = await mongoStockInModel.aggregate([
-            {
-              $match: {
-                itemID: itemID,
-                "stockOut.adjustmentCaseID": id,
-              },
-            },
-          ]);
-
-          for (let i = 0; i < stockIns.length; i++) {
-            const stockIn = stockIns[i];
-            const stockOutIndex = stockIn.stockOut.findIndex((x: any) => {
-              return x.adjustmentCaseID == id;
-            });
-
-            if (stockOutIndex != -1) {
-              stockIn.stockOut.splice(stockOutIndex, 1);
-              stockIn.residue = stockIn.residue + quantity * conversion;
-              await stockIn.save();
-            }
-          }
-        }
-      }
-      break;
-    case "create-good-receipt":
-      const createGoodReceiptID = job.data.id;
-      const createGoodReceiptCreatedAt = job.data.created_at;
-      const createGoodReceiptName = job.data.name;
-      const createGoodReceiptDate = job.data.date;
-      const createGoodReceiptItems = job.data.good_receipt as any[];
-      const createGoodReceiptCompanyID = job.data.company_id;
-      const createGoodReceiptSupplier = job.data.supplier;
-
-      for (let i = 0; i < createGoodReceiptItems.length; i++) {
-        const createGoodReceiptItem = createGoodReceiptItems[i];
-        console.log(createGoodReceiptItem);
-        const createGoodReceiptItemID = createGoodReceiptItem.item.id;
-        const createGoodReceiptItemQuantity = parseFloat(
-          createGoodReceiptItem.quantity.toString()
-        );
-        const createGoodReceiptItemPrice = parseFloat(
-          createGoodReceiptItem.price.toString()
-        );
-        const createGoodReceiptItemDiscount = parseFloat(
-          createGoodReceiptItem.discount.toString()
-        );
-        const CreateGoodReceiptItemConversion =
-          createGoodReceiptItem.item_unit == null
-            ? 1
-            : createGoodReceiptItem.item_unit.conversion;
-        const createGoodReceiptItemUnit =
-          createGoodReceiptItem.item_unit == null
-            ? createGoodReceiptItem.item.unit
-            : createGoodReceiptItem.item_unit.unit;
-
-        const updateProduct = await mongoProductModel.findOne({
-          itemID: createGoodReceiptItemID,
-        });
-
-        if (updateProduct) {
-          updateProduct.currentStock +=
-            createGoodReceiptItemQuantity * CreateGoodReceiptItemConversion;
-
-          updateProduct.stockCard.unshift({
-            createdAt: createGoodReceiptCreatedAt,
-            date: createGoodReceiptDate,
-            document: createGoodReceiptName,
-            opponent: createGoodReceiptSupplier.name,
-            displayQuantity: createGoodReceiptItemQuantity,
-            quantity:
-              createGoodReceiptItemQuantity * CreateGoodReceiptItemConversion,
-            unit: createGoodReceiptItemUnit,
-            billID: null,
-            billCodeID: null,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            goodReceiptID: createGoodReceiptItem.id,
-            goodReceiptCodeID: createGoodReceiptID,
-            salesReturnID: null,
-            salesReturnCodeID: null,
-          });
-
-          await updateProduct.save();
-          await queue.add("rearrange-stock-card", createGoodReceiptItemID);
-        }
-
-        await mongoStockInModel.create({
-          companyID: createGoodReceiptCompanyID,
-          adjustmentCaseID: null,
-          adjustmentCaseCodeID: null,
-          goodReceiptCodeID: createGoodReceiptID,
-          goodReceiptID: createGoodReceiptItem.id,
-          date: createGoodReceiptDate,
-          price:
-            (createGoodReceiptItemPrice - createGoodReceiptItemDiscount) /
-            CreateGoodReceiptItemConversion,
-          quantity:
-            createGoodReceiptItemQuantity * CreateGoodReceiptItemConversion,
-          residue:
-            createGoodReceiptItemQuantity * CreateGoodReceiptItemConversion,
-          itemID: createGoodReceiptItemID,
-          stockOut: [],
-        });
-
-        await queue.add("check-overflow", createGoodReceiptItemID);
-      }
-      break;
-    case "create-purchase-invoice":
-      const createPurchaseInvoiceID = job.data.id;
-      const createPurchaseInvoiceCreatedAt = job.data.created_at;
-      const createPurchaseInvoiceName = job.data.name;
-      const createPurchaseInvoiceDate = job.data.date;
-      const createPurchaseInvoiceItems = job.data.good_receipt as any[];
-      const createPurchaseInvoiceCompanyID = job.data.company_id;
-      const createPurchaseInvoiceSupplier = job.data.supplier;
-      const createPurchaseInvoiceDiscount = job.data.purchase_invoice.discount;
-      const createPurchaseInvoiceTotalValue = createPurchaseInvoiceItems.reduce(
-        (a, b) => {
-          return a + (b.price - b.discount) * b.quantity;
-        },
-        0
-      );
-
-      const createPurchaseInvoiceNetValue =
-        createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
-
-      for (let i = 0; i < createPurchaseInvoiceItems.length; i++) {
-        const createPurchaseInvoiceItem = createPurchaseInvoiceItems[i];
-        const createPurchaseInvoiceItemID = createPurchaseInvoiceItem.item.id;
-        const createPurchaseInvoiceItemQuantity =
-          createPurchaseInvoiceItem.quantity;
-        const createPurchaseInvoiceItemPrice = parseFloat(
-          createPurchaseInvoiceItem.price.toString()
-        );
-        const createPurchaseInvoiceItemDiscount = parseFloat(
-          createPurchaseInvoiceItem.discount.toString()
-        );
-
-        const createPurchaseInvoiceItemNetPrice =
-          ((createPurchaseInvoiceItemPrice -
-            createPurchaseInvoiceItemDiscount) *
-            createPurchaseInvoiceNetValue) /
-          createPurchaseInvoiceTotalValue;
-        const createPurchaseInvoiceItemConversion =
-          createPurchaseInvoiceItem.item_unit == null
-            ? 1
-            : parseFloat(
-                createPurchaseInvoiceItem.item_unit.conversion.toString()
-              );
-        const createPurchaseInvoiceItemUnit =
-          createPurchaseInvoiceItem.item_unit == null
-            ? createPurchaseInvoiceItem.item.unit
-            : createPurchaseInvoiceItem.item_unit.unit;
-
-        const updateProduct = await mongoProductModel.findOne({
-          itemID: createPurchaseInvoiceItemID,
-        });
-
-        if (updateProduct) {
-          updateProduct.currentStock =
-            updateProduct.currentStock +
-            createPurchaseInvoiceItemQuantity *
-              createPurchaseInvoiceItemConversion;
-
-          updateProduct.stockCard.unshift({
-            createdAt: createPurchaseInvoiceCreatedAt,
-            date: createPurchaseInvoiceDate,
-            document: createPurchaseInvoiceName,
-            opponent: createPurchaseInvoiceSupplier.name,
-            displayQuantity: createPurchaseInvoiceItemQuantity,
-            quantity:
-              createPurchaseInvoiceItemQuantity *
-              createPurchaseInvoiceItemConversion,
-            unit: createPurchaseInvoiceItemUnit,
-            billID: null,
-            billCodeID: null,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            goodReceiptID: createPurchaseInvoiceItem.id,
-            goodReceiptCodeID: createPurchaseInvoiceID,
-            salesReturnID: null,
-            salesReturnCodeID: null,
-          });
-
-          await updateProduct.save();
-          await queue.add("rearrange-stock-card", updateProduct.itemID);
-        }
-
-        await mongoStockInModel.create({
-          companyID: createPurchaseInvoiceCompanyID,
-          adjustmentCaseID: null,
-          adjustmentCaseCodeID: null,
-          goodReceiptCodeID: createPurchaseInvoiceID,
-          goodReceiptID: createPurchaseInvoiceItem.id,
-          date: createPurchaseInvoiceDate,
-          price:
-            createPurchaseInvoiceItemNetPrice /
-            createPurchaseInvoiceItemConversion,
-          quantity:
-            createPurchaseInvoiceItemQuantity *
-            createPurchaseInvoiceItemConversion,
-          residue:
-            createPurchaseInvoiceItemQuantity *
-            createPurchaseInvoiceItemConversion,
-          itemID: createPurchaseInvoiceItemID,
-          stockOut: [],
-        });
-
-        await queue.add("check-overflow", createPurchaseInvoiceItemID);
-      }
-      break;
-    case "confirm-purchase-invoice":
-      const confirmPurchaseInvoiceGoodReceipts = job.data.good_receipt_code
-        .good_receipt as any[];
-      const confirmPurchaseInvoiceDiscount = job.data.discount;
-      let confirmPurchaseInvoiceTotal =
-        confirmPurchaseInvoiceGoodReceipts.reduce((a, b) => {
-          return a + (b.price - b.discount) * b.quantity;
-        }, 0);
-
-      const confirmPurchaseInvoiceNet =
-        confirmPurchaseInvoiceTotal - confirmPurchaseInvoiceDiscount;
-
-      // Distribute discount to each item
-      for (let i = 0; i < confirmPurchaseInvoiceGoodReceipts.length; i++) {
-        const confirmPurchaseInvoiceGoodReceipt =
-          confirmPurchaseInvoiceGoodReceipts[i];
-        const confirmPurchaseInvoiceGoodReceiptPrice =
-          confirmPurchaseInvoiceGoodReceipt.price;
-        const confirmPurchaseInvoiceGoodReceiptDiscount =
-          confirmPurchaseInvoiceGoodReceipt.discount;
-        const confirmPurchaseInvoiceGoodReceiptConversion =
-          confirmPurchaseInvoiceGoodReceipt.item_unit == null
-            ? 1
-            : confirmPurchaseInvoiceGoodReceipt.item_unit.conversion;
-
-        const confirmPurchaseInvoiceGoodReceiptNet =
-          confirmPurchaseInvoiceTotal == 0
-            ? 0
-            : ((confirmPurchaseInvoiceGoodReceiptPrice -
-                confirmPurchaseInvoiceGoodReceiptDiscount) *
-                confirmPurchaseInvoiceNet) /
-              confirmPurchaseInvoiceTotal;
-
-        const updateProduct = await mongoStockInModel.findOne({
-          goodReceiptID: confirmPurchaseInvoiceGoodReceipt.id,
-        });
-
-        if (updateProduct) {
-          updateProduct.price =
-            confirmPurchaseInvoiceGoodReceiptNet /
-            confirmPurchaseInvoiceGoodReceiptConversion;
-          await updateProduct.save();
-        }
-      }
-
-      break;
-    case "delete-purchase-invoice":
-      console.log(job.data);
-      const deletePurchaseInvoiceItems = job.data.good_receipt as any[];
-      for (let i = 0; i < deletePurchaseInvoiceItems.length; i++) {
-        const deletePurchaseInvoiceGoodReceiptID =
-          deletePurchaseInvoiceItems[i].id;
-        const deletePurchaseInvoiceItemID =
-          deletePurchaseInvoiceItems[i].item.id;
-        const deletePurchaseInvoiceItemQuantity =
-          deletePurchaseInvoiceItems[i].quantity;
-        const deletePurchaseInvoiceItemConversion =
-          deletePurchaseInvoiceItems[i].item_unit == null
-            ? 1
-            : deletePurchaseInvoiceItems[i].item_unit.conversion;
-
-        const updateProduct = await mongoProductModel.findOne({
-          itemID: deletePurchaseInvoiceItemID,
-        });
-
-        if (updateProduct) {
-          updateProduct.currentStock =
-            updateProduct.currentStock -
-            deletePurchaseInvoiceItemQuantity *
-              deletePurchaseInvoiceItemConversion;
-
-          const stockCardIndex = updateProduct.stockCard.findIndex(
-            (x) => x.goodReceiptID == deletePurchaseInvoiceGoodReceiptID
-          );
-
-          if (stockCardIndex != -1) {
-            updateProduct.stockCard.splice(stockCardIndex, 1);
-          }
-
-          await updateProduct.save();
-          await queue.add("rearrange-stock-card", deletePurchaseInvoiceItemID);
-        }
-
-        const stockIn = await mongoStockInModel.findOne({
-          goodReceiptID: deletePurchaseInvoiceGoodReceiptID,
-        });
-
-        if (stockIn) {
-          // Move the stock out to overflow
-          await mongoOverflowModel.create(
-            stockIn.stockOut.map((x) => {
-              return {
-                itemID: deletePurchaseInvoiceItemID,
-                date: x.date,
-                quantity: x.quantity,
-                billID: x.billID,
-                billCodeID: x.billCodeID,
-                adjustmentCaseID: x.adjustmentCaseID,
-                adjustmentCaseCodeID: x.adjustmentCaseCodeID,
-                value: x.value,
-              };
-            })
-          );
-
-          await queue.add("check-overflow", deletePurchaseInvoiceItemID);
-          // Remove the stock in
-          await mongoStockInModel.deleteOne({
-            goodReceiptID: deletePurchaseInvoiceGoodReceiptID,
-          });
-        }
-      }
-      break;
-    case "update-purchase-invoice":
-      console.log(job.data);
-      const updatePurchaseInvoiceID = job.data.good_receipt_code.id;
-      const updatePurchaseInvoiceDiscount = job.data.discount;
-      const updatePurchaseInvoiceGoodReceipts = job.data.good_receipt_code
-        .good_receipt as any[];
-      let updatePurchaseInvoiceTotal = updatePurchaseInvoiceGoodReceipts.reduce(
-        (a, b) => {
-          return a + (b.price - b.discount) * b.quantity;
-        },
-        0
-      );
-      const updatePurchaseInvoiceName = job.data.good_receipt_code.name;
-      const updatePurchaseInvoiceCompanyID =
-        job.data.good_receipt_code.company_id;
-      const updatePurchaseInvoiceDate = job.data.good_receipt_code.date;
-      const updatePurchaseInvoiceSupplier = job.data.good_receipt_code.supplier;
-      const updatePurchaseInvoiceCreatedAt =
-        job.data.good_receipt_code.created_at;
-
-      const updatePurchaseInvoiceNet =
-        updatePurchaseInvoiceTotal - updatePurchaseInvoiceDiscount;
-
-      // Distribute discount to each item
-      for (let i = 0; i < updatePurchaseInvoiceGoodReceipts.length; i++) {
-        const updatePurchaseInvoiceGoodReceipt =
-          updatePurchaseInvoiceGoodReceipts[i];
-        console.log(updatePurchaseInvoiceGoodReceipt);
-        const updatePurchaseInvoiceGoodReceiptPrice = parseFloat(
-          updatePurchaseInvoiceGoodReceipt.price.toString()
-        );
-        const updatePurchaseInvoiceGoodReceiptDiscount = parseFloat(
-          updatePurchaseInvoiceGoodReceipt.discount.toString()
-        );
-        const updatePurchaseInvoiceGoodReceiptUnit =
-          updatePurchaseInvoiceGoodReceipt.item_unit == null
-            ? updatePurchaseInvoiceGoodReceipt.item.unit
-            : updatePurchaseInvoiceGoodReceipt.item_unit.unit;
-        const updatePurchaseInvoiceGoodReceiptConversion =
-          updatePurchaseInvoiceGoodReceipt.item_unit == null
-            ? 1
-            : updatePurchaseInvoiceGoodReceipt.item_unit.conversion;
-        const updatePurchaseInvoiceGoodReceiptItemID =
-          updatePurchaseInvoiceGoodReceipt.item.id;
-
-        const updatePurchaseInvoiceGoodReceiptNet =
-          updatePurchaseInvoiceTotal == 0
-            ? 0
-            : ((updatePurchaseInvoiceGoodReceiptPrice -
-                updatePurchaseInvoiceGoodReceiptDiscount) *
-                updatePurchaseInvoiceNet) /
-              updatePurchaseInvoiceTotal;
-
-        const updateProduct = await mongoProductModel.findOne({
-          itemID: updatePurchaseInvoiceGoodReceiptItemID,
-        });
-
-        if (updateProduct) {
-          updateProduct.currentStock +=
-            updatePurchaseInvoiceGoodReceipt.quantity *
-            updatePurchaseInvoiceGoodReceiptConversion;
-
-          updateProduct.stockCard.unshift({
-            createdAt: updatePurchaseInvoiceCreatedAt,
-            date: updatePurchaseInvoiceDate,
-            document: updatePurchaseInvoiceName,
-            opponent: updatePurchaseInvoiceSupplier.name,
-            displayQuantity: updatePurchaseInvoiceGoodReceipt.quantity,
-            quantity:
-              updatePurchaseInvoiceGoodReceipt.quantity *
-              updatePurchaseInvoiceGoodReceiptConversion,
-            unit: updatePurchaseInvoiceGoodReceiptUnit,
-            billID: null,
-            billCodeID: null,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            goodReceiptID: updatePurchaseInvoiceGoodReceipt.id,
-            goodReceiptCodeID: updatePurchaseInvoiceID,
-            salesReturnID: null,
-            salesReturnCodeID: null,
-          });
-
-          await updateProduct.save();
-          queue.add(
-            "rearrange-stock-card",
-            updatePurchaseInvoiceGoodReceiptItemID
-          );
-        }
-
-        await mongoStockInModel.create({
-          companyID: updatePurchaseInvoiceCompanyID,
-          adjustmentCaseID: null,
-          adjustmentCaseCodeID: null,
-          goodReceiptCodeID: updatePurchaseInvoiceID,
-          goodReceiptID: updatePurchaseInvoiceGoodReceipt.id,
-          date: updatePurchaseInvoiceDate,
-          price: updatePurchaseInvoiceGoodReceiptNet,
-          quantity:
-            updatePurchaseInvoiceGoodReceipt.quantity *
-            updatePurchaseInvoiceGoodReceiptConversion,
-          residue:
-            updatePurchaseInvoiceGoodReceipt.quantity *
-            updatePurchaseInvoiceGoodReceiptConversion,
-          itemID: updatePurchaseInvoiceGoodReceiptItemID,
-          stockOut: [],
-        });
-
-        await queue.add(
-          "check-overflow",
-          updatePurchaseInvoiceGoodReceiptItemID
-        );
-      }
-
-      break;
-    case "create-sales-return":
-      const createSalesReturnDate = new Date(job.data.date);
-      const createSalesReturnID = job.data.id;
-      const createSalesReturnName = job.data.name;
-      const createSalesReturnCreatedAt = job.data.created_at;
-      const createSalesReturnItems = job.data.sales_return as any[];
-
-      for (let i = 0; i < createSalesReturnItems.length; i++) {
-        const createSalesReturnItemID = createSalesReturnItems[i].id;
-        const createSalesReturnBill = createSalesReturnItems[i].bill;
-        const createSalesReturnBillID = createSalesReturnBill.id;
-        const createSalesReturnCustomer =
-          createSalesReturnBill.bill_code.customer == null
-            ? "Retail customer"
-            : createSalesReturnBill.bill_code.customer.name;
-        const createSalesReturnItemQuantity = parseFloat(
-          createSalesReturnItems[i].quantity.toString()
-        );
-        if (createSalesReturnBill.package_code != null) {
-          for (
-            let n = 0;
-            n < createSalesReturnBill.package_code.package_content.length;
-            n++
-          ) {
-            const updateProduct = await mongoProductModel.findOne({
-              itemID:
-                createSalesReturnBill.package_code.package_content[n].item.id,
-            });
-
-            const createSalesReturnItem =
-              createSalesReturnBill.package_code.package_content[n];
-
-            let createSalesReturnItemQuantityEdit =
-              createSalesReturnItemQuantity *
-              createSalesReturnItem.quantity *
-              (createSalesReturnItem.item_unit == null
-                ? 1
-                : createSalesReturnItem.item_unit.conversion);
-
-            if (!updateProduct) {
-              throw Error("Product not found");
-            }
-
-            updateProduct.stockCard.unshift({
-              createdAt: createSalesReturnCreatedAt,
-              date: createSalesReturnDate,
-              document: createSalesReturnName,
-              opponent: createSalesReturnCustomer,
-              displayQuantity:
-                createSalesReturnItemQuantity * createSalesReturnItem.quantity,
-              quantity: createSalesReturnItemQuantityEdit,
-              unit:
-                createSalesReturnItem.item_unit == null
-                  ? createSalesReturnItem.item.unit
-                  : createSalesReturnItem.item_unit.unit,
-              currentStock: 0,
-              billID: createSalesReturnBill.id,
-              billCodeID: createSalesReturnBill.bill_code.id,
-              adjustmentCaseID: null,
-              adjustmentCaseCodeID: null,
-              goodReceiptID: null,
-              goodReceiptCodeID: null,
-              salesReturnID: createSalesReturnItemID,
-              salesReturnCodeID: createSalesReturnID,
-            });
-
-            updateProduct.currentStock += createSalesReturnItemQuantityEdit;
-            await updateProduct.save();
-            await queue.add(
-              "rearrange-stock-card",
-              createSalesReturnBill.package_code.package_content[n].item.id
-            );
-
-            while (createSalesReturnItemQuantityEdit > 0) {
-              if (createSalesReturnItemQuantityEdit == 0) {
-                break;
-              }
-
-              const stockIns = await mongoStockInModel
-                .findOne({
-                  stockOut: {
-                    $elemMatch: {
-                      itemID: createSalesReturnItem.item.id,
-                      billID: createSalesReturnBillID,
-                      quantity: {
-                        $gt: 0,
-                      },
-                    },
-                  },
-                })
-                .sort({
-                  date: -1,
-                });
-
-              if (!stockIns) {
-                throw Error("Stock in not found");
-              }
-
-              const stockOutIndex = stockIns.stockOut.findIndex(
-                (stockOut) => stockOut.billID == createSalesReturnBillID
-              );
-
-              if (stockOutIndex == -1) {
-                throw Error("Stock out not found");
-              }
-
-              if (
-                createSalesReturnItemQuantityEdit >
-                stockIns.stockOut[stockOutIndex].quantity
-              ) {
-                stockIns.stockOut[stockOutIndex].quantity = 0;
-                stockIns.residue += createSalesReturnItemQuantityEdit;
-                createSalesReturnItemQuantityEdit -=
-                  stockIns.stockOut[stockOutIndex].quantity;
-
-                await stockIns.save();
-              } else {
-                stockIns.stockOut[stockOutIndex].quantity -=
-                  createSalesReturnItemQuantityEdit;
-                stockIns.residue += createSalesReturnItemQuantityEdit;
-                createSalesReturnItemQuantityEdit = 0;
-
-                await stockIns.save();
-              }
-            }
-          }
-        } else {
-          const updateProduct = await mongoProductModel.findOne({
-            itemID: createSalesReturnBill.item.id,
-          });
-
-          if (!updateProduct) {
-            throw Error("Product not found");
-          }
-
-          updateProduct.stockCard.unshift({
-            createdAt: createSalesReturnCreatedAt,
-            date: createSalesReturnDate,
-            document: createSalesReturnName,
-            opponent: createSalesReturnCustomer,
-            displayQuantity: createSalesReturnItemQuantity,
-            quantity:
-              createSalesReturnItemQuantity *
-              (createSalesReturnBill.item_unit == null
-                ? 1
-                : createSalesReturnBill.item_unit.conversion),
-            unit:
-              createSalesReturnBill.item_unit == null
-                ? createSalesReturnBill.item.unit
-                : createSalesReturnBill.item_unit.unit,
-            currentStock: 0,
-            billID: createSalesReturnBill.id,
-            billCodeID: createSalesReturnBill.bill_code.id,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            goodReceiptID: null,
-            goodReceiptCodeID: null,
-            salesReturnID: createSalesReturnItemID,
-            salesReturnCodeID: createSalesReturnID,
-          });
-
-          updateProduct.currentStock +=
-            createSalesReturnItemQuantity *
-            (createSalesReturnBill.item_unit == null
-              ? 1
-              : createSalesReturnBill.item_unit.conversion);
-          await updateProduct.save();
-
-          await queue.add(
-            "rearrange-stock-card",
-            createSalesReturnBill.item.id
-          );
-
-          let createSalesReturnItemQuantityEdit = createSalesReturnItemQuantity;
-          while (createSalesReturnItemQuantityEdit > 0) {
-            if (createSalesReturnItemQuantityEdit == 0) {
-              break;
-            }
-
-            // First, fetch the overflow stock in
-            const overflow = await mongoOverflowModel.findOne({
-              itemID: createSalesReturnBill.item.id,
-              billID: createSalesReturnBillID,
-            });
-
-            if (overflow) {
-              if (overflow.quantity > createSalesReturnItemQuantityEdit) {
-                overflow.quantity -= createSalesReturnItemQuantityEdit;
-                createSalesReturnItemQuantityEdit = 0;
-                await overflow.save();
-              } else {
-                createSalesReturnItemQuantityEdit -= overflow.quantity;
-                // Delete the overflow
-                await mongoOverflowModel.deleteOne({
-                  itemID: createSalesReturnBill.item.id,
-                  billID: createSalesReturnBillID,
-                });
-              }
-            } else {
-              const stockIns = await mongoStockInModel
-                .findOne({
-                  stockOut: {
-                    $elemMatch: {
-                      billID: createSalesReturnBillID,
-                      quantity: {
-                        $gt: 0,
-                      },
-                    },
-                  },
-                })
-                .sort({
-                  date: -1,
-                });
-
-              if (!stockIns) {
-                throw Error("Stock in not found");
-              }
-
-              console.log(`[info]: Stock in found.`);
-
-              const stockOutIndex = stockIns.stockOut.findIndex(
-                (stockOut) => stockOut.billID == createSalesReturnBillID
-              );
-
-              if (stockOutIndex == -1) {
-                throw Error("Stock out not found");
-              }
-
-              console.log(`[info]: Stock out found.`);
-
-              if (
-                createSalesReturnItemQuantityEdit >
-                stockIns.stockOut[stockOutIndex].quantity
-              ) {
-                stockIns.stockOut[stockOutIndex].quantity = 0;
-                stockIns.residue += createSalesReturnItemQuantityEdit;
-                createSalesReturnItemQuantityEdit -=
-                  stockIns.stockOut[stockOutIndex].quantity;
-
-                await stockIns.save();
-              } else {
-                stockIns.stockOut[stockOutIndex].quantity -=
-                  createSalesReturnItemQuantityEdit;
-                stockIns.residue += createSalesReturnItemQuantityEdit;
-                createSalesReturnItemQuantityEdit = 0;
-
-                await stockIns.save();
-                break;
-              }
-            }
-          }
-        }
-      }
-      break;
-    case "delete-sales-return":
-      const deleteSalesReturnItems = job.data.sales_return as any[];
-      for (let i = 0; i < deleteSalesReturnItems.length; i++) {
-        // We need to delete every stock card that has sales return id
-        const deleteSalesReturnItemID = deleteSalesReturnItems[i].id;
-
-        const deleteSalesReturnItem = deleteSalesReturnItems[i];
-        const deleteSalesReturnItemQuantity = parseFloat(
-          deleteSalesReturnItem.quantity.toString()
-        );
-        if (deleteSalesReturnItem.bill.package_code != null) {
-          for (
-            let n = 0;
-            n < deleteSalesReturnItem.bill.package_code.package_content.length;
-            n++
-          ) {
-            const deleteSalesReturnItemItemID =
-              deleteSalesReturnItem.bill.package_code.package_content[n].item
-                .id;
-            const deleteSalesReturnItemItemQuantity =
-              parseFloat(
-                deleteSalesReturnItem.bill.package_code.package_content[
-                  n
-                ].quantity.toString()
-              ) *
-              (deleteSalesReturnItem.bill.package_content[n].item_unit == null
-                ? 1
-                : parseFloat(
-                    deleteSalesReturnItem.bill.package_content[
-                      n
-                    ].item_unit.conversion.toString()
-                  )) *
-              deleteSalesReturnItemQuantity;
-
-            await mongoProductModel.findOneAndUpdate(
-              {
-                itemID: deleteSalesReturnItemItemID,
-              },
-              {
-                $pull: {
-                  stockCard: {
-                    salesReturnID: deleteSalesReturnItemID,
-                  },
-                },
-                $inc: {
-                  currentStock: deleteSalesReturnItemItemQuantity * -1,
-                },
-              }
-            );
-
-            await queue.add("rearrange-stock-card", deleteSalesReturnItemID);
-
-            const overflow = await mongoOverflowModel.findOne({
-              itemID: deleteSalesReturnItemItemID,
-              billID: deleteSalesReturnItem.bill.id,
-            });
-
-            if (overflow) {
-              await mongoOverflowModel.create({
-                itemID: deleteSalesReturnItemItemID,
-                quantity: deleteSalesReturnItemItemQuantity,
-                date: new Date(),
-                billID: deleteSalesReturnItem.bill.id,
-                billCodeID: deleteSalesReturnItem.bill.bill_code.id,
-                adjustmentCaseID: null,
-                adjustmentCaseCodeID: null,
-                value: overflow.value,
-              });
-
-              await queue.add("check-overflow", deleteSalesReturnItemItemID);
-            } else {
-              const stockIn = await mongoStockInModel.findOne({
-                itemID: deleteSalesReturnItemItemID,
-                stockOut: {
-                  $elemMatch: {
-                    billID: deleteSalesReturnItem.bill.id,
-                  },
-                },
-              });
-
-              if (!stockIn) {
-                throw Error("Stock in not found");
-              }
-
-              const stockOutIndex = stockIn.stockOut.findIndex(
-                (stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id
-              );
-
-              if (stockOutIndex == -1) {
-                throw Error("Stock out not found");
-              }
-
-              await mongoOverflowModel.create({
-                itemID: deleteSalesReturnItemItemID,
-                quantity: deleteSalesReturnItemItemQuantity,
-                date: new Date(),
-                billID: deleteSalesReturnItem.bill.id,
-                billCodeID: deleteSalesReturnItem.bill.bill_code.id,
-                adjustmentCaseID: null,
-                adjustmentCaseCodeID: null,
-                value: stockIn.stockOut[stockOutIndex].value,
-              });
-
-              await queue.add("check-overflow", deleteSalesReturnItemItemID);
-            }
-          }
-        } else {
-          await mongoProductModel.findOneAndUpdate(
-            {
-              itemID: deleteSalesReturnItem.bill.item.id,
-            },
-            {
-              $pull: {
-                stockCard: {
-                  salesReturnID: deleteSalesReturnItemID,
-                },
-              },
-              $inc: {
-                currentStock: deleteSalesReturnItemQuantity * -1,
-              },
-            }
-          );
-
-          await queue.add(
-            "rearrange-stock-card",
-            deleteSalesReturnItem.bill.item.id
-          );
-
-          const stockIn = await mongoStockInModel.findOne({
-            itemID: deleteSalesReturnItem.bill.item.id,
-            stockOut: {
-              $elemMatch: {
-                billID: deleteSalesReturnItem.bill.id,
-              },
-            },
-          });
-
-          if (!stockIn) {
-            throw Error("Stock in not found");
-          }
-
-          const stockOutIndex = stockIn.stockOut.findIndex(
-            (stockOut) => stockOut.billID == deleteSalesReturnItem.bill.id
-          );
-
-          if (stockOutIndex == -1) {
-            throw Error("Stock out not found");
-          }
-
-          await mongoOverflowModel.create({
-            itemID: deleteSalesReturnItem.bill.item.id,
-            quantity: deleteSalesReturnItemQuantity,
-            date: new Date(),
-            billID: deleteSalesReturnItem.bill.id,
-            billCodeID: deleteSalesReturnItem.bill.bill_code.id,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            value: stockIn.stockOut[stockOutIndex].value,
-          });
-
-          await queue.add("check-overflow", deleteSalesReturnItem.bill.item.id);
-        }
-      }
-
-      break;
-    case "create-sales-invoice":
-      const createSalesInvoiceID = job.data.id;
-      const createSalesInvoiceCreatedAt = job.data.created_at;
-      const createSalesInvoiceDate = new Date(job.data.date);
-      const createSalesInvoiceName = job.data.name;
-      const createSalesInvoiceItems = job.data.bill as any[];
-      const createSalesInvoiceCustomer = job.data.customer;
-
-      const createSalesInvoiceDelivery = parseFloat(
-        job.data.delivery.toString()
-      );
-      const createSalesInvoiceService = parseFloat(job.data.service.toString());
-      const createSalesInvoiceDiscount = parseFloat(
-        job.data.discount.toString()
-      );
-
-      let createSalesInvoiceTotal = createSalesInvoiceItems.reduce((a, b) => {
-        return a + (b.price - b.discount) * b.quantity;
-      }, 0);
-
-      const createSalesInvoiceNetTotal =
-        createSalesInvoiceTotal +
-        createSalesInvoiceService -
-        createSalesInvoiceDiscount +
-        createSalesInvoiceDelivery;
-
-      const createSalesInvoiceInsertItems: any[] = [];
-
-      for (let i = 0; i < createSalesInvoiceItems.length; i++) {
-        const createSalesInvoiceItem = createSalesInvoiceItems[i];
-        const createSalesInvoiceItemID = createSalesInvoiceItem.id;
-
-        if (createSalesInvoiceItem.package_code != null) {
-          const createSalesInvoicePackagePrice = createSalesInvoiceItem.price;
-          const createSalesInvoicePackageDiscount =
-            createSalesInvoiceItem.discount;
-          const createSalesInvoicePackageQuantity =
-            createSalesInvoiceItem.quantity;
-          const createSalesInvoicePackageFinalPrice =
-            ((createSalesInvoicePackagePrice -
-              createSalesInvoicePackageDiscount) *
-              createSalesInvoiceNetTotal) /
-            createSalesInvoiceTotal;
-          const createSalesInvoicePackageContent = createSalesInvoiceItem
-            .package_code.package_content as any[];
-
-          const createSalesInvoicePackageContentValue =
-            createSalesInvoicePackageContent.reduce((a, b) => {
-              return a + b.quantity * (b.price - b.discount);
-            }, 0);
-
-          for (let n = 0; n < createSalesInvoicePackageContent.length; n++) {
-            const createSalesInvoicePackageContentItem =
-              createSalesInvoicePackageContent[n];
-            const createSalesInvoiceItemItemID =
-              createSalesInvoicePackageContentItem.item_id;
-            const createSalesInvoiceItemQuantity =
-              createSalesInvoicePackageContentItem.quantity;
-            const createSalesInvoiceItemPrice =
-              createSalesInvoicePackageContentItem.price;
-            const createSalesInvoiceItemDiscount =
-              createSalesInvoicePackageContentItem.discount;
-            const createSalesInvoiceItemUnit =
-              createSalesInvoicePackageContentItem.item_unit == null
-                ? createSalesInvoicePackageContentItem.item.unit
-                : createSalesInvoicePackageContentItem.item_unit.unit;
-            const createSalesInvoiceItemConversion =
-              createSalesInvoicePackageContentItem.item_unit == null
-                ? 1
-                : createSalesInvoiceItem.item_unit.conversion;
-            const finalUnitPrice =
-              ((createSalesInvoiceItemPrice - createSalesInvoiceItemDiscount) *
-                createSalesInvoicePackageFinalPrice) /
-              (createSalesInvoicePackageContentValue *
-                createSalesInvoiceItemConversion);
-
-            const updateProduct = await mongoProductModel.findOne({
-              itemID: createSalesInvoiceItemItemID,
-            });
-
-            if (updateProduct) {
-              updateProduct.currentStock =
-                updateProduct.currentStock -
-                createSalesInvoiceItemQuantity *
-                  createSalesInvoiceItemConversion;
-
-              updateProduct.stockCard.unshift({
-                createdAt: createSalesInvoiceCreatedAt,
-                date: createSalesInvoiceDate,
-                document: createSalesInvoiceName,
-                opponent:
-                  createSalesInvoiceCustomer == null
-                    ? "Retail customer"
-                    : createSalesInvoiceCustomer.name,
-                displayQuantity: createSalesInvoiceItemQuantity * -1,
-                quantity:
-                  createSalesInvoiceItemQuantity *
-                  createSalesInvoiceItemConversion *
-                  createSalesInvoicePackageQuantity *
-                  -1,
-                unit: createSalesInvoiceItemUnit,
-                billID: createSalesInvoiceItemID,
-                billCodeID: createSalesInvoiceID,
-                adjustmentCaseID: null,
-                adjustmentCaseCodeID: null,
-                goodReceiptID: null,
-                goodReceiptCodeID: null,
-                salesReturnID: null,
-                salesReturnCodeID: null,
-              });
-
-              await updateProduct.save();
-
-              createSalesInvoiceInsertItems.push({
-                quantity:
-                  createSalesInvoiceItemQuantity *
-                  createSalesInvoiceItemConversion *
-                  createSalesInvoicePackageQuantity,
-                date: createSalesInvoiceDate,
-                value: finalUnitPrice,
-                billID: createSalesInvoiceItemID,
-                billCodeID: createSalesInvoiceID,
-                adjustmentCaseID: null,
-                adjustmentCaseCodeID: null,
-                itemID: createSalesInvoiceItemItemID,
-              });
-
-              await queue.add(
-                "rearrange-stock-card",
-                createSalesInvoiceItemItemID
-              );
-            }
-          }
-        } else {
-          const createSalesInvoiceItemItemID = createSalesInvoiceItem.item_id;
-          const createSalesInvoiceItemQuantity =
-            createSalesInvoiceItem.quantity;
-          const createSalesInvoiceItemPrice = createSalesInvoiceItem.price;
-          const createSalesInvoiceItemDiscount =
-            createSalesInvoiceItem.discount;
-          const createSalesInvoiceItemUnit =
-            createSalesInvoiceItem.item_unit == null
-              ? createSalesInvoiceItem.item.unit
-              : createSalesInvoiceItem.item_unit.unit;
-          const createSalesInvoiceItemConversion =
-            createSalesInvoiceItem.item_unit == null
-              ? 1
-              : createSalesInvoiceItem.item_unit.conversion;
-
-          const finalUnitPrice =
-            ((createSalesInvoiceItemPrice - createSalesInvoiceItemDiscount) *
-              createSalesInvoiceNetTotal) /
-            (createSalesInvoiceTotal * createSalesInvoiceItemConversion);
-          const updateProduct = await mongoProductModel.findOne({
-            itemID: createSalesInvoiceItemItemID,
-          });
-
-          if (updateProduct) {
-            updateProduct.currentStock =
-              updateProduct.currentStock -
-              createSalesInvoiceItemQuantity * createSalesInvoiceItemConversion;
-
-            updateProduct.stockCard.unshift({
-              createdAt: createSalesInvoiceCreatedAt,
-              date: createSalesInvoiceDate,
-              document: createSalesInvoiceName,
-              opponent:
-                createSalesInvoiceCustomer == null
-                  ? "Retail customer"
-                  : createSalesInvoiceCustomer.name,
-              displayQuantity: createSalesInvoiceItemQuantity * -1,
-              quantity:
-                createSalesInvoiceItemQuantity *
-                createSalesInvoiceItemConversion *
-                -1,
-              unit: createSalesInvoiceItemUnit,
-              billID: createSalesInvoiceItemID,
-              billCodeID: createSalesInvoiceID,
-              adjustmentCaseID: null,
-              adjustmentCaseCodeID: null,
-              goodReceiptID: null,
-              goodReceiptCodeID: null,
-              salesReturnID: null,
-              salesReturnCodeID: null,
-            });
-
-            await updateProduct.save();
-
-            createSalesInvoiceInsertItems.push({
-              quantity:
-                createSalesInvoiceItemQuantity *
-                createSalesInvoiceItemConversion,
-              date: createSalesInvoiceDate,
-              value: finalUnitPrice,
-              billID: createSalesInvoiceItemID,
-              billCodeID: createSalesInvoiceID,
-              adjustmentCaseID: null,
-              adjustmentCaseCodeID: null,
-              itemID: createSalesInvoiceItemItemID,
-            });
-
-            await queue.add(
-              "rearrange-stock-card",
-              createSalesInvoiceItemItemID
-            );
-          }
-        }
-      }
-
-      for (let i = 0; i < createSalesInvoiceInsertItems.length; i++) {
-        const createSalesInvoiceInsertItem = createSalesInvoiceInsertItems[i];
-        const createSalesInvoiceItemID = createSalesInvoiceInsertItem.itemID;
-        let createSalesInvoiceItemQuantity = parseFloat(
-          createSalesInvoiceInsertItem.quantity.toString()
-        );
-        while (createSalesInvoiceItemQuantity > 0) {
-          if (createSalesInvoiceItemQuantity == 0) {
-            break;
-          }
-
-          // Find stock in from the oldest
-          const stockIn = await mongoStockInModel
-            .findOne({
-              itemID: createSalesInvoiceItemID,
-              residue: { $gt: 0 },
-            })
-            .sort({
-              date: 1,
-            });
-
-          if (stockIn) {
-            if (stockIn.residue > createSalesInvoiceItemQuantity) {
-              stockIn.residue =
-                stockIn.residue - createSalesInvoiceItemQuantity;
-              stockIn.stockOut.unshift({
-                ...createSalesInvoiceInsertItem,
-                quantity: createSalesInvoiceItemQuantity,
-              });
-              await stockIn.save();
-              createSalesInvoiceItemQuantity = 0;
-            } else {
-              stockIn.stockOut.unshift({
-                ...createSalesInvoiceInsertItem,
-                quantity: stockIn.residue,
-              });
-
-              createSalesInvoiceItemQuantity =
-                createSalesInvoiceItemQuantity - stockIn.residue;
-              stockIn.residue = 0;
-              await stockIn.save();
-            }
-          } else {
-            await mongoOverflowModel.create({
-              itemID: createSalesInvoiceItemID,
-              quantity: createSalesInvoiceItemQuantity,
-              date: createSalesInvoiceInsertItem.date,
-              billID: createSalesInvoiceInsertItem.billID,
-              billCodeID: createSalesInvoiceInsertItem.billCodeID,
-              adjustmentCaseID: createSalesInvoiceInsertItem.adjustmentCaseID,
-              adjustmentCaseCodeID:
-                createSalesInvoiceInsertItem.adjustmentCaseCodeID,
-              value: createSalesInvoiceInsertItem.value,
-            });
-            createSalesInvoiceItemQuantity = 0;
-            break;
-          }
-        }
-      }
-      break;
-    case "delete-sales-invoice":
-      const deleteSalesInvoiceID = job.data.id;
-      const deleteSalesInvoiceItems = job.data.bill;
-
-      for (let i = 0; i < deleteSalesInvoiceItems.length; i++) {
-        if (deleteSalesInvoiceItems[i].item_id != null) {
-          const quantity = deleteSalesInvoiceItems[i].quantity;
-          const conversion =
-            deleteSalesInvoiceItems[i].item_unit == null
-              ? 1
-              : parseFloat(deleteSalesInvoiceItems[i].item_unit.conversion);
-          const updateProduct = await mongoProductModel.findOne({
-            itemID: deleteSalesInvoiceItems[i].item_id,
-          });
-
-          if (updateProduct) {
-            updateProduct.currentStock += quantity * conversion;
-            // Remove from stock card
-            const stockCardIndex = updateProduct.stockCard.findIndex(
-              (item) =>
-                item.billID == deleteSalesInvoiceItems[i].id &&
-                item.billCodeID == deleteSalesInvoiceID &&
-                item.salesReturnCodeID == null &&
-                item.salesReturnID == null
-            );
-
-            if (stockCardIndex != -1) {
-              updateProduct.stockCard.splice(stockCardIndex, 1);
-            }
-
-            await updateProduct.save();
-          }
-
-          // Remove from stock out
-          const stockIn = await mongoStockInModel.find({
-            itemID: deleteSalesInvoiceItems[i].item_id,
-            stockOut: {
-              $elemMatch: {
-                billID: deleteSalesInvoiceItems[i].id,
-                billCodeID: deleteSalesInvoiceID,
-              },
-            },
-          });
-
-          if (stockIn.length > 0) {
-            for (let j = 0; j < stockIn.length; j++) {
-              const stockInItem = stockIn[j];
-              const stockOutIndex = stockInItem.stockOut.findIndex(
-                (item) =>
-                  item.billID == deleteSalesInvoiceItems[i].id &&
-                  item.billCodeID == deleteSalesInvoiceID
-              );
-
-              if (stockOutIndex != -1) {
-                stockInItem.stockOut.splice(stockOutIndex, 1);
-                stockInItem.residue += quantity * conversion;
-                await stockInItem.save();
-              }
-            }
-          }
-        } else if (deleteSalesInvoiceItems[i].package_code_id != null) {
-          const quantity = parseFloat(
-            deleteSalesInvoiceItems[i].quantity.toString()
-          );
-          const packageContent = deleteSalesInvoiceItems[i].package_code
-            .package_content as any[];
-          for (let n = 0; n < packageContent.length; n++) {
-            const itemID = packageContent[n].item_id;
-            const packageContentQuantity =
-              packageContent[n].quantity *
-              quantity *
-              (packageContent[n].item_unit == null
-                ? 1
-                : parseFloat(packageContent[n].item_unit.conversion));
-
-            const updateProduct = await mongoProductModel.findOne({
-              itemID: itemID,
-            });
-
-            if (updateProduct) {
-              updateProduct.currentStock += packageContentQuantity;
-              // Remove from stock card
-              const stockCardIndex = updateProduct.stockCard.findIndex(
-                (item) =>
-                  item.billID == deleteSalesInvoiceItems[i].id &&
-                  item.billCodeID == deleteSalesInvoiceID &&
-                  item.salesReturnCodeID == null &&
-                  item.salesReturnID == null
-              );
-
-              if (stockCardIndex != -1) {
-                updateProduct.stockCard.splice(stockCardIndex, 1);
-              }
-
-              await updateProduct.save();
-            }
-
-            // Remove from stock out
-            const stockIn = await mongoStockInModel.find({
-              itemID: itemID,
-              stockOut: {
-                $elemMatch: {
-                  billID: deleteSalesInvoiceItems[i].id,
-                  billCodeID: deleteSalesInvoiceID,
-                },
-              },
-            });
-
-            if (stockIn.length > 0) {
-              for (let j = 0; j < stockIn.length; j++) {
-                const stockInItem = stockIn[j];
-                const stockOutIndex = stockInItem.stockOut.findIndex(
-                  (item) =>
-                    item.billID == deleteSalesInvoiceItems[i].id &&
-                    item.billCodeID == deleteSalesInvoiceID
-                );
-
-                if (stockOutIndex != -1) {
-                  stockInItem.stockOut.splice(stockOutIndex, 1);
-                  stockInItem.residue += packageContentQuantity;
-                  await stockInItem.save();
-                }
-              }
-            }
-          }
-        }
+        product.currentStock -= quantity;
+        await product.save();
       }
       break;
     case "rearrange-stock-card":
-      // Check if queue has a similar job
-      queue.getDelayed().then(async (jobs) => {
-        const jobIndex = jobs.findIndex(
-          (job) => job.name == "rearrange-stock-card" && job.data == job.data
-        );
+      const productID = job.data;
+      const rearrangeStockCards = await mongoStockCardModel
+        .find({
+          itemID: productID,
+        })
+        .sort({ date: 1 });
 
-        if (jobIndex != -1) {
-          jobs[jobIndex].remove();
-        } else {
-          const productID = job.data;
-          const product = await mongoProductModel.findOne({
-            itemID: productID,
-          });
-
-          if (product) {
-            // Arrange stock card, from the newest to the oldest
-            // And then, calculate the current stock for each row
-            product.stockCard.sort((a, b) => {
-              return (
-                new Date(a.date).getTime() - new Date(b.date).getTime() ||
-                b.quantity - a.quantity
-              );
-            });
-
-            let currentStock = 0;
-            for (let i = 0; i < product.stockCard.length; i++) {
-              product.stockCard[i].currentStock =
-                currentStock + product.stockCard[i].quantity;
-              currentStock += product.stockCard[i].quantity;
-            }
-
-            product.stockCard.reverse();
-            await product.save();
-          }
-        }
-      });
-
+      // Rearrage the stock card
+      let currentStock = 0;
+      for (let i = 0; i < rearrangeStockCards.length; i++) {
+        currentStock += rearrangeStockCards[i].quantity;
+        rearrangeStockCards[i].currentStock = currentStock;
+        await rearrangeStockCards[i].save();
+      }
       break;
     case "check-overflow":
       const jobID = job.data;
@@ -1820,33 +830,101 @@ const workerHandler = async (job: Job<any>) => {
             } else {
               if (stockIn.residue > overflowItem.quantity) {
                 stockIn.residue = stockIn.residue - overflowItem.quantity;
-                stockIn.stockOut.unshift({
-                  date: overflowItem.date,
-                  quantity: overflowQuantity,
-                  billID: overflowItem.billID,
-                  billCodeID: overflowItem.billCodeID,
+                await stockIn.save();
+
+                await mongoStockOutModel.create({
                   adjustmentCaseID: overflowItem.adjustmentCaseID,
                   adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,
+                  billID: overflowItem.billID,
+                  billCodeID: overflowItem.billCodeID,
+                  date: overflowItem.date,
+                  value: overflowItem.value,
+                  quantity: overflowQuantity,
+                  itemID: overflowItem.itemID,
+                  stockInID: stockIn._id,
                 });
-                await stockIn.save();
                 await mongoOverflowModel.findByIdAndDelete(overflowItem._id);
                 overflowQuantity = 0;
                 break;
               } else {
                 overflowItem.quantity = overflowItem.quantity - stockIn.residue;
-                stockIn.stockOut.unshift({
-                  date: overflowItem.date,
-                  quantity: stockIn.residue,
-                  billID: overflowItem.billID,
-                  billCodeID: overflowItem.billCodeID,
+                await mongoStockOutModel.create({
                   adjustmentCaseID: overflowItem.adjustmentCaseID,
                   adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,
+                  billID: overflowItem.billID,
+                  billCodeID: overflowItem.billCodeID,
+                  date: overflowItem.date,
+                  value: overflowItem.value,
+                  quantity: overflowQuantity,
+                  itemID: overflowItem.itemID,
+                  stockInID: stockIn._id,
                 });
                 stockIn.residue = 0;
                 await stockIn.save();
-
                 overflowQuantity = overflowQuantity - stockIn.residue;
               }
+            }
+          }
+        }
+      }
+      break;
+    case "check-all-overflow":
+      const allOverflow = await mongoOverflowModel.find({});
+      for (let i = 0; i < allOverflow.length; i++) {
+        const overflowItem = allOverflow[i];
+        let overflowQuantity = overflowItem.quantity;
+        while (overflowQuantity > 0) {
+          if (overflowQuantity == 0) {
+            break;
+          }
+
+          const stockIn = await mongoStockInModel
+            .findOne({
+              itemID: overflowItem.itemID,
+              residue: { $gt: 0 },
+            })
+            .sort({
+              date: 1,
+            });
+
+          if (!stockIn) {
+            // No quantity left in stock in
+            break;
+          } else {
+            if (stockIn.residue > overflowItem.quantity) {
+              stockIn.residue = stockIn.residue - overflowItem.quantity;
+              await stockIn.save();
+
+              await mongoStockOutModel.create({
+                adjustmentCaseID: overflowItem.adjustmentCaseID,
+                adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,
+                billID: overflowItem.billID,
+                billCodeID: overflowItem.billCodeID,
+                date: overflowItem.date,
+                value: overflowItem.value,
+                quantity: overflowQuantity,
+                itemID: overflowItem.itemID,
+                stockInID: stockIn._id,
+              });
+              await mongoOverflowModel.findByIdAndDelete(overflowItem._id);
+              overflowQuantity = 0;
+              break;
+            } else {
+              overflowItem.quantity = overflowItem.quantity - stockIn.residue;
+              await mongoStockOutModel.create({
+                adjustmentCaseID: overflowItem.adjustmentCaseID,
+                adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,
+                billID: overflowItem.billID,
+                billCodeID: overflowItem.billCodeID,
+                date: overflowItem.date,
+                value: overflowItem.value,
+                quantity: overflowQuantity,
+                itemID: overflowItem.itemID,
+                stockInID: stockIn._id,
+              });
+              stockIn.residue = 0;
+              await stockIn.save();
+              overflowQuantity = overflowQuantity - stockIn.residue;
             }
           }
         }
@@ -1865,7 +943,13 @@ connectToDatabase().then(() => {
     console.log(`[info]: Job #${job!.id} [${job!.name}] has completed.`);
   });
 
-  worker.on("error", (err) => {
+  worker.on("error", async (err) => {
+    await mongoErrorModel.create({
+      name: "worker",
+      error: err,
+      funnction: "worker",
+      data: {},
+    });
     console.error(`[error]: ${err.message}`);
   });
 
