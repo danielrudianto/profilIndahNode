@@ -688,42 +688,33 @@ SearchHelper.syncProductOut = (req, res) => __awaiter(void 0, void 0, void 0, fu
 SearchHelper.arrangeStockCard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     mongo_product_model_1.mongoProductModel.find({}).then((products) => __awaiter(void 0, void 0, void 0, function* () {
         // Select from stock cards, group by itemID, sort by date
-        const stockCards = yield mongo_stock_card_model_1.mongoStockCardModel.aggregate([
-            {
-                $group: {
-                    _id: "$itemID",
-                    stockCards: {
-                        $push: {
-                            _id: "$_id",
-                            createdAt: "$createdAt",
-                            date: "$date",
-                            document: "$document",
-                            opponent: "$opponent",
-                            displayQuantity: "$displayQuantity",
-                            quantity: "$quantity",
-                            unit: "$unit",
-                            billID: "$billID",
-                            billCodeID: "$billCodeID",
-                            adjustmentCaseID: "$adjustmentCaseID",
-                            adjustmentCaseCodeID: "$adjustmentCaseCodeID",
-                            goodReceiptID: "$goodReceiptID",
-                            goodReceiptCodeID: "$goodReceiptCodeID",
-                            salesReturnID: "$salesReturnID",
-                            salesReturnCodeID: "$salesReturnCodeID",
-                            customerID: "$customerID",
-                            supplierID: "$supplierID",
-                            currentStock: "$currentStock",
-                            itemID: "$itemID",
-                        },
-                    },
-                },
-            },
-            {
-                $sort: {
-                    "stockCards.date": 1,
-                },
-            },
-        ]);
+        for (let i = 0; i < products.length; i++) {
+            const stockCards = yield mongo_stock_card_model_1.mongoStockCardModel
+                .find({
+                itemID: products[i].itemID,
+            })
+                .sort({ date: 1 });
+            let currentStock = 0;
+            for (let n = 0; n < stockCards.length; n++) {
+                currentStock += stockCards[n].quantity;
+                stockCards[n].currentStock = currentStock;
+                yield stockCards[n].save();
+                console.log("Arrange stock card for itemID: " +
+                    products[i].itemID +
+                    "(" +
+                    (n + 1) +
+                    "/" +
+                    stockCards.length +
+                    ")");
+            }
+            console.log("Stock card arranged for itemID: " +
+                products[i].itemID +
+                "(" +
+                (i + 1) +
+                "/" +
+                products.length +
+                ")");
+        }
         return res.status(200).send({
             message: "Arrange stock card successfully",
         });

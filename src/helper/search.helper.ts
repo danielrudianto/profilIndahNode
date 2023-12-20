@@ -724,42 +724,40 @@ class SearchHelper {
   static arrangeStockCard = async (req: Request, res: Response) => {
     mongoProductModel.find({}).then(async (products) => {
       // Select from stock cards, group by itemID, sort by date
-      const stockCards = await mongoStockCardModel.aggregate([
-        {
-          $group: {
-            _id: "$itemID",
-            stockCards: {
-              $push: {
-                _id: "$_id",
-                createdAt: "$createdAt",
-                date: "$date",
-                document: "$document",
-                opponent: "$opponent",
-                displayQuantity: "$displayQuantity",
-                quantity: "$quantity",
-                unit: "$unit",
-                billID: "$billID",
-                billCodeID: "$billCodeID",
-                adjustmentCaseID: "$adjustmentCaseID",
-                adjustmentCaseCodeID: "$adjustmentCaseCodeID",
-                goodReceiptID: "$goodReceiptID",
-                goodReceiptCodeID: "$goodReceiptCodeID",
-                salesReturnID: "$salesReturnID",
-                salesReturnCodeID: "$salesReturnCodeID",
-                customerID: "$customerID",
-                supplierID: "$supplierID",
-                currentStock: "$currentStock",
-                itemID: "$itemID",
-              },
-            },
-          },
-        },
-        {
-          $sort: {
-            "stockCards.date": 1,
-          },
-        },
-      ]);
+      for (let i = 0; i < products.length; i++) {
+        const stockCards = await mongoStockCardModel
+          .find({
+            itemID: products[i].itemID,
+          })
+          .sort({ date: 1 });
+
+        let currentStock = 0;
+        for (let n = 0; n < stockCards.length; n++) {
+          currentStock += stockCards[n].quantity;
+          stockCards[n].currentStock = currentStock;
+          await stockCards[n].save();
+
+          console.log(
+            "Arrange stock card for itemID: " +
+              products[i].itemID +
+              "(" +
+              (n + 1) +
+              "/" +
+              stockCards.length +
+              ")"
+          );
+        }
+
+        console.log(
+          "Stock card arranged for itemID: " +
+            products[i].itemID +
+            "(" +
+            (i + 1) +
+            "/" +
+            products.length +
+            ")"
+        );
+      }
       return res.status(200).send({
         message: "Arrange stock card successfully",
       });
