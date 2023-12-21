@@ -231,7 +231,7 @@ class SearchHelper {
                       itemID: x.id,
                       itemTypeID: x.item_type_id,
                       itemBrandID: x.item_brand_id,
-                      currentStock: 0,
+                      currentStock: x.stock?.stock || 0,
                       unit: x.unit,
                       minimumStock: x.minimum_stock || 0,
                       calculatedMinimumStock: 0,

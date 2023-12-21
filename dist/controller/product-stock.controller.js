@@ -188,7 +188,7 @@ ProductStockController.fetchByID = (req, res) => __awaiter(void 0, void 0, void 
         count: stockCardLength,
     });
 });
-ProductStockController.create = (req, res) => {
+ProductStockController.create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const mode = req.body.mode;
     switch (mode) {
         case "inadequate-pagination":
@@ -685,6 +685,9 @@ ProductStockController.create = (req, res) => {
             const day = new Date(date).getDate();
             const month = new Date(date).getMonth();
             const year = new Date(date).getFullYear();
+            const product = yield mongo_product_model_1.mongoProductModel.findOne({
+                itemID: mutationItemID,
+            });
             mongo_stock_card_model_1.mongoStockCardModel
                 .find({
                 itemID: mutationItemID,
@@ -714,6 +717,136 @@ ProductStockController.create = (req, res) => {
                 .then((result) => {
                 if (!result) {
                     return res.status(404).send(error_list_1.default["Not found"]);
+                }
+                else {
+                    const documentBasedMutation = {
+                        initialStock: result.filter((x) => x.date.getDate() == day &&
+                            x.date.getMonth() == month &&
+                            x.date.getFullYear() == year).length == 0
+                            ? 0
+                            : result
+                                .filter((x) => x.date.getDate() == day &&
+                                x.date.getMonth() == month &&
+                                x.date.getFullYear() == year)
+                                .sort((a, b) => {
+                                return a.createdAt.getTime() - b.createdAt.getTime();
+                            })[0].currentStock -
+                                result
+                                    .filter((x) => x.date.getDate() == day &&
+                                    x.date.getMonth() == month &&
+                                    x.date.getFullYear() == year)
+                                    .sort((a, b) => {
+                                    return a.createdAt.getTime() - b.createdAt.getTime();
+                                })[0].quantity,
+                        totalInput: result
+                            .filter((x) => x.date.getDate() == day &&
+                            x.date.getMonth() == month &&
+                            x.date.getFullYear() == year)
+                            .filter((x) => x.quantity > 0)
+                            .reduce((a, b) => {
+                            return a + Number(b.quantity);
+                        }, 0),
+                        totalOutput: result
+                            .filter((x) => x.date.getDate() == day &&
+                            x.date.getMonth() == month &&
+                            x.date.getFullYear() == year)
+                            .filter((x) => x.quantity < 0)
+                            .reduce((a, b) => {
+                            return a + Number(b.quantity);
+                        }, 0),
+                        mutation: result
+                            .filter((x) => x.date.getDate() == day &&
+                            x.date.getMonth() == month &&
+                            x.date.getFullYear() == year)
+                            .sort((a, b) => {
+                            return a.createdAt.getTime() - b.createdAt.getTime();
+                        })
+                            .map((x) => {
+                            return {
+                                date: new Date(x.date),
+                                defaultUnit: product.unit,
+                                createdAt: new Date(x.createdAt),
+                                name: x.document,
+                                displayQuantity: x.displayQuantity,
+                                quantity: x.quantity,
+                                stock: x.currentStock,
+                                unit: x.unit,
+                                opponent: x.opponent,
+                                document_id: x.salesReturnID != null
+                                    ? x.salesReturnCodeID
+                                    : x.billID != null
+                                        ? x.billCodeID
+                                        : x.goodReceiptID != null
+                                            ? x.goodReceiptCodeID
+                                            : x.adjustmentCaseID != null
+                                                ? x.adjustmentCaseCodeID
+                                                : null,
+                            };
+                        }),
+                    };
+                    const inputBasedMutation = {
+                        initialStock: result.filter((x) => x.createdAt.getTime() >= startUTCDate.getTime() &&
+                            x.createdAt.getTime() < endUTCDate.getTime()).length == 0
+                            ? 0
+                            : result
+                                .filter((x) => x.createdAt.getTime() >= startUTCDate.getTime() &&
+                                x.createdAt.getTime() < endUTCDate.getTime())
+                                .sort((a, b) => {
+                                return a.createdAt.getTime() - b.createdAt.getTime();
+                            })[0].currentStock -
+                                result
+                                    .filter((x) => x.createdAt.getTime() >= startUTCDate.getTime() &&
+                                    x.createdAt.getTime() < endUTCDate.getTime())
+                                    .sort((a, b) => {
+                                    return a.createdAt.getTime() - b.createdAt.getTime();
+                                })[0].quantity,
+                        totalInput: result
+                            .filter((x) => x.createdAt.getTime() >= startUTCDate.getTime() &&
+                            x.createdAt.getTime() < endUTCDate.getTime())
+                            .filter((x) => x.quantity > 0)
+                            .reduce((a, b) => {
+                            return a + Number(b.quantity);
+                        }, 0),
+                        totalOutput: result
+                            .filter((x) => x.createdAt.getTime() >= startUTCDate.getTime() &&
+                            x.createdAt.getTime() < endUTCDate.getTime())
+                            .filter((x) => x.quantity < 0)
+                            .reduce((a, b) => {
+                            return a + Number(b.quantity);
+                        }, 0),
+                        mutation: result
+                            .filter((x) => x.createdAt.getTime() >= startUTCDate.getTime() &&
+                            x.createdAt.getTime() < endUTCDate.getTime())
+                            .sort((a, b) => {
+                            return a.createdAt.getTime() - b.createdAt.getTime();
+                        })
+                            .map((x) => {
+                            return {
+                                date: new Date(x.date),
+                                defaultUnit: product.unit,
+                                createdAt: new Date(x.createdAt),
+                                name: x.document,
+                                displayQuantity: x.displayQuantity,
+                                quantity: x.quantity,
+                                stock: x.currentStock,
+                                unit: x.unit,
+                                opponent: x.opponent,
+                                document_id: x.salesReturnID != null
+                                    ? x.salesReturnCodeID
+                                    : x.billID != null
+                                        ? x.billCodeID
+                                        : x.goodReceiptID != null
+                                            ? x.goodReceiptCodeID
+                                            : x.adjustmentCaseID != null
+                                                ? x.adjustmentCaseCodeID
+                                                : null,
+                            };
+                        }),
+                    };
+                    return res.status(200).send({
+                        document: documentBasedMutation,
+                        input: inputBasedMutation,
+                    });
                 }
             })
                 .catch((error) => {
@@ -796,6 +929,6 @@ ProductStockController.create = (req, res) => {
                 return res.status(500).send(error);
             });
     }
-};
+});
 exports.default = ProductStockController;
 //# sourceMappingURL=product-stock.controller.js.map

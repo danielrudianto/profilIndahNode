@@ -102,8 +102,6 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 });
                 throw new Error(error);
             }
-            // DOMBA
-            // complete overflow checking process
             break;
         case "insert-stock-out":
             const stockOutData = job.data;

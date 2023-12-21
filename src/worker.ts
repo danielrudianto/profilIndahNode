@@ -102,8 +102,6 @@ const workerHandler = async (job: Job<any>) => {
         });
         throw new Error(error);
       }
-      // DOMBA
-      // complete overflow checking process
       break;
     case "insert-stock-out":
       const stockOutData = job.data as StockInInterface;

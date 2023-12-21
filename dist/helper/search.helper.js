@@ -220,13 +220,14 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 item_model_1.ItemModel.fetchAll(new Date())
                     .then((items) => __awaiter(void 0, void 0, void 0, function* () {
                     yield mongo_product_model_1.mongoProductModel.insertMany(items.map((x) => {
+                        var _b;
                         return {
                             reference: x.reference,
                             description: x.description,
                             itemID: x.id,
                             itemTypeID: x.item_type_id,
                             itemBrandID: x.item_brand_id,
-                            currentStock: 0,
+                            currentStock: ((_b = x.stock) === null || _b === void 0 ? void 0 : _b.stock) || 0,
                             unit: x.unit,
                             minimumStock: x.minimum_stock || 0,
                             calculatedMinimumStock: 0,
