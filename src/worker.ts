@@ -369,6 +369,16 @@ const workerHandler = async (job: Job<any>) => {
         currentStock: 0,
       });
 
+      const salesReturnProduct = await mongoProductModel.findOne({
+        itemID: stockReturnData.itemID,
+      });
+
+      if (!salesReturnProduct) {
+        throw new Error("Product not found");
+      }
+
+      salesReturnProduct.currentStock += stockReturnData.quantity;
+      await salesReturnProduct.save();
       await queue.add("rearrange-stock-card", stockReturnData.itemID);
 
       let salesReturnQuantity = stockReturnData.quantity;
@@ -437,6 +447,16 @@ const workerHandler = async (job: Job<any>) => {
         // Delete stock card document then rearrange stock card
         const stockCardItem = stockCard[i];
         await mongoStockCardModel.findByIdAndDelete(stockCardItem._id);
+        const deleteStockReturnProduct = await mongoProductModel.findOne({
+          itemID: stockCardItem.itemID,
+        });
+
+        if (!deleteStockReturnProduct) {
+          throw new Error("Product not found");
+        }
+
+        deleteStockReturnProduct.currentStock -= stockCardItem.quantity;
+        await deleteStockReturnProduct.save();
         await queue.add("rearrange-stock-card", stockCardItem.itemID);
       }
       break;

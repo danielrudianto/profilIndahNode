@@ -346,6 +346,14 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 itemID: stockReturnData.itemID,
                 currentStock: 0,
             });
+            const salesReturnProduct = yield mongo_product_model_1.mongoProductModel.findOne({
+                itemID: stockReturnData.itemID,
+            });
+            if (!salesReturnProduct) {
+                throw new Error("Product not found");
+            }
+            salesReturnProduct.currentStock += stockReturnData.quantity;
+            yield salesReturnProduct.save();
             yield queue_helper_1.queue.add("rearrange-stock-card", stockReturnData.itemID);
             let salesReturnQuantity = stockReturnData.quantity;
             while (salesReturnQuantity > 0) {
@@ -409,6 +417,14 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 // Delete stock card document then rearrange stock card
                 const stockCardItem = stockCard[i];
                 yield mongo_stock_card_model_1.mongoStockCardModel.findByIdAndDelete(stockCardItem._id);
+                const deleteStockReturnProduct = yield mongo_product_model_1.mongoProductModel.findOne({
+                    itemID: stockCardItem.itemID,
+                });
+                if (!deleteStockReturnProduct) {
+                    throw new Error("Product not found");
+                }
+                deleteStockReturnProduct.currentStock -= stockCardItem.quantity;
+                yield deleteStockReturnProduct.save();
                 yield queue_helper_1.queue.add("rearrange-stock-card", stockCardItem.itemID);
             }
             break;
