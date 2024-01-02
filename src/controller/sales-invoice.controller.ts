@@ -12,6 +12,7 @@ import {
   StockInInterface,
   StockOutDeleteInterface,
 } from "../interface/stock-in.interface";
+import PromotionModel from "../model/promotion.model";
 
 class SalesInvoiceController {
   /**
@@ -561,17 +562,24 @@ class SalesInvoiceController {
         today.getMonth(),
         -today.getDate()
       ),
+      PromotionModel.countActive(),
     ])
-      .then(([sales1, sales2, sales3, sales4, sales5]: any[]) => {
-        return res.status(200).send({
-          today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
-          yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
-          thisMonth: sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
-          lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
-          monthOnMonth:
-            sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
-        });
-      })
+      .then(
+        ([sales1, sales2, sales3, sales4, sales5, countPromotion]: any[]) => {
+          return res.status(200).send({
+            today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
+            yesterday:
+              sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
+            thisMonth:
+              sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
+            lastMonth:
+              sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
+            monthOnMonth:
+              sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+            count: countPromotion,
+          });
+        }
+      )
       .catch((error) => {
         console.error(`[error]: Error on fetching sales data. ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);

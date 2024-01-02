@@ -38,6 +38,7 @@ import reportRoutes from "./routes/report/report.route";
 import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
 import CashierRoutes from "./routes/distinct/cashier.route";
+import PromotionRoutes from "./routes/master/promotion.route";
 
 /*
   Administrator Routes
@@ -76,6 +77,7 @@ app.use("/product-type", authMiddleware, productTypeRoutes);
 app.use("/product-unit", authMiddleware, productUnitRoutes);
 app.use("/product-stock", authMiddleware, productStockRoutes);
 app.use("/product-package", authMiddleware, productPackageRoutes);
+app.use("/promotion", authMiddleware, PromotionRoutes);
 
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/customer", authMiddleware, customerRoutes);

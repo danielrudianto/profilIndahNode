@@ -4,6 +4,7 @@ import ErrorList from "../../assets/error_list";
 import ReportController from "../../controller/report.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
+import SalesInvoiceController from "../../controller/sales-invoice.controller";
 
 const router = Router();
 
@@ -60,5 +61,7 @@ router.post(
 router.get("/inventory/download", ReportController.downloadInventoryReport);
 router.get("/inventory", ReportController.fetchInventoryReport);
 router.get("/expense/:month/:year", ReportController.fetchExpenseReport);
+
+router.get("/dashboard/sales", SalesInvoiceController.fetchDashboard);
 
 export default router;

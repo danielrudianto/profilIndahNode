@@ -94,6 +94,8 @@ model user {
   draft_bill_draft_bill_confirmed_byTouser                     draft_bill_code[]      @relation("draft_bill_confirmed_byTouser")
   package_code_created_byTouser                                package_code[]         @relation("package_code_created_byTouser")
   package_code_deleted_byTouser                                package_code[]         @relation("package_code_deleted_byTouser")
+  promotion_code_created_by                                    promotion_code[]       @relation("promotion_code_created_byTouser")
+  promotion_code_deleted_by                                    promotion_code[]       @relation("promotion_code_deleted_byTouser")
 
   @@index([created_by], map: "user_ibfk_1_idx")
   @@index([deleted_by], map: "user_ibfk_2_idx")
@@ -336,19 +338,20 @@ model item {
 }
 
 model item_brand {
-  id                               Int       @id @default(autoincrement())
-  name                             String    @db.VarChar(45)
+  id                               Int              @id @default(autoincrement())
+  name                             String           @db.VarChar(45)
   created_by                       Int
-  created_at                       DateTime  @default(now()) @db.DateTime(0)
-  is_delete                        Boolean?  @default(false)
+  created_at                       DateTime         @default(now()) @db.DateTime(0)
+  is_delete                        Boolean?         @default(false)
   deleted_by                       Int?
-  deleted_at                       DateTime? @db.DateTime(0)
+  deleted_at                       DateTime?        @db.DateTime(0)
   updated_by                       Int?
-  updated_at                       DateTime? @db.DateTime(0)
-  user                             user      @relation("item_brand_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_1")
-  user_item_brand_deleted_byTouser user?     @relation("item_brand_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_2")
-  user_item_brand_updated_byTouser user?     @relation("item_brand_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_3")
+  updated_at                       DateTime?        @db.DateTime(0)
+  user                             user             @relation("item_brand_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_1")
+  user_item_brand_deleted_byTouser user?            @relation("item_brand_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_2")
+  user_item_brand_updated_byTouser user?            @relation("item_brand_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_brand_ibfk_3")
   item                             item[]
+  promotion_code                   promotion_code[]
 
   @@index([name], map: "item_brand_fulltext")
   @@index([created_by], map: "item_brand_ibfk_1_idx")
@@ -725,4 +728,36 @@ model distribution_stock {
   item            item             @relation(fields: [item_id], references: [id])
   adjustment_case adjustment_case? @relation(fields: [adjustment_case_id], references: [id])
   bill            bill?            @relation(fields: [bill_id], references: [id])
+}
+
+model promotion_code {
+  id          Int         @id @default(autoincrement())
+  name        String      @db.VarChar(45)
+  description String      @db.Text
+  start       DateTime    @db.Date
+  end         DateTime?   @db.DateTime(0)
+  created_by  Int
+  created_at  DateTime    @default(now()) @db.DateTime(0)
+  is_delete   Boolean     @default(false)
+  deleted_by  Int?
+  deleted_at  DateTime?   @db.DateTime(0)
+  target      Decimal     @db.Decimal(12, 2)
+  promotion   promotion[]
+  brand_id    Int         @map("brand_id")
+
+  promotion_code_created_by user       @relation("promotion_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "promotion_code_ibfk_1")
+  promotion_code_deleted_by user?      @relation("promotion_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "promotion_code_ibfk_2")
+  brand                     item_brand @relation(fields: [brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "promotion_code_ibfk_3")
+
+  @@index([created_by], map: "promotion_code_ibfk_1")
+  @@index([deleted_by], map: "promotion_code_ibfk_2")
+}
+
+model promotion {
+  id                Int    @id @default(autoincrement())
+  rule              String @db.VarChar(45)
+  value             String @db.VarChar(45)
+  promotion_code_id Int
+
+  promotion_code promotion_code @relation(fields: [promotion_code_id], references: [id])
 }

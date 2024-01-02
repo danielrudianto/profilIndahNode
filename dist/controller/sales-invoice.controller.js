@@ -22,6 +22,7 @@ const escape_helper_1 = require("../helper/escape.helper");
 const product_package_model_1 = require("../model/product-package.model");
 const queue_helper_1 = require("../helper/queue.helper");
 const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
+const promotion_model_1 = __importDefault(require("../model/promotion.model"));
 class SalesInvoiceController {
 }
 _a = SalesInvoiceController;
@@ -448,14 +449,16 @@ SalesInvoiceController.fetchDashboard = (req, res) => __awaiter(void 0, void 0, 
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, null),
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), null),
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), -today.getDate()),
+        promotion_model_1.default.countActive(),
     ])
-        .then(([sales1, sales2, sales3, sales4, sales5]) => {
+        .then(([sales1, sales2, sales3, sales4, sales5, countPromotion]) => {
         return res.status(200).send({
             today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
             yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
             thisMonth: sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
             lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
             monthOnMonth: sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+            count: countPromotion,
         });
     })
         .catch((error) => {

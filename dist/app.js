@@ -50,6 +50,7 @@ const report_route_1 = __importDefault(require("./routes/report/report.route"));
 const sales_return_route_1 = __importDefault(require("./routes/transaction/sales-return.route"));
 const draft_bill_route_1 = __importDefault(require("./routes/transaction/draft-bill.route"));
 const cashier_route_1 = __importDefault(require("./routes/distinct/cashier.route"));
+const promotion_route_1 = __importDefault(require("./routes/master/promotion.route"));
 /*
   Administrator Routes
 */
@@ -81,6 +82,7 @@ app.use("/product-type", auth_helper_1.authMiddleware, product_type_route_1.defa
 app.use("/product-unit", auth_helper_1.authMiddleware, product_unit_route_1.default);
 app.use("/product-stock", auth_helper_1.authMiddleware, stock_route_1.default);
 app.use("/product-package", auth_helper_1.authMiddleware, product_package_route_1.default);
+app.use("/promotion", auth_helper_1.authMiddleware, promotion_route_1.default);
 app.use("/supplier", auth_helper_1.authMiddleware, supplier_route_1.default);
 app.use("/customer", auth_helper_1.authMiddleware, customer_route_1.default);
 app.use("/company", auth_helper_1.authMiddleware, company_route_1.default);
