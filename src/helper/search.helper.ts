@@ -125,7 +125,7 @@ class SearchHelper {
         await meili.index("item").deleteAllDocuments();
         ItemModel.fetchAll(new Date())
           .then(async (items) => {
-            await meili.index("item").addDocuments([
+            console.log(
               items.map((x) => {
                 return {
                   id: x.id,
@@ -137,8 +137,22 @@ class SearchHelper {
                   itemTypeID: x.item_type_id,
                   is_active: x.is_active ? 1 : 0,
                 };
-              }),
-            ]);
+              })
+            );
+            await meili.index("item").addDocuments(
+              items.map((x) => {
+                return {
+                  id: x.id,
+                  reference: x.reference,
+                  description: x.description,
+                  brand: x.item_brand.name,
+                  type: x.item_type.name,
+                  itemBrandID: x.item_brand_id,
+                  itemTypeID: x.item_type_id,
+                  is_active: x.is_active ? 1 : 0,
+                };
+              })
+            );
 
             return res.status(200).send({
               message: "Sync product success",

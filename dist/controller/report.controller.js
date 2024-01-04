@@ -47,6 +47,7 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const moment_1 = __importDefault(require("moment"));
 const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
+const promotion_model_1 = __importDefault(require("../model/promotion.model"));
 class ReportController {
 }
 _a = ReportController;
@@ -749,5 +750,67 @@ ReportController.fetchExpenseReport = (req, res) => __awaiter(void 0, void 0, vo
         types: typeResponse,
     });
 });
+/**
+ * Fetch dashboard data
+ * @param req
+ * @param res
+ */
+ReportController.fetchSalesDashboard = (req, res) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    Promise.all([
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+        bill_code_model_1.default.fetchByDate(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate()),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, null),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), null),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), today.getDate()),
+        promotion_model_1.default.countActive(),
+    ])
+        .then(([sales1, sales2, sales3, sales4, sales5, countPromotion]) => {
+        return res.status(200).send({
+            today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
+            yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
+            thisMonth: sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
+            lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
+            monthOnMonth: sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+            count: countPromotion,
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching sales data. ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Fetch administrator dashboard data
+ * @param req
+ * @param res
+ */
+ReportController.fetchAdministratorDashboard = (req, res) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    Promise.all([
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+        bill_code_model_1.default.fetchByDate(today.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate()),
+        purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
+        purchase_invoice_model_1.default.fetchByDate(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate()),
+        promotion_model_1.default.countActive(),
+    ])
+        .then(([sales1, sales2, purchase1, purchase2, countPromotion]) => {
+        return res.status(200).send({
+            todaySales: sales1[0].value == null ? 0 : Number(sales1[0].value),
+            yesterdaySales: sales2[0].value == null ? 0 : Number(sales2[0].value),
+            todayPurchase: purchase1[0].value == null ? 0 : Number(purchase1[0].value),
+            yesterdayPurchase: purchase2[0].value == null ? 0 : Number(purchase2[0].value),
+            count: countPromotion,
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching administrator data. ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
 exports.default = ReportController;
 //# sourceMappingURL=report.controller.js.map

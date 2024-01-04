@@ -690,7 +690,7 @@ class PurchaseInvoiceController {
     const companies = req.body.companies as number[];
     const date = req.body.date as any[];
     const page = req.body.page as number;
-    const search = req.body.search as any;
+    const search = req.body.keyword as any;
     const status = req.body.status;
 
     const formattedDate_1 =
@@ -720,7 +720,7 @@ class PurchaseInvoiceController {
       companies,
       items,
       [formattedDate_1, formattedDate_2],
-      mysql_real_escape_string(search.keyword ?? ""),
+      mysql_real_escape_string(search ?? ""),
       page,
       status
     )

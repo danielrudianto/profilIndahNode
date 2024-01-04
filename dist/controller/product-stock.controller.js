@@ -30,7 +30,9 @@ _a = ProductStockController;
  */
 ProductStockController.fetch = (req, res) => {
     const page = !req.query.page ? 1 : parseInt(req.query.page.toString());
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const keyword = !req.query.keyword
+        ? ""
+        : decodeURIComponent(req.query.keyword.toString());
     const mode = req.query.mode;
     switch (mode) {
         case "problem":

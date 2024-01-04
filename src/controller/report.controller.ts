@@ -12,6 +12,7 @@ import ErrorList from "../assets/error_list";
 import moment from "moment";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
+import PromotionModel from "../model/promotion.model";
 
 class ReportController {
   /**
@@ -791,6 +792,114 @@ class ReportController {
       }),
       types: typeResponse,
     });
+  };
+
+  /**
+   * Fetch dashboard data
+   * @param req
+   * @param res
+   */
+  static fetchSalesDashboard = (req: Request, res: Response) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    Promise.all([
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate()
+      ),
+      BillCodeModel.fetchByDate(
+        yesterday.getFullYear(),
+        yesterday.getMonth() + 1,
+        yesterday.getDate()
+      ),
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        null
+      ),
+      BillCodeModel.fetchByDate(today.getFullYear(), today.getMonth(), null),
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      ),
+      PromotionModel.countActive(),
+    ])
+      .then(
+        ([sales1, sales2, sales3, sales4, sales5, countPromotion]: any[]) => {
+          return res.status(200).send({
+            today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
+            yesterday:
+              sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
+            thisMonth:
+              sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
+            lastMonth:
+              sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
+            monthOnMonth:
+              sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+            count: countPromotion,
+          });
+        }
+      )
+      .catch((error) => {
+        console.error(`[error]: Error on fetching sales data. ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Fetch administrator dashboard data
+   * @param req
+   * @param res
+   */
+  static fetchAdministratorDashboard = (req: Request, res: Response) => {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    Promise.all([
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate()
+      ),
+      BillCodeModel.fetchByDate(
+        today.getFullYear(),
+        yesterday.getMonth() + 1,
+        yesterday.getDate()
+      ),
+      PurchaseInvoiceModel.fetchByDate(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        today.getDate()
+      ),
+      PurchaseInvoiceModel.fetchByDate(
+        yesterday.getFullYear(),
+        yesterday.getMonth() + 1,
+        yesterday.getDate()
+      ),
+      PromotionModel.countActive(),
+    ])
+      .then(([sales1, sales2, purchase1, purchase2, countPromotion]: any[]) => {
+        return res.status(200).send({
+          todaySales: sales1[0].value == null ? 0 : Number(sales1[0].value),
+          yesterdaySales: sales2[0].value == null ? 0 : Number(sales2[0].value),
+          todayPurchase:
+            purchase1[0].value == null ? 0 : Number(purchase1[0].value),
+          yesterdayPurchase:
+            purchase2[0].value == null ? 0 : Number(purchase2[0].value),
+          count: countPromotion,
+        });
+      })
+      .catch((error) => {
+        console.error(
+          `[error]: Error on fetching administrator data. ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 }
 

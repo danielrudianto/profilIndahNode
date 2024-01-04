@@ -6,6 +6,7 @@ import ProductController from "../../controller/product.controller";
 import PurchaseInvoiceController from "../../controller/purchase-invoice.controller";
 import SalesInvoiceController from "../../controller/sales-invoice.controller";
 import { authMiddleware } from "../../helper/auth.helper";
+import ReportController from "../../controller/report.controller";
 
 const router = Router();
 
@@ -13,7 +14,7 @@ router.post("/login", AuthController.login);
 router.post("/refresh-token", authMiddleware, AuthController.refreshToken);
 router.post("/product", authMiddleware, ProductController.fetch);
 
-router.get("/sales", authMiddleware, SalesInvoiceController.fetchDashboard);
+router.get("/sales", authMiddleware, ReportController.fetchSalesDashboard);
 router.get(
   "/purchase",
   authMiddleware,

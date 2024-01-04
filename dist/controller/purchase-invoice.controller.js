@@ -546,13 +546,12 @@ PurchaseInvoiceController.fetchArchive = (req, res) => {
  * @param res
  */
 PurchaseInvoiceController.search = (req, res) => {
-    var _b;
     const suppliers = req.body.suppliers;
     const items = req.body.items;
     const companies = req.body.companies;
     const date = req.body.date;
     const page = req.body.page;
-    const search = req.body.search;
+    const search = req.body.keyword;
     const status = req.body.status;
     const formattedDate_1 = date[0] == null
         ? null
@@ -570,7 +569,7 @@ PurchaseInvoiceController.search = (req, res) => {
             .getDate()
             .toString()
             .padStart(2, "0")}`;
-    purchase_invoice_model_1.default.search(suppliers, companies, items, [formattedDate_1, formattedDate_2], (0, escape_helper_1.mysql_real_escape_string)((_b = search.keyword) !== null && _b !== void 0 ? _b : ""), page, status)
+    purchase_invoice_model_1.default.search(suppliers, companies, items, [formattedDate_1, formattedDate_2], (0, escape_helper_1.mysql_real_escape_string)(search !== null && search !== void 0 ? search : ""), page, status)
         .then((result) => {
         return res.status(200).send({
             data: result[0],

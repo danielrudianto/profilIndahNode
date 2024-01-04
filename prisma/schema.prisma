@@ -96,9 +96,19 @@ model user {
   package_code_deleted_byTouser                                package_code[]         @relation("package_code_deleted_byTouser")
   promotion_code_created_by                                    promotion_code[]       @relation("promotion_code_created_byTouser")
   promotion_code_deleted_by                                    promotion_code[]       @relation("promotion_code_deleted_byTouser")
+  user_sales                                                   user_sales[]
 
   @@index([created_by], map: "user_ibfk_1_idx")
   @@index([deleted_by], map: "user_ibfk_2_idx")
+}
+
+model user_sales {
+  id           Int @id @default(autoincrement())
+  user_id      Int
+  item_type_id Int
+
+  item_type item_type @relation(fields: [item_type_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_sales_ibfk_2")
+  user      user      @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_sales_ibfk_1")
 }
 
 model bill {
@@ -140,6 +150,8 @@ model bill_code {
   delivery          Decimal   @default(0.0000) @db.Decimal(50, 4)
   service           Decimal   @default(0.0000) @db.Decimal(50, 4)
   uuid              String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
+  payment_term      Int       @default(0)
+  is_paid           Boolean   @default(false)
 
   date                              DateTime?       @db.Date
   user_bill_code_confirmed_byTouser user?           @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")
@@ -534,20 +546,21 @@ model item_unit {
 }
 
 model item_type {
-  id                              Int       @id @default(autoincrement())
-  name                            String    @db.VarChar(45)
+  id                              Int          @id @default(autoincrement())
+  name                            String       @db.VarChar(45)
   created_by                      Int
-  created_at                      DateTime  @default(now()) @db.DateTime(0)
-  is_delete                       Boolean   @default(false)
+  created_at                      DateTime     @default(now()) @db.DateTime(0)
+  is_delete                       Boolean      @default(false)
   deleted_by                      Int?
-  deleted_at                      DateTime? @db.DateTime(0)
+  deleted_at                      DateTime?    @db.DateTime(0)
   updated_by                      Int?
-  updated_at                      DateTime? @db.DateTime(0)
-  is_editable                     Boolean?  @default(false)
-  user_item_type_created_byTouser user      @relation("item_type_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_type_ibfk_1")
-  user_item_type_deleted_byTouser user?     @relation("item_type_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_type_ibfk_2")
-  user_item_type_updated_byTouser user?     @relation("item_type_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_type_ibfk_3")
+  updated_at                      DateTime?    @db.DateTime(0)
+  is_editable                     Boolean?     @default(false)
+  user_item_type_created_byTouser user         @relation("item_type_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_type_ibfk_1")
+  user_item_type_deleted_byTouser user?        @relation("item_type_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_type_ibfk_2")
+  user_item_type_updated_byTouser user?        @relation("item_type_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "item_type_ibfk_3")
   item                            item[]
+  user_sales                      user_sales[]
 
   @@index([created_by], map: "item_type_ibfk_1_idx")
   @@index([deleted_by], map: "item_type_ibfk_2_idx")

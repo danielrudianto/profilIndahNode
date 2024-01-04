@@ -62,6 +62,10 @@ router.get("/inventory/download", ReportController.downloadInventoryReport);
 router.get("/inventory", ReportController.fetchInventoryReport);
 router.get("/expense/:month/:year", ReportController.fetchExpenseReport);
 
-router.get("/dashboard/sales", SalesInvoiceController.fetchDashboard);
+router.get("/dashboard/sales", ReportController.fetchSalesDashboard);
+router.get(
+  "/dashboard/administrator",
+  ReportController.fetchAdministratorDashboard
+);
 
 export default router;
