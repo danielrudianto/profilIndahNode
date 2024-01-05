@@ -183,16 +183,7 @@ class AuthController {
           }
           hash(password, 12)
             .then((hashedPassword) => {
-              UserModel.update({
-                id: user.id,
-                username: user.username,
-                nik: user.nik,
-                name: user.name,
-                password: hashedPassword,
-                created_by: user.id,
-                role:
-                  user.user_department == null ? 0 : user.user_department.role,
-              })
+              UserModel.updatePassword(hashedPassword, user.id)
                 .then((result) => {
                   return res.status(201).send({
                     ...result,
@@ -213,16 +204,7 @@ class AuthController {
         } else {
           hash(password, 12)
             .then((hashedPassword) => {
-              UserModel.update({
-                id: user.id,
-                username: user.username,
-                nik: user.nik,
-                name: user.name,
-                password: hashedPassword,
-                created_by: user.id,
-                role:
-                  user.user_department == null ? 0 : user.user_department.role,
-              })
+              UserModel.updatePassword(hashedPassword, user.id)
                 .then((result) => {
                   return res.status(201).send(result);
                 })

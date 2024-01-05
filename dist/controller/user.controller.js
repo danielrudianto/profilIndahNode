@@ -1,7 +1,17 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcryptjs_1 = require("bcryptjs");
 const express_validator_1 = require("express-validator");
@@ -12,6 +22,7 @@ const customer_model_1 = __importDefault(require("../model/customer.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 class UserController {
 }
+_a = UserController;
 /**
  * Create a new user
  * @param req
@@ -25,6 +36,7 @@ UserController.create = (req, res) => {
     const nik = req.body.nik;
     const name = req.body.name;
     const userID = req.body.userId;
+    const types = req.body.user_sales;
     if (role.length == 0 || role == null) {
         return res.status(400).send(error_list_1.default["Role not found"]);
     }
@@ -40,41 +52,81 @@ UserController.create = (req, res) => {
         }
         (0, bcryptjs_1.hash)(password, 12)
             .then((hashedPassword) => {
-            user_model_1.default.create({
-                name: name,
-                nik: nik,
-                username: username,
-                password: hashedPassword,
-                created_by: userID,
-                role: roleID,
-            })
-                .then((result) => {
-                var _a, _b;
-                const socket = new socket_helper_1.default("createUser", {
-                    id: result.id,
-                    name: result.name,
-                    nik: result.nik,
-                    username: result.username,
-                    password: password,
-                    role_id: roleID,
-                    role: ((_a = user_model_1.default.fetchRole(roleID)) === null || _a === void 0 ? void 0 : _a.name) || "",
-                    user: result.user,
+            if (roleID == 6) {
+                user_model_1.default.create({
+                    name: name,
+                    nik: nik,
+                    username: username,
+                    password: hashedPassword,
+                    created_by: userID,
+                    role: roleID,
+                    user_sales: types,
+                })
+                    .then((result) => {
+                    var _b, _c;
+                    const socket = new socket_helper_1.default("createUser", {
+                        id: result.id,
+                        name: result.name,
+                        nik: result.nik,
+                        username: result.username,
+                        password: password,
+                        role_id: roleID,
+                        role: ((_b = user_model_1.default.fetchRole(roleID)) === null || _b === void 0 ? void 0 : _b.name) || "",
+                        user: result.user,
+                    });
+                    socket.create();
+                    return res.status(201).send({
+                        id: result.id,
+                        name: result.name,
+                        nik: result.nik,
+                        username: result.username,
+                        password: password,
+                        role_id: roleID,
+                        role: ((_c = user_model_1.default.fetchRole(roleID)) === null || _c === void 0 ? void 0 : _c.name) || "",
+                    });
+                })
+                    .catch((error) => {
+                    console.error(`[error]: Error on creating user. ${error}`);
+                    return res.status(500).send(error_list_1.default["Internal server error"]);
                 });
-                socket.create();
-                return res.status(201).send({
-                    id: result.id,
-                    name: result.name,
-                    nik: result.nik,
-                    username: result.username,
-                    password: password,
-                    role_id: roleID,
-                    role: ((_b = user_model_1.default.fetchRole(roleID)) === null || _b === void 0 ? void 0 : _b.name) || "",
+            }
+            else {
+                user_model_1.default.create({
+                    name: name,
+                    nik: nik,
+                    username: username,
+                    password: hashedPassword,
+                    created_by: userID,
+                    role: roleID,
+                })
+                    .then((result) => {
+                    var _b, _c;
+                    const socket = new socket_helper_1.default("createUser", {
+                        id: result.id,
+                        name: result.name,
+                        nik: result.nik,
+                        username: result.username,
+                        password: password,
+                        role_id: roleID,
+                        role: ((_b = user_model_1.default.fetchRole(roleID)) === null || _b === void 0 ? void 0 : _b.name) || "",
+                        user: result.user,
+                    });
+                    socket.create();
+                    return res.status(201).send({
+                        id: result.id,
+                        name: result.name,
+                        nik: result.nik,
+                        username: result.username,
+                        password: password,
+                        role_id: roleID,
+                        role: ((_c = user_model_1.default.fetchRole(roleID)) === null || _c === void 0 ? void 0 : _c.name) || "",
+                    });
+                })
+                    .catch((error) => {
+                    console.error(`[error]: Error on creating user. ${error}`);
+                    return res.status(500).send(error_list_1.default["Internal server error"]);
                 });
-            })
-                .catch((error) => {
-                console.error(`[error]: Error on creating user. ${error}`);
-                return res.status(500).send(error_list_1.default["Internal server error"]);
-            });
+            }
         })
             .catch((error) => {
             console.error(`[error]: Error while hashing password. ${error}`);
@@ -96,7 +148,7 @@ UserController.fetchByID = (req, res) => {
         }
         return res.status(200).send(Object.assign(Object.assign({}, user), { role: user.user_department == null
                 ? null
-                : user_model_1.default.roles.filter((y) => { var _a; return y.id == ((_a = user.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0].name }));
+                : user_model_1.default.roles.filter((y) => { var _b; return y.id == ((_b = user.user_department) === null || _b === void 0 ? void 0 : _b.role); })[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching user ${error}`);
@@ -109,10 +161,10 @@ UserController.fetchByID = (req, res) => {
  * @param res
  */
 UserController.fetch = (req, res) => {
-    var _a;
+    var _b;
     const page = !req.query.page
         ? 1
-        : Math.max(1, parseInt((_a = req.query.page) === null || _a === void 0 ? void 0 : _a.toString()));
+        : Math.max(1, parseInt((_b = req.query.page) === null || _b === void 0 ? void 0 : _b.toString()));
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
     const limit = parseInt(process.env.LIMIT.toString());
     const offset = (page - 1) * limit;
@@ -128,7 +180,7 @@ UserController.fetch = (req, res) => {
                     user_department: x.user_department,
                     role: x.user_department == null
                         ? null
-                        : user_model_1.default.roles.filter((y) => { var _a; return y.id == ((_a = x.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0].name,
+                        : user_model_1.default.roles.filter((y) => { var _b; return y.id == ((_b = x.user_department) === null || _b === void 0 ? void 0 : _b.role); })[0].name,
                 };
             }),
             count: result[1],
@@ -237,11 +289,12 @@ UserController.update = (req, res) => {
     const roleID = req.body.role;
     const role = user_model_1.default.fetchRole(roleID);
     const userID = req.body.userId;
+    const userSales = req.body.user_sales;
     if (!role) {
         return res.status(400).send(error_list_1.default["Role not found"]);
     }
     user_model_1.default.fetchByID(id)
-        .then((user) => {
+        .then((user) => __awaiter(void 0, void 0, void 0, function* () {
         if (!user) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
@@ -256,6 +309,7 @@ UserController.update = (req, res) => {
             created_by: userID,
             password: null,
             role: roleID,
+            user_sales: userSales,
         })
             .then((result) => {
             const socket = new socket_helper_1.default("updateUser", {
@@ -264,7 +318,7 @@ UserController.update = (req, res) => {
                 nik: result.nik,
                 username: result.username,
                 password: null,
-                role: role,
+                role: role.name,
             });
             socket.create();
             return res.status(201).send(result);
@@ -273,7 +327,7 @@ UserController.update = (req, res) => {
             console.error(`[error]: Error on updating user ${error}`);
             return res.status(500).send(error_list_1.default["Internal server error"]);
         });
-    })
+    }))
         .catch((error) => {
         console.error(`[error]: Error on fetching user ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);

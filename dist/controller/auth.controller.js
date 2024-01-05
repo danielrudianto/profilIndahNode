@@ -157,15 +157,7 @@ AuthController.updatePassword = (req, res) => {
             }
             (0, bcrypt_1.hash)(password, 12)
                 .then((hashedPassword) => {
-                user_model_1.default.update({
-                    id: user.id,
-                    username: user.username,
-                    nik: user.nik,
-                    name: user.name,
-                    password: hashedPassword,
-                    created_by: user.id,
-                    role: user.user_department == null ? 0 : user.user_department.role,
-                })
+                user_model_1.default.updatePassword(hashedPassword, user.id)
                     .then((result) => {
                     return res.status(201).send(Object.assign(Object.assign({}, result), { password: password }));
                 })
@@ -184,15 +176,7 @@ AuthController.updatePassword = (req, res) => {
         else {
             (0, bcrypt_1.hash)(password, 12)
                 .then((hashedPassword) => {
-                user_model_1.default.update({
-                    id: user.id,
-                    username: user.username,
-                    nik: user.nik,
-                    name: user.name,
-                    password: hashedPassword,
-                    created_by: user.id,
-                    role: user.user_department == null ? 0 : user.user_department.role,
-                })
+                user_model_1.default.updatePassword(hashedPassword, user.id)
                     .then((result) => {
                     return res.status(201).send(result);
                 })

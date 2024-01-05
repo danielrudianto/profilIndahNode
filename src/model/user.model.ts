@@ -11,12 +11,23 @@ interface IUser {
   role: number;
 }
 
+interface IUserSales {
+  item_type_id: number;
+}
+
 interface ICreateUser extends IUser {
   password: string;
+  user_sales?: IUserSales[];
 }
 
 interface IUpdateUser extends IUser {
   id: number;
+  password: string | null;
+}
+
+interface IUpdateUserSales extends IUser {
+  id: number;
+  user_sales: IUserSales[];
   password: string | null;
 }
 
@@ -53,6 +64,11 @@ class UserModel {
       name: "Administrator",
       available: true,
     },
+    {
+      id: 6,
+      name: "Agen Penjualan",
+      available: true,
+    },
   ];
 
   /**
@@ -61,31 +77,77 @@ class UserModel {
    * @returns User
    */
   static create(data: ICreateUser) {
-    return prisma.user.create({
-      data: {
-        name: data.name,
-        username: data.username,
-        password: data.password,
-        nik: data.nik,
-        created_by: data.created_by,
-        user_department: {
-          create: {
-            role: data.role,
+    if (data.user_sales == undefined) {
+      return prisma.user.create({
+        data: {
+          name: data.name,
+          username: data.username,
+          password: data.password,
+          nik: data.nik,
+          created_by: data.created_by,
+          user_department: {
+            create: {
+              role: data.role,
+            },
           },
         },
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        nik: true,
-        user: {
-          select: {
-            name: true,
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          nik: true,
+          user: {
+            select: {
+              name: true,
+            },
+          },
+          user_sales: {
+            select: {
+              item_type: {
+                select: {
+                  name: true,
+                },
+              },
+            },
           },
         },
-      },
-    });
+      });
+    } else {
+      return prisma.user.create({
+        data: {
+          name: data.name,
+          username: data.username,
+          password: data.password,
+          nik: data.nik,
+          created_by: data.created_by,
+          user_department: {
+            create: {
+              role: data.role,
+            },
+          },
+          user_sales: {
+            createMany: {
+              data: data.user_sales!.map((x) => {
+                return {
+                  item_type_id: x.item_type_id,
+                };
+              }),
+            },
+          },
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          nik: true,
+          user: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+    }
   }
 
   /**
@@ -236,6 +298,16 @@ class UserModel {
             role: true,
           },
         },
+        user_sales: {
+          select: {
+            item_type: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
         is_active: true,
       },
     });
@@ -260,7 +332,7 @@ class UserModel {
     });
   }
 
-  static update(data: IUpdateUser) {
+  static update(data: IUpdateUserSales) {
     return data.password == null
       ? prisma.user.update({
           where: {
@@ -273,6 +345,16 @@ class UserModel {
             user_department: {
               update: {
                 role: data.role,
+              },
+            },
+            user_sales: {
+              deleteMany: {},
+              createMany: {
+                data: data.user_sales.map((x) => {
+                  return {
+                    item_type_id: x.item_type_id,
+                  };
+                }),
               },
             },
           },
@@ -289,6 +371,16 @@ class UserModel {
             user_department: {
               update: {
                 role: data.role,
+              },
+            },
+            user_sales: {
+              deleteMany: {},
+              createMany: {
+                data: data.user_sales.map((x) => {
+                  return {
+                    item_type_id: x.item_type_id,
+                  };
+                }),
               },
             },
           },

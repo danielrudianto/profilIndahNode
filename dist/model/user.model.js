@@ -18,31 +18,78 @@ class UserModel {
      * @returns User
      */
     static create(data) {
-        return prisma.user.create({
-            data: {
-                name: data.name,
-                username: data.username,
-                password: data.password,
-                nik: data.nik,
-                created_by: data.created_by,
-                user_department: {
-                    create: {
-                        role: data.role,
+        if (data.user_sales == undefined) {
+            return prisma.user.create({
+                data: {
+                    name: data.name,
+                    username: data.username,
+                    password: data.password,
+                    nik: data.nik,
+                    created_by: data.created_by,
+                    user_department: {
+                        create: {
+                            role: data.role,
+                        },
                     },
                 },
-            },
-            select: {
-                id: true,
-                name: true,
-                username: true,
-                nik: true,
-                user: {
-                    select: {
-                        name: true,
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    nik: true,
+                    user: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    user_sales: {
+                        select: {
+                            item_type: {
+                                select: {
+                                    name: true,
+                                },
+                            },
+                        },
                     },
                 },
-            },
-        });
+            });
+        }
+        else {
+            return prisma.user.create({
+                data: {
+                    name: data.name,
+                    username: data.username,
+                    password: data.password,
+                    nik: data.nik,
+                    created_by: data.created_by,
+                    user_department: {
+                        create: {
+                            role: data.role,
+                        },
+                    },
+                    user_sales: {
+                        createMany: {
+                            data: data.user_sales.map((x) => {
+                                return {
+                                    item_type_id: x.item_type_id,
+                                };
+                            }),
+                        },
+                    },
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    username: true,
+                    nik: true,
+                    user: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                },
+            });
+        }
     }
     /**
      * Fetch role
@@ -190,6 +237,16 @@ class UserModel {
                         role: true,
                     },
                 },
+                user_sales: {
+                    select: {
+                        item_type: {
+                            select: {
+                                id: true,
+                                name: true,
+                            },
+                        },
+                    },
+                },
                 is_active: true,
             },
         });
@@ -227,6 +284,16 @@ class UserModel {
                             role: data.role,
                         },
                     },
+                    user_sales: {
+                        deleteMany: {},
+                        createMany: {
+                            data: data.user_sales.map((x) => {
+                                return {
+                                    item_type_id: x.item_type_id,
+                                };
+                            }),
+                        },
+                    },
                 },
             })
             : prisma.user.update({
@@ -241,6 +308,16 @@ class UserModel {
                     user_department: {
                         update: {
                             role: data.role,
+                        },
+                    },
+                    user_sales: {
+                        deleteMany: {},
+                        createMany: {
+                            data: data.user_sales.map((x) => {
+                                return {
+                                    item_type_id: x.item_type_id,
+                                };
+                            }),
                         },
                     },
                 },
@@ -305,6 +382,11 @@ UserModel.roles = [
     {
         id: 5,
         name: "Administrator",
+        available: true,
+    },
+    {
+        id: 6,
+        name: "Agen Penjualan",
         available: true,
     },
 ];

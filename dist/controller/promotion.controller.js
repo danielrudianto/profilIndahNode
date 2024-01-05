@@ -60,7 +60,7 @@ PromotionController.fetch = (req, res) => {
                             !x.is_delete
                             ? "Expired"
                             : (x.end == null && !x.is_delete) ||
-                                (new Date(x.end).getTime() < new Date().getTime() &&
+                                (new Date(x.end).getTime() >= new Date().getTime() &&
                                     !x.is_delete)
                                 ? "Active"
                                 : "Inactive",
@@ -197,7 +197,16 @@ PromotionController.fetchResultByID = (req, res) => {
                     : calculation[2] == null || calculation[2].length == 0
                         ? 0
                         : calculation[2][0].total,
-            } }));
+            }, items: productIDs
+                .map((x) => {
+                return {
+                    reference: x.reference,
+                    description: x.description,
+                };
+            })
+                .sort((a, b) => {
+                return a.reference > b.reference ? 1 : -1;
+            }) }));
     }));
 };
 PromotionController.fetchByID = (req, res) => {

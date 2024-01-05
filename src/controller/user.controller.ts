@@ -21,6 +21,7 @@ class UserController {
     const nik = req.body.nik;
     const name = req.body.name;
     const userID = req.body.userId;
+    const types = req.body.user_sales;
 
     if (role.length == 0 || role == null) {
       return res.status(400).send(ErrorList["Role not found"]);
@@ -41,41 +42,80 @@ class UserController {
 
       hash(password, 12)
         .then((hashedPassword) => {
-          UserModel.create({
-            name: name,
-            nik: nik,
-            username: username,
-            password: hashedPassword,
-            created_by: userID,
-            role: roleID,
-          })
-            .then((result) => {
-              const socket = new SocketHelper("createUser", {
-                id: result.id,
-                name: result.name,
-                nik: result.nik,
-                username: result.username,
-                password: password,
-                role_id: roleID,
-                role: UserModel.fetchRole(roleID)?.name || "",
-                user: result.user,
-              });
-              socket.create();
-
-              return res.status(201).send({
-                id: result.id,
-                name: result.name,
-                nik: result.nik,
-                username: result.username,
-                password: password,
-                role_id: roleID,
-                role: UserModel.fetchRole(roleID)?.name || "",
-              });
+          if (roleID == 6) {
+            UserModel.create({
+              name: name,
+              nik: nik,
+              username: username,
+              password: hashedPassword,
+              created_by: userID,
+              role: roleID,
+              user_sales: types,
             })
-            .catch((error) => {
-              console.error(`[error]: Error on creating user. ${error}`);
-              return res.status(500).send(ErrorList["Internal server error"]);
-            });
+              .then((result) => {
+                const socket = new SocketHelper("createUser", {
+                  id: result.id,
+                  name: result.name,
+                  nik: result.nik,
+                  username: result.username,
+                  password: password,
+                  role_id: roleID,
+                  role: UserModel.fetchRole(roleID)?.name || "",
+                  user: result.user,
+                });
+                socket.create();
+
+                return res.status(201).send({
+                  id: result.id,
+                  name: result.name,
+                  nik: result.nik,
+                  username: result.username,
+                  password: password,
+                  role_id: roleID,
+                  role: UserModel.fetchRole(roleID)?.name || "",
+                });
+              })
+              .catch((error) => {
+                console.error(`[error]: Error on creating user. ${error}`);
+                return res.status(500).send(ErrorList["Internal server error"]);
+              });
+          } else {
+            UserModel.create({
+              name: name,
+              nik: nik,
+              username: username,
+              password: hashedPassword,
+              created_by: userID,
+              role: roleID,
+            })
+              .then((result) => {
+                const socket = new SocketHelper("createUser", {
+                  id: result.id,
+                  name: result.name,
+                  nik: result.nik,
+                  username: result.username,
+                  password: password,
+                  role_id: roleID,
+                  role: UserModel.fetchRole(roleID)?.name || "",
+                  user: result.user,
+                });
+                socket.create();
+
+                return res.status(201).send({
+                  id: result.id,
+                  name: result.name,
+                  nik: result.nik,
+                  username: result.username,
+                  password: password,
+                  role_id: roleID,
+                  role: UserModel.fetchRole(roleID)?.name || "",
+                });
+              })
+              .catch((error) => {
+                console.error(`[error]: Error on creating user. ${error}`);
+                return res.status(500).send(ErrorList["Internal server error"]);
+              });
+          }
         })
         .catch((error) => {
           console.error(`[error]: Error while hashing password. ${error}`);
@@ -105,6 +145,7 @@ class UserController {
               : UserModel.roles.filter(
                   (y) => y.id == user.user_department?.role
                 )[0].name,
+          user_sales: user.user_sales.length == 0 ? [] : user.user_sales,
         });
       })
       .catch((error) => {
@@ -260,13 +301,14 @@ class UserController {
     const roleID = req.body.role;
     const role = UserModel.fetchRole(roleID);
     const userID = req.body.userId;
+    const userSales = req.body.user_sales;
 
     if (!role) {
       return res.status(400).send(ErrorList["Role not found"]);
     }
 
     UserModel.fetchByID(id)
-      .then((user) => {
+      .then(async (user) => {
         if (!user) {
           return res.status(404).send(ErrorList["Not found"]);
         }
@@ -283,6 +325,7 @@ class UserController {
           created_by: userID,
           password: null,
           role: roleID,
+          user_sales: userSales,
         })
           .then((result) => {
             const socket = new SocketHelper("updateUser", {
@@ -291,7 +334,7 @@ class UserController {
               nik: result.nik,
               username: result.username,
               password: null,
-              role: role,
+              role: role.name,
             });
             socket.create();
 
