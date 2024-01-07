@@ -44,7 +44,9 @@ SearchHelper.createIndex = (req, res) => __awaiter(void 0, void 0, void 0, funct
     yield app_1.meili.deleteIndexIfExists("item");
     yield app_1.meili.deleteIndexIfExists("customer");
     yield app_1.meili.deleteIndexIfExists("package");
-    yield app_1.meili.createIndex("item");
+    yield app_1.meili.createIndex("item", {
+        primaryKey: "id",
+    });
     yield app_1.meili.createIndex("customer");
     yield app_1.meili.createIndex("package");
     yield app_1.meili.index("item").updateSettings({
@@ -77,6 +79,9 @@ SearchHelper.createIndex = (req, res) => __awaiter(void 0, void 0, void 0, funct
     return res.status(200).send({
         message: "Create index success",
     });
+});
+SearchHelper.getTasks = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    return res.status(200).send(yield app_1.meili.getTask(15));
 });
 /**
  * Sync product, customer, or package data to meilisearch
@@ -128,32 +133,30 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
             yield app_1.meili.index("item").deleteAllDocuments();
             item_model_1.ItemModel.fetchAll(new Date())
                 .then((items) => __awaiter(void 0, void 0, void 0, function* () {
-                console.log(items.map((x) => {
-                    return {
-                        id: x.id,
-                        reference: x.reference,
-                        description: x.description,
-                        brand: x.item_brand.name,
-                        type: x.item_type.name,
-                        itemBrandID: x.item_brand_id,
-                        itemTypeID: x.item_type_id,
-                        is_active: x.is_active ? 1 : 0,
-                    };
-                }));
-                yield app_1.meili.index("item").addDocuments(items.map((x) => {
-                    return {
-                        id: x.id,
-                        reference: x.reference,
-                        description: x.description,
-                        brand: x.item_brand.name,
-                        type: x.item_type.name,
-                        itemBrandID: x.item_brand_id,
-                        itemTypeID: x.item_type_id,
-                        is_active: x.is_active ? 1 : 0,
-                    };
-                }));
-                return res.status(200).send({
-                    message: "Sync product success",
+                app_1.meili
+                    .index("item")
+                    .addDocuments([
+                    ...items.map((x) => {
+                        return {
+                            id: x.id,
+                            reference: x.reference,
+                            description: x.description,
+                            brand: x.item_brand.name,
+                            type: x.item_type.name,
+                            itemBrandID: x.item_brand_id,
+                            itemTypeID: x.item_type_id,
+                            is_active: x.is_active ? 1 : 0,
+                        };
+                    }),
+                ])
+                    .then((result) => {
+                    console.log(result);
+                    return res.status(200).send({
+                        message: "Sync product success",
+                    });
+                })
+                    .catch((error) => {
+                    console.error(`[error]: Error on indexing search data. ${error} `);
                 });
             }))
                 .catch((error) => {

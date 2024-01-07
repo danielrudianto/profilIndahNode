@@ -38,7 +38,9 @@ class SearchHelper {
     await meili.deleteIndexIfExists("customer");
     await meili.deleteIndexIfExists("package");
 
-    await meili.createIndex("item");
+    await meili.createIndex("item", {
+      primaryKey: "id",
+    });
     await meili.createIndex("customer");
     await meili.createIndex("package");
 
@@ -73,6 +75,10 @@ class SearchHelper {
     return res.status(200).send({
       message: "Create index success",
     });
+  };
+
+  static getTasks = async (req: Request, res: Response) => {
+    return res.status(200).send(await meili.getTask(15));
   };
 
   /**
@@ -125,38 +131,33 @@ class SearchHelper {
         await meili.index("item").deleteAllDocuments();
         ItemModel.fetchAll(new Date())
           .then(async (items) => {
-            console.log(
-              items.map((x) => {
-                return {
-                  id: x.id,
-                  reference: x.reference,
-                  description: x.description,
-                  brand: x.item_brand.name,
-                  type: x.item_type.name,
-                  itemBrandID: x.item_brand_id,
-                  itemTypeID: x.item_type_id,
-                  is_active: x.is_active ? 1 : 0,
-                };
+            meili
+              .index("item")
+              .addDocuments([
+                ...items.map((x) => {
+                  return {
+                    id: x.id,
+                    reference: x.reference,
+                    description: x.description,
+                    brand: x.item_brand.name,
+                    type: x.item_type.name,
+                    itemBrandID: x.item_brand_id,
+                    itemTypeID: x.item_type_id,
+                    is_active: x.is_active ? 1 : 0,
+                  };
+                }),
+              ])
+              .then((result) => {
+                console.log(result);
+                return res.status(200).send({
+                  message: "Sync product success",
+                });
               })
-            );
-            await meili.index("item").addDocuments(
-              items.map((x) => {
-                return {
-                  id: x.id,
-                  reference: x.reference,
-                  description: x.description,
-                  brand: x.item_brand.name,
-                  type: x.item_type.name,
-                  itemBrandID: x.item_brand_id,
-                  itemTypeID: x.item_type_id,
-                  is_active: x.is_active ? 1 : 0,
-                };
-              })
-            );
-
-            return res.status(200).send({
-              message: "Sync product success",
-            });
+              .catch((error) => {
+                console.error(
+                  `[error]: Error on indexing search data. ${error} `
+                );
+              });
           })
           .catch((error) => {
             console.log(`[error]: Error while indexing search data. ${error}`);

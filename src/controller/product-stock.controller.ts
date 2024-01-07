@@ -6,6 +6,7 @@ import ProductStockModel from "../model/product-stock.model";
 import { meili, prisma } from "../app";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
+import UserModel from "../model/user.model";
 
 class ProductStockController {
   /**
@@ -20,6 +21,96 @@ class ProductStockController {
       : decodeURIComponent(req.query.keyword.toString());
     const mode = req.query.mode;
     switch (mode) {
+      case "sales":
+        UserModel.fetchByID(req.body.userId).then((user) => {
+          if (user?.user_department?.role != 6) {
+            // Fetch all just like plain
+            meili
+              .index("item")
+              .search(keyword, {
+                limit: 10,
+                offset: (page - 1) * 10,
+              })
+              .then(async (result) => {
+                const productStock = await mongoProductModel.find(
+                  {
+                    itemID: {
+                      $in: result.hits.map((x) => x.itemID),
+                    },
+                  },
+                  "itemID unit currentStock"
+                );
+
+                return res.status(200).send({
+                  data: result.hits.map((x) => {
+                    const stockIndex = productStock.findIndex(
+                      (y) => y.itemID == x.id
+                    );
+                    return {
+                      id: x.id,
+                      reference: x.reference,
+                      description: x.description,
+                      stock:
+                        stockIndex == -1
+                          ? 0
+                          : productStock[stockIndex].currentStock,
+                      unit:
+                        stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                      item_brand_id: x.itemBrandID,
+                      item_type_id: x.itemTypeID,
+                      item_brand_name: x.brand,
+                      item_type_name: x.type,
+                    };
+                  }),
+                });
+              });
+          } else {
+            // Fetch only product that he is able
+            const types = user.user_sales.map((x) => x.item_type.id);
+            meili
+              .index("item")
+              .search(keyword, {
+                limit: 10,
+                offset: (page - 1) * 10,
+                filter: `item_type_id = ${types.join(" OR item_type_id = ")}`,
+              })
+              .then(async (result) => {
+                const productStock = await mongoProductModel.find(
+                  {
+                    itemID: {
+                      $in: result.hits.map((x) => x.id),
+                    },
+                  },
+                  "itemID unit currentStock"
+                );
+
+                return res.status(200).send({
+                  data: result.hits.map((x) => {
+                    const stockIndex = productStock.findIndex(
+                      (y) => y.itemID == x.id
+                    );
+                    return {
+                      id: x.id,
+                      reference: x.reference,
+                      description: x.description,
+                      stock:
+                        stockIndex == -1
+                          ? 0
+                          : productStock[stockIndex].currentStock,
+                      unit:
+                        stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                      item_brand_id: x.itemBrandID,
+                      item_type_id: x.itemTypeID,
+                      item_brand_name: x.brand,
+                      item_type_name: x.type,
+                    };
+                  }),
+                  count: result.estimatedTotalHits,
+                });
+              });
+          }
+        });
+        break;
       case "problem":
         Promise.all([
           mongoProductModel

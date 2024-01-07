@@ -20,6 +20,7 @@ const product_stock_model_1 = __importDefault(require("../model/product-stock.mo
 const app_1 = require("../app");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
+const user_model_1 = __importDefault(require("../model/user.model"));
 class ProductStockController {
 }
 _a = ProductStockController;
@@ -35,6 +36,82 @@ ProductStockController.fetch = (req, res) => {
         : decodeURIComponent(req.query.keyword.toString());
     const mode = req.query.mode;
     switch (mode) {
+        case "sales":
+            user_model_1.default.fetchByID(req.body.userId).then((user) => {
+                var _b;
+                if (((_b = user === null || user === void 0 ? void 0 : user.user_department) === null || _b === void 0 ? void 0 : _b.role) != 6) {
+                    // Fetch all just like plain
+                    app_1.meili
+                        .index("item")
+                        .search(keyword, {
+                        limit: 10,
+                        offset: (page - 1) * 10,
+                    })
+                        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+                        const productStock = yield mongo_product_model_1.mongoProductModel.find({
+                            itemID: {
+                                $in: result.hits.map((x) => x.itemID),
+                            },
+                        }, "itemID unit currentStock");
+                        return res.status(200).send({
+                            data: result.hits.map((x) => {
+                                const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
+                                return {
+                                    id: x.id,
+                                    reference: x.reference,
+                                    description: x.description,
+                                    stock: stockIndex == -1
+                                        ? 0
+                                        : productStock[stockIndex].currentStock,
+                                    unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                                    item_brand_id: x.itemBrandID,
+                                    item_type_id: x.itemTypeID,
+                                    item_brand_name: x.brand,
+                                    item_type_name: x.type,
+                                };
+                            }),
+                        });
+                    }));
+                }
+                else {
+                    // Fetch only product that he is able
+                    const types = user.user_sales.map((x) => x.item_type.id);
+                    app_1.meili
+                        .index("item")
+                        .search(keyword, {
+                        limit: 10,
+                        offset: (page - 1) * 10,
+                        filter: `item_type_id = ${types.join(" OR item_type_id = ")}`,
+                    })
+                        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+                        const productStock = yield mongo_product_model_1.mongoProductModel.find({
+                            itemID: {
+                                $in: result.hits.map((x) => x.id),
+                            },
+                        }, "itemID unit currentStock");
+                        return res.status(200).send({
+                            data: result.hits.map((x) => {
+                                const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
+                                return {
+                                    id: x.id,
+                                    reference: x.reference,
+                                    description: x.description,
+                                    stock: stockIndex == -1
+                                        ? 0
+                                        : productStock[stockIndex].currentStock,
+                                    unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                                    item_brand_id: x.itemBrandID,
+                                    item_type_id: x.itemTypeID,
+                                    item_brand_name: x.brand,
+                                    item_type_name: x.type,
+                                };
+                            }),
+                            count: result.estimatedTotalHits,
+                        });
+                    }));
+                }
+            });
+            break;
         case "problem":
             Promise.all([
                 mongo_product_model_1.mongoProductModel

@@ -663,6 +663,72 @@ class ProductController {
       });
   };
 
+  static fetchCompleteSalesById = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id.toString());
+    ItemModel.fetchByIDWithPrice(id)
+      .then(([item, item_unit, item_price, item_price_purchase]) => {
+        if (!item) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        const price =
+          item_price.filter((x) => x.item_unit_id == null).length == 0
+            ? 0
+            : parseFloat(
+                item_price
+                  .filter((x) => x.item_unit_id == null)[0]
+                  .price.toString()
+              );
+
+        const discount =
+          item_price.filter((x) => x.item_unit_id == null).length == 0
+            ? 0
+            : parseFloat(
+                item_price
+                  .filter((x) => x.item_unit_id == null)[0]
+                  .discount.toString()
+              );
+
+        return res.status(200).send({
+          reference: item.reference,
+          description: item.description,
+          unit: item.unit,
+          item_brand: item.item_brand.name,
+          item_type: item.item_type.name,
+          price: price,
+          discount: discount,
+          units: item_unit.map((x) => {
+            const unitID = x.id;
+            const unitPrice = item_price.filter(
+              (y) => y.item_unit_id == unitID
+            );
+            const unitPricePurchase = item_price_purchase.filter(
+              (y) => y.item_unit_id == unitID
+            );
+
+            const unitPrice_price =
+              unitPrice.length == 0 ? 0 : unitPrice[0].price;
+            const unitPrice_discount =
+              unitPrice.length == 0 ? 0 : unitPrice[0].discount;
+
+            return {
+              id: x.id,
+              unit: x.unit,
+              conversion: parseFloat(x.conversion.toString()),
+              price: unitPrice_price,
+              discount: unitPrice_discount,
+            };
+          }),
+        });
+      })
+      .catch((error) => {
+        console.error(
+          `[error]: Error on fetching item By ID with price ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
   /**
    * Update product data by ID
    * @param req

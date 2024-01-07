@@ -55,5 +55,6 @@ router.post(
 
 router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
 router.post("/arima", ArimaHelper.predict);
+router.get("/tasks", SearchHelper.getTasks);
 
 export default router;
