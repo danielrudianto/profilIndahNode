@@ -57,7 +57,10 @@ export const meili = new MeiliSearch({
   apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
 
-const allowedOrigins = ["https://app.profilindah.id", "http://localhost:4200"];
+const allowedOrigins = [
+  "https://app.profilindah.id",
+  "https://stock.profilindah.id",
+];
 
 const options: cors.CorsOptions = {
   origin: allowedOrigins,
