@@ -50,7 +50,7 @@ ProductStockController.fetch = (req, res) => {
                         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
                         const productStock = yield mongo_product_model_1.mongoProductModel.find({
                             itemID: {
-                                $in: result.hits.map((x) => x.itemID),
+                                $in: result.hits.map((x) => x.id),
                             },
                         }, "itemID unit currentStock");
                         return res.status(200).send({
@@ -106,7 +106,6 @@ ProductStockController.fetch = (req, res) => {
                                     item_type_name: x.type,
                                 };
                             }),
-                            count: result.estimatedTotalHits,
                         });
                     }));
                 }

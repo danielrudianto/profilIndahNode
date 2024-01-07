@@ -35,7 +35,7 @@ class ProductStockController {
                 const productStock = await mongoProductModel.find(
                   {
                     itemID: {
-                      $in: result.hits.map((x) => x.itemID),
+                      $in: result.hits.map((x) => x.id),
                     },
                   },
                   "itemID unit currentStock"
@@ -105,7 +105,6 @@ class ProductStockController {
                       item_type_name: x.type,
                     };
                   }),
-                  count: result.estimatedTotalHits,
                 });
               });
           }
