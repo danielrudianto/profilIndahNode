@@ -67,12 +67,13 @@ class ProductStockController {
           } else {
             // Fetch only product that he is able
             const types = user.user_sales.map((x) => x.item_type.id);
+            console.log(`itemTypeID = ${types.join(" OR itemTypeID = ")}`);
             meili
               .index("item")
               .search(keyword, {
                 limit: 10,
                 offset: (page - 1) * 10,
-                filter: `item_type_id = ${types.join(" OR item_type_id = ")}`,
+                filter: `itemTypeID = ${types.join(" OR itemTypeID = ")}`,
               })
               .then(async (result) => {
                 const productStock = await mongoProductModel.find(

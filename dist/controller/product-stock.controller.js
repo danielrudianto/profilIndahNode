@@ -76,12 +76,13 @@ ProductStockController.fetch = (req, res) => {
                 else {
                     // Fetch only product that he is able
                     const types = user.user_sales.map((x) => x.item_type.id);
+                    console.log(`itemTypeID = ${types.join(" OR itemTypeID = ")}`);
                     app_1.meili
                         .index("item")
                         .search(keyword, {
                         limit: 10,
                         offset: (page - 1) * 10,
-                        filter: `item_type_id = ${types.join(" OR item_type_id = ")}`,
+                        filter: `itemTypeID = ${types.join(" OR itemTypeID = ")}`,
                     })
                         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
                         const productStock = yield mongo_product_model_1.mongoProductModel.find({
