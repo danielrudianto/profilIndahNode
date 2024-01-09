@@ -7,7 +7,10 @@ import PurchaseInvoiceModel, {
 import { ItemModel } from "../model/item.model";
 import CompanyModel from "../model/company.model";
 import { fetchMode } from "../interface/fetch.interface";
-import { mongoStockInModel } from "../mongo-model/mongo-stock-in.model";
+import {
+  mongoStockInModel,
+  mongoStockOutModel,
+} from "../mongo-model/mongo-stock-in.model";
 import ErrorList from "../assets/error_list";
 import moment from "moment";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
@@ -404,19 +407,30 @@ class ReportController {
       ),
       CompanyModel.fetch("", 0, 0, fetchMode.All),
       ExpenseModel.fetchSum(month, year),
-      mongoStockInModel.aggregate([
+      mongoStockOutModel.aggregate([
+        // Find the stock in value
+        {
+          $lookup: {
+            from: "stock-ins",
+            localField: "stockInID",
+            foreignField: "_id",
+            as: "stockIn",
+          },
+        },
         {
           $unwind: {
-            path: "$stockOut",
+            path: "$stockIn",
           },
         },
         {
           $project: {
-            companyID: "$companyID",
-            stockOut: "$stockOut",
+            companyID: "$stockIn.companyID",
+            stockIn: "$stockIn",
             price: "$price",
-            month: { $month: "$stockOut.date" },
-            year: { $year: "$stockOut.date" },
+            month: { $month: "$date" },
+            year: { $year: "$date" },
+            quantity: "$quantity",
+            value: "$value",
           },
         },
         month == 0
@@ -435,14 +449,15 @@ class ReportController {
           $group: {
             _id: "$companyID",
             totalStockoutValue: {
-              $sum: { $multiply: ["$stockOut.quantity", "$stockOut.value"] },
+              $sum: { $multiply: ["$quantity", "$value"] },
             },
             totalCOGS: {
-              $sum: { $multiply: ["$stockOut.quantity", "$price"] },
+              $sum: { $multiply: ["$quantity", "$stockIn.price"] },
             },
           },
         },
       ]),
+
       mongoOverflowModel.aggregate([
         {
           $project: {

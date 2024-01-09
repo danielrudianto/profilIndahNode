@@ -393,19 +393,30 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
         purchase_invoice_model_1.default.calculateTotalPurchase(month, year, purchase_invoice_model_1.CalculatePurchaseMode.Sum),
         company_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All),
         expense_model_1.default.fetchSum(month, year),
-        mongo_stock_in_model_1.mongoStockInModel.aggregate([
+        mongo_stock_in_model_1.mongoStockOutModel.aggregate([
+            // Find the stock in value
+            {
+                $lookup: {
+                    from: "stock-ins",
+                    localField: "stockInID",
+                    foreignField: "_id",
+                    as: "stockIn",
+                },
+            },
             {
                 $unwind: {
-                    path: "$stockOut",
+                    path: "$stockIn",
                 },
             },
             {
                 $project: {
-                    companyID: "$companyID",
-                    stockOut: "$stockOut",
+                    companyID: "$stockIn.companyID",
+                    stockIn: "$stockIn",
                     price: "$price",
-                    month: { $month: "$stockOut.date" },
-                    year: { $year: "$stockOut.date" },
+                    month: { $month: "$date" },
+                    year: { $year: "$date" },
+                    quantity: "$quantity",
+                    value: "$value",
                 },
             },
             month == 0
@@ -424,10 +435,10 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                 $group: {
                     _id: "$companyID",
                     totalStockoutValue: {
-                        $sum: { $multiply: ["$stockOut.quantity", "$stockOut.value"] },
+                        $sum: { $multiply: ["$quantity", "$value"] },
                     },
                     totalCOGS: {
-                        $sum: { $multiply: ["$stockOut.quantity", "$price"] },
+                        $sum: { $multiply: ["$quantity", "$stockIn.price"] },
                     },
                 },
             },
