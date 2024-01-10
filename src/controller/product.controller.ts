@@ -697,12 +697,10 @@ class ProductController {
           item_type: item.item_type.name,
           price: price,
           discount: discount,
+          minimum_stock: Number(item.minimum_stock),
           units: item_unit.map((x) => {
             const unitID = x.id;
             const unitPrice = item_price.filter(
-              (y) => y.item_unit_id == unitID
-            );
-            const unitPricePurchase = item_price_purchase.filter(
               (y) => y.item_unit_id == unitID
             );
 

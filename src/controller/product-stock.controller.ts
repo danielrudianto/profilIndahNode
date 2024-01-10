@@ -38,7 +38,7 @@ class ProductStockController {
                       $in: result.hits.map((x) => x.id),
                     },
                   },
-                  "itemID unit currentStock"
+                  "itemID unit currentStock minimumStock"
                 );
 
                 return res.status(200).send({
@@ -60,6 +60,10 @@ class ProductStockController {
                       item_type_id: x.itemTypeID,
                       item_brand_name: x.brand,
                       item_type_name: x.type,
+                      minimum_stock:
+                        stockIndex == -1
+                          ? 0
+                          : productStock[stockIndex].minimumStock,
                     };
                   }),
                 });
@@ -82,7 +86,7 @@ class ProductStockController {
                       $in: result.hits.map((x) => x.id),
                     },
                   },
-                  "itemID unit currentStock"
+                  "itemID unit currentStock minimumStock"
                 );
 
                 return res.status(200).send({
@@ -104,6 +108,10 @@ class ProductStockController {
                       item_type_id: x.itemTypeID,
                       item_brand_name: x.brand,
                       item_type_name: x.type,
+                      minimum_stock:
+                        stockIndex == -1
+                          ? 0
+                          : productStock[stockIndex].minimumStock,
                     };
                   }),
                 });

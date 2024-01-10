@@ -52,7 +52,7 @@ ProductStockController.fetch = (req, res) => {
                             itemID: {
                                 $in: result.hits.map((x) => x.id),
                             },
-                        }, "itemID unit currentStock");
+                        }, "itemID unit currentStock minimumStock");
                         return res.status(200).send({
                             data: result.hits.map((x) => {
                                 const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
@@ -68,6 +68,9 @@ ProductStockController.fetch = (req, res) => {
                                     item_type_id: x.itemTypeID,
                                     item_brand_name: x.brand,
                                     item_type_name: x.type,
+                                    minimum_stock: stockIndex == -1
+                                        ? 0
+                                        : productStock[stockIndex].minimumStock,
                                 };
                             }),
                         });
@@ -89,7 +92,7 @@ ProductStockController.fetch = (req, res) => {
                             itemID: {
                                 $in: result.hits.map((x) => x.id),
                             },
-                        }, "itemID unit currentStock");
+                        }, "itemID unit currentStock minimumStock");
                         return res.status(200).send({
                             data: result.hits.map((x) => {
                                 const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
@@ -105,6 +108,9 @@ ProductStockController.fetch = (req, res) => {
                                     item_type_id: x.itemTypeID,
                                     item_brand_name: x.brand,
                                     item_type_name: x.type,
+                                    minimum_stock: stockIndex == -1
+                                        ? 0
+                                        : productStock[stockIndex].minimumStock,
                                 };
                             }),
                         });

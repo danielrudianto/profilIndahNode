@@ -279,6 +279,7 @@ class ItemModel {
                                 name: true,
                             },
                         },
+                        minimum_stock: true,
                     },
                 }),
                 prisma.item_unit.findMany({
