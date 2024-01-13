@@ -21,6 +21,115 @@ class ProductStockController {
       : decodeURIComponent(req.query.keyword.toString());
     const mode = req.query.mode;
     switch (mode) {
+      case "sales-alert":
+        UserModel.fetchByID(req.body.userId).then(async (user) => {
+          if (user?.user_department?.role != 6) {
+            // Fetch all just like plain
+            const productStock = await mongoProductModel
+              .find(
+                {
+                  $and: [
+                    {
+                      $expr: {
+                        $lt: ["$currentStock", "$minimumStock"],
+                      },
+                    },
+                    {
+                      $expr: {
+                        $gte: ["$currentStock", 0],
+                      },
+                    },
+                    {
+                      $or: [
+                        {
+                          reference: {
+                            $regex: keyword,
+                          },
+                        },
+                        {
+                          description: {
+                            $regex: keyword,
+                          },
+                        },
+                      ],
+                    },
+                  ],
+                },
+                "itemID reference description unit currentStock minimumStock"
+              )
+              .limit(10)
+              .skip((page - 1) * 10);
+
+            return res.status(200).send({
+              data: productStock.map((x) => {
+                return {
+                  id: x.itemID,
+                  reference: x.reference,
+                  description: x.description,
+                  stock: x.currentStock,
+                  unit: x.unit,
+                  minimum_stock: x.minimumStock,
+                };
+              }),
+            });
+          } else {
+            // Fetch only product that he is able
+            const types = user.user_sales.map((x) => x.item_type.id);
+            const productStock = await mongoProductModel
+              .find(
+                {
+                  $and: [
+                    {
+                      $expr: {
+                        $lt: ["$currentStock", "$minimumStock"],
+                      },
+                    },
+                    {
+                      $expr: {
+                        $gte: ["$currentStock", 0],
+                      },
+                    },
+                    {
+                      $or: [
+                        {
+                          reference: {
+                            $regex: keyword,
+                          },
+                        },
+                        {
+                          description: {
+                            $regex: keyword,
+                          },
+                        },
+                      ],
+                    },
+                    {
+                      itemTypeID: {
+                        $in: types,
+                      },
+                    },
+                  ],
+                },
+                "itemID reference description unit currentStock minimumStock"
+              )
+              .limit(10)
+              .skip((page - 1) * 10);
+
+            return res.status(200).send({
+              data: productStock.map((x) => {
+                return {
+                  id: x.itemID,
+                  reference: x.reference,
+                  description: x.description,
+                  stock: x.currentStock,
+                  unit: x.unit,
+                  minimum_stock: x.minimumStock,
+                };
+              }),
+            });
+          }
+        });
+        break;
       case "sales":
         UserModel.fetchByID(req.body.userId).then((user) => {
           if (user?.user_department?.role != 6) {
@@ -71,7 +180,6 @@ class ProductStockController {
           } else {
             // Fetch only product that he is able
             const types = user.user_sales.map((x) => x.item_type.id);
-            console.log(`itemTypeID = ${types.join(" OR itemTypeID = ")}`);
             meili
               .index("item")
               .search(keyword, {
