@@ -132,48 +132,48 @@ PromotionController.fetchResultByID = (req, res) => {
             return x.rule == "Does not contain";
         });
         const productIDs = yield mongo_product_model_1.mongoProductModel.find({
-            itemBrandID: promotion.brand_id,
             $and: [
+                { itemBrandID: promotion.brand_id },
                 startsWith.length > 0
                     ? {
-                        $or: startsWith.map((x) => {
-                            return { reference: RegExp(`^${x.value}`, "i") };
-                        }),
+                        $or: startsWith.map((x) => ({
+                            reference: new RegExp(`^${x.value}`, "i"),
+                        })),
                     }
                     : {},
                 endsWith.length > 0
                     ? {
-                        $or: endsWith.map((x) => {
-                            return { reference: RegExp(`${x.value}$`, "i") };
-                        }),
+                        $or: endsWith.map((x) => ({
+                            reference: new RegExp(`${x.value}$`, "i"),
+                        })),
                     }
                     : {},
                 contains.length > 0
                     ? {
-                        $or: contains.map((x) => {
-                            return { reference: RegExp(`${x.value}`, "i") };
-                        }),
+                        $or: contains.map((x) => ({
+                            reference: new RegExp(`${x.value}`, "i"),
+                        })),
                     }
                     : {},
                 doesNotStartWith.length > 0
                     ? {
-                        $or: doesNotStartWith.map((x) => {
-                            return { reference: { $not: RegExp(`^${x.value}`, "i") } };
-                        }),
+                        $and: doesNotStartWith.map((x) => ({
+                            reference: { $not: new RegExp(`^${x.value}`, "i") },
+                        })),
                     }
                     : {},
                 doesNotEndWith.length > 0
                     ? {
-                        $or: doesNotEndWith.map((x) => {
-                            return { reference: { $not: RegExp(`${x.value}$`, "i") } };
-                        }),
+                        $and: doesNotEndWith.map((x) => ({
+                            reference: { $not: new RegExp(`${x.value}$`, "i") },
+                        })),
                     }
                     : {},
                 doesNotContain.length > 0
                     ? {
-                        $or: doesNotContain.map((x) => {
-                            return { reference: { $not: RegExp(`${x.value}`, "i") } };
-                        }),
+                        $and: doesNotContain.map((x) => ({
+                            reference: { $not: new RegExp(`${x.value}`, "i") },
+                        })),
                     }
                     : {},
             ],
