@@ -289,212 +289,108 @@ class PromotionModel {
         ]),
       ]);
     } else {
-      // return Promise.all([
-      //   mongoStockOutModel.aggregate([
-      //     // First lookup to product
-      //     {
-      //       $lookup: {
-      //         from: "product",
-      //         localField: "productID",
-      //         foreignField: "_id",
-      //         as: "product",
-      //       },
-      //     },
-      //     // Then change from array to objecct
-      //     {
-      //       $unwind: "$product",
-      //     },
-      //     // Match all promotion rule
-      //     ...promotion.map((x) => {
-      //       if (x.rule == "Starts with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $regex: `^${x.value}`,
-      //               $options: "i",
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Ends with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $regex: `${x.value}$`,
-      //               $options: "i",
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Contains") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $regex: `${x.value}`,
-      //               $options: "i",
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Does not start with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $not: {
-      //                 $regex: `^${x.value}`,
-      //                 $options: "i",
-      //               },
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Does not end with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $not: {
-      //                 $regex: `${x.value}$`,
-      //                 $options: "i",
-      //               },
-      //             },
-      //           },
-      //         };
-      //       } else {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $not: {
-      //                 $regex: `${x.value}`,
-      //                 $options: "i",
-      //               },
-      //             },
-      //           },
-      //         };
-      //       }
-      //     }),
-      //     {
-      //       $match: {
-      //         "product.itemBrandID": brand_id,
-      //       },
-      //     },
-      //     {
-      //       $match: {
-      //         date: {
-      //           $gte: start,
-      //           $lte: end,
-      //         },
-      //         adjustmentCaseCodeID: null,
-      //         adjustmentCaseID: null,
-      //       },
-      //     },
-      //     {
-      //       $group: {
-      //         _id: null,
-      //         total: {
-      //           $sum: "$total",
-      //         },
-      //       },
-      //     },
-      //   ]),
-      //   mongoStockInModel.aggregate([
-      //     // First lookup to product
-      //     {
-      //       $lookup: {
-      //         from: "products",
-      //         localField: "itemID",
-      //         foreignField: "_id",
-      //         as: "product",
-      //       },
-      //     },
-      //     // Then change from array to objecct
-      //     {
-      //       $unwind: "$product",
-      //     },
-      //     // Match all promotion rule
-      //     ...promotion.map((x) => {
-      //       if (x.rule == "Starts with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $regex: `^${x.value}`,
-      //               $options: "i",
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Ends with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $regex: `${x.value}$`,
-      //               $options: "i",
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Contains") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $regex: `${x.value}`,
-      //               $options: "i",
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Does not start with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $not: {
-      //                 $regex: `^${x.value}`,
-      //                 $options: "i",
-      //               },
-      //             },
-      //           },
-      //         };
-      //       } else if (x.rule == "Does not end with") {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $not: {
-      //                 $regex: `${x.value}$`,
-      //                 $options: "i",
-      //               },
-      //             },
-      //           },
-      //         };
-      //       } else {
-      //         return {
-      //           $match: {
-      //             "product.reference": {
-      //               $not: {
-      //                 $regex: `${x.value}`,
-      //                 $options: "i",
-      //               },
-      //             },
-      //           },
-      //         };
-      //       }
-      //     }),
-      //     {
-      //       $match: {
-      //         "product.itemBrandID": brand_id,
-      //       },
-      //     },
-      //     {
-      //       $match: {
-      //         date: {
-      //           $gte: start,
-      //           $lte: end,
-      //         },
-      //         adjustmentCaseCodeID: null,
-      //         adjustmentCaseID: null,
-      //       },
-      //     },
-      //     {
-      //       $group: {
-      //         _id: null,
-      //         total: {
-      //           $sum: "$total",
-      //         },
-      //       },
-      //     },
-      //   ]),
-      // ]);
+      return Promise.all([
+        mongoStockOutModel.aggregate([
+          {
+            $match: {
+              $and: [
+                {
+                  date: {
+                    $gte: start,
+                  },
+                },
+                {
+                  date: {
+                    $lte: end,
+                  },
+                },
+              ],
+              adjustmentCaseCodeID: null,
+              adjustmentCaseID: null,
+              itemID: {
+                $in: itemIDs,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $multiply: ["$quantity", "$value"],
+                },
+              },
+            },
+          },
+        ]),
+        mongoOverflowModel.aggregate([
+          {
+            $match: {
+              $and: [
+                {
+                  date: {
+                    $gte: start,
+                  },
+                },
+                {
+                  date: {
+                    $lte: end,
+                  },
+                },
+              ],
+              adjustmentCaseCodeID: null,
+              adjustmentCaseID: null,
+              itemID: {
+                $in: itemIDs,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $multiply: ["$quantity", "$value"],
+                },
+              },
+            },
+          },
+        ]),
+        // Calculate the stock in
+        mongoStockInModel.aggregate([
+          {
+            $match: {
+              $and: [
+                {
+                  date: {
+                    $gte: start,
+                  },
+                },
+                {
+                  date: {
+                    $lte: end,
+                  },
+                },
+              ],
+              adjustmentCaseCodeID: null,
+              adjustmentCaseID: null,
+              itemID: {
+                $in: itemIDs,
+              },
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              total: {
+                $sum: {
+                  $multiply: ["$quantity", "$price"],
+                },
+              },
+            },
+          },
+        ]),
+      ]);
     }
   }
 
