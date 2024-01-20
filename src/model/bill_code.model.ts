@@ -238,12 +238,6 @@ class BillCodeModel {
         is_paid: true,
         is_delete: true,
         created_at: true,
-        payment_method: {
-          select: {
-            name: true,
-            description: true,
-          },
-        },
         customer: {
           select: {
             name: true,
