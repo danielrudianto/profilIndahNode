@@ -11,7 +11,7 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.post("/search", sales_invoice_controller_1.default.fetchSearch);
-router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("customer_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("payment_method_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("discount")
+router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("customer_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("discount")
     .toInt()
     .isInt({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("delivery")

@@ -24,6 +24,7 @@ model payment_method {
   user_payment_method_updated_byTouser user?               @relation("payment_method_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_3")
   bill_code                            bill_code[]
   sales_return_code                    sales_return_code[]
+  bill_payment                         bill_payment[]
 
   @@index([created_by], map: "payment_method_ibfk_1_idx")
   @@index([deleted_by], map: "payment_method_ibfk_2_idx")
@@ -136,34 +137,45 @@ model bill {
 }
 
 model bill_code {
-  id                Int       @id @default(autoincrement())
-  name              String    @unique(map: "name_UNIQUE") @db.VarChar(45)
-  customer_id       Int?
-  created_by        Int
-  created_at        DateTime  @default(now()) @db.DateTime(0)
-  payment_method_id Int?
-  is_delete         Boolean   @default(false)
-  is_confirm        Boolean   @default(false)
-  confirmed_by      Int?
-  confirmed_at      DateTime? @db.DateTime(0)
-  discount          Decimal   @default(0.0000) @db.Decimal(50, 4)
-  delivery          Decimal   @default(0.0000) @db.Decimal(50, 4)
-  service           Decimal   @default(0.0000) @db.Decimal(50, 4)
-  uuid              String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
-  payment_term      Int       @default(0)
-  is_paid           Boolean   @default(false)
+  id           Int       @id @default(autoincrement())
+  name         String    @unique(map: "name_UNIQUE") @db.VarChar(45)
+  customer_id  Int?
+  created_by   Int
+  created_at   DateTime  @default(now()) @db.DateTime(0)
+  is_delete    Boolean   @default(false)
+  is_confirm   Boolean   @default(false)
+  confirmed_by Int?
+  confirmed_at DateTime? @db.DateTime(0)
+  discount     Decimal   @default(0.0000) @db.Decimal(50, 4)
+  delivery     Decimal   @default(0.0000) @db.Decimal(50, 4)
+  service      Decimal   @default(0.0000) @db.Decimal(50, 4)
+  uuid         String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
+  payment_term Int?      @default(0)
+  is_paid      Boolean   @default(false)
 
   date                              DateTime?       @db.Date
   user_bill_code_confirmed_byTouser user?           @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")
   user_bill_code_created_byTouser   user            @relation("bill_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_1")
   customer                          customer?       @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_3")
-  payment_method                    payment_method? @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_4")
   bill                              bill[]
+  bill_payment                      bill_payment[]
+  payment_method                    payment_method? @relation(fields: [payment_methodId], references: [id])
+  payment_methodId                  Int?
 
   @@index([created_by], map: "bill_code_ibfk_1_idx")
   @@index([confirmed_by], map: "bill_code_ibfk_2_idx")
   @@index([customer_id], map: "bill_code_ibfk_3_idx")
-  @@index([payment_method_id], map: "bill_code_ibfk_4_idx")
+}
+
+model bill_payment {
+  id                Int      @id @default(autoincrement())
+  payment_method_id Int?
+  bill_code_id      Int
+  value             Decimal  @default(0.0000) @db.Decimal(12, 4)
+  date              DateTime @db.Date
+
+  bill_code      bill_code       @relation(fields: [bill_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_payment_ibfk_2")
+  payment_method payment_method? @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_payment_ibfk_1")
 }
 
 model company {

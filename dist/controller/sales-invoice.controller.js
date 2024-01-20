@@ -33,19 +33,20 @@ _a = SalesInvoiceController;
 SalesInvoiceController.create = (req, res) => {
     const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
-    const payment_method_id = req.body.payment_method_id;
     const discount = parseFloat(req.body.discount);
     const delivery = parseFloat(req.body.delivery);
     const service = parseFloat(req.body.service);
     const bill = req.body.bill;
+    const payments = req.body.payments;
+    const payment_term = req.body.payment_term;
     const date = !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
     const userID = req.body.userId;
+    const is_paid = req.body.is_paid;
     bill_code_model_1.default.create({
         name: bill_code_model_1.default.generateName(date),
         customer_id: customer_id,
-        payment_method_id: payment_method_id,
         discount: discount,
         delivery: delivery,
         service: service,
@@ -73,7 +74,16 @@ SalesInvoiceController.create = (req, res) => {
                 };
             }
         }),
+        payments: payments.map((x) => {
+            return {
+                date: date,
+                value: x.value,
+                payment_method_id: x.payment_method_id,
+            };
+        }),
         created_by: userID,
+        payment_term: payment_term,
+        is_paid: is_paid,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         const createSalesInvoiceTotal = result.bill.reduce((a, b) => {

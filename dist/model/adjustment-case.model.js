@@ -290,6 +290,29 @@ class AdjustmentCaseModel {
             ]);
         }
     }
+    static fetchGeneralByIDs(ids) {
+        if (ids.length == 0)
+            return Promise.resolve([]);
+        return app_1.prisma.$queryRawUnsafe(`
+      SELECT adjustment_case_code.id, adjustment_case_code.name, adjustment_case_code.date, "Internal" AS opponent
+      FROM adjustment_case_code
+      WHERE adjustment_case_code.id IN (${ids.join(",")})
+    `);
+    }
+    static fetchByCompanyID(company_id, date) {
+        return app_1.prisma.$queryRawUnsafe(`
+      SELECT item.reference, item.description, item.unit, adjustment_case.quantity * (COALESCE(item_unit.conversion, 1)) AS quantity, adjustment_case_code.name
+      FROM adjustment_case
+      JOIN adjustment_case_code ON adjustment_case_code.id = adjustment_case.adjustment_case_code_id
+      JOIN item ON item.id = adjustment_case.item_id
+      LEFT JOIN item_unit ON item_unit.id = adjustment_case.item_unit_id
+      WHERE adjustment_case_code.company_id = ${company_id}
+      AND adjustment_case.quantity > 0
+      AND adjustment_case_code.date = '${date}'
+      AND adjustment_case_code.is_delete = 0
+      AND adjustment_case_code.is_confirm = 1
+    `);
+    }
 }
 exports.default = AdjustmentCaseModel;
 //# sourceMappingURL=adjustment-case.model.js.map

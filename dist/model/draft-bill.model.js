@@ -255,7 +255,6 @@ class DraftBillModel {
                     name: data.name,
                     date: new Date((0, moment_1.default)(data.date).format("YYYY-MM-DD")),
                     customer_id: data.customer_id,
-                    payment_method_id: data.payment_method_id,
                     service: data.service,
                     delivery: data.delivery,
                     discount: data.discount,

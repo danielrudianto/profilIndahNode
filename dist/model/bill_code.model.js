@@ -14,7 +14,6 @@ class BillCodeModel {
                 created_by: data.created_by,
                 created_at: new Date(),
                 customer_id: data.customer_id,
-                payment_method_id: data.payment_method_id,
                 discount: data.discount,
                 delivery: data.delivery,
                 service: data.service,
@@ -28,6 +27,13 @@ class BillCodeModel {
                         data: data.items,
                     },
                 },
+                bill_payment: {
+                    createMany: {
+                        data: data.payments,
+                    },
+                },
+                payment_term: data.payment_term,
+                is_paid: data.is_paid,
             },
             include: {
                 bill: {
@@ -155,12 +161,27 @@ class BillCodeModel {
                         item_id: true,
                     },
                 },
+                bill_payment: {
+                    select: {
+                        id: true,
+                        value: true,
+                        date: true,
+                        payment_method: {
+                            select: {
+                                name: true,
+                                description: true,
+                            },
+                        },
+                    },
+                },
+                payment_term: true,
                 user_bill_code_created_byTouser: {
                     select: {
                         name: true,
                     },
                 },
                 is_confirm: true,
+                is_paid: true,
                 is_delete: true,
                 created_at: true,
                 payment_method: {
@@ -569,24 +590,34 @@ class BillCodeModel {
     }
     static fetchMoneyReceipt(formattedDate) {
         return app_1.prisma.$queryRawUnsafe(`
-      SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value
-      FROM payment_method
-      RIGHT JOIN (
-        SELECT SUM(a.value + delivery - discount + service) AS value, payment_method_id
-        FROM bill_code
-        JOIN (
-          SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code_id
-          FROM bill
-          GROUP BY bill.bill_code_id
-        ) a
-        ON bill_code.id = a.bill_code_id
-        WHERE bill_code.is_confirm = 1
-        AND bill_code.is_delete = 0
-        AND bill_code.date = '${formattedDate}'
-        GROUP BY bill_code.payment_method_id
-      ) pm
-      ON payment_method.id = pm.payment_method_id
-      ORDER BY payment_method.id ASC
+    SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value AS bill, sr.value AS sales_return
+    FROM payment_method
+    RIGHT JOIN (
+      SELECT SUM(value) AS value, bill_payment.payment_method_id
+      FROM bill_payment
+      JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND bill_code.date = '${formattedDate}'
+      GROUP BY bill_payment.payment_method_id
+    ) pm
+    ON payment_method.id = pm.payment_method_id
+    RIGHT JOIN (
+      SELECT SUM(sr_detail.value) AS value, payment_method_id
+      FROM sales_return_code
+      JOIN (
+        SELECT SUM(sales_return.quantity * (bill.price - bill.discount)) AS value, sales_return_code_id
+          FROM sales_return
+          JOIN bill ON sales_return.bill_id = bill.id
+          GROUP BY sales_return.sales_return_code_id
+        ) sr_detail
+        ON sales_return_code.id = sr_detail.sales_return_code_id
+        WHERE sales_return_code.is_confirm = 1
+        AND sales_return_code.is_delete = 0
+        AND sales_return_code.date = '${formattedDate}'
+        GROUP BY sales_return_code.payment_method_id  
+    ) sr
+    ON payment_method.id = sr.payment_method_id
     `);
     }
     static fetchAppendix(month, year) {
@@ -894,6 +925,95 @@ class BillCodeModel {
                 },
             },
         });
+    }
+    /**
+     * Fetch receivables
+     * @returns
+     */
+    static fetchReceivables() {
+        return app_1.prisma.$queryRawUnsafe(`
+      SELECT SUM(COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service - COALESCE(p.value, 0)) AS value, 
+      bill_code.customer_id, 
+      COALESCE(customer.name, 'Retail customer') AS customer_name
+      FROM bill_code
+      LEFT JOIN customer ON bill_code.customer_id = customer.id
+      LEFT JOIN (
+        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+        FROM bill
+        GROUP BY bill.bill_code_id
+      ) AS b
+      ON bill_code.id = b.bill_code_id
+      LEFT JOIN (
+        SELECT SUM(bill_payment.value) AS value, bill_payment.bill_code_id
+          FROM bill_payment
+          GROUP BY bill_code_id
+      ) AS p
+      ON bill_code.id = p.bill_code_id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0 
+      AND bill_code.is_paid = 0
+      GROUP BY bill_code.customer_id
+      ORDER BY value DESC
+    `);
+    }
+    static fetchReceivableByCustomerID(customer_id) {
+        if (customer_id == 0) {
+            return app_1.prisma.$queryRawUnsafe(`
+          SELECT bill_code.id, bill_code.payment_term, (COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service) AS value,
+          COALESCE(p.value, 0) AS payment,
+          bill_code.customer_id, bill_code.name, bill_code.date
+          FROM bill_code
+          JOIN (
+            SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+            FROM bill
+            GROUP BY bill.bill_code_id
+          ) AS b
+          ON bill_code.id = b.bill_code_id
+          LEFT JOIN (
+            SELECT SUM(bill_payment.value) AS value, bill_payment.bill_code_id
+            FROM bill_payment
+            GROUP BY bill_code_id
+          ) AS p
+          ON bill_code.id = p.bill_code_id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.customer_id IS NULL
+          AND bill_code.is_paid = 0
+          ORDER BY bill_code.date DESC`);
+        }
+        else {
+            return app_1.prisma.$queryRawUnsafe(`
+          SELECT bill_code.id, bill_code.payment_term, (COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service) AS value,
+          COALESCE(p.value, 0) AS payment,
+          bill_code.customer_id, bill_code.name, bill_code.date
+          FROM bill_code
+          JOIN (
+            SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+            FROM bill
+            GROUP BY bill.bill_code_id
+          ) AS b
+          ON bill_code.id = b.bill_code_id
+          LEFT JOIN (
+            SELECT SUM(bill_payment.value) AS value, bill_payment.bill_code_id
+            FROM bill_payment
+            GROUP BY bill_code_id
+          ) AS p
+          ON bill_code.id = p.bill_code_id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.customer_id = ${customer_id}
+          AND bill_code.is_delete = 0
+          AND bill_code.is_paid = 0
+          ORDER BY bill_code.date DESC`);
+        }
+    }
+    static fetchGeneralByIDs(ids) {
+        if (ids.length == 0)
+            return Promise.resolve([]);
+        return app_1.prisma.$queryRawUnsafe(`
+      SELECT bill_code.id, bill_code.name, bill_code.date, COALESCE(customer.name, "Retail customer") AS opponent
+      FROM bill_code
+      LEFT JOIN customer ON bill_code.customer_id =customer.id
+      WHERE bill_code.id IN (${ids.join(",")})
+    `);
     }
 }
 exports.default = BillCodeModel;

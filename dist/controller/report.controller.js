@@ -48,6 +48,8 @@ const moment_1 = __importDefault(require("moment"));
 const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const promotion_model_1 = __importDefault(require("../model/promotion.model"));
+const adjustment_case_model_1 = __importDefault(require("../model/adjustment-case.model"));
+const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 class ReportController {
 }
 _a = ReportController;
@@ -57,10 +59,22 @@ _a = ReportController;
  * @param res
  */
 ReportController.fetchMoneyReceipt = (req, res) => {
-    const date = new Date(req.body.date);
-    bill_code_model_1.default.fetchMoneyReceipt((0, moment_1.default)(date).format("YYYY-MM-DD"))
+    bill_code_model_1.default.fetchMoneyReceipt(req.body.date)
         .then((result) => {
-        return res.status(200).send(result);
+        const response = [];
+        result.forEach((x) => {
+            if (x.bill != null || x.sales_return != null) {
+                response.push({
+                    id: x.id,
+                    name: x.name,
+                    bill_payment: x.bill == null ? 0 : Number(x.bill),
+                    sales_return_payment: Number(x.sales_return),
+                });
+            }
+        });
+        return res
+            .status(200)
+            .send(response.sort((a, b) => a.name.localeCompare(b.name)));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching money receipt ${error}`);
@@ -769,12 +783,14 @@ ReportController.fetchExpenseReport = (req, res) => __awaiter(void 0, void 0, vo
 ReportController.fetchSalesDashboard = (req, res) => {
     const today = new Date();
     const yesterday = new Date();
+    const lastMonth = new Date();
     yesterday.setDate(today.getDate() - 1);
+    lastMonth.setMonth(today.getMonth() - 1);
     Promise.all([
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
         bill_code_model_1.default.fetchByDate(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate()),
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, null),
-        bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), null),
+        bill_code_model_1.default.fetchByDate(lastMonth.getFullYear(), lastMonth.getMonth() + 1, null),
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), today.getDate()),
         promotion_model_1.default.countActive(),
     ])
@@ -821,6 +837,121 @@ ReportController.fetchAdministratorDashboard = (req, res) => {
         .catch((error) => {
         console.error(`[error]: Error on fetching administrator data. ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+ReportController.fetchOutputReportCompany = (req, res) => {
+    const date = req.body.date;
+    const company_id = req.body.company_id;
+    mongo_stock_in_model_1.mongoStockOutModel
+        .aggregate([
+        {
+            // Look up the stock in
+            $lookup: {
+                from: "stock-ins",
+                localField: "stockInID",
+                foreignField: "_id",
+                as: "stockIn",
+            },
+            // match the stock out date with parameter date
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "itemID",
+                foreignField: "itemID",
+                as: "product",
+            },
+        },
+        {
+            $unwind: {
+                path: "$stockIn",
+            },
+        },
+        {
+            $unwind: {
+                path: "$product",
+            },
+        },
+        {
+            $match: {
+                date: {
+                    $gte: new Date(date),
+                    $lt: new Date((0, moment_1.default)(date).add(1, "days").toISOString()),
+                },
+            },
+        },
+        {
+            $match: {
+                "stockIn.companyID": company_id,
+            },
+        },
+    ])
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        const billNames = yield bill_code_model_1.default.fetchGeneralByIDs(result.filter((x) => x.billCodeID != null).map((x) => x.billCodeID));
+        const adjustmentCaseNames = yield adjustment_case_model_1.default.fetchGeneralByIDs(result
+            .filter((x) => x.adjustmentCaseCodeID != null)
+            .map((x) => x.adjustmentCaseCodeID));
+        const goodReceipts = yield good_receipt_model_1.default.fetchByCompanyID(company_id, date);
+        const adjustmentCases = yield adjustment_case_model_1.default.fetchByCompanyID(company_id, date);
+        return res.status(200).send({
+            output: result
+                .map((x) => {
+                if (x.billCodeID != null) {
+                    const billIndex = billNames.findIndex((y) => y.id == x.billCodeID);
+                    return {
+                        reference: x.product.reference,
+                        description: x.product.description,
+                        quantity: x.quantity * -1,
+                        unit: x.product.unit,
+                        document: billIndex == -1 ? "" : billNames[billIndex].name,
+                        opponent: billIndex == -1 ? "" : billNames[billIndex].opponent,
+                    };
+                }
+                else if (x.adjusmtnentCaseCodeID != null) {
+                    const adjustmentCaseIndex = adjustmentCaseNames.findIndex((y) => y.id == x.adjustmentCaseCodeID);
+                    return {
+                        reference: x.product.reference,
+                        description: x.product.description,
+                        quantity: x.quantity * -1,
+                        unit: x.product.unit,
+                        document: adjustmentCaseIndex == -1
+                            ? ""
+                            : adjustmentCaseNames[adjustmentCaseIndex].name,
+                        opponent: "Internal",
+                    };
+                }
+            })
+                .sort((a, b) => {
+                return a.reference.localeCompare(b.reference);
+            }),
+            input: [
+                ...goodReceipts.map((x) => {
+                    return {
+                        reference: x.reference,
+                        description: x.description,
+                        quantity: Number(x.quantity),
+                        unit: x.unit,
+                        document: x.name,
+                        opponent: x.opponent,
+                    };
+                }),
+                ...adjustmentCases.map((x) => {
+                    return {
+                        reference: x.reference,
+                        description: x.description,
+                        quantity: Number(x.quantity),
+                        unit: x.unit,
+                        document: x.name,
+                        opponent: "Internal",
+                    };
+                }),
+            ].sort((a, b) => {
+                return a.reference.localeCompare(b.reference);
+            }),
+        });
+    }))
+        .catch((error) => {
+        return res.status(500).send(error);
     });
 };
 exports.default = ReportController;

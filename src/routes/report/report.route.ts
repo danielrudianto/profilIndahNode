@@ -68,4 +68,9 @@ router.get(
   ReportController.fetchAdministratorDashboard
 );
 
+router.post(
+  "/output-company/download",
+  ReportController.fetchOutputReportCompany
+);
+
 export default router;

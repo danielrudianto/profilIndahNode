@@ -39,6 +39,7 @@ import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
 import CashierRoutes from "./routes/distinct/cashier.route";
 import PromotionRoutes from "./routes/master/promotion.route";
+import ReceivableRoutes from "./routes/transaction/receivable.route";
 
 /*
   Administrator Routes
@@ -100,6 +101,7 @@ app.use("/cashier", authMiddleware, CashierRoutes);
 app.use("/user", authMiddleware, userRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/report", reportRoutes);
+app.use("/receivable", authMiddleware, ReceivableRoutes);
 
 app.use("/administrator", administratorRoutes);
 app.use("/os", osRoutes);

@@ -12,7 +12,6 @@ router.post(
   "/",
   body("uuid").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("customer_id").exists().withMessage(ErrorList["Parameter error"]),
-  body("payment_method_id").exists().withMessage(ErrorList["Parameter error"]),
   body("discount")
     .toInt()
     .isInt({ min: 0 })

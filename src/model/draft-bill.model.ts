@@ -307,7 +307,6 @@ export class DraftBillModel {
           name: data.name,
           date: new Date(moment(data.date).format("YYYY-MM-DD")),
           customer_id: data.customer_id,
-          payment_method_id: data.payment_method_id,
           service: data.service,
           delivery: data.delivery,
           discount: data.discount,

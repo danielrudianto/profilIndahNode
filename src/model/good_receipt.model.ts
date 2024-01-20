@@ -485,6 +485,22 @@ class GoodReceiptModel {
       ),
     ]);
   }
+
+  static fetchByCompanyID(company_id: number, date: string) {
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT item.reference, item.description, item.unit, 
+      good_receipt.quantity * COALESCE(item_unit.conversion, 1) AS quantity, 
+      good_receipt_code.name AS name, supplier.name AS opponent
+      FROM good_receipt
+      JOIN item ON good_receipt.item_id = item.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      WHERE good_receipt_code.company_id = ${company_id}
+      AND good_receipt_code.date = '${date}'
+      AND good_receipt_code.is_delete = 0
+    `);
+  }
 }
 
 export default GoodReceiptModel;

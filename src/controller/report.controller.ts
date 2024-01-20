@@ -16,6 +16,9 @@ import moment from "moment";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import PromotionModel from "../model/promotion.model";
+import BillModel from "../model/bill.model";
+import AdjustmentCaseModel from "../model/adjustment-case.model";
+import GoodReceiptModel from "../model/good_receipt.model";
 
 class ReportController {
   /**
@@ -24,11 +27,23 @@ class ReportController {
    * @param res
    */
   static fetchMoneyReceipt = (req: Request, res: Response) => {
-    const date = new Date(req.body.date);
-
-    BillCodeModel.fetchMoneyReceipt(moment(date).format("YYYY-MM-DD"))
+    BillCodeModel.fetchMoneyReceipt(req.body.date)
       .then((result) => {
-        return res.status(200).send(result);
+        const response: any[] = [];
+        (result as any[]).forEach((x) => {
+          if (x.bill != null || x.sales_return != null) {
+            response.push({
+              id: x.id,
+              name: x.name,
+              bill_payment: x.bill == null ? 0 : Number(x.bill),
+              sales_return_payment: Number(x.sales_return),
+            });
+          }
+        });
+
+        return res
+          .status(200)
+          .send(response.sort((a, b) => a.name.localeCompare(b.name)));
       })
       .catch((error) => {
         console.error(`[error]: Error on fetching money receipt ${error}`);
@@ -817,7 +832,10 @@ class ReportController {
   static fetchSalesDashboard = (req: Request, res: Response) => {
     const today = new Date();
     const yesterday = new Date();
+
+    const lastMonth = new Date();
     yesterday.setDate(today.getDate() - 1);
+    lastMonth.setMonth(today.getMonth() - 1);
 
     Promise.all([
       BillCodeModel.fetchByDate(
@@ -835,7 +853,11 @@ class ReportController {
         today.getMonth() + 1,
         null
       ),
-      BillCodeModel.fetchByDate(today.getFullYear(), today.getMonth(), null),
+      BillCodeModel.fetchByDate(
+        lastMonth.getFullYear(),
+        lastMonth.getMonth() + 1,
+        null
+      ),
       BillCodeModel.fetchByDate(
         today.getFullYear(),
         today.getMonth(),
@@ -914,6 +936,143 @@ class ReportController {
           `[error]: Error on fetching administrator data. ${error}`
         );
         return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  static fetchOutputReportCompany = (req: Request, res: Response) => {
+    const date = req.body.date;
+    const company_id = req.body.company_id;
+    mongoStockOutModel
+      .aggregate([
+        {
+          // Look up the stock in
+          $lookup: {
+            from: "stock-ins",
+            localField: "stockInID",
+            foreignField: "_id",
+            as: "stockIn",
+          },
+          // match the stock out date with parameter date
+        },
+        {
+          $lookup: {
+            from: "products",
+            localField: "itemID",
+            foreignField: "itemID",
+            as: "product",
+          },
+        },
+        {
+          $unwind: {
+            path: "$stockIn",
+          },
+        },
+        {
+          $unwind: {
+            path: "$product",
+          },
+        },
+        {
+          $match: {
+            date: {
+              $gte: new Date(date),
+              $lt: new Date(moment(date).add(1, "days").toISOString()),
+            },
+          },
+        },
+        {
+          $match: {
+            "stockIn.companyID": company_id,
+          },
+        },
+      ])
+      .then(async (result) => {
+        const billNames = await BillCodeModel.fetchGeneralByIDs(
+          result.filter((x) => x.billCodeID != null).map((x) => x.billCodeID)
+        );
+
+        const adjustmentCaseNames = await AdjustmentCaseModel.fetchGeneralByIDs(
+          result
+            .filter((x) => x.adjustmentCaseCodeID != null)
+            .map((x) => x.adjustmentCaseCodeID)
+        );
+
+        const goodReceipts = await GoodReceiptModel.fetchByCompanyID(
+          company_id,
+          date
+        );
+
+        const adjustmentCases = await AdjustmentCaseModel.fetchByCompanyID(
+          company_id,
+          date
+        );
+
+        return res.status(200).send({
+          output: result
+            .map((x) => {
+              if (x.billCodeID != null) {
+                const billIndex = billNames.findIndex(
+                  (y) => y.id == x.billCodeID
+                );
+
+                return {
+                  reference: x.product.reference,
+                  description: x.product.description,
+                  quantity: x.quantity * -1,
+                  unit: x.product.unit,
+                  document: billIndex == -1 ? "" : billNames[billIndex].name,
+                  opponent:
+                    billIndex == -1 ? "" : billNames[billIndex].opponent,
+                };
+              } else if (x.adjusmtnentCaseCodeID != null) {
+                const adjustmentCaseIndex = adjustmentCaseNames.findIndex(
+                  (y) => y.id == x.adjustmentCaseCodeID
+                );
+
+                return {
+                  reference: x.product.reference,
+                  description: x.product.description,
+                  quantity: x.quantity * -1,
+                  unit: x.product.unit,
+                  document:
+                    adjustmentCaseIndex == -1
+                      ? ""
+                      : adjustmentCaseNames[adjustmentCaseIndex].name,
+                  opponent: "Internal",
+                };
+              }
+            })
+            .sort((a, b) => {
+              return a!.reference.localeCompare(b!.reference);
+            }),
+          input: [
+            ...goodReceipts.map((x) => {
+              return {
+                reference: x.reference,
+                description: x.description,
+                quantity: Number(x.quantity),
+                unit: x.unit,
+                document: x.name,
+                opponent: x.opponent,
+              };
+            }),
+            ...adjustmentCases.map((x) => {
+              return {
+                reference: x.reference,
+                description: x.description,
+                quantity: Number(x.quantity),
+                unit: x.unit,
+                document: x.name,
+                opponent: "Internal",
+              };
+            }),
+          ].sort((a, b) => {
+            return a.reference.localeCompare(b.reference);
+          }),
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
       });
   };
 }

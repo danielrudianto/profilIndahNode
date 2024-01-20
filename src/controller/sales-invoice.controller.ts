@@ -23,21 +23,22 @@ class SalesInvoiceController {
   static create = (req: Request, res: Response) => {
     const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
-    const payment_method_id = req.body.payment_method_id;
     const discount = parseFloat(req.body.discount);
     const delivery = parseFloat(req.body.delivery);
     const service = parseFloat(req.body.service);
     const bill = req.body.bill as any[];
+    const payments = req.body.payments as any[];
+    const payment_term = req.body.payment_term;
     const date =
       !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
     const userID = req.body.userId;
+    const is_paid = req.body.is_paid;
 
     BillCodeModel.create({
       name: BillCodeModel.generateName(date),
       customer_id: customer_id,
-      payment_method_id: payment_method_id,
       discount: discount,
       delivery: delivery,
       service: service,
@@ -64,7 +65,16 @@ class SalesInvoiceController {
           };
         }
       }),
+      payments: payments.map((x) => {
+        return {
+          date: date,
+          value: x.value,
+          payment_method_id: x.payment_method_id,
+        };
+      }),
       created_by: userID,
+      payment_term: payment_term,
+      is_paid: is_paid,
     })
       .then(async (result) => {
         const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
