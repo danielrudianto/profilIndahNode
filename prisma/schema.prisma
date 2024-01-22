@@ -22,7 +22,6 @@ model payment_method {
   user                                 user                @relation("payment_method_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_1")
   user_payment_method_deleted_byTouser user?               @relation("payment_method_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_2")
   user_payment_method_updated_byTouser user?               @relation("payment_method_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_3")
-  bill_code                            bill_code[]
   sales_return_code                    sales_return_code[]
   bill_payment                         bill_payment[]
 
@@ -153,14 +152,12 @@ model bill_code {
   payment_term Int?      @default(0)
   is_paid      Boolean   @default(false)
 
-  date                              DateTime?       @db.Date
-  user_bill_code_confirmed_byTouser user?           @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")
-  user_bill_code_created_byTouser   user            @relation("bill_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_1")
-  customer                          customer?       @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_3")
+  date                              DateTime?      @db.Date
+  user_bill_code_confirmed_byTouser user?          @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")
+  user_bill_code_created_byTouser   user           @relation("bill_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_1")
+  customer                          customer?      @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_3")
   bill                              bill[]
   bill_payment                      bill_payment[]
-  payment_method                    payment_method? @relation(fields: [payment_methodId], references: [id])
-  payment_methodId                  Int?
 
   @@index([created_by], map: "bill_code_ibfk_1_idx")
   @@index([confirmed_by], map: "bill_code_ibfk_2_idx")
