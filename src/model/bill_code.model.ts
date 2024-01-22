@@ -18,7 +18,7 @@ interface ICreateBill {
   uuid: string;
   items: ICreateBillItem[];
   payments: ICreateBillPayment[];
-  payment_term: number;
+  payment_term: number | null;
   is_paid: boolean;
 }
 
@@ -73,7 +73,14 @@ class BillCodeModel {
         },
         bill_payment: {
           createMany: {
-            data: data.payments,
+            data: data.payments.map((x) => {
+              return {
+                date: x.date,
+                value: x.value,
+                payment_method_id:
+                  x.payment_method_id == 0 ? null : x.payment_method_id,
+              };
+            }),
           },
         },
         payment_term: data.payment_term,

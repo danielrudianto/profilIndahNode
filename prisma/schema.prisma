@@ -149,7 +149,7 @@ model bill_code {
   delivery     Decimal   @default(0.0000) @db.Decimal(50, 4)
   service      Decimal   @default(0.0000) @db.Decimal(50, 4)
   uuid         String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
-  payment_term Int?      @default(0)
+  payment_term Int?
   is_paid      Boolean   @default(false)
 
   date                              DateTime?      @db.Date
