@@ -22,6 +22,7 @@ const escape_helper_1 = require("../helper/escape.helper");
 const product_package_model_1 = require("../model/product-package.model");
 const queue_helper_1 = require("../helper/queue.helper");
 const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
+const receivable_controller_1 = __importDefault(require("./receivable.controller"));
 class SalesInvoiceController {
 }
 _a = SalesInvoiceController;
@@ -86,6 +87,11 @@ SalesInvoiceController.create = (req, res) => {
         is_paid: is_paid,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!is_paid) {
+            receivable_controller_1.default.receivable += result.bill.reduce((a, b) => {
+                return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
+            }, 0);
+        }
         const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
             return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
         }, 0);

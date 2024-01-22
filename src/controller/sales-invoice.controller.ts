@@ -13,6 +13,7 @@ import {
   StockOutDeleteInterface,
 } from "../interface/stock-in.interface";
 import PromotionModel from "../model/promotion.model";
+import ReceivableController from "./receivable.controller";
 
 class SalesInvoiceController {
   /**
@@ -77,6 +78,13 @@ class SalesInvoiceController {
       is_paid: is_paid,
     })
       .then(async (result) => {
+        if (!is_paid) {
+          ReceivableController.receivable += result.bill.reduce((a, b) => {
+            return (
+              a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+            );
+          }, 0);
+        }
         const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
           return (
             a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)

@@ -4,6 +4,8 @@ import CustomerModel from "../model/customer.model";
 import BillPaymentModel from "../model/bill_payment.model";
 
 class ReceivableController {
+  static receivable = 0;
+
   static fetch = (req: Request, res: Response) => {
     BillCodeModel.fetchReceivables()
       .then((result) => {
@@ -98,6 +100,7 @@ class ReceivableController {
 
         BillPaymentModel.create(payment)
           .then(([result, _]) => {
+            this.receivable -= totalInvoiceValue - totalPayment;
             return res.status(200).send(result);
           })
           .catch((error) => {
@@ -122,6 +125,7 @@ class ReceivableController {
 
           BillPaymentModel.create(payment)
             .then(([result, _]) => {
+              this.receivable -= value;
               return res.status(200).send(result);
             })
             .catch((error) => {
@@ -139,6 +143,7 @@ class ReceivableController {
 
           BillPaymentModel.create(payment)
             .then(([result, _]) => {
+              this.receivable -= value;
               return res.status(200).send(result);
             })
             .catch((error) => {
@@ -159,6 +164,16 @@ class ReceivableController {
       .catch((error) => {
         console.error(`[error]: Error on delete payment ${error}`);
         return res.status(500).send(error);
+      });
+  };
+
+  static checkReceivable = () => {
+    BillCodeModel.calculateReceivables()
+      .then((result) => {
+        this.receivable = result.length == 0 ? 0 : Number(result[0].value);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on check receivable ${error}`);
       });
   };
 }

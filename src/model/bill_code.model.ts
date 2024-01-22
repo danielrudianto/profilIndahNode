@@ -1161,6 +1161,28 @@ class BillCodeModel {
       WHERE bill_code.id IN (${ids.join(",")})
     `);
   }
+
+  static calculateReceivables() {
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT SUM(COALESCE(b.value) + bill_code.delivery - bill_code.discount + bill_code.service - COALESCE(pm.value, 0)) AS value
+      FROM bill_code
+      LEFT JOIN (
+        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+        FROM bill
+        GROUP BY bill.bill_code_id
+      ) AS b
+      ON bill_code.id = b.bill_code_id
+      LEFT JOIN (
+        SELECT SUM(bill_payment.value) AS value, bill_payment.bill_code_id
+        FROM bill_payment
+        GROUP BY bill_code_id
+      ) AS pm
+      ON bill_code.id = pm.bill_code_id
+      WHERE bill_code.is_confirm = 1
+      AND bill_code.is_delete = 0
+      AND bill_code.is_paid = 0
+      `);
+  }
 }
 
 export default BillCodeModel;

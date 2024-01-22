@@ -62,6 +62,7 @@ const changelog_route_1 = __importDefault(require("./routes/report/changelog.rou
 const mongoose_1 = __importDefault(require("mongoose"));
 const client_1 = require("@prisma/client");
 const queue_helper_1 = require("./helper/queue.helper");
+const receivable_controller_1 = __importDefault(require("./controller/receivable.controller"));
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -116,10 +117,17 @@ server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
         autoCreate: true,
     });
     console.info("[info]: Connected with database");
+    receivable_controller_1.default.checkReceivable();
+    console.info("[info]: Checking receivable");
     // Every day at midnight check for overflow
     node_cron_1.default.schedule("0 0 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
         console.log("[info]: Checking for overflow");
         yield queue_helper_1.queue.add("check-all-overflow", {});
+    }));
+    // Schedule for checking receivable
+    node_cron_1.default.schedule("0 0 * * *", () => __awaiter(void 0, void 0, void 0, function* () {
+        console.log("[info]: Checking receivable");
+        receivable_controller_1.default.checkReceivable();
     }));
 }));
 exports.prisma = new client_1.PrismaClient();

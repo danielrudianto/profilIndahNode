@@ -52,6 +52,7 @@ import changelogRoutes from "./routes/report/changelog.route";
 import mongoose from "mongoose";
 import { PrismaClient } from "@prisma/client";
 import { queue } from "./helper/queue.helper";
+import ReceivableController from "./controller/receivable.controller";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -119,10 +120,19 @@ server.listen(5000, async () => {
   });
   console.info("[info]: Connected with database");
 
+  ReceivableController.checkReceivable();
+  console.info("[info]: Checking receivable");
+
   // Every day at midnight check for overflow
   cron.schedule("0 0 * * *", async () => {
     console.log("[info]: Checking for overflow");
     await queue.add("check-all-overflow", {});
+  });
+
+  // Schedule for checking receivable
+  cron.schedule("0 0 * * *", async () => {
+    console.log("[info]: Checking receivable");
+    ReceivableController.checkReceivable();
   });
 });
 

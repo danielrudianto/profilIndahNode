@@ -19,6 +19,7 @@ const bill_payment_model_1 = __importDefault(require("../model/bill_payment.mode
 class ReceivableController {
 }
 _a = ReceivableController;
+ReceivableController.receivable = 0;
 ReceivableController.fetch = (req, res) => {
     bill_code_model_1.default.fetchReceivables()
         .then((result) => {
@@ -103,6 +104,7 @@ ReceivableController.createPayment = (req, res) => __awaiter(void 0, void 0, voi
             };
             bill_payment_model_1.default.create(payment)
                 .then(([result, _]) => {
+                _a.receivable -= totalInvoiceValue - totalPayment;
                 return res.status(200).send(result);
             })
                 .catch((error) => {
@@ -127,6 +129,7 @@ ReceivableController.createPayment = (req, res) => __awaiter(void 0, void 0, voi
                 };
                 bill_payment_model_1.default.create(payment)
                     .then(([result, _]) => {
+                    _a.receivable -= value;
                     return res.status(200).send(result);
                 })
                     .catch((error) => {
@@ -144,6 +147,7 @@ ReceivableController.createPayment = (req, res) => __awaiter(void 0, void 0, voi
                 };
                 bill_payment_model_1.default.create(payment)
                     .then(([result, _]) => {
+                    _a.receivable -= value;
                     return res.status(200).send(result);
                 })
                     .catch((error) => {
@@ -163,6 +167,15 @@ ReceivableController.deletePayment = (req, res) => {
         .catch((error) => {
         console.error(`[error]: Error on delete payment ${error}`);
         return res.status(500).send(error);
+    });
+};
+ReceivableController.checkReceivable = () => {
+    bill_code_model_1.default.calculateReceivables()
+        .then((result) => {
+        _a.receivable = result.length == 0 ? 0 : Number(result[0].value);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on check receivable ${error}`);
     });
 };
 exports.default = ReceivableController;

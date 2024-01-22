@@ -50,6 +50,7 @@ const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const promotion_model_1 = __importDefault(require("../model/promotion.model"));
 const adjustment_case_model_1 = __importDefault(require("../model/adjustment-case.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
+const receivable_controller_1 = __importDefault(require("./receivable.controller"));
 class ReportController {
 }
 _a = ReportController;
@@ -802,6 +803,7 @@ ReportController.fetchSalesDashboard = (req, res) => {
             lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
             monthOnMonth: sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
             count: countPromotion,
+            receivable: receivable_controller_1.default.receivable,
         });
     })
         .catch((error) => {
@@ -832,6 +834,7 @@ ReportController.fetchAdministratorDashboard = (req, res) => {
             todayPurchase: purchase1[0].value == null ? 0 : Number(purchase1[0].value),
             yesterdayPurchase: purchase2[0].value == null ? 0 : Number(purchase2[0].value),
             count: countPromotion,
+            receivable: receivable_controller_1.default.receivable,
         });
     })
         .catch((error) => {

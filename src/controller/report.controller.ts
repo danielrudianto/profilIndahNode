@@ -19,6 +19,7 @@ import PromotionModel from "../model/promotion.model";
 import BillModel from "../model/bill.model";
 import AdjustmentCaseModel from "../model/adjustment-case.model";
 import GoodReceiptModel from "../model/good_receipt.model";
+import ReceivableController from "./receivable.controller";
 
 class ReportController {
   /**
@@ -878,6 +879,7 @@ class ReportController {
             monthOnMonth:
               sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
             count: countPromotion,
+            receivable: ReceivableController.receivable,
           });
         }
       )
@@ -929,6 +931,7 @@ class ReportController {
           yesterdayPurchase:
             purchase2[0].value == null ? 0 : Number(purchase2[0].value),
           count: countPromotion,
+          receivable: ReceivableController.receivable,
         });
       })
       .catch((error) => {
