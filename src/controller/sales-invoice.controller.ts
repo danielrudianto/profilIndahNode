@@ -37,6 +37,8 @@ class SalesInvoiceController {
     const userID = req.body.userId;
     const is_paid = req.body.is_paid;
 
+    console.log(req.body);
+
     BillCodeModel.create({
       name: BillCodeModel.generateName(date),
       customer_id: customer_id,
@@ -83,8 +85,14 @@ class SalesInvoiceController {
             return (
               a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
             );
+          }, 0) as number;
+
+          ReceivableController.receivable -= discount + delivery + service;
+          ReceivableController.receivable -= payments.reduce((a, b) => {
+            return a + Number(b.value);
           }, 0);
         }
+        
         const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
           return (
             a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)

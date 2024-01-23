@@ -45,6 +45,7 @@ SalesInvoiceController.create = (req, res) => {
         : new Date(req.body.date);
     const userID = req.body.userId;
     const is_paid = req.body.is_paid;
+    console.log(req.body);
     bill_code_model_1.default.create({
         name: bill_code_model_1.default.generateName(date),
         customer_id: customer_id,
@@ -90,6 +91,10 @@ SalesInvoiceController.create = (req, res) => {
         if (!is_paid) {
             receivable_controller_1.default.receivable += result.bill.reduce((a, b) => {
                 return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
+            }, 0);
+            receivable_controller_1.default.receivable -= discount + delivery + service;
+            receivable_controller_1.default.receivable -= payments.reduce((a, b) => {
+                return a + Number(b.value);
             }, 0);
         }
         const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
