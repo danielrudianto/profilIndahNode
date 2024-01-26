@@ -102,15 +102,16 @@ class DraftBillController {
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
 
-    DraftBillModel.fetch(keyword, limit, offset, mode)!.then(
-      ([result, count]) => {
+    DraftBillModel.fetch(keyword, limit, offset, mode)!
+      .then(([result, count]) => {
         return res.status(200).send({
           data: result,
           count: count,
         });
-      }
-    );
-    throw new Error("Method not implemented.");
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 
   /**

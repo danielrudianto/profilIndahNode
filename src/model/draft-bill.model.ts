@@ -205,7 +205,7 @@ export class DraftBillModel {
         SELECT draft_bill_code.id, draft_bill_code.name, 
         draft_bill_code.created_at, user.name as created_by, 
         customer.name as customer_name, total.total,
-        draft_bill.is_delete
+        draft_bill_code.is_delete
         FROM draft_bill_code
         INNER JOIN user ON draft_bill_code.created_by = user.id
         LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
@@ -216,7 +216,6 @@ export class DraftBillModel {
         ) as total 
         ON total.draft_bill_code_id = draft_bill_code.id
         WHERE draft_bill_code.is_delete = 0
-        AND draft_bill_code.is_confirmed = 0
         AND draft_bill_code.name LIKE '%${keyword}%'
         OR customer.name LIKE '%${keyword}%'
         ORDER BY draft_bill_code.id DESC
@@ -248,7 +247,7 @@ export class DraftBillModel {
         SELECT draft_bill_code.id, draft_bill_code.name, 
         draft_bill_code.created_at, user.name as created_by, 
         customer.name as customer_name, total.total,
-        draft_bill.is_delete
+        draft_bill_code.is_delete
         FROM draft_bill_code
         INNER JOIN user ON draft_bill_code.created_by = user.id
         LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
