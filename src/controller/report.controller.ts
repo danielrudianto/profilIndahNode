@@ -20,6 +20,7 @@ import BillModel from "../model/bill.model";
 import AdjustmentCaseModel from "../model/adjustment-case.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ReceivableController from "./receivable.controller";
+import DepositModel from "../model/deposit.model";
 
 class ReportController {
   /**
@@ -865,9 +866,18 @@ class ReportController {
         today.getDate()
       ),
       PromotionModel.countActive(),
+      DepositModel.countActive(),
     ])
       .then(
-        ([sales1, sales2, sales3, sales4, sales5, countPromotion]: any[]) => {
+        ([
+          sales1,
+          sales2,
+          sales3,
+          sales4,
+          sales5,
+          countPromotion,
+          countDeposit,
+        ]: any[]) => {
           return res.status(200).send({
             today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
             yesterday:
@@ -880,6 +890,7 @@ class ReportController {
               sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
             count: countPromotion,
             receivable: ReceivableController.receivable,
+            deposit: countDeposit,
           });
         }
       )
