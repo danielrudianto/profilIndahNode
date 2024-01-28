@@ -832,8 +832,9 @@ ReportController.fetchAdministratorDashboard = (req, res) => {
         purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate()),
         purchase_invoice_model_1.default.fetchByDate(yesterday.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate()),
         promotion_model_1.default.countActive(),
+        deposit_model_1.default.countActive(),
     ])
-        .then(([sales1, sales2, purchase1, purchase2, countPromotion]) => {
+        .then(([sales1, sales2, purchase1, purchase2, countPromotion, countDeposit,]) => {
         return res.status(200).send({
             todaySales: sales1[0].value == null ? 0 : Number(sales1[0].value),
             yesterdaySales: sales2[0].value == null ? 0 : Number(sales2[0].value),
@@ -841,6 +842,7 @@ ReportController.fetchAdministratorDashboard = (req, res) => {
             yesterdayPurchase: purchase2[0].value == null ? 0 : Number(purchase2[0].value),
             count: countPromotion,
             receivable: receivable_controller_1.default.receivable,
+            deposit: countDeposit,
         });
     })
         .catch((error) => {
