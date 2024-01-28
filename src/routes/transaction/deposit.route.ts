@@ -5,6 +5,7 @@ const router = Router();
 
 router.get("/:id", DepositController.fetchByID);
 router.get("/", DepositController.fetch);
+router.post("/confirm", DepositController.confirmByID);
 router.post("/archives", DepositController.fetchArchive);
-
+router.delete("/:id", DepositController.deleteByID);
 export default router;

@@ -39,6 +39,7 @@ import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
 import CashierRoutes from "./routes/distinct/cashier.route";
 import PromotionRoutes from "./routes/master/promotion.route";
+import DepositRoutes from "./routes/transaction/deposit.route";
 import ReceivableRoutes from "./routes/transaction/receivable.route";
 
 /*
@@ -83,6 +84,7 @@ app.use("/product-unit", authMiddleware, productUnitRoutes);
 app.use("/product-stock", authMiddleware, productStockRoutes);
 app.use("/product-package", authMiddleware, productPackageRoutes);
 app.use("/promotion", authMiddleware, PromotionRoutes);
+app.use("/deposit", authMiddleware, DepositRoutes);
 
 app.use("/supplier", authMiddleware, supplierRoutes);
 app.use("/customer", authMiddleware, customerRoutes);

@@ -148,7 +148,6 @@ class SearchHelper {
                 }),
               ])
               .then((result) => {
-                console.log(result);
                 return res.status(200).send({
                   message: "Sync product success",
                 });

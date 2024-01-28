@@ -24,6 +24,7 @@ model payment_method {
   user_payment_method_updated_byTouser user?               @relation("payment_method_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "payment_method_ibfk_3")
   sales_return_code                    sales_return_code[]
   bill_payment                         bill_payment[]
+  deposit_payment                      deposit_payment[]
 
   @@index([created_by], map: "payment_method_ibfk_1_idx")
   @@index([deleted_by], map: "payment_method_ibfk_2_idx")
@@ -97,6 +98,9 @@ model user {
   promotion_code_created_by                                    promotion_code[]       @relation("promotion_code_created_byTouser")
   promotion_code_deleted_by                                    promotion_code[]       @relation("promotion_code_deleted_byTouser")
   user_sales                                                   user_sales[]
+  deposit_code_created_by                                      deposit_code[]         @relation("deposit_code_created_byTouser")
+  deposit_code_deleted_by                                      deposit_code[]         @relation("deposit_code_deleted_byTouser")
+  deposit_code                                                 deposit_code[]
 
   @@index([created_by], map: "user_ibfk_1_idx")
   @@index([deleted_by], map: "user_ibfk_2_idx")
@@ -175,6 +179,65 @@ model bill_payment {
   payment_method payment_method? @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_payment_ibfk_1")
 }
 
+model deposit {
+  id              Int           @id @default(autoincrement())
+  item_id         Int?
+  item_unit_id    Int?
+  package_code_id Int?
+  price           Decimal       @db.Decimal(50, 4)
+  discount        Decimal       @db.Decimal(50, 4)
+  quantity        Decimal       @db.Decimal(50, 4)
+  deposit_code_id Int
+  deposit_code    deposit_code  @relation(fields: [deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_1")
+  item            item?         @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_2")
+  item_unit       item_unit?    @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_3")
+  package_code    package_code? @relation(fields: [package_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_4")
+  is_delete       Boolean       @default(false)
+
+  @@index([deposit_code_id], map: "deposit_ibfk_1_idx")
+  @@index([item_unit_id], map: "deposit_ibfk_3_idx")
+  @@index([package_code_id], map: "deposit_ibfk_4_idx")
+  @@index([item_id], map: "item_id")
+}
+
+model deposit_code {
+  id          Int       @id @default(autoincrement())
+  name        String    @unique(map: "name_UNIQUE") @db.VarChar(45)
+  customer_id Int?
+  created_by  Int
+  created_at  DateTime  @default(now()) @db.DateTime(0)
+  is_delete   Boolean   @default(false)
+  deleted_by  Int?
+  deleted_at  DateTime? @db.DateTime(0)
+  discount    Decimal   @default(0.0000) @db.Decimal(50, 4)
+  delivery    Decimal   @default(0.0000) @db.Decimal(50, 4)
+  service     Decimal   @default(0.0000) @db.Decimal(50, 4)
+  uuid        String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
+
+  date                              DateTime?         @db.Date
+  user_bill_code_confirmed_byTouser user?             @relation("deposit_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_2")
+  user_bill_code_created_byTouser   user              @relation("deposit_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_1")
+  customer                          customer?         @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_3")
+  deposit                           deposit[]
+  deposit_payment                   deposit_payment[]
+  user                              user?             @relation(fields: [created_by], references: [id])
+
+  @@index([created_by], map: "deposit_code_ibfk_1_idx")
+  @@index([deleted_by], map: "deposit_code_ibfk_2_idx")
+  @@index([customer_id], map: "deposit_code_ibfk_3_idx")
+}
+
+model deposit_payment {
+  id                Int      @id @default(autoincrement())
+  payment_method_id Int?
+  deposit_code_id   Int
+  value             Decimal  @default(0.0000) @db.Decimal(12, 4)
+  date              DateTime @db.Date
+
+  payment_method payment_method? @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_payment_ibfk_1")
+  deposit_code   deposit_code    @relation(fields: [deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_payment_ibfk_2")
+}
+
 model company {
   id                            Int                      @id @default(autoincrement())
   name                          String                   @db.VarChar(50)
@@ -220,6 +283,7 @@ model customer {
   user_customer_updated_byTouser user?             @relation("customer_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "customer_ibfk_3")
   bill_code                      bill_code[]
   draft_bill_code                draft_bill_code[]
+  deposit_code                   deposit_code[]
 
   @@index([name, address, pic, phone_number, npwp], map: "customer_fulltext")
   @@index([created_by], map: "customer_ibfk_1_idx")
@@ -349,6 +413,7 @@ model item {
   draft_bill                 draft_bill[]
   distribution_stock         distribution_stock[]
   package_content            package_content[]
+  deposit                    deposit[]
 
   @@index([reference, description], map: "item_fulltext")
   @@index([created_by], map: "item_ibfk_1_idx")
@@ -548,6 +613,7 @@ model item_unit {
   good_receipt                    good_receipt[]
   draft_bill                      draft_bill[]
   package_content                 package_content[]
+  deposit                         deposit[]
 
   @@index([item_id], map: "item_id")
   @@index([deleted_by], map: "deleted_by")
@@ -624,6 +690,7 @@ model package_code {
   user_package_code_deleted_byTouser user?             @relation("package_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_code_ibfk_2")
   package_content                    package_content[]
   bill                               bill[]
+  deposit                            deposit[]
 }
 
 model package_content {

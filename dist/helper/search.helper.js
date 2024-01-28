@@ -150,7 +150,6 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
                     }),
                 ])
                     .then((result) => {
-                    console.log(result);
                     return res.status(200).send({
                         message: "Sync product success",
                     });

@@ -51,6 +51,7 @@ const promotion_model_1 = __importDefault(require("../model/promotion.model"));
 const adjustment_case_model_1 = __importDefault(require("../model/adjustment-case.model"));
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const receivable_controller_1 = __importDefault(require("./receivable.controller"));
+const deposit_model_1 = __importDefault(require("../model/deposit.model"));
 class ReportController {
 }
 _a = ReportController;
@@ -64,12 +65,15 @@ ReportController.fetchMoneyReceipt = (req, res) => {
         .then((result) => {
         const response = [];
         result.forEach((x) => {
-            if (x.bill != null || x.sales_return != null) {
+            if ((x.bill != null && x.bill > 0) ||
+                (x.sales_return != null && x.sales_return > 0) ||
+                (x.deposit != null && x.deposit > 0)) {
                 response.push({
                     id: x.id,
                     name: x.name,
-                    bill_payment: x.bill == null ? 0 : Number(x.bill),
+                    bill_payment: Number(x.bill),
                     sales_return_payment: Number(x.sales_return),
+                    deposit_payment: Number(x.deposit),
                 });
             }
         });
@@ -794,8 +798,9 @@ ReportController.fetchSalesDashboard = (req, res) => {
         bill_code_model_1.default.fetchByDate(lastMonth.getFullYear(), lastMonth.getMonth() + 1, null),
         bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth(), today.getDate()),
         promotion_model_1.default.countActive(),
+        deposit_model_1.default.countActive(),
     ])
-        .then(([sales1, sales2, sales3, sales4, sales5, countPromotion]) => {
+        .then(([sales1, sales2, sales3, sales4, sales5, countPromotion, countDeposit,]) => {
         return res.status(200).send({
             today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
             yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
@@ -804,6 +809,7 @@ ReportController.fetchSalesDashboard = (req, res) => {
             monthOnMonth: sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
             count: countPromotion,
             receivable: receivable_controller_1.default.receivable,
+            deposit: countDeposit,
         });
     })
         .catch((error) => {

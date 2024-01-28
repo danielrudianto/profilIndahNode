@@ -14,6 +14,7 @@ import {
 } from "../interface/stock-in.interface";
 import PromotionModel from "../model/promotion.model";
 import ReceivableController from "./receivable.controller";
+import DepositModel from "../model/deposit.model";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
@@ -39,7 +40,7 @@ class SalesInvoiceController {
     const is_paid = req.body.is_paid;
     const type = req.body.type;
 
-    // if (type == "sales") {
+    if (type == "sales") {
       BillCodeModel.create({
         name: BillCodeModel.generateName(date),
         customer_id: customer_id,
@@ -262,53 +263,54 @@ class SalesInvoiceController {
           console.error(`[error]: Error on creating bill ${error}`);
           return res.status(500).send(error);
         });
-    // } else if (type == "deposit") {
-    //   DepositModel.create({
-    //     name: DepositModel.generateName(date),
-    //     customer_id: customer_id,
-    //     discount: discount,
-    //     delivery: delivery,
-    //     service: service,
-    //     date: date,
-    //     uuid: uuid,
-    //     items: bill.map((x) => {
-    //       if (x.package_code_id != undefined) {
-    //         return {
-    //           package_code_id: x.package_code_id,
-    //           item_id: null,
-    //           item_unit_id: null,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: 0,
-    //         };
-    //       } else {
-    //         return {
-    //           package_code_id: null,
-    //           item_id: x.item_id,
-    //           item_unit_id: x.item_unit_id,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: x.discount,
-    //         };
-    //       }
-    //     }),
-    //     payments: payments.map((x) => {
-    //       return {
-    //         date: date,
-    //         value: x.value,
-    //         payment_method_id: x.payment_method_id,
-    //       };
-    //     }),
-    //     created_by: userID,
-    //   })
-    //     .then(async (result) => {
-    //       return res.status(201).send(result);
-    //     })
-    //     .catch((error) => {
-    //       console.error(`[error]: Error on creating deposit ${error}`);
-    //       return res.status(500).send(error);
-    //     });
-    // }
+    } else if (type == "deposit") {
+      DepositModel.create({
+        name: DepositModel.generateName(date),
+        customer_id: customer_id,
+        discount: discount,
+        delivery: delivery,
+        service: service,
+        date: date,
+        uuid: uuid,
+        items: bill.map((x) => {
+          if (x.package_code_id != undefined) {
+            return {
+              package_code_id: x.package_code_id,
+              item_id: null,
+              item_unit_id: null,
+              quantity: x.quantity,
+              price: x.price,
+              discount: x.discount,
+            };
+          } else {
+            return {
+              package_code_id: null,
+              item_id: x.item_id,
+              item_unit_id: x.item_unit_id,
+              quantity: x.quantity,
+              price: x.price,
+              discount: x.discount,
+            };
+          }
+        }),
+        payments: payments.map((x) => {
+          return {
+            date: date,
+            value: x.value,
+            payment_method_id:
+              x.payment_method_id == 0 ? null : x.payment_method_id,
+          };
+        }),
+        created_by: userID,
+      })
+        .then(async (result) => {
+          return res.status(201).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on creating deposit ${error}`);
+          return res.status(500).send(error);
+        });
+    }
   };
 
   /**

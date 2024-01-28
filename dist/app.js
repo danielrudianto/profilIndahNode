@@ -51,6 +51,7 @@ const sales_return_route_1 = __importDefault(require("./routes/transaction/sales
 const draft_bill_route_1 = __importDefault(require("./routes/transaction/draft-bill.route"));
 const cashier_route_1 = __importDefault(require("./routes/distinct/cashier.route"));
 const promotion_route_1 = __importDefault(require("./routes/master/promotion.route"));
+const deposit_route_1 = __importDefault(require("./routes/transaction/deposit.route"));
 const receivable_route_1 = __importDefault(require("./routes/transaction/receivable.route"));
 /*
   Administrator Routes
@@ -88,6 +89,7 @@ app.use("/product-unit", auth_helper_1.authMiddleware, product_unit_route_1.defa
 app.use("/product-stock", auth_helper_1.authMiddleware, stock_route_1.default);
 app.use("/product-package", auth_helper_1.authMiddleware, product_package_route_1.default);
 app.use("/promotion", auth_helper_1.authMiddleware, promotion_route_1.default);
+app.use("/deposit", auth_helper_1.authMiddleware, deposit_route_1.default);
 app.use("/supplier", auth_helper_1.authMiddleware, supplier_route_1.default);
 app.use("/customer", auth_helper_1.authMiddleware, customer_route_1.default);
 app.use("/company", auth_helper_1.authMiddleware, company_route_1.default);

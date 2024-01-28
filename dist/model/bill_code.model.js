@@ -8,6 +8,7 @@ class BillCodeModel {
      * @returns BillCode
      */
     static create(data) {
+        console.log(data.payments);
         return app_1.prisma.bill_code.create({
             data: {
                 name: data.name,
@@ -590,9 +591,12 @@ class BillCodeModel {
     }
     static fetchMoneyReceipt(formattedDate) {
         return app_1.prisma.$queryRawUnsafe(`
-    SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, pm.value AS bill, sr.value AS sales_return
+    SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, 
+    pm.value AS bill, 
+    sr.value AS sales_return, 
+    dp.value AS deposit
     FROM payment_method
-    RIGHT JOIN (
+    LEFT JOIN (
       SELECT SUM(value) AS value, bill_payment.payment_method_id
       FROM bill_payment
       JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
@@ -602,7 +606,7 @@ class BillCodeModel {
       GROUP BY bill_payment.payment_method_id
     ) pm
     ON payment_method.id = pm.payment_method_id
-    RIGHT JOIN (
+    LEFT JOIN (
       SELECT SUM(sr_detail.value) AS value, payment_method_id
       FROM sales_return_code
       JOIN (
@@ -618,6 +622,15 @@ class BillCodeModel {
         GROUP BY sales_return_code.payment_method_id  
     ) sr
     ON payment_method.id = sr.payment_method_id
+    LEFT JOIN (
+      SELECT SUM(value) AS value, payment_method_id
+      FROM deposit_payment
+      JOIN deposit_code ON deposit_payment.deposit_code_id = deposit_code.id
+      WHERE deposit_code.is_delete = 0
+      AND deposit_payment.date = '${formattedDate}'
+      GROUP BY deposit_payment.payment_method_id
+    ) dp
+    ON payment_method.id = dp.payment_method_id
     `);
     }
     static fetchAppendix(month, year) {

@@ -45,6 +45,28 @@ interface IDepositArchive {
   payment: number;
 }
 
+interface IUpdateDeposit {
+  id: number;
+}
+
+interface IUpdateDepositItem {
+  id: number;
+  checked: boolean;
+}
+
+interface IUpdateDepositPayment {
+  id: number;
+  amount: number;
+  usedAmount: number;
+  date: string;
+}
+
+interface IUpdateDepositBillPayment {
+  id: number;
+  amount: number;
+  date: string;
+}
+
 class DepositModel {
   /**
    * Generate bill code name based on date
@@ -108,6 +130,7 @@ class DepositModel {
       },
       select: {
         id: true,
+        customer_id: true,
         name: true,
         date: true,
         discount: true,
@@ -118,6 +141,7 @@ class DepositModel {
             id: true,
             item: {
               select: {
+                id: true,
                 reference: true,
                 description: true,
                 unit: true,
@@ -132,6 +156,7 @@ class DepositModel {
             package_code_id: true,
             package_code: {
               select: {
+                id: true,
                 name: true,
                 description: true,
                 package_content: {
@@ -167,6 +192,7 @@ class DepositModel {
             id: true,
             value: true,
             date: true,
+            payment_method_id: true,
             payment_method: {
               select: {
                 name: true,
@@ -217,8 +243,9 @@ class DepositModel {
             GROUP BY deposit_payment.deposit_code_id
         ) AS pm
         ON pm.deposit_code_id = deposit_code.id
-        WHERE deposit_code.name LIKE '%${keyword}%'
-        OR COALESCE(customer.name, 'Retail customer') LIKE '%${keyword}%'
+        WHERE deposit_code.is_delete = 0 
+        AND (deposit_code.name LIKE '%${keyword}%'
+        OR COALESCE(customer.name, 'Retail customer') LIKE '%${keyword}%')
         ORDER BY date ASC
         LIMIT 10
         OFFSET ${(page - 1) * 10}
@@ -470,6 +497,48 @@ class DepositModel {
               `),
         ]);
     }
+  }
+
+  static confirmByID(data: IUpdateDeposit) {
+    return prisma.deposit_code.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        is_delete: true,
+        deposit: {
+          updateMany: {
+            data: {
+              is_delete: true,
+            },
+            where: {
+              is_delete: false,
+            },
+          },
+        },
+      },
+    });
+  }
+
+  static deleteByID(id: number) {
+    return prisma.deposit_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        deposit: {
+          updateMany: {
+            data: {
+              is_delete: true,
+            },
+            where: {
+              is_delete: false,
+            },
+          },
+        },
+      },
+    });
   }
 }
 

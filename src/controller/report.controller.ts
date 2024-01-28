@@ -21,6 +21,7 @@ import AdjustmentCaseModel from "../model/adjustment-case.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
+import DepositController from "./deposit.controller";
 
 class ReportController {
   /**
@@ -33,12 +34,17 @@ class ReportController {
       .then((result) => {
         const response: any[] = [];
         (result as any[]).forEach((x) => {
-          if (x.bill != null || x.sales_return != null) {
+          if (
+            (x.bill != null && x.bill > 0) ||
+            (x.sales_return != null && x.sales_return > 0) ||
+            (x.deposit != null && x.deposit > 0)
+          ) {
             response.push({
               id: x.id,
               name: x.name,
-              bill_payment: x.bill == null ? 0 : Number(x.bill),
+              bill_payment: Number(x.bill),
               sales_return_payment: Number(x.sales_return),
+              deposit_payment: Number(x.deposit),
             });
           }
         });
@@ -932,19 +938,31 @@ class ReportController {
         yesterday.getDate()
       ),
       PromotionModel.countActive(),
+      DepositModel.countActive(),
     ])
-      .then(([sales1, sales2, purchase1, purchase2, countPromotion]: any[]) => {
-        return res.status(200).send({
-          todaySales: sales1[0].value == null ? 0 : Number(sales1[0].value),
-          yesterdaySales: sales2[0].value == null ? 0 : Number(sales2[0].value),
-          todayPurchase:
-            purchase1[0].value == null ? 0 : Number(purchase1[0].value),
-          yesterdayPurchase:
-            purchase2[0].value == null ? 0 : Number(purchase2[0].value),
-          count: countPromotion,
-          receivable: ReceivableController.receivable,
-        });
-      })
+      .then(
+        ([
+          sales1,
+          sales2,
+          purchase1,
+          purchase2,
+          countPromotion,
+          countDeposit,
+        ]: any[]) => {
+          return res.status(200).send({
+            todaySales: sales1[0].value == null ? 0 : Number(sales1[0].value),
+            yesterdaySales:
+              sales2[0].value == null ? 0 : Number(sales2[0].value),
+            todayPurchase:
+              purchase1[0].value == null ? 0 : Number(purchase1[0].value),
+            yesterdayPurchase:
+              purchase2[0].value == null ? 0 : Number(purchase2[0].value),
+            count: countPromotion,
+            receivable: ReceivableController.receivable,
+            deposit: countDeposit,
+          });
+        }
+      )
       .catch((error) => {
         console.error(
           `[error]: Error on fetching administrator data. ${error}`

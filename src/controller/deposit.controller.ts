@@ -2,19 +2,12 @@ import { Request, Response } from "express";
 import DepositModel from "../model/deposit.model";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import ErrorList from "../assets/error_list";
+import BillCodeModel from "../model/bill_code.model";
+import { v4 } from "uuid";
+import { StockInInterface } from "../interface/stock-in.interface";
+import { queue } from "../helper/queue.helper";
 
 class DepositController {
-  static create = (req: Request, res: Response) => {
-    const customer_id = req.body.customer_id;
-    const items = req.body.items;
-    const discount = req.body.discount;
-    const delivery = req.body.delivery;
-    const service = req.body.service;
-
-    const uuid = req.body.uuid;
-    const payments = req.body.payments;
-  };
-
   static fetchByID = (req: Request, res: Response) => {
     const id = Number(req.params.id);
     DepositModel.fetchByID(id).then((result) => {
@@ -58,7 +51,26 @@ class DepositController {
       });
   };
 
-  static deleteByID = (req: Request, res: Response) => {};
+  static deleteByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const result = await DepositModel.fetchByID(id);
+    if (!result) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+
+    if (result.is_delete) {
+      return res.status(400).send(ErrorList["Not found"]);
+    }
+
+    DepositModel.deleteByID(id)
+      .then((result) => {
+        return res.status(201).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on deleting deposit ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
 
   static fetchArchive = (req: Request, res: Response) => {
     const year = req.body.year;
@@ -136,6 +148,506 @@ class DepositController {
           return res.status(500).send(ErrorList["Internal server error"]);
         });
     }
+  };
+
+  static confirmByID = (req: Request, res: Response) => {
+    const id = req.body.id;
+    const date = new Date(req.body.date);
+    const deposit = req.body.deposit as any[];
+    const deposit_payment = req.body.deposit_payment as any[];
+    const deposit_bill_payment = req.body.deposit_bill_payment as any[];
+    const userID = req.body.userId;
+    const is_paid = req.body.is_paid;
+    const paymentTerm = req.body.payment_term;
+    DepositModel.fetchByID(id)
+      .then(async (result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        if (result.is_delete) {
+          return res.status(400).send(ErrorList["Not found"]);
+        }
+
+        // First we need to do some validation
+        // Check if checked items is more than 1
+        if (deposit.filter((x) => x.checked).length == 0) {
+          return res.status(400).send(ErrorList["Item is required"]);
+        }
+
+        if (deposit.filter((x) => !x.checked).length > 0) {
+          // Create a new deposit with the new unchecked items
+          await DepositModel.confirmByID({
+            id: id,
+          });
+
+          await DepositModel.create({
+            name: DepositModel.generateName(date),
+            customer_id: result.customer_id,
+            date: date,
+            uuid: v4(),
+            created_by: userID,
+            discount: 0,
+            delivery: 0,
+            service: 0,
+            items: deposit
+              .filter((y) => !y.checked)
+              .map((x) => {
+                const depositIndex = result.deposit.findIndex(
+                  (y) => y.id == x.id
+                );
+                const depositObject = result.deposit[depositIndex];
+                return {
+                  item_id: depositObject.item_id,
+                  item_unit_id: depositObject.item_unit_id,
+                  package_code_id: depositObject.package_code_id,
+                  quantity: Number(depositObject.quantity),
+                  price: Number(depositObject.price),
+                  discount: Number(depositObject.discount),
+                };
+              }),
+            payments: [
+              // Create from deposit payment where unusedAmount > 0
+              ...deposit_payment
+                .filter((x) => x.unused_value > 0)
+                .map((x) => {
+                  return {
+                    date: new Date(x.date),
+                    value: x.unused_value,
+                    payment_method_id: x.payment_method_id,
+                  };
+                }),
+            ],
+          });
+
+          // Create a new bill code
+          BillCodeModel.create({
+            uuid: v4(),
+            name: BillCodeModel.generateName(date),
+            date: date,
+            customer_id: result.customer_id,
+            created_by: userID,
+            discount: Number(result.discount),
+            delivery: Number(result.delivery),
+            service: Number(result.service),
+            items: deposit
+              .filter((y) => y.checked)
+              .map((x) => {
+                const depositIndex = result.deposit.findIndex(
+                  (y) => y.id == x.id
+                );
+                const depositObject = result.deposit[depositIndex];
+                return {
+                  item_id: depositObject.item_id,
+                  item_unit_id: depositObject.item_unit_id,
+                  package_code_id: depositObject.package_code_id,
+                  quantity: Number(depositObject.quantity),
+                  price: Number(depositObject.price),
+                  discount: Number(depositObject.discount),
+                };
+              }),
+            is_paid: is_paid,
+            payments: [
+              ...deposit_payment
+                .filter((x) => x.value > 0)
+                .map((x) => {
+                  return {
+                    date: new Date(x.date),
+                    value: x.value,
+                    payment_method_id: x.payment_method_id,
+                  };
+                }),
+              ...deposit_bill_payment.map((x) => {
+                return {
+                  date: new Date(x.date),
+                  value: x.value,
+                  payment_method_id: x.payment_method_id,
+                };
+              }),
+            ],
+            payment_term: paymentTerm,
+          }).then(async (result) => {
+            const delivery = Number(result.delivery);
+            const discount = Number(result.discount);
+            const service = Number(result.service);
+
+            const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
+              return (
+                a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+              );
+            }, 0);
+
+            const createSalesInvoiceNetTotal =
+              createSalesInvoiceTotal - discount + delivery + service;
+
+            for (let i = 0; i < result.bill.length; i++) {
+              if (result.bill[i].package_code != null) {
+                const packagePrice = Number(result.bill[i].price);
+                const packageQuantity = Number(result.bill[i].quantity);
+                const packageDiscount = Number(result.bill[i].discount);
+                const packageFinalPrice =
+                  ((packagePrice - packageDiscount) *
+                    createSalesInvoiceNetTotal) /
+                  createSalesInvoiceTotal;
+
+                const packageContentValue = result.bill[
+                  i
+                ].package_code!.package_content.reduce((a, b) => {
+                  return (
+                    a +
+                    Number(b.quantity) * (Number(b.price) - Number(b.discount))
+                  );
+                }, 0);
+
+                for (
+                  let n = 0;
+                  n < result.bill[i].package_code!.package_content.length;
+                  n++
+                ) {
+                  const createSalesInvoicePackageContentItem =
+                    result.bill[i].package_code!.package_content[n];
+                  const createSalesInvoiceItemItemID =
+                    createSalesInvoicePackageContentItem.item_id;
+                  const createSalesInvoiceItemQuantity = Number(
+                    createSalesInvoicePackageContentItem.quantity
+                  );
+                  const createSalesInvoiceItemPrice = Number(
+                    createSalesInvoicePackageContentItem.price
+                  );
+                  const createSalesInvoiceItemDiscount = Number(
+                    createSalesInvoicePackageContentItem.discount
+                  );
+                  const createSalesInvoiceItemUnit =
+                    createSalesInvoicePackageContentItem.item_unit == null
+                      ? createSalesInvoicePackageContentItem.item.unit
+                      : createSalesInvoicePackageContentItem.item_unit.unit;
+                  const createSalesInvoiceItemConversion =
+                    createSalesInvoicePackageContentItem.item_unit == null
+                      ? 1
+                      : Number(
+                          createSalesInvoicePackageContentItem.item_unit
+                            .conversion
+                        );
+                  const finalUnitPrice =
+                    packageContentValue == 0
+                      ? 0
+                      : Number(
+                          ((createSalesInvoiceItemPrice -
+                            createSalesInvoiceItemDiscount) *
+                            packageFinalPrice) /
+                            (packageContentValue *
+                              createSalesInvoiceItemConversion)
+                        );
+
+                  const stockOut: StockInInterface = {
+                    itemID: createSalesInvoiceItemItemID,
+                    createdAt: result.created_at,
+                    date: date,
+                    document: result.name,
+                    opponent:
+                      result.customer == null
+                        ? "Retail customer"
+                        : result.customer.name,
+                    displayQuantity:
+                      packageQuantity * createSalesInvoiceItemQuantity * -1,
+                    quantity:
+                      packageQuantity *
+                      -1 *
+                      createSalesInvoiceItemQuantity *
+                      createSalesInvoiceItemConversion,
+                    unit: createSalesInvoiceItemUnit,
+                    billID: result.bill[i].id,
+                    billCodeID: result.id,
+                    adjustmentCaseID: null,
+                    adjustmentCaseCodeID: null,
+                    goodReceiptID: null,
+                    goodReceiptCodeID: null,
+                    salesReturnID: null,
+                    salesReturnCodeID: null,
+                    customerID: result.customer_id,
+                    supplierID: null,
+                    companyID: null,
+                    price: finalUnitPrice,
+                  };
+                  await queue.add("insert-stock-out", stockOut);
+                }
+              } else if (result.bill[i].item != null) {
+                const stockOut: StockInInterface = {
+                  itemID: result.bill[i].item!.id,
+                  createdAt: result.created_at,
+                  date: date,
+                  document: result.name,
+                  opponent:
+                    result.customer == null
+                      ? "Retail customer"
+                      : result.customer.name,
+                  displayQuantity: Number(result.bill[i].quantity) * -1,
+                  quantity:
+                    parseFloat(result.bill[i].quantity.toString()) *
+                    -1 *
+                    (result.bill[i].item_unit != null
+                      ? parseFloat(
+                          result.bill[i].item_unit!.conversion.toString()
+                        )
+                      : 1),
+                  unit:
+                    result.bill[i].item_unit == null
+                      ? result.bill[i].item!.unit
+                      : result.bill[i].item_unit!.unit,
+                  billID: result.bill[i].id,
+                  billCodeID: result.id,
+                  adjustmentCaseID: null,
+                  adjustmentCaseCodeID: null,
+                  goodReceiptID: null,
+                  goodReceiptCodeID: null,
+                  salesReturnID: null,
+                  salesReturnCodeID: null,
+                  customerID: result.customer_id,
+                  supplierID: null,
+                  companyID: null,
+                  price:
+                    ((Number(result.bill[i].price) -
+                      Number(result.bill[i].discount)) *
+                      createSalesInvoiceNetTotal) /
+                    (createSalesInvoiceTotal *
+                      (result.bill[i].item_unit == null
+                        ? 1
+                        : Number(result.bill[i].item_unit!.conversion))),
+                };
+                await queue.add("insert-stock-out", stockOut);
+              }
+            }
+            return res.status(201).send(result);
+          });
+        } else {
+          // Every thing is checked, just update the deposit
+          await DepositModel.confirmByID({
+            id: id,
+          });
+
+          console.log([
+            ...deposit_payment
+              .filter((x) => x.value > 0)
+              .map((x) => {
+                return {
+                  date: new Date(x.date),
+                  value: x.value,
+                  payment_method_id: x.payment_method_id,
+                };
+              }),
+            ...deposit_bill_payment.map((x) => {
+              return {
+                date: new Date(x.date),
+                value: x.value,
+                payment_method_id: x.payment_method_id,
+              };
+            }),
+          ]);
+
+          BillCodeModel.create({
+            uuid: v4(),
+            name: BillCodeModel.generateName(date),
+            date: date,
+            customer_id: result.customer_id,
+            created_by: userID,
+            discount: Number(result.discount),
+            delivery: Number(result.delivery),
+            service: Number(result.service),
+            items: deposit.map((x) => {
+              const depositIndex = result.deposit.findIndex(
+                (y) => y.id == x.id
+              );
+              const depositObject = result.deposit[depositIndex];
+              return {
+                item_id: depositObject.item_id,
+                item_unit_id: depositObject.item_unit_id,
+                package_code_id: depositObject.package_code_id,
+                quantity: Number(depositObject.quantity),
+                price: Number(depositObject.price),
+                discount: Number(depositObject.discount),
+              };
+            }),
+            is_paid: is_paid,
+            payments: [
+              ...deposit_payment
+                .filter((x) => x.value > 0)
+                .map((x) => {
+                  return {
+                    date: new Date(x.date),
+                    value: x.value,
+                    payment_method_id: x.payment_method_id,
+                  };
+                }),
+              ...deposit_bill_payment.map((x) => {
+                return {
+                  date: new Date(x.date),
+                  value: x.value,
+                  payment_method_id: x.payment_method_id,
+                };
+              }),
+            ],
+            payment_term: paymentTerm,
+          }).then(async (result) => {
+            const delivery = Number(result.delivery);
+            const discount = Number(result.discount);
+            const service = Number(result.service);
+
+            const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
+              return (
+                a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+              );
+            }, 0);
+
+            const createSalesInvoiceNetTotal =
+              createSalesInvoiceTotal - discount + delivery + service;
+
+            for (let i = 0; i < result.bill.length; i++) {
+              if (result.bill[i].package_code != null) {
+                const packagePrice = Number(result.bill[i].price);
+                const packageQuantity = Number(result.bill[i].quantity);
+                const packageDiscount = Number(result.bill[i].discount);
+                const packageFinalPrice =
+                  ((packagePrice - packageDiscount) *
+                    createSalesInvoiceNetTotal) /
+                  createSalesInvoiceTotal;
+
+                const packageContentValue = result.bill[
+                  i
+                ].package_code!.package_content.reduce((a, b) => {
+                  return (
+                    a +
+                    Number(b.quantity) * (Number(b.price) - Number(b.discount))
+                  );
+                }, 0);
+
+                for (
+                  let n = 0;
+                  n < result.bill[i].package_code!.package_content.length;
+                  n++
+                ) {
+                  const createSalesInvoicePackageContentItem =
+                    result.bill[i].package_code!.package_content[n];
+                  const createSalesInvoiceItemItemID =
+                    createSalesInvoicePackageContentItem.item_id;
+                  const createSalesInvoiceItemQuantity = Number(
+                    createSalesInvoicePackageContentItem.quantity
+                  );
+                  const createSalesInvoiceItemPrice = Number(
+                    createSalesInvoicePackageContentItem.price
+                  );
+                  const createSalesInvoiceItemDiscount = Number(
+                    createSalesInvoicePackageContentItem.discount
+                  );
+                  const createSalesInvoiceItemUnit =
+                    createSalesInvoicePackageContentItem.item_unit == null
+                      ? createSalesInvoicePackageContentItem.item.unit
+                      : createSalesInvoicePackageContentItem.item_unit.unit;
+                  const createSalesInvoiceItemConversion =
+                    createSalesInvoicePackageContentItem.item_unit == null
+                      ? 1
+                      : Number(
+                          createSalesInvoicePackageContentItem.item_unit
+                            .conversion
+                        );
+                  const finalUnitPrice =
+                    packageContentValue == 0
+                      ? 0
+                      : Number(
+                          ((createSalesInvoiceItemPrice -
+                            createSalesInvoiceItemDiscount) *
+                            packageFinalPrice) /
+                            (packageContentValue *
+                              createSalesInvoiceItemConversion)
+                        );
+
+                  const stockOut: StockInInterface = {
+                    itemID: createSalesInvoiceItemItemID,
+                    createdAt: result.created_at,
+                    date: date,
+                    document: result.name,
+                    opponent:
+                      result.customer == null
+                        ? "Retail customer"
+                        : result.customer.name,
+                    displayQuantity:
+                      packageQuantity * createSalesInvoiceItemQuantity * -1,
+                    quantity:
+                      packageQuantity *
+                      -1 *
+                      createSalesInvoiceItemQuantity *
+                      createSalesInvoiceItemConversion,
+                    unit: createSalesInvoiceItemUnit,
+                    billID: result.bill[i].id,
+                    billCodeID: result.id,
+                    adjustmentCaseID: null,
+                    adjustmentCaseCodeID: null,
+                    goodReceiptID: null,
+                    goodReceiptCodeID: null,
+                    salesReturnID: null,
+                    salesReturnCodeID: null,
+                    customerID: result.customer_id,
+                    supplierID: null,
+                    companyID: null,
+                    price: finalUnitPrice,
+                  };
+
+                  await queue.add("insert-stock-out", stockOut);
+                }
+              } else if (result.bill[i].item != null) {
+                const stockOut: StockInInterface = {
+                  itemID: result.bill[i].item!.id,
+                  createdAt: result.created_at,
+                  date: date,
+                  document: result.name,
+                  opponent:
+                    result.customer == null
+                      ? "Retail customer"
+                      : result.customer.name,
+                  displayQuantity: Number(result.bill[i].quantity) * -1,
+                  quantity:
+                    parseFloat(result.bill[i].quantity.toString()) *
+                    -1 *
+                    (result.bill[i].item_unit != null
+                      ? parseFloat(
+                          result.bill[i].item_unit!.conversion.toString()
+                        )
+                      : 1),
+                  unit:
+                    result.bill[i].item_unit == null
+                      ? result.bill[i].item!.unit
+                      : result.bill[i].item_unit!.unit,
+                  billID: result.bill[i].id,
+                  billCodeID: result.id,
+                  adjustmentCaseID: null,
+                  adjustmentCaseCodeID: null,
+                  goodReceiptID: null,
+                  goodReceiptCodeID: null,
+                  salesReturnID: null,
+                  salesReturnCodeID: null,
+                  customerID: result.customer_id,
+                  supplierID: null,
+                  companyID: null,
+                  price:
+                    ((Number(result.bill[i].price) -
+                      Number(result.bill[i].discount)) *
+                      createSalesInvoiceNetTotal) /
+                    (createSalesInvoiceTotal *
+                      (result.bill[i].item_unit == null
+                        ? 1
+                        : Number(result.bill[i].item_unit!.conversion))),
+                };
+
+                await queue.add("insert-stock-out", stockOut);
+              }
+            }
+            return res.status(201).send(result);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching deposit ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 }
 
