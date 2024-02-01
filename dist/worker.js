@@ -45,6 +45,32 @@ function connectToDatabase() {
 const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
     const name = job.name;
     switch (name) {
+        case "updateItem":
+            const item = job.data;
+            try {
+                const product = yield mongo_product_model_1.mongoProductModel.findOne({
+                    itemID: item.id,
+                });
+                if (product) {
+                    product.reference = item.reference;
+                    product.description = item.description;
+                    product.unit = item.unit;
+                    product.itemTypeID = item.item_type_id;
+                    product.itemBrandID = item.item_brand_id;
+                    product.minimumStock = item.minimumStock;
+                    yield product.save();
+                }
+            }
+            catch (error) {
+                console.error(`[error]: Error in updateItem [${error}`);
+                yield mongo_error_model_1.mongoErrorModel.create({
+                    error: error,
+                    data: item,
+                    date: new Date(),
+                    function: "updateItem",
+                });
+            }
+            break;
         case "insert-stock-in":
             const stockInData = job.data;
             try {
