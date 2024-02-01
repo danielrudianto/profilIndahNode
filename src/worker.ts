@@ -43,6 +43,32 @@ async function connectToDatabase() {
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
+    case "updateItem":
+      const item = job.data;
+      try {
+        const product = await mongoProductModel.findOne({
+          itemID: item.id,
+        });
+
+        if (product) {
+          product.reference = item.reference;
+          product.description = item.description;
+          product.unit = item.unit;
+          product.itemTypeID = item.item_type_id;
+          product.itemBrandID = item.item_brand_id;
+          product.minimumStock = item.minimumStock;
+          await product.save();
+        }
+      } catch (error: any) {
+        console.error(`[error]: Error in updateItem [${error}`);
+        await mongoErrorModel.create({
+          error: error,
+          data: item,
+          date: new Date(),
+          function: "updateItem",
+        });
+      }
+      break;
     case "insert-stock-in":
       const stockInData = job.data as StockInInterface;
       try {
