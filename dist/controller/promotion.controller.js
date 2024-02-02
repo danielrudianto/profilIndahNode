@@ -15,6 +15,8 @@ var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const promotion_model_1 = __importDefault(require("../model/promotion.model"));
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
+const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class PromotionController {
 }
 _a = PromotionController;
@@ -26,8 +28,19 @@ PromotionController.create = (req, res) => {
     const rules = req.body.rules;
     const target = req.body.target;
     const brandID = req.body.brand;
+    const supplierID = req.body.supplier;
     const userID = req.body.userId;
-    promotion_model_1.default.create(name, description, startDate, endDate, target, userID, rules, brandID)
+    promotion_model_1.default.create({
+        name: name,
+        description: description,
+        startDate: startDate,
+        endDate: endDate,
+        target: target,
+        createdBy: userID,
+        rules: rules,
+        brand_id: brandID,
+        supplier_id: supplierID,
+    })
         .then((result) => {
         return res.status(201).send(result);
     })
@@ -65,6 +78,7 @@ PromotionController.fetch = (req, res) => {
                                 ? "Active"
                                 : "Inactive",
                     brand: x.brand.name,
+                    supplier: x.supplier.name,
                 };
             }),
             count: result[1],
@@ -99,6 +113,7 @@ PromotionController.fetchActive = (req, res) => {
                             ? "Active"
                             : "Inactive",
                 brand: x.brand.name,
+                supplier: x.supplier.name,
             };
         }));
     })
@@ -109,7 +124,8 @@ PromotionController.fetchActive = (req, res) => {
 };
 PromotionController.fetchResultByID = (req, res) => {
     const id = (!req.params.id ? null : parseInt(req.params.id));
-    promotion_model_1.default.fetchByID(id).then((promotion) => __awaiter(void 0, void 0, void 0, function* () {
+    promotion_model_1.default.fetchByID(id)
+        .then((promotion) => __awaiter(void 0, void 0, void 0, function* () {
         if (!promotion) {
             return res.status(404).send("Not Found");
         }
@@ -180,7 +196,7 @@ PromotionController.fetchResultByID = (req, res) => {
         });
         const calculation = yield promotion_model_1.default.calculateByID(productIDs.map((x) => {
             return x.itemID;
-        }), new Date(promotion.start), promotion.end == null ? null : new Date(promotion.end));
+        }), new Date(promotion.start), promotion.end == null ? null : new Date(promotion.end), promotion.supplier_id);
         return res.status(200).send(Object.assign(Object.assign({}, promotion), { target: Number(promotion.target), progress: {
                 sales: !calculation
                     ? 0
@@ -207,7 +223,11 @@ PromotionController.fetchResultByID = (req, res) => {
                 .sort((a, b) => {
                 return a.reference > b.reference ? 1 : -1;
             }) }));
-    }));
+    }))
+        .catch((error) => {
+        console.error(`[error]: Error on fetch promotion result by id ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
 };
 PromotionController.fetchByID = (req, res) => {
     const id = (!req.params.id ? null : parseInt(req.params.id));
@@ -232,8 +252,21 @@ PromotionController.update = (req, res) => __awaiter(void 0, void 0, void 0, fun
     const rules = req.body.rules;
     const target = req.body.target;
     const brandID = req.body.brand;
+    const supplierID = req.body.supplier;
+    const userID = req.body.userId;
     yield promotion_model_1.default.deleteRules(id);
-    promotion_model_1.default.update(id, name, description, startDate, endDate, target, rules, brandID)
+    promotion_model_1.default.update({
+        id: id,
+        name: name,
+        description: description,
+        startDate: startDate,
+        endDate: endDate,
+        target: target,
+        rules: rules,
+        brand_id: brandID,
+        supplier_id: supplierID,
+        createdBy: userID,
+    })
         .then((result) => {
         return res.status(200).send(result);
     })
@@ -242,5 +275,85 @@ PromotionController.update = (req, res) => __awaiter(void 0, void 0, void 0, fun
         return res.status(500).send("Internal Server Error");
     });
 });
+PromotionController.downloadResultByID = (req, res) => {
+    const id = req.body.id;
+    promotion_model_1.default.fetchByID(id).then((promotion) => __awaiter(void 0, void 0, void 0, function* () {
+        if (!promotion) {
+            return res.status(404).send("Not Found");
+        }
+        const startsWith = promotion.promotion.filter((x) => {
+            return x.rule == "Starts with";
+        });
+        const endsWith = promotion.promotion.filter((x) => {
+            return x.rule == "Ends with";
+        });
+        const contains = promotion.promotion.filter((x) => {
+            return x.rule == "Contains";
+        });
+        const doesNotStartWith = promotion.promotion.filter((x) => {
+            return x.rule == "Does not start with";
+        });
+        const doesNotEndWith = promotion.promotion.filter((x) => {
+            return x.rule == "Does not end with";
+        });
+        const doesNotContain = promotion.promotion.filter((x) => {
+            return x.rule == "Does not contain";
+        });
+        const productIDs = yield mongo_product_model_1.mongoProductModel.find({
+            $and: [
+                { itemBrandID: promotion.brand_id },
+                startsWith.length > 0
+                    ? {
+                        $or: startsWith.map((x) => ({
+                            reference: new RegExp(`^${x.value}`, "i"),
+                        })),
+                    }
+                    : {},
+                endsWith.length > 0
+                    ? {
+                        $or: endsWith.map((x) => ({
+                            reference: new RegExp(`${x.value}$`, "i"),
+                        })),
+                    }
+                    : {},
+                contains.length > 0
+                    ? {
+                        $or: contains.map((x) => ({
+                            reference: new RegExp(`${x.value}`, "i"),
+                        })),
+                    }
+                    : {},
+                doesNotStartWith.length > 0
+                    ? {
+                        $and: doesNotStartWith.map((x) => ({
+                            reference: { $not: new RegExp(`^${x.value}`, "i") },
+                        })),
+                    }
+                    : {},
+                doesNotEndWith.length > 0
+                    ? {
+                        $and: doesNotEndWith.map((x) => ({
+                            reference: { $not: new RegExp(`${x.value}$`, "i") },
+                        })),
+                    }
+                    : {},
+                doesNotContain.length > 0
+                    ? {
+                        $and: doesNotContain.map((x) => ({
+                            reference: { $not: new RegExp(`${x.value}`, "i") },
+                        })),
+                    }
+                    : {},
+            ],
+        });
+        const good_receipts = yield good_receipt_model_1.default.fetchByItemIDs(productIDs.map((x) => {
+            return x.itemID;
+        }), promotion.start, promotion.end, promotion.supplier_id);
+        return res.status(200).send({
+            data: promotion,
+            result: good_receipts,
+        });
+    }));
+};
 exports.default = PromotionController;
 //# sourceMappingURL=promotion.controller.js.map

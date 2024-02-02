@@ -16,38 +16,43 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
 const customer_model_1 = __importDefault(require("../model/customer.model"));
 const bill_payment_model_1 = __importDefault(require("../model/bill_payment.model"));
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class ReceivableController {
 }
 _a = ReceivableController;
 ReceivableController.receivable = 0;
 ReceivableController.fetch = (req, res) => {
-    bill_code_model_1.default.fetchReceivables()
-        .then((result) => {
-        return res.status(200).send(result);
-    })
-        .catch((error) => {
-        return res.status(500).send(error);
-    });
+    bill_code_model_1.default.fetchReceivableIDs().then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        bill_code_model_1.default.fetchReceivableByIDs(result.map((x) => {
+            return x.id;
+        })).then((receivables) => {
+            return res.status(200).send(receivables);
+        });
+    }));
 };
 ReceivableController.fetchByCustomerID = (req, res) => {
     const customerID = req.params.id;
-    bill_code_model_1.default.fetchReceivableByCustomerID(Number(customerID))
-        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        const customer = Number(customerID) == 0
-            ? {
-                name: "Retail Customer",
-                address: "Retail Customer",
-                phone: "Retail Customer",
-                email: "Retail Customer",
-            }
-            : yield customer_model_1.default.fetchByID(Number(customerID));
-        return res.status(200).send({
-            data: result,
-            customer: customer,
-        });
-    }))
+    bill_code_model_1.default.fetchBillIDByCustomerID(Number(customerID))
+        .then((result) => {
+        bill_code_model_1.default.fetchReceivableDetailByIDs(result.map((x) => {
+            return x.id;
+        })).then((receivables) => __awaiter(void 0, void 0, void 0, function* () {
+            return res.status(200).send({
+                data: receivables,
+                customer: Number(customerID) == 0
+                    ? {
+                        name: "Retail Customer",
+                        address: "Retail Customer",
+                        phone: "Retail Customer",
+                        email: "Retail Customer",
+                    }
+                    : yield customer_model_1.default.fetchByID(Number(customerID)),
+            });
+        }));
+    })
         .catch((error) => {
-        return res.status(500).send(error);
+        console.error(`[error]: Error on fetch receivable by customer id ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 ReceivableController.fetchPaymentsHistory = (req, res) => {

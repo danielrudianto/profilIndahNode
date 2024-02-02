@@ -416,6 +416,42 @@ class GoodReceiptModel {
       AND good_receipt_code.is_delete = 0
     `);
     }
+    static fetchByItemIDs(item_ids, date_start, date_end, supplier_id) {
+        if (item_ids.length == 0)
+            return Promise.resolve([]);
+        const formatted_date_start = `${date_start.getFullYear()}-${(date_start.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${date_start.getDate().toString().padStart(2, "0")}`;
+        const formatted_date_end = date_end == null
+            ? null
+            : `${date_end.getFullYear()}-${(date_end.getMonth() + 1)
+                .toString()
+                .padStart(2, "0")}-${date_end
+                .getDate()
+                .toString()
+                .padStart(2, "0")}`;
+        return prisma.$queryRawUnsafe(`
+      SELECT supplier.id, supplier.name, good_receipt_code.date, p.value
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      JOIN (
+        SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt.good_receipt_code_id
+        FROM good_receipt
+        GROUP BY good_receipt.good_receipt_code_id
+      ) AS p
+      ON good_receipt_code.id = p.good_receipt_code_id
+      WHERE good_receipt.item_id IN (${item_ids.join(",")})
+      ${date_end != null
+            ? `AND good_receipt_code.date BETWEEN '${formatted_date_start}' AND '${formatted_date_end}'`
+            : `AND good_receipt_code.date >= '${formatted_date_start}'`}
+      AND good_receipt_code.is_delete = 0
+      AND good_receipt_code.supplier_id = ${supplier_id}
+      GROUP BY YEAR(good_receipt_code.date), MONTH(good_receipt_code.date), DAY(good_receipt_code.date),
+      good_receipt_code.supplier_id
+      ORDER BY good_receipt_code.date ASC
+    `);
+    }
 }
 exports.default = GoodReceiptModel;
 //# sourceMappingURL=good_receipt.model.js.map

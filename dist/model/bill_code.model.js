@@ -940,6 +940,77 @@ class BillCodeModel {
         });
     }
     /**
+     * Fetch all receivable by Bill Code ID
+     */
+    static fetchReceivableIDs() {
+        return app_1.prisma.bill_code.findMany({
+            where: {
+                is_delete: false,
+                is_paid: false,
+            },
+            select: {
+                id: true,
+            },
+        });
+    }
+    static fetchReceivableByIDs(ids) {
+        if (ids.length == 0)
+            return Promise.resolve([]);
+        return app_1.prisma.$queryRawUnsafe(`
+      SELECT SUM(COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service - COALESCE(p.value, 0)) AS value, 
+      bill_code.customer_id, 
+      COALESCE(customer.name, 'Retail customer') AS customer_name
+      FROM bill_code
+      LEFT JOIN customer ON bill_code.customer_id = customer.id
+      LEFT JOIN (
+        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+        FROM bill
+        WHERE bill.bill_code_id IN (${ids.join(",")})
+        GROUP BY bill.bill_code_id
+      ) AS b
+      ON bill_code.id = b.bill_code_id
+      LEFT JOIN (
+        SELECT SUM(bill_payment.value) AS value, bill_payment.bill_code_id
+          FROM bill_payment
+          WHERE bill_payment.bill_code_id IN (${ids.join(",")})
+          GROUP BY bill_code_id
+      ) AS p
+      ON bill_code.id = p.bill_code_id
+      AND bill_code.is_delete = 0 
+      AND bill_code.id IN (${ids.join(",")})
+      GROUP BY bill_code.customer_id
+      HAVING value > 0
+      ORDER BY value DESC
+    `);
+    }
+    static fetchReceivableDetailByIDs(ids) {
+        if (ids.length == 0)
+            return Promise.resolve([]);
+        return app_1.prisma.$queryRawUnsafe(`
+      SELECT bill_code.id, bill_code.payment_term, (COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service) AS value,
+      COALESCE(p.value, 0) AS payment,
+      bill_code.customer_id, bill_code.name, bill_code.date
+      FROM bill_code
+      JOIN (
+        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+        FROM bill
+        WHERE bill.bill_code_id IN (${ids.join(",")})
+        GROUP BY bill.bill_code_id
+      ) AS b
+      ON bill_code.id = b.bill_code_id
+      LEFT JOIN (
+        SELECT SUM(bill_payment.value) AS value, bill_payment.bill_code_id
+        FROM bill_payment
+        WHERE bill_payment.bill_code_id IN (${ids.join(",")})
+        GROUP BY bill_code_id
+      ) AS p
+      ON bill_code.id = p.bill_code_id
+      AND bill_code.is_delete = 0
+      AND bill_code.id IN (${ids.join(",")})
+      ORDER BY bill_code.date DESC
+    `);
+    }
+    /**
      * Fetch receivables
      * @returns
      */
@@ -968,6 +1039,35 @@ class BillCodeModel {
       GROUP BY bill_code.customer_id
       ORDER BY value DESC
     `);
+    }
+    // Fetch bill code ID by customerID
+    static fetchBillIDByCustomerID(customer_id) {
+        if (customer_id == 0) {
+            return app_1.prisma.bill_code.findMany({
+                where: {
+                    is_confirm: true,
+                    is_delete: false,
+                    is_paid: false,
+                    customer_id: null,
+                },
+                select: {
+                    id: true,
+                },
+            });
+        }
+        else {
+            return app_1.prisma.bill_code.findMany({
+                where: {
+                    is_confirm: true,
+                    is_delete: false,
+                    is_paid: false,
+                    customer_id: customer_id,
+                },
+                select: {
+                    id: true,
+                },
+            });
+        }
     }
     static fetchReceivableByCustomerID(customer_id) {
         if (customer_id == 0) {

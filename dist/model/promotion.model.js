@@ -4,42 +4,44 @@ const app_1 = require("../app");
 const mongo_overflow_model_1 = require("../mongo-model/mongo-overflow.model");
 const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
 class PromotionModel {
-    static create(name, description, startDate, endDate, target, createdBy, rules, brand_id) {
+    static create(data) {
         return app_1.prisma.promotion_code.create({
             data: {
-                name: name,
-                description: description,
-                start: startDate,
-                end: endDate == null ? null : endDate,
-                target: target,
-                created_by: createdBy,
+                name: data.name,
+                description: data.description,
+                start: data.startDate,
+                end: data.endDate == null ? null : data.endDate,
+                target: data.target,
+                created_by: data.createdBy,
                 created_at: new Date(),
                 promotion: {
                     createMany: {
-                        data: rules,
+                        data: data.rules,
                     },
                 },
-                brand_id: brand_id,
+                brand_id: data.brand_id,
+                supplier_id: data.supplier_id,
             },
         });
     }
-    static update(id, name, description, startDate, endDate, target, rules, brand_id) {
+    static update(data) {
         return app_1.prisma.promotion_code.update({
             where: {
-                id: id,
+                id: data.id,
             },
             data: {
-                name: name,
-                description: description,
-                start: startDate,
-                end: endDate == null ? null : endDate,
-                target: target,
+                name: data.name,
+                description: data.description,
+                start: data.startDate,
+                end: data.endDate == null ? null : data.endDate,
+                target: data.target,
                 promotion: {
                     createMany: {
-                        data: rules,
+                        data: data.rules,
                     },
                 },
-                brand_id: brand_id,
+                brand_id: data.brand_id,
+                supplier_id: data.supplier_id,
             },
         });
     }
@@ -67,6 +69,11 @@ class PromotionModel {
                         },
                     },
                     brand: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    supplier: {
                         select: {
                             name: true,
                         },
@@ -126,6 +133,11 @@ class PromotionModel {
                         name: true,
                     },
                 },
+                supplier: {
+                    select: {
+                        name: true,
+                    },
+                },
             },
         });
     }
@@ -176,10 +188,15 @@ class PromotionModel {
                         name: true,
                     },
                 },
+                supplier: {
+                    select: {
+                        name: true,
+                    },
+                },
             },
         });
     }
-    static calculateByID(itemIDs, start, end) {
+    static calculateByID(itemIDs, start, end, supplier_id) {
         // Calculate sales in promotion period
         if (end == null) {
             return Promise.all([
@@ -243,6 +260,7 @@ class PromotionModel {
                             itemID: {
                                 $in: itemIDs,
                             },
+                            supplierID: supplier_id,
                         },
                     },
                     {
@@ -347,6 +365,7 @@ class PromotionModel {
                             itemID: {
                                 $in: itemIDs,
                             },
+                            supplierID: supplier_id,
                         },
                     },
                     {

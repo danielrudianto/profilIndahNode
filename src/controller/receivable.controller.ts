@@ -2,40 +2,51 @@ import { Request, Response } from "express";
 import BillCodeModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
 import BillPaymentModel from "../model/bill_payment.model";
+import ErrorList from "../assets/error_list";
 
 class ReceivableController {
   static receivable = 0;
 
   static fetch = (req: Request, res: Response) => {
-    BillCodeModel.fetchReceivables()
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
+    BillCodeModel.fetchReceivableIDs().then(async (result) => {
+      BillCodeModel.fetchReceivableByIDs(
+        result.map((x) => {
+          return x.id;
+        })
+      ).then((receivables) => {
+        return res.status(200).send(receivables);
       });
+    });
   };
 
   static fetchByCustomerID = (req: Request, res: Response) => {
     const customerID = req.params.id;
-    BillCodeModel.fetchReceivableByCustomerID(Number(customerID))
-      .then(async (result) => {
-        const customer =
-          Number(customerID) == 0
-            ? {
-                name: "Retail Customer",
-                address: "Retail Customer",
-                phone: "Retail Customer",
-                email: "Retail Customer",
-              }
-            : await CustomerModel.fetchByID(Number(customerID));
-        return res.status(200).send({
-          data: result,
-          customer: customer,
+    BillCodeModel.fetchBillIDByCustomerID(Number(customerID))
+      .then((result) => {
+        BillCodeModel.fetchReceivableDetailByIDs(
+          result.map((x) => {
+            return x.id;
+          })
+        ).then(async (receivables) => {
+          return res.status(200).send({
+            data: receivables,
+            customer:
+              Number(customerID) == 0
+                ? {
+                    name: "Retail Customer",
+                    address: "Retail Customer",
+                    phone: "Retail Customer",
+                    email: "Retail Customer",
+                  }
+                : await CustomerModel.fetchByID(Number(customerID)),
+          });
         });
       })
       .catch((error) => {
-        return res.status(500).send(error);
+        console.error(
+          `[error]: Error on fetch receivable by customer id ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 

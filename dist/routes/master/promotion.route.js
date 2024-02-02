@@ -10,6 +10,7 @@ router.get("/result/:id", promotion_controller_1.default.fetchResultByID);
 router.get("/active", promotion_controller_1.default.fetchActive);
 router.get("/:id", promotion_controller_1.default.fetchByID);
 router.get("/", promotion_controller_1.default.fetch);
+router.post("/download", promotion_controller_1.default.downloadResultByID);
 router.post("/", promotion_controller_1.default.create);
 router.put("/", promotion_controller_1.default.update);
 exports.default = router;

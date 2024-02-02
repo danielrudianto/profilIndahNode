@@ -10,62 +10,62 @@ interface IPromotionRule {
   value: string;
 }
 
+interface ICreatePromotion {
+  name: string;
+  description: string;
+  startDate: Date;
+  endDate: Date | null;
+  target: string;
+  createdBy: number;
+  rules: IPromotionRule[];
+  brand_id: number;
+  supplier_id: number;
+}
+
+interface IUpdatePromotion extends ICreatePromotion {
+  id: number;
+}
+
 class PromotionModel {
-  static create(
-    name: string,
-    description: string,
-    startDate: Date,
-    endDate: Date | null,
-    target: string,
-    createdBy: number,
-    rules: IPromotionRule[],
-    brand_id: number
-  ) {
+  static create(data: ICreatePromotion) {
     return prisma.promotion_code.create({
       data: {
-        name: name,
-        description: description,
-        start: startDate,
-        end: endDate == null ? null : endDate,
-        target: target,
-        created_by: createdBy,
+        name: data.name,
+        description: data.description,
+        start: data.startDate,
+        end: data.endDate == null ? null : data.endDate,
+        target: data.target,
+        created_by: data.createdBy,
         created_at: new Date(),
         promotion: {
           createMany: {
-            data: rules,
+            data: data.rules,
           },
         },
-        brand_id: brand_id,
+        brand_id: data.brand_id,
+        supplier_id: data.supplier_id,
       },
     });
   }
 
-  static update(
-    id: number,
-    name: string,
-    description: string,
-    startDate: Date,
-    endDate: Date | null,
-    target: string,
-    rules: IPromotionRule[],
-    brand_id: number
-  ) {
+  static update(data: IUpdatePromotion) {
     return prisma.promotion_code.update({
       where: {
-        id: id,
+        id: data.id,
       },
       data: {
-        name: name,
-        description: description,
-        start: startDate,
-        end: endDate == null ? null : endDate,
-        target: target,
+        name: data.name,
+        description: data.description,
+        start: data.startDate,
+        end: data.endDate == null ? null : data.endDate,
+        target: data.target,
         promotion: {
           createMany: {
-            data: rules,
+            data: data.rules,
           },
         },
-        brand_id: brand_id,
+        brand_id: data.brand_id,
+        supplier_id: data.supplier_id,
       },
     });
   }
@@ -94,6 +94,11 @@ class PromotionModel {
             },
           },
           brand: {
+            select: {
+              name: true,
+            },
+          },
+          supplier: {
             select: {
               name: true,
             },
@@ -154,6 +159,11 @@ class PromotionModel {
             name: true,
           },
         },
+        supplier: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
   }
@@ -206,11 +216,21 @@ class PromotionModel {
             name: true,
           },
         },
+        supplier: {
+          select: {
+            name: true,
+          },
+        },
       },
     });
   }
 
-  static calculateByID(itemIDs: number[], start: Date, end: Date | null) {
+  static calculateByID(
+    itemIDs: number[],
+    start: Date,
+    end: Date | null,
+    supplier_id: number
+  ) {
     // Calculate sales in promotion period
     if (end == null) {
       return Promise.all([
@@ -274,6 +294,7 @@ class PromotionModel {
               itemID: {
                 $in: itemIDs,
               },
+              supplierID: supplier_id,
             },
           },
           {
@@ -377,6 +398,7 @@ class PromotionModel {
               itemID: {
                 $in: itemIDs,
               },
+              supplierID: supplier_id,
             },
           },
           {
