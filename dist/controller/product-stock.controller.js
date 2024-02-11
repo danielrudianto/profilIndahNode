@@ -14,9 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const error_list_1 = __importDefault(require("../assets/error_list"));
-const stock_card_helper_1 = __importDefault(require("../helper/stock_card.helper"));
 const item_model_1 = require("../model/item.model");
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const app_1 = require("../app");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
@@ -1041,80 +1039,6 @@ ProductStockController.create = (req, res) => __awaiter(void 0, void 0, void 0, 
                 return res.status(500).send(error_list_1.default["Internal server error"]);
             });
             break;
-        case "download":
-            const itemID = req.body.itemID;
-            const cardFormat = req.body.format;
-            const dateStart = req.body.dateStart;
-            const dateEnd = req.body.dateEnd;
-            item_model_1.ItemModel.fetchByID(itemID)
-                .then((item) => {
-                if (!item) {
-                    return res.status(404).send(error_list_1.default["Not found"]);
-                }
-                else {
-                    product_stock_model_1.default.fetchStockData(itemID, "card", dateStart, dateEnd)
-                        .then((result) => {
-                        if (cardFormat == "CSV") {
-                            stock_card_helper_1.default.createCsv(result.map((x) => {
-                                return {
-                                    name: x.f0,
-                                    date: new Date(x.f1),
-                                    created_at: new Date(x.f2),
-                                    item_id: x.f3,
-                                    item_unit_id: x.f4,
-                                    bill_id: x.f5,
-                                    adjustment_case_id: x.f6,
-                                    good_receipt_id: x.f7,
-                                    sales_return_id: x.f8,
-                                    quantity: x.f9,
-                                    stock: x.f10,
-                                    unit: x.f11,
-                                    conversion: x.f12,
-                                    opponent: x.f13,
-                                };
-                            }), function (array) {
-                                return res.status(200).send({
-                                    data: array,
-                                });
-                            }, function (error) {
-                                return res.status(500).send(error);
-                            });
-                        }
-                        else {
-                            stock_card_helper_1.default.createPdf(item[0], result.map((x) => {
-                                return {
-                                    name: x.f0,
-                                    date: new Date(x.f1),
-                                    created_at: new Date(x.f2),
-                                    item_id: x.f3,
-                                    item_unit_id: x.f4,
-                                    bill_id: x.f5,
-                                    adjustment_case_id: x.f6,
-                                    good_receipt_id: x.f7,
-                                    sales_return_id: x.f8,
-                                    quantity: x.f9,
-                                    stock: x.f10,
-                                    unit: x.f11,
-                                    conversion: x.f12,
-                                    opponent: x.f13,
-                                };
-                            }), function (binary) {
-                                return res.status(200).send({
-                                    data: binary,
-                                });
-                            }, function (error) {
-                                return res.status(500).send(error);
-                            });
-                        }
-                    })
-                        .catch((error) => {
-                        return res.status(500).send(error);
-                    });
-                }
-            })
-                .catch((error) => {
-                return res.status(500).send(error);
-            });
     }
 });
 exports.default = ProductStockController;
