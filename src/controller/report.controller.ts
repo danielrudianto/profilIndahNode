@@ -16,12 +16,10 @@ import moment from "moment";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import PromotionModel from "../model/promotion.model";
-import BillModel from "../model/bill.model";
 import AdjustmentCaseModel from "../model/adjustment-case.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
-import DepositController from "./deposit.controller";
 
 class ReportController {
   /**
@@ -911,7 +909,152 @@ class ReportController {
    * @param req
    * @param res
    */
-  static fetchAdministratorDashboard = (req: Request, res: Response) => {
+  static fetchAdministratorDashboardV2 = async (
+    req: Request,
+    res: Response
+  ) => {
+    interface AdministratorDashboard {
+      title: string;
+      compare: boolean;
+      current: number;
+      previous?: number;
+      code: number;
+    }
+
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const items = req.body.items as number[];
+    const response: AdministratorDashboard[] = [];
+
+    for (let i = 0; i < items.length; i++) {
+      switch (items[i]) {
+        case 0:
+          const billCurrentValue = await BillCodeModel.fetchByDate(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            today.getDate()
+          );
+
+          const billPreviousValue = await BillCodeModel.fetchByDate(
+            today.getFullYear(),
+            yesterday.getMonth() + 1,
+            yesterday.getDate()
+          );
+
+          response.push({
+            title: "Sales",
+            compare: true,
+            current:
+              billCurrentValue == null
+                ? 0
+                : billCurrentValue[0].value == null
+                ? 0
+                : billCurrentValue[0].value,
+            previous:
+              billPreviousValue == null
+                ? 0
+                : billPreviousValue[0].value == null
+                ? 0
+                : billPreviousValue[0].value,
+            code: items[i],
+          });
+          break;
+        case 1:
+          const purchaseCurrentValue = await PurchaseInvoiceModel.fetchByDate(
+            today.getFullYear(),
+            today.getMonth() + 1,
+            today.getDate()
+          );
+
+          const purchasePreviousValue = await PurchaseInvoiceModel.fetchByDate(
+            today.getFullYear(),
+            yesterday.getMonth() + 1,
+            yesterday.getDate()
+          );
+
+          response.push({
+            title: "Purchase",
+            compare: true,
+            current:
+              purchaseCurrentValue == null
+                ? 0
+                : purchaseCurrentValue[0].value == null
+                ? 0
+                : purchaseCurrentValue[0].value,
+            previous:
+              purchasePreviousValue == null
+                ? 0
+                : purchasePreviousValue[0].value == null
+                ? 0
+                : purchasePreviousValue[0].value,
+            code: items[i],
+          });
+          break;
+        case 2:
+          const receivableCurrentValue = await ReceivableController.receivable;
+          response.push({
+            title: "Receivable",
+            compare: false,
+            current: receivableCurrentValue,
+            code: items[i],
+          });
+          break;
+        case 3:
+          const depositCurrentValue = await DepositModel.countActive();
+          response.push({
+            title: "Deposit",
+            compare: false,
+            current: depositCurrentValue,
+            code: items[i],
+          });
+          break;
+        case 4:
+          const promotionCurrentValue = await PromotionModel.countActive();
+          response.push({
+            title: "Promotion",
+            compare: false,
+            current: promotionCurrentValue,
+            code: items[i],
+          });
+          break;
+        case 5:
+          const inadequateCurrentValue = await mongoProductModel.countDocuments(
+            {
+              $expr: {
+                $lt: ["$currentStock", "$minimumStock"],
+              },
+            }
+          );
+
+          response.push({
+            title: "Inadequate Stock",
+            compare: false,
+            current: inadequateCurrentValue,
+            code: items[i],
+          });
+          break;
+        case 6:
+          // Internal deposit, now just calculate the deposit
+          const internalDepositCurrentValue = await DepositModel.countActive();
+          response.push({
+            title: "Internal Deposit",
+            compare: false,
+            current: internalDepositCurrentValue,
+            code: items[i],
+          });
+          break;
+      }
+    }
+
+    return res.status(200).send(response);
+  };
+
+  static fetchAdministratorDashboardV1 = async (
+    req: Request,
+    res: Response
+  ) => {
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
@@ -967,7 +1110,7 @@ class ReportController {
         console.error(
           `[error]: Error on fetching administrator data. ${error}`
         );
-        return res.status(500).send(ErrorList["Internal server error"]);
+        return res.status(500).send(error);
       });
   };
 

@@ -260,6 +260,56 @@ SalesInvoiceController.create = (req, res) => {
                 };
             }),
             created_by: userID,
+            type: "EXTERNAL",
+        })
+            .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+            return res.status(201).send(result);
+        }))
+            .catch((error) => {
+            console.error(`[error]: Error on creating deposit ${error}`);
+            return res.status(500).send(error);
+        });
+    }
+    else if (type == "deposit-internal") {
+        deposit_model_1.default.create({
+            name: deposit_model_1.default.generateName(date),
+            customer_id: null,
+            discount: discount,
+            delivery: delivery,
+            service: service,
+            date: date,
+            uuid: uuid,
+            items: bill.map((x) => {
+                if (x.package_code_id != undefined) {
+                    return {
+                        package_code_id: x.package_code_id,
+                        item_id: null,
+                        item_unit_id: null,
+                        quantity: x.quantity,
+                        price: x.price,
+                        discount: x.discount,
+                    };
+                }
+                else {
+                    return {
+                        package_code_id: null,
+                        item_id: x.item_id,
+                        item_unit_id: x.item_unit_id,
+                        quantity: x.quantity,
+                        price: x.price,
+                        discount: x.discount,
+                    };
+                }
+            }),
+            payments: payments.map((x) => {
+                return {
+                    date: date,
+                    value: x.value,
+                    payment_method_id: x.payment_method_id == 0 ? null : x.payment_method_id,
+                };
+            }),
+            created_by: userID,
+            type: "INTERNAL",
         })
             .then((result) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(201).send(result);

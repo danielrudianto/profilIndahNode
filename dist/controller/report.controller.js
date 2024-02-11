@@ -822,7 +822,107 @@ ReportController.fetchSalesDashboard = (req, res) => {
  * @param req
  * @param res
  */
-ReportController.fetchAdministratorDashboard = (req, res) => {
+ReportController.fetchAdministratorDashboardV2 = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const items = req.body.items;
+    const response = [];
+    for (let i = 0; i < items.length; i++) {
+        switch (items[i]) {
+            case 0:
+                const billCurrentValue = yield bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                const billPreviousValue = yield bill_code_model_1.default.fetchByDate(today.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
+                response.push({
+                    title: "Sales",
+                    compare: true,
+                    current: billCurrentValue == null
+                        ? 0
+                        : billCurrentValue[0].value == null
+                            ? 0
+                            : billCurrentValue[0].value,
+                    previous: billPreviousValue == null
+                        ? 0
+                        : billPreviousValue[0].value == null
+                            ? 0
+                            : billPreviousValue[0].value,
+                    code: items[i],
+                });
+                break;
+            case 1:
+                const purchaseCurrentValue = yield purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
+                const purchasePreviousValue = yield purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
+                response.push({
+                    title: "Purchase",
+                    compare: true,
+                    current: purchaseCurrentValue == null
+                        ? 0
+                        : purchaseCurrentValue[0].value == null
+                            ? 0
+                            : purchaseCurrentValue[0].value,
+                    previous: purchasePreviousValue == null
+                        ? 0
+                        : purchasePreviousValue[0].value == null
+                            ? 0
+                            : purchasePreviousValue[0].value,
+                    code: items[i],
+                });
+                break;
+            case 2:
+                const receivableCurrentValue = yield receivable_controller_1.default.receivable;
+                response.push({
+                    title: "Receivable",
+                    compare: false,
+                    current: receivableCurrentValue,
+                    code: items[i],
+                });
+                break;
+            case 3:
+                const depositCurrentValue = yield deposit_model_1.default.countActive();
+                response.push({
+                    title: "Deposit",
+                    compare: false,
+                    current: depositCurrentValue,
+                    code: items[i],
+                });
+                break;
+            case 4:
+                const promotionCurrentValue = yield promotion_model_1.default.countActive();
+                response.push({
+                    title: "Promotion",
+                    compare: false,
+                    current: promotionCurrentValue,
+                    code: items[i],
+                });
+                break;
+            case 5:
+                const inadequateCurrentValue = yield mongo_product_model_1.mongoProductModel.countDocuments({
+                    $expr: {
+                        $lt: ["$currentStock", "$minimumStock"],
+                    },
+                });
+                response.push({
+                    title: "Inadequate Stock",
+                    compare: false,
+                    current: inadequateCurrentValue,
+                    code: items[i],
+                });
+                break;
+            case 6:
+                // Internal deposit, now just calculate the deposit
+                const internalDepositCurrentValue = yield deposit_model_1.default.countActive();
+                response.push({
+                    title: "Internal Deposit",
+                    compare: false,
+                    current: internalDepositCurrentValue,
+                    code: items[i],
+                });
+                break;
+        }
+    }
+    return res.status(200).send(response);
+});
+ReportController.fetchAdministratorDashboardV1 = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
@@ -847,9 +947,9 @@ ReportController.fetchAdministratorDashboard = (req, res) => {
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching administrator data. ${error}`);
-        return res.status(500).send(error_list_1.default["Internal server error"]);
+        return res.status(500).send(error);
     });
-};
+});
 ReportController.fetchOutputReportCompany = (req, res) => {
     const date = req.body.date;
     const company_id = req.body.company_id;

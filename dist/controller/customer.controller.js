@@ -34,7 +34,8 @@ CustomerController.create = (req, res) => {
     const phone_number = req.body.phone_number;
     const npwp = req.body.npwp == null
         ? null
-        : req.body.npwp.toString().length == 15
+        : req.body.npwp.toString().length == 15 ||
+            req.body.npwp.toString().length == 16
             ? req.body.npwp
             : null;
     customer_model_1.default.create({
@@ -165,7 +166,8 @@ CustomerController.update = (req, res) => {
     const address = req.body.address;
     const npwp = req.body.npwp == null
         ? null
-        : req.body.npwp.toString().length == 15
+        : req.body.npwp.toString().length == 15 ||
+            req.body.npwp.toString().length == 16
             ? req.body.npwp
             : null;
     const pic = req.body.pic;
@@ -197,6 +199,7 @@ CustomerController.update = (req, res) => {
  */
 CustomerController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id.toString());
+    const userID = req.body.userId;
     customer_model_1.default.fetchByID(id).then((result) => {
         if (!result) {
             return res.status(404).send(error_list_1.default["Not found"]);
@@ -204,7 +207,7 @@ CustomerController.deleteByID = (req, res) => {
         if (!result.can_delete) {
             return res.status(400).send(error_list_1.default["Delete error"]);
         }
-        customer_model_1.default.delete(id, req.body.userId)
+        customer_model_1.default.delete(id, userID)
             .then((customer) => __awaiter(void 0, void 0, void 0, function* () {
             yield app_1.meili.index("customer").deleteDocument(customer.id);
             const socket = new socket_helper_1.default("deleteCustomer", customer);

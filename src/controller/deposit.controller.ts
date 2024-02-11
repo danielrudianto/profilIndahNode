@@ -8,6 +8,11 @@ import { StockInInterface } from "../interface/stock-in.interface";
 import { queue } from "../helper/queue.helper";
 
 class DepositController {
+  /**
+   * Fetch deposit by ID
+   * @param req
+   * @param res
+   */
   static fetchByID = (req: Request, res: Response) => {
     const id = Number(req.params.id);
     DepositModel.fetchByID(id).then((result) => {
@@ -32,6 +37,11 @@ class DepositController {
     });
   };
 
+  /**
+   * Fetch deposit
+   * @param req
+   * @param res
+   */
   static fetch = (req: Request, res: Response) => {
     const keyword = !req.query.keyword
       ? ""
@@ -50,6 +60,13 @@ class DepositController {
         return res.status(500).send(error);
       });
   };
+
+  /**
+   * Delete deposit by ID
+   * @param req
+   * @param res
+   * @returns
+   */
 
   static deleteByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
@@ -218,6 +235,7 @@ class DepositController {
                   };
                 }),
             ],
+            type: result.type,
           });
 
           // Create a new bill code

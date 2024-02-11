@@ -213,6 +213,7 @@ model deposit_code {
   delivery    Decimal   @default(0.0000) @db.Decimal(50, 4)
   service     Decimal   @default(0.0000) @db.Decimal(50, 4)
   uuid        String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
+  type        String    @default("EXTERNAL") @db.VarChar(8) // INTERNAL, EXTERNAL
 
   date                              DateTime?         @db.Date
   user_bill_code_confirmed_byTouser user?             @relation("deposit_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_2")

@@ -994,7 +994,7 @@ class BillCodeModel {
   }
 
   static fetchByDate(year: number, month: number, day: number | null) {
-    return prisma.$queryRawUnsafe(`
+    return prisma.$queryRawUnsafe<any[]>(`
       SELECT (a.delivery + a.value - a.discount + a.service) AS value 
       FROM (
         SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service

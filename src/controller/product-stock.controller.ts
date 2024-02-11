@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import StockCardHelper from "../helper/stock_card.helper";
 import { ItemModel } from "../model/item.model";
 import ProductStockModel from "../model/product-stock.model";
 import { meili, prisma } from "../app";
@@ -1134,92 +1133,6 @@ class ProductStockController {
             return res.status(500).send(ErrorList["Internal server error"]);
           });
         break;
-      case "download":
-        const itemID = req.body.itemID;
-        const cardFormat = req.body.format;
-        const dateStart = req.body.dateStart;
-        const dateEnd = req.body.dateEnd;
-        ItemModel.fetchByID(itemID)
-          .then((item) => {
-            if (!item) {
-              return res.status(404).send(ErrorList["Not found"]);
-            } else {
-              ProductStockModel.fetchStockData(
-                itemID,
-                "card",
-                dateStart,
-                dateEnd
-              )!
-                .then((result) => {
-                  if (cardFormat == "CSV") {
-                    StockCardHelper.createCsv(
-                      (result as any[]).map((x) => {
-                        return {
-                          name: x.f0,
-                          date: new Date(x.f1),
-                          created_at: new Date(x.f2),
-                          item_id: x.f3,
-                          item_unit_id: x.f4,
-                          bill_id: x.f5,
-                          adjustment_case_id: x.f6,
-                          good_receipt_id: x.f7,
-                          sales_return_id: x.f8,
-                          quantity: x.f9,
-                          stock: x.f10,
-                          unit: x.f11,
-                          conversion: x.f12,
-                          opponent: x.f13,
-                        };
-                      }),
-                      function (array: any[]) {
-                        return res.status(200).send({
-                          data: array,
-                        });
-                      },
-                      function (error: any) {
-                        return res.status(500).send(error);
-                      }
-                    );
-                  } else {
-                    StockCardHelper.createPdf(
-                      item[0],
-                      (result as any[]).map((x) => {
-                        return {
-                          name: x.f0,
-                          date: new Date(x.f1),
-                          created_at: new Date(x.f2),
-                          item_id: x.f3,
-                          item_unit_id: x.f4,
-                          bill_id: x.f5,
-                          adjustment_case_id: x.f6,
-                          good_receipt_id: x.f7,
-                          sales_return_id: x.f8,
-                          quantity: x.f9,
-                          stock: x.f10,
-                          unit: x.f11,
-                          conversion: x.f12,
-                          opponent: x.f13,
-                        };
-                      }),
-                      function (binary: string) {
-                        return res.status(200).send({
-                          data: binary,
-                        });
-                      },
-                      function (error: any) {
-                        return res.status(500).send(error);
-                      }
-                    );
-                  }
-                })
-                .catch((error) => {
-                  return res.status(500).send(error);
-                });
-            }
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
     }
   };
 }

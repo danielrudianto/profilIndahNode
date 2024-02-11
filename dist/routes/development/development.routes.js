@@ -24,7 +24,6 @@ var __importStar = (this && this.__importStar) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const arima_helper_1 = require("../../helper/arima.helper");
 const search_helper_1 = __importStar(require("../../helper/search.helper"));
 const router = (0, express_1.Router)();
 router.post("/create-index", search_helper_1.default.createIndex);
@@ -52,7 +51,6 @@ router.post("/sync-product-in", search_helper_1.default.syncProductIn);
 router.post("/sync-product-out", search_helper_1.default.syncProductOut);
 router.post("/sync-product-out-calculation", search_helper_1.default.syncProductOutCalculation);
 router.post("/arrange-stock-card", search_helper_1.default.arrangeStockCard);
-router.post("/arima", arima_helper_1.ArimaHelper.predict);
 router.get("/tasks", search_helper_1.default.getTasks);
 exports.default = router;
 //# sourceMappingURL=development.routes.js.map

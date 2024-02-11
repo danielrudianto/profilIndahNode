@@ -1039,7 +1039,7 @@ class PurchaseInvoiceModel {
   }
 
   static fetchByDate(year: number, month: number, day: number | null) {
-    return prisma.$queryRawUnsafe(`
+    return prisma.$queryRawUnsafe<any[]>(`
       SELECT (a.value - a.discount) AS value 
       FROM (
         SELECT SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value, purchase_invoice.discount

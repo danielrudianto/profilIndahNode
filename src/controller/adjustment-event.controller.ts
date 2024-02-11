@@ -25,7 +25,8 @@ class AdjustmentCaseController {
       return res.status(400).send(ErrorList["Parameter error"]);
     }
 
-    const adjustmentCase: IAdjustmentCaseCode = {
+    // Insert adjustment case code
+    AdjustmentCaseModel.create({
       name: name,
       date: new Date(req.body.date),
       created_by: userID,
@@ -37,18 +38,17 @@ class AdjustmentCaseController {
           quantity: (type == 0 ? 1 : -1) * x.quantity,
         };
       }),
-    };
-
-    // Insert adjustment case code
-    AdjustmentCaseModel.create(adjustmentCase)
+    })
       .then(async (result) => {
         if (!result) {
           return res.status(500).send(ErrorList["Internal server error"]);
         }
 
+        const queueBody: StockInInterface[] = [];
+
         // Start inserting using queue
         for (let i = 0; i < result.adjustment_case.length; i++) {
-          if (parseFloat(result.adjustment_case[i].quantity.toString()) > 0) {
+          if (Number(result.adjustment_case[i].quantity) > 0) {
             // Added item
             const stockIn: StockInInterface = {
               itemID: result.adjustment_case[i].item.id,
@@ -56,7 +56,7 @@ class AdjustmentCaseController {
               date: result.date,
               document: result.name,
               opponent: "Internal",
-              displayQuantity: parseFloat(
+              displayQuantity: Number(
                 result.adjustment_case[i].quantity.toString()
               ),
               unit:
@@ -64,12 +64,10 @@ class AdjustmentCaseController {
                   ? result.adjustment_case[i].item.unit
                   : result.adjustment_case[i].item_unit!.unit,
               quantity:
-                parseFloat(result.adjustment_case[i].quantity.toString()) *
+                Number(result.adjustment_case[i].quantity) *
                 (result.adjustment_case[i].item_unit == null
                   ? 1
-                  : parseFloat(
-                      result.adjustment_case[i].item_unit!.conversion.toString()
-                    )),
+                  : Number(result.adjustment_case[i].item_unit?.conversion)),
               billID: null,
               billCodeID: null,
               adjustmentCaseID: result.adjustment_case[i].id,
@@ -84,6 +82,8 @@ class AdjustmentCaseController {
               price: 0,
             };
 
+            queueBody.push(stockIn);
+
             await queue.add("insert-stock-in", stockIn);
           } else {
             // Removed item
@@ -93,20 +93,16 @@ class AdjustmentCaseController {
               date: result.date,
               document: result.name,
               opponent: "Internal",
-              displayQuantity: parseFloat(
-                result.adjustment_case[i].quantity.toString()
-              ),
+              displayQuantity: Number(result.adjustment_case[i].quantity),
               unit:
                 result.adjustment_case[i].item_unit == null
                   ? result.adjustment_case[i].item.unit
                   : result.adjustment_case[i].item_unit!.unit,
               quantity:
-                parseFloat(result.adjustment_case[i].quantity.toString()) *
+                Number(result.adjustment_case[i].quantity) *
                 (result.adjustment_case[i].item_unit == null
                   ? 1
-                  : parseFloat(
-                      result.adjustment_case[i].item_unit!.conversion.toString()
-                    )),
+                  : Number(result.adjustment_case[i].item_unit!.conversion)),
               billID: null,
               billCodeID: null,
               adjustmentCaseID: result.adjustment_case[i].id,

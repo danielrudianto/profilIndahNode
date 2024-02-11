@@ -4,6 +4,7 @@ import http from "http";
 import { Server } from "socket.io";
 import { MeiliSearch } from "meilisearch";
 import cron from "node-cron";
+import { createClient } from "redis";
 
 import { authMiddleware } from "./helper/auth.helper";
 
@@ -54,6 +55,7 @@ import mongoose from "mongoose";
 import { PrismaClient } from "@prisma/client";
 import { queue } from "./helper/queue.helper";
 import ReceivableController from "./controller/receivable.controller";
+import compression from "compression";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -73,6 +75,7 @@ const app = express();
 app.use(cors(options));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express.json({ limit: "50mb" }));
+app.use(compression());
 
 app.use("/auth", authRoutes);
 app.use("/product", authMiddleware, productRoutes);
@@ -112,8 +115,17 @@ app.use("/changelog", changelogRoutes);
 app.use("/development", developmentRoutes);
 
 const server = http.createServer(app);
+const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
+
 server.listen(5000, async () => {
   console.log("[server]: Server is running on port 5000");
+
+  redisClient.on("error", (err) =>
+    console.error(`[error]: Error on redis ${err}`)
+  );
+
+  await redisClient.connect();
+  console.info("[info]: Connected with redis");
 
   const url = "mongodb://127.0.0.1:27017/ProfilIndah";
   await mongoose.connect(url, {

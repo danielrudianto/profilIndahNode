@@ -35,7 +35,8 @@ AdjustmentCaseController.create = (req, res) => {
     if (type == 0 && companyID == null) {
         return res.status(400).send(error_list_1.default["Parameter error"]);
     }
-    const adjustmentCase = {
+    // Insert adjustment case code
+    adjustment_case_model_1.default.create({
         name: name,
         date: new Date(req.body.date),
         created_by: userID,
@@ -47,16 +48,16 @@ AdjustmentCaseController.create = (req, res) => {
                 quantity: (type == 0 ? 1 : -1) * x.quantity,
             };
         }),
-    };
-    // Insert adjustment case code
-    adjustment_case_model_1.default.create(adjustmentCase)
+    })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        var _b;
         if (!result) {
             return res.status(500).send(error_list_1.default["Internal server error"]);
         }
+        const queueBody = [];
         // Start inserting using queue
         for (let i = 0; i < result.adjustment_case.length; i++) {
-            if (parseFloat(result.adjustment_case[i].quantity.toString()) > 0) {
+            if (Number(result.adjustment_case[i].quantity) > 0) {
                 // Added item
                 const stockIn = {
                     itemID: result.adjustment_case[i].item.id,
@@ -64,14 +65,14 @@ AdjustmentCaseController.create = (req, res) => {
                     date: result.date,
                     document: result.name,
                     opponent: "Internal",
-                    displayQuantity: parseFloat(result.adjustment_case[i].quantity.toString()),
+                    displayQuantity: Number(result.adjustment_case[i].quantity.toString()),
                     unit: result.adjustment_case[i].item_unit == null
                         ? result.adjustment_case[i].item.unit
                         : result.adjustment_case[i].item_unit.unit,
-                    quantity: parseFloat(result.adjustment_case[i].quantity.toString()) *
+                    quantity: Number(result.adjustment_case[i].quantity) *
                         (result.adjustment_case[i].item_unit == null
                             ? 1
-                            : parseFloat(result.adjustment_case[i].item_unit.conversion.toString())),
+                            : Number((_b = result.adjustment_case[i].item_unit) === null || _b === void 0 ? void 0 : _b.conversion)),
                     billID: null,
                     billCodeID: null,
                     adjustmentCaseID: result.adjustment_case[i].id,
@@ -85,6 +86,7 @@ AdjustmentCaseController.create = (req, res) => {
                     companyID: result.company_id,
                     price: 0,
                 };
+                queueBody.push(stockIn);
                 yield queue_helper_1.queue.add("insert-stock-in", stockIn);
             }
             else {
@@ -95,14 +97,14 @@ AdjustmentCaseController.create = (req, res) => {
                     date: result.date,
                     document: result.name,
                     opponent: "Internal",
-                    displayQuantity: parseFloat(result.adjustment_case[i].quantity.toString()),
+                    displayQuantity: Number(result.adjustment_case[i].quantity),
                     unit: result.adjustment_case[i].item_unit == null
                         ? result.adjustment_case[i].item.unit
                         : result.adjustment_case[i].item_unit.unit,
-                    quantity: parseFloat(result.adjustment_case[i].quantity.toString()) *
+                    quantity: Number(result.adjustment_case[i].quantity) *
                         (result.adjustment_case[i].item_unit == null
                             ? 1
-                            : parseFloat(result.adjustment_case[i].item_unit.conversion.toString())),
+                            : Number(result.adjustment_case[i].item_unit.conversion)),
                     billID: null,
                     billCodeID: null,
                     adjustmentCaseID: result.adjustment_case[i].id,

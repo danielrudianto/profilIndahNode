@@ -63,10 +63,12 @@ router.get("/inventory", ReportController.fetchInventoryReport);
 router.get("/expense/:month/:year", ReportController.fetchExpenseReport);
 
 router.get("/dashboard/sales", ReportController.fetchSalesDashboard);
-router.get(
+router.post(
   "/dashboard/administrator",
-  ReportController.fetchAdministratorDashboard
+  ReportController.fetchAdministratorDashboardV2
 );
+
+router.get("/dashboard/administrator", ReportController.fetchAdministratorDashboardV1)
 
 router.post(
   "/output-company/download",

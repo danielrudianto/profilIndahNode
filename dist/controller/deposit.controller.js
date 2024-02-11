@@ -22,6 +22,11 @@ const queue_helper_1 = require("../helper/queue.helper");
 class DepositController {
 }
 _a = DepositController;
+/**
+ * Fetch deposit by ID
+ * @param req
+ * @param res
+ */
 DepositController.fetchByID = (req, res) => {
     const id = Number(req.params.id);
     deposit_model_1.default.fetchByID(id).then((result) => {
@@ -37,6 +42,11 @@ DepositController.fetchByID = (req, res) => {
         return res.status(200).send(Object.assign(Object.assign({}, result), { is_confirm: true, subTotal: subTotal, discount: parseFloat(result.discount.toString()), delivery: parseFloat(result.delivery.toString()), service: parseFloat(result.service.toString()) }));
     });
 };
+/**
+ * Fetch deposit
+ * @param req
+ * @param res
+ */
 DepositController.fetch = (req, res) => {
     const keyword = !req.query.keyword
         ? ""
@@ -54,6 +64,12 @@ DepositController.fetch = (req, res) => {
         return res.status(500).send(error);
     });
 };
+/**
+ * Delete deposit by ID
+ * @param req
+ * @param res
+ * @returns
+ */
 DepositController.deleteByID = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = Number(req.params.id);
     const result = yield deposit_model_1.default.fetchByID(id);
@@ -206,6 +222,7 @@ DepositController.confirmByID = (req, res) => {
                         };
                     }),
                 ],
+                type: result.type,
             });
             // Create a new bill code
             bill_code_model_1.default.create({

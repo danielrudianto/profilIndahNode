@@ -20,7 +20,8 @@ class CustomerController {
     const npwp =
       req.body.npwp == null
         ? null
-        : req.body.npwp.toString().length == 15
+        : req.body.npwp.toString().length == 15 ||
+          req.body.npwp.toString().length == 16
         ? req.body.npwp
         : null;
 
@@ -166,7 +167,8 @@ class CustomerController {
     const npwp =
       req.body.npwp == null
         ? null
-        : req.body.npwp.toString().length == 15
+        : req.body.npwp.toString().length == 15 ||
+          req.body.npwp.toString().length == 16
         ? req.body.npwp
         : null;
     const pic = req.body.pic;
@@ -201,6 +203,7 @@ class CustomerController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
+    const userID = req.body.userId;
     CustomerModel.fetchByID(id).then((result) => {
       if (!result) {
         return res.status(404).send(ErrorList["Not found"]);
@@ -210,7 +213,7 @@ class CustomerController {
         return res.status(400).send(ErrorList["Delete error"]);
       }
 
-      CustomerModel.delete(id, req.body.userId)
+      CustomerModel.delete(id, userID)
         .then(async (customer) => {
           await meili.index("customer").deleteDocument(customer.id);
           const socket = new SocketHelper("deleteCustomer", customer);

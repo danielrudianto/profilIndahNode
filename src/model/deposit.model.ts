@@ -17,6 +17,7 @@ interface ICreateDeposit {
   uuid: string;
   items: ICreateDepositItem[];
   payments: ICreateDepositPayment[];
+  type: string;
 }
 
 interface ICreateDepositItem {
@@ -104,6 +105,7 @@ class DepositModel {
         deposit_payment: {
           create: data.payments,
         },
+        type: data.type,
       },
     });
   }
@@ -136,6 +138,7 @@ class DepositModel {
         discount: true,
         delivery: true,
         service: true,
+        type: true,
         deposit: {
           select: {
             id: true,
@@ -225,8 +228,9 @@ class DepositModel {
     return prisma.$transaction([
       prisma.$queryRawUnsafe<IDepositArchive[]>(`
         SELECT deposit_code.id, deposit_code.date, deposit_code.name,
-        COALESCE(customer.name, 'Retail customer') AS customer_name, 
-        deposit_code.customer_id, b.value, COALESCE(pm.value, 0) AS payment
+        IF(deposit_code.type = 'INTERNAL', 'Internal', COALESCE(customer.name, 'Retail customer')) AS customer_name, 
+        deposit_code.customer_id, b.value, COALESCE(pm.value, 0) AS payment,
+        deposit_code.type
         FROM deposit_code
         LEFT JOIN customer ON deposit_code.customer_id = customer.id
         LEFT JOIN (
