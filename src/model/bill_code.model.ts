@@ -45,6 +45,36 @@ interface IReportBill {
   discount: number;
 }
 
+interface ISearchBill {
+  name: string;
+  id: number;
+  date: string;
+  customer_name: string;
+  is_confirm: number;
+  is_delete: number;
+}
+
+interface ISearchBillCount {
+  count: number;
+}
+
+interface IMoneyReceipt {
+  name: string;
+  bill: number;
+  sales_return: number;
+  deposit: number;
+}
+
+interface IBillAppendix {
+  date: string;
+  name: string;
+  customer_name: string;
+  discount: number;
+  value: number;
+  delivery: number;
+  service: number;
+}
+
 class BillCodeModel {
   /**
    * Create new bill code
@@ -52,7 +82,6 @@ class BillCodeModel {
    * @returns BillCode
    */
   static create(data: ICreateBill) {
-    console.log(data.payments);
     return prisma.bill_code.create({
       data: {
         name: data.name,
@@ -275,7 +304,9 @@ class BillCodeModel {
     page: number,
     mode: number
   ) {
-    let query = `SELECT bill_code.name, bill_code.id, bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name, bill_code.is_confirm, bill_code.is_delete
+    let query = `SELECT bill_code.name, bill_code.id, bill_code.date, 
+      COALESCE(customer.name, 'Retail customer') AS customer_name, 
+      bill_code.is_confirm, bill_code.is_delete
       FROM bill_code 
       LEFT JOIN customer ON bill_code.customer_id = customer.id`;
     let conditionalQueries = "";
@@ -322,12 +353,12 @@ class BillCodeModel {
     }
 
     return prisma.$transaction([
-      prisma.$queryRawUnsafe<any[]>(
+      prisma.$queryRawUnsafe<ISearchBill[]>(
         `${query} ${conditionalQueries} ORDER BY bill_code.date DESC LIMIT 10 OFFSET ${
           (page - 1) * 10
         }`
       ),
-      prisma.$queryRawUnsafe<any[]>(
+      prisma.$queryRawUnsafe<ISearchBillCount[]>(
         `SELECT COUNT(bill_code.id) AS count FROM bill_code ${conditionalQueries}`
       ),
     ]);
@@ -705,8 +736,13 @@ class BillCodeModel {
       `);
   }
 
+  /**
+   * Fetch money receipt for a day
+   * @param formattedDate
+   * @returns
+   */
   static fetchMoneyReceipt(formattedDate: string) {
-    return prisma.$queryRawUnsafe(`
+    return prisma.$queryRawUnsafe<IMoneyReceipt[]>(`
     SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, 
     pm.value AS bill, 
     sr.value AS sales_return, 
@@ -750,8 +786,14 @@ class BillCodeModel {
     `);
   }
 
+  /**
+   * Fetch appendix for a month
+   * @param month
+   * @param year
+   * @returns
+   */
   static fetchAppendix(month: number, year: number) {
-    return prisma.$queryRawUnsafe(`
+    return prisma.$queryRawUnsafe<IBillAppendix[]>(`
         SELECT bill_code.date, bill_code.name, 
         COALESCE(customer.name, "Retail") AS customer_name, 
         billValue.discount, billValue.value, bill_code.delivery, 
@@ -949,7 +991,6 @@ class BillCodeModel {
             AND MONTH(bill_code.date) = ${month}
             ORDER BY bill_code.date ASC
         `);
-        break;
     }
   }
 
@@ -1095,6 +1136,11 @@ class BillCodeModel {
     });
   }
 
+  /**
+   * Fetch receivable by bill IDs
+   * @param billID[]
+   * @returns
+   */
   static fetchReceivableByIDs(ids: number[]) {
     if (ids.length == 0) return Promise.resolve([]);
     return prisma.$queryRawUnsafe(`

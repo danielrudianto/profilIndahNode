@@ -70,58 +70,47 @@ class CompanyModel {
     offset: number,
     mode: fetchMode
   ) {
-    if (mode == fetchMode.Pagination) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<ICompany[]>(`
-          SELECT company.id, company.name, company.address, 
-          company.npwp, company.created_by, company.created_at, 
-          company.is_delete,
-          IF(COALESCE(companyCount.count, 0) = 0, "1","0") AS can_delete
-          FROM company
-          LEFT JOIN (
-            SELECT COUNT(id) AS count, good_receipt_code.company_id
-            FROM good_receipt_code
-            WHERE good_receipt_code.is_delete = 0
-            GROUP BY good_receipt_code.company_id
-          ) companyCount
-          ON company.id = companyCount.company_id
-          WHERE company.is_delete = 0
-          AND (company.name LIKE '%${keyword}%' OR company.address LIKE '%${keyword}%')
-          ORDER BY company.name ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
-        `),
-        prisma.company.count({
-          where: {
-            is_delete: false,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
+    switch (mode) {
+      case fetchMode.Pagination:
+        return prisma.$transaction([
+          prisma.$queryRawUnsafe<ICompany[]>(`
+            SELECT company.id, company.name, company.address, 
+            company.npwp, company.created_by, company.created_at, 
+            company.is_delete,
+            IF(COALESCE(companyCount.count, 0) = 0, "1","0") AS can_delete
+            FROM company
+            LEFT JOIN (
+              SELECT COUNT(id) AS count, good_receipt_code.company_id
+              FROM good_receipt_code
+              WHERE good_receipt_code.is_delete = 0
+              GROUP BY good_receipt_code.company_id
+            ) companyCount
+            ON company.id = companyCount.company_id
+            WHERE company.is_delete = 0
+            AND (company.name LIKE '%${keyword}%' OR company.address LIKE '%${keyword}%')
+            ORDER BY company.name ASC
+            LIMIT ${limit}
+            OFFSET ${offset}
+          `),
+          prisma.company.count({
+            where: {
+              is_delete: false,
+              OR: [
+                {
+                  name: {
+                    contains: keyword,
+                  },
                 },
-              },
-              {
-                address: {
-                  contains: keyword,
+                {
+                  address: {
+                    contains: keyword,
+                  },
                 },
-              },
-            ],
-          },
-        }),
-      ]);
-    } else if (mode == fetchMode.Autocomplete) {
-      if (keyword == "") {
-        return prisma.company.findMany({
-          where: {
-            is_delete: false,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: limit,
-          skip: offset,
-        });
-      } else {
+              ],
+            },
+          }),
+        ]);
+      case fetchMode.Autocomplete:
         return prisma.company.findMany({
           where: {
             is_delete: false,
@@ -144,13 +133,13 @@ class CompanyModel {
           take: limit,
           skip: offset,
         });
-      }
-    } else if (mode == fetchMode.All) {
-      return prisma.company.findMany({
-        orderBy: {
-          name: "asc",
-        },
-      });
+      case fetchMode.All:
+      default:
+        return prisma.company.findMany({
+          orderBy: {
+            name: "asc",
+          },
+        });
     }
   }
 
@@ -211,14 +200,14 @@ class CompanyModel {
    * @param user_id
    * @returns
    */
-  static deleteByID(id: number, user_id: number) {
+  static deleteByID(id: number, userID: number) {
     return prisma.company.update({
       where: {
         id: id,
       },
       data: {
         is_delete: true,
-        deleted_by: user_id,
+        deleted_by: userID,
       },
       include: {
         user_company_deleted_byTouser: {

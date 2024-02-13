@@ -22,7 +22,7 @@ class CompanyController {
         : req.body.npwp.toString().length == 15
         ? req.body.npwp
         : null;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     CompanyModel.create({
       name: name,

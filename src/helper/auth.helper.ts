@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { verify } from "jsonwebtoken";
 import { PrismaClient } from "@prisma/client";
+import ErrorList from "../assets/error_list";
+import { redisClient } from "../app";
 
 const prisma = new PrismaClient();
 
@@ -29,26 +31,16 @@ export const authMiddleware = (
   verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
     if (!error) {
       const decodedData = decoded as any;
-      prisma.user
-        .findFirst({
-          where: {
-            id: decodedData.id,
-            is_active: true,
-          },
-        })
-        .then((user) => {
-          // If user is still active, then proceed
-          if (user == null || !user.is_active) {
-            return res.status(401).send("User not authorized");
-          }
+      redisClient.get(`user:${decodedData.id}`).then((user) => {
+        if (!user) {
+          return res.status(401).send(ErrorList["User not authorized"]);
+        }
 
-          req.body.userId = decodedData.id;
-          next();
-        })
-        .catch(() => {
-          return res.status(401).send("User not authorized");
-        });
+        req.body.userId = decodedData.id;
+        next();
+      });
     } else {
+      console.log(`[error]: Error on retrieving token: ${error}`);
       return res.status(401).send("User not authorized");
     }
   });
@@ -86,30 +78,26 @@ export const administratorMiddleware = (
             is_active: true,
           },
           select: {
-            user_department: {
-              select: {
-                role: true,
-              },
-            },
             id: true,
             is_active: true,
+            role: true,
           },
         })
         .then((user) => {
           // If user is still active, then proceed
           if (user == null || !user.is_active) {
-            return res.status(401).send("User not authorized");
-          } else if (user.user_department?.role == 5) {
+            return res.status(401).send(ErrorList["User not authorized"]);
+          } else if (user.role == 5) {
             next();
           } else {
-            return res.status(400).send("Non-administrator user");
+            return res.status(400).send(ErrorList["Non-administrator user"]);
           }
         })
         .catch(() => {
-          return res.status(400).send("Non-administrator user");
+          return res.status(400).send(ErrorList["Non-administrator user"]);
         });
     } else {
-      return res.status(400).send("Non-administrator user");
+      return res.status(400).send(ErrorList["Non-administrator user"]);
     }
   });
 };

@@ -9,6 +9,10 @@ export interface IBillPayment {
 }
 
 class BillPaymentModel {
+  /**
+   * Fetch all payments of sales invoice
+   * @returns
+   */
   static fetchByBillCodeID(id: number) {
     return prisma.bill_payment.findMany({
       where: {
@@ -28,6 +32,11 @@ class BillPaymentModel {
     });
   }
 
+  /**
+   * Create payment of sales invoice
+   * @param data
+   * @returns
+   */
   static create(data: IBillPayment) {
     return prisma.$transaction([
       prisma.bill_payment.create({

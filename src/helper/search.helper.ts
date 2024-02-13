@@ -777,6 +777,35 @@ class SearchHelper {
       });
     });
   };
+
+  static adjustStock = async (req: Request, res: Response) => {
+    const products = await mongoProductModel.find({});
+    // Sum of stock cards
+    mongoStockCardModel
+      .aggregate([
+        {
+          $group: {
+            _id: "$itemID",
+            total: { $sum: "$quantity" },
+          },
+        },
+      ])
+      .then(async (result) => {
+        for (let i = 0; i < products.length; i++) {
+          const stockCard = result.find((x) => x._id == products[i].itemID);
+          if (stockCard != null) {
+            products[i].currentStock = stockCard.total;
+            await products[i].save();
+          }
+        }
+        return res.status(200).send({
+          message: "Stock adjustment success",
+        });
+      })
+      .catch((error) => {
+        return res.status(500).send("error while adjusting stock " + error);
+      });
+  };
 }
 
 export default SearchHelper;

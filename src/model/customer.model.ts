@@ -22,6 +22,11 @@ export interface ICustomerResponse {
 }
 
 class CustomerModel {
+  /**
+   * Create a  new customer data
+   * @param data
+   * @returns
+   */
   static create(data: ICustomer) {
     return prisma.customer.create({
       data: {
@@ -44,6 +49,11 @@ class CustomerModel {
     });
   }
 
+  /**
+   * Update customer datas
+   * @param data
+   * @returns
+   */
   static update(data: ICustomer) {
     return prisma.customer.update({
       where: {
@@ -69,14 +79,20 @@ class CustomerModel {
     });
   }
 
-  static delete(id: number, created_by: number) {
+  /**
+   * Delete customer data by ID
+   * @param id
+   * @param created_by
+   * @returns
+   */
+  static delete(id: number, userID: number) {
     return prisma.customer.update({
       where: {
         id: id,
       },
       data: {
         is_delete: true,
-        deleted_by: created_by,
+        deleted_by: userID,
       },
       include: {
         user: {

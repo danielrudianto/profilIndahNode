@@ -54,5 +54,6 @@ router.post(
 
 router.post("/arrange-stock-card", SearchHelper.arrangeStockCard);
 router.get("/tasks", SearchHelper.getTasks);
+router.post("/adjust-stock", SearchHelper.adjustStock);
 
 export default router;

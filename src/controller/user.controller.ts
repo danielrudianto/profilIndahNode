@@ -139,12 +139,7 @@ class UserController {
 
         return res.status(200).send({
           ...user,
-          role:
-            user.user_department == null
-              ? null
-              : UserModel.roles.filter(
-                  (y) => y.id == user.user_department?.role
-                )[0].name,
+          role_name: UserModel.roles.filter((y) => y.id == user.role)[0].name,
           user_sales: user.user_sales.length == 0 ? [] : user.user_sales,
         });
       })
@@ -176,13 +171,7 @@ class UserController {
               nik: x.nik,
               name: x.name,
               username: x.username,
-              user_department: x.user_department,
-              role:
-                x.user_department == null
-                  ? null
-                  : UserModel.roles.filter(
-                      (y) => y.id == x.user_department?.role
-                    )[0].name,
+              role: UserModel.roles.filter((y) => y.id == x?.role)[0].name,
             };
           }),
           count: result[1],

@@ -1,20 +1,30 @@
 import { Router } from "express";
 import { authMiddleware } from "../../helper/auth.helper";
-import { body } from "express-validator";
+import { body, header } from "express-validator";
 import AuthController from "../../controller/auth.controller";
 import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../assets/error_list";
 
 const router = Router();
 
 router.post(
   "/login",
-  body("username").not().isEmpty().withMessage("Mohon isikan username."),
-  body("password").not().isEmpty().withMessage("Mohon isikan password."),
+  body("username")
+    .not()
+    .isEmpty()
+    .withMessage(ErrorList["Username is required"]),
+  body("password").not().isEmpty().withMessage(ErrorList["Password required"]),
   ErrorHelper.intercept,
   AuthController.login
 );
 
-router.post("/refresh-token", AuthController.refreshToken);
+router.post(
+  "/refresh-token",
+  header("x-access-token")
+    .notEmpty()
+    .withMessage(ErrorList["Access token required"]),
+  AuthController.refreshToken
+);
 
 router.put(
   "/password",

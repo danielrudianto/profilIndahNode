@@ -33,7 +33,7 @@ class AuthController {
             user: {
               id: user.id,
               name: user.name,
-              role: user.user_department,
+              role: user.role,
             },
             token: sign(
               {
@@ -140,9 +140,7 @@ class AuthController {
           name: result?.name,
           username: result?.username,
           nik: result?.nik,
-          role: UserModel.roles.filter(
-            (x) => x.id == result?.user_department?.role
-          )[0],
+          role: result?.role,
           is_active: result?.is_active,
         });
       })

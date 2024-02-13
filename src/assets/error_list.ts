@@ -54,6 +54,10 @@ enum ErrorList {
   "User role required" = "Role pengguna tidak boleh kosong.",
   "Username is required" = "Username tidak boleh kosong.",
 
+  "Access token required" = "Token akses tidak boleh kosong.",
+  "User not authorized" = "Pengguna tidak diizinkan.",
+  "Non-administrator user" = "Pengguna bukan administrator.",
+
   "Item is required" = "Item tidak boleh kosong.",
   "Internal server error" = "Terjadi kesalahan pada server. Mohon hubungi administrator.",
 }
