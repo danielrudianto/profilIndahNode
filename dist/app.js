@@ -19,6 +19,7 @@ const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
 const meilisearch_1 = require("meilisearch");
 const node_cron_1 = __importDefault(require("node-cron"));
+const redis_1 = require("redis");
 const auth_helper_1 = require("./helper/auth.helper");
 const auth_route_1 = __importDefault(require("./routes/authentication/auth.route"));
 /*
@@ -64,6 +65,7 @@ const mongoose_1 = __importDefault(require("mongoose"));
 const client_1 = require("@prisma/client");
 const queue_helper_1 = require("./helper/queue.helper");
 const receivable_controller_1 = __importDefault(require("./controller/receivable.controller"));
+const compression_1 = __importDefault(require("compression"));
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -79,6 +81,7 @@ const app = (0, express_1.default)();
 app.use((0, cors_1.default)(options));
 app.use(express_1.default.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express_1.default.json({ limit: "50mb" }));
+app.use((0, compression_1.default)());
 app.use("/auth", auth_route_1.default);
 app.use("/product", auth_helper_1.authMiddleware, product_route_1.default);
 app.use("/product-price-sales", auth_helper_1.authMiddleware, product_price_sales_route_1.default);
@@ -111,8 +114,12 @@ app.use("/os", os_route_1.default);
 app.use("/changelog", changelog_route_1.default);
 app.use("/development", development_routes_1.default);
 const server = http_1.default.createServer(app);
+const redisClient = (0, redis_1.createClient)({ url: "redis://127.0.0.1:6379" });
 server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("[server]: Server is running on port 5000");
+    redisClient.on("error", (err) => console.error(`[error]: Error on redis ${err}`));
+    yield redisClient.connect();
+    console.info("[info]: Connected with redis");
     const url = "mongodb://127.0.0.1:27017/ProfilIndah";
     yield mongoose_1.default.connect(url, {
         dbName: "ProfilIndah",

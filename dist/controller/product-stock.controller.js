@@ -36,8 +36,7 @@ ProductStockController.fetch = (req, res) => {
     switch (mode) {
         case "sales-alert":
             user_model_1.default.fetchByID(req.body.userId).then((user) => __awaiter(void 0, void 0, void 0, function* () {
-                var _b;
-                if (((_b = user === null || user === void 0 ? void 0 : user.user_department) === null || _b === void 0 ? void 0 : _b.role) != 6) {
+                if ((user === null || user === void 0 ? void 0 : user.role) != 6) {
                     // Fetch all just like plain
                     const productStock = yield mongo_product_model_1.mongoProductModel
                         .find({
@@ -139,8 +138,7 @@ ProductStockController.fetch = (req, res) => {
             break;
         case "sales":
             user_model_1.default.fetchByID(req.body.userId).then((user) => {
-                var _b;
-                if (((_b = user === null || user === void 0 ? void 0 : user.user_department) === null || _b === void 0 ? void 0 : _b.role) != 6) {
+                if ((user === null || user === void 0 ? void 0 : user.role) != 6) {
                     // Fetch all just like plain
                     app_1.meili
                         .index("item")

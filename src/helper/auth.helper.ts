@@ -86,11 +86,7 @@ export const administratorMiddleware = (
             is_active: true,
           },
           select: {
-            user_department: {
-              select: {
-                role: true,
-              },
-            },
+            role: true,
             id: true,
             is_active: true,
           },
@@ -99,7 +95,7 @@ export const administratorMiddleware = (
           // If user is still active, then proceed
           if (user == null || !user.is_active) {
             return res.status(401).send("User not authorized");
-          } else if (user.user_department?.role == 5) {
+          } else if (user?.role == 5) {
             next();
           } else {
             return res.status(400).send("Non-administrator user");

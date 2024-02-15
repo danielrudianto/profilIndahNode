@@ -146,9 +146,7 @@ UserController.fetchByID = (req, res) => {
         if (!user) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, user), { role: user.user_department == null
-                ? null
-                : user_model_1.default.roles.filter((y) => { var _b; return y.id == ((_b = user.user_department) === null || _b === void 0 ? void 0 : _b.role); })[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
+        return res.status(200).send(Object.assign(Object.assign({}, user), { role: user_model_1.default.roles.filter((y) => y.id == (user === null || user === void 0 ? void 0 : user.role))[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching user ${error}`);
@@ -177,10 +175,8 @@ UserController.fetch = (req, res) => {
                     nik: x.nik,
                     name: x.name,
                     username: x.username,
-                    user_department: x.user_department,
-                    role: x.user_department == null
-                        ? null
-                        : user_model_1.default.roles.filter((y) => { var _b; return y.id == ((_b = x.user_department) === null || _b === void 0 ? void 0 : _b.role); })[0].name,
+                    user_department: x.role,
+                    role: user_model_1.default.roles.filter((y) => y.id == (x === null || x === void 0 ? void 0 : x.role))[0].name,
                 };
             }),
             count: result[1],

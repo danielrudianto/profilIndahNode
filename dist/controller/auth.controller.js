@@ -33,7 +33,7 @@ AuthController.login = (req, res) => {
                 user: {
                     id: user.id,
                     name: user.name,
-                    role: user.user_department,
+                    role: user.role,
                 },
                 token: (0, jsonwebtoken_1.sign)({
                     id: user.id,
@@ -121,7 +121,7 @@ AuthController.fetchProfile = (req, res) => {
             name: result === null || result === void 0 ? void 0 : result.name,
             username: result === null || result === void 0 ? void 0 : result.username,
             nik: result === null || result === void 0 ? void 0 : result.nik,
-            role: user_model_1.default.roles.filter((x) => { var _a; return x.id == ((_a = result === null || result === void 0 ? void 0 : result.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0],
+            role: user_model_1.default.roles.filter((x) => x.id == (result === null || result === void 0 ? void 0 : result.role))[0],
             is_active: result === null || result === void 0 ? void 0 : result.is_active,
         });
     })

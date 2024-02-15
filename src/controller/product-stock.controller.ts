@@ -22,7 +22,7 @@ class ProductStockController {
     switch (mode) {
       case "sales-alert":
         UserModel.fetchByID(req.body.userId).then(async (user) => {
-          if (user?.user_department?.role != 6) {
+          if (user?.role != 6) {
             // Fetch all just like plain
             const productStock = await mongoProductModel
               .find(
@@ -131,7 +131,7 @@ class ProductStockController {
         break;
       case "sales":
         UserModel.fetchByID(req.body.userId).then((user) => {
-          if (user?.user_department?.role != 6) {
+          if (user?.role != 6) {
             // Fetch all just like plain
             meili
               .index("item")

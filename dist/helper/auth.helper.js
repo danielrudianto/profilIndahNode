@@ -74,22 +74,17 @@ const administratorMiddleware = (req, res, next) => {
                     is_active: true,
                 },
                 select: {
-                    user_department: {
-                        select: {
-                            role: true,
-                        },
-                    },
+                    role: true,
                     id: true,
                     is_active: true,
                 },
             })
                 .then((user) => {
-                var _a;
                 // If user is still active, then proceed
                 if (user == null || !user.is_active) {
                     return res.status(401).send("User not authorized");
                 }
-                else if (((_a = user.user_department) === null || _a === void 0 ? void 0 : _a.role) == 5) {
+                else if ((user === null || user === void 0 ? void 0 : user.role) == 5) {
                     next();
                 }
                 else {
