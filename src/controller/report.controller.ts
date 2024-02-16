@@ -20,6 +20,7 @@ import AdjustmentCaseModel from "../model/adjustment-case.model";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
+import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 
 class ReportController {
   /**
@@ -632,114 +633,110 @@ class ReportController {
 
     ItemModel.fetchValueByBrandType(brand, type, month, year).then(
       async ([result, brands, types]) => {
-        const stocks = await mongoProductModel.aggregate([
-          {
-            $match: {
-              "stockCard.date": {
-                $lt: new Date(`2023-${month}-01T00:00:00.000Z`),
-              },
-              itemTypeID: {
-                $in: type,
-              },
-              itemBrandID: {
-                $in: brand,
-              },
-            },
-          },
-          {
-            $unwind: "$stockCard",
-          },
-          {
-            $match: {
-              "stockCard.date": {
-                $lt: new Date(`2023-${month}-01T00:00:00.000Z`),
+        mongoStockCardModel
+          .aggregate([
+            {
+              $match: {
+                itemID: {
+                  $in: result.map((x) => x.id),
+                },
+                date: {
+                  $lt: new Date(year, month, 1),
+                },
               },
             },
-          },
-          {
-            $sort: {
-              "stockCard.date": -1,
+            {
+              $sort: {
+                date: -1,
+                itemID: 1,
+              },
             },
-          },
-          {
-            $group: {
-              _id: "$_id",
-              product: { $first: "$$ROOT" },
+            {
+              // Limit to result length
+              $limit: result.length,
             },
-          },
-          {
-            $replaceRoot: {
-              newRoot: "$product",
-            },
-          },
-        ]);
-        switch (group) {
-          case "brand":
-            const brandResponse = brands.map((x) => {
-              return {
-                id: x.id,
-                name: x.name,
-                items: result
-                  .filter((y) => y.item_brand_id == x.id)
-                  .map((y) => {
-                    const stockIndex = stocks.findIndex(
-                      (z) => z.itemID == y.id
-                    );
-                    return {
-                      id: y.id,
-                      reference: y.reference,
-                      description: y.description,
-                      unit: y.unit,
-                      brand: y.item_brand_name,
-                      type: y.item_type_name,
-                      input:
-                        parseFloat(y.adjustmentQuantityPlus.toString()) +
-                        parseFloat(y.goodReceiptQuantity.toString()),
-                      output:
-                        y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
-                      initialStock:
-                        stockIndex == -1
-                          ? 0
-                          : stocks[stockIndex].stockCard.currentStock,
-                    };
-                  }),
-              };
-            });
+          ])
+          .then((stocks) => {
+            // Adjust the stocks, if it has more than 1 itemID, then select the first one
+            stocks = stocks.filter(
+              (x, i, self) => self.findIndex((y) => y.itemID == x.itemID) == i
+            );
+            switch (group) {
+              case "brand":
+                const brandResponse = brands.map((x) => {
+                  return {
+                    id: x.id,
+                    name: x.name,
+                    items: result
+                      .filter((y) => y.item_brand_id == x.id)
+                      .map((y) => {
+                        const stockIndex = stocks.findIndex(
+                          (z) => z.itemID == y.id
+                        );
 
-            return res.status(200).send(brandResponse);
-          case "type":
-            const typeResponse = types.map((x) => {
-              return {
-                id: x.id,
-                name: x.name,
-                items: result
-                  .filter((y) => y.item_type_id == x.id)
-                  .map((y) => {
-                    const stockIndex = stocks.findIndex(
-                      (z) => z.itemID == y.id
-                    );
-                    return {
-                      id: y.id,
-                      reference: y.reference,
-                      description: y.description,
-                      brand: y.item_brand_name,
-                      type: y.item_type_name,
-                      input:
-                        parseFloat(y.adjustmentQuantityPlus.toString()) +
-                        parseFloat(y.goodReceiptQuantity.toString()),
-                      output:
-                        y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
-                      initialStock:
-                        stockIndex == -1
-                          ? 0
-                          : stocks[stockIndex].stockCard.currentStock,
-                    };
-                  }),
-              };
-            });
+                        return {
+                          id: y.id,
+                          reference: y.reference,
+                          description: y.description,
+                          unit: y.unit,
+                          brand: y.item_brand_name,
+                          type: y.item_type_name,
+                          input:
+                            parseFloat(y.adjustmentQuantityPlus.toString()) +
+                            parseFloat(y.goodReceiptQuantity.toString()),
+                          output:
+                            y.billQuantity * -1 +
+                            y.adjustmentQuantityMinus * -1,
+                          initialStock:
+                            stockIndex == -1
+                              ? 0
+                              : stocks[stockIndex].currentStock,
+                        };
+                      }),
+                  };
+                });
 
-            return res.status(200).send(typeResponse);
-        }
+                return res.status(200).send(brandResponse);
+              case "type":
+                const typeResponse = types.map((x) => {
+                  return {
+                    id: x.id,
+                    name: x.name,
+                    items: result
+                      .filter((y) => y.item_type_id == x.id)
+                      .map((y) => {
+                        const stockIndex = stocks.findIndex(
+                          (z) => z.itemID == y.id
+                        );
+
+                        return {
+                          id: y.id,
+                          reference: y.reference,
+                          description: y.description,
+                          brand: y.item_brand_name,
+                          type: y.item_type_name,
+                          input:
+                            parseFloat(y.adjustmentQuantityPlus.toString()) +
+                            parseFloat(y.goodReceiptQuantity.toString()),
+                          output:
+                            y.billQuantity * -1 +
+                            y.adjustmentQuantityMinus * -1,
+                          initialStock:
+                            stockIndex == -1
+                              ? 0
+                              : stocks[stockIndex].currentStock,
+                        };
+                      }),
+                  };
+                });
+
+                return res.status(200).send(typeResponse);
+            }
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on fetching stock ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
       }
     );
   };

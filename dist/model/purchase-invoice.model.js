@@ -468,14 +468,16 @@ class PurchaseInvoiceModel {
           JOIN supplier ON good_receipt_code.supplier_id = supplier.id
           WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(good_receipt_code.date) = ${data.month + 1}
           AND purchase_invoice.date IS NOT NULL
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
           ORDER BY good_receipt_code.date ASC
           LIMIT ${data.limit}
           OFFSET ${data.offset}`),
-                    prisma.$queryRaw `
+                    prisma.$queryRawUnsafe(`
             SELECT COUNT(id) AS count FROM purchase_invoice
             WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
           AND purchase_invoice.date IS NOT NULL
-          `,
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
+          `),
                 ]);
             case 1:
                 return prisma.$transaction([
@@ -492,15 +494,17 @@ class PurchaseInvoiceModel {
           WHERE YEAR(good_receipt_code.date) = ${data.year} AND MONTH(good_receipt_code.date) = ${data.month + 1}
           AND purchase_invoice.is_delete = 1
           AND purchase_invoice.date IS NOT NULL
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
           ORDER BY purchase_invoice.date ASC
           LIMIT ${data.limit}
           OFFSET ${data.offset}`),
-                    prisma.$queryRaw `
-            SELECT COUNT(id) AS count FROM purchase_invoice
-            WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
+                    prisma.$queryRawUnsafe(`
+          SELECT COUNT(id) AS count FROM purchase_invoice
+          WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
           AND purchase_invoice.is_delete = 1
           AND purchase_invoice.date IS NOT NULL
-          `,
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
+        `),
                 ]);
             case 2:
                 return prisma.$transaction([
@@ -517,15 +521,18 @@ class PurchaseInvoiceModel {
           WHERE YEAR(good_receipt_code.date) = ${data.year} AND MONTH(good_receipt_code.date) = ${data.month + 1}
           AND purchase_invoice.is_delete = 0
           AND purchase_invoice.date IS NOT NULL
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
           ORDER BY good_receipt_code.date ASC
           LIMIT ${data.limit}
           OFFSET ${data.offset}`),
-                    prisma.$queryRaw `
-            SELECT COUNT(id) AS count FROM purchase_invoice
-            WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
+                    prisma.$queryRawUnsafe(`
+          SELECT COUNT(id) AS count FROM purchase_invoice
+          WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
           AND purchase_invoice.is_delete = 0
           AND purchase_invoice.date IS NOT NULL
-          `,
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
+        `),
                 ]);
             case 3:
                 return prisma.$transaction([
@@ -543,16 +550,18 @@ class PurchaseInvoiceModel {
           AND purchase_invoice.is_delete = 0
           AND purchase_invoice.is_confirm = 1
           AND purchase_invoice.date IS NOT NULL
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
           ORDER BY purchase_invoice.date ASC
           LIMIT ${data.limit}
           OFFSET ${data.offset}`),
-                    prisma.$queryRaw `
+                    prisma.$queryRawUnsafe(`
             SELECT COUNT(id) AS count FROM purchase_invoice
             WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
-          AND purchase_invoice.is_delete = 0
-          AND purchase_invoice.is_confirm = 1
-          AND purchase_invoice.date IS NOT NULL
-          `,
+            AND purchase_invoice.is_delete = 0
+            AND purchase_invoice.is_confirm = 1
+            AND purchase_invoice.date IS NOT NULL
+            AND purchase_invoice.name LIKE '%${data.keyword}%'
+          `),
                 ]);
             case 4:
                 return prisma.$transaction([
@@ -570,16 +579,18 @@ class PurchaseInvoiceModel {
           AND purchase_invoice.is_delete = 0
           AND purchase_invoice.is_confirm = 0
           AND purchase_invoice.date IS NOT NULL
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
           ORDER BY purchase_invoice.date ASC
           LIMIT ${data.limit}
           OFFSET ${data.offset}`),
-                    prisma.$queryRaw `
+                    prisma.$queryRawUnsafe(`
             SELECT COUNT(id) AS count FROM purchase_invoice
             WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month + 1}
           AND purchase_invoice.is_delete = 0
           AND purchase_invoice.is_confirm = 0
           AND purchase_invoice.date IS NOT NULL
-          `,
+          AND purchase_invoice.name LIKE '%${data.keyword}%'
+          `),
                 ]);
         }
     }

@@ -148,11 +148,13 @@ class PaymentMethodModel {
             IF(COALESCE(countPaymentMethod.count, 0) = 0, "1", "0") AS can_delete
             FROM payment_method
             LEFT JOIN (
-              SELECT COUNT(id) AS count, payment_method_id
-              FROM bill_code
+              SELECT COUNT(bill_payment.id) AS count, bill_payment.payment_method_id
+              FROM bill_payment
+              JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
               WHERE bill_code.is_delete = 0
               group by payment_method_id
-            ) countPaymentMethod ON countPaymentMethod.payment_method_id = payment_method.id
+            ) countPaymentMethod 
+            ON countPaymentMethod.payment_method_id = payment_method.id
             WHERE payment_method.is_delete = 0
             order by payment_method.name asc
             limit ${limit} 
@@ -172,8 +174,9 @@ class PaymentMethodModel {
             IF(COALESCE(countPaymentMethod.count, 0) = 0, TRUE, FALSE) AS can_delete
             FROM payment_method
             LEFT JOIN (
-              SELECT COUNT(id) AS count, payment_method_id
-              FROM bill_code
+              SELECT COUNT(bill_payment.id) AS count, bill_payment.payment_method_id
+              FROM bill_payment
+              JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
               WHERE bill_code.is_delete = 0
               group by payment_method_id
             ) countPaymentMethod ON countPaymentMethod.payment_method_id = payment_method.id
@@ -212,10 +215,11 @@ class PaymentMethodModel {
       IF(COALESCE(countPaymentMethod.count, 0) = 0, "1", "0") AS can_delete
       FROM payment_method
       LEFT JOIN (
-        SELECT COUNT(id) AS count, payment_method_id
-        FROM bill_code
+        SELECT COUNT(bill_payment.id) AS count, bill_payment.payment_method_id
+        FROM bill_payment
+        JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
         WHERE bill_code.is_delete = 0
-        AND payment_method_id = ${id}
+        group by payment_method_id
       ) countPaymentMethod ON countPaymentMethod.payment_method_id = payment_method.id
       WHERE payment_method.id = ${id}
     `;

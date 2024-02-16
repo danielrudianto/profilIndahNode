@@ -52,6 +52,7 @@ const adjustment_case_model_1 = __importDefault(require("../model/adjustment-cas
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const receivable_controller_1 = __importDefault(require("./receivable.controller"));
 const deposit_model_1 = __importDefault(require("../model/deposit.model"));
+const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
 class ReportController {
 }
 _a = ReportController;
@@ -608,102 +609,94 @@ ReportController.fetchSalesItemReport = (req, res) => {
     const year = req.body.year;
     const group = req.body.group;
     item_model_1.ItemModel.fetchValueByBrandType(brand, type, month, year).then(([result, brands, types]) => __awaiter(void 0, void 0, void 0, function* () {
-        const stocks = yield mongo_product_model_1.mongoProductModel.aggregate([
+        mongo_stock_card_model_1.mongoStockCardModel
+            .aggregate([
             {
                 $match: {
-                    "stockCard.date": {
-                        $lt: new Date(`2023-${month}-01T00:00:00.000Z`),
+                    itemID: {
+                        $in: result.map((x) => x.id),
                     },
-                    itemTypeID: {
-                        $in: type,
-                    },
-                    itemBrandID: {
-                        $in: brand,
-                    },
-                },
-            },
-            {
-                $unwind: "$stockCard",
-            },
-            {
-                $match: {
-                    "stockCard.date": {
-                        $lt: new Date(`2023-${month}-01T00:00:00.000Z`),
+                    date: {
+                        $lt: new Date(year, month, 1),
                     },
                 },
             },
             {
                 $sort: {
-                    "stockCard.date": -1,
+                    date: -1,
+                    itemID: 1,
                 },
             },
             {
-                $group: {
-                    _id: "$_id",
-                    product: { $first: "$$ROOT" },
-                },
+                // Limit to result length
+                $limit: result.length,
             },
-            {
-                $replaceRoot: {
-                    newRoot: "$product",
-                },
-            },
-        ]);
-        switch (group) {
-            case "brand":
-                const brandResponse = brands.map((x) => {
-                    return {
-                        id: x.id,
-                        name: x.name,
-                        items: result
-                            .filter((y) => y.item_brand_id == x.id)
-                            .map((y) => {
-                            const stockIndex = stocks.findIndex((z) => z.itemID == y.id);
-                            return {
-                                id: y.id,
-                                reference: y.reference,
-                                description: y.description,
-                                unit: y.unit,
-                                brand: y.item_brand_name,
-                                type: y.item_type_name,
-                                input: parseFloat(y.adjustmentQuantityPlus.toString()) +
-                                    parseFloat(y.goodReceiptQuantity.toString()),
-                                output: y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
-                                initialStock: stockIndex == -1
-                                    ? 0
-                                    : stocks[stockIndex].stockCard.currentStock,
-                            };
-                        }),
-                    };
-                });
-                return res.status(200).send(brandResponse);
-            case "type":
-                const typeResponse = types.map((x) => {
-                    return {
-                        id: x.id,
-                        name: x.name,
-                        items: result
-                            .filter((y) => y.item_type_id == x.id)
-                            .map((y) => {
-                            const stockIndex = stocks.findIndex((z) => z.itemID == y.id);
-                            return {
-                                id: y.id,
-                                reference: y.reference,
-                                description: y.description,
-                                brand: y.item_brand_name,
-                                type: y.item_type_name,
-                                input: parseFloat(y.adjustmentQuantityPlus.toString()) +
-                                    parseFloat(y.goodReceiptQuantity.toString()),
-                                output: y.billQuantity * -1 + y.adjustmentQuantityMinus * -1,
-                                initialStock: stockIndex == -1
-                                    ? 0
-                                    : stocks[stockIndex].stockCard.currentStock,
-                            };
-                        }),
-                    };
-                });
-                return res.status(200).send(typeResponse);
-        }
+        ])
+            .then((stocks) => {
+            // Adjust the stocks, if it has more than 1 itemID, then select the first one
+            stocks = stocks.filter((x, i, self) => self.findIndex((y) => y.itemID == x.itemID) == i);
+            switch (group) {
+                case "brand":
+                    const brandResponse = brands.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            items: result
+                                .filter((y) => y.item_brand_id == x.id)
+                                .map((y) => {
+                                const stockIndex = stocks.findIndex((z) => z.itemID == y.id);
+                                return {
+                                    id: y.id,
+                                    reference: y.reference,
+                                    description: y.description,
+                                    unit: y.unit,
+                                    brand: y.item_brand_name,
+                                    type: y.item_type_name,
+                                    input: parseFloat(y.adjustmentQuantityPlus.toString()) +
+                                        parseFloat(y.goodReceiptQuantity.toString()),
+                                    output: y.billQuantity * -1 +
+                                        y.adjustmentQuantityMinus * -1,
+                                    initialStock: stockIndex == -1
+                                        ? 0
+                                        : stocks[stockIndex].currentStock,
+                                };
+                            }),
+                        };
+                    });
+                    return res.status(200).send(brandResponse);
+                case "type":
+                    const typeResponse = types.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            items: result
+                                .filter((y) => y.item_type_id == x.id)
+                                .map((y) => {
+                                const stockIndex = stocks.findIndex((z) => z.itemID == y.id);
+                                return {
+                                    id: y.id,
+                                    reference: y.reference,
+                                    description: y.description,
+                                    brand: y.item_brand_name,
+                                    type: y.item_type_name,
+                                    input: parseFloat(y.adjustmentQuantityPlus.toString()) +
+                                        parseFloat(y.goodReceiptQuantity.toString()),
+                                    output: y.billQuantity * -1 +
+                                        y.adjustmentQuantityMinus * -1,
+                                    initialStock: stockIndex == -1
+                                        ? 0
+                                        : stocks[stockIndex].currentStock,
+                                };
+                            }),
+                        };
+                    });
+                    return res.status(200).send(typeResponse);
+            }
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching stock ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
     }));
 };
 ReportController.fetchProductStockProblem = (req, res) => {
