@@ -617,7 +617,7 @@ ReportController.fetchSalesItemReport = (req, res) => {
                         $in: result.map((x) => x.id),
                     },
                     date: {
-                        $lt: new Date(year, month, 1),
+                        $lt: new Date(year, month - 1, 1),
                     },
                 },
             },
@@ -626,10 +626,6 @@ ReportController.fetchSalesItemReport = (req, res) => {
                     date: -1,
                     itemID: 1,
                 },
-            },
-            {
-                // Limit to result length
-                $limit: result.length,
             },
         ])
             .then((stocks) => {

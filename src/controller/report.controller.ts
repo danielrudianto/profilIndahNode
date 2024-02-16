@@ -641,7 +641,7 @@ class ReportController {
                   $in: result.map((x) => x.id),
                 },
                 date: {
-                  $lt: new Date(year, month, 1),
+                  $lt: new Date(year, month - 1, 1),
                 },
               },
             },
@@ -650,10 +650,6 @@ class ReportController {
                 date: -1,
                 itemID: 1,
               },
-            },
-            {
-              // Limit to result length
-              $limit: result.length,
             },
           ])
           .then((stocks) => {
