@@ -19,6 +19,7 @@ const app_1 = require("../app");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
 const user_model_1 = __importDefault(require("../model/user.model"));
+const deposit_model_1 = __importDefault(require("../model/deposit.model"));
 class ProductStockController {
 }
 _a = ProductStockController;
@@ -147,31 +148,38 @@ ProductStockController.fetch = (req, res) => {
                         offset: (page - 1) * 10,
                     })
                         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-                        const productStock = yield mongo_product_model_1.mongoProductModel.find({
-                            itemID: {
-                                $in: result.hits.map((x) => x.id),
-                            },
-                        }, "itemID unit currentStock minimumStock");
-                        return res.status(200).send({
-                            data: result.hits.map((x) => {
-                                const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
-                                return {
-                                    id: x.id,
-                                    reference: x.reference,
-                                    description: x.description,
-                                    stock: stockIndex == -1
-                                        ? 0
-                                        : productStock[stockIndex].currentStock,
-                                    unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
-                                    item_brand_id: x.itemBrandID,
-                                    item_type_id: x.itemTypeID,
-                                    item_brand_name: x.brand,
-                                    item_type_name: x.type,
-                                    minimum_stock: stockIndex == -1
-                                        ? 0
-                                        : productStock[stockIndex].minimumStock,
-                                };
-                            }),
+                        Promise.all([
+                            deposit_model_1.default.fetchByItemIDs(result.hits.map((x) => x.id)),
+                            mongo_product_model_1.mongoProductModel.find({
+                                itemID: {
+                                    $in: result.hits.map((x) => x.id),
+                                },
+                            }, "itemID unit currentStock minimumStock"),
+                        ]).then(([depositStock, productStock]) => {
+                            return res.status(200).send({
+                                data: result.hits.map((x) => {
+                                    const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
+                                    return {
+                                        id: x.id,
+                                        reference: x.reference,
+                                        description: x.description,
+                                        stock: stockIndex == -1
+                                            ? 0
+                                            : productStock[stockIndex].currentStock,
+                                        unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                                        item_brand_id: x.itemBrandID,
+                                        item_type_id: x.itemTypeID,
+                                        item_brand_name: x.brand,
+                                        item_type_name: x.type,
+                                        minimum_stock: stockIndex == -1
+                                            ? 0
+                                            : productStock[stockIndex].minimumStock,
+                                        deposit: depositStock
+                                            .filter((y) => y.item_id == x.id)
+                                            .reduce((a, b) => a + Number(b.quantity), 0),
+                                    };
+                                }),
+                            });
                         });
                     }));
                 }
@@ -186,31 +194,38 @@ ProductStockController.fetch = (req, res) => {
                         filter: `itemTypeID = ${types.join(" OR itemTypeID = ")}`,
                     })
                         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-                        const productStock = yield mongo_product_model_1.mongoProductModel.find({
-                            itemID: {
-                                $in: result.hits.map((x) => x.id),
-                            },
-                        }, "itemID unit currentStock minimumStock");
-                        return res.status(200).send({
-                            data: result.hits.map((x) => {
-                                const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
-                                return {
-                                    id: x.id,
-                                    reference: x.reference,
-                                    description: x.description,
-                                    stock: stockIndex == -1
-                                        ? 0
-                                        : productStock[stockIndex].currentStock,
-                                    unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
-                                    item_brand_id: x.itemBrandID,
-                                    item_type_id: x.itemTypeID,
-                                    item_brand_name: x.brand,
-                                    item_type_name: x.type,
-                                    minimum_stock: stockIndex == -1
-                                        ? 0
-                                        : productStock[stockIndex].minimumStock,
-                                };
-                            }),
+                        Promise.all([
+                            deposit_model_1.default.fetchByItemIDs(result.hits.map((x) => x.id)),
+                            mongo_product_model_1.mongoProductModel.find({
+                                itemID: {
+                                    $in: result.hits.map((x) => x.id),
+                                },
+                            }, "itemID unit currentStock minimumStock"),
+                        ]).then(([depositStock, productStock]) => {
+                            return res.status(200).send({
+                                data: result.hits.map((x) => {
+                                    const stockIndex = productStock.findIndex((y) => y.itemID == x.id);
+                                    return {
+                                        id: x.id,
+                                        reference: x.reference,
+                                        description: x.description,
+                                        stock: stockIndex == -1
+                                            ? 0
+                                            : productStock[stockIndex].currentStock,
+                                        unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                                        item_brand_id: x.itemBrandID,
+                                        item_type_id: x.itemTypeID,
+                                        item_brand_name: x.brand,
+                                        item_type_name: x.type,
+                                        minimum_stock: stockIndex == -1
+                                            ? 0
+                                            : productStock[stockIndex].minimumStock,
+                                        deposit: depositStock
+                                            .filter((y) => y.item_id == x.id)
+                                            .reduce((a, b) => a + Number(b.quantity), 0),
+                                    };
+                                }),
+                            });
                         });
                     }));
                 }

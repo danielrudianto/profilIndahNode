@@ -14,6 +14,7 @@ import { mysql_real_escape_string } from "../helper/escape.helper";
 import ProductStockModel from "../model/product-stock.model";
 import { queue } from "../helper/queue.helper";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
+import DepositModel from "../model/deposit.model";
 
 class ProductController {
   /**
@@ -614,46 +615,64 @@ class ProductController {
                   .discount.toString()
               );
 
-        return res.status(200).send({
-          reference: item.reference,
-          description: item.description,
-          unit: item.unit,
-          item_brand: item.item_brand.name,
-          item_type: item.item_type.name,
-          price: price,
-          discount: discount,
-          purchase_price: purchase_price,
-          purchase_discount: purchase_discount,
-          units: item_unit.map((x) => {
-            const unitID = x.id;
-            const unitPrice = item_price.filter(
-              (y) => y.item_unit_id == unitID
+        DepositModel.fetchByItemID(id)
+          .then((deposit) => {
+            const total_deposit = deposit.reduce(
+              (a, b) => a + Number(b.quantity),
+              0
             );
-            const unitPricePurchase = item_price_purchase.filter(
-              (y) => y.item_unit_id == unitID
+            return res.status(200).send({
+              reference: item.reference,
+              description: item.description,
+              unit: item.unit,
+              item_brand: item.item_brand.name,
+              item_type: item.item_type.name,
+              price: price,
+              discount: discount,
+              purchase_price: purchase_price,
+              purchase_discount: purchase_discount,
+              deposit: total_deposit,
+              units: item_unit.map((x) => {
+                const unitID = x.id;
+                const unitPrice = item_price.filter(
+                  (y) => y.item_unit_id == unitID
+                );
+                const unitPricePurchase = item_price_purchase.filter(
+                  (y) => y.item_unit_id == unitID
+                );
+
+                const unitPrice_price =
+                  unitPrice.length == 0 ? 0 : unitPrice[0].price;
+                const unitPrice_discount =
+                  unitPrice.length == 0 ? 0 : unitPrice[0].discount;
+
+                const unitPricePurchase_price =
+                  unitPricePurchase.length == 0
+                    ? 0
+                    : unitPricePurchase[0].price;
+                const unitPricePurchase_discount =
+                  unitPricePurchase.length == 0
+                    ? 0
+                    : unitPricePurchase[0].discount;
+
+                return {
+                  id: x.id,
+                  unit: x.unit,
+                  conversion: parseFloat(x.conversion.toString()),
+                  price: unitPrice_price,
+                  discount: unitPrice_discount,
+                  price_purchase: unitPricePurchase_price,
+                  discount_purchase: unitPricePurchase_discount,
+                };
+              }),
+            });
+          })
+          .catch((error) => {
+            console.error(
+              `[error]: Error on fetching deposit by item id ${error}`
             );
-
-            const unitPrice_price =
-              unitPrice.length == 0 ? 0 : unitPrice[0].price;
-            const unitPrice_discount =
-              unitPrice.length == 0 ? 0 : unitPrice[0].discount;
-
-            const unitPricePurchase_price =
-              unitPricePurchase.length == 0 ? 0 : unitPricePurchase[0].price;
-            const unitPricePurchase_discount =
-              unitPricePurchase.length == 0 ? 0 : unitPricePurchase[0].discount;
-
-            return {
-              id: x.id,
-              unit: x.unit,
-              conversion: parseFloat(x.conversion.toString()),
-              price: unitPrice_price,
-              discount: unitPrice_discount,
-              price_purchase: unitPricePurchase_price,
-              discount_purchase: unitPricePurchase_discount,
-            };
-          }),
-        });
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
       })
       .catch((error) => {
         console.error(
