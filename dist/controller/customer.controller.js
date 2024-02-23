@@ -44,7 +44,7 @@ CustomerController.create = (req, res) => {
         npwp: npwp,
         pic: pic,
         phone_number: phone_number,
-        created_by: req.body.userId,
+        created_by: req.body.userID,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         const socket = new socket_helper_1.default("createCustomer", Object.assign(Object.assign({}, result), { can_delete: true }));
@@ -178,7 +178,7 @@ CustomerController.update = (req, res) => {
         npwp: npwp,
         pic: pic,
         phone_number: phone_number,
-        created_by: req.body.userId,
+        created_by: req.body.userID,
         id: id,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
@@ -199,7 +199,7 @@ CustomerController.update = (req, res) => {
  */
 CustomerController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id.toString());
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     customer_model_1.default.fetchByID(id).then((result) => {
         if (!result) {
             return res.status(404).send(error_list_1.default["Not found"]);

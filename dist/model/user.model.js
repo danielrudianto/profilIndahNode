@@ -26,11 +26,8 @@ class UserModel {
                     password: data.password,
                     nik: data.nik,
                     created_by: data.created_by,
-                    user_department: {
-                        create: {
-                            role: data.role,
-                        },
-                    },
+                    role: data.role,
+                    pinned_menus: JSON.stringify([]),
                 },
                 select: {
                     id: true,
@@ -62,11 +59,8 @@ class UserModel {
                     password: data.password,
                     nik: data.nik,
                     created_by: data.created_by,
-                    user_department: {
-                        create: {
-                            role: data.role,
-                        },
-                    },
+                    role: data.role,
+                    pinned_menus: JSON.stringify([]),
                     user_sales: {
                         createMany: {
                             data: data.user_sales.map((x) => {
@@ -135,11 +129,7 @@ class UserModel {
                         id: true,
                         name: true,
                         username: true,
-                        user_department: {
-                            select: {
-                                role: true,
-                            },
-                        },
+                        role: true,
                         nik: true,
                     },
                     take: limit,
@@ -182,11 +172,7 @@ class UserModel {
                         id: true,
                         name: true,
                         username: true,
-                        user_department: {
-                            select: {
-                                role: true,
-                            },
-                        },
+                        role: true,
                         nik: true,
                     },
                     take: limit,
@@ -232,11 +218,7 @@ class UserModel {
                 name: true,
                 username: true,
                 nik: true,
-                user_department: {
-                    select: {
-                        role: true,
-                    },
-                },
+                role: true,
                 user_sales: {
                     select: {
                         item_type: {
@@ -258,11 +240,7 @@ class UserModel {
                 name: true,
                 password: true,
                 is_active: true,
-                user_department: {
-                    select: {
-                        role: true,
-                    },
-                },
+                role: true,
             },
             where: {
                 username: username,
@@ -279,11 +257,7 @@ class UserModel {
                     name: data.name,
                     updated_by: data.created_by,
                     updated_at: new Date(),
-                    user_department: {
-                        update: {
-                            role: data.role,
-                        },
-                    },
+                    role: data.role,
                     user_sales: {
                         deleteMany: {},
                         createMany: {
@@ -305,11 +279,7 @@ class UserModel {
                     updated_by: data.created_by,
                     updated_at: new Date(),
                     password: data.password,
-                    user_department: {
-                        update: {
-                            role: data.role,
-                        },
-                    },
+                    role: data.role,
                     user_sales: {
                         deleteMany: {},
                         createMany: {
@@ -354,6 +324,16 @@ class UserModel {
             },
             where: {
                 id: userId,
+            },
+        });
+    }
+    static fetchAll() {
+        return prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                username: true,
+                nik: true,
             },
         });
     }

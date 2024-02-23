@@ -16,7 +16,7 @@ class ProductPackageController {
     const name = req.body.name;
     const price = req.body.price;
     const description = req.body.description;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ProductPackageCodeModel.create({
       name: name,
@@ -251,7 +251,7 @@ class ProductPackageController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ProductPackageCodeModel.delete(id, userID)
       .then(async (result) => {

@@ -61,12 +61,12 @@ BrandController.fetch = (req, res) => {
             });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
+            log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userID);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Brand - Fetch", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -82,17 +82,17 @@ BrandController.create = (req, res) => {
             return res.status(400).send("Mohon masukkan nama merek unik.");
         }
         else {
-            const brand_object = new brand_model_1.BrandModel(name, req.body.userId);
+            const brand_object = new brand_model_1.BrandModel(name, req.body.userID);
             brand_object
                 .create()
                 .then((brand_result) => {
-                log_helper_1.default.log(brand_result.created_at, "info", `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`, `Brand - Create`, req.body.userId);
+                log_helper_1.default.log(brand_result.created_at, "info", `${brand_result.user.name} created new brand with the name ${brand_result.name} (ID: ${brand_result.id})`, `Brand - Create`, req.body.userID);
                 const socket = new socket_helper_1.default("createBrand", Object.assign(Object.assign({}, brand_result), { can_delete: true }));
                 socket.create();
                 return res.status(201).send(brand_result);
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", `${error}`, `Brand - Create`, req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error}`, `Brand - Create`, req.body.userID);
                 return res.status(500).send(error);
             });
         }
@@ -114,16 +114,16 @@ BrandController.update = (req, res) => {
         if (brand == null || brand.is_delete) {
             return res.status(400).send("Data tidak ditemukan.");
         }
-        brand_model_1.BrandModel.update(id, name, new Date(), req.body.userId)
+        brand_model_1.BrandModel.update(id, name, new Date(), req.body.userID)
             .then((result) => {
             var _a;
             const socket = new socket_helper_1.default("updateBrand", result);
             socket.create();
-            log_helper_1.default.log(result.updated_at, "info", `${(_a = result.user_item_brand_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated brand with the name ${result.name} (ID: ${result.id})`, `Brand - Create`, req.body.userId);
+            log_helper_1.default.log(result.updated_at, "info", `${(_a = result.user_item_brand_updated_byTouser) === null || _a === void 0 ? void 0 : _a.name} updated brand with the name ${result.name} (ID: ${result.id})`, `Brand - Create`, req.body.userID);
             return res.status(201).send(result);
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", `${error}`, `Brand - Update`, req.body.userId);
+            log_helper_1.default.log(new Date(), "error", `${error}`, `Brand - Update`, req.body.userID);
             return res.status(500).send(error);
         });
     })
@@ -145,22 +145,22 @@ BrandController.delete = (req, res) => {
             return res.status(500).send("Merek tidak dapat dihapus.");
         }
         else {
-            brand_model_1.BrandModel.delete(id, req.body.userId)
+            brand_model_1.BrandModel.delete(id, req.body.userID)
                 .then((result) => {
                 var _a;
                 const socket = new socket_helper_1.default("deleteBrand", result);
                 socket.create();
-                log_helper_1.default.log(result.deleted_at, "info", `${(_a = result.user_item_brand_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted brand with the name ${result.name} (ID: ${result.id})`, `Brand - Delete`, req.body.userId);
+                log_helper_1.default.log(result.deleted_at, "info", `${(_a = result.user_item_brand_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} deleted brand with the name ${result.name} (ID: ${result.id})`, `Brand - Delete`, req.body.userID);
                 return res.status(201).send(result);
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userID);
                 return res.status(500).send(error);
             });
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userId);
+        log_helper_1.default.log(new Date(), "error", `${error})`, `Brand - Delete`, req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -180,7 +180,7 @@ BrandController.fetchUsed = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Brand Controller - Fetch Used", req.body.userID);
         return res.status(500).send(error);
     });
 };

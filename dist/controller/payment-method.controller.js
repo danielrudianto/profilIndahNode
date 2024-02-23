@@ -17,7 +17,7 @@ class PaymentMethodController {
 PaymentMethodController.create = (req, res) => {
     const name = req.body.name;
     const description = req.body.description;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     payment_method_model_1.default.create({
         name: name,
         description: description,
@@ -121,7 +121,7 @@ PaymentMethodController.updateByID = (req, res) => {
     const id = parseInt(req.body.id);
     const name = req.body.name;
     const description = req.body.description;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     payment_method_model_1.default.fetchByID(id)
         .then((payment_method) => {
         if (payment_method[0] == null || payment_method[0].is_delete) {
@@ -156,7 +156,7 @@ PaymentMethodController.updateByID = (req, res) => {
  */
 PaymentMethodController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     payment_method_model_1.default.fetchByID(id)
         .then((result) => {
         if (!result || result.length == 0) {

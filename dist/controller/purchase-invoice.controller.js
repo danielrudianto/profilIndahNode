@@ -41,7 +41,7 @@ PurchaseInvoiceController.create = (req, res) => {
     const faktur = !purchase_invoice.faktur || ((_b = purchase_invoice.faktur) === null || _b === void 0 ? void 0 : _b.length) < 16
         ? null
         : purchase_invoice.faktur;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     purchase_invoice_model_1.default.create({
         name: name,
         date: date,
@@ -322,7 +322,7 @@ PurchaseInvoiceController.updateStatus = (req, res) => __awaiter(void 0, void 0,
     const id = parseInt(req.body.id);
     const is_confirm = req.body.is_confirm;
     const is_delete = req.body.is_delete;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const purchaseInvoice = yield purchase_invoice_model_1.default.fetchByID(id);
     if (!purchaseInvoice) {
         return res.status(404).send(error_list_1.default["Invoice not found"]);

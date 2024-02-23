@@ -1,15 +1,9 @@
 import e, { Request, Response } from "express";
-import moment from "moment";
-import mongoose from "mongoose";
 import { meili, prisma } from "../app";
 import { fetchMode } from "../interface/fetch.interface";
-import AdjustmentCaseCodeModel from "../model/adjustment-case.model";
-import BillCodeModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
 import { ItemModel } from "../model/item.model";
 import { ProductPackageCodeModel } from "../model/product-package.model";
-import PurchaseInvoiceModel from "../model/purchase-invoice.model";
-import SalesReturnModel from "../model/sales_return.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import {
@@ -245,7 +239,7 @@ class SearchHelper {
                       itemID: x.id,
                       itemTypeID: x.item_type_id,
                       itemBrandID: x.item_brand_id,
-                      currentStock: x.stock?.stock || 0,
+                      currentStock: 0,
                       unit: x.unit,
                       minimumStock: x.minimum_stock || 0,
                       calculatedMinimumStock: 0,

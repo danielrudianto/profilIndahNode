@@ -122,11 +122,11 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             catch (error) {
                 console.log(error);
                 yield mongo_error_model_1.mongoErrorModel.create({
-                    name: "insert-stock-in",
+                    function: "insert-stock-in",
+                    date: new Date(),
                     error: error,
                     data: stockInData,
                 });
-                throw new Error(error);
             }
             break;
         case "insert-stock-out":
@@ -233,11 +233,11 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
             }
             catch (error) {
                 yield mongo_error_model_1.mongoErrorModel.create({
-                    name: "insert-stock-out",
+                    function: "insert-stock-out",
+                    date: new Date(),
                     error: error,
                     data: stockOutData,
                 });
-                throw new Error(error);
             }
             break;
         case "delete-stock-out":

@@ -18,7 +18,7 @@ class AdjustmentCaseController {
   static create = (req: Request, res: Response) => {
     const name = this.generateName(new Date(req.body.date));
     const companyID = req.body.company_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const type = req.body.type;
 
     if (type == 0 && companyID == null) {

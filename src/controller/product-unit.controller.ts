@@ -13,7 +13,7 @@ class ItemUnitController {
     const itemID = req.body.item_id;
     const itemUnit = req.body.item_unit as string;
     const itemUnits = req.body.item_units as any[];
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ItemModel.fetchByID(itemID)
       .then((item) => {

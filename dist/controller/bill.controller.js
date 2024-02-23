@@ -30,7 +30,7 @@ BillController.create = (req, res) => {
     const date = !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
-    const bill_code = new bill_code_model_1.default(customer_id, req.body.userId, payment_method_id, discount, delivery, service, date, uuid);
+    const bill_code = new bill_code_model_1.default(customer_id, req.body.userID, payment_method_id, discount, delivery, service, date, uuid);
     bill_code
         .create()
         .then((result) => {
@@ -47,20 +47,20 @@ BillController.create = (req, res) => {
                 };
             })),
             // Saving item price
-            item_price_model_1.default.updateMany(bill.filter((x) => x.save), req.body.userId),
+            item_price_model_1.default.updateMany(bill.filter((x) => x.save), req.body.userID),
         ])
             .then(() => {
-            log_helper_1.default.log(new Date(), "info", `${result.user_bill_code_created_byTouser.name} berhasil menambahkan faktur penjualan ${result.name} (ID: ${result.id})`, "Bill controller - Create", req.body.userId);
+            log_helper_1.default.log(new Date(), "info", `${result.user_bill_code_created_byTouser.name} berhasil menambahkan faktur penjualan ${result.name} (ID: ${result.id})`, "Bill controller - Create", req.body.userID);
             return res.status(201).send(result);
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
+            log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userID);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
         console.error(error);
-        log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Bill controller - Create", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -227,7 +227,7 @@ BillController.fetchCodeById = (req, res) => {
         return res.status(200).send(result === null || result === void 0 ? void 0 : result.bill_code);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Bill controller - Fetch code by ID", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Bill controller - Fetch code by ID", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -350,7 +350,7 @@ BillController.deleteById = (req, res) => {
     }
     try {
         const id = parseInt(req.params.id.toString());
-        bill_code_model_1.default.deleteById(id, req.body.userId)
+        bill_code_model_1.default.deleteById(id, req.body.userID)
             .then((result) => {
             if (result.is_delete) {
                 const socket = new socket_helper_1.default("deleteBill", result);

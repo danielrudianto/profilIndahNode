@@ -35,5 +35,7 @@ router.put(
 );
 
 router.put("/reset-password", authMiddleware, AuthController.updatePassword);
+router.get("/profile", authMiddleware, AuthController.fetchProfile);
+// router.post("/pin-menu", authMiddleware, AuthController.pinMenu);
 
 export default router;

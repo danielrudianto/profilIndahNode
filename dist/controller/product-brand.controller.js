@@ -16,7 +16,7 @@ class BrandController {
  */
 BrandController.create = (req, res) => {
     const name = req.body.name;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     brand_model_1.BrandModel.fetchByName(name)
         .then((brand) => {
         if (brand) {
@@ -123,7 +123,7 @@ BrandController.fetch = (req, res) => {
 BrandController.updateByID = (req, res) => {
     const id = req.body.id;
     const name = req.body.name;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     brand_model_1.BrandModel.fetchByID(id)
         .then((brand_result) => {
         const brand = brand_result[0];
@@ -157,7 +157,7 @@ BrandController.updateByID = (req, res) => {
  */
 BrandController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     brand_model_1.BrandModel.fetchByID(id)
         .then((result) => {
         if (!result) {

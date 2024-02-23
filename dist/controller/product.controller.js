@@ -18,7 +18,6 @@ const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const app_1 = require("../app");
 const escape_helper_1 = require("../helper/escape.helper");
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const queue_helper_1 = require("../helper/queue.helper");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 class ProductController {
@@ -36,7 +35,7 @@ ProductController.create = (req, res) => __awaiter(void 0, void 0, void 0, funct
     const brand_id = req.body.brand;
     const type_id = req.body.type;
     const minimum_stock = req.body.minimum_stock;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const unit = req.body.unit;
     const price = req.body.price;
     const discount = req.body.discount;
@@ -63,7 +62,8 @@ ProductController.create = (req, res) => __awaiter(void 0, void 0, void 0, funct
         .then((item) => __awaiter(void 0, void 0, void 0, function* () {
         const itemID = item.id;
         const unitResult = yield item_model_1.ItemModel.createUnits(itemID, userID, units);
-        yield queue_helper_1.queue.add("insert-product", {
+        queue_helper_1.queue
+            .add("insert-product", {
             reference: item.reference,
             description: item.description,
             id: item.id,
@@ -73,12 +73,20 @@ ProductController.create = (req, res) => __awaiter(void 0, void 0, void 0, funct
             itemBrand: item.item_brand.name,
             itemType: item.item_type.name,
             minimumStock: item.minimum_stock,
+        })
+            .then(() => {
+            const response = Object.assign(Object.assign({}, item), { item_price: item.item_price[0], item_price_purchase: item.item_price_purchase[0], units: unitResult });
+            const itemSocket = new socket_helper_1.default("createItem", response);
+            itemSocket.create();
+            return res.status(201).send(response);
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on inserting product ${error}`);
+            const response = Object.assign(Object.assign({}, item), { item_price: item.item_price[0], item_price_purchase: item.item_price_purchase[0], units: unitResult });
+            const itemSocket = new socket_helper_1.default("createItem", response);
+            itemSocket.create();
+            return res.status(201).send(response);
         });
-        yield product_stock_model_1.default.createStockData(item.id);
-        const response = Object.assign(Object.assign({}, item), { item_price: item.item_price[0], item_price_purchase: item.item_price_purchase[0], units: unitResult });
-        const itemSocket = new socket_helper_1.default("createItem", response);
-        itemSocket.create();
-        return res.status(201).send(response);
     }))
         .catch((error) => {
         console.error(`[error]: Error on creating item ${error}`);
@@ -630,7 +638,7 @@ ProductController.updateByID = (req, res) => {
     const type = parseInt(req.body.type.toString());
     const minimum_stock = req.body.minimum_stock;
     const unit = req.body.unit;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     item_model_1.ItemModel.fetchByID(id).then((result) => {
         if (result.length == 0) {
             return res.status(404).send(error_list_1.default["Not found"]);
@@ -684,7 +692,7 @@ ProductController.updateByID = (req, res) => {
  */
 ProductController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     item_model_1.ItemModel.fetchByID(id)
         .then((item) => {
         if (item.length == 0) {

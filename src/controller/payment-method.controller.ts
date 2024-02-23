@@ -15,7 +15,7 @@ class PaymentMethodController {
   static create = (req: Request, res: Response) => {
     const name = req.body.name;
     const description = req.body.description;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     PaymentMethodModel.create({
       name: name,
@@ -138,7 +138,7 @@ class PaymentMethodController {
     const id = parseInt(req.body.id);
     const name = req.body.name;
     const description = req.body.description;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     PaymentMethodModel.fetchByID(id)
       .then((payment_method) => {
@@ -177,7 +177,7 @@ class PaymentMethodController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     PaymentMethodModel.fetchByID(id)
       .then((result) => {
         if (!result || result.length == 0) {

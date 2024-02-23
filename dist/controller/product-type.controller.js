@@ -29,7 +29,7 @@ _a = ItemTypeController;
  */
 ItemTypeController.create = (req, res) => {
     const name = req.body.name;
-    const user_id = req.body.userId;
+    const user_id = req.body.userID;
     item_type_model_1.default.create({
         name: name,
         userID: user_id,
@@ -130,7 +130,7 @@ ItemTypeController.fetchByID = (req, res) => {
 ItemTypeController.updateByID = (req, res) => {
     const name = req.body.name;
     const id = req.body.id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     item_type_model_1.default.updateByID({
         name: name,
         userID: userID,
@@ -170,7 +170,7 @@ ItemTypeController.deleteByID = (req, res) => {
                     .send("Data cannot be deleted because there are other data depending on this data");
             }
             else {
-                item_type_model_1.default.deleteById(id, req.body.userId)
+                item_type_model_1.default.deleteById(id, req.body.userID)
                     .then((result) => {
                     const socket = new socket_helper_1.default("deleteItemType", result);
                     socket.create();

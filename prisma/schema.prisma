@@ -359,6 +359,7 @@ model good_receipt_code {
   confirmed_at                              DateTime?         @db.DateTime(0)
   supplier_id                               Int
   company_id                                Int
+  uuid                                      String            @unique(map: "uuid_UNIQUE") @db.VarChar(45)
   company                                   company           @relation(fields: [company_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_4")
   user_good_receipt_code_confirmed_byTouser user?             @relation("good_receipt_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_2")
   user_good_receipt_code_created_byTouser   user              @relation("good_receipt_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_code_ibfk_1")

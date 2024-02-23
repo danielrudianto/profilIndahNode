@@ -8,7 +8,6 @@ class BillCodeModel {
      * @returns BillCode
      */
     static create(data) {
-        console.log(data.payments);
         return app_1.prisma.bill_code.create({
             data: {
                 name: data.name,
@@ -212,7 +211,9 @@ class BillCodeModel {
      * @returns
      */
     static search(customers, items, date, keyword, page, mode) {
-        let query = `SELECT bill_code.name, bill_code.id, bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name, bill_code.is_confirm, bill_code.is_delete
+        let query = `SELECT bill_code.name, bill_code.id, bill_code.date, 
+      COALESCE(customer.name, 'Retail customer') AS customer_name, 
+      bill_code.is_confirm, bill_code.is_delete
       FROM bill_code 
       LEFT JOIN customer ON bill_code.customer_id = customer.id`;
         let conditionalQueries = "";
@@ -589,6 +590,11 @@ class BillCodeModel {
         AND bill_code.is_delete = 0
       `);
     }
+    /**
+     * Fetch money receipt for a day
+     * @param formattedDate
+     * @returns
+     */
     static fetchMoneyReceipt(formattedDate) {
         return app_1.prisma.$queryRawUnsafe(`
     SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, 
@@ -633,6 +639,12 @@ class BillCodeModel {
     ON payment_method.id = dp.payment_method_id
     `);
     }
+    /**
+     * Fetch appendix for a month
+     * @param month
+     * @param year
+     * @returns
+     */
     static fetchAppendix(month, year) {
         return app_1.prisma.$queryRawUnsafe(`
         SELECT bill_code.date, bill_code.name, 
@@ -831,7 +843,6 @@ class BillCodeModel {
             AND MONTH(bill_code.date) = ${month}
             ORDER BY bill_code.date ASC
         `);
-                break;
         }
     }
     static countByCustomerIds(customer_ids) {
@@ -953,6 +964,11 @@ class BillCodeModel {
             },
         });
     }
+    /**
+     * Fetch receivable by bill IDs
+     * @param billID[]
+     * @returns
+     */
     static fetchReceivableByIDs(ids) {
         if (ids.length == 0)
             return Promise.resolve([]);

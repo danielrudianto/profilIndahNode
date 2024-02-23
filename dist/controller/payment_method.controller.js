@@ -51,17 +51,17 @@ PaymentMethodController.submit = (req, res) => {
     }
     const name = req.body.name;
     const description = req.body.description;
-    const paymentMethod = new payment_method_model_1.default(name, description, req.body.userId);
+    const paymentMethod = new payment_method_model_1.default(name, description, req.body.userID);
     paymentMethod
         .create()
         .then((result) => {
-        log_helper_1.default.log(result.created_at, "info", `${result.user.name} berhasil menambahkan metode pembayaran dengan nama ${result.name} (ID: ${result.id}).`, "Payment Method - Create", req.body.userId);
+        log_helper_1.default.log(result.created_at, "info", `${result.user.name} berhasil menambahkan metode pembayaran dengan nama ${result.name} (ID: ${result.id}).`, "Payment Method - Create", req.body.userID);
         const socket = new socket_helper_1.default("createPaymentMethod", Object.assign(Object.assign({}, result), { can_delete: true }));
         socket.create();
         return res.status(201).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Create", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Create", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -72,7 +72,7 @@ PaymentMethodController.fetchAutocomplete = (req, res) => {
         return res.status(200).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Create", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Create", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -83,7 +83,7 @@ PaymentMethodController.fetchById = (req, res) => {
         return res.status(200).send(Object.assign(Object.assign({}, result[0]), { can_delete: result[1] == 0 }));
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Fetch by ID", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Fetch by ID", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -101,7 +101,7 @@ PaymentMethodController.update = (req, res) => {
             return res.status(404).send("Metode pembayaran tidak ditemukan.");
         }
         else {
-            const paymentMethod = new payment_method_model_1.default(name, description, req.body.userId, id);
+            const paymentMethod = new payment_method_model_1.default(name, description, req.body.userID, id);
             paymentMethod
                 .update()
                 .then((result) => {
@@ -110,13 +110,13 @@ PaymentMethodController.update = (req, res) => {
                 return res.status(201).send(result);
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", error, "Payment Method - Update", req.body.userId);
+                log_helper_1.default.log(new Date(), "error", error, "Payment Method - Update", req.body.userID);
                 return res.status(500).send(error);
             });
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Update", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Payment Method - Update", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -125,15 +125,15 @@ PaymentMethodController.delete = (req, res) => {
     bill_code_model_1.default.countByPaymentMethodId(id)
         .then((count) => {
         if (count == 0) {
-            payment_method_model_1.default.delete(id, req.body.userId)
+            payment_method_model_1.default.delete(id, req.body.userID)
                 .then((result) => {
-                log_helper_1.default.log(new Date(), "info", `${result.user_payment_method_deleted_byTouser.name} berhasil menghapus data metode penjualan dengan nama ${result.name} (ID: ${result.id})`, "Payment method - Delete", req.body.userId);
+                log_helper_1.default.log(new Date(), "info", `${result.user_payment_method_deleted_byTouser.name} berhasil menghapus data metode penjualan dengan nama ${result.name} (ID: ${result.id})`, "Payment method - Delete", req.body.userID);
                 const socket = new socket_helper_1.default("deletePaymentMethod", result);
                 socket.create();
                 return res.status(201).send(result);
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
+                log_helper_1.default.log(new Date(), "error", error, "Payment method - Delete", req.body.userID);
             });
         }
         else {
@@ -143,7 +143,7 @@ PaymentMethodController.delete = (req, res) => {
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Payment method - Delete", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Payment method - Delete", req.body.userID);
         return res.status(500).send(error);
     });
 };

@@ -15,7 +15,7 @@ class ItemTypeController {
    */
   static create = (req: Request, res: Response) => {
     const name = req.body.name;
-    const user_id = req.body.userId;
+    const user_id = req.body.userID;
 
     ItemTypeModel.create({
       name: name,
@@ -133,7 +133,7 @@ class ItemTypeController {
   static updateByID = (req: Request, res: Response) => {
     const name = req.body.name;
     const id = req.body.id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ItemTypeModel.updateByID({
       name: name,
@@ -182,7 +182,7 @@ class ItemTypeController {
                 "Data cannot be deleted because there are other data depending on this data"
               );
           } else {
-            ItemTypeModel.deleteById(id, req.body.userId)
+            ItemTypeModel.deleteById(id, req.body.userID)
               .then((result) => {
                 const socket = new SocketHelper("deleteItemType", result);
                 socket.create();

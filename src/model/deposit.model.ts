@@ -544,6 +544,48 @@ class DepositModel {
       },
     });
   }
+
+  static fetchByItemIDs(itemIDs: number[]) {
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT SUM(deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, deposit.item_id
+      FROM deposit
+      JOIN deposit_code ON deposit.deposit_code_id = deposit_code.id
+      LEFT JOIN item_unit ON deposit.item_unit_id = item_unit.id
+      WHERE deposit.item_id IN (${itemIDs.join(",")})
+      AND deposit_code.is_delete = 0
+      UNION ALL
+      SELECT SUM(package_content.quantity * deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, package_content.item_id
+      FROM deposit
+      JOIN deposit_code ON deposit.deposit_code_id = deposit_code.id
+      JOIN package_code ON deposit.package_code_id = package_code.id
+      JOIN package_content ON package_code.id = package_content.package_code_id
+      LEFT JOIN item_unit ON deposit.item_unit_id = item_unit.id
+      WHERE package_content.item_id IN (${itemIDs.join(",")})
+      AND deposit_code.is_delete = 0
+      GROUP BY package_content.item_id
+    `);
+  }
+
+  static fetchByItemID(itemID: number) {
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT SUM(deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, deposit.item_id
+      FROM deposit
+      JOIN deposit_code ON deposit.deposit_code_id = deposit_code.id
+      LEFT JOIN item_unit ON deposit.item_unit_id = item_unit.id
+      WHERE deposit.item_id = ${itemID}
+      AND deposit_code.is_delete = 0
+      UNION ALL
+      SELECT SUM(package_content.quantity * deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, package_content.item_id
+      FROM deposit
+      JOIN deposit_code ON deposit.deposit_code_id = deposit_code.id
+      JOIN package_code ON deposit.package_code_id = package_code.id
+      JOIN package_content ON package_code.id = package_content.package_code_id
+      LEFT JOIN item_unit ON deposit.item_unit_id = item_unit.id
+      WHERE package_content.item_id = ${itemID}
+      AND deposit_code.is_delete = 0
+      GROUP BY package_content.item_id
+    `);
+  }
 }
 
 export default DepositModel;

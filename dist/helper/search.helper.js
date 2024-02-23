@@ -232,14 +232,13 @@ SearchHelper.syncMasterData = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 item_model_1.ItemModel.fetchAll(new Date())
                     .then((items) => __awaiter(void 0, void 0, void 0, function* () {
                     yield mongo_product_model_1.mongoProductModel.insertMany(items.map((x) => {
-                        var _b;
                         return {
                             reference: x.reference,
                             description: x.description,
                             itemID: x.id,
                             itemTypeID: x.item_type_id,
                             itemBrandID: x.item_brand_id,
-                            currentStock: ((_b = x.stock) === null || _b === void 0 ? void 0 : _b.stock) || 0,
+                            currentStock: 0,
                             unit: x.unit,
                             minimumStock: x.minimum_stock || 0,
                             calculatedMinimumStock: 0,
@@ -732,6 +731,34 @@ SearchHelper.arrangeStockCard = (req, res) => __awaiter(void 0, void 0, void 0, 
             message: "Arrange stock card successfully",
         });
     }));
+});
+SearchHelper.adjustStock = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const products = yield mongo_product_model_1.mongoProductModel.find({});
+    // Sum of stock cards
+    mongo_stock_card_model_1.mongoStockCardModel
+        .aggregate([
+        {
+            $group: {
+                _id: "$itemID",
+                total: { $sum: "$quantity" },
+            },
+        },
+    ])
+        .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        for (let i = 0; i < products.length; i++) {
+            const stockCard = result.find((x) => x._id == products[i].itemID);
+            if (stockCard != null) {
+                products[i].currentStock = stockCard.total;
+                yield products[i].save();
+            }
+        }
+        return res.status(200).send({
+            message: "Stock adjustment success",
+        });
+    }))
+        .catch((error) => {
+        return res.status(500).send("error while adjusting stock " + error);
+    });
 });
 exports.default = SearchHelper;
 //# sourceMappingURL=search.helper.js.map

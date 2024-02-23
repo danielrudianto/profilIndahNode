@@ -19,7 +19,7 @@ class ExpenseController {
     const expense_type_id = req.body.expense_type_id;
     const value = req.body.value;
     const company_id = req.body.company_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ExpenseTypeModel.fetchByID(expense_type_id).then((type) => {
       if (!type) {
@@ -90,7 +90,7 @@ class ExpenseController {
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
     const company_id = req.body.company_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ExpenseModel.updateByID({
       id: id,
@@ -147,7 +147,7 @@ class ExpenseController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const user_id = req.body.userId;
+    const user_id = req.body.userID;
 
     ExpenseModel.deleteByID(id, user_id)
       .then((result) => {

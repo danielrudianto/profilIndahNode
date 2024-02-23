@@ -33,7 +33,7 @@ GoodReceiptController.create = (req, res) => {
             validation[1].is_delete) {
             return res.status(500).send("Perusahaan / supplier tidak ditemukan.");
         }
-        const good_receipt = new good_receipt_model_1.default(name, date, req.body.userId, supplier_id, company_id);
+        const good_receipt = new good_receipt_model_1.default(name, date, req.body.userID, supplier_id, company_id);
         good_receipt
             .create()
             .then((good_receipt_result) => {
@@ -57,7 +57,7 @@ GoodReceiptController.create = (req, res) => {
                     });
                 }
                 const insert_item = good_receipt_model_1.default.insertItems(good_receipt_items_input);
-                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userId);
+                const purchase_document = new purchase_document_model_1.default(purchase_invoice_name, null, date, discount, good_receipt_result.id, req.body.userID);
                 const insert_purchase_document = purchase_document.create();
                 Promise.all([insert_item, insert_purchase_document])
                     .then((insert_transaction) => {
@@ -70,7 +70,7 @@ GoodReceiptController.create = (req, res) => {
                     return res.status(201).send(Object.assign(Object.assign({}, good_receipt_result), { good_receipt: insert_transaction[0], purchase_invoice: insert_transaction[1] }));
                 })
                     .catch((error) => {
-                    log_helper_1.default.log(new Date(), "error", error, "Good Receipt - Create", req.body.userId);
+                    log_helper_1.default.log(new Date(), "error", error, "Good Receipt - Create", req.body.userID);
                     return res.status(500).send(error);
                 });
             })

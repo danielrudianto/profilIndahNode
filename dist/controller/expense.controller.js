@@ -34,7 +34,7 @@ ExpenseController.create = (req, res) => {
     const expense_type_id = req.body.expense_type_id;
     const value = req.body.value;
     const company_id = req.body.company_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     expense_type_model_1.default.fetchByID(expense_type_id).then((type) => {
         if (!type) {
             return res.status(404).send(error_list_1.default["Expense type not found"]);
@@ -95,7 +95,7 @@ ExpenseController.updateByID = (req, res) => {
     const type_id = req.body.expense_type_id;
     const value = req.body.value;
     const company_id = req.body.company_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     expense_model_1.default.updateByID({
         id: id,
         value: value,
@@ -147,7 +147,7 @@ ExpenseController.fetch = (req, res) => {
  */
 ExpenseController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
-    const user_id = req.body.userId;
+    const user_id = req.body.userID;
     expense_model_1.default.deleteByID(id, user_id)
         .then((result) => {
         const socket = new socket_helper_1.default("deleteExpense", result);

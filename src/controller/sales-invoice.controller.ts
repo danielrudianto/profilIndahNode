@@ -36,7 +36,7 @@ class SalesInvoiceController {
       !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const is_paid = req.body.is_paid;
     const type = req.body.type;
 
@@ -107,7 +107,7 @@ class SalesInvoiceController {
           try {
             await ItemPriceModel.updateMany(
               bill.filter((x) => x.save && x.item_id != null),
-              req.body.userId
+              req.body.userID
             );
 
             await ProductPackageCodeModel.updatePrice(
@@ -571,7 +571,7 @@ class SalesInvoiceController {
    */
   static deleteByID = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     const result = await BillCodeModel.fetchByID(id);
     if (!result) {

@@ -20,7 +20,7 @@ class UserController {
     const username = req.body.username;
     const nik = req.body.nik;
     const name = req.body.name;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const types = req.body.user_sales;
 
     if (role.length == 0 || role == null) {
@@ -59,8 +59,7 @@ class UserController {
                   nik: result.nik,
                   username: result.username,
                   password: password,
-                  role_id: roleID,
-                  role: UserModel.fetchRole(roleID)?.name || "",
+                  role: roleID,
                   user: result.user,
                 });
                 socket.create();
@@ -190,7 +189,7 @@ class UserController {
    * @returns The achievement of the user
    */
   static fetchStats = (req: Request, res: Response) => {
-    const id = req.body.userId;
+    const id = req.body.userID;
     Promise.all([
       BillModel.fetchSalesByUserID(id),
       CustomerModel.fetchBySales(id),
@@ -289,7 +288,7 @@ class UserController {
     const id = req.body.id;
     const roleID = req.body.role;
     const role = UserModel.fetchRole(roleID);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const userSales = req.body.user_sales;
 
     if (!role) {
@@ -354,7 +353,7 @@ class UserController {
             return res.status(404).send("Pengguna tidak ditemukan.");
           }
 
-          UserModel.delete(user.id, !user.is_active, req.body.userId)
+          UserModel.delete(user.id, !user.is_active, req.body.userID)
             .then((user_delete) => {
               // If user was active and no longer active
               // Log him / her out from our system immidiately
@@ -384,7 +383,7 @@ class UserController {
   static updatePassword = (req: Request, res: Response) => {
     const password = req.body.password;
     hash(password, 12).then((hashed_password) => {
-      UserModel.updatePassword(hashed_password, req.body.userId)
+      UserModel.updatePassword(hashed_password, req.body.userID)
         .then((result) => {
           return res.status(200).send(result);
         })

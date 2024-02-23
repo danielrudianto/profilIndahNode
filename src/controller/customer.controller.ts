@@ -31,7 +31,7 @@ class CustomerController {
       npwp: npwp,
       pic: pic,
       phone_number: phone_number,
-      created_by: req.body.userId,
+      created_by: req.body.userID,
     })
       .then(async (result) => {
         const socket = new SocketHelper("createCustomer", {
@@ -180,7 +180,7 @@ class CustomerController {
       npwp: npwp,
       pic: pic,
       phone_number: phone_number,
-      created_by: req.body.userId,
+      created_by: req.body.userID,
       id: id,
     })
       .then(async (result) => {
@@ -203,7 +203,7 @@ class CustomerController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     CustomerModel.fetchByID(id).then((result) => {
       if (!result) {
         return res.status(404).send(ErrorList["Not found"]);

@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { ItemModel } from "../model/item.model";
-import ProductStockModel from "../model/product-stock.model";
-import { meili, prisma } from "../app";
+import { meili } from "../app";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 import UserModel from "../model/user.model";
+import DepositModel from "../model/deposit.model";
 
 class ProductStockController {
   /**
@@ -140,40 +140,46 @@ class ProductStockController {
                 offset: (page - 1) * 10,
               })
               .then(async (result) => {
-                const productStock = await mongoProductModel.find(
-                  {
-                    itemID: {
-                      $in: result.hits.map((x) => x.id),
+                Promise.all([
+                  DepositModel.fetchByItemIDs(result.hits.map((x) => x.id)),
+                  mongoProductModel.find(
+                    {
+                      itemID: {
+                        $in: result.hits.map((x) => x.id),
+                      },
                     },
-                  },
-                  "itemID unit currentStock minimumStock"
-                );
-
-                return res.status(200).send({
-                  data: result.hits.map((x) => {
-                    const stockIndex = productStock.findIndex(
-                      (y) => y.itemID == x.id
-                    );
-                    return {
-                      id: x.id,
-                      reference: x.reference,
-                      description: x.description,
-                      stock:
-                        stockIndex == -1
-                          ? 0
-                          : productStock[stockIndex].currentStock,
-                      unit:
-                        stockIndex == -1 ? "" : productStock[stockIndex].unit,
-                      item_brand_id: x.itemBrandID,
-                      item_type_id: x.itemTypeID,
-                      item_brand_name: x.brand,
-                      item_type_name: x.type,
-                      minimum_stock:
-                        stockIndex == -1
-                          ? 0
-                          : productStock[stockIndex].minimumStock,
-                    };
-                  }),
+                    "itemID unit currentStock minimumStock"
+                  ),
+                ]).then(([depositStock, productStock]) => {
+                  return res.status(200).send({
+                    data: result.hits.map((x) => {
+                      const stockIndex = productStock.findIndex(
+                        (y) => y.itemID == x.id
+                      );
+                      return {
+                        id: x.id,
+                        reference: x.reference,
+                        description: x.description,
+                        stock:
+                          stockIndex == -1
+                            ? 0
+                            : productStock[stockIndex].currentStock,
+                        unit:
+                          stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                        item_brand_id: x.itemBrandID,
+                        item_type_id: x.itemTypeID,
+                        item_brand_name: x.brand,
+                        item_type_name: x.type,
+                        minimum_stock:
+                          stockIndex == -1
+                            ? 0
+                            : productStock[stockIndex].minimumStock,
+                        deposit: depositStock
+                          .filter((y) => y.item_id == x.id)
+                          .reduce((a, b) => a + Number(b.quantity), 0),
+                      };
+                    }),
+                  });
                 });
               });
           } else {
@@ -187,40 +193,46 @@ class ProductStockController {
                 filter: `itemTypeID = ${types.join(" OR itemTypeID = ")}`,
               })
               .then(async (result) => {
-                const productStock = await mongoProductModel.find(
-                  {
-                    itemID: {
-                      $in: result.hits.map((x) => x.id),
+                Promise.all([
+                  DepositModel.fetchByItemIDs(result.hits.map((x) => x.id)),
+                  mongoProductModel.find(
+                    {
+                      itemID: {
+                        $in: result.hits.map((x) => x.id),
+                      },
                     },
-                  },
-                  "itemID unit currentStock minimumStock"
-                );
-
-                return res.status(200).send({
-                  data: result.hits.map((x) => {
-                    const stockIndex = productStock.findIndex(
-                      (y) => y.itemID == x.id
-                    );
-                    return {
-                      id: x.id,
-                      reference: x.reference,
-                      description: x.description,
-                      stock:
-                        stockIndex == -1
-                          ? 0
-                          : productStock[stockIndex].currentStock,
-                      unit:
-                        stockIndex == -1 ? "" : productStock[stockIndex].unit,
-                      item_brand_id: x.itemBrandID,
-                      item_type_id: x.itemTypeID,
-                      item_brand_name: x.brand,
-                      item_type_name: x.type,
-                      minimum_stock:
-                        stockIndex == -1
-                          ? 0
-                          : productStock[stockIndex].minimumStock,
-                    };
-                  }),
+                    "itemID unit currentStock minimumStock"
+                  ),
+                ]).then(([depositStock, productStock]) => {
+                  return res.status(200).send({
+                    data: result.hits.map((x) => {
+                      const stockIndex = productStock.findIndex(
+                        (y) => y.itemID == x.id
+                      );
+                      return {
+                        id: x.id,
+                        reference: x.reference,
+                        description: x.description,
+                        stock:
+                          stockIndex == -1
+                            ? 0
+                            : productStock[stockIndex].currentStock,
+                        unit:
+                          stockIndex == -1 ? "" : productStock[stockIndex].unit,
+                        item_brand_id: x.itemBrandID,
+                        item_type_id: x.itemTypeID,
+                        item_brand_name: x.brand,
+                        item_type_name: x.type,
+                        minimum_stock:
+                          stockIndex == -1
+                            ? 0
+                            : productStock[stockIndex].minimumStock,
+                        deposit: depositStock
+                          .filter((y) => y.item_id == x.id)
+                          .reduce((a, b) => a + Number(b.quantity), 0),
+                      };
+                    }),
+                  });
                 });
               });
           }
@@ -368,7 +380,7 @@ class ProductStockController {
       })
       .sort({
         date: -1,
-        _id: -1,
+        _id: 1,
       })
       .limit(10)
       .skip((page - 1) * 10);

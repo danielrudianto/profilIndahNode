@@ -2,6 +2,10 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const app_1 = require("../app");
 class BillPaymentModel {
+    /**
+     * Fetch all payments of sales invoice
+     * @returns
+     */
     static fetchByBillCodeID(id) {
         return app_1.prisma.bill_payment.findMany({
             where: {
@@ -20,6 +24,11 @@ class BillPaymentModel {
             },
         });
     }
+    /**
+     * Create payment of sales invoice
+     * @param data
+     * @returns
+     */
     static create(data) {
         return app_1.prisma.$transaction([
             app_1.prisma.bill_payment.create({

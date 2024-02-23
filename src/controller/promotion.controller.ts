@@ -18,7 +18,7 @@ class PromotionController {
     const target = req.body.target;
     const brandID = req.body.brand;
     const supplierID = req.body.supplier;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     PromotionModel.create({
       name: name,
@@ -272,7 +272,7 @@ class PromotionController {
     const target = req.body.target;
     const brandID = req.body.brand;
     const supplierID = req.body.supplier;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     await PromotionModel.deleteRules(id);
 

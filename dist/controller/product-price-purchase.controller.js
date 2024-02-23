@@ -86,7 +86,7 @@ ItemPurchasePriceController.update = (req, res) => {
     const discount = req.body.discount;
     const item_id = req.body.item_id;
     const item_unit_id = req.body.item_unit_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     item_purchase_price_model_1.default.fetchByItemID(item_id, item_unit_id)
         .then((item) => __awaiter(void 0, void 0, void 0, function* () {
         if (!item) {
@@ -139,7 +139,7 @@ ItemPurchasePriceController.update = (req, res) => {
  */
 ItemPurchasePriceController.createBulk = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const data = req.body.data;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     try {
         yield item_purchase_price_model_1.default.delete(data.map((x) => {
             return {

@@ -103,7 +103,7 @@ ItemPriceController.updateByID = (req, res) => {
     const item_unit_id = req.body.item_unit_id;
     const price = req.body.price;
     const discount = req.body.discount;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     item_price_model_1.default.fetchByItemID(item_id, item_unit_id)
         .then((itemPrice) => {
         if (!itemPrice) {
@@ -148,7 +148,7 @@ ItemPriceController.updateByID = (req, res) => {
  */
 ItemPriceController.createBulk = (req, res) => {
     const items = req.body;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const transactions = items.map((x) => {
         return item_price_model_1.default.delete({
             item_id: x.id,

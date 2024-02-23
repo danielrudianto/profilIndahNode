@@ -391,11 +391,6 @@ class ItemModel {
                         adjustment_case: true,
                     },
                 },
-                stock: {
-                    select: {
-                        stock: true,
-                    },
-                },
             },
         });
     }
@@ -1636,105 +1631,6 @@ class ItemModel {
             }),
         ]);
     }
-    static fetchMinusStock(keyword, offset, limit) {
-        return prisma.$transaction([
-            prisma.item.findMany({
-                where: {
-                    stock: {
-                        stock: {
-                            lt: 0,
-                        },
-                    },
-                    OR: [
-                        {
-                            reference: {
-                                contains: keyword,
-                            },
-                        },
-                        {
-                            description: {
-                                contains: keyword,
-                            },
-                        },
-                    ],
-                },
-                select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    item_type: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                    item_brand: {
-                        select: {
-                            name: true,
-                        },
-                    },
-                    unit: true,
-                    stock: true,
-                },
-                orderBy: {
-                    reference: "asc",
-                },
-                take: limit,
-                skip: offset,
-            }),
-            prisma.item.count({
-                where: {
-                    stock: {
-                        stock: {
-                            lt: 0,
-                        },
-                    },
-                    OR: [
-                        {
-                            reference: {
-                                contains: keyword,
-                            },
-                        },
-                        {
-                            description: {
-                                contains: keyword,
-                            },
-                        },
-                    ],
-                },
-            }),
-        ]);
-    }
-    static downloadMinusStock() {
-        return prisma.item.findMany({
-            where: {
-                stock: {
-                    stock: {
-                        lt: 0,
-                    },
-                },
-            },
-            select: {
-                id: true,
-                reference: true,
-                description: true,
-                item_type: {
-                    select: {
-                        name: true,
-                    },
-                },
-                item_brand: {
-                    select: {
-                        name: true,
-                    },
-                },
-                unit: true,
-                stock: true,
-            },
-            orderBy: {
-                reference: "asc",
-            },
-        });
-    }
     static fetchCompleteByIDs(ids) {
         return prisma.$transaction([
             prisma.item.findMany({
@@ -1838,11 +1734,6 @@ class ItemModel {
                     },
                     take: 1,
                     skip: 0,
-                },
-                stock: {
-                    select: {
-                        stock: true,
-                    },
                 },
             },
             orderBy: {

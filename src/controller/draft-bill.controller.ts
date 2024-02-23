@@ -8,7 +8,6 @@ import {
   IConfirmDraftBillItems,
 } from "../model/draft-bill.model";
 import PaymentMethodModel from "../model/payment-method.model";
-import ProductStockModel from "../model/product-stock.model";
 
 class DraftBillController {
   /**
@@ -19,7 +18,7 @@ class DraftBillController {
   static create = (req: Request, res: Response) => {
     const customer_id = req.body.customer_id;
     const items = req.body.items as any[];
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const note = req.body.note;
     const date = new Date();
     const service = req.body.service;
@@ -126,7 +125,7 @@ class DraftBillController {
     const service = req.body.service;
     const delivery = req.body.delivery;
     const discount = req.body.discount;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     const items = req.body.items as any[];
 
@@ -199,7 +198,7 @@ class DraftBillController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = req.body.id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     DraftBillModel.deleteByID(id, userID)
       .then((result) => {
         const socket = new SocketHelper("delete-draft-bill", {

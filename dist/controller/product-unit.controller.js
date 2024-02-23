@@ -40,7 +40,7 @@ ItemUnitController.create = (req, res) => {
     const itemID = req.body.item_id;
     const itemUnit = req.body.item_unit;
     const itemUnits = req.body.item_units;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     item_model_1.ItemModel.fetchByID(itemID)
         .then((item) => {
         if (!item) {

@@ -36,7 +36,7 @@ export const authMiddleware = (
           return res.status(401).send(ErrorList["User not authorized"]);
         }
 
-        req.body.userId = decodedData.id;
+        req.body.userID = decodedData.id;
         next();
       });
     } else {

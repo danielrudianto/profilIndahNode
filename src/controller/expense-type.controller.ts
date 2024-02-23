@@ -19,7 +19,7 @@ class ExpenseTypeController {
       name: name,
       description: description,
       parent_id: parent_id,
-      created_by: req.body.userId,
+      created_by: req.body.userID,
     })
       .then((result) => {
         const socket = new SocketHelper("createExpenseType", result);
@@ -157,7 +157,7 @@ class ExpenseTypeController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     ExpenseTypeModel.fetchByID(id).then((expense) => {
       if (!expense) {
         return res.status(404).send(ErrorList["Not found"]);
@@ -225,7 +225,7 @@ class ExpenseTypeController {
     ExpenseTypeModel.updateByID({
       name: name,
       description: description,
-      created_by: req.body.userId,
+      created_by: req.body.userID,
       id: id,
     })
       .then((result) => {

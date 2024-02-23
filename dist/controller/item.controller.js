@@ -40,7 +40,7 @@ ProductController.create = (req, res) => {
         const brand_id = req.body.brand;
         const type_id = req.body.type;
         const minimum_stock = req.body.minimum_stock;
-        const user_id = req.body.userId;
+        const user_id = req.body.userID;
         const unit = req.body.unit;
         const units = req.body.units;
         item_model_1.ItemModel.fetchByReference(reference)
@@ -53,10 +53,10 @@ ProductController.create = (req, res) => {
             item
                 .create()
                 .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-                log_helper_1.default.log(new Date(), "info", `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-                const item_units = item_unit_model_1.default.createMany(units, result.id, req.body.userId);
-                const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, req.body.userId);
-                const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, req.body.userId, null);
+                log_helper_1.default.log(new Date(), "info", `${result.user.name} created new item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userID);
+                const item_units = item_unit_model_1.default.createMany(units, result.id, req.body.userID);
+                const item_price = new item_price_model_1.default(req.body.price, req.body.discount, result.id, null, req.body.userID);
+                const item_purchase_price = new item_purchase_price_model_1.default(req.body.purchase_price, result.id, req.body.userID, null);
                 Promise.all([
                     item_price.create(),
                     item_purchase_price.create(),
@@ -74,9 +74,9 @@ ProductController.create = (req, res) => {
                 ])
                     .then((item_price) => {
                     const item_object = Object.assign(Object.assign({}, result), { item_price: item_price[0], item_price_purchase: item_price[1], item_units: item_price[2] });
-                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item unit for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item sales price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
-                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item purchase price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userId);
+                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item unit for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userID);
+                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item sales price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userID);
+                    log_helper_1.default.log(new Date(), "info", `${result.user.name} created item purchase price for item with reference ${result.reference} (ID: ${result.id})`, `Item - Create`, req.body.userID);
                     const itemSocket = new socket_helper_1.default("createItem", item_object);
                     itemSocket.create();
                     item_model_1.ItemModel.countByBrandId(brand_id)
@@ -89,23 +89,23 @@ ProductController.create = (req, res) => {
                         return res.status(201).send(result);
                     })
                         .catch((error) => {
-                        log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
+                        log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userID);
                     });
                 })
                     .catch((error) => {
                     console.error(error);
-                    log_helper_1.default.log(new Date(), "error", error, "Item Controller - Create", req.body.userId);
+                    log_helper_1.default.log(new Date(), "error", error, "Item Controller - Create", req.body.userID);
                     return res.status(500).send(error);
                 });
             }))
                 .catch((error) => {
                 console.error(error);
-                log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userID);
                 return res.status(500).send(error);
             });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userId);
+            log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Create`, req.body.userID);
             return res.status(500).send(error);
         });
     }
@@ -134,12 +134,12 @@ ProductController.delete = (req, res) => {
                     .then((count) => {
                     if (count[0] == 0 && count[1] == 0) {
                         Promise.all([
-                            item_model_1.ItemModel.delete(item.id, req.body.userId),
+                            item_model_1.ItemModel.delete(item.id, req.body.userID),
                             app_1.meili.index("item").deleteDocument(item.id),
                         ]).then((delete_result) => {
                             const socket = new socket_helper_1.default("deleteItem", delete_result);
                             socket.create();
-                            log_helper_1.default.log(new Date(), "info", `${delete_result[0].user.name} deleted item with reference ${delete_result[0].reference} (ID: ${delete_result[0].id})`, "Item controller - Delete", req.body.userId);
+                            log_helper_1.default.log(new Date(), "info", `${delete_result[0].user.name} deleted item with reference ${delete_result[0].reference} (ID: ${delete_result[0].id})`, "Item controller - Delete", req.body.userID);
                             item_model_1.ItemModel.countByBrandId(delete_result[0].item_brand_id)
                                 .then((count_brand) => {
                                 const itemSocket = new socket_helper_1.default("deleteItemBrand", {
@@ -150,7 +150,7 @@ ProductController.delete = (req, res) => {
                                 return res.status(201).send(delete_result[0]);
                             })
                                 .catch((error) => {
-                                log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userId);
+                                log_helper_1.default.log(new Date(), "error", error, `Item - Create`, req.body.userID);
                             });
                         });
                     }
@@ -161,7 +161,7 @@ ProductController.delete = (req, res) => {
                     }
                 })
                     .catch((error) => {
-                    log_helper_1.default.log(new Date(), `Error`, `${error}`, `Item controller - Delete`, req.body.userId);
+                    log_helper_1.default.log(new Date(), `Error`, `${error}`, `Item controller - Delete`, req.body.userID);
                 });
             }
         });
@@ -190,7 +190,7 @@ ProductController.update = (req, res) => {
         }
         else {
             Promise.all([
-                item_model_1.ItemModel.update(id, reference, description, brand, type, req.body.userId, minimum_stock, unit),
+                item_model_1.ItemModel.update(id, reference, description, brand, type, req.body.userID, minimum_stock, unit),
                 app_1.meili.index("item").updateDocuments([
                     {
                         id: id,
@@ -201,19 +201,19 @@ ProductController.update = (req, res) => {
             ])
                 .then((result) => {
                 var _b;
-                log_helper_1.default.log(new Date(), "info", `${(_b = result[0].user_item_updated_byTouser) === null || _b === void 0 ? void 0 : _b.name} updated item with reference ${result[0].reference} (ID: ${result[0].id})`, `Item - Update`, req.body.userId);
+                log_helper_1.default.log(new Date(), "info", `${(_b = result[0].user_item_updated_byTouser) === null || _b === void 0 ? void 0 : _b.name} updated item with reference ${result[0].reference} (ID: ${result[0].id})`, `Item - Update`, req.body.userID);
                 const socket = new socket_helper_1.default("updateItem", result);
                 socket.create();
                 return res.status(200).send(result);
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Update`, req.body.userId);
+                log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Update`, req.body.userID);
                 return res.status(500).send(error);
             });
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Update`, req.body.userId);
+        log_helper_1.default.log(new Date(), "error", `${error}`, `Item - Update`, req.body.userID);
     });
 };
 ProductController.fetchSearchResult = (req, res) => {
@@ -338,12 +338,12 @@ ProductController.fetch = (req, res) => {
             });
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Item controller - count", req.body.userId);
+            log_helper_1.default.log(new Date(), "error", error, "Item controller - count", req.body.userID);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item controller - fetch", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item controller - fetch", req.body.userID);
         console.error(error);
         return res.status(500).send(error);
     });
@@ -486,7 +486,7 @@ ProductController.downloadStock = (req, res) => {
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item Controller - Download stock", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item Controller - Download stock", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -502,7 +502,7 @@ ProductController.fetchUnits = (req, res) => {
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item Controller - fetch Units", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item Controller - fetch Units", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -512,8 +512,8 @@ ProductController.updateUnit = (req, res) => {
     const new_units = units.filter((x) => x.id == "");
     const update_units = units.filter((x) => x.id != "");
     Promise.all([
-        item_unit_model_1.default.createMany(new_units, item_id, req.body.userId),
-        item_unit_model_1.default.updateMany(update_units, req.body.userId),
+        item_unit_model_1.default.createMany(new_units, item_id, req.body.userID),
+        item_unit_model_1.default.updateMany(update_units, req.body.userID),
     ])
         .then(() => {
         item_model_1.ItemModel.fetchById(item_id, new Date())
@@ -525,7 +525,7 @@ ProductController.updateUnit = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item Controller - Update units", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item Controller - Update units", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -643,7 +643,7 @@ ProductController.fetchStockReportPdf = (req, res) => {
         const brand_ids = JSON.parse(req.body.brand_id.replace("'", "").replace('"', ""));
         const type_ids = JSON.parse(req.body.type_id.replace("'", "").replace('"', ""));
         Promise.all([
-            user_model_1.default.fetchById(req.body.userId),
+            user_model_1.default.fetchById(req.body.userID),
             item_model_1.ItemModel.fetchInsufficient(brand_ids, type_ids),
         ]).then((result) => {
             if (result[0] == null) {
@@ -665,7 +665,7 @@ ProductController.fetchStockReportPdf = (req, res) => {
         const brand_ids = req.body.brand_id;
         const type_ids = req.body.type_id;
         Promise.all([
-            user_model_1.default.fetchById(req.body.userId),
+            user_model_1.default.fetchById(req.body.userID),
             item_model_1.ItemModel.fetchInsufficient(brand_ids, type_ids),
         ]).then((result) => {
             if (result[0] == null) {

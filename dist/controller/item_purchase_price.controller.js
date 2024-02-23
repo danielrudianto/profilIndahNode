@@ -59,7 +59,7 @@ ItemPurchasePriceController.fetch = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item purchase price controller - Fetch", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item purchase price controller - Fetch", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -67,7 +67,7 @@ ItemPurchasePriceController.create = (req, res) => {
     const item_id = req.body.item_id;
     const item_unit_id = req.body.item_unit_id;
     const price = req.body.price;
-    const created_by = req.body.userId;
+    const created_by = req.body.userID;
     const item_purchase_price = new item_purchase_price_model_1.default(price, item_id, created_by, item_unit_id);
     item_purchase_price
         .update()
@@ -78,12 +78,12 @@ ItemPurchasePriceController.create = (req, res) => {
             return res.status(201).send(item_purchase);
         })
             .catch((error) => {
-            log_helper_1.default.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userId);
+            log_helper_1.default.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userID);
             return res.status(500).send(error);
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item purchase price controller - update", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -95,8 +95,8 @@ ItemPurchasePriceController.createBulk = (req, res) => {
         const price = x.price;
         const item_unit_id = x.item_unit_id == 0 ? null : x.item_unit_id;
         const item_id = x.id;
-        const itemPurchasePrice = new item_purchase_price_model_1.default(price, item_id, req.body.userId, item_unit_id);
-        transactions.push(item_purchase_price_model_1.default.delete(item_id, item_unit_id, req.body.userId));
+        const itemPurchasePrice = new item_purchase_price_model_1.default(price, item_id, req.body.userID, item_unit_id);
+        transactions.push(item_purchase_price_model_1.default.delete(item_id, item_unit_id, req.body.userID));
         insert_transactions.push(itemPurchasePrice.create());
     }
     Promise.all(transactions)
@@ -115,7 +115,7 @@ ItemPurchasePriceController.createBulk = (req, res) => {
     });
 };
 ItemPurchasePriceController.getXlsx = (req, res) => {
-    user_model_1.default.fetchById(req.body.userId)
+    user_model_1.default.fetchById(req.body.userID)
         .then((user) => {
         if (user == null) {
             return res.status(401).send("Pengguna tidak ditemukan.");
@@ -247,7 +247,7 @@ ItemPurchasePriceController.getXlsx = (req, res) => {
             })
                 .catch((error) => {
                 console.error(error);
-                log_helper_1.default.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userId);
+                log_helper_1.default.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userID);
                 return res.status(500).send(error);
             });
         }

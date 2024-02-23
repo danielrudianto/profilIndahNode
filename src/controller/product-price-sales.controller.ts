@@ -97,7 +97,7 @@ class ItemPriceController {
     const item_unit_id = req.body.item_unit_id;
     const price = req.body.price;
     const discount = req.body.discount;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ItemPriceModel.fetchByItemID(item_id, item_unit_id)
       .then((itemPrice) => {
@@ -148,7 +148,7 @@ class ItemPriceController {
    */
   static createBulk = (req: Request, res: Response) => {
     const items = req.body as any[];
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const transactions: any[] = items.map((x) => {
       return ItemPriceModel.delete({
         item_id: x.id,

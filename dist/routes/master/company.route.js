@@ -12,7 +12,7 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const router = (0, express_1.Router)();
 router.post("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("name").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("address").exists().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, company_controller_1.default.create);
 router.get("/autocomplete", company_controller_1.default.fetchAutocomplete);
-router.get("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, company_controller_1.default.fetchByID);
+router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, company_controller_1.default.fetchByID);
 router.get("/", company_controller_1.default.fetch);
 router.delete("/:id", (0, express_validator_1.param)("id").notEmpty().isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, company_controller_1.default.delete);
 router.put("/", (0, express_validator_1.body)("name").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("address").exists().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, company_controller_1.default.update);

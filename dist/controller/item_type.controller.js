@@ -27,13 +27,13 @@ ItemTypeController.fetchItems = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "ItemTypeController - Fetch Items", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "ItemTypeController - Fetch Items", req.body.userID);
         return res.status(500).send(error);
     });
 };
 ItemTypeController.createItem = (req, res) => {
     const name = req.body.name;
-    const user_id = req.body.userId;
+    const user_id = req.body.userID;
     const item_type = new item_type_model_1.default(name, user_id);
     item_type
         .create()
@@ -43,14 +43,14 @@ ItemTypeController.createItem = (req, res) => {
         return res.status(201).send(result);
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "ItemTypeController - Submit Item", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "ItemTypeController - Submit Item", req.body.userID);
         return res.status(500).send(error);
     });
 };
 ItemTypeController.updateItem = (req, res) => {
     const name = req.body.name;
     const id = req.body.id;
-    const user_id = req.body.userId;
+    const user_id = req.body.userID;
     const item_type = new item_type_model_1.default(name, user_id, id);
     item_type
         .update()
@@ -150,12 +150,12 @@ ItemTypeController.deleteItem = (req, res) => {
             }
             else if ((itemType === null || itemType === void 0 ? void 0 : itemType.item.length) == 0) {
                 // Can delete
-                item_type_model_1.default.deleteById(id, req.body.userId)
+                item_type_model_1.default.deleteById(id, req.body.userID)
                     .then((result) => {
                     var _a;
                     const socket = new socket_helper_1.default("deleteItemType", result);
                     socket.create();
-                    log_helper_1.default.log(new Date(), "Info", `${(_a = result.user_item_type_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`, "ItemTypeController - Delete by Id", req.body.userId);
+                    log_helper_1.default.log(new Date(), "Info", `${(_a = result.user_item_type_deleted_byTouser) === null || _a === void 0 ? void 0 : _a.name} berhasil menghapus data tipe barang ${result.name} (ID: ${result.id})`, "ItemTypeController - Delete by Id", req.body.userID);
                     return res.status(200).send(result);
                 })
                     .catch((error) => {

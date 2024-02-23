@@ -45,7 +45,7 @@ SalesInvoiceController.create = (req, res) => {
     const date = !req.body.date || req.body.date == null
         ? new Date()
         : new Date(req.body.date);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const is_paid = req.body.is_paid;
     const type = req.body.type;
     if (type == "sales") {
@@ -105,7 +105,7 @@ SalesInvoiceController.create = (req, res) => {
             }, 0);
             const createSalesInvoiceNetTotal = createSalesInvoiceTotal - discount + delivery + service;
             try {
-                yield item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId);
+                yield item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userID);
                 yield product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null));
                 for (let i = 0; i < result.bill.length; i++) {
                     if (result.bill[i].package_code != null) {
@@ -492,7 +492,7 @@ SalesInvoiceController.fetchCodeByID = (req, res) => {
  */
 SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const id = parseInt(req.params.id.toString());
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const result = yield bill_code_model_1.default.fetchByID(id);
     if (!result) {
         return res.status(404).send(error_list_1.default["Not found"]);

@@ -30,7 +30,7 @@ _a = AdjustmentCaseController;
 AdjustmentCaseController.create = (req, res) => {
     const name = _a.generateName(new Date(req.body.date));
     const companyID = req.body.company_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const type = req.body.type;
     if (type == 0 && companyID == null) {
         return res.status(400).send(error_list_1.default["Parameter error"]);

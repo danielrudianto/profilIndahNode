@@ -19,7 +19,8 @@ class CompanyController {
     const npwp =
       req.body.npwp == null
         ? null
-        : req.body.npwp.toString().length == 15
+        : req.body.npwp.toString().length == 15 ||
+          req.body.npwp.toString() == 16
         ? req.body.npwp
         : null;
     const userID = req.body.userID;
@@ -145,7 +146,7 @@ class CompanyController {
       req.body.npwp == null || req.body.npwp.toString().length != 15
         ? null
         : req.body.npwp;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     CompanyModel.updateByID({
       id: id,
@@ -188,7 +189,7 @@ class CompanyController {
           return res.status(404).send(ErrorList["Unable to delete"]);
         }
 
-        CompanyModel.deleteByID(id, req.body.userId)
+        CompanyModel.deleteByID(id, req.body.userID)
           .then((result) => {
             const socket = new SocketHelper("deleteCompany", {
               name: result.name,

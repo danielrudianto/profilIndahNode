@@ -17,6 +17,11 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const fetch_interface_1 = require("../interface/fetch.interface");
 const prisma = new client_1.PrismaClient();
 class CustomerModel {
+    /**
+     * Create a  new customer data
+     * @param data
+     * @returns
+     */
     static create(data) {
         return prisma.customer.create({
             data: {
@@ -38,6 +43,11 @@ class CustomerModel {
             },
         });
     }
+    /**
+     * Update customer datas
+     * @param data
+     * @returns
+     */
     static update(data) {
         return prisma.customer.update({
             where: {
@@ -62,14 +72,20 @@ class CustomerModel {
             },
         });
     }
-    static delete(id, created_by) {
+    /**
+     * Delete customer data by ID
+     * @param id
+     * @param created_by
+     * @returns
+     */
+    static delete(id, userID) {
         return prisma.customer.update({
             where: {
                 id: id,
             },
             data: {
                 is_delete: true,
-                deleted_by: created_by,
+                deleted_by: userID,
             },
             include: {
                 user: {

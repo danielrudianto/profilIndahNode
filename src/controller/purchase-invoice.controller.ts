@@ -28,7 +28,8 @@ class PurchaseInvoiceController {
       !purchase_invoice.faktur || purchase_invoice.faktur?.length < 16
         ? null
         : purchase_invoice.faktur;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
+    const uuid = req.body.uuid;
 
     PurchaseInvoiceModel.create({
       name: name,
@@ -52,6 +53,7 @@ class PurchaseInvoiceController {
           discount: x.discount,
         };
       }),
+      uuid: uuid,
       purchase_invoice_name: purchase_invoice_name,
     })
       .then(async (good_receipt_result) => {
@@ -370,7 +372,7 @@ class PurchaseInvoiceController {
     const id = parseInt(req.body.id);
     const is_confirm = req.body.is_confirm;
     const is_delete = req.body.is_delete;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     const purchaseInvoice = await PurchaseInvoiceModel.fetchByID(id);
     if (!purchaseInvoice) {

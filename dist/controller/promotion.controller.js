@@ -29,7 +29,7 @@ PromotionController.create = (req, res) => {
     const target = req.body.target;
     const brandID = req.body.brand;
     const supplierID = req.body.supplier;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     promotion_model_1.default.create({
         name: name,
         description: description,
@@ -253,7 +253,7 @@ PromotionController.update = (req, res) => __awaiter(void 0, void 0, void 0, fun
     const target = req.body.target;
     const brandID = req.body.brand;
     const supplierID = req.body.supplier;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     yield promotion_model_1.default.deleteRules(id);
     promotion_model_1.default.update({
         id: id,

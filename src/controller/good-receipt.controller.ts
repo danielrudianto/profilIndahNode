@@ -21,84 +21,103 @@ class GoodReceiptController {
 
     const purchase_invoice = req.body.purchase_invoice as any;
     const purchase_invoice_name = purchase_invoice.name;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
+    const uuid = req.body.uuid;
 
-    ItemPurchasePriceModel.fetchCurrentPrice(
-      good_receipt_items.map((x) => {
-        return {
-          item_id: x.item_id,
-          item_unit_id: x.item_unit_id,
-        };
-      })
-    ).then((priceResult) => {
-      GoodReceiptModel.create({
-        name: name,
-        purchase_invoice_name: purchase_invoice_name,
-        date: date,
-        supplier_id: supplier_id,
-        company_id: company_id,
-        created_by: userID,
-        good_receipt: good_receipt_items.map((x) => {
-          const priceIndex = priceResult.findIndex(
-            (y) => y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
-          );
-          return {
-            item_id: x.item_id,
-            item_unit_id: x.item_unit_id,
-            quantity: x.quantity,
-            price: priceIndex == -1 ? 0 : priceResult[priceIndex].price,
-            discount: priceIndex == -1 ? 0 : priceResult[priceIndex].discount,
-          };
-        }),
-      })
-        .then(async (goodReceiptResult) => {
-          Promise.all(
-            goodReceiptResult.good_receipt.map((x) => {
-              const stockIn: StockInInterface = {
-                itemID: x.item.id,
-                createdAt: goodReceiptResult.created_at,
-                date: goodReceiptResult.date,
-                document: goodReceiptResult.name,
-                opponent: goodReceiptResult.supplier.name,
-                displayQuantity: parseFloat(x.quantity.toString()),
-                unit: x.item_unit == null ? x.item.unit : x.item_unit.unit,
-                quantity:
-                  parseFloat(x.quantity.toString()) *
-                  (x.item_unit == null
-                    ? 1
-                    : parseFloat(x.item_unit.conversion.toString())),
-                billID: null,
-                billCodeID: null,
-                adjustmentCaseID: null,
-                adjustmentCaseCodeID: null,
-                goodReceiptID: x.id,
-                goodReceiptCodeID: goodReceiptResult.id,
-                salesReturnID: null,
-                salesReturnCodeID: null,
-                customerID: null,
-                supplierID: goodReceiptResult.supplier_id,
-                companyID: goodReceiptResult.company_id,
-                price:
-                  parseFloat(x.price.toString()) -
-                  parseFloat(x.discount.toString()),
+    GoodReceiptModel.fetchByUUID(uuid)
+      .then((result) => {
+        if (result) {
+          return res.status(400).send(ErrorList["Duplicate error"]);
+        }
+
+        ItemPurchasePriceModel.fetchCurrentPrice(
+          good_receipt_items.map((x) => {
+            return {
+              item_id: x.item_id,
+              item_unit_id: x.item_unit_id,
+            };
+          })
+        ).then((priceResult) => {
+          GoodReceiptModel.create({
+            name: name,
+            purchase_invoice_name: purchase_invoice_name,
+            date: date,
+            supplier_id: supplier_id,
+            company_id: company_id,
+            created_by: userID,
+            good_receipt: good_receipt_items.map((x) => {
+              const priceIndex = priceResult.findIndex(
+                (y) =>
+                  y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
+              );
+              return {
+                item_id: x.item_id,
+                item_unit_id: x.item_unit_id,
+                quantity: x.quantity,
+                price: priceIndex == -1 ? 0 : priceResult[priceIndex].price,
+                discount:
+                  priceIndex == -1 ? 0 : priceResult[priceIndex].discount,
               };
+            }),
+            uuid: uuid,
+          })
+            .then((goodReceiptResult) => {
+              Promise.all(
+                goodReceiptResult.good_receipt.map((x) => {
+                  const stockIn: StockInInterface = {
+                    itemID: x.item.id,
+                    createdAt: goodReceiptResult.created_at,
+                    date: goodReceiptResult.date,
+                    document: goodReceiptResult.name,
+                    opponent: goodReceiptResult.supplier.name,
+                    displayQuantity: parseFloat(x.quantity.toString()),
+                    unit: x.item_unit == null ? x.item.unit : x.item_unit.unit,
+                    quantity:
+                      parseFloat(x.quantity.toString()) *
+                      (x.item_unit == null
+                        ? 1
+                        : parseFloat(x.item_unit.conversion.toString())),
+                    billID: null,
+                    billCodeID: null,
+                    adjustmentCaseID: null,
+                    adjustmentCaseCodeID: null,
+                    goodReceiptID: x.id,
+                    goodReceiptCodeID: goodReceiptResult.id,
+                    salesReturnID: null,
+                    salesReturnCodeID: null,
+                    customerID: null,
+                    supplierID: goodReceiptResult.supplier_id,
+                    companyID: goodReceiptResult.company_id,
+                    price:
+                      parseFloat(x.price.toString()) -
+                      parseFloat(x.discount.toString()),
+                  };
 
-              return queue.add("insert-stock-in", stockIn);
-            })
-          )
-            .then(() => {
-              return res.status(201).send(goodReceiptResult);
+                  return queue.add("insert-stock-in", stockIn);
+                })
+              )
+                .then(() => {
+                  return res.status(201).send(goodReceiptResult);
+                })
+                .catch((error) => {
+                  console.error(
+                    `[error]: Error on creating good receipt ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
+                });
             })
             .catch((error) => {
-              console.error(`[error]: Error on creating good receipt ${error}`);
+              console.error(`[error]: Error on fetching price ${error}`);
               return res.status(500).send(ErrorList["Internal server error"]);
             });
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching price ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
         });
-    });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching good receipt ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 
   /**

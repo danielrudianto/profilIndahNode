@@ -78,7 +78,7 @@ class ItemPurchasePriceController {
     const discount = req.body.discount;
     const item_id = req.body.item_id;
     const item_unit_id = req.body.item_unit_id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     ItemPurchasePriceModel.fetchByItemID(item_id, item_unit_id)
       .then(async (item) => {
         if (!item) {
@@ -137,7 +137,7 @@ class ItemPurchasePriceController {
    */
   static createBulk = async (req: Request, res: Response) => {
     const data = req.body.data as any[];
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     try {
       await ItemPurchasePriceModel.delete(
         data.map((x) => {

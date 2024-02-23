@@ -52,5 +52,6 @@ router.post("/sync-product-out", search_helper_1.default.syncProductOut);
 router.post("/sync-product-out-calculation", search_helper_1.default.syncProductOutCalculation);
 router.post("/arrange-stock-card", search_helper_1.default.arrangeStockCard);
 router.get("/tasks", search_helper_1.default.getTasks);
+router.post("/adjust-stock", search_helper_1.default.adjustStock);
 exports.default = router;
 //# sourceMappingURL=development.routes.js.map

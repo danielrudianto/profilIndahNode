@@ -20,7 +20,7 @@ AdjustmentCaseController.post = (req, res) => {
         return res.status(400).send(validation_result.array()[0].msg);
     }
     const name = _a.generateName(new Date(req.body.date));
-    const adjustment_case = new adjustment_case_code_model_1.default(name, new Date(req.body.date), req.body.userId, req.body.company_id);
+    const adjustment_case = new adjustment_case_code_model_1.default(name, new Date(req.body.date), req.body.userID, req.body.company_id);
     adjustment_case
         .create()
         .then((result) => {
@@ -148,7 +148,7 @@ AdjustmentCaseController.fetchCodeById = (req, res) => {
         }
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Adjustment Case Controller - fetchCodeById", req.body.userID);
         return res.status(500).send(error);
     });
 };

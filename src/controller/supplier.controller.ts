@@ -15,7 +15,7 @@ class SupplierController {
     const name = req.body.name;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     SupplierModel.create({
       name: name,
@@ -113,7 +113,7 @@ class SupplierController {
     const name = req.body.name;
     const address = req.body.address;
     const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     SupplierModel.update({
       id: id,
@@ -141,7 +141,7 @@ class SupplierController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     SupplierModel.fetchByID(id)
       .then((result) => {
         if (!result) {

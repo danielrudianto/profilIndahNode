@@ -35,7 +35,7 @@ UserController.create = (req, res) => {
     const username = req.body.username;
     const nik = req.body.nik;
     const name = req.body.name;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const types = req.body.user_sales;
     if (role.length == 0 || role == null) {
         return res.status(400).send(error_list_1.default["Role not found"]);
@@ -63,15 +63,14 @@ UserController.create = (req, res) => {
                     user_sales: types,
                 })
                     .then((result) => {
-                    var _b, _c;
+                    var _b;
                     const socket = new socket_helper_1.default("createUser", {
                         id: result.id,
                         name: result.name,
                         nik: result.nik,
                         username: result.username,
                         password: password,
-                        role_id: roleID,
-                        role: ((_b = user_model_1.default.fetchRole(roleID)) === null || _b === void 0 ? void 0 : _b.name) || "",
+                        role: roleID,
                         user: result.user,
                     });
                     socket.create();
@@ -82,7 +81,7 @@ UserController.create = (req, res) => {
                         username: result.username,
                         password: password,
                         role_id: roleID,
-                        role: ((_c = user_model_1.default.fetchRole(roleID)) === null || _c === void 0 ? void 0 : _c.name) || "",
+                        role: ((_b = user_model_1.default.fetchRole(roleID)) === null || _b === void 0 ? void 0 : _b.name) || "",
                     });
                 })
                     .catch((error) => {
@@ -146,9 +145,7 @@ UserController.fetchByID = (req, res) => {
         if (!user) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, user), { role: user.user_department == null
-                ? null
-                : user_model_1.default.roles.filter((y) => { var _b; return y.id == ((_b = user.user_department) === null || _b === void 0 ? void 0 : _b.role); })[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
+        return res.status(200).send(Object.assign(Object.assign({}, user), { role_name: user_model_1.default.roles.filter((y) => y.id == user.role)[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching user ${error}`);
@@ -177,10 +174,7 @@ UserController.fetch = (req, res) => {
                     nik: x.nik,
                     name: x.name,
                     username: x.username,
-                    user_department: x.user_department,
-                    role: x.user_department == null
-                        ? null
-                        : user_model_1.default.roles.filter((y) => { var _b; return y.id == ((_b = x.user_department) === null || _b === void 0 ? void 0 : _b.role); })[0].name,
+                    role: user_model_1.default.roles.filter((y) => y.id == (x === null || x === void 0 ? void 0 : x.role))[0].name,
                 };
             }),
             count: result[1],
@@ -198,7 +192,7 @@ UserController.fetch = (req, res) => {
  * @returns The achievement of the user
  */
 UserController.fetchStats = (req, res) => {
-    const id = req.body.userId;
+    const id = req.body.userID;
     Promise.all([
         bill_model_1.default.fetchSalesByUserID(id),
         customer_model_1.default.fetchBySales(id),
@@ -288,7 +282,7 @@ UserController.update = (req, res) => {
     const id = req.body.id;
     const roleID = req.body.role;
     const role = user_model_1.default.fetchRole(roleID);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const userSales = req.body.user_sales;
     if (!role) {
         return res.status(400).send(error_list_1.default["Role not found"]);
@@ -345,7 +339,7 @@ UserController.toggleActive = (req, res) => {
             if (user == null) {
                 return res.status(404).send("Pengguna tidak ditemukan.");
             }
-            user_model_1.default.delete(user.id, !user.is_active, req.body.userId)
+            user_model_1.default.delete(user.id, !user.is_active, req.body.userID)
                 .then((user_delete) => {
                 // If user was active and no longer active
                 // Log him / her out from our system immidiately
@@ -375,7 +369,7 @@ UserController.toggleActive = (req, res) => {
 UserController.updatePassword = (req, res) => {
     const password = req.body.password;
     (0, bcryptjs_1.hash)(password, 12).then((hashed_password) => {
-        user_model_1.default.updatePassword(hashed_password, req.body.userId)
+        user_model_1.default.updatePassword(hashed_password, req.body.userID)
             .then((result) => {
             return res.status(200).send(result);
         })

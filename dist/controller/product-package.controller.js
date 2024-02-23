@@ -31,7 +31,7 @@ ProductPackageController.create = (req, res) => {
     const name = req.body.name;
     const price = req.body.price;
     const description = req.body.description;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     product_package_model_1.ProductPackageCodeModel.create({
         name: name,
         description: description,
@@ -233,7 +233,7 @@ ProductPackageController.updateByID = (req, res) => {
  */
 ProductPackageController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     product_package_model_1.ProductPackageCodeModel.delete(id, userID)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         yield app_1.meili.index("package").deleteDocument(id);

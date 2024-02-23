@@ -1,14 +1,26 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const bcrypt_1 = require("bcrypt");
 const jsonwebtoken_1 = require("jsonwebtoken");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const user_model_1 = __importDefault(require("../model/user.model"));
+const app_1 = require("../app");
 class AuthController {
 }
+_a = AuthController;
 /**
  * Login
  * @param req
@@ -25,15 +37,16 @@ AuthController.login = (req, res) => {
         if (!user.is_active) {
             return res.status(400).send(error_list_1.default["User not active"]);
         }
-        (0, bcrypt_1.compare)(password, user.password).then((result) => {
+        (0, bcrypt_1.compare)(password, user.password).then((result) => __awaiter(void 0, void 0, void 0, function* () {
             if (!result) {
                 return res.status(400).send(error_list_1.default["Auth error"]);
             }
+            yield app_1.redisClient.set(`user:${user.id}`, JSON.stringify(user));
             return res.status(200).send({
                 user: {
                     id: user.id,
                     name: user.name,
-                    role: user.user_department,
+                    role: user.role,
                 },
                 token: (0, jsonwebtoken_1.sign)({
                     id: user.id,
@@ -42,7 +55,7 @@ AuthController.login = (req, res) => {
                 }),
                 exp: new Date().getTime() +
                     parseInt(process.env.EXPIRATION.toString().replace("d", "")) *
-                        24 *
+                        14 *
                         60 *
                         60 *
                         1000,
@@ -52,7 +65,7 @@ AuthController.login = (req, res) => {
                     expiresIn: process.env.REFRESH_EXPIRATION,
                 }),
             });
-        });
+        }));
     })
         .catch((error) => {
         console.error(`[error]: Error while login. ${error}`);
@@ -65,8 +78,8 @@ AuthController.login = (req, res) => {
  * @param res
  */
 AuthController.refreshToken = (req, res) => {
-    var _a;
-    let tokenHeader = (_a = req.headers["x-access-token"]) === null || _a === void 0 ? void 0 : _a.toString();
+    var _b;
+    let tokenHeader = (_b = req.headers["x-access-token"]) === null || _b === void 0 ? void 0 : _b.toString();
     if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
         return res.status(400).json({
             auth: false,
@@ -109,24 +122,14 @@ AuthController.refreshToken = (req, res) => {
  * @param res
  */
 AuthController.fetchProfile = (req, res) => {
-    user_model_1.default.fetchByID(req.body.userId)
+    const userID = req.body.userID;
+    app_1.redisClient
+        .get("user:" + userID)
         .then((result) => {
-        if (!result) {
-            return res.status(404).send(error_list_1.default["Auth error"]);
-        }
-        if (!result.is_active) {
-            return res.status(400).send(error_list_1.default["User not active"]);
-        }
-        return res.status(200).send({
-            name: result === null || result === void 0 ? void 0 : result.name,
-            username: result === null || result === void 0 ? void 0 : result.username,
-            nik: result === null || result === void 0 ? void 0 : result.nik,
-            role: user_model_1.default.roles.filter((x) => { var _a; return x.id == ((_a = result === null || result === void 0 ? void 0 : result.user_department) === null || _a === void 0 ? void 0 : _a.role); })[0],
-            is_active: result === null || result === void 0 ? void 0 : result.is_active,
-        });
+        return res.status(200).send(result);
     })
         .catch((error) => {
-        console.error(`[error]: Error while fetching profile. ${error}`);
+        console.error(`[error]: Error on fetching profile ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };

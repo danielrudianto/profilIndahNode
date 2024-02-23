@@ -32,8 +32,8 @@ ItemPriceController.createBulk = (req, res) => {
         const item_unit_id = x.item_unit_id == 0 ? null : parseInt(x.item_unit_id);
         const price = x.price;
         const discount = x.discount;
-        const item_price = new item_price_model_1.default(price, discount, id, item_unit_id, req.body.userId, effective_date);
-        transactions.push(item_price_model_1.default.delete(id, item_unit_id, req.body.userId));
+        const item_price = new item_price_model_1.default(price, discount, id, item_unit_id, req.body.userID, effective_date);
+        transactions.push(item_price_model_1.default.delete(id, item_unit_id, req.body.userID));
         transactions.push(item_price.create());
     });
     Promise.all(transactions)
@@ -98,7 +98,7 @@ ItemPriceController.fetch = (req, res) => {
         });
     })
         .catch((error) => {
-        log_helper_1.default.log(new Date(), "error", error, "Item price controller - Fetch", req.body.userId);
+        log_helper_1.default.log(new Date(), "error", error, "Item price controller - Fetch", req.body.userID);
         return res.status(500).send(error);
     });
 };
@@ -131,7 +131,7 @@ ItemPriceController.updatePrice = (req, res) => {
     const discount = req.body.discount;
     const effective_date = new Date(req.body.effective_date);
     const old_id = req.body.id;
-    item_price_model_1.default.updatePrice(item_id, price, discount, req.body.userId, item_unit_id, effective_date)
+    item_price_model_1.default.updatePrice(item_id, price, discount, req.body.userID, item_unit_id, effective_date)
         .then((result) => {
         const socket = new socket_helper_1.default("updateUnitPrice", Object.assign(Object.assign({}, result[1]), { delete_id: old_id }));
         socket.create();
@@ -156,7 +156,7 @@ ItemPriceController.fetchById = (req, res) => {
     });
 };
 ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    user_model_1.default.fetchById(req.body.userId)
+    user_model_1.default.fetchById(req.body.userID)
         .then((user) => {
         if (user == null) {
             return res.status(401).send("Pengguna tidak ditemukan.");
@@ -294,7 +294,7 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                 });
             })
                 .catch((error) => {
-                log_helper_1.default.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userId);
+                log_helper_1.default.log(new Date(), error, "error", "Item price controller - getXlsx", req.body.userID);
                 return res.status(500).send(error);
             });
         }

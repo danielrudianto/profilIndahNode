@@ -16,6 +16,7 @@ import {
   StockReturnInterface,
 } from "./interface/stock-in.interface";
 import { mongoStockCardModel } from "./mongo-model/mongo-stock-card.model";
+import UserModel from "./model/user.model";
 
 const meili = new MeiliSearch({
   host: "http://127.0.0.1:7700",
@@ -43,6 +44,15 @@ async function connectToDatabase() {
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
+    case "pin-menu":
+      const userID = job.data.userID;
+      const menu = job.data.menu;
+      UserModel.updatePinMenu(userID, JSON.stringify(menu))
+        .then((_) => {})
+        .catch((error) => {
+          console.error(`[error]: Error on pinning user menu ${error}`);
+        });
+      break;
     case "updateItem":
       const item = job.data;
       try {
@@ -169,71 +179,72 @@ const workerHandler = async (job: Job<any>) => {
         let quantity = stockOutData.quantity * -1;
         while (quantity >= 0) {
           if (quantity == 0) {
-            await queue.add("rearrange-stock-card", product.itemID);
             break;
-          } else {
-            const stockIn = await mongoStockInModel
-              .findOne({
-                itemID: stockOutData.itemID,
-                residue: { $gt: 0 },
-              })
-              .sort({ date: 1 });
+          }
 
-            if (stockIn) {
-              const stockInResidue = stockIn.residue;
-              if (stockInResidue > quantity) {
-                stockIn.residue = stockInResidue - quantity;
-                await stockIn.save();
+          const stockIn = await mongoStockInModel
+            .findOne({
+              itemID: stockOutData.itemID,
+              residue: { $gt: 0 },
+            })
+            .sort({ date: 1 });
 
-                await mongoStockOutModel.create({
-                  companyID: stockOutData.companyID,
-                  adjustmentCaseID: stockOutData.adjustmentCaseID,
-                  adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
-                  billID: stockOutData.billID,
-                  billCodeID: stockOutData.billCodeID,
-                  date: stockOutData.date,
-                  value: stockOutData.price,
-                  quantity: quantity,
-                  unit: stockOutData.unit,
-                  itemID: stockOutData.itemID,
-                  stockInID: stockIn._id,
-                });
-                quantity = 0;
-                await stockIn.save();
-              } else {
-                await mongoStockOutModel.create({
-                  companyID: stockOutData.companyID,
-                  adjustmentCaseID: stockOutData.adjustmentCaseID,
-                  adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
-                  billID: stockOutData.billID,
-                  billCodeID: stockOutData.billCodeID,
-                  date: stockOutData.date,
-                  value: stockOutData.price,
-                  quantity: stockInResidue,
-                  unit: stockOutData.unit,
-                  itemID: stockOutData.itemID,
-                  stockInID: stockIn._id,
-                });
+          if (stockIn) {
+            const stockInResidue = stockIn.residue;
+            if (stockInResidue > quantity) {
+              stockIn.residue = stockInResidue - quantity;
+              await stockIn.save();
 
-                quantity -= stockInResidue;
-                stockIn.residue = 0;
-                await stockIn.save();
-              }
-            } else {
-              await mongoOverflowModel.create({
-                itemID: stockOutData.itemID,
-                date: stockOutData.date,
-                quantity: quantity,
-                billID: stockOutData.billID,
-                billCodeID: stockOutData.billCodeID,
+              await mongoStockOutModel.create({
+                companyID: stockOutData.companyID,
                 adjustmentCaseID: stockOutData.adjustmentCaseID,
                 adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+                billID: stockOutData.billID,
+                billCodeID: stockOutData.billCodeID,
+                date: stockOutData.date,
                 value: stockOutData.price,
+                quantity: quantity,
+                unit: stockOutData.unit,
+                itemID: stockOutData.itemID,
+                stockInID: stockIn._id,
               });
               quantity = 0;
+              await stockIn.save();
+            } else {
+              await mongoStockOutModel.create({
+                companyID: stockOutData.companyID,
+                adjustmentCaseID: stockOutData.adjustmentCaseID,
+                adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+                billID: stockOutData.billID,
+                billCodeID: stockOutData.billCodeID,
+                date: stockOutData.date,
+                value: stockOutData.price,
+                quantity: stockInResidue,
+                unit: stockOutData.unit,
+                itemID: stockOutData.itemID,
+                stockInID: stockIn._id,
+              });
+
+              quantity -= stockInResidue;
+              stockIn.residue = 0;
+              await stockIn.save();
             }
+          } else {
+            await mongoOverflowModel.create({
+              itemID: stockOutData.itemID,
+              date: stockOutData.date,
+              quantity: quantity,
+              billID: stockOutData.billID,
+              billCodeID: stockOutData.billCodeID,
+              adjustmentCaseID: stockOutData.adjustmentCaseID,
+              adjustmentCaseCodeID: stockOutData.adjustmentCaseCodeID,
+              value: stockOutData.price,
+            });
+            quantity = 0;
           }
         }
+
+        await queue.add("rearrange-stock-card", product.itemID);
       } catch (error: any) {
         await mongoErrorModel.create({
           function: "insert-stock-out",

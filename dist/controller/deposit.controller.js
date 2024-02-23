@@ -166,7 +166,7 @@ DepositController.confirmByID = (req, res) => {
     const deposit = req.body.deposit;
     const deposit_payment = req.body.deposit_payment;
     const deposit_bill_payment = req.body.deposit_bill_payment;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const is_paid = req.body.is_paid;
     const paymentTerm = req.body.payment_term;
     deposit_model_1.default.fetchByID(id)

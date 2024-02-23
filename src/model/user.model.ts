@@ -154,6 +154,20 @@ class UserModel {
   }
 
   /**
+   * Update pinned Menu
+   */
+  static updatePinMenu(userID: number, menu: string) {
+    return prisma.user.update({
+      where: {
+        id: userID,
+      },
+      data: {
+        pinned_menus: menu,
+      },
+    });
+  }
+
+  /**
    * Check if user with certain credential exists
    * @param username
    * @param nik
@@ -303,6 +317,7 @@ class UserModel {
         password: true,
         is_active: true,
         role: true,
+        pinned_menus: true,
       },
       where: {
         username: username,

@@ -13,7 +13,7 @@ SalesReturnController.create = (req, res) => {
     const items = req.body.sales_return;
     if (items.length > 0) {
         const name = `RJ-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
-        const sales_return_code = new sales_return_model_1.default(name, date, req.body.userId, payment_method_id, items, null, true);
+        const sales_return_code = new sales_return_model_1.default(name, date, req.body.userID, payment_method_id, items, null, true);
         sales_return_code
             .create()
             .then((result) => {
@@ -145,7 +145,7 @@ SalesReturnController.deleteById = (req, res) => {
             return res.status(404).send("Data tidak ditemukan.");
         }
         else {
-            sales_return_model_1.default.deleteById(id, req.body.userId)
+            sales_return_model_1.default.deleteById(id, req.body.userID)
                 .then((result) => {
                 return res.status(200).send(result);
             })

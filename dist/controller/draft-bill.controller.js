@@ -38,7 +38,7 @@ _a = DraftBillController;
 DraftBillController.create = (req, res) => {
     const customer_id = req.body.customer_id;
     const items = req.body.items;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const note = req.body.note;
     const date = new Date();
     const service = req.body.service;
@@ -119,7 +119,7 @@ DraftBillController.confirmByID = (req, res) => {
     const service = req.body.service;
     const delivery = req.body.delivery;
     const discount = req.body.discount;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const items = req.body.items;
     draft_bill_model_1.DraftBillModel.fetchByID(id).then((result) => {
         if (!result) {
@@ -177,7 +177,7 @@ DraftBillController.confirmByID = (req, res) => {
  */
 DraftBillController.deleteByID = (req, res) => {
     const id = req.body.id;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     draft_bill_model_1.DraftBillModel.deleteByID(id, userID)
         .then((result) => {
         const socket = new socket_helper_1.default("delete-draft-bill", {

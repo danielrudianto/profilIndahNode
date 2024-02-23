@@ -11,7 +11,6 @@ import ErrorList from "../assets/error_list";
 
 import { meili } from "../app";
 import { mysql_real_escape_string } from "../helper/escape.helper";
-import ProductStockModel from "../model/product-stock.model";
 import { queue } from "../helper/queue.helper";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 
@@ -28,7 +27,7 @@ class ProductController {
     const brand_id = req.body.brand;
     const type_id = req.body.type;
     const minimum_stock = req.body.minimum_stock;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const unit = req.body.unit;
     const price = req.body.price;
     const discount = req.body.discount;
@@ -59,31 +58,45 @@ class ProductController {
         const itemID = item.id;
         const unitResult = await ItemModel.createUnits(itemID, userID, units);
 
-        await queue.add("insert-product", {
-          reference: item.reference,
-          description: item.description,
-          id: item.id,
-          itemTypeID: item.item_type_id,
-          itemBrandID: item.item_brand_id,
-          unit: item.unit,
-          itemBrand: item.item_brand.name,
-          itemType: item.item_type.name,
-          minimumStock: item.minimum_stock,
-        });
+        queue
+          .add("insert-product", {
+            reference: item.reference,
+            description: item.description,
+            id: item.id,
+            itemTypeID: item.item_type_id,
+            itemBrandID: item.item_brand_id,
+            unit: item.unit,
+            itemBrand: item.item_brand.name,
+            itemType: item.item_type.name,
+            minimumStock: item.minimum_stock,
+          })
+          .then(() => {
+            const response = {
+              ...item,
+              item_price: item.item_price[0],
+              item_price_purchase: item.item_price_purchase[0],
+              units: unitResult,
+            };
 
-        await ProductStockModel.createStockData(item.id);
+            const itemSocket = new SocketHelper("createItem", response);
+            itemSocket.create();
 
-        const response = {
-          ...item,
-          item_price: item.item_price[0],
-          item_price_purchase: item.item_price_purchase[0],
-          units: unitResult,
-        };
+            return res.status(201).send(response);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on inserting product ${error}`);
+            const response = {
+              ...item,
+              item_price: item.item_price[0],
+              item_price_purchase: item.item_price_purchase[0],
+              units: unitResult,
+            };
 
-        const itemSocket = new SocketHelper("createItem", response);
-        itemSocket.create();
+            const itemSocket = new SocketHelper("createItem", response);
+            itemSocket.create();
 
-        return res.status(201).send(response);
+            return res.status(201).send(response);
+          });
       })
       .catch((error) => {
         console.error(`[error]: Error on creating item ${error}`);
@@ -740,7 +753,7 @@ class ProductController {
     const type = parseInt(req.body.type.toString());
     const minimum_stock = req.body.minimum_stock;
     const unit = req.body.unit;
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     ItemModel.fetchByID(id).then((result) => {
       if (result.length == 0) {
@@ -799,7 +812,7 @@ class ProductController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     ItemModel.fetchByID(id)
       .then((item) => {
         if (item.length == 0) {

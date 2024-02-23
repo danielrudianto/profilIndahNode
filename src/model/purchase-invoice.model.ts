@@ -102,6 +102,7 @@ class PurchaseInvoiceModel {
         confirmed_at: new Date(),
         company_id: data.company_id,
         supplier_id: data.supplier_id,
+        uuid: data.uuid,
         purchase_invoice: {
           create: {
             name: data.purchase_invoice.name,

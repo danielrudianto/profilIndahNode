@@ -23,7 +23,7 @@ ExpenseTypeController.create = (req, res) => {
         name: name,
         description: description,
         parent_id: parent_id,
-        created_by: req.body.userId,
+        created_by: req.body.userID,
     })
         .then((result) => {
         const socket = new socket_helper_1.default("createExpenseType", result);
@@ -142,7 +142,7 @@ ExpenseTypeController.fetchAutocomplete = (req, res) => {
  */
 ExpenseTypeController.deleteByID = (req, res) => {
     const id = parseInt(req.params.id);
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     expense_type_model_1.default.fetchByID(id).then((expense) => {
         if (!expense) {
             return res.status(404).send(error_list_1.default["Not found"]);
@@ -205,7 +205,7 @@ ExpenseTypeController.updateByID = (req, res) => {
     expense_type_model_1.default.updateByID({
         name: name,
         description: description,
-        created_by: req.body.userId,
+        created_by: req.body.userID,
         id: id,
     })
         .then((result) => {

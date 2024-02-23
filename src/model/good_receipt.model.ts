@@ -17,6 +17,7 @@ export interface IGoodReceipt {
   supplier_id: number;
   company_id: number;
   created_by: number;
+  uuid: string;
 }
 
 export interface ICreateGoodReceipt extends IGoodReceipt {
@@ -57,6 +58,7 @@ class GoodReceiptModel {
         supplier_id: data.supplier_id,
         company_id: data.company_id,
         is_confirm: true,
+        uuid: data.uuid,
         good_receipt: {
           createMany: {
             data: data.good_receipt.map((x) => {
@@ -486,6 +488,12 @@ class GoodReceiptModel {
     ]);
   }
 
+  /**
+   * Fetch good receipt by company ID
+   * @param company_id
+   * @param date
+   * @returns
+   */
   static fetchByCompanyID(company_id: number, date: string) {
     return prisma.$queryRawUnsafe<any[]>(`
       SELECT item.reference, item.description, item.unit, 
@@ -548,6 +556,20 @@ class GoodReceiptModel {
       good_receipt_code.supplier_id
       ORDER BY good_receipt_code.date ASC
     `);
+  }
+
+  /**
+   * Fetch good receipt by UUID
+   * Preventing user from multiple duplicate input
+   * @param uuid
+   *
+   */
+  static fetchByUUID(uuid: string) {
+    return prisma.good_receipt_code.findUnique({
+      where: {
+        uuid: uuid,
+      },
+    });
   }
 }
 

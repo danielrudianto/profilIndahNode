@@ -21,7 +21,7 @@ class SalesReturnController {
     const payment_method_id =
       req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
     const items = req.body.sales_return as any[];
-    const userID = req.body.userId;
+    const userID = req.body.userID;
 
     if (items.length == 0) {
       return res.status(400).send(ErrorList["Parameter error"]);
@@ -336,7 +336,7 @@ class SalesReturnController {
    */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     SalesReturnModel.fetchByID(id).then((salesReturn) => {
       if (!salesReturn) {
         return res.status(404).send(ErrorList["Not found"]);

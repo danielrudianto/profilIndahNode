@@ -173,7 +173,7 @@ class DepositController {
     const deposit = req.body.deposit as any[];
     const deposit_payment = req.body.deposit_payment as any[];
     const deposit_bill_payment = req.body.deposit_bill_payment as any[];
-    const userID = req.body.userId;
+    const userID = req.body.userID;
     const is_paid = req.body.is_paid;
     const paymentTerm = req.body.payment_term;
     DepositModel.fetchByID(id)

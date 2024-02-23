@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { sign, verify } from "jsonwebtoken";
 import ErrorList from "../assets/error_list";
 import UserModel from "../model/user.model";
+import { redisClient } from "../app";
+import { queue } from "../helper/queue.helper";
 
 class AuthController {
   /**
@@ -24,10 +26,20 @@ class AuthController {
           return res.status(400).send(ErrorList["User not active"]);
         }
 
-        compare(password, user.password).then((result) => {
+        compare(password, user.password).then(async (result) => {
           if (!result) {
             return res.status(400).send(ErrorList["Auth error"]);
           }
+
+          await redisClient.set(
+            `user:${user.id}`,
+            JSON.stringify({
+              name: user.name,
+              id: user.id,
+              role: user.role,
+              pinned_menus: user.pinned_menus,
+            })
+          );
 
           return res.status(200).send({
             user: {
@@ -47,7 +59,7 @@ class AuthController {
             exp:
               new Date().getTime() +
               parseInt(process.env.EXPIRATION!.toString().replace("d", "")) *
-                24 *
+                14 *
                 60 *
                 60 *
                 1000,
@@ -126,26 +138,51 @@ class AuthController {
    * @param res
    */
   static fetchProfile = (req: Request, res: Response) => {
-    UserModel.fetchByID(req.body.userId)
+    const userID = req.body.userID;
+    redisClient
+      .get("user:" + userID)
       .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Auth error"]);
-        }
-
-        if (!result.is_active) {
-          return res.status(400).send(ErrorList["User not active"]);
-        }
-
-        return res.status(200).send({
-          name: result?.name,
-          username: result?.username,
-          nik: result?.nik,
-          role: result?.role,
-          is_active: result?.is_active,
-        });
+        return res.status(200).send(result);
       })
       .catch((error) => {
-        console.error(`[error]: Error while fetching profile. ${error}`);
+        console.error(`[error]: Error on fetching profile ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Pin or unpin menu
+   */
+  static pinMenu = (req: Request, res: Response) => {
+    const userID = req.body.userID;
+    const menu = req.body.menu;
+    redisClient
+      .get("user:" + userID)
+      .then((result) => {
+        if (!result) {
+          return res.status(401).send(ErrorList["User not authorized"]);
+        }
+
+        const user = JSON.parse(result);
+        user.pinned_menus = JSON.stringify(menu);
+        redisClient
+          .set(`user:${userID}`, JSON.stringify(user))
+          .then(async () => {
+            queue.add("pin-menu", {
+              userID: userID,
+              menu: menu,
+            });
+            return res.status(200).send({
+              message: "OK",
+            });
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on pinning user menu ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on pinning user menu ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
