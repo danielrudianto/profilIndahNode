@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { ItemModel } from "../model/item.model";
-import ProductStockModel from "../model/product-stock.model";
 import { meili, prisma } from "../app";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";

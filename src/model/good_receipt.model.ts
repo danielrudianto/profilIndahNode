@@ -21,6 +21,7 @@ export interface IGoodReceipt {
 
 export interface ICreateGoodReceipt extends IGoodReceipt {
   good_receipt: IGoodReceiptItem[];
+  uuid: string;
 }
 
 export interface IGoodReceiptItem {
@@ -48,6 +49,7 @@ class GoodReceiptModel {
   static create(data: ICreateGoodReceipt) {
     return prisma.good_receipt_code.create({
       data: {
+        uuid: data.uuid,
         name: data.name,
         date: data.date,
         created_by: data.created_by,

@@ -11,7 +11,6 @@ import ErrorList from "../assets/error_list";
 
 import { meili } from "../app";
 import { mysql_real_escape_string } from "../helper/escape.helper";
-import ProductStockModel from "../model/product-stock.model";
 import { queue } from "../helper/queue.helper";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import DepositModel from "../model/deposit.model";
@@ -71,8 +70,6 @@ class ProductController {
           itemType: item.item_type.name,
           minimumStock: item.minimum_stock,
         });
-
-        await ProductStockModel.createStockData(item.id);
 
         const response = {
           ...item,

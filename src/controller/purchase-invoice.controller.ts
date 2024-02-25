@@ -29,8 +29,10 @@ class PurchaseInvoiceController {
         ? null
         : purchase_invoice.faktur;
     const userID = req.body.userId;
+    const uuid = req.body.uuid;
 
     PurchaseInvoiceModel.create({
+      uuid: uuid,
       name: name,
       date: date,
       supplier_id: supplier_id,

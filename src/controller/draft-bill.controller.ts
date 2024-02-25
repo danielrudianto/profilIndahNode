@@ -8,7 +8,6 @@ import {
   IConfirmDraftBillItems,
 } from "../model/draft-bill.model";
 import PaymentMethodModel from "../model/payment-method.model";
-import ProductStockModel from "../model/product-stock.model";
 
 class DraftBillController {
   /**

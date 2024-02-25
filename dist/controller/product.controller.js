@@ -18,7 +18,6 @@ const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const app_1 = require("../app");
 const escape_helper_1 = require("../helper/escape.helper");
-const product_stock_model_1 = __importDefault(require("../model/product-stock.model"));
 const queue_helper_1 = require("../helper/queue.helper");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const deposit_model_1 = __importDefault(require("../model/deposit.model"));
@@ -75,7 +74,6 @@ ProductController.create = (req, res) => __awaiter(void 0, void 0, void 0, funct
             itemType: item.item_type.name,
             minimumStock: item.minimum_stock,
         });
-        yield product_stock_model_1.default.createStockData(item.id);
         const response = Object.assign(Object.assign({}, item), { item_price: item.item_price[0], item_price_purchase: item.item_price_purchase[0], units: unitResult });
         const itemSocket = new socket_helper_1.default("createItem", response);
         itemSocket.create();

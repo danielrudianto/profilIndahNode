@@ -42,7 +42,9 @@ PurchaseInvoiceController.create = (req, res) => {
         ? null
         : purchase_invoice.faktur;
     const userID = req.body.userId;
+    const uuid = req.body.uuid;
     purchase_invoice_model_1.default.create({
+        uuid: uuid,
         name: name,
         date: date,
         supplier_id: supplier_id,

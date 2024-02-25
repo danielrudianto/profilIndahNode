@@ -20,6 +20,7 @@ class PurchaseInvoiceModel {
     static create(data) {
         return prisma.good_receipt_code.create({
             data: {
+                uuid: data.uuid,
                 name: data.name,
                 date: data.date,
                 created_by: data.created_by,

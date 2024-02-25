@@ -462,11 +462,6 @@ export class ItemModel {
             adjustment_case: true,
           },
         },
-        stock: {
-          select: {
-            stock: true,
-          },
-        },
       },
     });
   }
@@ -1777,11 +1772,6 @@ export class ItemModel {
     return prisma.$transaction([
       prisma.item.findMany({
         where: {
-          stock: {
-            stock: {
-              lt: 0,
-            },
-          },
           OR: [
             {
               reference: {
@@ -1810,7 +1800,6 @@ export class ItemModel {
             },
           },
           unit: true,
-          stock: true,
         },
         orderBy: {
           reference: "asc",
@@ -1820,11 +1809,6 @@ export class ItemModel {
       }),
       prisma.item.count({
         where: {
-          stock: {
-            stock: {
-              lt: 0,
-            },
-          },
           OR: [
             {
               reference: {
@@ -1840,38 +1824,6 @@ export class ItemModel {
         },
       }),
     ]);
-  }
-
-  static downloadMinusStock() {
-    return prisma.item.findMany({
-      where: {
-        stock: {
-          stock: {
-            lt: 0,
-          },
-        },
-      },
-      select: {
-        id: true,
-        reference: true,
-        description: true,
-        item_type: {
-          select: {
-            name: true,
-          },
-        },
-        item_brand: {
-          select: {
-            name: true,
-          },
-        },
-        unit: true,
-        stock: true,
-      },
-      orderBy: {
-        reference: "asc",
-      },
-    });
   }
 
   static fetchCompleteByIDs(ids: number[]) {
@@ -1978,11 +1930,6 @@ export class ItemModel {
           },
           take: 1,
           skip: 0,
-        },
-        stock: {
-          select: {
-            stock: true,
-          },
         },
       },
       orderBy: {

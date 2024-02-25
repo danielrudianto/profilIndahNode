@@ -22,6 +22,7 @@ class GoodReceiptController {
     const purchase_invoice = req.body.purchase_invoice as any;
     const purchase_invoice_name = purchase_invoice.name;
     const userID = req.body.userId;
+    const uuid = req.body.uuid;
 
     ItemPurchasePriceModel.fetchCurrentPrice(
       good_receipt_items.map((x) => {
@@ -32,6 +33,7 @@ class GoodReceiptController {
       })
     ).then((priceResult) => {
       GoodReceiptModel.create({
+        uuid: uuid,
         name: name,
         purchase_invoice_name: purchase_invoice_name,
         date: date,
