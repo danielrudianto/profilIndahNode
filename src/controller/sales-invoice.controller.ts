@@ -12,9 +12,9 @@ import {
   StockInInterface,
   StockOutDeleteInterface,
 } from "../interface/stock-in.interface";
-import PromotionModel from "../model/promotion.model";
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
+import { redisClient } from "../app";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
@@ -39,9 +39,12 @@ class SalesInvoiceController {
     const userID = req.body.userId;
     const is_paid = req.body.is_paid;
     const type = req.body.type;
+    // Currently sales is always null
+    const sales = null;
 
     if (type == "sales") {
       BillCodeModel.create({
+        sales: sales == "" ? null : sales,
         name: BillCodeModel.generateName(date),
         customer_id: customer_id,
         discount: discount,
@@ -104,160 +107,180 @@ class SalesInvoiceController {
           const createSalesInvoiceNetTotal =
             createSalesInvoiceTotal - discount + delivery + service;
 
-          try {
-            await ItemPriceModel.updateMany(
-              bill.filter((x) => x.save && x.item_id != null),
-              req.body.userId
-            );
-
-            await ProductPackageCodeModel.updatePrice(
-              bill.filter((x) => x.save && x.package_code_id != null)
-            );
-
-            for (let i = 0; i < result.bill.length; i++) {
-              if (result.bill[i].package_code != null) {
-                const packagePrice = Number(result.bill[i].price);
-                const packageQuantity = Number(result.bill[i].quantity);
-                const packageDiscount = Number(result.bill[i].discount);
-                const packageFinalPrice =
-                  ((packagePrice - packageDiscount) *
-                    createSalesInvoiceNetTotal) /
-                  createSalesInvoiceTotal;
-
-                const packageContentValue = result.bill[
-                  i
-                ].package_code!.package_content.reduce((a, b) => {
-                  return (
-                    a +
-                    Number(b.quantity) * (Number(b.price) - Number(b.discount))
+          // Add salesman to redis, enabling it to be used in the future
+          redisClient.exists("salesman_list").then((exists) => {
+            if (exists == 0) {
+              redisClient.set("salesman_list", JSON.stringify([sales]));
+            } else {
+              redisClient.get("salesman_list").then((result) => {
+                const salesmanList = JSON.parse(result!);
+                if (!salesmanList.includes(sales)) {
+                  salesmanList.push(sales);
+                  redisClient.set(
+                    "salesman_list",
+                    JSON.stringify(salesmanList)
                   );
-                }, 0);
-
-                for (
-                  let n = 0;
-                  n < result.bill[i].package_code!.package_content.length;
-                  n++
-                ) {
-                  const createSalesInvoicePackageContentItem =
-                    result.bill[i].package_code!.package_content[n];
-                  const createSalesInvoiceItemItemID =
-                    createSalesInvoicePackageContentItem.item_id;
-                  const createSalesInvoiceItemQuantity = Number(
-                    createSalesInvoicePackageContentItem.quantity
-                  );
-                  const createSalesInvoiceItemPrice = Number(
-                    createSalesInvoicePackageContentItem.price
-                  );
-                  const createSalesInvoiceItemDiscount = Number(
-                    createSalesInvoicePackageContentItem.discount
-                  );
-                  const createSalesInvoiceItemUnit =
-                    createSalesInvoicePackageContentItem.item_unit == null
-                      ? createSalesInvoicePackageContentItem.item.unit
-                      : createSalesInvoicePackageContentItem.item_unit.unit;
-                  const createSalesInvoiceItemConversion =
-                    createSalesInvoicePackageContentItem.item_unit == null
-                      ? 1
-                      : Number(
-                          createSalesInvoicePackageContentItem.item_unit
-                            .conversion
-                        );
-                  const finalUnitPrice =
-                    packageContentValue == 0
-                      ? 0
-                      : Number(
-                          ((createSalesInvoiceItemPrice -
-                            createSalesInvoiceItemDiscount) *
-                            packageFinalPrice) /
-                            (packageContentValue *
-                              createSalesInvoiceItemConversion)
-                        );
-
-                  const stockOut: StockInInterface = {
-                    itemID: createSalesInvoiceItemItemID,
-                    createdAt: result.created_at,
-                    date: date,
-                    document: result.name,
-                    opponent:
-                      result.customer == null
-                        ? "Retail customer"
-                        : result.customer.name,
-                    displayQuantity:
-                      packageQuantity * createSalesInvoiceItemQuantity * -1,
-                    quantity:
-                      packageQuantity *
-                      -1 *
-                      createSalesInvoiceItemQuantity *
-                      createSalesInvoiceItemConversion,
-                    unit: createSalesInvoiceItemUnit,
-                    billID: result.bill[i].id,
-                    billCodeID: result.id,
-                    adjustmentCaseID: null,
-                    adjustmentCaseCodeID: null,
-                    goodReceiptID: null,
-                    goodReceiptCodeID: null,
-                    salesReturnID: null,
-                    salesReturnCodeID: null,
-                    customerID: result.customer_id,
-                    supplierID: null,
-                    companyID: null,
-                    price: finalUnitPrice,
-                  };
-
-                  await queue.add("insert-stock-out", stockOut);
                 }
-              } else if (result.bill[i].item != null) {
-                const stockOut: StockInInterface = {
-                  itemID: result.bill[i].item!.id,
-                  createdAt: result.created_at,
-                  date: date,
-                  document: result.name,
-                  opponent:
-                    result.customer == null
-                      ? "Retail customer"
-                      : result.customer.name,
-                  displayQuantity: bill[i].quantity * -1,
-                  quantity:
-                    parseFloat(result.bill[i].quantity.toString()) *
-                    -1 *
-                    (result.bill[i].item_unit != null
-                      ? parseFloat(
-                          result.bill[i].item_unit!.conversion.toString()
-                        )
-                      : 1),
-                  unit:
-                    bill[i].item_unit == null
-                      ? result.bill[i].item!.unit
-                      : result.bill[i].item_unit!.unit,
-                  billID: result.bill[i].id,
-                  billCodeID: result.id,
-                  adjustmentCaseID: null,
-                  adjustmentCaseCodeID: null,
-                  goodReceiptID: null,
-                  goodReceiptCodeID: null,
-                  salesReturnID: null,
-                  salesReturnCodeID: null,
-                  customerID: result.customer_id,
-                  supplierID: null,
-                  companyID: null,
-                  price:
-                    ((Number(result.bill[i].price) -
-                      Number(result.bill[i].discount)) *
-                      createSalesInvoiceNetTotal) /
-                    (createSalesInvoiceTotal *
-                      (result.bill[i].item_unit == null
-                        ? 1
-                        : Number(result.bill[i].item_unit!.conversion))),
-                };
-
-                await queue.add("insert-stock-out", stockOut);
-              }
+              });
             }
-            return res.status(201).send(result);
-          } catch (error) {
-            console.error(`[error]: Error on updating stock ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          }
+
+            Promise.all([
+              ItemPriceModel.updateMany(
+                bill.filter((x) => x.save && x.item_id != null),
+                req.body.userId
+              ),
+              ProductPackageCodeModel.updatePrice(
+                bill.filter((x) => x.save && x.package_code_id != null)
+              ),
+            ])
+              .then(async () => {
+                for (let i = 0; i < result.bill.length; i++) {
+                  if (result.bill[i].package_code != null) {
+                    const packagePrice = Number(result.bill[i].price);
+                    const packageQuantity = Number(result.bill[i].quantity);
+                    const packageDiscount = Number(result.bill[i].discount);
+                    const packageFinalPrice =
+                      ((packagePrice - packageDiscount) *
+                        createSalesInvoiceNetTotal) /
+                      createSalesInvoiceTotal;
+
+                    const packageContentValue = result.bill[
+                      i
+                    ].package_code!.package_content.reduce((a, b) => {
+                      return (
+                        a +
+                        Number(b.quantity) *
+                          (Number(b.price) - Number(b.discount))
+                      );
+                    }, 0);
+
+                    for (
+                      let n = 0;
+                      n < result.bill[i].package_code!.package_content.length;
+                      n++
+                    ) {
+                      const createSalesInvoicePackageContentItem =
+                        result.bill[i].package_code!.package_content[n];
+                      const createSalesInvoiceItemItemID =
+                        createSalesInvoicePackageContentItem.item_id;
+                      const createSalesInvoiceItemQuantity = Number(
+                        createSalesInvoicePackageContentItem.quantity
+                      );
+                      const createSalesInvoiceItemPrice = Number(
+                        createSalesInvoicePackageContentItem.price
+                      );
+                      const createSalesInvoiceItemDiscount = Number(
+                        createSalesInvoicePackageContentItem.discount
+                      );
+                      const createSalesInvoiceItemUnit =
+                        createSalesInvoicePackageContentItem.item_unit == null
+                          ? createSalesInvoicePackageContentItem.item.unit
+                          : createSalesInvoicePackageContentItem.item_unit.unit;
+                      const createSalesInvoiceItemConversion =
+                        createSalesInvoicePackageContentItem.item_unit == null
+                          ? 1
+                          : Number(
+                              createSalesInvoicePackageContentItem.item_unit
+                                .conversion
+                            );
+                      const finalUnitPrice =
+                        packageContentValue == 0
+                          ? 0
+                          : Number(
+                              ((createSalesInvoiceItemPrice -
+                                createSalesInvoiceItemDiscount) *
+                                packageFinalPrice) /
+                                (packageContentValue *
+                                  createSalesInvoiceItemConversion)
+                            );
+
+                      const stockOut: StockInInterface = {
+                        itemID: createSalesInvoiceItemItemID,
+                        createdAt: result.created_at,
+                        date: date,
+                        document: result.name,
+                        opponent:
+                          result.customer == null
+                            ? "Retail customer"
+                            : result.customer.name,
+                        displayQuantity:
+                          packageQuantity * createSalesInvoiceItemQuantity * -1,
+                        quantity:
+                          packageQuantity *
+                          -1 *
+                          createSalesInvoiceItemQuantity *
+                          createSalesInvoiceItemConversion,
+                        unit: createSalesInvoiceItemUnit,
+                        billID: result.bill[i].id,
+                        billCodeID: result.id,
+                        adjustmentCaseID: null,
+                        adjustmentCaseCodeID: null,
+                        goodReceiptID: null,
+                        goodReceiptCodeID: null,
+                        salesReturnID: null,
+                        salesReturnCodeID: null,
+                        customerID: result.customer_id,
+                        supplierID: null,
+                        companyID: null,
+                        price: finalUnitPrice,
+                      };
+
+                      await queue.add("insert-stock-out", stockOut);
+                    }
+                  } else if (result.bill[i].item != null) {
+                    const stockOut: StockInInterface = {
+                      itemID: result.bill[i].item!.id,
+                      createdAt: result.created_at,
+                      date: date,
+                      document: result.name,
+                      opponent:
+                        result.customer == null
+                          ? "Retail customer"
+                          : result.customer.name,
+                      displayQuantity: bill[i].quantity * -1,
+                      quantity:
+                        parseFloat(result.bill[i].quantity.toString()) *
+                        -1 *
+                        (result.bill[i].item_unit != null
+                          ? parseFloat(
+                              result.bill[i].item_unit!.conversion.toString()
+                            )
+                          : 1),
+                      unit:
+                        bill[i].item_unit == null
+                          ? result.bill[i].item!.unit
+                          : result.bill[i].item_unit!.unit,
+                      billID: result.bill[i].id,
+                      billCodeID: result.id,
+                      adjustmentCaseID: null,
+                      adjustmentCaseCodeID: null,
+                      goodReceiptID: null,
+                      goodReceiptCodeID: null,
+                      salesReturnID: null,
+                      salesReturnCodeID: null,
+                      customerID: result.customer_id,
+                      supplierID: null,
+                      companyID: null,
+                      price:
+                        ((Number(result.bill[i].price) -
+                          Number(result.bill[i].discount)) *
+                          createSalesInvoiceNetTotal) /
+                        (createSalesInvoiceTotal *
+                          (result.bill[i].item_unit == null
+                            ? 1
+                            : Number(result.bill[i].item_unit!.conversion))),
+                    };
+
+                    await queue.add("insert-stock-out", stockOut);
+                  }
+                }
+                return res.status(201).send(result);
+              })
+              .catch((error) => {
+                console.error(`[error]: Error on updating stock ${error}`);
+                return res.status(500).send(ErrorList["Internal server error"]);
+              });
+          });
         })
         .catch((error) => {
           console.error(`[error]: Error on creating bill ${error}`);
@@ -265,6 +288,7 @@ class SalesInvoiceController {
         });
     } else if (type == "deposit") {
       DepositModel.create({
+        sales: sales == "" ? null : sales,
         name: DepositModel.generateName(date),
         customer_id: customer_id,
         discount: discount,
@@ -313,6 +337,7 @@ class SalesInvoiceController {
         });
     } else if (type == "deposit-internal") {
       DepositModel.create({
+        sales: sales == "" ? null : sales,
         name: DepositModel.generateName(date),
         customer_id: null,
         discount: discount,

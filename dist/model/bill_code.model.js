@@ -8,7 +8,6 @@ class BillCodeModel {
      * @returns BillCode
      */
     static create(data) {
-        console.log(data.payments);
         return app_1.prisma.bill_code.create({
             data: {
                 name: data.name,

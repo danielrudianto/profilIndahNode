@@ -188,6 +188,7 @@ DepositController.confirmByID = (req, res) => {
                 id: id,
             });
             yield deposit_model_1.default.create({
+                sales: result.sales,
                 name: deposit_model_1.default.generateName(date),
                 customer_id: result.customer_id,
                 date: date,
@@ -226,6 +227,7 @@ DepositController.confirmByID = (req, res) => {
             });
             // Create a new bill code
             bill_code_model_1.default.create({
+                sales: result.sales,
                 uuid: (0, uuid_1.v4)(),
                 name: bill_code_model_1.default.generateName(date),
                 date: date,
@@ -386,25 +388,8 @@ DepositController.confirmByID = (req, res) => {
             yield deposit_model_1.default.confirmByID({
                 id: id,
             });
-            console.log([
-                ...deposit_payment
-                    .filter((x) => x.value > 0)
-                    .map((x) => {
-                    return {
-                        date: new Date(x.date),
-                        value: x.value,
-                        payment_method_id: x.payment_method_id,
-                    };
-                }),
-                ...deposit_bill_payment.map((x) => {
-                    return {
-                        date: new Date(x.date),
-                        value: x.value,
-                        payment_method_id: x.payment_method_id,
-                    };
-                }),
-            ]);
             bill_code_model_1.default.create({
+                sales: result.sales,
                 uuid: (0, uuid_1.v4)(),
                 name: bill_code_model_1.default.generateName(date),
                 date: date,

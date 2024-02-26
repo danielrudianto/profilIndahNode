@@ -115,7 +115,7 @@ app.use("/changelog", changelogRoutes);
 app.use("/development", developmentRoutes);
 
 const server = http.createServer(app);
-const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
+export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
 
 server.listen(5000, async () => {
   console.log("[server]: Server is running on port 5000");

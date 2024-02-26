@@ -60,6 +60,7 @@ class DepositModel {
                 delivery: true,
                 service: true,
                 type: true,
+                sales: true,
                 deposit: {
                     select: {
                         id: true,
@@ -436,6 +437,8 @@ class DepositModel {
         });
     }
     static fetchByItemIDs(itemIDs) {
+        if (itemIDs.length == 0)
+            return Promise.resolve([]);
         return app_1.prisma.$queryRawUnsafe(`
       SELECT SUM(deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, deposit.item_id
       FROM deposit

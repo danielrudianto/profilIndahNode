@@ -14,6 +14,7 @@ var ErrorList;
     ErrorList["User not found"] = "Pengguna tidak ditemukan.";
     ErrorList["User already exist"] = "Pengguna sudah ada sebelumnya.";
     ErrorList["Role not found"] = "Peran tidak ditemukan.";
+    ErrorList["UUID required"] = "UUID tidak boleh kosong.";
     ErrorList["Product not found"] = "Data produk tidak ditemukan.";
     ErrorList["Product unit not found"] = "Data satuan produk tidak ditemukan.";
     ErrorList["Product package not found"] = "Data paket produk tidak ditemukan.";

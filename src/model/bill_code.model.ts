@@ -20,6 +20,7 @@ interface ICreateBill {
   payments: ICreateBillPayment[];
   payment_term: number | null;
   is_paid: boolean;
+  sales: string | null;
 }
 
 interface ICreateBillItem {
@@ -52,7 +53,6 @@ class BillCodeModel {
    * @returns BillCode
    */
   static create(data: ICreateBill) {
-    console.log(data.payments);
     return prisma.bill_code.create({
       data: {
         name: data.name,

@@ -18,6 +18,7 @@ interface ICreateDeposit {
   items: ICreateDepositItem[];
   payments: ICreateDepositPayment[];
   type: string;
+  sales: string | null;
 }
 
 interface ICreateDepositItem {
@@ -139,6 +140,7 @@ class DepositModel {
         delivery: true,
         service: true,
         type: true,
+        sales: true,
         deposit: {
           select: {
             id: true,
@@ -546,6 +548,8 @@ class DepositModel {
   }
 
   static fetchByItemIDs(itemIDs: number[]) {
+    if (itemIDs.length == 0) return Promise.resolve([]);
+
     return prisma.$queryRawUnsafe<any[]>(`
       SELECT SUM(deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, deposit.item_id
       FROM deposit

@@ -67,7 +67,6 @@ class DepositController {
    * @param res
    * @returns
    */
-
   static deleteByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const result = await DepositModel.fetchByID(id);
@@ -199,6 +198,7 @@ class DepositController {
           });
 
           await DepositModel.create({
+            sales: result.sales,
             name: DepositModel.generateName(date),
             customer_id: result.customer_id,
             date: date,
@@ -240,6 +240,7 @@ class DepositController {
 
           // Create a new bill code
           BillCodeModel.create({
+            sales: result.sales,
             uuid: v4(),
             name: BillCodeModel.generateName(date),
             date: date,
@@ -443,26 +444,8 @@ class DepositController {
             id: id,
           });
 
-          console.log([
-            ...deposit_payment
-              .filter((x) => x.value > 0)
-              .map((x) => {
-                return {
-                  date: new Date(x.date),
-                  value: x.value,
-                  payment_method_id: x.payment_method_id,
-                };
-              }),
-            ...deposit_bill_payment.map((x) => {
-              return {
-                date: new Date(x.date),
-                value: x.value,
-                payment_method_id: x.payment_method_id,
-              };
-            }),
-          ]);
-
           BillCodeModel.create({
+            sales: result.sales,
             uuid: v4(),
             name: BillCodeModel.generateName(date),
             date: date,

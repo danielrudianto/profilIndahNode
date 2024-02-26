@@ -12,7 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.io = exports.prisma = exports.meili = void 0;
+exports.io = exports.prisma = exports.redisClient = exports.meili = void 0;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const http_1 = __importDefault(require("http"));
@@ -114,11 +114,11 @@ app.use("/os", os_route_1.default);
 app.use("/changelog", changelog_route_1.default);
 app.use("/development", development_routes_1.default);
 const server = http_1.default.createServer(app);
-const redisClient = (0, redis_1.createClient)({ url: "redis://127.0.0.1:6379" });
+exports.redisClient = (0, redis_1.createClient)({ url: "redis://127.0.0.1:6379" });
 server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("[server]: Server is running on port 5000");
-    redisClient.on("error", (err) => console.error(`[error]: Error on redis ${err}`));
-    yield redisClient.connect();
+    exports.redisClient.on("error", (err) => console.error(`[error]: Error on redis ${err}`));
+    yield exports.redisClient.connect();
     console.info("[info]: Connected with redis");
     const url = "mongodb://127.0.0.1:27017/ProfilIndah";
     yield mongoose_1.default.connect(url, {

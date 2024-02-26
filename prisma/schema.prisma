@@ -156,6 +156,7 @@ model bill_code {
   uuid         String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
   payment_term Int?
   is_paid      Boolean   @default(false)
+  sales        String?
 
   date                              DateTime?      @db.Date
   user_bill_code_confirmed_byTouser user?          @relation("bill_code_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_code_ibfk_2")
@@ -215,6 +216,8 @@ model deposit_code {
   service     Decimal   @default(0.0000) @db.Decimal(50, 4)
   uuid        String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
   type        String    @default("EXTERNAL") @db.VarChar(8) // INTERNAL, EXTERNAL
+  // Sales string but optional, default NULL
+  sales       String?
 
   date                              DateTime?         @db.Date
   user_bill_code_confirmed_byTouser user?             @relation("deposit_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_2")
