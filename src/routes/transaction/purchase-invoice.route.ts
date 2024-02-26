@@ -23,6 +23,7 @@ router.post(
   body("name").notEmpty().withMessage(ErrorList["Name required"]),
   body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
   body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
+  body("uuid").notEmpty().withMessage(ErrorList["UUID required"]),
   ErrorHelper.intercept,
   PurchaseInvoiceController.create
 );

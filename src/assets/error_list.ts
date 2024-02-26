@@ -11,6 +11,7 @@ enum ErrorList {
   "User not found" = "Pengguna tidak ditemukan.",
   "User already exist" = "Pengguna sudah ada sebelumnya.",
   "Role not found" = "Peran tidak ditemukan.",
+  "UUID required" = "UUID tidak boleh kosong.",
 
   "Product not found" = "Data produk tidak ditemukan.",
   "Product unit not found" = "Data satuan produk tidak ditemukan.",
