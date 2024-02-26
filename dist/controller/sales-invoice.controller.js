@@ -24,7 +24,6 @@ const queue_helper_1 = require("../helper/queue.helper");
 const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
 const receivable_controller_1 = __importDefault(require("./receivable.controller"));
 const deposit_model_1 = __importDefault(require("../model/deposit.model"));
-const app_1 = require("../app");
 // import DepositModel from "../model/deposit.model";
 class SalesInvoiceController {
 }
@@ -93,8 +92,7 @@ SalesInvoiceController.create = (req, res) => {
             created_by: userID,
             payment_term: payment_term,
             is_paid: is_paid,
-        })
-            .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+        }).then((result) => __awaiter(void 0, void 0, void 0, function* () {
             if (!is_paid) {
                 receivable_controller_1.default.receivable += result.bill.reduce((a, b) => {
                     return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
@@ -109,105 +107,72 @@ SalesInvoiceController.create = (req, res) => {
             }, 0);
             const createSalesInvoiceNetTotal = createSalesInvoiceTotal - discount + delivery + service;
             // Add salesman to redis, enabling it to be used in the future
-            app_1.redisClient.exists("salesman_list").then((exists) => {
-                if (exists == 0) {
-                    app_1.redisClient.set("salesman_list", JSON.stringify([sales]));
-                }
-                else {
-                    app_1.redisClient.get("salesman_list").then((result) => {
-                        const salesmanList = JSON.parse(result);
-                        if (!salesmanList.includes(sales)) {
-                            salesmanList.push(sales);
-                            app_1.redisClient.set("salesman_list", JSON.stringify(salesmanList));
-                        }
-                    });
-                }
-                Promise.all([
-                    item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId),
-                    product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null)),
-                ])
-                    .then(() => __awaiter(void 0, void 0, void 0, function* () {
-                    for (let i = 0; i < result.bill.length; i++) {
-                        if (result.bill[i].package_code != null) {
-                            const packagePrice = Number(result.bill[i].price);
-                            const packageQuantity = Number(result.bill[i].quantity);
-                            const packageDiscount = Number(result.bill[i].discount);
-                            const packageFinalPrice = ((packagePrice - packageDiscount) *
-                                createSalesInvoiceNetTotal) /
-                                createSalesInvoiceTotal;
-                            const packageContentValue = result.bill[i].package_code.package_content.reduce((a, b) => {
-                                return (a +
-                                    Number(b.quantity) *
-                                        (Number(b.price) - Number(b.discount)));
-                            }, 0);
-                            for (let n = 0; n < result.bill[i].package_code.package_content.length; n++) {
-                                const createSalesInvoicePackageContentItem = result.bill[i].package_code.package_content[n];
-                                const createSalesInvoiceItemItemID = createSalesInvoicePackageContentItem.item_id;
-                                const createSalesInvoiceItemQuantity = Number(createSalesInvoicePackageContentItem.quantity);
-                                const createSalesInvoiceItemPrice = Number(createSalesInvoicePackageContentItem.price);
-                                const createSalesInvoiceItemDiscount = Number(createSalesInvoicePackageContentItem.discount);
-                                const createSalesInvoiceItemUnit = createSalesInvoicePackageContentItem.item_unit == null
-                                    ? createSalesInvoicePackageContentItem.item.unit
-                                    : createSalesInvoicePackageContentItem.item_unit.unit;
-                                const createSalesInvoiceItemConversion = createSalesInvoicePackageContentItem.item_unit == null
-                                    ? 1
-                                    : Number(createSalesInvoicePackageContentItem.item_unit
-                                        .conversion);
-                                const finalUnitPrice = packageContentValue == 0
-                                    ? 0
-                                    : Number(((createSalesInvoiceItemPrice -
-                                        createSalesInvoiceItemDiscount) *
-                                        packageFinalPrice) /
-                                        (packageContentValue *
-                                            createSalesInvoiceItemConversion));
-                                const stockOut = {
-                                    itemID: createSalesInvoiceItemItemID,
-                                    createdAt: result.created_at,
-                                    date: date,
-                                    document: result.name,
-                                    opponent: result.customer == null
-                                        ? "Retail customer"
-                                        : result.customer.name,
-                                    displayQuantity: packageQuantity * createSalesInvoiceItemQuantity * -1,
-                                    quantity: packageQuantity *
-                                        -1 *
-                                        createSalesInvoiceItemQuantity *
-                                        createSalesInvoiceItemConversion,
-                                    unit: createSalesInvoiceItemUnit,
-                                    billID: result.bill[i].id,
-                                    billCodeID: result.id,
-                                    adjustmentCaseID: null,
-                                    adjustmentCaseCodeID: null,
-                                    goodReceiptID: null,
-                                    goodReceiptCodeID: null,
-                                    salesReturnID: null,
-                                    salesReturnCodeID: null,
-                                    customerID: result.customer_id,
-                                    supplierID: null,
-                                    companyID: null,
-                                    price: finalUnitPrice,
-                                };
-                                yield queue_helper_1.queue.add("insert-stock-out", stockOut);
-                            }
-                        }
-                        else if (result.bill[i].item != null) {
+            // redisClient.exists("salesman_list").then((exists) => {
+            //   if (exists == 0) {
+            //     redisClient.set("salesman_list", JSON.stringify([sales]));
+            //   } else {
+            //     redisClient.get("salesman_list").then((result) => {
+            //       const salesmanList = JSON.parse(result!);
+            //       if (!salesmanList.includes(sales)) {
+            //         salesmanList.push(sales);
+            //         redisClient.set(
+            //           "salesman_list",
+            //           JSON.stringify(salesmanList)
+            //         );
+            //       }
+            //     });
+            //   }
+            Promise.all([
+                item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId),
+                product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null)),
+            ])
+                .then(() => __awaiter(void 0, void 0, void 0, function* () {
+                for (let i = 0; i < result.bill.length; i++) {
+                    if (result.bill[i].package_code != null) {
+                        const packagePrice = Number(result.bill[i].price);
+                        const packageQuantity = Number(result.bill[i].quantity);
+                        const packageDiscount = Number(result.bill[i].discount);
+                        const packageFinalPrice = ((packagePrice - packageDiscount) *
+                            createSalesInvoiceNetTotal) /
+                            createSalesInvoiceTotal;
+                        const packageContentValue = result.bill[i].package_code.package_content.reduce((a, b) => {
+                            return (a +
+                                Number(b.quantity) * (Number(b.price) - Number(b.discount)));
+                        }, 0);
+                        for (let n = 0; n < result.bill[i].package_code.package_content.length; n++) {
+                            const createSalesInvoicePackageContentItem = result.bill[i].package_code.package_content[n];
+                            const createSalesInvoiceItemItemID = createSalesInvoicePackageContentItem.item_id;
+                            const createSalesInvoiceItemQuantity = Number(createSalesInvoicePackageContentItem.quantity);
+                            const createSalesInvoiceItemPrice = Number(createSalesInvoicePackageContentItem.price);
+                            const createSalesInvoiceItemDiscount = Number(createSalesInvoicePackageContentItem.discount);
+                            const createSalesInvoiceItemUnit = createSalesInvoicePackageContentItem.item_unit == null
+                                ? createSalesInvoicePackageContentItem.item.unit
+                                : createSalesInvoicePackageContentItem.item_unit.unit;
+                            const createSalesInvoiceItemConversion = createSalesInvoicePackageContentItem.item_unit == null
+                                ? 1
+                                : Number(createSalesInvoicePackageContentItem.item_unit
+                                    .conversion);
+                            const finalUnitPrice = packageContentValue == 0
+                                ? 0
+                                : Number(((createSalesInvoiceItemPrice -
+                                    createSalesInvoiceItemDiscount) *
+                                    packageFinalPrice) /
+                                    (packageContentValue *
+                                        createSalesInvoiceItemConversion));
                             const stockOut = {
-                                itemID: result.bill[i].item.id,
+                                itemID: createSalesInvoiceItemItemID,
                                 createdAt: result.created_at,
                                 date: date,
                                 document: result.name,
                                 opponent: result.customer == null
                                     ? "Retail customer"
                                     : result.customer.name,
-                                displayQuantity: bill[i].quantity * -1,
-                                quantity: parseFloat(result.bill[i].quantity.toString()) *
+                                displayQuantity: packageQuantity * createSalesInvoiceItemQuantity * -1,
+                                quantity: packageQuantity *
                                     -1 *
-                                    (result.bill[i].item_unit != null
-                                        ? parseFloat(result.bill[i].item_unit.conversion.toString())
-                                        : 1),
-                                unit: bill[i].item_unit == null
-                                    ? result.bill[i].item.unit
-                                    : result.bill[i].item_unit.unit,
+                                    createSalesInvoiceItemQuantity *
+                                    createSalesInvoiceItemConversion,
+                                unit: createSalesInvoiceItemUnit,
                                 billID: result.bill[i].id,
                                 billCodeID: result.id,
                                 adjustmentCaseID: null,
@@ -219,29 +184,63 @@ SalesInvoiceController.create = (req, res) => {
                                 customerID: result.customer_id,
                                 supplierID: null,
                                 companyID: null,
-                                price: ((Number(result.bill[i].price) -
-                                    Number(result.bill[i].discount)) *
-                                    createSalesInvoiceNetTotal) /
-                                    (createSalesInvoiceTotal *
-                                        (result.bill[i].item_unit == null
-                                            ? 1
-                                            : Number(result.bill[i].item_unit.conversion))),
+                                price: finalUnitPrice,
                             };
                             yield queue_helper_1.queue.add("insert-stock-out", stockOut);
                         }
                     }
-                    return res.status(201).send(result);
-                }))
-                    .catch((error) => {
-                    console.error(`[error]: Error on updating stock ${error}`);
-                    return res.status(500).send(error_list_1.default["Internal server error"]);
-                });
+                    else if (result.bill[i].item != null) {
+                        const stockOut = {
+                            itemID: result.bill[i].item.id,
+                            createdAt: result.created_at,
+                            date: date,
+                            document: result.name,
+                            opponent: result.customer == null
+                                ? "Retail customer"
+                                : result.customer.name,
+                            displayQuantity: bill[i].quantity * -1,
+                            quantity: parseFloat(result.bill[i].quantity.toString()) *
+                                -1 *
+                                (result.bill[i].item_unit != null
+                                    ? parseFloat(result.bill[i].item_unit.conversion.toString())
+                                    : 1),
+                            unit: bill[i].item_unit == null
+                                ? result.bill[i].item.unit
+                                : result.bill[i].item_unit.unit,
+                            billID: result.bill[i].id,
+                            billCodeID: result.id,
+                            adjustmentCaseID: null,
+                            adjustmentCaseCodeID: null,
+                            goodReceiptID: null,
+                            goodReceiptCodeID: null,
+                            salesReturnID: null,
+                            salesReturnCodeID: null,
+                            customerID: result.customer_id,
+                            supplierID: null,
+                            companyID: null,
+                            price: ((Number(result.bill[i].price) -
+                                Number(result.bill[i].discount)) *
+                                createSalesInvoiceNetTotal) /
+                                (createSalesInvoiceTotal *
+                                    (result.bill[i].item_unit == null
+                                        ? 1
+                                        : Number(result.bill[i].item_unit.conversion))),
+                        };
+                        yield queue_helper_1.queue.add("insert-stock-out", stockOut);
+                    }
+                }
+                return res.status(201).send(result);
+            }))
+                .catch((error) => {
+                console.error(`[error]: Error on updating stock ${error}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
             });
-        }))
-            .catch((error) => {
-            console.error(`[error]: Error on creating bill ${error}`);
-            return res.status(500).send(error);
-        });
+        }));
+        // })
+        // .catch((error) => {
+        //   console.error(`[error]: Error on creating bill ${error}`);
+        //   return res.status(500).send(error);
+        // });
     }
     else if (type == "deposit") {
         deposit_model_1.default.create({
