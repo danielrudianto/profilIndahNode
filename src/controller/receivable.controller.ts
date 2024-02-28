@@ -103,7 +103,7 @@ class ReceivableController {
       if (full_payment == true) {
         const payment = {
           bill_code_id: sales_invoice_id,
-          payment_method_id: payment_method_id,
+          payment_method_id: payment_method_id == 0 ? null : payment_method_id,
           value: totalInvoiceValue - totalPayment,
           date: date,
           is_paid: true,
@@ -128,7 +128,8 @@ class ReceivableController {
         } else if (value + totalPayment < totalInvoiceValue) {
           const payment = {
             bill_code_id: sales_invoice_id,
-            payment_method_id: payment_method_id,
+            payment_method_id:
+              payment_method_id == 0 ? null : payment_method_id,
             value: value,
             date: date,
             is_paid: false,
@@ -146,7 +147,8 @@ class ReceivableController {
         } else if (value + totalPayment == totalInvoiceValue) {
           const payment = {
             bill_code_id: sales_invoice_id,
-            payment_method_id: payment_method_id,
+            payment_method_id:
+              payment_method_id == 0 ? null : payment_method_id,
             value: value,
             date: date,
             is_paid: true,

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
@@ -18,6 +18,25 @@ import { redisClient } from "../app";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
+  /**
+   * Add salesmen to set
+   */
+  static createSalesman = (req: Request, res: Response, next: NextFunction) => {
+    const sales = req.body.sales == "" ? null : req.body.sales;
+    if (sales == null) {
+      next();
+    } else {
+      redisClient
+        .sAdd("salesman_set", sales.toString().toUpperCase())
+        .then(() => {
+          next();
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on inserting sales to list ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    }
+  };
   /**
    * Create sales invoice data
    * @param req
@@ -39,12 +58,12 @@ class SalesInvoiceController {
     const userID = req.body.userId;
     const is_paid = req.body.is_paid;
     const type = req.body.type;
-    // Currently sales is always null
-    const sales = null;
+    const sales =
+      req.body.sales == "" ? null : req.body.sales.toString().toUpperCase();
 
     if (type == "sales") {
       BillCodeModel.create({
-        sales: sales == "" ? null : sales,
+        sales: sales,
         name: BillCodeModel.generateName(date),
         customer_id: customer_id,
         discount: discount,
@@ -105,23 +124,6 @@ class SalesInvoiceController {
 
         const createSalesInvoiceNetTotal =
           createSalesInvoiceTotal - discount + delivery + service;
-
-        // Add salesman to redis, enabling it to be used in the future
-        // redisClient.exists("salesman_list").then((exists) => {
-        //   if (exists == 0) {
-        //     redisClient.set("salesman_list", JSON.stringify([sales]));
-        //   } else {
-        //     redisClient.get("salesman_list").then((result) => {
-        //       const salesmanList = JSON.parse(result!);
-        //       if (!salesmanList.includes(sales)) {
-        //         salesmanList.push(sales);
-        //         redisClient.set(
-        //           "salesman_list",
-        //           JSON.stringify(salesmanList)
-        //         );
-        //       }
-        //     });
-        //   }
 
         Promise.all([
           ItemPriceModel.updateMany(
@@ -286,7 +288,7 @@ class SalesInvoiceController {
       // });
     } else if (type == "deposit") {
       DepositModel.create({
-        sales: sales == "" ? null : sales,
+        sales: sales,
         name: DepositModel.generateName(date),
         customer_id: customer_id,
         discount: discount,
@@ -335,7 +337,7 @@ class SalesInvoiceController {
         });
     } else if (type == "deposit-internal") {
       DepositModel.create({
-        sales: sales == "" ? null : sales,
+        sales: sales,
         name: DepositModel.generateName(date),
         customer_id: null,
         discount: discount,
@@ -669,6 +671,46 @@ class SalesInvoiceController {
       })
       .catch((error) => {
         console.error(`[error]: Error on deleting bill ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Fetch salesmen
+   */
+  static fetchSalesmen = (req: Request, res: Response) => {
+    const keyword = req.query.keyword;
+    redisClient
+      .sMembers("salesman_set")
+      .then((result) => {
+        // Filter by keyword
+        if (keyword == "" || keyword == null) {
+          return res.status(200).send(
+            result
+              .sort((a, b) => {
+                return a.localeCompare(b);
+              })
+              .map((x) => x.toUpperCase())
+              .splice(0, 5)
+          );
+        } else {
+          console.log(result);
+          console.log(result.filter((x) => x.includes(keyword.toString())));
+          return res.status(200).send(
+            result
+              .filter((x) => {
+                return x.includes(keyword.toString().toUpperCase());
+              })
+              .sort((a, b) => {
+                return a.localeCompare(b);
+              })
+              .map((x) => x.toUpperCase())
+              .splice(0, 5)
+          );
+        }
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching salesmen ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };

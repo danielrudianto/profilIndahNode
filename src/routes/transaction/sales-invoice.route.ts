@@ -25,11 +25,12 @@ router.post(
     .isInt({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
+  SalesInvoiceController.createSalesman,
   SalesInvoiceController.create
 );
 
 router.post("/archives", SalesInvoiceController.fetchArchive);
-
+router.get("/salesman", SalesInvoiceController.fetchSalesmen);
 router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),

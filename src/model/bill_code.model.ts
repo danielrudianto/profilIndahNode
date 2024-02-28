@@ -86,6 +86,7 @@ class BillCodeModel {
         },
         payment_term: data.payment_term,
         is_paid: data.is_paid,
+        sales: data.sales,
       },
       include: {
         bill: {
