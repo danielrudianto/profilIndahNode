@@ -515,6 +515,7 @@ class SalesInvoiceController {
                 is_delete: x.is_delete == 1,
                 is_confirm: x.is_confirm == 1,
                 customer_name: x.customer_name,
+                sales: x.sales,
               };
             }),
             count:

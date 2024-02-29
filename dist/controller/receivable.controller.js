@@ -102,7 +102,7 @@ ReceivableController.createPayment = (req, res) => __awaiter(void 0, void 0, voi
         if (full_payment == true) {
             const payment = {
                 bill_code_id: sales_invoice_id,
-                payment_method_id: payment_method_id,
+                payment_method_id: payment_method_id == 0 ? null : payment_method_id,
                 value: totalInvoiceValue - totalPayment,
                 date: date,
                 is_paid: true,
@@ -127,7 +127,7 @@ ReceivableController.createPayment = (req, res) => __awaiter(void 0, void 0, voi
             else if (value + totalPayment < totalInvoiceValue) {
                 const payment = {
                     bill_code_id: sales_invoice_id,
-                    payment_method_id: payment_method_id,
+                    payment_method_id: payment_method_id == 0 ? null : payment_method_id,
                     value: value,
                     date: date,
                     is_paid: false,
@@ -145,7 +145,7 @@ ReceivableController.createPayment = (req, res) => __awaiter(void 0, void 0, voi
             else if (value + totalPayment == totalInvoiceValue) {
                 const payment = {
                     bill_code_id: sales_invoice_id,
-                    payment_method_id: payment_method_id,
+                    payment_method_id: payment_method_id == 0 ? null : payment_method_id,
                     value: value,
                     date: date,
                     is_paid: true,

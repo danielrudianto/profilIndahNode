@@ -376,6 +376,7 @@ class BillCodeModel {
             SELECT bill_code.id, bill_code.date, bill_code.name, 
             bill_code.is_delete, 
             COALESCE(customer.name, 'Retail customer') AS customer_name, 
+            COALESCE(bill_code.sales, 'Internal') AS sales,
             bill_code.is_confirm, bill_code.customer_id
             FROM bill_code
             LEFT JOIN customer ON bill_code.customer_id = customer.id
@@ -416,7 +417,8 @@ class BillCodeModel {
           FROM (
             SELECT bill_code.id, bill_code.date, bill_code.name, 
             bill_code.is_delete, 
-            COALESCE(customer.name, 'Retail customer') AS customer_name, 
+            COALESCE(customer.name, 'Retail customer') AS customer_name,
+            COALESCE(bill_code.sales, 'Internal') AS sales,
             bill_code.is_confirm, bill_code.customer_id
             FROM bill_code
             LEFT JOIN customer ON bill_code.customer_id = customer.id
@@ -460,7 +462,8 @@ class BillCodeModel {
           FROM (
             SELECT bill_code.id, bill_code.date, bill_code.name, 
             bill_code.is_delete, 
-            COALESCE(customer.name, 'Retail customer') AS customer_name, 
+            COALESCE(customer.name, 'Retail customer') AS customer_name,
+            COALESCE(bill_code.sales, 'Internal') AS sales, 
             bill_code.is_confirm, bill_code.customer_id
             FROM bill_code
             LEFT JOIN customer ON bill_code.customer_id = customer.id
@@ -922,6 +925,26 @@ class BillCodeModel {
           AND MONTH(bill_code.date) = ${month}
           group by bill.package_code_id
           ORDER BY value DESC
+        `;
+      case "sales":
+        return prisma.$queryRaw<any[]>`
+          SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, COALESCE(bill_code.sales, "Internal") AS sales_name
+          FROM bill
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE sales_return_code.is_confirm = 1
+            AND sales_return_code.is_delete = 0
+            GROUP BY sales_return.bill_id
+          ) salesReturn
+          ON bill.id = salesReturn.bill_id
+          WHERE bill_code.is_confirm = 1
+          AND bill_code.is_delete = 0
+          AND YEAR(bill_code.date) = ${year}
+          AND MONTH(bill_code.date) = ${month}
+          GROUP BY bill_code.sales
         `;
       default:
         return prisma.$queryRawUnsafe<any[]>(`

@@ -284,6 +284,22 @@ class ReportController {
                 };
               })
             );
+          case "sales":
+            return res.status(200).send({
+              sales_detail: result
+                .map((x) => {
+                  return {
+                    name: x.sales_name,
+                    value: parseFloat(x.value.toString()),
+                    discount: parseFloat(x.discount.toString()),
+                    delivery: parseFloat(x.delivery.toString()),
+                    service: parseFloat(x.service.toString()),
+                  };
+                })
+                .sort((a, b) => {
+                  return b.value - a.value;
+                }),
+            });
         }
       })
       .catch((error) => {

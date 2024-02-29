@@ -49,6 +49,7 @@ export interface BillArchive {
   customer_id: number | null;
   customer_name: string;
   is_confirm: number;
+  sales: string;
 }
 
 export interface PurchaseInvoiceArchive {

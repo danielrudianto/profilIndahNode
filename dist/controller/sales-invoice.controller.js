@@ -24,10 +24,31 @@ const queue_helper_1 = require("../helper/queue.helper");
 const sales_return_model_1 = __importDefault(require("../model/sales_return.model"));
 const receivable_controller_1 = __importDefault(require("./receivable.controller"));
 const deposit_model_1 = __importDefault(require("../model/deposit.model"));
+const app_1 = require("../app");
 // import DepositModel from "../model/deposit.model";
 class SalesInvoiceController {
 }
 _a = SalesInvoiceController;
+/**
+ * Add salesmen to set
+ */
+SalesInvoiceController.createSalesman = (req, res, next) => {
+    const sales = req.body.sales == "" ? null : req.body.sales;
+    if (sales == null) {
+        next();
+    }
+    else {
+        app_1.redisClient
+            .sAdd("salesman_set", sales.toString().toUpperCase())
+            .then(() => {
+            next();
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on inserting sales to list ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
+    }
+};
 /**
  * Create sales invoice data
  * @param req
@@ -48,11 +69,10 @@ SalesInvoiceController.create = (req, res) => {
     const userID = req.body.userId;
     const is_paid = req.body.is_paid;
     const type = req.body.type;
-    // Currently sales is always null
-    const sales = null;
+    const sales = req.body.sales == "" ? null : req.body.sales.toString().toUpperCase();
     if (type == "sales") {
         bill_code_model_1.default.create({
-            sales: sales == "" ? null : sales,
+            sales: sales,
             name: bill_code_model_1.default.generateName(date),
             customer_id: customer_id,
             discount: discount,
@@ -106,22 +126,6 @@ SalesInvoiceController.create = (req, res) => {
                 return (a + (Number(b.price) - Number(b.discount)) * Number(b.quantity));
             }, 0);
             const createSalesInvoiceNetTotal = createSalesInvoiceTotal - discount + delivery + service;
-            // Add salesman to redis, enabling it to be used in the future
-            // redisClient.exists("salesman_list").then((exists) => {
-            //   if (exists == 0) {
-            //     redisClient.set("salesman_list", JSON.stringify([sales]));
-            //   } else {
-            //     redisClient.get("salesman_list").then((result) => {
-            //       const salesmanList = JSON.parse(result!);
-            //       if (!salesmanList.includes(sales)) {
-            //         salesmanList.push(sales);
-            //         redisClient.set(
-            //           "salesman_list",
-            //           JSON.stringify(salesmanList)
-            //         );
-            //       }
-            //     });
-            //   }
             Promise.all([
                 item_price_model_1.default.updateMany(bill.filter((x) => x.save && x.item_id != null), req.body.userId),
                 product_package_model_1.ProductPackageCodeModel.updatePrice(bill.filter((x) => x.save && x.package_code_id != null)),
@@ -244,7 +248,7 @@ SalesInvoiceController.create = (req, res) => {
     }
     else if (type == "deposit") {
         deposit_model_1.default.create({
-            sales: sales == "" ? null : sales,
+            sales: sales,
             name: deposit_model_1.default.generateName(date),
             customer_id: customer_id,
             discount: discount,
@@ -294,7 +298,7 @@ SalesInvoiceController.create = (req, res) => {
     }
     else if (type == "deposit-internal") {
         deposit_model_1.default.create({
-            sales: sales == "" ? null : sales,
+            sales: sales,
             name: deposit_model_1.default.generateName(date),
             customer_id: null,
             discount: discount,
@@ -450,6 +454,7 @@ SalesInvoiceController.fetchArchive = (req, res) => {
                         is_delete: x.is_delete == 1,
                         is_confirm: x.is_confirm == 1,
                         customer_name: x.customer_name,
+                        sales: x.sales,
                     };
                 }),
                 count: result[1] == null || result[1].length == 0
@@ -575,5 +580,41 @@ SalesInvoiceController.deleteByID = (req, res) => __awaiter(void 0, void 0, void
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 });
+/**
+ * Fetch salesmen
+ */
+SalesInvoiceController.fetchSalesmen = (req, res) => {
+    const keyword = req.query.keyword;
+    app_1.redisClient
+        .sMembers("salesman_set")
+        .then((result) => {
+        // Filter by keyword
+        if (keyword == "" || keyword == null) {
+            return res.status(200).send(result
+                .sort((a, b) => {
+                return a.localeCompare(b);
+            })
+                .map((x) => x.toUpperCase())
+                .splice(0, 5));
+        }
+        else {
+            console.log(result);
+            console.log(result.filter((x) => x.includes(keyword.toString())));
+            return res.status(200).send(result
+                .filter((x) => {
+                return x.includes(keyword.toString().toUpperCase());
+            })
+                .sort((a, b) => {
+                return a.localeCompare(b);
+            })
+                .map((x) => x.toUpperCase())
+                .splice(0, 5));
+        }
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching salesmen ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
 exports.default = SalesInvoiceController;
 //# sourceMappingURL=sales-invoice.controller.js.map
