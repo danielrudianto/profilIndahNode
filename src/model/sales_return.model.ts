@@ -537,7 +537,6 @@ class SalesReturnModel {
    * @returns
    */
   static fetchArchive(data: IFetchArchive) {
-    console.log(data);
     switch (data.mode) {
       case 0:
         return prisma.$transaction([

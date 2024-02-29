@@ -132,13 +132,13 @@ DraftBillController.confirmByID = (req, res) => {
         items.forEach((x) => {
             const id = x.id;
             const draftBillIndex = result.draft_bill.findIndex((y) => y.id == id);
-            const price = parseFloat(result.draft_bill[draftBillIndex].price.toString());
-            const discount = parseFloat(result.draft_bill[draftBillIndex].discount.toString());
+            const price = Number(result.draft_bill[draftBillIndex].price);
+            const discount = Number(result.draft_bill[draftBillIndex].discount);
             if (draftBillIndex != -1) {
                 bills.push({
                     item_id: result.draft_bill[draftBillIndex].item_id,
                     item_unit_id: result.draft_bill[draftBillIndex].item_unit_id,
-                    quantity: parseFloat(result.draft_bill[draftBillIndex].quantity.toString()),
+                    quantity: Number(result.draft_bill[draftBillIndex].quantity),
                     discount: discount,
                     price: price,
                 });

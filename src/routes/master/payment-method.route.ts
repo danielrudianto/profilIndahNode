@@ -12,7 +12,7 @@ router.get("/all", PaymentMethodController.fetchAll);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   PaymentMethodController.fetchByID
 );
@@ -31,6 +31,7 @@ router.put(
   body("id").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   PaymentMethodController.updateByID
 );

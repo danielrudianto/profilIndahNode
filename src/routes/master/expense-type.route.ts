@@ -37,6 +37,7 @@ router.put(
   body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ExpenseTypeController.updateByID
 );

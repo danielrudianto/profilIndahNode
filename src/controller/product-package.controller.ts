@@ -203,7 +203,7 @@ class ProductPackageController {
 
         return res.status(200).send({
           ...result,
-          price: parseFloat(result.price.toString()),
+          price: result.price,
         });
       })
       .catch((error) => {

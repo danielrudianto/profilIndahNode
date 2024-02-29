@@ -17,7 +17,11 @@ router.post("/", (0, express_validator_1.body)("price").notEmpty().withMessage(e
 // item_id and quantity is required
 (0, express_validator_1.body)("package_content")
     .notEmpty()
-    .withMessage(error_list_1.default["Package items required"]), error_helper_1.default.intercept, product_package_controller_1.default.create);
+    .withMessage(error_list_1.default["Package items required"]), (0, express_validator_1.body)("package_content.*.item_id")
+    .notEmpty()
+    .withMessage(error_list_1.default["Package item id required"]), (0, express_validator_1.body)("package_content.*.quantity")
+    .notEmpty()
+    .withMessage(error_list_1.default["Package item quantity required"]), error_helper_1.default.intercept, product_package_controller_1.default.create);
 router.put("/", (0, express_validator_1.body)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("price").notEmpty().withMessage(error_list_1.default["Price is required"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Package name required"]), (0, express_validator_1.body)("description")
     .notEmpty()
     .withMessage(error_list_1.default["Package description required"]), error_helper_1.default.intercept, product_package_controller_1.default.updateByID);

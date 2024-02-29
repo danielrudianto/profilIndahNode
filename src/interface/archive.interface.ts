@@ -9,61 +9,6 @@ export interface MonthlyArchive {
   count: number;
 }
 
-export interface GoodReceiptArchive {
-  id: number;
-  date: string;
-  name: string;
-  is_delete: number;
-  company_id: number;
-  company_name: string;
-  supplier_id: number;
-  supplier_name: string;
-  is_confirm: number;
-}
-
-export interface AdjustmentCaseArchive {
-  id: number;
-  date: string;
-  name: string;
-  is_delete: number;
-  company_id: number;
-  company_name: string;
-  is_confirm: number;
-}
-
-export interface SalesReturnArchive {
-  id: number;
-  date: string;
-  name: string;
-  is_delete: number;
-  customer_id: number | null;
-  customer_name: string;
-  is_confirm: number;
-}
-
-export interface BillArchive {
-  id: number;
-  date: string;
-  name: string;
-  is_delete: number;
-  customer_id: number | null;
-  customer_name: string;
-  is_confirm: number;
-  sales: string;
-}
-
-export interface PurchaseInvoiceArchive {
-  id: number;
-  date: string;
-  name: string;
-  is_delete: number;
-  company_id: number;
-  company_name: string;
-  supplier_id: number;
-  supplier_name: string;
-  is_confirm: number;
-}
-
 export interface ArchiveCount {
   count: number;
 }
@@ -75,4 +20,52 @@ export interface IFetchArchive {
   offset: number;
   mode: number;
   keyword: string;
+}
+
+export interface IArchive {
+  id: number;
+  date: string;
+  name: string;
+}
+
+// General archive interface //
+
+export interface GoodReceiptArchive extends IArchive {
+  is_delete: number;
+  company_id: number;
+  company_name: string;
+  supplier_id: number;
+  supplier_name: string;
+  is_confirm: number;
+}
+
+export interface AdjustmentCaseArchive extends IArchive {
+  is_delete: number;
+  company_id: number;
+  company_name: string;
+  is_confirm: number;
+}
+
+export interface SalesReturnArchive extends IArchive {
+  is_delete: number;
+  customer_id: number | null;
+  customer_name: string;
+  is_confirm: number;
+}
+
+export interface BillArchive extends IArchive {
+  is_delete: number;
+  customer_id: number | null;
+  customer_name: string;
+  is_confirm: number;
+  sales: string;
+}
+
+export interface PurchaseInvoiceArchive extends IArchive {
+  is_delete: number;
+  company_id: number;
+  company_name: string;
+  supplier_id: number;
+  supplier_name: string;
+  is_confirm: number;
 }

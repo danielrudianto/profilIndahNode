@@ -73,7 +73,7 @@ ExpenseController.fetchByID = (req, res) => {
         if (!result) {
             return res.status(404).send("Pengeluaran tidak ditemukan.");
         }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { value: parseFloat(result.value.toString()) }));
+        return res.status(200).send(Object.assign(Object.assign({}, result), { value: result.value }));
     })
         .catch((error) => {
         console.error(`[error]: Error on deleting expense: ${error}`);
@@ -176,10 +176,10 @@ ExpenseController.fetchDashboard = (req, res) => __awaiter(void 0, void 0, void 
     ])
         .then(([expense1, expense2, expense3, expense4]) => {
         return res.status(200).send({
-            today: expense1[0].value == null ? 0 : parseFloat(expense1[0].value),
-            yesterday: expense2[0].value == null ? 0 : parseFloat(expense2[0].value),
-            thisMonth: expense3[0].value == null ? 0 : parseFloat(expense3[0].value),
-            lastMonth: expense4[0].value == null ? 0 : parseFloat(expense4[0].value),
+            today: expense1[0].value == null ? 0 : Number(expense1[0].value),
+            yesterday: expense2[0].value == null ? 0 : Number(expense2[0].value),
+            thisMonth: expense3[0].value == null ? 0 : Number(expense3[0].value),
+            lastMonth: expense4[0].value == null ? 0 : Number(expense4[0].value),
         });
     })
         .catch((error) => {

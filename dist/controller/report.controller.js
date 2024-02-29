@@ -109,7 +109,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
                 const purchase_dates = new Array(date).fill(0);
                 for (let purchase of result[0]) {
                     purchase_dates[purchase.day - 1] =
-                        parseFloat(purchase.value) - parseFloat(purchase.discount);
+                        Number(purchase.value) - Number(purchase.discount);
                 }
                 return res.status(200).send({
                     purchase: purchase_dates,
@@ -117,8 +117,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.name,
-                            value: parseFloat(x.value.toString()) -
-                                parseFloat(x.discount.toString()),
+                            value: x.value - x.discount,
                         };
                     })
                         .sort((a, b) => {
@@ -130,9 +129,8 @@ ReportController.fetchPurchaseReport = (req, res) => {
                     purchase_detail: result
                         .map((x) => {
                         return {
-                            name: x.supplier_name,
-                            value: parseFloat(x.value.toString()) -
-                                parseFloat(x.discount.toString()),
+                            name: x.name,
+                            value: x.value - x.discount,
                         };
                     })
                         .sort((a, b) => {
@@ -145,7 +143,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.item_type_name,
-                            value: parseFloat(x.value.toString()),
+                            value: x.value,
                         };
                     })
                         .sort((a, b) => {
@@ -158,7 +156,7 @@ ReportController.fetchPurchaseReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.item_brand_name,
-                            value: parseFloat(x.value.toString()),
+                            value: x.value,
                         };
                     })
                         .sort((a, b) => {
@@ -215,7 +213,7 @@ ReportController.fetchSalesReport = (req, res) => {
                 const sales_dates = new Array(date).fill(0);
                 for (let sales of result[0]) {
                     sales_dates[sales.day - 1] =
-                        parseFloat(sales.value) - parseFloat(sales.discount);
+                        Number(sales.value) - Number(sales.discount);
                 }
                 return res.status(200).send({
                     sales: sales_dates,
@@ -223,10 +221,7 @@ ReportController.fetchSalesReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.customer_name,
-                            value: parseFloat(x.value.toString()) -
-                                parseFloat(x.discount.toString()) +
-                                parseFloat(x.delivery.toString()) +
-                                parseFloat(x.service.toString()),
+                            value: x.value - x.discount + x.delivery + x.service,
                         };
                     })
                         .sort((a, b) => {
@@ -240,8 +235,7 @@ ReportController.fetchSalesReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.customer_name,
-                            value: parseFloat(x.value.toString()) -
-                                parseFloat(x.discount.toString()),
+                            value: x.value - x.discount,
                         };
                     })
                         .sort((a, b) => {
@@ -255,7 +249,7 @@ ReportController.fetchSalesReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.item_type_name,
-                            value: parseFloat(x.value.toString()),
+                            value: x.value,
                         };
                     })
                         .sort((a, b) => {
@@ -269,7 +263,7 @@ ReportController.fetchSalesReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.item_brand_name,
-                            value: parseFloat(x.value.toString()),
+                            value: x.value,
                         };
                     })
                         .sort((a, b) => {
@@ -282,13 +276,13 @@ ReportController.fetchSalesReport = (req, res) => {
                         return {
                             name: x.name,
                             description: x.description,
-                            value: parseFloat(x.value.toString()),
+                            value: x.value,
                         };
                     }),
                 });
             case "download":
                 return res.status(200).send(result.map((x) => {
-                    return Object.assign(Object.assign({}, x), { value: parseFloat(x.value.toString()), discount: parseFloat(x.discount.toString()), delivery: parseFloat(x.delivery.toString()), service: parseFloat(x.service.toString()) });
+                    return Object.assign(Object.assign({}, x), { value: x.value, discount: x.discount, delivery: x.delivery, service: x.service });
                 }));
             case "sales":
                 return res.status(200).send({
@@ -296,10 +290,10 @@ ReportController.fetchSalesReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.sales_name,
-                            value: parseFloat(x.value.toString()),
-                            discount: parseFloat(x.discount.toString()),
-                            delivery: parseFloat(x.delivery.toString()),
-                            service: parseFloat(x.service.toString()),
+                            value: x.value,
+                            discount: x.discount,
+                            delivery: x.delivery,
+                            service: x.service,
                         };
                     })
                         .sort((a, b) => {
@@ -523,15 +517,15 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                     service: 0,
                 }
                 : {
-                    delivery: parseFloat(bills[0].delivery.toString()),
-                    discount: parseFloat(bills[0].discount.toString()),
-                    value: parseFloat(bills[0].value.toString()),
-                    service: parseFloat(bills[0].service.toString()),
+                    delivery: bills[0].delivery,
+                    discount: bills[0].discount,
+                    value: bills[0].value,
+                    service: bills[0].service,
                 },
             purchases: purchases.map((x) => {
                 return {
-                    value: parseFloat(x.value.toString()),
-                    discount: parseFloat(x.discount.toString()),
+                    value: x.value,
+                    discount: x.discount,
                     name: x.name,
                     company_id: x.company_id,
                 };
@@ -573,15 +567,15 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                     service: 0,
                 }
                 : {
-                    delivery: parseFloat(bills[0].delivery.toString()),
-                    discount: parseFloat(bills[0].discount.toString()),
-                    value: parseFloat(bills[0].value.toString()),
-                    service: parseFloat(bills[0].service.toString()),
+                    delivery: bills[0].delivery,
+                    discount: bills[0].discount,
+                    value: bills[0].value,
+                    service: bills[0].service,
                 },
             purchases: purchases.map((x) => {
                 return {
-                    value: parseFloat(x.value.toString()),
-                    discount: parseFloat(x.discount.toString()),
+                    value: x.value,
+                    discount: x.discount,
                     name: x.name,
                     company_id: x.company_id,
                 };
@@ -664,8 +658,7 @@ ReportController.fetchSalesItemReport = (req, res) => {
                                     unit: y.unit,
                                     brand: y.item_brand_name,
                                     type: y.item_type_name,
-                                    input: parseFloat(y.adjustmentQuantityPlus.toString()) +
-                                        parseFloat(y.goodReceiptQuantity.toString()),
+                                    input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
                                     output: y.billQuantity * -1 +
                                         y.adjustmentQuantityMinus * -1,
                                     initialStock: stockIndex == -1
@@ -691,8 +684,7 @@ ReportController.fetchSalesItemReport = (req, res) => {
                                     description: y.description,
                                     brand: y.item_brand_name,
                                     type: y.item_type_name,
-                                    input: parseFloat(y.adjustmentQuantityPlus.toString()) +
-                                        parseFloat(y.goodReceiptQuantity.toString()),
+                                    input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
                                     output: y.billQuantity * -1 +
                                         y.adjustmentQuantityMinus * -1,
                                     initialStock: stockIndex == -1
@@ -760,14 +752,14 @@ ReportController.fetchExpenseReport = (req, res) => __awaiter(void 0, void 0, vo
                     value: expenses
                         .filter((z) => z.expense_type_id == y.id)
                         .reduce((a, b) => {
-                        return a + parseFloat(b.value.toString());
+                        return a + b.value;
                     }, 0),
                 };
             }),
             value: expenses
                 .filter((y) => y.id == x.id)
                 .reduce((a, b) => {
-                return a + parseFloat(b.value.toString());
+                return a + b.value;
             }, 0),
         };
     });
@@ -778,7 +770,7 @@ ReportController.fetchExpenseReport = (req, res) => __awaiter(void 0, void 0, vo
                 value: expenses
                     .filter((x) => x.company_id == company.id)
                     .reduce((a, b) => {
-                    return a + parseFloat(b.value.toString());
+                    return a + b.value;
                 }, 0),
             };
         }),
@@ -807,11 +799,11 @@ ReportController.fetchSalesDashboard = (req, res) => {
     ])
         .then(([sales1, sales2, sales3, sales4, sales5, countPromotion, countDeposit,]) => {
         return res.status(200).send({
-            today: sales1[0].value == null ? 0 : parseFloat(sales1[0].value),
-            yesterday: sales2[0].value == null ? 0 : parseFloat(sales2[0].value),
-            thisMonth: sales3[0].value == null ? 0 : parseFloat(sales3[0].value),
-            lastMonth: sales4[0].value == null ? 0 : parseFloat(sales4[0].value),
-            monthOnMonth: sales5[0].value == null ? 0 : parseFloat(sales5[0].value),
+            today: sales1[0].value == null ? 0 : Number(sales1[0].value),
+            yesterday: sales2[0].value == null ? 0 : Number(sales2[0].value),
+            thisMonth: sales3[0].value == null ? 0 : Number(sales3[0].value),
+            lastMonth: sales4[0].value == null ? 0 : Number(sales4[0].value),
+            monthOnMonth: sales5[0].value == null ? 0 : Number(sales5[0].value),
             count: countPromotion,
             receivable: receivable_controller_1.default.receivable,
             deposit: countDeposit,

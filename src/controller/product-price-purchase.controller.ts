@@ -196,10 +196,10 @@ class ItemPurchasePriceController {
               x.item_unit == null ? x.item.unit : x.item_unit.unit,
               x.item_unit == null
                 ? 1
-                : parseFloat(x.item_unit.conversion.toString()),
+                : x.item_unit.conversion,
               x.item_unit == null ? "" : x.item.unit,
-              parseFloat(x.price.toString()),
-              parseFloat(x.discount.toString()),
+              x.price,
+              x.discount,
             ];
           })
         );

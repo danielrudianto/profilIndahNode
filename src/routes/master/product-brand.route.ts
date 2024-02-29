@@ -9,7 +9,7 @@ router.get("/autocomplete", BrandController.fetchAutocomplete);
 router.get(
   "/:id",
   param("id").exists().withMessage(ErrorList["Parameter error"]),
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   BrandController.fetchByID
 );
@@ -18,6 +18,7 @@ router.put(
   "/",
   body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   BrandController.updateByID
 );

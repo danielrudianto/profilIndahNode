@@ -66,7 +66,7 @@ class ExpenseController {
 
         return res.status(200).send({
           ...result,
-          value: parseFloat(result!.value.toString()),
+          value: result!.value,
         });
       })
       .catch((error) => {
@@ -191,13 +191,10 @@ class ExpenseController {
     ])
       .then(([expense1, expense2, expense3, expense4]: any[]) => {
         return res.status(200).send({
-          today: expense1[0].value == null ? 0 : parseFloat(expense1[0].value),
-          yesterday:
-            expense2[0].value == null ? 0 : parseFloat(expense2[0].value),
-          thisMonth:
-            expense3[0].value == null ? 0 : parseFloat(expense3[0].value),
-          lastMonth:
-            expense4[0].value == null ? 0 : parseFloat(expense4[0].value),
+          today: expense1[0].value == null ? 0 : Number(expense1[0].value),
+          yesterday: expense2[0].value == null ? 0 : Number(expense2[0].value),
+          thisMonth: expense3[0].value == null ? 0 : Number(expense3[0].value),
+          lastMonth: expense4[0].value == null ? 0 : Number(expense4[0].value),
         });
       })
       .catch((error) => {

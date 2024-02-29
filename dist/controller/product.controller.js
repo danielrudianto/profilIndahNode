@@ -517,24 +517,18 @@ ProductController.fetchCompleteById = (req, res) => {
         }
         const price = item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(item_price
-                .filter((x) => x.item_unit_id == null)[0]
-                .price.toString());
+            : Number(item_price.filter((x) => x.item_unit_id == null)[0].price);
         const discount = item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(item_price
-                .filter((x) => x.item_unit_id == null)[0]
-                .discount.toString());
+            : Number(item_price.filter((x) => x.item_unit_id == null)[0].discount);
         const purchase_price = item_price_purchase.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(item_price_purchase
-                .filter((x) => x.item_unit_id == null)[0]
-                .price.toString());
+            : Number(item_price_purchase.filter((x) => x.item_unit_id == null)[0]
+                .price);
         const purchase_discount = item_price_purchase.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(item_price_purchase
-                .filter((x) => x.item_unit_id == null)[0]
-                .discount.toString());
+            : Number(item_price_purchase.filter((x) => x.item_unit_id == null)[0]
+                .discount);
         deposit_model_1.default.fetchByItemID(id)
             .then((deposit) => {
             const total_deposit = deposit.reduce((a, b) => a + Number(b.quantity), 0);
@@ -564,7 +558,7 @@ ProductController.fetchCompleteById = (req, res) => {
                     return {
                         id: x.id,
                         unit: x.unit,
-                        conversion: parseFloat(x.conversion.toString()),
+                        conversion: x.conversion,
                         price: unitPrice_price,
                         discount: unitPrice_discount,
                         price_purchase: unitPricePurchase_price,
@@ -592,14 +586,10 @@ ProductController.fetchCompleteSalesById = (req, res) => {
         }
         const price = item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(item_price
-                .filter((x) => x.item_unit_id == null)[0]
-                .price.toString());
+            : Number(item_price.filter((x) => x.item_unit_id == null)[0].price);
         const discount = item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(item_price
-                .filter((x) => x.item_unit_id == null)[0]
-                .discount.toString());
+            : Number(item_price.filter((x) => x.item_unit_id == null)[0].discount);
         return res.status(200).send({
             reference: item.reference,
             description: item.description,
@@ -617,7 +607,7 @@ ProductController.fetchCompleteSalesById = (req, res) => {
                 return {
                     id: x.id,
                     unit: x.unit,
-                    conversion: parseFloat(x.conversion.toString()),
+                    conversion: x.conversion,
                     price: unitPrice_price,
                     discount: unitPrice_discount,
                 };

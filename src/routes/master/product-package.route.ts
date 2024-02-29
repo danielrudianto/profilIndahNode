@@ -19,6 +19,12 @@ router.post(
   body("package_content")
     .notEmpty()
     .withMessage(ErrorList["Package items required"]),
+  body("package_content.*.item_id")
+    .notEmpty()
+    .withMessage(ErrorList["Package item id required"]),
+  body("package_content.*.quantity")
+    .notEmpty()
+    .withMessage(ErrorList["Package item quantity required"]),
   ErrorHelper.intercept,
   ProductPackageController.create
 );

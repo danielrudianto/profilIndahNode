@@ -10,6 +10,11 @@ class DepositModel {
     static generateName(date = new Date()) {
         return `DPS-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
     }
+    /**
+     * Create new deposit
+     * @param data
+     * @returns
+     */
     static create(data) {
         return app_1.prisma.deposit_code.create({
             data: {
@@ -30,6 +35,7 @@ class DepositModel {
                     create: data.payments,
                 },
                 type: data.type,
+                sales: data.sales,
             },
         });
     }
@@ -150,6 +156,7 @@ class DepositModel {
             app_1.prisma.$queryRawUnsafe(`
         SELECT deposit_code.id, deposit_code.date, deposit_code.name,
         IF(deposit_code.type = 'INTERNAL', 'Internal', COALESCE(customer.name, 'Retail customer')) AS customer_name, 
+        COALESCE(deposit_code.sales, 'INTERNAL') AS sales,
         deposit_code.customer_id, b.value, COALESCE(pm.value, 0) AS payment,
         deposit_code.type
         FROM deposit_code

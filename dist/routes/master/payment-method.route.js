@@ -12,10 +12,10 @@ const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.get("/autocomplete", payment_method_controller_1.default.fetchAutocomplete);
 router.get("/all", payment_method_controller_1.default.fetchAll);
-router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, payment_method_controller_1.default.fetchByID);
+router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, payment_method_controller_1.default.fetchByID);
 router.get("/", payment_method_controller_1.default.fetch);
 router.post("/", (0, express_validator_1.body)("name").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("description").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, payment_method_controller_1.default.create);
-router.put("/", (0, express_validator_1.body)("id").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("description").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, payment_method_controller_1.default.updateByID);
+router.put("/", (0, express_validator_1.body)("id").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("name").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("description").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, payment_method_controller_1.default.updateByID);
 router.delete("/:id", auth_helper_1.administratorMiddleware, payment_method_controller_1.default.deleteByID);
 exports.default = router;
 //# sourceMappingURL=payment-method.route.js.map

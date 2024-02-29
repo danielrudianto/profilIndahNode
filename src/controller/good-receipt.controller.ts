@@ -62,13 +62,11 @@ class GoodReceiptController {
                 date: goodReceiptResult.date,
                 document: goodReceiptResult.name,
                 opponent: goodReceiptResult.supplier.name,
-                displayQuantity: parseFloat(x.quantity.toString()),
+                displayQuantity: Number(x.quantity),
                 unit: x.item_unit == null ? x.item.unit : x.item_unit.unit,
                 quantity:
-                  parseFloat(x.quantity.toString()) *
-                  (x.item_unit == null
-                    ? 1
-                    : parseFloat(x.item_unit.conversion.toString())),
+                  Number(x.quantity) *
+                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
                 billID: null,
                 billCodeID: null,
                 adjustmentCaseID: null,
@@ -80,9 +78,7 @@ class GoodReceiptController {
                 customerID: null,
                 supplierID: goodReceiptResult.supplier_id,
                 companyID: goodReceiptResult.company_id,
-                price:
-                  parseFloat(x.price.toString()) -
-                  parseFloat(x.discount.toString()),
+                price: Number(x.price) - Number(x.discount),
               };
 
               return queue.add("insert-stock-in", stockIn);

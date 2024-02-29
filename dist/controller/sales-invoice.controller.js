@@ -57,9 +57,9 @@ SalesInvoiceController.createSalesman = (req, res, next) => {
 SalesInvoiceController.create = (req, res) => {
     const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
-    const discount = parseFloat(req.body.discount);
-    const delivery = parseFloat(req.body.delivery);
-    const service = parseFloat(req.body.service);
+    const discount = Number(req.body.discount);
+    const delivery = Number(req.body.delivery);
+    const service = Number(req.body.service);
     const bill = req.body.bill;
     const payments = req.body.payments;
     const payment_term = req.body.payment_term;
@@ -203,10 +203,10 @@ SalesInvoiceController.create = (req, res) => {
                                 ? "Retail customer"
                                 : result.customer.name,
                             displayQuantity: bill[i].quantity * -1,
-                            quantity: parseFloat(result.bill[i].quantity.toString()) *
+                            quantity: Number(result.bill[i].quantity) *
                                 -1 *
                                 (result.bill[i].item_unit != null
-                                    ? parseFloat(result.bill[i].item_unit.conversion.toString())
+                                    ? Number(result.bill[i].item_unit.conversion.toString())
                                     : 1),
                             unit: bill[i].item_unit == null
                                 ? result.bill[i].item.unit
@@ -596,8 +596,6 @@ SalesInvoiceController.fetchSalesmen = (req, res) => {
                 .splice(0, 5));
         }
         else {
-            console.log(result);
-            console.log(result.filter((x) => x.includes(keyword.toString())));
             return res.status(200).send(result
                 .filter((x) => {
                 return x.includes(keyword.toString().toUpperCase());

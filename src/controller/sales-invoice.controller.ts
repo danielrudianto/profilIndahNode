@@ -45,9 +45,9 @@ class SalesInvoiceController {
   static create = (req: Request, res: Response) => {
     const uuid = req.body.uuid;
     const customer_id = req.body.customer_id;
-    const discount = parseFloat(req.body.discount);
-    const delivery = parseFloat(req.body.delivery);
-    const service = parseFloat(req.body.service);
+    const discount = Number(req.body.discount);
+    const delivery = Number(req.body.delivery);
+    const service = Number(req.body.service);
     const bill = req.body.bill as any[];
     const payments = req.body.payments as any[];
     const payment_term = req.body.payment_term;
@@ -239,12 +239,10 @@ class SalesInvoiceController {
                       : result.customer.name,
                   displayQuantity: bill[i].quantity * -1,
                   quantity:
-                    parseFloat(result.bill[i].quantity.toString()) *
+                    Number(result.bill[i].quantity) *
                     -1 *
                     (result.bill[i].item_unit != null
-                      ? parseFloat(
-                          result.bill[i].item_unit!.conversion.toString()
-                        )
+                      ? Number(result.bill[i].item_unit!.conversion.toString())
                       : 1),
                   unit:
                     bill[i].item_unit == null
@@ -693,8 +691,6 @@ class SalesInvoiceController {
               .splice(0, 5)
           );
         } else {
-          console.log(result);
-          console.log(result.filter((x) => x.includes(keyword.toString())));
           return res.status(200).send(
             result
               .filter((x) => {

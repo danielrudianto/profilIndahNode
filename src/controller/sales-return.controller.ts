@@ -305,9 +305,8 @@ class SalesReturnController {
           let total = 0;
           for (let item of result.sales_return) {
             total +=
-              parseFloat(item.quantity.toString()) *
-              (parseFloat(item.bill.price.toString()) -
-                parseFloat(item.bill.discount.toString()));
+              Number(item.quantity) *
+              (Number(item.bill.price) - Number(item.bill.discount));
           }
           return res.status(200).send({
             ...result,

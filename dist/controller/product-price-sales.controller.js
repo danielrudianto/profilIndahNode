@@ -208,7 +208,6 @@ ItemPriceController.fetchFormat = (req, res) => __awaiter(void 0, void 0, void 0
     const setting = 0;
     item_model_1.ItemModel.fetchItemPriceByBrandType(brand_id, type_id, setting)
         .then((items) => {
-        console.log(items);
         return res.status(200).send(items.map((x) => {
             var _b;
             return [
@@ -221,10 +220,10 @@ ItemPriceController.fetchFormat = (req, res) => __awaiter(void 0, void 0, void 0
                 x.item_unit == null ? x.item.unit : x.item_unit.unit,
                 x.item_unit == null
                     ? 1
-                    : parseFloat(x.item_unit.conversion.toString()),
+                    : x.item_unit.conversion,
                 x.item_unit == null ? "" : x.item.unit,
-                parseFloat(x.price.toString()),
-                parseFloat(x.discount.toString()),
+                x.price,
+                x.discount,
             ];
         }));
     })

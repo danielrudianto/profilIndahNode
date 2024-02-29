@@ -194,7 +194,7 @@ ProductPackageController.fetchByID = (req, res) => {
         if (!result) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { price: parseFloat(result.price.toString()) }));
+        return res.status(200).send(Object.assign(Object.assign({}, result), { price: result.price }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching product package by ID: ${error}`);

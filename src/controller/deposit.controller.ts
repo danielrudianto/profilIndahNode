@@ -22,17 +22,15 @@ class DepositController {
 
       let subTotal = 0;
       for (let item of result.deposit) {
-        subTotal +=
-          parseFloat(item.price.toString()) *
-          parseFloat(item.quantity.toString());
+        subTotal += Number(item.price) * Number(item.quantity);
       }
       return res.status(200).send({
         ...result,
         is_confirm: true,
         subTotal: subTotal,
-        discount: parseFloat(result.discount.toString()),
-        delivery: parseFloat(result.delivery.toString()),
-        service: parseFloat(result.service.toString()),
+        discount: Number(result.discount),
+        delivery: Number(result.delivery),
+        service: Number(result.service),
       });
     });
   };
@@ -402,12 +400,10 @@ class DepositController {
                       : result.customer.name,
                   displayQuantity: Number(result.bill[i].quantity) * -1,
                   quantity:
-                    parseFloat(result.bill[i].quantity.toString()) *
+                    Number(result.bill[i].quantity) *
                     -1 *
                     (result.bill[i].item_unit != null
-                      ? parseFloat(
-                          result.bill[i].item_unit!.conversion.toString()
-                        )
+                      ? Number(result.bill[i].item_unit!.conversion)
                       : 1),
                   unit:
                     result.bill[i].item_unit == null
@@ -606,12 +602,10 @@ class DepositController {
                       : result.customer.name,
                   displayQuantity: Number(result.bill[i].quantity) * -1,
                   quantity:
-                    parseFloat(result.bill[i].quantity.toString()) *
+                    Number(result.bill[i].quantity) *
                     -1 *
                     (result.bill[i].item_unit != null
-                      ? parseFloat(
-                          result.bill[i].item_unit!.conversion.toString()
-                        )
+                      ? Number(result.bill[i].item_unit!.conversion)
                       : 1),
                   unit:
                     result.bill[i].item_unit == null

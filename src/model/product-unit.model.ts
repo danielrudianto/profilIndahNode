@@ -109,7 +109,7 @@ class ItemUnitModel {
               created_by: data.created_by,
               created_at: new Date(),
               unit: x.unit,
-              conversion: parseFloat(x.conversion.toString()),
+              conversion: x.conversion,
               item_price: {
                 create: {
                   item_id: data.item_id,
@@ -142,7 +142,7 @@ class ItemUnitModel {
               is_delete: true,
               deleted_by: data.created_by,
               deleted_at: new Date(),
-              conversion: parseFloat(x.conversion.toString()),
+              conversion: x.conversion,
               unit: x.unit,
               item_price_purchase: {
                 updateMany: {

@@ -89,7 +89,7 @@ class ItemUnitModel {
                         is_delete: true,
                         deleted_by: deleted_by,
                         deleted_at: new Date(),
-                        conversion: parseFloat(x.conversion.toString()),
+                        conversion: x.conversion,
                         unit: x.unit,
                         item_price_purchase: {
                             updateMany: {
@@ -128,7 +128,7 @@ class ItemUnitModel {
                         id: x.id,
                     },
                     data: {
-                        conversion: parseFloat(x.conversion.toString()),
+                        conversion: x.conversion,
                         unit: x.unit,
                     },
                 }));

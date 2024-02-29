@@ -579,37 +579,29 @@ class ProductController {
         const price =
           item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(
-                item_price
-                  .filter((x) => x.item_unit_id == null)[0]
-                  .price.toString()
-              );
+            : Number(item_price.filter((x) => x.item_unit_id == null)[0].price);
 
         const discount =
           item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(
-                item_price
-                  .filter((x) => x.item_unit_id == null)[0]
-                  .discount.toString()
+            : Number(
+                item_price.filter((x) => x.item_unit_id == null)[0].discount
               );
 
         const purchase_price =
           item_price_purchase.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(
-                item_price_purchase
-                  .filter((x) => x.item_unit_id == null)[0]
-                  .price.toString()
+            : Number(
+                item_price_purchase.filter((x) => x.item_unit_id == null)[0]
+                  .price
               );
 
         const purchase_discount =
           item_price_purchase.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(
-                item_price_purchase
-                  .filter((x) => x.item_unit_id == null)[0]
-                  .discount.toString()
+            : Number(
+                item_price_purchase.filter((x) => x.item_unit_id == null)[0]
+                  .discount
               );
 
         DepositModel.fetchByItemID(id)
@@ -655,7 +647,7 @@ class ProductController {
                 return {
                   id: x.id,
                   unit: x.unit,
-                  conversion: parseFloat(x.conversion.toString()),
+                  conversion: x.conversion,
                   price: unitPrice_price,
                   discount: unitPrice_discount,
                   price_purchase: unitPricePurchase_price,
@@ -690,19 +682,13 @@ class ProductController {
         const price =
           item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(
-                item_price
-                  .filter((x) => x.item_unit_id == null)[0]
-                  .price.toString()
-              );
+            : Number(item_price.filter((x) => x.item_unit_id == null)[0].price);
 
         const discount =
           item_price.filter((x) => x.item_unit_id == null).length == 0
             ? 0
-            : parseFloat(
-                item_price
-                  .filter((x) => x.item_unit_id == null)[0]
-                  .discount.toString()
+            : Number(
+                item_price.filter((x) => x.item_unit_id == null)[0].discount
               );
 
         return res.status(200).send({
@@ -728,7 +714,7 @@ class ProductController {
             return {
               id: x.id,
               unit: x.unit,
-              conversion: parseFloat(x.conversion.toString()),
+              conversion: x.conversion,
               price: unitPrice_price,
               discount: unitPrice_discount,
             };

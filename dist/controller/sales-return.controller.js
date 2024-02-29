@@ -264,9 +264,8 @@ SalesReturnController.fetchByID = (req, res) => {
             let total = 0;
             for (let item of result.sales_return) {
                 total +=
-                    parseFloat(item.quantity.toString()) *
-                        (parseFloat(item.bill.price.toString()) -
-                            parseFloat(item.bill.discount.toString()));
+                    Number(item.quantity) *
+                        (Number(item.bill.price) - Number(item.bill.discount));
             }
             return res.status(200).send(Object.assign(Object.assign({}, result), { bill: bill, customer: (result === null || result === void 0 ? void 0 : result.sales_return.length) == 0 ||
                     (result === null || result === void 0 ? void 0 : result.sales_return[0].bill.bill_code.customer) == null

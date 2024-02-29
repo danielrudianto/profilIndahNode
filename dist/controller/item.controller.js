@@ -775,7 +775,7 @@ ProductController.downloadMinusStock = (req, res) => {
                     x.description,
                     (_b = x.item_type) === null || _b === void 0 ? void 0 : _b.name,
                     x.item_brand.name,
-                    Intl.NumberFormat().format(x.stock == null ? 0 : parseFloat((_c = x.stock) === null || _c === void 0 ? void 0 : _c.stock.toString())),
+                    Intl.NumberFormat().format(x.stock == null ? 0 : (_c = x.stock) === null || _c === void 0 ? void 0 : _c.stock),
                 ]);
             });
             const docDefinition = {

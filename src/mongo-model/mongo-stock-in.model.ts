@@ -89,6 +89,11 @@ const StockInSchema = new Schema({
     type: Number,
     required: true,
   },
+  supplierID: {
+    type: Number,
+    required: false,
+    default: null,
+  },
 });
 
 export const mongoStockInModel = model("stock-ins", StockInSchema);

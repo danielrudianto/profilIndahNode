@@ -308,7 +308,8 @@ class SearchHelper {
         `SELECT adjustment_case_code.company_id AS companyID, adjustment_case.id AS adjustmentCaseID, adjustment_case_code.id AS adjustmentCaseCodeID, 
         NULL AS goodReceiptID, NULL AS goodReceiptCodeID,
         adjustment_case_code.date, (adjustment_case.price / COALESCE(item_unit.conversion, 1)) AS price, adjustment_case.quantity * COALESCE(item_unit.conversion, 1) AS quantity, adjustment_case.quantity * COALESCE(item_unit.conversion, 1) AS residue, adjustment_case.item_id AS itemID, 
-        adjustment_case_code.created_at
+        adjustment_case_code.created_at,
+        NULL AS supplier_id
         FROM adjustment_case
         JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
         LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
@@ -321,7 +322,8 @@ class SearchHelper {
         (good_receipt.price - good_receipt.discount) * (total.value - purchase_invoice.discount) / (total.value * COALESCE(item_unit.conversion, 1))) AS price, 
         good_receipt.quantity * COALESCE(item_unit.conversion, 1) AS quantity, good_receipt.quantity * COALESCE(item_unit.conversion, 1) AS residue,
         good_receipt.item_id AS itemID,
-        good_receipt_code.created_at
+        good_receipt_code.created_at,
+        good_receipt_code.supplier_id AS supplier_id
         FROM good_receipt
         JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
         JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -342,6 +344,7 @@ class SearchHelper {
               ...x,
               date: new Date(x.date),
               companyID: x.companyID,
+              supplierID: x.supplier_id
             };
           })
         );
@@ -461,7 +464,7 @@ class SearchHelper {
       // Create loading bar in console log
       const progress = Math.round((i / stockOuts.length) * 100);
       const loadingBar = new Array(Math.round(progress / 10)).fill("=");
-      console.log(
+      console.info(
         `Stock out sync progress: ${loadingBar.join("")} ${progress}% ${i}/${
           stockOuts.length
         }`
@@ -751,7 +754,7 @@ class SearchHelper {
           stockCards[n].currentStock = currentStock;
           await stockCards[n].save();
 
-          console.log(
+          console.info(
             "Arrange stock card for itemID: " +
               products[i].itemID +
               "(" +
@@ -762,7 +765,7 @@ class SearchHelper {
           );
         }
 
-        console.log(
+        console.info(
           "Stock card arranged for itemID: " +
             products[i].itemID +
             "(" +
@@ -771,6 +774,9 @@ class SearchHelper {
             products.length +
             ")"
         );
+
+        products[i].currentStock = currentStock;
+        await products[i].save();
       }
       return res.status(200).send({
         message: "Arrange stock card successfully",

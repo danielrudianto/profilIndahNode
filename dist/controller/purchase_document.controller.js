@@ -230,7 +230,7 @@ PurchaseDocumentController.confirm = (req, res) => {
                                 const priceIndex = filtered_good_receipt.findIndex((idx) => idx.id == good_receipt_item.id);
                                 if (priceIndex != -1) {
                                     delete_transaction.push(item_purchase_price_model_1.default.delete(good_receipt_item.item_id, good_receipt_item.item_unit_id, req.body.userId));
-                                    const itemPurchasePrice = new item_purchase_price_model_1.default(parseFloat(good_receipt_item.price.toString()), good_receipt_item.item_id, req.body.userId, good_receipt_item.item_unit_id);
+                                    const itemPurchasePrice = new item_purchase_price_model_1.default(good_receipt_item.price, good_receipt_item.item_id, req.body.userId, good_receipt_item.item_unit_id);
                                     insert_transaction.push(itemPurchasePrice.create());
                                 }
                             }

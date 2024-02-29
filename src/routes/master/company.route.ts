@@ -17,18 +17,22 @@ router.post(
 );
 
 router.get("/autocomplete", CompanyController.fetchAutocomplete);
+
 router.get(
   "/:id",
   administratorMiddleware,
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   CompanyController.fetchByID
 );
+
 router.get("/", CompanyController.fetch);
 
 router.delete(
   "/:id",
   param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   CompanyController.delete
 );

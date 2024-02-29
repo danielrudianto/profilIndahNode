@@ -198,10 +198,10 @@ ItemPriceController.getXlsx = (req, res) => __awaiter(void 0, void 0, void 0, fu
                         x.item_unit == null ? x.item.unit : x.item_unit.unit,
                         x.item_unit == null
                             ? 1
-                            : parseFloat(x.item_unit.conversion.toString()),
+                            : x.item_unit.conversion,
                         x.item.unit,
-                        parseFloat(x.price.toString()),
-                        parseFloat(x.discount.toString()),
+                        x.price,
+                        x.discount,
                     ]);
                     // Adjusting column width
                     columns_width.push(rows[rows.length - 1].map((item) => {

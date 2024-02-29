@@ -90,6 +90,11 @@ const StockInSchema = new mongoose_1.Schema({
         type: Number,
         required: true,
     },
+    supplierID: {
+        type: Number,
+        required: false,
+        default: null,
+    },
 });
 exports.mongoStockInModel = (0, mongoose_1.model)("stock-ins", StockInSchema);
 exports.mongoStockOutModel = (0, mongoose_1.model)("stock-outs", stockOutSchema);

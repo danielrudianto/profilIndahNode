@@ -292,7 +292,8 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
         .$queryRawUnsafe(`SELECT adjustment_case_code.company_id AS companyID, adjustment_case.id AS adjustmentCaseID, adjustment_case_code.id AS adjustmentCaseCodeID, 
         NULL AS goodReceiptID, NULL AS goodReceiptCodeID,
         adjustment_case_code.date, (adjustment_case.price / COALESCE(item_unit.conversion, 1)) AS price, adjustment_case.quantity * COALESCE(item_unit.conversion, 1) AS quantity, adjustment_case.quantity * COALESCE(item_unit.conversion, 1) AS residue, adjustment_case.item_id AS itemID, 
-        adjustment_case_code.created_at
+        adjustment_case_code.created_at,
+        NULL AS supplier_id
         FROM adjustment_case
         JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
         LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
@@ -305,7 +306,8 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
         (good_receipt.price - good_receipt.discount) * (total.value - purchase_invoice.discount) / (total.value * COALESCE(item_unit.conversion, 1))) AS price, 
         good_receipt.quantity * COALESCE(item_unit.conversion, 1) AS quantity, good_receipt.quantity * COALESCE(item_unit.conversion, 1) AS residue,
         good_receipt.item_id AS itemID,
-        good_receipt_code.created_at
+        good_receipt_code.created_at,
+        good_receipt_code.supplier_id AS supplier_id
         FROM good_receipt
         JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
         JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
@@ -320,7 +322,7 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
         AND good_receipt_code.is_delete = 0`)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         yield mongo_stock_in_model_1.mongoStockInModel.insertMany(result.map((x) => {
-            return Object.assign(Object.assign({}, x), { date: new Date(x.date), companyID: x.companyID });
+            return Object.assign(Object.assign({}, x), { date: new Date(x.date), companyID: x.companyID, supplierID: x.supplier_id });
         }));
         return res.status(200).send({
             message: "Stock in sync success",
@@ -433,7 +435,7 @@ SearchHelper.syncProductOutCalculation = (req, res) => __awaiter(void 0, void 0,
         // Create loading bar in console log
         const progress = Math.round((i / stockOuts.length) * 100);
         const loadingBar = new Array(Math.round(progress / 10)).fill("=");
-        console.log(`Stock out sync progress: ${loadingBar.join("")} ${progress}% ${i}/${stockOuts.length}`);
+        console.info(`Stock out sync progress: ${loadingBar.join("")} ${progress}% ${i}/${stockOuts.length}`);
         let quantity = Number(stockOuts[i].quantity);
         while (quantity > 0) {
             if (quantity == 0) {
@@ -711,7 +713,7 @@ SearchHelper.arrangeStockCard = (req, res) => __awaiter(void 0, void 0, void 0, 
                 currentStock += stockCards[n].quantity;
                 stockCards[n].currentStock = currentStock;
                 yield stockCards[n].save();
-                console.log("Arrange stock card for itemID: " +
+                console.info("Arrange stock card for itemID: " +
                     products[i].itemID +
                     "(" +
                     (n + 1) +
@@ -719,13 +721,15 @@ SearchHelper.arrangeStockCard = (req, res) => __awaiter(void 0, void 0, void 0, 
                     stockCards.length +
                     ")");
             }
-            console.log("Stock card arranged for itemID: " +
+            console.info("Stock card arranged for itemID: " +
                 products[i].itemID +
                 "(" +
                 (i + 1) +
                 "/" +
                 products.length +
                 ")");
+            products[i].currentStock = currentStock;
+            yield products[i].save();
         }
         return res.status(200).send({
             message: "Arrange stock card successfully",

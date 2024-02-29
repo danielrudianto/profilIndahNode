@@ -109,14 +109,14 @@ PurchaseInvoiceController.create = (req, res) => {
                 date: good_receipt_result.date,
                 document: good_receipt_result.name,
                 opponent: good_receipt_result.supplier.name,
-                displayQuantity: parseFloat(goodReceiptItem.quantity.toString()),
+                displayQuantity: Number(goodReceiptItem.quantity),
                 unit: goodReceiptItem.item_unit == null
                     ? goodReceiptItem.item.unit
                     : goodReceiptItem.item_unit.unit,
-                quantity: parseFloat(goodReceiptItem.quantity.toString()) *
+                quantity: Number(goodReceiptItem.quantity) *
                     (goodReceiptItem.item_unit == null
                         ? 1
-                        : parseFloat(goodReceiptItem.item_unit.conversion.toString())),
+                        : Number(goodReceiptItem.item_unit.conversion)),
                 billID: null,
                 billCodeID: null,
                 adjustmentCaseID: null,
@@ -158,14 +158,9 @@ PurchaseInvoiceController.fetchByID = (req, res) => {
         }
         let subTotal = 0;
         for (let item of result.good_receipt_code.good_receipt) {
-            subTotal +=
-                parseFloat(item.price.toString()) *
-                    parseFloat(item.quantity.toString());
+            subTotal += Number(item.price) * Number(item.quantity);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, total: subTotal -
-                (result.discount == null
-                    ? 0
-                    : parseFloat(result.discount.toString())) }));
+        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, total: subTotal - (result.discount == null ? 0 : Number(result.discount)) }));
     })
         .catch((error) => {
         return res.status(500).send(error);
@@ -253,11 +248,11 @@ PurchaseInvoiceController.update = (req, res) => __awaiter(void 0, void 0, void 
                 date: result.good_receipt_code.date,
                 document: result.good_receipt_code.name,
                 opponent: result.good_receipt_code.supplier.name,
-                displayQuantity: parseFloat(result.good_receipt_code.good_receipt[n].quantity.toString()),
+                displayQuantity: Number(result.good_receipt_code.good_receipt[n].quantity),
                 unit: result.good_receipt_code.good_receipt[n].item_unit == null
                     ? result.good_receipt_code.good_receipt[n].item.unit
                     : result.good_receipt_code.good_receipt[n].item_unit.unit,
-                quantity: parseFloat(result.good_receipt_code.good_receipt[n].quantity.toString()) *
+                quantity: Number(result.good_receipt_code.good_receipt[n].quantity) *
                     (result.good_receipt_code.good_receipt[n].item_unit == null
                         ? 1
                         : Number(result.good_receipt_code.good_receipt[n].item_unit
@@ -648,11 +643,11 @@ PurchaseInvoiceController.fetchDashboard = (req, res) => __awaiter(void 0, void 
     ])
         .then(([purchase1, purchase2, purchase3, purchase4, purchase5]) => {
         return res.status(200).send({
-            today: purchase1[0].value == null ? 0 : parseFloat(purchase1[0].value),
-            yesterday: purchase2[0].value == null ? 0 : parseFloat(purchase2[0].value),
-            thisMonth: purchase3[0].value == null ? 0 : parseFloat(purchase3[0].value),
-            lastMonth: purchase4[0].value == null ? 0 : parseFloat(purchase4[0].value),
-            monthOnMonth: purchase5[0].value == null ? 0 : parseFloat(purchase5[0].value),
+            today: purchase1[0].value == null ? 0 : Number(purchase1[0].value),
+            yesterday: purchase2[0].value == null ? 0 : Number(purchase2[0].value),
+            thisMonth: purchase3[0].value == null ? 0 : Number(purchase3[0].value),
+            lastMonth: purchase4[0].value == null ? 0 : Number(purchase4[0].value),
+            monthOnMonth: purchase5[0].value == null ? 0 : Number(purchase5[0].value),
         });
     })
         .catch((error) => {
