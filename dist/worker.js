@@ -85,7 +85,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                     quantity: stockInData.quantity,
                     residue: stockInData.quantity,
                     itemID: stockInData.itemID,
-                    stockOut: [],
+                    supplierID: stockInData.supplierID,
                 });
                 const product = yield mongo_product_model_1.mongoProductModel.findOne({
                     itemID: stockInData.itemID,

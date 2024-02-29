@@ -83,7 +83,7 @@ const workerHandler = async (job: Job<any>) => {
           quantity: stockInData.quantity,
           residue: stockInData.quantity,
           itemID: stockInData.itemID,
-          stockOut: [],
+          supplierID: stockInData.supplierID,
         });
 
         const product = await mongoProductModel.findOne({

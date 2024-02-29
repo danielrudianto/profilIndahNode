@@ -548,16 +548,14 @@ class SalesInvoiceController {
 
         let subTotal = 0;
         for (let item of result.bill) {
-          subTotal +=
-            parseFloat(item.price.toString()) *
-            parseFloat(item.quantity.toString());
+          subTotal += Number(item.price) * Number(item.quantity);
         }
         return res.status(200).send({
           ...result,
           subTotal: subTotal,
-          discount: parseFloat(result.discount.toString()),
-          delivery: parseFloat(result.delivery.toString()),
-          service: parseFloat(result.service.toString()),
+          discount: Number(result.discount),
+          delivery: Number(result.delivery),
+          service: Number(result.service),
         });
       })
       .catch((error) => {

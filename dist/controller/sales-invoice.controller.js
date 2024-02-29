@@ -482,11 +482,9 @@ SalesInvoiceController.fetchByID = (req, res) => {
         }
         let subTotal = 0;
         for (let item of result.bill) {
-            subTotal +=
-                parseFloat(item.price.toString()) *
-                    parseFloat(item.quantity.toString());
+            subTotal += Number(item.price) * Number(item.quantity);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, discount: parseFloat(result.discount.toString()), delivery: parseFloat(result.delivery.toString()), service: parseFloat(result.service.toString()) }));
+        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, discount: Number(result.discount), delivery: Number(result.delivery), service: Number(result.service) }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching sales invoice by ID ${error}`);

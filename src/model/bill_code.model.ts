@@ -175,6 +175,7 @@ class BillCodeModel {
         discount: true,
         delivery: true,
         service: true,
+        sales: true,
         bill: {
           select: {
             id: true,
