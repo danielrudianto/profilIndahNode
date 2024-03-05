@@ -1693,16 +1693,8 @@ export class ItemModel {
         JOIN item_brand ON item.item_brand_id = item_brand.id
         JOIN item_type ON item.item_type_id = item_type.id
         LEFT JOIN (
-          SELECT SUM((bill.quantity - COALESCE(sr.quantity, 0)) * COALESCE(item_unit.conversion, 1)) * -1 AS quantity, bill.item_id
+          SELECT SUM(bill.quantity * COALESCE(item_unit.conversion, 1)) * -1 AS quantity, bill.item_id
           FROM bill
-          LEFT JOIN (
-            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_delete = 0
-            GROUP BY sales_return.bill_id
-          ) AS sr
-          ON bill.id = sr.bill_id
           LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
           JOIN bill_code ON bill.bill_code_id = bill_code.id
           WHERE bill_code.is_delete = 0

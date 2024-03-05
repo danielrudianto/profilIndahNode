@@ -658,9 +658,10 @@ ReportController.fetchSalesItemReport = (req, res) => {
                                     unit: y.unit,
                                     brand: y.item_brand_name,
                                     type: y.item_type_name,
-                                    input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
-                                    output: y.billQuantity * -1 +
-                                        y.adjustmentQuantityMinus * -1,
+                                    adjustment_input: Number(y.adjustmentQuantityPlus),
+                                    adjustment_output: Number(y.adjustmentQuantityMinus),
+                                    good_receipt_input: Number(y.goodReceiptQuantity),
+                                    bill_output: Number(y.billQuantity),
                                     initialStock: stockIndex == -1
                                         ? 0
                                         : stocks[stockIndex].currentStock,
@@ -682,11 +683,13 @@ ReportController.fetchSalesItemReport = (req, res) => {
                                     id: y.id,
                                     reference: y.reference,
                                     description: y.description,
+                                    unit: y.unit,
                                     brand: y.item_brand_name,
                                     type: y.item_type_name,
-                                    input: y.adjustmentQuantityPlus + y.goodReceiptQuantity,
-                                    output: y.billQuantity * -1 +
-                                        y.adjustmentQuantityMinus * -1,
+                                    adjustment_input: Number(y.adjustmentQuantityPlus),
+                                    adjustment_output: Number(y.adjustmentQuantityMinus),
+                                    good_receipt_input: Number(y.goodReceiptQuantity),
+                                    bill_output: Number(y.billQuantity),
                                     initialStock: stockIndex == -1
                                         ? 0
                                         : stocks[stockIndex].currentStock,
