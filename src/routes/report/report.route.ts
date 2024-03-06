@@ -4,7 +4,6 @@ import ErrorList from "../../assets/error_list";
 import ReportController from "../../controller/report.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
-import SalesInvoiceController from "../../controller/sales-invoice.controller";
 
 const router = Router();
 

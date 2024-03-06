@@ -282,7 +282,7 @@ ReportController.fetchSalesReport = (req, res) => {
                 });
             case "download":
                 return res.status(200).send(result.map((x) => {
-                    return Object.assign(Object.assign({}, x), { value: x.value, discount: x.discount, delivery: x.delivery, service: x.service });
+                    return Object.assign(Object.assign({}, x), { value: Number(x.value), discount: Number(x.discount), delivery: Number(x.delivery), service: Number(x.service) });
                 }));
             case "sales":
                 return res.status(200).send({
@@ -290,10 +290,11 @@ ReportController.fetchSalesReport = (req, res) => {
                         .map((x) => {
                         return {
                             name: x.sales_name,
-                            value: x.value,
-                            discount: x.discount,
-                            delivery: x.delivery,
-                            service: x.service,
+                            value: Number(x.value),
+                            discount: Number(x.discount),
+                            delivery: Number(x.delivery),
+                            service: Number(x.service),
+                            count: Number(x.count.toString()),
                         };
                     })
                         .sort((a, b) => {

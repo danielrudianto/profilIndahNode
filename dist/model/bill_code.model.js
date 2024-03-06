@@ -810,18 +810,9 @@ class BillCodeModel {
         `;
             case "sales":
                 return app_1.prisma.$queryRaw `
-          SELECT SUM((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, COALESCE(bill_code.sales, "Internal") AS sales_name
+          SELECT COUNT(DISTINCT(bill_code.id)) AS count, SUM((bill.quantity) * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(delivery) AS delivery, SUM(service) AS service, COALESCE(bill_code.sales, "Internal") AS sales_name
           FROM bill
           JOIN bill_code ON bill.bill_code_id = bill_code.id
-          LEFT JOIN (
-            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_confirm = 1
-            AND sales_return_code.is_delete = 0
-            GROUP BY sales_return.bill_id
-          ) salesReturn
-          ON bill.id = salesReturn.bill_id
           WHERE bill_code.is_confirm = 1
           AND bill_code.is_delete = 0
           AND YEAR(bill_code.date) = ${year}
@@ -830,23 +821,14 @@ class BillCodeModel {
         `;
             default:
                 return app_1.prisma.$queryRawUnsafe(`
-            SELECT bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name,
+            SELECT COALESCE(bill_code.sales, 'Internal') AS sales, bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name,
             bill_code.name, pv.value, bill_code.discount, bill_code.service, bill_code.delivery
             FROM bill_code
             LEFT JOIN customer ON bill_code.customer_id = customer.id
             JOIN (
-              SELECT (bill.quantity - COALESCE(sr.quantity, 0)) * (bill.price - bill.discount) AS value, 
+              SELECT (bill.quantity * (bill.price - bill.discount)) AS value, 
               bill.bill_code_id
               FROM bill
-              LEFT JOIN (
-                SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-                FROM sales_return
-                JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-                WHERE sales_return_code.is_confirm = 1
-                AND sales_return_code.is_delete = 0
-                GROUP BY sales_return.bill_id
-              ) sr
-              ON bill.id = sr.bill_id
               GROUP BY bill.bill_code_id
             ) pv
             ON bill_code.id = pv.bill_code_id

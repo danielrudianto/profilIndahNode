@@ -267,10 +267,10 @@ class ReportController {
               (result as any[]).map((x) => {
                 return {
                   ...x,
-                  value: x.value,
-                  discount: x.discount,
-                  delivery: x.delivery,
-                  service: x.service,
+                  value: Number(x.value),
+                  discount: Number(x.discount),
+                  delivery: Number(x.delivery),
+                  service: Number(x.service),
                 };
               })
             );
@@ -280,10 +280,11 @@ class ReportController {
                 .map((x) => {
                   return {
                     name: x.sales_name,
-                    value: x.value,
-                    discount: x.discount,
-                    delivery: x.delivery,
-                    service: x.service,
+                    value: Number(x.value),
+                    discount: Number(x.discount),
+                    delivery: Number(x.delivery),
+                    service: Number(x.service),
+                    count: Number(x.count.toString()),
                   };
                 })
                 .sort((a, b) => {
