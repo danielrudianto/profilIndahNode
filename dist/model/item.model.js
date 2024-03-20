@@ -1554,7 +1554,8 @@ class ItemModel {
         COALESCE(goodReceiptCount.quantity, 0) AS goodReceiptQuantity,
         COALESCE(adjustmentCountPlus.quantity, 0) AS adjustmentQuantityPlus,
         COALESCE(adjustmentCountMinus.quantity, 0) AS adjustmentQuantityMinus,
-        COALESCE(billCount.quantity, 0) AS billQuantity
+        COALESCE(billCount.quantity, 0) AS billQuantity,
+        COALESCE(salesReturnCount.quantity, 0) AS salesReturnQuantity
         FROM item
         JOIN item_brand ON item.item_brand_id = item_brand.id
         JOIN item_type ON item.item_type_id = item_type.id
@@ -1604,6 +1605,18 @@ class ItemModel {
           GROUP BY good_receipt.item_id
         ) AS goodReceiptCount
         ON item.id = goodReceiptCount.item_id
+        LEFT JOIN (
+          SELECT SUM(sales_return.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, bill.item_id
+          FROM sales_return
+          JOIN sales_return_code ON sales_return_code_id = sales_return_code.id
+          JOIN bill ON sales_return.bill_id = bill.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          WHERE sales_return_code.is_delete = 0
+          AND MONTH(sales_return_code.date) = ${month}
+          AND YEAR(sales_return_code.date) = ${year}
+          GROUP BY bill.item_id
+        ) AS salesReturnCount
+        ON item.id = salesReturnCount.item_id
         WHERE item_brand.id IN (${brand.join(",")}) AND item_type.id IN (${type.join(",")})
         AND item.is_delete = 0
       `),

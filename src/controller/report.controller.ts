@@ -653,20 +653,19 @@ class ReportController {
               },
             },
             {
-              $sort: {
-                date: -1,
-                itemID: 1,
-              },
-            },
+              $group: {
+                _id: "$itemID",
+                currentStock: {
+                  $sum: "$quantity",
+                }
+              }
+            }
           ])
           .then((stocks) => {
-            // Adjust the stocks, if it has more than 1 itemID, then select the first one
-            stocks = stocks.filter(
-              (x, i, self) => self.findIndex((y) => y.itemID == x.itemID) == i
-            );
             switch (group) {
               case "brand":
                 const brandResponse = brands.map((x) => {
+                  
                   return {
                     id: x.id,
                     name: x.name,
@@ -674,7 +673,7 @@ class ReportController {
                       .filter((y) => y.item_brand_id == x.id)
                       .map((y) => {
                         const stockIndex = stocks.findIndex(
-                          (z) => z.itemID == y.id
+                          (z) => z._id == y.id
                         );
 
                         return {
@@ -688,6 +687,7 @@ class ReportController {
                           adjustment_output: Number(y.adjustmentQuantityMinus),
                           good_receipt_input: Number(y.goodReceiptQuantity),
                           bill_output: Number(y.billQuantity),
+                          sales_return: Number(y.salesReturnQuantity),
                           initialStock:
                             stockIndex == -1
                               ? 0
@@ -707,7 +707,7 @@ class ReportController {
                       .filter((y) => y.item_type_id == x.id)
                       .map((y) => {
                         const stockIndex = stocks.findIndex(
-                          (z) => z.itemID == y.id
+                          (z) => z._id == y.id
                         );
 
                         return {
@@ -721,6 +721,7 @@ class ReportController {
                           adjustment_output: Number(y.adjustmentQuantityMinus),
                           good_receipt_input: Number(y.goodReceiptQuantity),
                           bill_output: Number(y.billQuantity),
+                          sales_return: Number(y.salesReturnQuantity),
                           initialStock:
                             stockIndex == -1
                               ? 0
