@@ -111,9 +111,29 @@ class ProductController {
     switch (mode) {
       case "purchase":
         ItemModel.fetch(keyword, offset, limit, 1)
-          .then((result) => {
+          .then(async ([result, count]) => {
+            const productStock = await mongoProductModel.aggregate([
+              {
+                $match: {
+                  itemID: {
+                    $in: (result as any[]).map((x) => x.id),
+                  },
+                },
+              },
+              {
+                $project: {
+                  itemID: "$itemID",
+                  currentStock: "$currentStock",
+                },
+              },
+            ]);
+
             return res.status(200).send({
-              data: (result[0] as any[]).map((x) => {
+              data: (result as any[]).map((x) => {
+                const stockIndex = productStock.findIndex(
+                  (item) => item.itemID == x.id
+                );
+
                 return {
                   id: x.id,
                   reference: x.reference,
@@ -130,6 +150,10 @@ class ProductController {
                     x.item_price_purchase.length == 0
                       ? 0
                       : x.item_price_purchase[0].discount,
+                  stock:
+                    stockIndex == -1
+                      ? 0
+                      : productStock[stockIndex].currentStock,
                   unit_price: x.item_unit.map((y: any) => {
                     return {
                       id: y.id,
@@ -150,10 +174,11 @@ class ProductController {
                   }),
                 };
               }),
-              count: result[1],
+              count: count,
             });
           })
           .catch((error) => {
+            console.error(`[error]: Error on fetching item ${error}`);
             return res.status(500).send(error);
           });
         break;

@@ -103,9 +103,25 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
     switch (mode) {
         case "purchase":
             item_model_1.ItemModel.fetch(keyword, offset, limit, 1)
-                .then((result) => {
+                .then(([result, count]) => __awaiter(void 0, void 0, void 0, function* () {
+                const productStock = yield mongo_product_model_1.mongoProductModel.aggregate([
+                    {
+                        $match: {
+                            itemID: {
+                                $in: result.map((x) => x.id),
+                            },
+                        },
+                    },
+                    {
+                        $project: {
+                            itemID: "$itemID",
+                            currentStock: "$currentStock",
+                        },
+                    },
+                ]);
                 return res.status(200).send({
-                    data: result[0].map((x) => {
+                    data: result.map((x) => {
+                        const stockIndex = productStock.findIndex((item) => item.itemID == x.id);
                         return {
                             id: x.id,
                             reference: x.reference,
@@ -120,6 +136,9 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                                 x.item_price_purchase.length == 0
                                 ? 0
                                 : x.item_price_purchase[0].discount,
+                            stock: stockIndex == -1
+                                ? 0
+                                : productStock[stockIndex].currentStock,
                             unit_price: x.item_unit.map((y) => {
                                 return {
                                     id: y.id,
@@ -138,10 +157,11 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
                             }),
                         };
                     }),
-                    count: result[1],
+                    count: count,
                 });
-            })
+            }))
                 .catch((error) => {
+                console.error(`[error]: Error on fetching item ${error}`);
                 return res.status(500).send(error);
             });
             break;
