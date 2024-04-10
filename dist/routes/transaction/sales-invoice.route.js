@@ -11,6 +11,7 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.post("/search", sales_invoice_controller_1.default.fetchSearch);
+router.post("/salesman/delete", (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.deleteSalesman);
 router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("customer_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("discount")
     .toInt()
     .isInt({ min: 0 })
@@ -23,6 +24,7 @@ router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(er
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.createSalesman, sales_invoice_controller_1.default.create);
 router.post("/archives", sales_invoice_controller_1.default.fetchArchive);
 router.get("/salesman", sales_invoice_controller_1.default.fetchSalesmen);
+router.get("/salesman/pagination", sales_invoice_controller_1.default.fetchSalesmenPagination);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id")
     .isInt({
     min: 0,

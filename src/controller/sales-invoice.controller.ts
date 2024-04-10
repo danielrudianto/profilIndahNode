@@ -709,6 +709,70 @@ class SalesInvoiceController {
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
+
+  /**
+   * Fetch salesmen pagination
+   */
+  static fetchSalesmenPagination = (req: Request, res: Response) => {
+    const keyword = req.query.keyword;
+    const page = !req.query.page ? 1 : parseInt(req.query.page.toString());
+    redisClient.sMembers("salesman_set").then((result) => {
+      if (keyword == "" || keyword == null) {
+        return res.status(200).send({
+          data: result
+            .sort((a, b) => {
+              return a.localeCompare(b);
+            })
+            .map((x) => x.toUpperCase())
+            .splice((page - 1) * 10, 10),
+          count: result.length,
+        });
+      } else {
+        return res.status(200).send({
+          data: result
+            .map((x) => x.toUpperCase())
+            .filter((x) => {
+              return x.includes(keyword.toString().toUpperCase());
+            })
+            .sort((a, b) => {
+              return a.localeCompare(b);
+            })
+            .map((x) => x.toUpperCase())
+            .splice((page - 1) * 10, 10),
+          count: result.length,
+        });
+      }
+    });
+  };
+
+  /**
+   * Delete salesman
+   */
+  static deleteSalesman = (req: Request, res: Response) => {
+    const name = req.body.name;
+
+    redisClient.sMembers("salesman_set").then((result) => {
+      const index = result.findIndex(
+        (x) => x.toUpperCase() == name.toUpperCase()
+      );
+
+      if (index == -1) {
+        return res.status(400).send("Salesman not found");
+      } else {
+        redisClient
+          .sRem("salesman_set", name.toUpperCase())
+          .then(() => {
+            return res.status(200).send({
+              name: name,
+            });
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on deleting salesman ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      }
+    });
+  };
 }
 
 export default SalesInvoiceController;

@@ -612,5 +612,65 @@ SalesInvoiceController.fetchSalesmen = (req, res) => {
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
+/**
+ * Fetch salesmen pagination
+ */
+SalesInvoiceController.fetchSalesmenPagination = (req, res) => {
+    const keyword = req.query.keyword;
+    const page = !req.query.page ? 1 : parseInt(req.query.page.toString());
+    app_1.redisClient.sMembers("salesman_set").then((result) => {
+        if (keyword == "" || keyword == null) {
+            return res.status(200).send({
+                data: result
+                    .sort((a, b) => {
+                    return a.localeCompare(b);
+                })
+                    .map((x) => x.toUpperCase())
+                    .splice((page - 1) * 10, 10),
+                count: result.length,
+            });
+        }
+        else {
+            return res.status(200).send({
+                data: result
+                    .map((x) => x.toUpperCase())
+                    .filter((x) => {
+                    return x.includes(keyword.toString().toUpperCase());
+                })
+                    .sort((a, b) => {
+                    return a.localeCompare(b);
+                })
+                    .map((x) => x.toUpperCase())
+                    .splice((page - 1) * 10, 10),
+                count: result.length,
+            });
+        }
+    });
+};
+/**
+ * Delete salesman
+ */
+SalesInvoiceController.deleteSalesman = (req, res) => {
+    const name = req.body.name;
+    app_1.redisClient.sMembers("salesman_set").then((result) => {
+        const index = result.findIndex((x) => x.toUpperCase() == name.toUpperCase());
+        if (index == -1) {
+            return res.status(400).send("Salesman not found");
+        }
+        else {
+            app_1.redisClient
+                .sRem("salesman_set", name.toUpperCase())
+                .then(() => {
+                return res.status(200).send({
+                    name: name,
+                });
+            })
+                .catch((error) => {
+                console.error(`[error]: Error on deleting salesman ${error}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            });
+        }
+    });
+};
 exports.default = SalesInvoiceController;
 //# sourceMappingURL=sales-invoice.controller.js.map
