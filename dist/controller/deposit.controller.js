@@ -37,7 +37,10 @@ DepositController.fetchByID = (req, res) => {
         for (let item of result.deposit) {
             subTotal += Number(item.price) * Number(item.quantity);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { is_confirm: true, subTotal: subTotal, discount: Number(result.discount), delivery: Number(result.delivery), service: Number(result.service) }));
+        return res.status(200).send(Object.assign(Object.assign({}, result), { is_confirm: true, subTotal: subTotal, discount: Number(result.discount), delivery: Number(result.delivery), service: Number(result.service), total: subTotal -
+                Number(result.discount) +
+                Number(result.delivery) +
+                Number(result.service) }));
     });
 };
 /**
@@ -158,6 +161,11 @@ DepositController.fetchArchive = (req, res) => {
         });
     }
 };
+/**
+ * Confirm by ID
+ * @param req
+ * @param res
+ */
 DepositController.confirmByID = (req, res) => {
     const id = req.body.id;
     const date = new Date(req.body.date);

@@ -24,6 +24,10 @@ class AuthController {
           return res.status(400).send(ErrorList["User not active"]);
         }
 
+        hash(user.password, 12).then((hash) => {
+          console.log(hash);
+        });
+
         compare(password, user.password).then((result) => {
           if (!result) {
             return res.status(400).send(ErrorList["Auth error"]);
@@ -140,9 +144,7 @@ class AuthController {
           name: result?.name,
           username: result?.username,
           nik: result?.nik,
-          role: UserModel.roles.filter(
-            (x) => x.id == result?.role
-          )[0],
+          role: UserModel.roles.filter((x) => x.id == result?.role)[0],
           is_active: result?.is_active,
         });
       })
@@ -158,7 +160,7 @@ class AuthController {
    * @param res
    */
   static updatePassword = (req: Request, res: Response) => {
-    const user_id = parseInt(req.body.user_id);
+    const user_id = parseInt(req.body.userId);
     const password = req.body.password;
 
     UserModel.fetchByID(user_id)

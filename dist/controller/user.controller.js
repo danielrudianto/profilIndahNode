@@ -368,6 +368,9 @@ UserController.toggleActive = (req, res) => {
         }
     }
 };
+/**
+ * Update user password
+ */
 UserController.updatePassword = (req, res) => {
     const password = req.body.password;
     (0, bcryptjs_1.hash)(password, 12).then((hashed_password) => {

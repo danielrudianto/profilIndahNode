@@ -31,6 +31,11 @@ class DepositController {
         discount: Number(result.discount),
         delivery: Number(result.delivery),
         service: Number(result.service),
+        total:
+          subTotal -
+          Number(result.discount) +
+          Number(result.delivery) +
+          Number(result.service),
       });
     });
   };
@@ -164,6 +169,11 @@ class DepositController {
     }
   };
 
+  /**
+   * Confirm by ID
+   * @param req
+   * @param res
+   */
   static confirmByID = (req: Request, res: Response) => {
     const id = req.body.id;
     const date = new Date(req.body.date);

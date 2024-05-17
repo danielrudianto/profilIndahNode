@@ -78,7 +78,9 @@ class GoodReceiptController {
                 customerID: null,
                 supplierID: goodReceiptResult.supplier_id,
                 companyID: goodReceiptResult.company_id,
-                price: Number(x.price) - Number(x.discount),
+                price:
+                  (Number(x.price) - Number(x.discount)) /
+                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
               };
 
               return queue.add("insert-stock-in", stockIn);

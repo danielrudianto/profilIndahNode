@@ -130,10 +130,14 @@ PurchaseInvoiceController.create = (req, res) => {
                 companyID: good_receipt_result.company_id,
                 price: createPurchaseInvoiceTotalValue == 0
                     ? 0
-                    : ((Number(goodReceiptItem.price) -
+                    : (((Number(goodReceiptItem.price) -
                         Number(goodReceiptItem.discount)) *
                         createPurchaseInvoiceNetValue) /
-                        createPurchaseInvoiceTotalValue,
+                        createPurchaseInvoiceTotalValue /
+                        Number(goodReceiptItem.quantity)) *
+                        (goodReceiptItem.item_unit == null
+                            ? 1
+                            : Number(goodReceiptItem.item_unit.conversion)),
             };
             yield queue_helper_1.queue.add("insert-stock-in", stockIn);
         }
@@ -273,7 +277,11 @@ PurchaseInvoiceController.update = (req, res) => __awaiter(void 0, void 0, void 
                     : ((Number(result.good_receipt_code.good_receipt[n].price) -
                         Number(result.good_receipt_code.good_receipt[n].discount)) *
                         createPurchaseInvoiceNetValue) /
-                        createPurchaseInvoiceTotalValue,
+                        createPurchaseInvoiceTotalValue /
+                        (result.good_receipt_code.good_receipt[n].item_unit == null
+                            ? 1
+                            : Number(result.good_receipt_code.good_receipt[n].item_unit
+                                .conversion)),
             };
             yield queue_helper_1.queue.add("insert-stock-in", stockIn);
         }

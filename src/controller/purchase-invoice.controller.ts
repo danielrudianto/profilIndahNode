@@ -136,10 +136,14 @@ class PurchaseInvoiceController {
             price:
               createPurchaseInvoiceTotalValue == 0
                 ? 0
-                : ((Number(goodReceiptItem.price) -
+                : (((Number(goodReceiptItem.price) -
                     Number(goodReceiptItem.discount)) *
                     createPurchaseInvoiceNetValue) /
-                  createPurchaseInvoiceTotalValue,
+                    createPurchaseInvoiceTotalValue /
+                    Number(goodReceiptItem.quantity)) *
+                  (goodReceiptItem.item_unit == null
+                    ? 1
+                    : Number(goodReceiptItem.item_unit.conversion)),
           };
 
           await queue.add("insert-stock-in", stockIn);
@@ -314,7 +318,13 @@ class PurchaseInvoiceController {
                 : ((Number(result.good_receipt_code.good_receipt[n].price) -
                     Number(result.good_receipt_code.good_receipt[n].discount)) *
                     createPurchaseInvoiceNetValue) /
-                  createPurchaseInvoiceTotalValue,
+                  createPurchaseInvoiceTotalValue /
+                  (result.good_receipt_code.good_receipt[n].item_unit == null
+                    ? 1
+                    : Number(
+                        result.good_receipt_code.good_receipt[n].item_unit!
+                          .conversion
+                      )),
           };
 
           await queue.add("insert-stock-in", stockIn);

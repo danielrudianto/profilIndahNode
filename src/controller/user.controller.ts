@@ -382,6 +382,9 @@ class UserController {
     }
   };
 
+  /**
+   * Update user password
+   */
   static updatePassword = (req: Request, res: Response) => {
     const password = req.body.password;
     hash(password, 12).then((hashed_password) => {
