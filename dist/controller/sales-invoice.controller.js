@@ -69,7 +69,9 @@ SalesInvoiceController.create = (req, res) => {
     const userID = req.body.userId;
     const is_paid = req.body.is_paid;
     const type = req.body.type;
-    const sales = req.body.sales == "" ? null : req.body.sales.toString().toUpperCase();
+    const sales = req.body.sales == "" || req.body.sales == null
+        ? null
+        : req.body.sales.toString().toUpperCase();
     if (type == "sales") {
         bill_code_model_1.default.create({
             sales: sales,

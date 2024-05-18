@@ -39,7 +39,7 @@ class ReportController {
             (x.deposit != null && x.deposit > 0)
           ) {
             response.push({
-              id: x.id,
+              id: Number(x.id.toString().replace("n", "")),
               name: x.name,
               bill_payment: Number(x.bill),
               sales_return_payment: Number(x.sales_return),
@@ -657,15 +657,14 @@ class ReportController {
                 _id: "$itemID",
                 currentStock: {
                   $sum: "$quantity",
-                }
-              }
-            }
+                },
+              },
+            },
           ])
           .then((stocks) => {
             switch (group) {
               case "brand":
                 const brandResponse = brands.map((x) => {
-                  
                   return {
                     id: x.id,
                     name: x.name,

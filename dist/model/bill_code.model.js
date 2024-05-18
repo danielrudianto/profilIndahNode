@@ -595,13 +595,18 @@ class BillCodeModel {
     }
     static fetchMoneyReceipt(formattedDate) {
         return app_1.prisma.$queryRawUnsafe(`
-    SELECT payment_method.id, COALESCE(payment_method.name, "Cash") AS name, 
+    SELECT method.id, COALESCE(method.name, "Cash") AS name, 
     pm.value AS bill, 
     sr.value AS sales_return, 
     dp.value AS deposit
-    FROM payment_method
+    FROM (
+		SELECT id, name FROM payment_method
+        WHERE payment_method.is_delete = 0
+        UNION ALL
+        SELECT 0 AS id, "Cash" AS name
+    ) AS method
     LEFT JOIN (
-      SELECT SUM(value) AS value, bill_payment.payment_method_id
+      SELECT SUM(value) AS value, COALESCE(bill_payment.payment_method_id, 0) AS payment_method_id
       FROM bill_payment
       JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
       WHERE bill_code.is_confirm = 1
@@ -609,9 +614,9 @@ class BillCodeModel {
       AND bill_code.date = '${formattedDate}'
       GROUP BY bill_payment.payment_method_id
     ) pm
-    ON payment_method.id = pm.payment_method_id
+    ON method.id = pm.payment_method_id
     LEFT JOIN (
-      SELECT SUM(sr_detail.value) AS value, payment_method_id
+      SELECT SUM(sr_detail.value) AS value, COALESCE(payment_method_id, 0) AS payment_method_id
       FROM sales_return_code
       JOIN (
         SELECT SUM(sales_return.quantity * (bill.price - bill.discount)) AS value, sales_return_code_id
@@ -625,16 +630,16 @@ class BillCodeModel {
         AND sales_return_code.date = '${formattedDate}'
         GROUP BY sales_return_code.payment_method_id  
     ) sr
-    ON payment_method.id = sr.payment_method_id
+    ON method.id = sr.payment_method_id
     LEFT JOIN (
-      SELECT SUM(value) AS value, payment_method_id
+      SELECT SUM(value) AS value, COALESCE(payment_method_id, 0) AS payment_method_id
       FROM deposit_payment
       JOIN deposit_code ON deposit_payment.deposit_code_id = deposit_code.id
       WHERE deposit_code.is_delete = 0
       AND deposit_payment.date = '${formattedDate}'
       GROUP BY deposit_payment.payment_method_id
     ) dp
-    ON payment_method.id = dp.payment_method_id
+    ON method.id = dp.payment_method_id
     `);
     }
     static fetchAppendix(month, year) {
@@ -1134,6 +1139,10 @@ class BillCodeModel {
       WHERE bill_code.id IN (${ids.join(",")})
     `);
     }
+    /**
+     * Calculates the total receivables for all confirmed, non-deleted, and unpaid bill codes.
+     * @returns {Promise<any[]>} An array containing a single object with a 'value' property representing the total receivables.
+     */
     static calculateReceivables() {
         return app_1.prisma.$queryRawUnsafe(`
       SELECT SUM(COALESCE(b.value) + bill_code.delivery - bill_code.discount + bill_code.service - COALESCE(pm.value, 0)) AS value
@@ -1153,7 +1162,7 @@ class BillCodeModel {
       WHERE bill_code.is_confirm = 1
       AND bill_code.is_delete = 0
       AND bill_code.is_paid = 0
-      `);
+    `);
     }
 }
 exports.default = BillCodeModel;

@@ -70,7 +70,7 @@ ReportController.fetchMoneyReceipt = (req, res) => {
                 (x.sales_return != null && x.sales_return > 0) ||
                 (x.deposit != null && x.deposit > 0)) {
                 response.push({
-                    id: x.id,
+                    id: Number(x.id.toString().replace("n", "")),
                     name: x.name,
                     bill_payment: Number(x.bill),
                     sales_return_payment: Number(x.sales_return),
@@ -637,9 +637,9 @@ ReportController.fetchSalesItemReport = (req, res) => {
                     _id: "$itemID",
                     currentStock: {
                         $sum: "$quantity",
-                    }
-                }
-            }
+                    },
+                },
+            },
         ])
             .then((stocks) => {
             switch (group) {

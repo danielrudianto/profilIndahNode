@@ -59,7 +59,9 @@ class SalesInvoiceController {
     const is_paid = req.body.is_paid;
     const type = req.body.type;
     const sales =
-      req.body.sales == "" ? null : req.body.sales.toString().toUpperCase();
+      req.body.sales == "" || req.body.sales == null
+        ? null
+        : req.body.sales.toString().toUpperCase();
 
     if (type == "sales") {
       BillCodeModel.create({
