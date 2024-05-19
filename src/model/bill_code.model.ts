@@ -1129,7 +1129,7 @@ class BillCodeModel {
           GROUP BY bill_code_id
       ) AS p
       ON bill_code.id = p.bill_code_id
-      AND bill_code.is_delete = 0 
+      WHERE bill_code.is_delete = 0 
       AND bill_code.id IN (${ids.join(",")})
       GROUP BY bill_code.customer_id
       HAVING value > 0
