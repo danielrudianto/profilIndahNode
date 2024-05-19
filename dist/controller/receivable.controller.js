@@ -21,12 +21,22 @@ class ReceivableController {
 }
 _a = ReceivableController;
 ReceivableController.receivable = 0;
+/**
+ * Fetch all receivable
+ * @param req
+ * @param res
+ */
 ReceivableController.fetch = (req, res) => {
     bill_code_model_1.default.fetchReceivableIDs().then((result) => __awaiter(void 0, void 0, void 0, function* () {
         bill_code_model_1.default.fetchReceivableByIDs(result.map((x) => {
             return x.id;
-        })).then((receivables) => {
+        }))
+            .then((receivables) => {
             return res.status(200).send(receivables);
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching receivable ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }));
 };

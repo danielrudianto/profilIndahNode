@@ -7,15 +7,25 @@ import ErrorList from "../assets/error_list";
 class ReceivableController {
   static receivable = 0;
 
+  /**
+   * Fetch all receivable
+   * @param req
+   * @param res
+   */
   static fetch = (req: Request, res: Response) => {
     BillCodeModel.fetchReceivableIDs().then(async (result) => {
       BillCodeModel.fetchReceivableByIDs(
         result.map((x) => {
           return x.id;
         })
-      ).then((receivables) => {
-        return res.status(200).send(receivables);
-      });
+      )
+        .then((receivables) => {
+          return res.status(200).send(receivables);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on fetching receivable ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
     });
   };
 
