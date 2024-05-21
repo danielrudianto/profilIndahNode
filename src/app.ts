@@ -127,7 +127,7 @@ server.listen(5000, async () => {
   await redisClient.connect();
   console.info("[info]: Connected with redis");
 
-  const url = "mongodb://0.0.0.0:27017/ProfilIndah";
+  const url = "mongodb://127.0.0.1:27017/ProfilIndah";
   await mongoose.connect(url, {
     dbName: "ProfilIndah",
     autoCreate: true,

@@ -120,7 +120,7 @@ server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     exports.redisClient.on("error", (err) => console.error(`[error]: Error on redis ${err}`));
     yield exports.redisClient.connect();
     console.info("[info]: Connected with redis");
-    const url = "mongodb://0.0.0.0:27017/ProfilIndah";
+    const url = "mongodb://127.0.0.1:27017/ProfilIndah";
     yield mongoose_1.default.connect(url, {
         dbName: "ProfilIndah",
         autoCreate: true,
