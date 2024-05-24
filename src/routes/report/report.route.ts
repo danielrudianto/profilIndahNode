@@ -24,6 +24,16 @@ router.post(
 );
 
 router.post(
+  "/sales-item-daily",
+  body("day").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("month").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("year").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("group").notEmpty().withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  ReportController.fetchSalesItemDailyReport
+);
+
+router.post(
   "/purchase",
   body("month")
     .notEmpty()
@@ -67,7 +77,10 @@ router.post(
   ReportController.fetchAdministratorDashboardV2
 );
 
-router.get("/dashboard/administrator", ReportController.fetchAdministratorDashboardV1)
+router.get(
+  "/dashboard/administrator",
+  ReportController.fetchAdministratorDashboardV1
+);
 
 router.post(
   "/output-company/download",

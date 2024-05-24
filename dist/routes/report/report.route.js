@@ -12,6 +12,7 @@ const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.post("/money-receipt", (0, express_validator_1.body)("date").exists().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.fetchMoneyReceipt);
 router.post("/sales-item", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("group").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.fetchSalesItemReport);
+router.post("/sales-item-daily", (0, express_validator_1.body)("day").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("group").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, report_controller_1.default.fetchSalesItemDailyReport);
 router.post("/purchase", (0, express_validator_1.body)("month")
     .notEmpty()
     .isNumeric()

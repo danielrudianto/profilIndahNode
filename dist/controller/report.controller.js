@@ -709,6 +709,103 @@ ReportController.fetchSalesItemReport = (req, res) => {
         });
     }));
 };
+ReportController.fetchSalesItemDailyReport = (req, res) => {
+    const day = req.body.day;
+    const month = req.body.month;
+    const year = req.body.year;
+    const brand = req.body.brand;
+    const type = req.body.type;
+    const group = req.body.group;
+    item_model_1.ItemModel.fetchValueByBrandType(brand, type, month, year).then(([result, brands, types]) => __awaiter(void 0, void 0, void 0, function* () {
+        mongo_stock_card_model_1.mongoStockCardModel
+            .aggregate([
+            {
+                $match: {
+                    itemID: {
+                        $in: result.map((x) => x.id),
+                    },
+                    date: {
+                        $lt: new Date(year, month - 1, day),
+                    },
+                },
+            },
+            {
+                $group: {
+                    _id: "$itemID",
+                    currentStock: {
+                        $sum: "$quantity",
+                    },
+                },
+            },
+        ])
+            .then((stocks) => {
+            switch (group) {
+                case "brand":
+                    const brandResponse = brands.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            items: result
+                                .filter((y) => y.item_brand_id == x.id)
+                                .map((y) => {
+                                const stockIndex = stocks.findIndex((z) => z._id == y.id);
+                                return {
+                                    id: y.id,
+                                    reference: y.reference,
+                                    description: y.description,
+                                    unit: y.unit,
+                                    brand: y.item_brand_name,
+                                    type: y.item_type_name,
+                                    adjustment_input: Number(y.adjustmentQuantityPlus),
+                                    adjustment_output: Number(y.adjustmentQuantityMinus),
+                                    good_receipt_input: Number(y.goodReceiptQuantity),
+                                    bill_output: Number(y.billQuantity),
+                                    sales_return: Number(y.salesReturnQuantity),
+                                    initialStock: stockIndex == -1
+                                        ? 0
+                                        : stocks[stockIndex].currentStock,
+                                };
+                            }),
+                        };
+                    });
+                    return res.status(200).send(brandResponse);
+                case "type":
+                    const typeResponse = types.map((x) => {
+                        return {
+                            id: x.id,
+                            name: x.name,
+                            items: result
+                                .filter((y) => y.item_type_id == x.id)
+                                .map((y) => {
+                                const stockIndex = stocks.findIndex((z) => z._id == y.id);
+                                return {
+                                    id: y.id,
+                                    reference: y.reference,
+                                    description: y.description,
+                                    unit: y.unit,
+                                    brand: y.item_brand_name,
+                                    type: y.item_type_name,
+                                    adjustment_input: Number(y.adjustmentQuantityPlus),
+                                    adjustment_output: Number(y.adjustmentQuantityMinus),
+                                    good_receipt_input: Number(y.goodReceiptQuantity),
+                                    bill_output: Number(y.billQuantity),
+                                    sales_return: Number(y.salesReturnQuantity),
+                                    initialStock: stockIndex == -1
+                                        ? 0
+                                        : stocks[stockIndex].currentStock,
+                                };
+                            }),
+                        };
+                    });
+                    return res.status(200).send(typeResponse);
+            }
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching stock ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
+    }));
+};
 ReportController.fetchProductStockProblem = (req, res) => {
     Promise.all([
         mongo_product_model_1.mongoProductModel
