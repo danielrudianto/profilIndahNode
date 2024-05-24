@@ -1636,6 +1636,101 @@ class ItemModel {
             }),
         ]);
     }
+    static fetchValueByBrandTypeDaily(brand, type, day, month, year) {
+        return prisma.$transaction([
+            prisma.$queryRawUnsafe(`
+        SELECT item.id, item.reference, item.description, item_brand.name AS item_brand_name, 
+        item_type.name AS item_type_name, item.unit, item.item_brand_id, item.item_type_id, 
+        COALESCE(goodReceiptCount.quantity, 0) AS goodReceiptQuantity,
+        COALESCE(adjustmentCountPlus.quantity, 0) AS adjustmentQuantityPlus,
+        COALESCE(adjustmentCountMinus.quantity, 0) AS adjustmentQuantityMinus,
+        COALESCE(billCount.quantity, 0) AS billQuantity,
+        COALESCE(salesReturnCount.quantity, 0) AS salesReturnQuantity
+        FROM item
+        JOIN item_brand ON item.item_brand_id = item_brand.id
+        JOIN item_type ON item.item_type_id = item_type.id
+        LEFT JOIN (
+          SELECT SUM(bill.quantity * COALESCE(item_unit.conversion, 1)) * -1 AS quantity, bill.item_id
+          FROM bill
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          JOIN bill_code ON bill.bill_code_id = bill_code.id
+          WHERE bill_code.is_delete = 0
+          AND DAY(bill_code.date) = ${day}
+          AND MONTH(bill_code.date) = ${month}
+          AND YEAR(bill_code.date) = ${year}
+          GROUP BY bill.item_id
+        ) AS billCount
+        ON item.id = billCount.item_id
+        LEFT JOIN (
+          SELECT SUM(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, adjustment_case.item_id
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+          LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
+          WHERE adjustment_case_code.is_delete = 0
+          AND DAY(adjustment_case_code.date) = ${day}
+          AND MONTH(adjustment_case_code.date) = ${month}
+          AND YEAR(adjustment_case_code.date) = ${year}
+          AND adjustment_case.quantity > 0
+          GROUP BY adjustment_case.item_id
+        ) AS adjustmentCountPlus
+        ON item.id = adjustmentCountPlus.item_id
+        LEFT JOIN (
+          SELECT SUM(adjustment_case.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, adjustment_case.item_id
+          FROM adjustment_case
+          JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+          LEFT JOIN item_unit ON adjustment_case.item_unit_id = item_unit.id
+          WHERE adjustment_case_code.is_delete = 0
+          AND DAY(adjustment_case_code.date) = ${day}
+          AND MONTH(adjustment_case_code.date) = ${month}
+          AND YEAR(adjustment_case_code.date) = ${year}
+          AND adjustment_case.quantity < 0
+          GROUP BY adjustment_case.item_id
+        ) AS adjustmentCountMinus
+        ON item.id = adjustmentCountMinus.item_id
+        LEFT JOIN (
+          SELECT SUM(good_receipt.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, good_receipt.item_id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt_code_id = good_receipt_code.id
+          LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+          WHERE good_receipt_code.is_delete = 0
+          AND DAY(good_receipt_code.date) = ${day}
+          AND MONTH(good_receipt_code.date) = ${month}
+          AND YEAR(good_receipt_code.date) = ${year}
+          GROUP BY good_receipt.item_id
+        ) AS goodReceiptCount
+        ON item.id = goodReceiptCount.item_id
+        LEFT JOIN (
+          SELECT SUM(sales_return.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, bill.item_id
+          FROM sales_return
+          JOIN sales_return_code ON sales_return_code_id = sales_return_code.id
+          JOIN bill ON sales_return.bill_id = bill.id
+          LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
+          WHERE sales_return_code.is_delete = 0
+          AND DAY(sales_return_code.date) = ${day}
+          AND MONTH(sales_return_code.date) = ${month}
+          AND YEAR(sales_return_code.date) = ${year}
+          GROUP BY bill.item_id
+        ) AS salesReturnCount
+        ON item.id = salesReturnCount.item_id
+        WHERE item_brand.id IN (${brand.join(",")}) AND item_type.id IN (${type.join(",")})
+        AND item.is_delete = 0
+      `),
+            prisma.item_brand.findMany({
+                where: {
+                    id: {
+                        in: brand,
+                    },
+                },
+            }),
+            prisma.item_type.findMany({
+                where: {
+                    id: {
+                        in: type,
+                    },
+                },
+            }),
+        ]);
+    }
     static fetchMinusStock(keyword, offset, limit) {
         return prisma.$transaction([
             prisma.item.findMany({

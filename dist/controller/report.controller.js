@@ -716,7 +716,7 @@ ReportController.fetchSalesItemDailyReport = (req, res) => {
     const brand = req.body.brand;
     const type = req.body.type;
     const group = req.body.group;
-    item_model_1.ItemModel.fetchValueByBrandType(brand, type, month, year).then(([result, brands, types]) => __awaiter(void 0, void 0, void 0, function* () {
+    item_model_1.ItemModel.fetchValueByBrandTypeDaily(brand, type, day, month, year).then(([result, brands, types]) => __awaiter(void 0, void 0, void 0, function* () {
         mongo_stock_card_model_1.mongoStockCardModel
             .aggregate([
             {

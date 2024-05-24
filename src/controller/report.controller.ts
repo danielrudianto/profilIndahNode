@@ -751,7 +751,7 @@ class ReportController {
 
     const group = req.body.group;
 
-    ItemModel.fetchValueByBrandType(brand, type, month, year).then(
+    ItemModel.fetchValueByBrandTypeDaily(brand, type, day, month, year).then(
       async ([result, brands, types]) => {
         mongoStockCardModel
           .aggregate([
