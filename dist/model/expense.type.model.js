@@ -71,7 +71,7 @@ class ExpenseTypeModel {
      * @param mode
      * @returns Promise<IExpenseType[]>
      */
-    static fetch(keyword, limit, offset, mode) {
+    static fetch(keyword, limit, offset, mode, id) {
         switch (mode) {
             case fetch_interface_1.fetchMode.ParentAutocomplete:
                 return prisma.expense_type.findMany({
@@ -130,6 +130,19 @@ class ExpenseTypeModel {
                         parent_id: {
                             not: null,
                         },
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        description: true,
+                        parent_id: true,
+                    },
+                });
+            case fetch_interface_1.fetchMode.ChildByParentID:
+                return prisma.expense_type.findMany({
+                    where: {
+                        is_delete: false,
+                        parent_id: id,
                     },
                     select: {
                         id: true,

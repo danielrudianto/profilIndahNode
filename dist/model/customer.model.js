@@ -244,6 +244,8 @@ class CustomerModel {
      */
     static fetchByIDs(ids) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (ids.length == 0)
+                return Promise.resolve([]);
             return prisma.$queryRawUnsafe(`
       SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
       FROM customer

@@ -95,7 +95,8 @@ class ExpenseTypeModel {
     keyword: string,
     limit: number,
     offset: number,
-    mode: fetchMode
+    mode: fetchMode,
+    id?: number
   ) {
     switch (mode) {
       case fetchMode.ParentAutocomplete:
@@ -155,6 +156,19 @@ class ExpenseTypeModel {
             parent_id: {
               not: null,
             },
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            parent_id: true,
+          },
+        });
+      case fetchMode.ChildByParentID:
+        return prisma.expense_type.findMany({
+          where: {
+            is_delete: false,
+            parent_id: id,
           },
           select: {
             id: true,

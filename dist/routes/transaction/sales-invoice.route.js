@@ -22,6 +22,7 @@ router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(er
     .toInt()
     .isInt({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.createSalesman, sales_invoice_controller_1.default.create);
+router.post("/archives/v2", sales_invoice_controller_1.default.fetchArchiveV2);
 router.post("/archives", sales_invoice_controller_1.default.fetchArchive);
 router.get("/salesman", sales_invoice_controller_1.default.fetchSalesmen);
 router.get("/salesman/pagination", sales_invoice_controller_1.default.fetchSalesmenPagination);

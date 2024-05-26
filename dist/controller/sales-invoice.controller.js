@@ -470,6 +470,56 @@ SalesInvoiceController.fetchArchive = (req, res) => {
         });
     }
 };
+SalesInvoiceController.fetchArchiveV2 = (req, res) => {
+    var _b;
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null && month == null) {
+        bill_code_model_1.default.fetchArchiveYearsV2()
+            .then((result) => {
+            return res.status(200).send(result.map((x) => {
+                return {
+                    year: x.year,
+                    month: x.month,
+                    count: Number(x.count.toString().replace("n", "")),
+                };
+            }));
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching sales invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
+    }
+    else {
+        const keyword = req.body.keyword;
+        const page = (_b = req.body.page) !== null && _b !== void 0 ? _b : 1;
+        bill_code_model_1.default.fetchArchiveV2({
+            year: Number(year),
+            month: Number(month),
+            mode: 0,
+            limit: 20,
+            offset: (page - 1) * 20,
+            keyword: (0, escape_helper_1.mysql_real_escape_string)(keyword !== null && keyword !== void 0 ? keyword : ""),
+        }).then((result) => {
+            return res.status(200).send({
+                data: result[0].map((x) => {
+                    return {
+                        id: x.id,
+                        name: x.name,
+                        date: x.date,
+                        is_delete: x.is_delete == 1,
+                        is_confirm: x.is_confirm == 1,
+                        customer_name: x.customer_name,
+                        sales: x.sales,
+                    };
+                }),
+                count: result[1] == null || result[1].length == 0
+                    ? 0
+                    : parseInt(result[1][0].count.toString().replace("n", "")),
+            });
+        });
+    }
+};
 /**
  * Fetch bill by ID
  * @param req

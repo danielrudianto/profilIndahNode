@@ -203,14 +203,17 @@ class ReportController {
                 .map((x) => {
                   return {
                     name: x.customer_name,
-                    value: x.value - x.discount + x.delivery + x.service,
+                    value:
+                      Number(x.value) -
+                      Number(x.discount) +
+                      Number(x.delivery) +
+                      Number(x.service),
                   };
                 })
                 .sort((a, b) => {
                   return b.value - a.value;
                 }),
             });
-            break;
           case "customer":
             return res.status(200).send({
               sales_detail: result
@@ -224,7 +227,6 @@ class ReportController {
                   return b.value - a.value;
                 }),
             });
-            break;
           case "type":
             return res.status(200).send({
               sales_detail: result
@@ -746,13 +748,12 @@ class ReportController {
     const month = req.body.month;
     const year = req.body.year;
 
-    const brand = req.body.brand as number[];
     const type = req.body.type as number[];
 
     const group = req.body.group;
 
-    ItemModel.fetchValueByBrandTypeDaily(brand, type, day, month, year).then(
-      async ([result, brands, types]) => {
+    ItemModel.fetchValueByBrandTypeDaily(type, day, month, year).then(
+      async ([result, types]) => {
         mongoStockCardModel
           .aggregate([
             {
@@ -775,76 +776,35 @@ class ReportController {
             },
           ])
           .then((stocks) => {
-            switch (group) {
-              case "brand":
-                const brandResponse = brands.map((x) => {
-                  return {
-                    id: x.id,
-                    name: x.name,
-                    items: result
-                      .filter((y) => y.item_brand_id == x.id)
-                      .map((y) => {
-                        const stockIndex = stocks.findIndex(
-                          (z) => z._id == y.id
-                        );
+            const typeResponse = types.map((x) => {
+              return {
+                id: x.id,
+                name: x.name,
+                items: result
+                  .filter((y) => y.item_type_id == x.id)
+                  .map((y) => {
+                    const stockIndex = stocks.findIndex((z) => z._id == y.id);
 
-                        return {
-                          id: y.id,
-                          reference: y.reference,
-                          description: y.description,
-                          unit: y.unit,
-                          brand: y.item_brand_name,
-                          type: y.item_type_name,
-                          adjustment_input: Number(y.adjustmentQuantityPlus),
-                          adjustment_output: Number(y.adjustmentQuantityMinus),
-                          good_receipt_input: Number(y.goodReceiptQuantity),
-                          bill_output: Number(y.billQuantity),
-                          sales_return: Number(y.salesReturnQuantity),
-                          initialStock:
-                            stockIndex == -1
-                              ? 0
-                              : stocks[stockIndex].currentStock,
-                        };
-                      }),
-                  };
-                });
+                    return {
+                      id: y.id,
+                      reference: y.reference,
+                      description: y.description,
+                      unit: y.unit,
+                      brand: y.item_brand_name,
+                      type: y.item_type_name,
+                      adjustment_input: Number(y.adjustmentQuantityPlus),
+                      adjustment_output: Number(y.adjustmentQuantityMinus),
+                      good_receipt_input: Number(y.goodReceiptQuantity),
+                      bill_output: Number(y.billQuantity),
+                      sales_return: Number(y.salesReturnQuantity),
+                      initialStock:
+                        stockIndex == -1 ? 0 : stocks[stockIndex].currentStock,
+                    };
+                  }),
+              };
+            });
 
-                return res.status(200).send(brandResponse);
-              case "type":
-                const typeResponse = types.map((x) => {
-                  return {
-                    id: x.id,
-                    name: x.name,
-                    items: result
-                      .filter((y) => y.item_type_id == x.id)
-                      .map((y) => {
-                        const stockIndex = stocks.findIndex(
-                          (z) => z._id == y.id
-                        );
-
-                        return {
-                          id: y.id,
-                          reference: y.reference,
-                          description: y.description,
-                          unit: y.unit,
-                          brand: y.item_brand_name,
-                          type: y.item_type_name,
-                          adjustment_input: Number(y.adjustmentQuantityPlus),
-                          adjustment_output: Number(y.adjustmentQuantityMinus),
-                          good_receipt_input: Number(y.goodReceiptQuantity),
-                          bill_output: Number(y.billQuantity),
-                          sales_return: Number(y.salesReturnQuantity),
-                          initialStock:
-                            stockIndex == -1
-                              ? 0
-                              : stocks[stockIndex].currentStock,
-                        };
-                      }),
-                  };
-                });
-
-                return res.status(200).send(typeResponse);
-            }
+            return res.status(200).send(typeResponse);
           })
           .catch((error) => {
             console.error(`[error]: Error on fetching stock ${error}`);
@@ -913,14 +873,14 @@ class ReportController {
                 value: expenses
                   .filter((z) => z.expense_type_id == y.id)
                   .reduce((a, b) => {
-                    return a + b.value;
+                    return a + Number(b.value);
                   }, 0),
               };
             }),
           value: expenses
             .filter((y) => y.id == x.id)
             .reduce((a, b) => {
-              return a + b.value;
+              return a + Number(b.value);
             }, 0),
         };
       });
@@ -932,7 +892,7 @@ class ReportController {
           value: expenses
             .filter((x) => x.company_id == company.id)
             .reduce((a, b) => {
-              return a + b.value;
+              return a + Number(b.value);
             }, 0),
         };
       }),

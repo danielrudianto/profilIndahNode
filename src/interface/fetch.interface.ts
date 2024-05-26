@@ -3,6 +3,7 @@ export enum fetchMode {
   Pagination,
   Autocomplete,
   Child,
+  ChildByParentID,
   ParentAutocomplete,
   ChildAutocomplete,
   Unconfirmed,

@@ -1636,7 +1636,7 @@ class ItemModel {
             }),
         ]);
     }
-    static fetchValueByBrandTypeDaily(brand, type, day, month, year) {
+    static fetchValueByBrandTypeDaily(type, day, month, year) {
         return prisma.$transaction([
             prisma.$queryRawUnsafe(`
         SELECT item.id, item.reference, item.description, item_brand.name AS item_brand_name, 
@@ -1712,16 +1712,9 @@ class ItemModel {
           GROUP BY bill.item_id
         ) AS salesReturnCount
         ON item.id = salesReturnCount.item_id
-        WHERE item_brand.id IN (${brand.join(",")}) AND item_type.id IN (${type.join(",")})
+        WHERE item_type.id IN (${type.join(",")})
         AND item.is_delete = 0
       `),
-            prisma.item_brand.findMany({
-                where: {
-                    id: {
-                        in: brand,
-                    },
-                },
-            }),
             prisma.item_type.findMany({
                 where: {
                     id: {

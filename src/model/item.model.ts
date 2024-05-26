@@ -1775,7 +1775,6 @@ export class ItemModel {
   }
 
   static fetchValueByBrandTypeDaily(
-    brand: number[],
     type: number[],
     day: number,
     month: number,
@@ -1856,18 +1855,9 @@ export class ItemModel {
           GROUP BY bill.item_id
         ) AS salesReturnCount
         ON item.id = salesReturnCount.item_id
-        WHERE item_brand.id IN (${brand.join(
-          ","
-        )}) AND item_type.id IN (${type.join(",")})
+        WHERE item_type.id IN (${type.join(",")})
         AND item.is_delete = 0
       `),
-      prisma.item_brand.findMany({
-        where: {
-          id: {
-            in: brand,
-          },
-        },
-      }),
       prisma.item_type.findMany({
         where: {
           id: {

@@ -61,6 +61,15 @@ export interface BillArchive extends IArchive {
   sales: string;
 }
 
+export interface BillArchiveV2 extends IArchive {
+  is_delete: number;
+  customer_id: number | null;
+  customer_name: string;
+  is_confirm: number;
+  sales: string;
+  value: number;
+}
+
 export interface PurchaseInvoiceArchive extends IArchive {
   is_delete: number;
   company_id: number;

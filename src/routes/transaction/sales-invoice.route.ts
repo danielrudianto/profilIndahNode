@@ -35,6 +35,7 @@ router.post(
   SalesInvoiceController.create
 );
 
+router.post("/archives/v2", SalesInvoiceController.fetchArchiveV2);
 router.post("/archives", SalesInvoiceController.fetchArchive);
 router.get("/salesman", SalesInvoiceController.fetchSalesmen);
 router.get(

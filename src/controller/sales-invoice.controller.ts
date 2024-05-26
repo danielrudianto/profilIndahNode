@@ -533,6 +533,61 @@ class SalesInvoiceController {
     }
   };
 
+  static fetchArchiveV2 = (req: Request, res: Response) => {
+    const year = req.body.year;
+    const month = req.body.month;
+    if (year == null && month == null) {
+      BillCodeModel.fetchArchiveYearsV2()!
+        .then((result) => {
+          return res.status(200).send(
+            result.map((x) => {
+              return {
+                year: x.year,
+                month: x.month,
+                count: Number(x.count.toString().replace("n", "")),
+              };
+            })
+          );
+        })
+        .catch((error) => {
+          console.error(
+            `[error]: Error on fetching sales invoice archive ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    } else {
+      const keyword = req.body.keyword;
+      const page = req.body.page ?? 1;
+
+      BillCodeModel.fetchArchiveV2({
+        year: Number(year),
+        month: Number(month),
+        mode: 0,
+        limit: 20,
+        offset: (page - 1) * 20,
+        keyword: mysql_real_escape_string(keyword ?? ""),
+      })!.then((result) => {
+        return res.status(200).send({
+          data: result[0].map((x) => {
+            return {
+              id: x.id,
+              name: x.name,
+              date: x.date,
+              is_delete: x.is_delete == 1,
+              is_confirm: x.is_confirm == 1,
+              customer_name: x.customer_name,
+              sales: x.sales,
+            };
+          }),
+          count:
+            result[1] == null || result[1].length == 0
+              ? 0
+              : parseInt(result[1][0].count.toString().replace("n", "")),
+        });
+      });
+    }
+  };
+
   /**
    * Fetch bill by ID
    * @param req

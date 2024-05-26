@@ -38,36 +38,33 @@ class ExpenseTypeController {
    * @param res
    */
   static fetch = (req: Request, res: Response) => {
-    // Create a tree view of expense type
     ExpenseTypeModel.fetch("", 0, 0, fetchMode.All)
       .then((result) => {
         const parentExpenseType = result.filter((x) => x.parent_id == null);
-        const childExpenseType = result.filter((x) => x.parent_id != null);
-        const expenseType: any[] = [];
 
-        parentExpenseType.forEach((parent) => {
-          const children: any[] = [];
-          childExpenseType
-            .filter((x) => x.parent_id == parent.id)
-            .forEach((child) => {
-              children.push({
-                id: child.id,
-                name: child.name,
-                description: child.description,
-              });
-            });
-          expenseType.push({
-            id: parent.id,
-            name: parent.name,
-            description: parent.description,
-            children: children,
-          });
-        });
-
-        return res.status(200).send(expenseType);
+        return res.status(200).send(parentExpenseType);
       })
       .catch((error) => {
         console.error(`[error]: Error on fetching expense type: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  /**
+   * Fetch expense type children
+   * @param req
+   * @param res
+   */
+  static fetchChildren = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    ExpenseTypeModel.fetch("", 0, 0, fetchMode.ChildByParentID, id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(
+          `[error]: Error on fetching expense type children :${error}`
+        );
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
@@ -129,8 +126,8 @@ class ExpenseTypeController {
   static fetchAutocomplete = (req: Request, res: Response) => {
     const mode = req.query.mode;
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    if (mode == "child") {
-      ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ChildAutocomplete)
+    if (mode == "parent") {
+      ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ParentAutocomplete)
         ?.then((result) => {
           return res.status(200).send(result);
         })
@@ -138,8 +135,8 @@ class ExpenseTypeController {
           console.error(`[error]: Error on fetching autocomplete ${error}`);
           return res.status(500).send(ErrorList["Internal server error"]);
         });
-    } else if (mode == "parent") {
-      ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ParentAutocomplete)
+    } else {
+      ExpenseTypeModel.fetch(keyword, 5, 0, fetchMode.ChildAutocomplete)
         ?.then((result) => {
           return res.status(200).send(result);
         })

@@ -7,6 +7,7 @@ import ErrorHelper from "../../helper/error.helper";
 const router = Router();
 
 router.get("/autocomplete", ExpenseTypeController.fetchAutocomplete);
+router.get("/children/:id", ExpenseTypeController.fetchChildren);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),

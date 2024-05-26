@@ -270,6 +270,15 @@ class BillCodeModel {
       GROUP BY YEAR(bill_code.date)
     `;
     }
+    static fetchArchiveYearsV2() {
+        return app_1.prisma.$queryRaw `
+      SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, 
+      COUNT(id) AS count
+      FROM bill_code
+      GROUP BY MONTH(bill_code.date), YEAR(bill_code.date)
+      ORDER BY bill_code.date DESC
+    `;
+    }
     /**
      * Fetch monthly archive
      * @param year
@@ -291,6 +300,112 @@ class BillCodeModel {
      * @returns Promise<BillArchive[]>
      */
     static fetchArchive(data) {
+        switch (data.mode) {
+            case 0:
+                return app_1.prisma.$transaction([
+                    app_1.prisma.$queryRawUnsafe(`
+            SELECT bill_code.id, bill_code.date, bill_code.name, 
+            bill_code.is_delete, 
+            COALESCE(customer.name, 'Retail customer') AS customer_name, 
+            COALESCE(bill_code.sales, 'Internal') AS sales,
+            bill_code.is_confirm, bill_code.customer_id
+            FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
+            ${data.keyword == null
+                        ? ""
+                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
+                OR COALESCE(customer.name, 'Retail customer') 
+                LIKE '%${data.keyword}%')`}
+            ORDER BY date ASC
+            LIMIT ${data.limit}
+            OFFSET ${data.offset}
+          `),
+                    app_1.prisma.$queryRawUnsafe(`
+            SELECT COUNT(bill_code.id) AS count 
+            FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
+            ${data.keyword == null
+                        ? ""
+                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
+                OR COALESCE(customer.name, 'Retail customer') 
+                LIKE '%${data.keyword}%')`}
+          `),
+                ]);
+            case 1:
+                return app_1.prisma.$transaction([
+                    app_1.prisma.$queryRawUnsafe(`
+          SELECT * 
+          FROM (
+            SELECT bill_code.id, bill_code.date, bill_code.name, 
+            bill_code.is_delete, 
+            COALESCE(customer.name, 'Retail customer') AS customer_name,
+            COALESCE(bill_code.sales, 'Internal') AS sales,
+            bill_code.is_confirm, bill_code.customer_id
+            FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
+            AND bill_code.is_delete = 1
+            ${data.keyword == null
+                        ? ""
+                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
+                OR COALESCE(customer.name, 'Retail customer') 
+                LIKE '%${data.keyword}%')`}
+            ORDER BY date ASC
+            LIMIT ${data.limit}
+            OFFSET ${data.offset}
+          ) AS bill 
+          `),
+                    app_1.prisma.$queryRawUnsafe(`
+            SELECT COUNT(bill_code.id) AS count FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1} AND bill_code.is_delete = 1
+          ${data.keyword == null
+                        ? ""
+                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
+                OR COALESCE(customer.name, 'Retail customer') 
+                LIKE '%${data.keyword}%')`}
+          `),
+                ]);
+            case 2:
+                return app_1.prisma.$transaction([
+                    app_1.prisma.$queryRawUnsafe(`
+          SELECT * 
+          FROM (
+            SELECT bill_code.id, bill_code.date, bill_code.name, 
+            bill_code.is_delete, 
+            COALESCE(customer.name, 'Retail customer') AS customer_name,
+            COALESCE(bill_code.sales, 'Internal') AS sales, 
+            bill_code.is_confirm, bill_code.customer_id
+            FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
+            AND bill_code.is_delete = 0
+            ${data.keyword == null
+                        ? ""
+                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
+                OR COALESCE(customer.name, 'Retail customer') 
+                LIKE '%${data.keyword}%')`}
+            ORDER BY date ASC
+            LIMIT ${data.limit}
+            OFFSET ${data.offset}
+          ) AS bill
+          `),
+                    app_1.prisma.$queryRawUnsafe(`
+            SELECT COUNT(bill_code.id) AS count FROM bill_code
+            LEFT JOIN customer ON bill_code.customer_id = customer.id
+            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1} AND bill_code.is_delete = 0
+          ${data.keyword == null
+                        ? ""
+                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
+              OR COALESCE(customer.name, 'Retail customer') 
+              LIKE '%${data.keyword}%')`}
+          `),
+                ]);
+        }
+    }
+    static fetchArchiveV2(data) {
         switch (data.mode) {
             case 0:
                 return app_1.prisma.$transaction([

@@ -10,6 +10,7 @@ const expense_type_controller_1 = __importDefault(require("../../controller/expe
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.get("/autocomplete", expense_type_controller_1.default.fetchAutocomplete);
+router.get("/children/:id", expense_type_controller_1.default.fetchChildren);
 router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, expense_type_controller_1.default.fetchByID);
 router.get("/", expense_type_controller_1.default.fetch);
 router.post("/", (0, express_validator_1.body)("name").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("description").not().isEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, expense_type_controller_1.default.create);
