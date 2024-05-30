@@ -66,6 +66,30 @@ DepositController.fetch = (req, res) => {
     });
 };
 /**
+ * Fetch deposit
+ * @param req
+ * @param res
+ */
+DepositController.fetchV2 = (req, res) => {
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const page = !req.query.page ? 1 : Number(req.query.page);
+    deposit_model_1.default.fetchIdsV2(keyword).then((ids) => {
+        deposit_model_1.default.fetchV2(ids.map((x) => {
+            return x.id;
+        }), page)
+            .then((result) => {
+            return res.status(200).send({
+                data: result,
+                count: ids.length,
+            });
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching deposit ${error}`);
+            return res.status(500).send(error);
+        });
+    });
+};
+/**
  * Delete deposit by ID
  * @param req
  * @param res

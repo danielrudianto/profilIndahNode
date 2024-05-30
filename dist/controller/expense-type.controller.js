@@ -39,7 +39,7 @@ ExpenseTypeController.create = (req, res) => {
  * @param req
  * @param res
  */
-ExpenseTypeController.fetch = (req, res) => {
+ExpenseTypeController.fetchV2 = (req, res) => {
     expense_type_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All)
         .then((result) => {
         const parentExpenseType = result.filter((x) => x.parent_id == null);
@@ -48,6 +48,36 @@ ExpenseTypeController.fetch = (req, res) => {
         .catch((error) => {
         console.error(`[error]: Error on fetching expense type: ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+/**
+ * Fetch expense type
+ * @param req
+ * @param res
+ */
+ExpenseTypeController.fetch = (req, res) => {
+    expense_type_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All).then((result) => {
+        const parentExpenseType = result.filter((x) => x.parent_id == null);
+        const childExpenseType = result.filter((x) => x.parent_id != null);
+        const expenseType = [];
+        parentExpenseType.forEach((parent) => {
+            const children = [];
+            childExpenseType
+                .filter((x) => x.parent_id == parent.id)
+                .forEach((child) => {
+                children.push({
+                    id: child.id,
+                    name: child.name,
+                    description: child.description,
+                });
+            });
+            expenseType.push({
+                id: parent.id,
+                name: parent.name,
+                description: parent.description,
+                children: children,
+            });
+        });
     });
 };
 /**

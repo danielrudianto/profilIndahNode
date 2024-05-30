@@ -1,7 +1,10 @@
 import {
   AdjustmentCaseArchive,
+  AdjustmentCaseArchiveV2,
   AnnualArchive,
   ArchiveCount,
+  IFetchAdjustmentCaseArchive,
+  IFetchAdjustmentCaseArchiveV2,
   IFetchArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
@@ -93,6 +96,18 @@ class AdjustmentCaseModel {
         user_adjustment_case_code_created_byTouser: {
           select: {
             name: true,
+            user_avatar: {
+              select: {
+                top: true,
+                accessories: true,
+                clothes: true,
+                eyes: true,
+                eyebrows: true,
+                mouth: true,
+                circle: true,
+                color: true,
+              },
+            },
           },
         },
         created_at: true,
@@ -197,6 +212,18 @@ class AdjustmentCaseModel {
       FROM adjustment_case_code
       WHERE adjustment_case_code.date IS NOT NULL
       GROUP BY YEAR(adjustment_case_code.date)
+    `;
+  }
+
+  static fetchArchiveYearsV2() {
+    return prisma.$queryRaw<MonthlyArchive[]>`
+      SELECT YEAR(adjustment_case_code.date) AS year, 
+      MONTH(adjustment_case_code.date) AS month,
+      COUNT(id) AS count
+      FROM adjustment_case_code
+      WHERE adjustment_case_code.date IS NOT NULL
+      GROUP BY MONTH(adjustment_case_code.date), YEAR(adjustment_case_code.date)
+      ORDER BY adjustment_case_code.date DESC
     `;
   }
 
@@ -324,6 +351,87 @@ class AdjustmentCaseModel {
         `),
       ]);
     }
+  }
+
+  static fetchArchiveV2(data: IFetchAdjustmentCaseArchiveV2) {
+    return prisma.$transaction([
+      prisma.$queryRawUnsafe<AdjustmentCaseArchiveV2[]>(`
+      SELECT adjustment_case_code.id, adjustment_case_code.date, 
+      adjustment_case_code.name, adjustment_case_code.is_delete, 
+      company_id AS company_id, company.name AS company_name,  
+      adjustment_case_code.is_confirm, IF(ac.quantity > 0, 1, 0) AS type
+      FROM adjustment_case_code
+      JOIN (
+        SELECT adjustment_case.quantity, adjustment_case.adjustment_case_code_id
+        FROM adjustment_case
+        GROUP BY adjustment_case.adjustment_case_code_id
+      ) AS ac
+      ON adjustment_case_code.id = ac.adjustment_case_code_id
+      LEFT JOIN company ON adjustment_case_code.company_id = company.id
+      WHERE YEAR(adjustment_case_code.date) = ${
+        data.year
+      } AND MONTH(adjustment_case_code.date) = ${data.month}
+      ${
+        data.keyword == null || data.keyword == ""
+          ? ""
+          : `AND adjustment_case_code.name LIKE '%${data.keyword}%'`
+      }
+      ${
+        data.status == 0
+          ? ""
+          : data.status == 1
+          ? "AND adjustment_case_code.is_delete = 1"
+          : "AND adjustment_case_code.is_delete = 0"
+      }
+      ${
+        data.type == 0
+          ? ""
+          : data.type == 1
+          ? "AND ac.quantity > 0"
+          : "AND ac.quantity < 0"
+      }
+      AND adjustment_case_code.date BETWEEN '${data.startDate}' AND '${
+        data.endDate
+      }'
+      ORDER BY adjustment_case_code.date ASC
+      LIMIT ${data.limit}
+      OFFSET ${data.offset}`),
+      prisma.$queryRawUnsafe<ArchiveCount[]>(`
+        SELECT COUNT(id) AS count 
+        FROM adjustment_case_code
+        JOIN (
+          SELECT adjustment_case.quantity, adjustment_case.adjustment_case_code_id
+          FROM adjustment_case
+          GROUP BY adjustment_case.adjustment_case_code_id
+        ) AS ac
+        ON adjustment_case_code.id = ac.adjustment_case_code_id
+        WHERE YEAR(adjustment_case_code.date) = ${
+          data.year
+        } AND MONTH(adjustment_case_code.date) = ${data.month}
+      ${
+        data.keyword == null || data.keyword == ""
+          ? ""
+          : `AND adjustment_case_code.name LIKE '%${data.keyword}%'`
+      }
+      ${
+        data.status == 0
+          ? ""
+          : data.status == 1
+          ? "AND adjustment_case_code.is_delete = 1"
+          : "AND adjustment_case_code.is_delete = 0"
+      }
+      ${
+        data.type == 0
+          ? ""
+          : data.type == 1
+          ? "AND ac.quantity > 0"
+          : "AND ac.quantity < 0"
+      }
+      AND adjustment_case_code.date BETWEEN '${data.startDate}' AND '${
+        data.endDate
+      }'
+      `),
+    ]);
   }
 
   static fetchGeneralByIDs(ids: number[]) {

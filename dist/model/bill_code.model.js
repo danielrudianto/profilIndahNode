@@ -186,6 +186,18 @@ class BillCodeModel {
                 user_bill_code_created_byTouser: {
                     select: {
                         name: true,
+                        user_avatar: {
+                            select: {
+                                top: true,
+                                accessories: true,
+                                clothes: true,
+                                eyes: true,
+                                eyebrows: true,
+                                mouth: true,
+                                circle: true,
+                                color: true,
+                            },
+                        },
                     },
                 },
                 is_confirm: true,
@@ -406,110 +418,64 @@ class BillCodeModel {
         }
     }
     static fetchArchiveV2(data) {
-        switch (data.mode) {
-            case 0:
-                return app_1.prisma.$transaction([
-                    app_1.prisma.$queryRawUnsafe(`
-            SELECT bill_code.id, bill_code.date, bill_code.name, 
-            bill_code.is_delete, 
-            COALESCE(customer.name, 'Retail customer') AS customer_name, 
-            COALESCE(bill_code.sales, 'Internal') AS sales,
-            bill_code.is_confirm, bill_code.customer_id
-            FROM bill_code
-            LEFT JOIN customer ON bill_code.customer_id = customer.id
-            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
-            ${data.keyword == null
-                        ? ""
-                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
-                OR COALESCE(customer.name, 'Retail customer') 
-                LIKE '%${data.keyword}%')`}
-            ORDER BY date ASC
-            LIMIT ${data.limit}
-            OFFSET ${data.offset}
-          `),
-                    app_1.prisma.$queryRawUnsafe(`
-            SELECT COUNT(bill_code.id) AS count 
-            FROM bill_code
-            LEFT JOIN customer ON bill_code.customer_id = customer.id
-            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
-            ${data.keyword == null
-                        ? ""
-                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
-                OR COALESCE(customer.name, 'Retail customer') 
-                LIKE '%${data.keyword}%')`}
-          `),
-                ]);
-            case 1:
-                return app_1.prisma.$transaction([
-                    app_1.prisma.$queryRawUnsafe(`
-          SELECT * 
-          FROM (
-            SELECT bill_code.id, bill_code.date, bill_code.name, 
-            bill_code.is_delete, 
-            COALESCE(customer.name, 'Retail customer') AS customer_name,
-            COALESCE(bill_code.sales, 'Internal') AS sales,
-            bill_code.is_confirm, bill_code.customer_id
-            FROM bill_code
-            LEFT JOIN customer ON bill_code.customer_id = customer.id
-            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
-            AND bill_code.is_delete = 1
-            ${data.keyword == null
-                        ? ""
-                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
-                OR COALESCE(customer.name, 'Retail customer') 
-                LIKE '%${data.keyword}%')`}
-            ORDER BY date ASC
-            LIMIT ${data.limit}
-            OFFSET ${data.offset}
-          ) AS bill 
-          `),
-                    app_1.prisma.$queryRawUnsafe(`
-            SELECT COUNT(bill_code.id) AS count FROM bill_code
-            LEFT JOIN customer ON bill_code.customer_id = customer.id
-            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1} AND bill_code.is_delete = 1
-          ${data.keyword == null
-                        ? ""
-                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
-                OR COALESCE(customer.name, 'Retail customer') 
-                LIKE '%${data.keyword}%')`}
-          `),
-                ]);
-            case 2:
-                return app_1.prisma.$transaction([
-                    app_1.prisma.$queryRawUnsafe(`
-          SELECT * 
-          FROM (
-            SELECT bill_code.id, bill_code.date, bill_code.name, 
-            bill_code.is_delete, 
-            COALESCE(customer.name, 'Retail customer') AS customer_name,
-            COALESCE(bill_code.sales, 'Internal') AS sales, 
-            bill_code.is_confirm, bill_code.customer_id
-            FROM bill_code
-            LEFT JOIN customer ON bill_code.customer_id = customer.id
-            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1}
-            AND bill_code.is_delete = 0
-            ${data.keyword == null
-                        ? ""
-                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
-                OR COALESCE(customer.name, 'Retail customer') 
-                LIKE '%${data.keyword}%')`}
-            ORDER BY date ASC
-            LIMIT ${data.limit}
-            OFFSET ${data.offset}
-          ) AS bill
-          `),
-                    app_1.prisma.$queryRawUnsafe(`
-            SELECT COUNT(bill_code.id) AS count FROM bill_code
-            LEFT JOIN customer ON bill_code.customer_id = customer.id
-            WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month + 1} AND bill_code.is_delete = 0
-          ${data.keyword == null
-                        ? ""
-                        : `AND (bill_code.name LIKE '%${data.keyword}%' 
-              OR COALESCE(customer.name, 'Retail customer') 
-              LIKE '%${data.keyword}%')`}
-          `),
-                ]);
-        }
+        return app_1.prisma.$transaction([
+            app_1.prisma.$queryRawUnsafe(`
+      SELECT * 
+      FROM (
+        SELECT bill_code.id, bill_code.date, bill_code.name, 
+        bill_code.is_delete, 
+        COALESCE(customer.name, 'Retail customer') AS customer_name,
+        COALESCE(bill_code.sales, 'Internal') AS sales,
+        bill_code.is_confirm, bill_code.customer_id, bill_code.is_paid
+        FROM bill_code
+        LEFT JOIN customer ON bill_code.customer_id = customer.id
+        WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month}
+        ${data.keyword == null || data.keyword == ""
+                ? ""
+                : `AND (bill_code.name LIKE '%${data.keyword}%' 
+            OR COALESCE(customer.name, 'Retail customer') 
+            LIKE '%${data.keyword}%'
+            OR COALESCE(bill_code.sales, 'Internal') LIKE '%${data.keyword}%'
+            )`}
+        ${data.status == 0
+                ? ""
+                : data.status == 1
+                    ? `AND bill_code.is_delete = 1`
+                    : `AND bill_code.is_delete = 0`}
+        ${data.paymentStatus == 0
+                ? ""
+                : data.paymentStatus == 1
+                    ? `AND bill_code.is_paid = 1`
+                    : `AND bill_code.is_paid = 0`}
+        AND bill_code.date BETWEEN '${data.startDate}' AND '${data.endDate}'
+        ORDER BY date ASC
+        LIMIT ${data.limit}
+        OFFSET ${data.offset}
+      ) AS bill 
+      `),
+            app_1.prisma.$queryRawUnsafe(`
+        SELECT COUNT(bill_code.id) AS count FROM bill_code
+        LEFT JOIN customer ON bill_code.customer_id = customer.id
+        WHERE YEAR(bill_code.date) = ${data.year} AND MONTH(bill_code.date) = ${data.month}
+      ${data.keyword == null || data.keyword == ""
+                ? ""
+                : `AND (bill_code.name LIKE '%${data.keyword}%' 
+            OR COALESCE(customer.name, 'Retail customer') 
+            LIKE '%${data.keyword}%'
+            OR COALESCE(bill_code.sales, 'Internal') LIKE '%${data.keyword}%')`}
+      ${data.status == 0
+                ? ""
+                : data.status == 1
+                    ? `AND bill_code.is_delete = 1`
+                    : `AND bill_code.is_delete = 0`}
+      ${data.paymentStatus == 0
+                ? ""
+                : data.paymentStatus == 1
+                    ? `AND bill_code.is_paid = 1`
+                    : `AND bill_code.is_paid = 0`}
+      AND bill_code.date BETWEEN '${data.startDate}' AND '${data.endDate}'
+      `),
+        ]);
     }
     /**
      * Delete bill code by id

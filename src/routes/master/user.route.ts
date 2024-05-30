@@ -24,6 +24,23 @@ router.post(
   ErrorHelper.intercept,
   UserController.updatePassword
 );
+
+router.post(
+  "/avatar",
+  body("accessories")
+    .isInt({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("top").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("clothes").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("color").isHexColor().withMessage(ErrorList["Parameter error"]),
+  body("eyes").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("eyebrows").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("mouth").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("circle").isBoolean().withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  UserController.updateAvatar
+);
+
 router.post(
   "/",
   administratorMiddleware,

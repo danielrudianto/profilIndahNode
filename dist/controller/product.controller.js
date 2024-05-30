@@ -292,8 +292,6 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
             });
             break;
         default:
-            // First we need to sanitize the input before entering RegExp
-            // Such as changing " to \" and etc
             const [defaultResult, defaultCount] = yield Promise.all([
                 mongo_product_model_1.mongoProductModel
                     .find({

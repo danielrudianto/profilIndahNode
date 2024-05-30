@@ -15,6 +15,9 @@ router.get("/profile", auth_controller_1.default.fetchProfile);
 router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.fetchByID);
 router.get("/", user_controller_1.default.fetch);
 router.post("/changePassword", (0, express_validator_1.body)("password").notEmpty().withMessage(error_list_1.default["Password required"]), error_helper_1.default.intercept, user_controller_1.default.updatePassword);
+router.post("/avatar", (0, express_validator_1.body)("accessories")
+    .isInt({ min: 0 })
+    .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("top").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("clothes").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("color").isHexColor().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("eyes").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("eyebrows").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("mouth").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("circle").isBoolean().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, user_controller_1.default.updateAvatar);
 router.post("/", auth_helper_1.administratorMiddleware, (0, express_validator_1.body)("role")
     .notEmpty()
     .isNumeric()

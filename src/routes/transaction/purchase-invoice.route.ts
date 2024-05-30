@@ -16,6 +16,7 @@ router.get(
 );
 
 router.post("/archives", PurchaseInvoiceController.fetchArchive);
+router.post("/archives/v2", PurchaseInvoiceController.fetchArchiveV2);
 router.post("/search", PurchaseInvoiceController.search);
 router.post(
   "/",

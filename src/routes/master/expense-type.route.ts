@@ -8,6 +8,7 @@ const router = Router();
 
 router.get("/autocomplete", ExpenseTypeController.fetchAutocomplete);
 router.get("/children/:id", ExpenseTypeController.fetchChildren);
+router.get("/v2", ExpenseTypeController.fetchV2);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
@@ -15,6 +16,7 @@ router.get(
   ErrorHelper.intercept,
   ExpenseTypeController.fetchByID
 );
+
 router.get("/", ExpenseTypeController.fetch);
 
 router.post(

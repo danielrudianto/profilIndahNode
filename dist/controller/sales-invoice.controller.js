@@ -493,14 +493,23 @@ SalesInvoiceController.fetchArchiveV2 = (req, res) => {
     else {
         const keyword = req.body.keyword;
         const page = (_b = req.body.page) !== null && _b !== void 0 ? _b : 1;
+        const status = req.body.status;
+        const paymentStatus = req.body.paymentStatus;
+        const startDate = req.body.startDate;
+        const endDate = req.body.endDate;
         bill_code_model_1.default.fetchArchiveV2({
             year: Number(year),
             month: Number(month),
-            mode: 0,
+            mode: status,
+            status: status,
+            paymentStatus: paymentStatus,
             limit: 20,
             offset: (page - 1) * 20,
             keyword: (0, escape_helper_1.mysql_real_escape_string)(keyword !== null && keyword !== void 0 ? keyword : ""),
-        }).then((result) => {
+            startDate: startDate,
+            endDate: endDate,
+        })
+            .then((result) => {
             return res.status(200).send({
                 data: result[0].map((x) => {
                     return {
@@ -511,12 +520,17 @@ SalesInvoiceController.fetchArchiveV2 = (req, res) => {
                         is_confirm: x.is_confirm == 1,
                         customer_name: x.customer_name,
                         sales: x.sales,
+                        is_paid: x.is_paid == 1,
                     };
                 }),
                 count: result[1] == null || result[1].length == 0
                     ? 0
                     : parseInt(result[1][0].count.toString().replace("n", "")),
             });
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching sales invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
         });
     }
 };

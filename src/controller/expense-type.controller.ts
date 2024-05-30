@@ -37,7 +37,7 @@ class ExpenseTypeController {
    * @param req
    * @param res
    */
-  static fetch = (req: Request, res: Response) => {
+  static fetchV2 = (req: Request, res: Response) => {
     ExpenseTypeModel.fetch("", 0, 0, fetchMode.All)
       .then((result) => {
         const parentExpenseType = result.filter((x) => x.parent_id == null);
@@ -48,6 +48,38 @@ class ExpenseTypeController {
         console.error(`[error]: Error on fetching expense type: ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);
       });
+  };
+
+  /**
+   * Fetch expense type
+   * @param req
+   * @param res
+   */
+  static fetch = (req: Request, res: Response) => {
+    ExpenseTypeModel.fetch("", 0, 0, fetchMode.All).then((result) => {
+      const parentExpenseType = result.filter((x) => x.parent_id == null);
+      const childExpenseType = result.filter((x) => x.parent_id != null);
+      const expenseType: any[] = [];
+
+      parentExpenseType.forEach((parent) => {
+        const children: any[] = [];
+        childExpenseType
+          .filter((x) => x.parent_id == parent.id)
+          .forEach((child) => {
+            children.push({
+              id: child.id,
+              name: child.name,
+              description: child.description,
+            });
+          });
+        expenseType.push({
+          id: parent.id,
+          name: parent.name,
+          description: parent.description,
+          children: children,
+        });
+      });
+    });
   };
 
   /**

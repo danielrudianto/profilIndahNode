@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { hashSync } from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -86,7 +85,7 @@ class UserModel {
           nik: data.nik,
           created_by: data.created_by,
           role: data.role,
-          pinned_menus: '[]',
+          pinned_menus: "[]",
         },
         select: {
           id: true,
@@ -118,7 +117,7 @@ class UserModel {
           nik: data.nik,
           created_by: data.created_by,
           role: data.role,
-          pinned_menus: '[]',
+          pinned_menus: "[]",
           user_sales: {
             createMany: {
               data: data.user_sales!.map((x) => {
@@ -303,6 +302,7 @@ class UserModel {
         password: true,
         is_active: true,
         role: true,
+        user_avatar: true,
       },
       where: {
         username: username,

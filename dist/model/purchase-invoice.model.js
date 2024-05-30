@@ -185,6 +185,18 @@ class PurchaseInvoiceModel {
                 user_purchase_invoice_created_byTouser: {
                     select: {
                         name: true,
+                        user_avatar: {
+                            select: {
+                                top: true,
+                                accessories: true,
+                                clothes: true,
+                                eyes: true,
+                                eyebrows: true,
+                                mouth: true,
+                                circle: true,
+                                color: true,
+                            },
+                        },
                     },
                 },
             },
@@ -429,6 +441,15 @@ class PurchaseInvoiceModel {
       GROUP BY YEAR(purchase_invoice.date)
     `;
     }
+    static fetchArchiveYearsV2() {
+        return prisma.$queryRaw `
+      SELECT YEAR(purchase_invoice.date) AS year, MONTH(purchase_invoice.date) AS month, 
+      COUNT(id) AS count
+      FROM purchase_invoice
+      GROUP BY MONTH(purchase_invoice.date), YEAR(purchase_invoice.date)
+      ORDER BY purchase_invoice.date DESC
+    `;
+    }
     /**
      * Fetch archive by year
      * @param year
@@ -595,6 +616,52 @@ class PurchaseInvoiceModel {
           `),
                 ]);
         }
+    }
+    static fetchArchiveV2(data) {
+        return prisma.$transaction([
+            prisma.$queryRawUnsafe(`
+      SELECT purchase_invoice.id, purchase_invoice.date, 
+      purchase_invoice.name, purchase_invoice.is_delete, 
+      company_id AS company_id, company.name AS company_name, 
+      supplier.id AS supplier_id, supplier.name AS supplier_name, 
+      purchase_invoice.is_confirm, purchase_invoice.faktur, good_receipt_code.name AS gr_name
+      FROM purchase_invoice
+      JOIN good_receipt_code ON purchase_invoice.good_receipt_code_id = good_receipt_code.id
+      JOIN company ON good_receipt_code.company_id = company.id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(good_receipt_code.date) = ${data.month}
+      AND purchase_invoice.date IS NOT NULL
+      ${data.keyword == null || data.keyword == ""
+                ? ""
+                : `AND purchase_invoice.name LIKE '%${data.keyword}%'
+          OR good_receipt_code.name LIKE '%${data.keyword}%'
+          OR supplier.name LIKE '%${data.keyword}%'`}
+      ${data.status == 0
+                ? ""
+                : data.status == 1
+                    ? "AND purchase_invoice.is_delete = 1"
+                    : "AND purchase_invoice.is_delete = 0"}
+      AND purchase_invoice.date BETWEEN '${data.startDate}' AND '${data.endDate}'
+      ORDER BY good_receipt_code.date ASC
+      LIMIT ${data.limit}
+      OFFSET ${data.offset}`),
+            prisma.$queryRawUnsafe(`
+        SELECT COUNT(id) AS count FROM purchase_invoice
+        WHERE YEAR(purchase_invoice.date) = ${data.year} AND MONTH(purchase_invoice.date) = ${data.month}
+      AND purchase_invoice.date IS NOT NULL
+      ${data.keyword == null || data.keyword == ""
+                ? ""
+                : `AND purchase_invoice.name LIKE '%${data.keyword}%'
+          OR good_receipt_code.name LIKE '%${data.keyword}%'
+          OR supplier.name LIKE '%${data.keyword}%'`}
+      ${data.status == 0
+                ? ""
+                : data.status == 1
+                    ? "AND purchase_invoice.is_delete = 1"
+                    : "AND purchase_invoice.is_delete = 0"}
+      AND purchase_invoice.date BETWEEN '${data.startDate}' AND '${data.endDate}'
+      `),
+        ]);
     }
     /**
      * Fetch unconfirmed purchase invoice

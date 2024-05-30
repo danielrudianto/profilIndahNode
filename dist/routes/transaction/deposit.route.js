@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const deposit_controller_1 = __importDefault(require("../../controller/deposit.controller"));
 const router = (0, express_1.Router)();
+router.get("/v2", deposit_controller_1.default.fetchV2);
 router.get("/:id", deposit_controller_1.default.fetchByID);
 router.get("/", deposit_controller_1.default.fetch);
 router.post("/confirm", deposit_controller_1.default.confirmByID);

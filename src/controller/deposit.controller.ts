@@ -65,6 +65,35 @@ class DepositController {
   };
 
   /**
+   * Fetch deposit
+   * @param req
+   * @param res
+   */
+  static fetchV2 = (req: Request, res: Response) => {
+    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+    const page = !req.query.page ? 1 : Number(req.query.page);
+
+    DepositModel.fetchIdsV2(keyword).then((ids) => {
+      DepositModel.fetchV2(
+        ids.map((x) => {
+          return x.id;
+        }),
+        page
+      )
+        .then((result) => {
+          return res.status(200).send({
+            data: result,
+            count: ids.length,
+          });
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on fetching deposit ${error}`);
+          return res.status(500).send(error);
+        });
+    });
+  };
+
+  /**
    * Delete deposit by ID
    * @param req
    * @param res

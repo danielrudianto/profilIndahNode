@@ -69,6 +69,7 @@ PurchaseInvoiceController.create = (req, res) => {
         purchase_invoice_name: purchase_invoice_name,
     })
         .then((good_receipt_result) => __awaiter(void 0, void 0, void 0, function* () {
+        var _c;
         yield item_purchase_price_model_1.default.delete(good_receipt_items
             .filter((x) => x.save)
             .map((x) => {
@@ -130,14 +131,13 @@ PurchaseInvoiceController.create = (req, res) => {
                 companyID: good_receipt_result.company_id,
                 price: createPurchaseInvoiceTotalValue == 0
                     ? 0
-                    : (((Number(goodReceiptItem.price) -
+                    : ((Number(goodReceiptItem.price) -
                         Number(goodReceiptItem.discount)) *
                         createPurchaseInvoiceNetValue) /
-                        createPurchaseInvoiceTotalValue /
-                        Number(goodReceiptItem.quantity)) *
-                        (goodReceiptItem.item_unit == null
-                            ? 1
-                            : Number(goodReceiptItem.item_unit.conversion)),
+                        (createPurchaseInvoiceTotalValue *
+                            (goodReceiptItem.item_unit == null
+                                ? 1
+                                : Number((_c = goodReceiptItem.item_unit) === null || _c === void 0 ? void 0 : _c.conversion))),
             };
             yield queue_helper_1.queue.add("insert-stock-in", stockIn);
         }
@@ -164,7 +164,7 @@ PurchaseInvoiceController.fetchByID = (req, res) => {
         for (let item of result.good_receipt_code.good_receipt) {
             subTotal += Number(item.price) * Number(item.quantity);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, result), { subTotal: subTotal, total: subTotal - (result.discount == null ? 0 : Number(result.discount)) }));
+        return res.status(200).send(Object.assign(Object.assign({}, result), { id: id, subTotal: subTotal, total: subTotal - (result.discount == null ? 0 : Number(result.discount)) }));
     })
         .catch((error) => {
         return res.status(500).send(error);
@@ -277,11 +277,11 @@ PurchaseInvoiceController.update = (req, res) => __awaiter(void 0, void 0, void 
                     : ((Number(result.good_receipt_code.good_receipt[n].price) -
                         Number(result.good_receipt_code.good_receipt[n].discount)) *
                         createPurchaseInvoiceNetValue) /
-                        createPurchaseInvoiceTotalValue /
-                        (result.good_receipt_code.good_receipt[n].item_unit == null
-                            ? 1
-                            : Number(result.good_receipt_code.good_receipt[n].item_unit
-                                .conversion)),
+                        (createPurchaseInvoiceTotalValue *
+                            (result.good_receipt_code.good_receipt[n].item_unit == null
+                                ? 1
+                                : Number(result.good_receipt_code.good_receipt[n].item_unit
+                                    .conversion))),
             };
             yield queue_helper_1.queue.add("insert-stock-in", stockIn);
         }
@@ -537,6 +537,64 @@ PurchaseInvoiceController.fetchArchive = (req, res) => {
                 count: result[1] == null || result[1].length == 0
                     ? 0
                     : parseInt(result[1][0].count.toString()),
+            });
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on fetching purchase invoice archive ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
+    }
+};
+PurchaseInvoiceController.fetchArchiveV2 = (req, res) => {
+    var _b;
+    const year = req.body.year;
+    const month = req.body.month;
+    if (month == null && year == null) {
+        purchase_invoice_model_1.default.fetchArchiveYearsV2().then((result) => {
+            return res.status(200).send(result.map((x) => {
+                return {
+                    year: x.year,
+                    month: x.month,
+                    count: Number(x.count.toString().replace("n", "")),
+                };
+            }));
+        });
+    }
+    else {
+        const keyword = req.body.keyword;
+        const page = (_b = req.body.page) !== null && _b !== void 0 ? _b : 1;
+        const status = req.body.status;
+        const startDate = req.body.startDate;
+        const endDate = req.body.endDate;
+        purchase_invoice_model_1.default.fetchArchiveV2({
+            year: Number(year),
+            month: Number(month),
+            mode: status,
+            status: status,
+            limit: 20,
+            offset: (page - 1) * 20,
+            keyword: (0, escape_helper_1.mysql_real_escape_string)(keyword !== null && keyword !== void 0 ? keyword : ""),
+            startDate: startDate,
+            endDate: endDate,
+        })
+            .then((result) => {
+            return res.status(200).send({
+                data: result[0].map((x) => {
+                    return {
+                        id: x.id,
+                        name: x.name,
+                        date: x.date,
+                        is_delete: x.is_delete == 1,
+                        is_confirm: x.is_confirm == 1,
+                        supplier_name: x.supplier_name,
+                        company_name: x.company_name,
+                        good_receipt_name: x.gr_name,
+                        faktur: x.faktur,
+                    };
+                }),
+                count: result[1] == null || result[1].length == 0
+                    ? 0
+                    : parseInt(result[1][0].count.toString().replace("n", "")),
             });
         })
             .catch((error) => {

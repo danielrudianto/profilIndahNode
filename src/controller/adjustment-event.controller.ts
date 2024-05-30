@@ -161,7 +161,10 @@ class AdjustmentCaseController {
           return res.status(404).send(ErrorList["Not found"]);
         }
 
-        return res.status(200).send(result);
+        return res.status(200).send({
+          ...result,
+          type: Number(result.adjustment_case[0].quantity) > 0 ? 0 : 1,
+        });
       })
       .catch((error) => {
         console.error(`[error]: Error on fetching adjustment case: ${error}`);
@@ -247,6 +250,81 @@ class AdjustmentCaseController {
         })
         .catch((error) => {
           console.error(`[error]: Error on fetching adjustment case: ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    }
+  };
+
+  /**
+   * Fetch archive adjustment case
+   * Fetch all adjustment case code that has been archived
+   * @param req
+   * @param res
+   */
+
+  static fetchArchivesV2 = (req: Request, res: Response) => {
+    const year = req.body.year;
+    const month = req.body.month;
+
+    if (year == null && month == null) {
+      AdjustmentCaseModel.fetchArchiveYearsV2()!
+        .then((result) => {
+          return res.status(200).send(
+            result.map((x) => {
+              return {
+                year: x.year,
+                month: x.month,
+                count: Number(x.count.toString().replace("n", "")),
+              };
+            })
+          );
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on fetching adjustment case: ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    } else {
+      const keyword = req.body.keyword;
+      const page = req.body.page ?? 1;
+      const status = req.body.status;
+      const startDate = req.body.startDate;
+      const endDate = req.body.endDate;
+      const type = req.body.type;
+      AdjustmentCaseModel.fetchArchiveV2({
+        year: Number(year),
+        month: Number(month),
+        mode: status,
+        status: status,
+        limit: 20,
+        offset: (page - 1) * 20,
+        keyword: mysql_real_escape_string(keyword ?? ""),
+        startDate: startDate,
+        endDate: endDate,
+        type: type,
+      })!
+        .then(([result, count]) => {
+          return res.status(200).send({
+            data: result.map((x) => {
+              return {
+                id: x.id,
+                name: x.name,
+                date: x.date,
+                is_delete: x.is_delete == 1,
+                is_confirm: x.is_confirm == 1,
+                company_name: x.company_name,
+                type: x.type.toString().replace("n", ""),
+              };
+            }),
+            count:
+              count == null || count.length == 0
+                ? 0
+                : parseInt(count[0].count.toString().replace("n", "")),
+          });
+        })
+        .catch((error) => {
+          console.error(
+            `[error]: Error on fetching adjustment archive ${error}`
+          );
           return res.status(500).send(ErrorList["Internal server error"]);
         });
     }

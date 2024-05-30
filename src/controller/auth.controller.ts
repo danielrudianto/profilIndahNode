@@ -24,10 +24,6 @@ class AuthController {
           return res.status(400).send(ErrorList["User not active"]);
         }
 
-        hash(user.password, 12).then((hash) => {
-          console.log(hash);
-        });
-
         compare(password, user.password).then((result) => {
           if (!result) {
             return res.status(400).send(ErrorList["Auth error"]);
@@ -39,6 +35,7 @@ class AuthController {
               name: user.name,
               role: user.role,
             },
+            user_avatar: user.user_avatar,
             token: sign(
               {
                 id: user.id,

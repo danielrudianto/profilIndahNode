@@ -326,9 +326,6 @@ class ProductController {
           });
         break;
       default:
-        // First we need to sanitize the input before entering RegExp
-        // Such as changing " to \" and etc
-
         const [defaultResult, defaultCount] = await Promise.all([
           mongoProductModel
             .find({

@@ -6,6 +6,7 @@ import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
 import CustomerModel from "../model/customer.model";
 import UserModel from "../model/user.model";
+import UserAvatarModel from "../model/user-avatar.model";
 
 class UserController {
   /**
@@ -278,6 +279,42 @@ class UserController {
 
       return res.status(200).send(achivements);
     });
+  };
+
+  /**
+   * Update avatar
+   * @param req
+   * @param res
+   */
+  static updateAvatar = (req: Request, res: Response) => {
+    const userID = req.body.userId;
+    const top = req.body.top;
+    const accessories = req.body.accessories;
+    const eyes = req.body.eyes;
+    const circle = req.body.circle;
+    const clothes = req.body.clothes;
+    const color = req.body.color;
+    const eyebrows = req.body.eyebrows;
+    const mouth = req.body.mouth;
+
+    UserAvatarModel.create({
+      user_id: userID,
+      top: top,
+      accessories: accessories,
+      eyes: eyes,
+      circle: circle,
+      clothes: clothes,
+      color: color,
+      eyebrows: eyebrows,
+      mouth: mouth,
+    })
+      .then((result) => {
+        return res.status(201).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on updating user's avatar ${error}`);
+        return res.status(500).send(error);
+      });
   };
 
   /**

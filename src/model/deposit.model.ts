@@ -271,6 +271,60 @@ class DepositModel {
     ]);
   }
 
+  static fetchV2(id: number[], page: number) {
+    if (id.length == 0) return Promise.resolve([]);
+
+    return prisma.$queryRawUnsafe<IDepositArchive[]>(`
+      SELECT deposit_code.id, deposit_code.date, deposit_code.name,
+      IF(deposit_code.type = 'INTERNAL', 'Internal', COALESCE(customer.name, 'Retail customer')) AS customer_name, 
+      COALESCE(deposit_code.sales, 'INTERNAL') AS sales,
+      deposit_code.customer_id, b.value, COALESCE(pm.value, 0) AS payment,
+      deposit_code.type
+      FROM deposit_code
+      LEFT JOIN customer ON deposit_code.customer_id = customer.id
+      LEFT JOIN (
+          SELECT SUM(deposit.quantity * (deposit.price - deposit.discount)) AS value,
+          deposit.deposit_code_id
+          FROM deposit
+          WHERE deposit.is_delete = 0
+          AND deposit.deposit_code_id IN (${id.join(",")})
+          GROUP BY deposit.deposit_code_id
+      ) AS b
+      ON deposit_code.id = b.deposit_code_id
+      LEFT JOIN (
+          SELECT SUM(deposit_payment.value) AS value, deposit_payment.deposit_code_id
+          FROM deposit_payment
+          WHERE deposit_payment.deposit_code_id IN (${id.join(",")})
+          GROUP BY deposit_payment.deposit_code_id
+      ) AS pm
+      ON pm.deposit_code_id = deposit_code.id
+      WHERE deposit_code.is_delete = 0 
+      AND deposit_code.id IN (${id.join(",")})
+      ORDER BY date ASC
+      LIMIT 20
+      OFFSET ${(page - 1) * 20}
+    `);
+  }
+
+  static fetchIdsV2(keyword: string) {
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT DISTINCT(deposit_code.id) AS id
+      FROM deposit
+      JOIN deposit_code ON deposit.deposit_code_id = deposit_code.id
+      JOIN item ON deposit.item_id = item.id
+      LEFT JOIN customer ON deposit_code.customer_id = customer.id
+      WHERE deposit_code.is_delete = 0
+      AND (
+        deposit_code.name LIKE '%${keyword}%'
+        OR COALESCE(customer.name, 'Retail customer') LIKE '%${keyword}%'
+        OR item.reference LIKE '%${keyword}%'
+        OR item.description LIKE '%${keyword}%'
+        OR deposit_code.sales LIKE '%${keyword}%'
+      )
+      ORDER BY date ASC
+    `);
+  }
+
   /**
    * Fetch bill code and group them by year
    * @param mode

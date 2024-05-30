@@ -25,9 +25,6 @@ AuthController.login = (req, res) => {
         if (!user.is_active) {
             return res.status(400).send(error_list_1.default["User not active"]);
         }
-        (0, bcrypt_1.hash)(user.password, 12).then((hash) => {
-            console.log(hash);
-        });
         (0, bcrypt_1.compare)(password, user.password).then((result) => {
             if (!result) {
                 return res.status(400).send(error_list_1.default["Auth error"]);
@@ -38,6 +35,7 @@ AuthController.login = (req, res) => {
                     name: user.name,
                     role: user.role,
                 },
+                user_avatar: user.user_avatar,
                 token: (0, jsonwebtoken_1.sign)({
                     id: user.id,
                 }, process.env.TOKEN_KEY.toString(), {

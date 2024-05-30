@@ -6,6 +6,7 @@ import ErrorHelper from "../../helper/error.helper";
 
 const router = Router();
 
+router.post("/archives/v2", AdjustmentCaseController.fetchArchivesV2);
 router.post("/archives", AdjustmentCaseController.fetchArchives);
 
 router.get(
