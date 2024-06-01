@@ -637,6 +637,41 @@ class SalesInvoiceController {
       });
   };
 
+  static fetchPaymentsByID = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    BillCodeModel.fetchPaymentsByID(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching payments by ID ${error}`);
+        return res.status(500).send(error);
+      });
+  };
+
+  static deletePaymentByID = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    BillCodeModel.deletePaymentByID(id)
+      .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        }
+
+        BillCodeModel.evaluateBill(result.bill_code_id)
+          .then(() => {
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on evaluating bill value ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on deleting payment by ID ${error}`);
+        return res.status(500).send(error);
+      });
+  };
+
   /**
    * Fetch bill code by ID
    * @param req

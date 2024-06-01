@@ -7,6 +7,7 @@ const express_1 = require("express");
 const product_price_sales_controller_1 = __importDefault(require("../../controller/product-price-sales.controller"));
 const router = (0, express_1.Router)();
 router.get("/bulk", product_price_sales_controller_1.default.fetchAll);
+router.get("/:id", product_price_sales_controller_1.default.fetchByID);
 router.get("/", product_price_sales_controller_1.default.fetch);
 router.post("/format", product_price_sales_controller_1.default.fetchFormat);
 router.post("/bulk", product_price_sales_controller_1.default.createBulk);

@@ -7,6 +7,7 @@ export enum fetchMode {
   ParentAutocomplete,
   ChildAutocomplete,
   Unconfirmed,
+  AllV2,
 }
 
 export enum fetchType {

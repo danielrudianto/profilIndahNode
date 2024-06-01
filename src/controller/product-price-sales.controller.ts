@@ -48,6 +48,18 @@ class ItemPriceController {
       });
   };
 
+  static fetchByID = (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    ItemPriceModel.fetchByItemID(id)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching item price: ${error}`);
+        return res.status(500).send(error);
+      });
+  };
+
   /**
    * Fetch item prices
    * @param req
@@ -58,7 +70,7 @@ class ItemPriceController {
     const page = !req.query.page
       ? 1
       : Math.max(1, parseInt(req.query.page.toString()));
-    const limit = parseInt(process.env.LIMIT!);
+    const limit = Number(process.env.LIMIT!);
     const offset = (page - 1) * limit;
 
     const date = new Date();
@@ -229,9 +241,7 @@ class ItemPriceController {
               x.item.item_brand.name,
               x.item.item_type?.name,
               x.item_unit == null ? x.item.unit : x.item_unit.unit,
-              x.item_unit == null
-                ? 1
-                : x.item_unit.conversion,
+              x.item_unit == null ? 1 : x.item_unit.conversion,
               x.item_unit == null ? "" : x.item.unit,
               x.price,
               x.discount,

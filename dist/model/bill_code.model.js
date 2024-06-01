@@ -1220,6 +1220,35 @@ class BillCodeModel {
       WHERE bill_code.id IN (${ids.join(",")})
     `);
     }
+    static fetchPaymentsByID(id) {
+        return app_1.prisma.bill_payment.findMany({
+            where: {
+                bill_code_id: id,
+            },
+            select: {
+                id: true,
+                value: true,
+                payment_method: {
+                    select: {
+                        name: true,
+                        description: true,
+                    },
+                },
+                payment_method_id: true,
+                date: true,
+            },
+        });
+    }
+    static deletePaymentByID(id) {
+        return app_1.prisma.bill_payment.delete({
+            where: {
+                id: id,
+            },
+            select: {
+                bill_code_id: true,
+            },
+        });
+    }
     /**
      * Calculates the total receivables for all confirmed, non-deleted, and unpaid bill codes.
      * @returns {Promise<any[]>} An array containing a single object with a 'value' property representing the total receivables.
@@ -1244,6 +1273,14 @@ class BillCodeModel {
       AND bill_code.is_delete = 0
       AND bill_code.is_paid = 0
     `);
+    }
+    static evaluateBill(id) {
+        return app_1.prisma.bill_code.update({
+            where: {
+                id: id,
+            },
+            data: {}
+        });
     }
 }
 exports.default = BillCodeModel;

@@ -11,6 +11,7 @@ var fetchMode;
     fetchMode[fetchMode["ParentAutocomplete"] = 5] = "ParentAutocomplete";
     fetchMode[fetchMode["ChildAutocomplete"] = 6] = "ChildAutocomplete";
     fetchMode[fetchMode["Unconfirmed"] = 7] = "Unconfirmed";
+    fetchMode[fetchMode["AllV2"] = 8] = "AllV2";
 })(fetchMode = exports.fetchMode || (exports.fetchMode = {}));
 var fetchType;
 (function (fetchType) {

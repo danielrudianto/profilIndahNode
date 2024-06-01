@@ -26,11 +26,13 @@ router.post("/archives/v2", sales_invoice_controller_1.default.fetchArchiveV2);
 router.post("/archives", sales_invoice_controller_1.default.fetchArchive);
 router.get("/salesman", sales_invoice_controller_1.default.fetchSalesmen);
 router.get("/salesman/pagination", sales_invoice_controller_1.default.fetchSalesmenPagination);
+router.get("/payment/:id", sales_invoice_controller_1.default.fetchPaymentsByID);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id")
     .isInt({
     min: 0,
 })
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, sales_invoice_controller_1.default.fetchByID);
+router.delete("/payment/:id", auth_helper_1.administratorMiddleware, sales_invoice_controller_1.default.deletePaymentByID);
 router.delete("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id")
     .isInt({
     min: 0,

@@ -35,7 +35,6 @@ router.get(
 );
 
 router.get("/complete/:id", ProductController.fetchCompleteSalesById);
-
 router.get("/", ProductController.fetch);
 router.put(
   "/active",

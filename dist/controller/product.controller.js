@@ -94,7 +94,7 @@ ProductController.fetch = (req, res) => __awaiter(void 0, void 0, void 0, functi
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
-    const limit = parseInt(process.env.LIMIT);
+    const limit = 10;
     const offset = (page - 1) * limit;
     const keyword = !req.query.keyword
         ? ""

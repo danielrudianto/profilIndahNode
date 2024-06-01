@@ -57,6 +57,17 @@ ItemPriceController.fetchAll = (req, res) => {
         return res.status(500).send(error);
     });
 };
+ItemPriceController.fetchByID = (req, res) => {
+    const id = Number(req.params.id);
+    item_price_model_1.default.fetchByItemID(id)
+        .then((result) => {
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching item price: ${error}`);
+        return res.status(500).send(error);
+    });
+};
 /**
  * Fetch item prices
  * @param req
@@ -67,7 +78,7 @@ ItemPriceController.fetch = (req, res) => {
     const page = !req.query.page
         ? 1
         : Math.max(1, parseInt(req.query.page.toString()));
-    const limit = parseInt(process.env.LIMIT);
+    const limit = Number(process.env.LIMIT);
     const offset = (page - 1) * limit;
     const date = new Date();
     date.setDate(new Date().getDate() + 1);
@@ -218,9 +229,7 @@ ItemPriceController.fetchFormat = (req, res) => __awaiter(void 0, void 0, void 0
                 x.item.item_brand.name,
                 (_b = x.item.item_type) === null || _b === void 0 ? void 0 : _b.name,
                 x.item_unit == null ? x.item.unit : x.item_unit.unit,
-                x.item_unit == null
-                    ? 1
-                    : x.item_unit.conversion,
+                x.item_unit == null ? 1 : x.item_unit.conversion,
                 x.item_unit == null ? "" : x.item.unit,
                 x.price,
                 x.discount,

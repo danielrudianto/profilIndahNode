@@ -102,7 +102,7 @@ class BrandController {
       : decodeURIComponent(
           mysql_real_escape_string(req.query.keyword.toString())
         );
-    const limit = parseInt(process.env.LIMIT?.toString()!);
+    const limit = 10;
     const offset = (page - 1) * limit;
 
     BrandModel.fetch(keyword, offset, limit)

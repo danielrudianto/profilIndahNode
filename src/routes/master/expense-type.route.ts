@@ -16,7 +16,6 @@ router.get(
   ErrorHelper.intercept,
   ExpenseTypeController.fetchByID
 );
-
 router.get("/", ExpenseTypeController.fetch);
 
 router.post(

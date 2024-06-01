@@ -56,7 +56,7 @@ ItemTypeController.fetch = (req, res) => {
     const keyword = !req.query.keyword
         ? ""
         : decodeURIComponent((0, escape_helper_1.mysql_real_escape_string)((_b = req.query.keyword) === null || _b === void 0 ? void 0 : _b.toString()));
-    const limit = parseInt(process.env.LIMIT);
+    const limit = 10;
     const offset = (page - 1) * limit;
     item_type_model_1.default.fetch(keyword, limit, offset, fetch_interface_1.fetchMode.Pagination)
         .then(([result, count]) => {

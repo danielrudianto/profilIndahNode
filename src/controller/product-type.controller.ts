@@ -46,7 +46,7 @@ class ItemTypeController {
       : decodeURIComponent(
           mysql_real_escape_string(req.query.keyword?.toString())
         );
-    const limit = parseInt(process.env.LIMIT!);
+    const limit = 10;
     const offset = (page - 1) * limit;
 
     ItemTypeModel.fetch(keyword, limit, offset, fetchMode.Pagination)!

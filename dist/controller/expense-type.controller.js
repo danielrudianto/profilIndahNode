@@ -40,10 +40,16 @@ ExpenseTypeController.create = (req, res) => {
  * @param res
  */
 ExpenseTypeController.fetchV2 = (req, res) => {
-    expense_type_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All)
+    expense_type_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.AllV2)
         .then((result) => {
-        const parentExpenseType = result.filter((x) => x.parent_id == null);
-        return res.status(200).send(parentExpenseType);
+        return res.status(200).send(result.map((x) => {
+            return {
+                id: x.id,
+                name: x.name,
+                description: x.description,
+                can_delete: x.can_delete.toString().replace("n", "") == "1",
+            };
+        }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching expense type: ${error}`);

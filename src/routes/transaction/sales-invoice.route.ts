@@ -43,6 +43,8 @@ router.get(
   SalesInvoiceController.fetchSalesmenPagination
 );
 
+router.get("/payment/:id", SalesInvoiceController.fetchPaymentsByID);
+
 router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
@@ -53,6 +55,12 @@ router.get(
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   SalesInvoiceController.fetchByID
+);
+
+router.delete(
+  "/payment/:id",
+  administratorMiddleware,
+  SalesInvoiceController.deletePaymentByID
 );
 
 router.delete(

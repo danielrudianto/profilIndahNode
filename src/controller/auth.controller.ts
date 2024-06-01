@@ -48,9 +48,6 @@ class AuthController {
             exp:
               new Date().getTime() +
               parseInt(process.env.EXPIRATION!.toString().replace("d", "")) *
-                24 *
-                60 *
-                60 *
                 1000,
             refreshToken: sign(
               {

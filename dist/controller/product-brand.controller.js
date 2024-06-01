@@ -83,14 +83,13 @@ BrandController.fetchByID = (req, res) => {
  * @param res
  */
 BrandController.fetch = (req, res) => {
-    var _a;
     const page = !req.query.page
         ? 1
         : Math.max(1, parseInt(req.query.page.toString()));
     const keyword = !req.query.keyword
         ? ""
         : decodeURIComponent((0, escape_helper_1.mysql_real_escape_string)(req.query.keyword.toString()));
-    const limit = parseInt((_a = process.env.LIMIT) === null || _a === void 0 ? void 0 : _a.toString());
+    const limit = 10;
     const offset = (page - 1) * limit;
     brand_model_1.BrandModel.fetch(keyword, offset, limit)
         .then((result) => {

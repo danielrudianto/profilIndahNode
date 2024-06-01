@@ -557,6 +557,38 @@ SalesInvoiceController.fetchByID = (req, res) => {
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
+SalesInvoiceController.fetchPaymentsByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    bill_code_model_1.default.fetchPaymentsByID(id)
+        .then((result) => {
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching payments by ID ${error}`);
+        return res.status(500).send(error);
+    });
+};
+SalesInvoiceController.deletePaymentByID = (req, res) => {
+    const id = parseInt(req.params.id);
+    bill_code_model_1.default.deletePaymentByID(id)
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        bill_code_model_1.default.evaluateBill(result.bill_code_id)
+            .then(() => {
+            return res.status(201).send(result);
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on evaluating bill value ${error}`);
+            return res.status(500).send(error_list_1.default["Internal server error"]);
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on deleting payment by ID ${error}`);
+        return res.status(500).send(error);
+    });
+};
 /**
  * Fetch bill code by ID
  * @param req

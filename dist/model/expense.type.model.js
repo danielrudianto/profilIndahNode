@@ -151,6 +151,21 @@ class ExpenseTypeModel {
                         parent_id: true,
                     },
                 });
+            case fetch_interface_1.fetchMode.AllV2:
+                return prisma.$queryRaw `
+          SELECT expense_type.id, expense_type.name, expense_type.description, 
+          IF(COALESCE(c.count, 0) > 0, 0, 1) AS can_delete 
+          FROM expense_type 
+          LEFT JOIN (
+            SELECT COUNT(id) AS count, expense_type.parent_id
+            FROM expense_type
+            WHERE is_delete = 0
+            AND expense_type.parent_id IS NOT NULL
+            GROUP BY expense_type.parent_id
+          ) c
+          ON expense_type.id = c.parent_id
+          WHERE is_delete = 0 AND expense_type.parent_id IS NULL`;
+                break;
             case fetch_interface_1.fetchMode.All:
             default:
                 return prisma.expense_type.findMany({
