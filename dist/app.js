@@ -73,6 +73,7 @@ exports.meili = new meilisearch_1.MeiliSearch({
 const allowedOrigins = [
     "https://app.profilindah.id",
     "https://stock.profilindah.id",
+    "https://v16.profilindah.id",
 ];
 const options = {
     origin: allowedOrigins,
