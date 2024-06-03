@@ -691,6 +691,7 @@ class PurchaseInvoiceModel {
                     user_purchase_invoice_created_byTouser: {
                         select: {
                             name: true,
+                            user_avatar: true,
                         },
                     },
                     good_receipt_code: {
