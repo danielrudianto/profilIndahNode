@@ -127,6 +127,10 @@ class ItemPriceModel {
     ]);
   }
 
+  static upsert(data: any[], userID: number) {
+    // Need to change database schema
+  }
+
   /**
    * Fetch item prices by keyword, date, offset, and limit
    * @param keyword
@@ -205,13 +209,40 @@ class ItemPriceModel {
           FROM item_price
           WHERE item_price.is_delete = 0
           AND item_price.item_id = ${item_id}
-          ${item_unit_id != null ? `AND item_unit_id = ${item_unit_id}` : ""}
+          ${
+            item_unit_id != null
+              ? `AND item_unit_id = ${item_unit_id}`
+              : "AND item_unit_id IS NULL"
+          }
         ) price
         ON item.id = price.item_id
         LEFT JOIN item_unit ON price.item_unit_id = item_unit.id
         WHERE item.id = ${item_id}
-        ${item_unit_id != null ? `AND item_unit_id = ${item_unit_id}` : ""}
+        ${
+          item_unit_id != null
+            ? `AND item_unit_id = ${item_unit_id}`
+            : "AND item_unit_id IS NULL"
+        }
       `);
+  }
+
+  static fetchByItemIDV2(item_id: number) {
+    return prisma.$transaction([
+      prisma.item.findUnique({
+        where: {
+          id: item_id,
+        },
+      }),
+      prisma.item_price.findMany({
+        where: {
+          item_id: item_id,
+          is_delete: false,
+        },
+        include: {
+          item_unit: true,
+        },
+      }),
+    ]);
   }
 
   static deleteById(item_id: number, created_by: number) {

@@ -68,6 +68,29 @@ ItemPriceController.fetchByID = (req, res) => {
         return res.status(500).send(error);
     });
 };
+ItemPriceController.fetchByIDV2 = (req, res) => {
+    const id = Number(req.params.id);
+    item_price_model_1.default.fetchByItemIDV2(id)
+        .then(([item, prices]) => {
+        return res.status(200).send(Object.assign(Object.assign({}, item), { item_price: prices }));
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching item price: ${error}`);
+        return res.status(500).send(error);
+    });
+};
+ItemPriceController.updateV2 = (req, res) => {
+    const data = req.body;
+    const userID = req.body.userId;
+    item_price_model_1.default.updateMany(data, userID)
+        .then((result) => {
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on updating item price: ${error}`);
+        return res.status(500).send(error);
+    });
+};
 /**
  * Fetch item prices
  * @param req
@@ -150,6 +173,17 @@ ItemPriceController.updateByID = (req, res) => {
         console.error(`[error]: Error on fetching item price. ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
+};
+ItemPriceController.updateByIDV2 = (req, res) => {
+    const data = req.body.data;
+    const userID = req.body.userId;
+    // ItemPriceModel.upsert(data, userID)
+    //   .then((result) => {
+    //     return res.status(201).send(result);
+    //   })
+    //   .catch((error) => {
+    //     return res.status(500).send(error);
+    //   });
 };
 /**
  * Upload data in bulk
