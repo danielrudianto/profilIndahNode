@@ -11,11 +11,7 @@ const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const router = (0, express_1.Router)();
 router.post("/", (0, express_validator_1.body)("price").notEmpty().withMessage(error_list_1.default["Price is required"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Package name required"]), (0, express_validator_1.body)("description")
     .notEmpty()
-    .withMessage(error_list_1.default["Package description required"]), 
-// Body items is an array of object
-// Each object has item_id, item_unit_id, and quantity
-// item_id and quantity is required
-(0, express_validator_1.body)("package_content")
+    .withMessage(error_list_1.default["Package description required"]), (0, express_validator_1.body)("package_content")
     .notEmpty()
     .withMessage(error_list_1.default["Package items required"]), (0, express_validator_1.body)("package_content.*.item_id")
     .notEmpty()

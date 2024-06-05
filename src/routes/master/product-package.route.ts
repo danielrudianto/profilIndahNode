@@ -13,9 +13,6 @@ router.post(
   body("description")
     .notEmpty()
     .withMessage(ErrorList["Package description required"]),
-  // Body items is an array of object
-  // Each object has item_id, item_unit_id, and quantity
-  // item_id and quantity is required
   body("package_content")
     .notEmpty()
     .withMessage(ErrorList["Package items required"]),

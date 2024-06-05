@@ -220,6 +220,7 @@ class ProductPackageController {
    * @param res
    */
   static updateByID = (req: Request, res: Response) => {
+    console.log(req.body);
     const price = req.body.price;
     const description = req.body.description;
     const name = req.body.name;

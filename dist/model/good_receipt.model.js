@@ -432,7 +432,7 @@ class GoodReceiptModel {
                 .toString()
                 .padStart(2, "0")}`;
         return prisma.$queryRawUnsafe(`
-      SELECT supplier.id, supplier.name, good_receipt_code.date, p.value
+      SELECT supplier.id, supplier.name, good_receipt_code.date, p.value, good_receipt_code.name as good_receipt_code_name
       FROM good_receipt
       JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
       JOIN supplier ON good_receipt_code.supplier_id = supplier.id
