@@ -58,6 +58,7 @@ enum ErrorList {
   "Username is required" = "Username tidak boleh kosong.",
 
   "Item is required" = "Item tidak boleh kosong.",
+  "Discount > price" = "Diskon tidak boleh lebih besar dari harga.",
   "Internal server error" = "Terjadi kesalahan pada server. Mohon hubungi administrator.",
 }
 

@@ -87,8 +87,23 @@ class ItemPriceModel {
             }),
         ]);
     }
-    static upsert(data, userID) {
-        // Need to change database schema
+    static updateV2(data, userID) {
+        const transactions = [];
+        data.forEach((x) => {
+            transactions.push(prisma.item_price.updateMany({
+                where: {
+                    item_id: x.item_id,
+                    item_unit_id: x.item_unit_id,
+                    is_delete: false,
+                },
+                data: {
+                    price: x.price,
+                    discount: x.discount,
+                    effective_date: new Date(),
+                },
+            }));
+        });
+        return prisma.$transaction(transactions);
     }
     /**
      * Fetch item prices by keyword, date, offset, and limit

@@ -127,8 +127,27 @@ class ItemPriceModel {
     ]);
   }
 
-  static upsert(data: any[], userID: number) {
-    // Need to change database schema
+  static updateV2(data: any[], userID: number) {
+    const transactions: any[] = [];
+
+    data.forEach((x) => {
+      transactions.push(
+        prisma.item_price.updateMany({
+          where: {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            is_delete: false,
+          },
+          data: {
+            price: x.price,
+            discount: x.discount,
+            effective_date: new Date(),
+          },
+        })
+      );
+    });
+
+    return prisma.$transaction(transactions);
   }
 
   /**

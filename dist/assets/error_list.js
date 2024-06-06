@@ -54,6 +54,7 @@ var ErrorList;
     ErrorList["User role required"] = "Role pengguna tidak boleh kosong.";
     ErrorList["Username is required"] = "Username tidak boleh kosong.";
     ErrorList["Item is required"] = "Item tidak boleh kosong.";
+    ErrorList["Discount > price"] = "Diskon tidak boleh lebih besar dari harga.";
     ErrorList["Internal server error"] = "Terjadi kesalahan pada server. Mohon hubungi administrator.";
 })(ErrorList || (ErrorList = {}));
 exports.default = ErrorList;

@@ -82,14 +82,19 @@ ItemPriceController.fetchByIDV2 = (req, res) => {
 ItemPriceController.updateV2 = (req, res) => {
     const data = req.body;
     const userID = req.body.userId;
-    item_price_model_1.default.updateMany(data, userID)
-        .then((result) => {
-        return res.status(200).send(result);
-    })
-        .catch((error) => {
-        console.error(`[error]: Error on updating item price: ${error}`);
-        return res.status(500).send(error);
-    });
+    if (data.filter((x) => x.discount > x.price).length > 0) {
+        return res.status(400).send(error_list_1.default["Discount > price"]);
+    }
+    else {
+        item_price_model_1.default.updateMany(data, userID)
+            .then((result) => {
+            return res.status(200).send(result);
+        })
+            .catch((error) => {
+            console.error(`[error]: Error on updating item price: ${error}`);
+            return res.status(500).send(error);
+        });
+    }
 };
 /**
  * Fetch item prices
@@ -177,6 +182,14 @@ ItemPriceController.updateByID = (req, res) => {
 ItemPriceController.updateByIDV2 = (req, res) => {
     const data = req.body.data;
     const userID = req.body.userId;
+    item_price_model_1.default.updateV2(data, userID)
+        .then((result) => {
+        return res.status(201).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on updating item price. ${error}`);
+        return res.status(500).send(error);
+    });
     // ItemPriceModel.upsert(data, userID)
     //   .then((result) => {
     //     return res.status(201).send(result);

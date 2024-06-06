@@ -241,6 +241,25 @@ class ItemPurchasePriceModel {
     }
   }
 
+  static fetchByItemIDV2(item_id: number) {
+    return prisma.$transaction([
+      prisma.item.findUnique({
+        where: {
+          id: item_id,
+        },
+      }),
+      prisma.item_price_purchase.findMany({
+        where: {
+          item_id: item_id,
+          is_delete: false,
+        },
+        include: {
+          item_unit: true,
+        },
+      }),
+    ]);
+  }
+
   /**
    * Fetch current price of items
    * @param data
@@ -263,6 +282,41 @@ class ItemPurchasePriceModel {
         ${whereQuery}
         ORDER BY item_price_purchase.id DESC
       `);
+  }
+
+  static updateMany(item_price: any[], userID: number) {
+    const transactions: any[] = [];
+    item_price.forEach((x) => {
+      transactions.push(
+        prisma.item_price_purchase.updateMany({
+          where: {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            is_delete: false,
+          },
+          data: {
+            is_delete: true,
+            deleted_at: new Date(),
+            deleted_by: userID,
+          },
+        })
+      );
+
+      transactions.push(
+        prisma.item_price_purchase.create({
+          data: {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            price: x.price,
+            discount: x.discount,
+            created_at: new Date(),
+            created_by: userID,
+          },
+        })
+      );
+    });
+
+    return prisma.$transaction(transactions);
   }
 }
 

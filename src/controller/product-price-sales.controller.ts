@@ -78,14 +78,18 @@ class ItemPriceController {
   static updateV2 = (req: Request, res: Response) => {
     const data = req.body;
     const userID = req.body.userId;
-    ItemPriceModel.updateMany(data, userID)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on updating item price: ${error}`);
-        return res.status(500).send(error);
-      });
+    if (data.filter((x: any) => x.discount > x.price).length > 0) {
+      return res.status(400).send(ErrorList["Discount > price"]);
+    } else {
+      ItemPriceModel.updateMany(data, userID)
+        .then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on updating item price: ${error}`);
+          return res.status(500).send(error);
+        });
+    }
   };
 
   /**
@@ -183,6 +187,14 @@ class ItemPriceController {
   static updateByIDV2 = (req: Request, res: Response) => {
     const data = req.body.data as any[];
     const userID = req.body.userId;
+    ItemPriceModel.updateV2(data, userID)
+      .then((result) => {
+        return res.status(201).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on updating item price. ${error}`);
+        return res.status(500).send(error);
+      });
     // ItemPriceModel.upsert(data, userID)
     //   .then((result) => {
     //     return res.status(201).send(result);

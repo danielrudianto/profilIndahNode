@@ -33,6 +33,21 @@ class ItemPurchasePriceController {
       });
   };
 
+  static fetchByIDV2 = (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    ItemPurchasePriceModel.fetchByItemIDV2(id)
+      .then(([item, prices]) => {
+        return res.status(200).send({
+          ...item,
+          item_price: prices,
+        });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching item price: ${error}`);
+        return res.status(500).send(error);
+      });
+  };
+
   /**
    * Fetch item purchase price by keyword and pagination
    * @param req
@@ -130,6 +145,25 @@ class ItemPurchasePriceController {
       });
   };
 
+  static updateV2 = (req: Request, res: Response) => {
+    const data = req.body.data;
+    const userID = req.body.userId;
+    // Validation 1.
+    // Check if there is any set that has discount > price
+    if (data.filter((x: any) => x.discount > x.price).length > 0) {
+      return res.status(400).send(ErrorList["Discount > price"]);
+    } else {
+      ItemPurchasePriceModel.updateMany(data, userID)
+        .then((result) => {
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on updating item price: ${error}`);
+          return res.status(500).send(error);
+        });
+    }
+  };
+
   /**
    * Create item purchase price in bulk
    * @param req
@@ -194,9 +228,7 @@ class ItemPurchasePriceController {
               x.item.item_brand.name,
               x.item.item_type?.name,
               x.item_unit == null ? x.item.unit : x.item_unit.unit,
-              x.item_unit == null
-                ? 1
-                : x.item_unit.conversion,
+              x.item_unit == null ? 1 : x.item_unit.conversion,
               x.item_unit == null ? "" : x.item.unit,
               x.price,
               x.discount,

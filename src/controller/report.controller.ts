@@ -293,6 +293,8 @@ class ReportController {
                   return b.value - a.value;
                 }),
             });
+          case "V2":
+            return res.status(200).send(result);
         }
       })
       .catch((error) => {
