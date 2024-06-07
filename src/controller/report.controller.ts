@@ -294,7 +294,63 @@ class ReportController {
                 }),
             });
           case "V2":
-            return res.status(200).send(result);
+            const brandMap: any = {};
+            const typeMap: any = {};
+            const customerMap: any = {};
+            const salesMap: any = {};
+
+            result.forEach((item) => {
+              // Aggregate by brand
+              if (!brandMap[item.item_brand_id]) {
+                brandMap[item.item_brand_id] = {
+                  name: item.item_brand_name,
+                  item_brand_id: item.item_brand_id,
+                  value: 0,
+                };
+              }
+              brandMap[item.item_brand_id].value += Number(item.value);
+
+              // Aggregate by type
+              if (!typeMap[item.item_type_id]) {
+                typeMap[item.item_type_id] = {
+                  name: item.item_type_name,
+                  item_type_id: item.item_type_id,
+                  value: 0,
+                };
+              }
+              typeMap[item.item_type_id].value += Number(item.value);
+
+              // Aggregate by customer
+              if (!customerMap[item.customer_id]) {
+                customerMap[item.customer_id] = {
+                  name: item.customer_name,
+                  customer_id: item.customer_id,
+                  value: 0,
+                };
+              }
+              customerMap[item.customer_id].value += Number(item.value);
+
+              // Aggregate by sales
+              if (!salesMap[item.sales]) {
+                salesMap[item.sales] = {
+                  name: item.sales,
+                  value: 0,
+                };
+              }
+              salesMap[item.sales].value += Number(item.value);
+            });
+
+            const brands = Object.values(brandMap);
+            const types = Object.values(typeMap);
+            const customers = Object.values(customerMap);
+            const sales = Object.values(salesMap);
+
+            return res.status(200).send({
+              brand: brands.sort((a: any, b: any) => b.value - a.value),
+              type: types.sort((a: any, b: any) => b.value - a.value),
+              customer: customers.sort((a: any, b: any) => b.value - a.value),
+              sales: sales,
+            });
         }
       })
       .catch((error) => {

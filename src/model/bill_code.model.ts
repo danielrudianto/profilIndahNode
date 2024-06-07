@@ -1046,28 +1046,45 @@ class BillCodeModel {
         `;
       case "V2":
         return prisma.$queryRaw<any[]>`
-          SELECT (((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount))) AS value, 
-          item_brand.name AS item_brand_name, item_type.name AS item_type_name,
-          customer.name AS customer_name
-          FROM bill
-          JOIN bill_code ON bill.bill_code_id = bill_code.id
-          JOIN item ON bill.item_id = item.id
-          JOIN item_brand ON item.item_brand_id = item_brand.id
-          JOIN item_type ON item.item_type_id = item_type.id
-          LEFT JOIN customer ON bill_code.customer_id = customer.id
+          SELECT 
+            ((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, 
+            item_brand.name AS item_brand_name, 
+            item_type.name AS item_type_name,
+            customer.name AS customer_name, 
+            item_brand_id, 
+            item_type_id, 
+            customer_id,
+            bill_code.sales
+          FROM 
+            bill
+          JOIN 
+            bill_code ON bill.bill_code_id = bill_code.id
+          JOIN 
+            item ON bill.item_id = item.id
+          JOIN 
+            item_brand ON item.item_brand_id = item_brand.id
+          JOIN 
+            item_type ON item.item_type_id = item_type.id
+          LEFT JOIN 
+            customer ON bill_code.customer_id = customer.id
           LEFT JOIN (
-            SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
-            FROM sales_return
-            JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-            WHERE sales_return_code.is_confirm = 1
-            AND sales_return_code.is_delete = 0
-            GROUP BY sales_return.bill_id
-          ) salesReturn
-          ON bill.id = salesReturn.bill_id
-          WHERE bill_code.is_confirm = 1
-          AND bill_code.is_delete = 0
-          AND YEAR(bill_code.date) = ${year}
-          AND MONTH(bill_code.date) = ${month}
+            SELECT 
+              bill_id, SUM(quantity) AS quantity
+            FROM 
+              sales_return
+            JOIN 
+              sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+            WHERE 
+              sales_return_code.is_confirm = 1
+              AND sales_return_code.is_delete = 0
+            GROUP BY 
+              bill_id
+          ) salesReturn ON bill.id = salesReturn.bill_id
+          WHERE 
+            bill_code.is_confirm = 1
+            AND bill_code.is_delete = 0
+            AND YEAR(bill_code.date) = ${year}
+            AND MONTH(bill_code.date) = ${month}
         `;
       default:
         return prisma.$queryRawUnsafe<any[]>(`
