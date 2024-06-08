@@ -156,6 +156,7 @@ ProductStockController.fetch = (req, res) => {
                                 },
                             }, "itemID unit currentStock minimumStock"),
                         ]).then(([depositStock, productStock]) => {
+                            console.log(depositStock);
                             return res.status(200).send({
                                 data: result.hits.map((x) => {
                                     const stockIndex = productStock.findIndex((y) => y.itemID == x.id);

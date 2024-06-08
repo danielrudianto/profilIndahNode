@@ -505,6 +505,7 @@ class DepositModel {
       LEFT JOIN item_unit ON deposit.item_unit_id = item_unit.id
       WHERE deposit.item_id IN (${itemIDs.join(",")})
       AND deposit_code.is_delete = 0
+      GROUP BY deposit.item_id
       UNION ALL
       SELECT SUM(package_content.quantity * deposit.quantity * COALESCE(item_unit.conversion, 1)) AS quantity, package_content.item_id
       FROM deposit
