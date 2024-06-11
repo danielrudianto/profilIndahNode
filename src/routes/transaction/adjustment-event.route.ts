@@ -8,10 +8,25 @@ const router = Router();
 
 router.post("/archives/v2", AdjustmentCaseController.fetchArchivesV2);
 router.post("/archives", AdjustmentCaseController.fetchArchives);
+router.post(
+  "/approve/:id",
+  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  AdjustmentCaseController.approve
+);
+router.post(
+  "/disapprove/:id",
+  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  AdjustmentCaseController.disapprove
+);
 
+router.get("/unconfirmed", AdjustmentCaseController.fetchUnconfirmed);
 router.get(
   "/code/:id",
-  param("id").notEmpty().withMessage("Mohon isikan ID penyesuaian stock."),
+  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   AdjustmentCaseController.fetchCodeByID
 );

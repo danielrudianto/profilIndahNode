@@ -348,6 +348,36 @@ class ProductStockController {
     }
   };
 
+  static fetchMetaByID = (req: Request, res: Response) => {
+    const itemID = parseInt(req.params.id);
+    ItemModel.fetchMetaByID(itemID)
+      .then(([item, deposit]) => {
+        if (!item) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          return res.status(200).send({
+            id: item.id,
+            reference: item.reference,
+            description: item.description,
+            brand: item.item_brand.name,
+            type: item.item_type.name,
+            unit: item.unit,
+            deposit: deposit.reduce((a, b) => {
+              return (
+                a +
+                Number(b.quantity) *
+                  (b.item_unit == null ? 1 : Number(b.item_unit!.conversion))
+              );
+            }, 0),
+          });
+        }
+      })
+      .catch((error) => {
+        console.error(`[error]: Error while fetching product. ${error}`);
+        return res.status(500).send(error);
+      });
+  };
+
   /**
    * Fetch product stock card by ID
    * @param req

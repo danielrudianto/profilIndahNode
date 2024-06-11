@@ -18,9 +18,9 @@ class AdjustmentCaseModel {
                 date: data.date,
                 created_by: data.created_by,
                 created_at: new Date(),
-                is_confirm: true,
+                is_confirm: false,
                 is_delete: false,
-                confirmed_by: data.created_by,
+                confirmed_by: null,
                 confirmed_at: new Date(),
                 company_id: data.company_id,
                 adjustment_case: {
@@ -28,6 +28,90 @@ class AdjustmentCaseModel {
                         data: data.adjustment_case,
                     },
                 },
+            },
+        });
+    }
+    static fetchUnconfirmed(page) {
+        return app_1.prisma.$transaction([
+            app_1.prisma.adjustment_case_code.findMany({
+                where: {
+                    is_confirm: false,
+                    is_delete: false,
+                },
+                orderBy: {
+                    date: "asc",
+                },
+                skip: (page - 1) * 10,
+                take: 10,
+                select: {
+                    id: true,
+                    date: true,
+                    name: true,
+                    user_adjustment_case_code_created_byTouser: {
+                        select: {
+                            name: true,
+                            user_avatar: true,
+                        },
+                    },
+                    company: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    adjustment_case: true,
+                },
+            }),
+            app_1.prisma.adjustment_case_code.count({
+                where: {
+                    is_confirm: false,
+                    is_delete: false,
+                },
+            }),
+        ]);
+    }
+    static approveByID(id, userID) {
+        return app_1.prisma.adjustment_case_code.update({
+            where: {
+                id: id,
+            },
+            data: {
+                confirmed_by: userID,
+                confirmed_at: new Date(),
+                is_confirm: true,
+            },
+            include: {
+                adjustment_case: {
+                    select: {
+                        id: true,
+                        item: {
+                            select: {
+                                id: true,
+                                reference: true,
+                                description: true,
+                                unit: true,
+                            },
+                        },
+                        quantity: true,
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    }
+    static disapproveByID(id, userID) {
+        return app_1.prisma.adjustment_case_code.update({
+            where: {
+                id: id,
+            },
+            data: {
+                is_delete: true,
+                confirmed_by: userID,
+                confirmed_at: new Date(),
             },
             include: {
                 adjustment_case: {

@@ -1203,6 +1203,31 @@ class BillCodeModel {
             });
         }
     }
+    static fetchBillIDByCustomerIDV2(customerID, page) {
+        return app_1.prisma.$transaction([
+            app_1.prisma.bill_code.findMany({
+                where: {
+                    is_confirm: true,
+                    is_delete: false,
+                    is_paid: false,
+                    customer_id: customerID == 0 ? null : customerID,
+                },
+                select: {
+                    id: true,
+                },
+                take: 10,
+                skip: (page - 1) * 10,
+            }),
+            app_1.prisma.bill_code.count({
+                where: {
+                    is_confirm: true,
+                    is_delete: false,
+                    is_paid: false,
+                    customer_id: customerID == 0 ? null : customerID,
+                },
+            }),
+        ]);
+    }
     static fetchReceivableByCustomerID(customer_id) {
         if (customer_id == 0) {
             return app_1.prisma.$queryRawUnsafe(`

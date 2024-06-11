@@ -208,7 +208,7 @@ SalesInvoiceController.create = (req, res) => {
                             quantity: Number(result.bill[i].quantity) *
                                 -1 *
                                 (result.bill[i].item_unit != null
-                                    ? Number(result.bill[i].item_unit.conversion.toString())
+                                    ? Number(result.bill[i].item_unit.conversion)
                                     : 1),
                             unit: bill[i].item_unit == null
                                 ? result.bill[i].item.unit

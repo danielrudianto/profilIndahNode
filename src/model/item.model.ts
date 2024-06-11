@@ -308,6 +308,48 @@ export class ItemModel {
 `;
   }
 
+  static fetchMetaByID(id: number) {
+    return prisma.$transaction([
+      prisma.item.findUnique({
+        where: {
+          id: id,
+        },
+        select: {
+          id: true,
+          reference: true,
+          description: true,
+          unit: true,
+          item_brand: {
+            select: {
+              name: true,
+            },
+          },
+          item_type: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      }),
+      prisma.deposit.findMany({
+        where: {
+          item_id: id,
+          deposit_code: {
+            is_delete: false,
+          },
+        },
+        select: {
+          quantity: true,
+          item_unit: {
+            select: {
+              conversion: true,
+            },
+          },
+        },
+      }),
+    ]);
+  }
+
   /**
    * Fetch autocomplete
    * @param keyword

@@ -14,7 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const bill_code_model_1 = __importDefault(require("../model/bill_code.model"));
-const customer_model_1 = __importDefault(require("../model/customer.model"));
 const bill_payment_model_1 = __importDefault(require("../model/bill_payment.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
 class ReceivableController {
@@ -49,20 +48,33 @@ ReceivableController.fetchByCustomerID = (req, res) => {
         })).then((receivables) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(200).send({
                 data: receivables,
-                customer: Number(customerID) == 0
-                    ? {
-                        name: "Retail Customer",
-                        address: "Retail Customer",
-                        phone: "Retail Customer",
-                        email: "Retail Customer",
-                    }
-                    : yield customer_model_1.default.fetchByID(Number(customerID)),
             });
         }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetch receivable by customer id ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+ReceivableController.fetchByCustomerIDV2 = (req, res) => {
+    const customerID = Number(req.params.id);
+    const page = req.query.page == null || req.query.page == undefined
+        ? 1
+        : Number(req.query.page);
+    bill_code_model_1.default.fetchBillIDByCustomerIDV2(customerID, page)
+        .then(([result, count]) => {
+        bill_code_model_1.default.fetchReceivableDetailByIDs(result.map((x) => {
+            return x.id;
+        })).then((receivables) => __awaiter(void 0, void 0, void 0, function* () {
+            return res.status(200).send({
+                data: receivables,
+                count: count,
+            });
+        }));
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching receivable by customer ID ${error}`);
+        return res.status(500).send(error);
     });
 };
 ReceivableController.fetchPaymentsHistory = (req, res) => {

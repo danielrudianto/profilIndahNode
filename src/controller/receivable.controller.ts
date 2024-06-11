@@ -40,15 +40,6 @@ class ReceivableController {
         ).then(async (receivables) => {
           return res.status(200).send({
             data: receivables,
-            customer:
-              Number(customerID) == 0
-                ? {
-                    name: "Retail Customer",
-                    address: "Retail Customer",
-                    phone: "Retail Customer",
-                    email: "Retail Customer",
-                  }
-                : await CustomerModel.fetchByID(Number(customerID)),
           });
         });
       })
@@ -57,6 +48,34 @@ class ReceivableController {
           `[error]: Error on fetch receivable by customer id ${error}`
         );
         return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  static fetchByCustomerIDV2 = (req: Request, res: Response) => {
+    const customerID = Number(req.params.id);
+    const page =
+      req.query.page == null || req.query.page == undefined
+        ? 1
+        : Number(req.query.page);
+
+    BillCodeModel.fetchBillIDByCustomerIDV2(customerID, page)
+      .then(([result, count]) => {
+        BillCodeModel.fetchReceivableDetailByIDs(
+          result.map((x) => {
+            return x.id;
+          })
+        ).then(async (receivables) => {
+          return res.status(200).send({
+            data: receivables,
+            count: count,
+          });
+        });
+      })
+      .catch((error) => {
+        console.error(
+          `[error]: Error on fetching receivable by customer ID ${error}`
+        );
+        return res.status(500).send(error);
       });
   };
 

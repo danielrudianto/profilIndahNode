@@ -50,81 +50,120 @@ AdjustmentCaseController.create = (req, res) => {
         }),
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        var _b;
         if (!result) {
             return res.status(500).send(error_list_1.default["Internal server error"]);
-        }
-        const queueBody = [];
-        // Start inserting using queue
-        for (let i = 0; i < result.adjustment_case.length; i++) {
-            if (Number(result.adjustment_case[i].quantity) > 0) {
-                // Added item
-                const stockIn = {
-                    itemID: result.adjustment_case[i].item.id,
-                    createdAt: result.created_at,
-                    date: result.date,
-                    document: result.name,
-                    opponent: "Internal",
-                    displayQuantity: Number(result.adjustment_case[i].quantity.toString()),
-                    unit: result.adjustment_case[i].item_unit == null
-                        ? result.adjustment_case[i].item.unit
-                        : result.adjustment_case[i].item_unit.unit,
-                    quantity: Number(result.adjustment_case[i].quantity) *
-                        (result.adjustment_case[i].item_unit == null
-                            ? 1
-                            : Number((_b = result.adjustment_case[i].item_unit) === null || _b === void 0 ? void 0 : _b.conversion)),
-                    billID: null,
-                    billCodeID: null,
-                    adjustmentCaseID: result.adjustment_case[i].id,
-                    adjustmentCaseCodeID: result.id,
-                    goodReceiptID: null,
-                    goodReceiptCodeID: null,
-                    salesReturnID: null,
-                    salesReturnCodeID: null,
-                    customerID: null,
-                    supplierID: null,
-                    companyID: result.company_id,
-                    price: 0,
-                };
-                queueBody.push(stockIn);
-                yield queue_helper_1.queue.add("insert-stock-in", stockIn);
-            }
-            else {
-                // Removed item
-                const stockIn = {
-                    itemID: result.adjustment_case[i].item.id,
-                    createdAt: result.created_at,
-                    date: result.date,
-                    document: result.name,
-                    opponent: "Internal",
-                    displayQuantity: Number(result.adjustment_case[i].quantity),
-                    unit: result.adjustment_case[i].item_unit == null
-                        ? result.adjustment_case[i].item.unit
-                        : result.adjustment_case[i].item_unit.unit,
-                    quantity: Number(result.adjustment_case[i].quantity) *
-                        (result.adjustment_case[i].item_unit == null
-                            ? 1
-                            : Number(result.adjustment_case[i].item_unit.conversion)),
-                    billID: null,
-                    billCodeID: null,
-                    adjustmentCaseID: result.adjustment_case[i].id,
-                    adjustmentCaseCodeID: result.id,
-                    goodReceiptID: null,
-                    goodReceiptCodeID: null,
-                    salesReturnID: null,
-                    salesReturnCodeID: null,
-                    customerID: null,
-                    supplierID: null,
-                    companyID: result.company_id,
-                    price: 0,
-                };
-                yield queue_helper_1.queue.add("insert-stock-out", stockIn);
-            }
         }
         return res.status(201).send(result);
     }))
         .catch((error) => {
         console.error(`[error]: Error on create adjustment case: ${error}`);
+        return res.status(500).send(error);
+    });
+};
+AdjustmentCaseController.approve = (req, res) => {
+    const userID = req.body.userId;
+    const id = Number(req.params.id);
+    adjustment_case_model_1.default.fetchByID(id)
+        .then((adjustmentCase) => {
+        if (!adjustmentCase) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        else if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        else {
+            adjustment_case_model_1.default.approveByID(id, userID)
+                .then((result) => __awaiter(void 0, void 0, void 0, function* () {
+                var _b;
+                const queueBody = [];
+                // Start inserting using queue
+                for (let i = 0; i < result.adjustment_case.length; i++) {
+                    if (Number(result.adjustment_case[i].quantity) > 0) {
+                        // Added item
+                        const stockIn = {
+                            itemID: result.adjustment_case[i].item.id,
+                            createdAt: result.created_at,
+                            date: result.date,
+                            document: result.name,
+                            opponent: "Internal",
+                            displayQuantity: Number(result.adjustment_case[i].quantity.toString()),
+                            unit: result.adjustment_case[i].item_unit == null
+                                ? result.adjustment_case[i].item.unit
+                                : result.adjustment_case[i].item_unit.unit,
+                            quantity: Number(result.adjustment_case[i].quantity) *
+                                (result.adjustment_case[i].item_unit == null
+                                    ? 1
+                                    : Number((_b = result.adjustment_case[i].item_unit) === null || _b === void 0 ? void 0 : _b.conversion)),
+                            billID: null,
+                            billCodeID: null,
+                            adjustmentCaseID: result.adjustment_case[i].id,
+                            adjustmentCaseCodeID: result.id,
+                            goodReceiptID: null,
+                            goodReceiptCodeID: null,
+                            salesReturnID: null,
+                            salesReturnCodeID: null,
+                            customerID: null,
+                            supplierID: null,
+                            companyID: result.company_id,
+                            price: 0,
+                        };
+                        queueBody.push(stockIn);
+                        yield queue_helper_1.queue.add("insert-stock-in", stockIn);
+                    }
+                    else {
+                        // Removed item
+                        const stockIn = {
+                            itemID: result.adjustment_case[i].item.id,
+                            createdAt: result.created_at,
+                            date: result.date,
+                            document: result.name,
+                            opponent: "Internal",
+                            displayQuantity: Number(result.adjustment_case[i].quantity),
+                            unit: result.adjustment_case[i].item_unit == null
+                                ? result.adjustment_case[i].item.unit
+                                : result.adjustment_case[i].item_unit.unit,
+                            quantity: Number(result.adjustment_case[i].quantity) *
+                                (result.adjustment_case[i].item_unit == null
+                                    ? 1
+                                    : Number(result.adjustment_case[i].item_unit.conversion)),
+                            billID: null,
+                            billCodeID: null,
+                            adjustmentCaseID: result.adjustment_case[i].id,
+                            adjustmentCaseCodeID: result.id,
+                            goodReceiptID: null,
+                            goodReceiptCodeID: null,
+                            salesReturnID: null,
+                            salesReturnCodeID: null,
+                            customerID: null,
+                            supplierID: null,
+                            companyID: result.company_id,
+                            price: 0,
+                        };
+                        yield queue_helper_1.queue.add("insert-stock-out", stockIn);
+                    }
+                }
+                return res.status(201).send(adjustmentCase);
+            }))
+                .catch((error) => {
+                console.error(`[error]: Error on approve adjustment case: ${error}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            });
+        }
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetch adjustment case: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+AdjustmentCaseController.disapprove = (req, res) => {
+    const id = Number(req.params.id);
+    const userID = req.body.userId;
+    adjustment_case_model_1.default.disapproveByID(id, userID)
+        .then((result) => {
+        return res.status(201).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on disapprove adjustment case: ${error}`);
         return res.status(500).send(error);
     });
 };
@@ -154,6 +193,31 @@ AdjustmentCaseController.fetch = (req, res) => {
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching adjustment case: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+AdjustmentCaseController.fetchUnconfirmed = (req, res) => {
+    const page = req.query.page == null || req.query.page == undefined
+        ? 1
+        : Number(req.query.page);
+    adjustment_case_model_1.default.fetchUnconfirmed(page)
+        .then(([result, count]) => {
+        return res.status(200).send({
+            data: result.map((x) => {
+                return {
+                    id: x.id,
+                    name: x.name,
+                    date: x.date,
+                    type: Number(x.adjustment_case[0].quantity) > 0 ? 0 : 1,
+                    user_adjustment_case_code_created_byTouser: x.user_adjustment_case_code_created_byTouser,
+                    company: x.company,
+                };
+            }),
+            count: count,
+        });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching unconfirmed adjustment case ${error}`);
         return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };

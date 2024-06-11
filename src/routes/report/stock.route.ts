@@ -7,6 +7,14 @@ import ErrorHelper from "../../helper/error.helper";
 const router = Router();
 
 router.get(
+  "/meta/:id",
+  param("id").exists().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  ProductStockController.fetchMetaByID
+);
+
+router.get(
   "/:id",
   param("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
