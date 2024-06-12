@@ -915,7 +915,9 @@ class BillCodeModel {
             item_brand_id, 
             item_type_id, 
             customer_id,
-            bill_code.sales
+            bill_code.sales,
+            bill_code.id,
+            DAY(bill_code.date) AS day
           FROM 
             bill
           JOIN 
