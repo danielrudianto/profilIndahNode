@@ -21,6 +21,7 @@ import GoodReceiptModel from "../model/good_receipt.model";
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
+import SalesReturnModel from "../model/sales_return.model";
 
 class ReportController {
   /**
@@ -299,83 +300,102 @@ class ReportController {
             const customerMap: any = {};
             const salesMap: any = {};
             const dateMap: any = {};
+            let total = 0;
 
-            result.forEach((item) => {
-              // Aggregate by brand
-              if (!brandMap[item.item_brand_id]) {
-                brandMap[item.item_brand_id] = {
-                  name: item.item_brand_name,
-                  item_brand_id: item.item_brand_id,
-                  value: 0,
-                };
-              }
-              brandMap[item.item_brand_id].value += Number(item.value);
+            SalesReturnModel.fetchValueByMonthYear(month, year)
+              .then((returns) => {
+                result.forEach((item) => {
+                  total += Number(item.value);
+                  // Aggregate by brand
+                  if (!brandMap[item.item_brand_id]) {
+                    brandMap[item.item_brand_id] = {
+                      name: item.item_brand_name,
+                      item_brand_id: item.item_brand_id,
+                      value: 0,
+                    };
+                  }
+                  brandMap[item.item_brand_id].value += Number(item.value);
 
-              // Aggregate by type
-              if (!typeMap[item.item_type_id]) {
-                typeMap[item.item_type_id] = {
-                  name: item.item_type_name,
-                  item_type_id: item.item_type_id,
-                  value: 0,
-                };
-              }
-              typeMap[item.item_type_id].value += Number(item.value);
+                  // Aggregate by type
+                  if (!typeMap[item.item_type_id]) {
+                    typeMap[item.item_type_id] = {
+                      name: item.item_type_name,
+                      item_type_id: item.item_type_id,
+                      value: 0,
+                    };
+                  }
+                  typeMap[item.item_type_id].value += Number(item.value);
 
-              // Aggregate by customer
-              if (!customerMap[item.customer_id]) {
-                customerMap[item.customer_id] = {
-                  name: item.customer_name,
-                  customer_id: item.customer_id,
-                  value: 0,
-                };
-              }
-              customerMap[item.customer_id].value += Number(item.value);
+                  // Aggregate by customer
+                  if (!customerMap[item.customer_id]) {
+                    customerMap[item.customer_id] = {
+                      name: item.customer_name,
+                      customer_id: item.customer_id,
+                      value: 0,
+                    };
+                  }
+                  customerMap[item.customer_id].value += Number(item.value);
 
-              // Aggregate by sales
-              if (!salesMap[item.sales]) {
-                salesMap[item.sales] = {
-                  name: item.sales,
-                  value: 0,
-                };
-              }
-              salesMap[item.sales].value += Number(item.value);
+                  // Aggregate by sales
+                  if (!salesMap[item.sales]) {
+                    salesMap[item.sales] = {
+                      name: item.sales,
+                      value: 0,
+                    };
+                  }
+                  salesMap[item.sales].value += Number(item.value);
 
-              // Aggregate by date
-              if (!dateMap[item.day]) {
-                dateMap[item.day] = {
-                  date: item.day,
-                  value: 0,
-                  count: 0,
-                };
-              }
-              dateMap[item.day].value += Number(item.value);
-            });
+                  // Aggregate by date
+                  if (!dateMap[item.day]) {
+                    dateMap[item.day] = {
+                      date: item.day,
+                      value: 0,
+                      count: 0,
+                    };
+                  }
+                  dateMap[item.day].value += Number(item.value);
+                });
 
-            const brands = Object.values(brandMap);
-            const types = Object.values(typeMap);
-            const customers = Object.values(customerMap);
-            const sales = Object.values(salesMap);
-            const dates = Object.values(dateMap);
+                const brands = Object.values(brandMap);
+                const types = Object.values(typeMap);
+                const customers = Object.values(customerMap);
+                const sales = Object.values(salesMap);
+                const dates = Object.values(dateMap);
 
-            return res.status(200).send({
-              brand: brands.sort((a: any, b: any) => b.value - a.value),
-              type: types.sort((a: any, b: any) => b.value - a.value),
-              customer: customers.sort((a: any, b: any) => b.value - a.value),
-              sales: sales,
-              date: dates.map((x: any) => {
-                const date = Number(x.date.toString().replace("n", ""));
-                return {
-                  date: date,
-                  value: Number(x.value),
-                  count: new Set(
-                    result.filter((z) => z.day == date).map((z) => z.id)
-                  ).size,
-                };
-              }),
-              count: result.length,
-              // Transactions if the distinct bill_code_id number
-              transactions: new Set(result.map((x) => x.id)).size,
-            });
+                return res.status(200).send({
+                  brand: brands.sort((a: any, b: any) => b.value - a.value),
+                  type: types.sort((a: any, b: any) => b.value - a.value),
+                  customer: customers.sort(
+                    (a: any, b: any) => b.value - a.value
+                  ),
+                  sales: sales,
+                  date: dates.map((x: any) => {
+                    const date = Number(x.date.toString().replace("n", ""));
+                    return {
+                      date: date,
+                      value: Number(x.value),
+                      count: new Set(
+                        result.filter((z) => z.day == date).map((z) => z.id)
+                      ).size,
+                    };
+                  }),
+                  count: result.length,
+                  total: total,
+                  // Transactions if the distinct bill_code_id number
+                  transactions: new Set(result.map((x) => x.id)).size,
+                  returns: new Set(returns.map((x) => x.bill_code_id)).size,
+                  returned_value: returns.reduce(
+                    (a, b) => a + Number(b.value),
+                    0
+                  ),
+                });
+              })
+              .catch((error) => {
+                console.error(
+                  `[error]: Error on fetching sales report ${error}`
+                );
+                return res.status(500).send(ErrorList["Internal server error"]);
+              });
         }
       })
       .catch((error) => {

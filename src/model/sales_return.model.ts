@@ -238,6 +238,20 @@ class SalesReturnModel {
     });
   }
 
+  static fetchValueByMonthYear(month: number, year: number) {
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT SUM(sales_return.quantity * (bill.price - bill.discount)) AS value, bill.id, bill.bill_code_id
+      FROM sales_return
+      JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+      JOIN bill ON sales_return.bill_id = bill.id
+      JOIN bill_code ON bill.bill_code_id = bill_code.id
+      WHERE MONTH(bill_code.date) = ${month} AND YEAR(bill_code.date) = ${year}
+      AND bill_code.is_delete = 0
+      AND sales_return_code.is_delete = 0
+      GROUP BY bill.id
+    `);
+  }
+
   /**
    * Delete sales return code by id
    * @param id
