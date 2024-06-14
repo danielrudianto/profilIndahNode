@@ -917,6 +917,9 @@ class BillCodeModel {
             customer_id,
             bill_code.sales,
             bill_code.id,
+            bill_code.delivery,
+            bill_code.service,
+            bill_code.discount,
             DAY(bill_code.date) AS day
           FROM 
             bill
@@ -1008,6 +1011,45 @@ class BillCodeModel {
                 ? "AND DAY(bill_code.date) <= " + Math.abs(day)
                 : "AND DAY(bill_code.date) = " + day}
       ) AS a`);
+    }
+    /**
+     * Fetch today and yesterday's sales
+     * Assuming only 1.393 sales item per day (as of 2024-06-14)
+     */
+    static fetchRecentSales() {
+        const todayDate = new Date();
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(todayDate.getDate() - 1);
+        return app_1.prisma.$transaction([
+            app_1.prisma.$queryRawUnsafe(`
+        SELECT SUM(b.value) - bill_code.discount + bill_code.delivery + bill_code.service AS value
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+            FROM bill
+            GROUP BY bill.bill_code_id
+            ORDER BY bill_code_id DESC
+            LIMIT 2800
+        ) AS b
+        ON bill_code.id = b.bill_code_id
+        WHERE bill_code.is_delete = 0
+        AND bill_code.date BETWEEN '${todayDate.toISOString().split("T")[0]}' AND '${todayDate.toISOString().split("T")[0]}'
+      `),
+            app_1.prisma.$queryRawUnsafe(`
+        SELECT SUM(b.value) - bill_code.discount + bill_code.delivery + bill_code.service AS value
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+            FROM bill
+            GROUP BY bill.bill_code_id
+            ORDER BY bill_code_id DESC
+            LIMIT 5600
+        ) AS b
+        ON bill_code.id = b.bill_code_id
+        WHERE bill_code.is_delete = 0
+        AND bill_code.date BETWEEN '${yesterdayDate.toISOString().split("T")[0]}' AND '${yesterdayDate.toISOString().split("T")[0]}'
+      `),
+        ]);
     }
     /**
      * Fetch all bill code

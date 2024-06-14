@@ -23,6 +23,14 @@ import DepositModel from "../model/deposit.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 import SalesReturnModel from "../model/sales_return.model";
 
+interface AdministratorDashboard {
+  title: string;
+  compare: boolean;
+  current: number;
+  previous?: number;
+  code: number;
+}
+
 class ReportController {
   /**
    * Fetch money receipt
@@ -141,6 +149,93 @@ class ReportController {
                 .sort((a, b) => {
                   return b.value - a.value;
                 }),
+            });
+          case CalculatePurchaseMode.V2:
+            const brandMap: any = {};
+            const typeMap: any = {};
+            const supplierMap: any = {};
+            const dateMap: any = {};
+            let total = 0;
+            const codeID: number[] = [];
+
+            result.forEach((item) => {
+              total += Number(item.value);
+              // Aggregate by brand
+              if (!brandMap[item.item_brand_id]) {
+                brandMap[item.item_brand_id] = {
+                  name: item.item_brand_name,
+                  item_brand_id: item.item_brand_id,
+                  value: 0,
+                };
+              }
+              brandMap[item.item_brand_id].value += Number(item.value);
+
+              // Aggregate by type
+              if (!typeMap[item.item_type_id]) {
+                typeMap[item.item_type_id] = {
+                  name: item.item_type_name,
+                  item_type_id: item.item_type_id,
+                  value: 0,
+                };
+              }
+              typeMap[item.item_type_id].value += Number(item.value);
+
+              // Aggregate by customer
+              if (!supplierMap[item.supplier_id]) {
+                supplierMap[item.supplier_id] = {
+                  name: item.supplier_name,
+                  supplier_id: item.supplier_id,
+                  value: 0,
+                };
+              }
+              supplierMap[item.supplier_id].value += Number(item.value);
+
+              // Aggregate by date
+              if (!dateMap[item.day]) {
+                dateMap[item.day] = {
+                  date: item.day,
+                  delivery: 0,
+                  service: 0,
+                  discount: 0,
+                  value: 0,
+                };
+              }
+
+              dateMap[item.day].value += Number(item.value);
+
+              if (!codeID.includes(item.id)) {
+                dateMap[item.day].delivery += Number(item.delivery);
+                dateMap[item.day].service += Number(item.service);
+                dateMap[item.day].discount += Number(item.discount);
+              }
+            });
+
+            const brands = Object.values(brandMap);
+            const types = Object.values(typeMap);
+            const suppliers = Object.values(supplierMap);
+            const dates = Object.values(dateMap);
+            const discount = dates.reduce((a, b: any) => a + b.discount, 0);
+
+            return res.status(200).send({
+              brand: brands.sort((a: any, b: any) => b.value - a.value),
+              type: types.sort((a: any, b: any) => b.value - a.value),
+              supplier: suppliers.sort((a: any, b: any) => b.value - a.value),
+              discount: discount,
+              date: dates.map((x: any) => {
+                const date = Number(x.date.toString().replace("n", ""));
+                return {
+                  date: date,
+                  value: Number(x.value),
+                  discount: Number(x.discount),
+                  count: new Set(
+                    result.filter((z) => z.day == date).map((z) => z.id)
+                  ).size,
+                };
+              }),
+              count: result.length,
+              total: total,
+              // Transactions if the distinct bill_code_id number
+              transactions: new Set(result.map((x) => x.id)).size,
             });
         }
       })
@@ -301,6 +396,7 @@ class ReportController {
             const salesMap: any = {};
             const dateMap: any = {};
             let total = 0;
+            const codeID: number[] = [];
 
             SalesReturnModel.fetchValueByMonthYear(month, year)
               .then((returns) => {
@@ -349,11 +445,20 @@ class ReportController {
                   if (!dateMap[item.day]) {
                     dateMap[item.day] = {
                       date: item.day,
+                      delivery: 0,
+                      service: 0,
+                      discount: 0,
                       value: 0,
-                      count: 0,
                     };
                   }
+
                   dateMap[item.day].value += Number(item.value);
+
+                  if (!codeID.includes(item.id)) {
+                    dateMap[item.day].delivery += Number(item.delivery);
+                    dateMap[item.day].service += Number(item.service);
+                    dateMap[item.day].discount += Number(item.discount);
+                  }
                 });
 
                 const brands = Object.values(brandMap);
@@ -361,6 +466,9 @@ class ReportController {
                 const customers = Object.values(customerMap);
                 const sales = Object.values(salesMap);
                 const dates = Object.values(dateMap);
+                const delivery = dates.reduce((a, b: any) => a + b.delivery, 0);
+                const service = dates.reduce((a, b: any) => a + b.service, 0);
+                const discount = dates.reduce((a, b: any) => a + b.discount, 0);
 
                 return res.status(200).send({
                   brand: brands.sort((a: any, b: any) => b.value - a.value),
@@ -369,11 +477,17 @@ class ReportController {
                     (a: any, b: any) => b.value - a.value
                   ),
                   sales: sales,
+                  delivery: delivery,
+                  discount: discount,
+                  service: service,
                   date: dates.map((x: any) => {
                     const date = Number(x.date.toString().replace("n", ""));
                     return {
                       date: date,
                       value: Number(x.value),
+                      delivery: Number(x.delivery),
+                      discount: Number(x.discount),
+                      service: Number(x.service),
                       count: new Set(
                         result.filter((z) => z.day == date).map((z) => z.id)
                       ).size,
@@ -525,14 +639,7 @@ class ReportController {
     const month = parseInt(req.params.month);
     const report = parseInt(req.params.report);
 
-    const [
-      bills,
-      purchases,
-      companies,
-      [expenses, expenseType],
-      cogs,
-      overflows,
-    ] = await Promise.all([
+    Promise.all([
       BillCodeModel.fetchSum(month, year),
       PurchaseInvoiceModel.calculateTotalPurchase(
         month,
@@ -624,110 +731,124 @@ class ReportController {
           },
         },
       ]),
-    ]);
-
-    if (report == 0) {
-      return res.status(200).send({
-        companies: companies,
-        bills:
-          bills.length == 0
-            ? {
-                delivery: 0,
-                discount: 0,
-                value: 0,
-                service: 0,
-              }
-            : {
-                delivery: bills[0].delivery,
-                discount: bills[0].discount,
-                value: bills[0].value,
-                service: bills[0].service,
-              },
-        purchases: purchases.map((x) => {
-          return {
-            value: x.value,
-            discount: x.discount,
-            name: x.name,
-            company_id: x.company_id,
-          };
-        }),
-        expenses: expenses,
-        expenseType: expenseType
-          .filter((x) => x.parent_id == null)
-          .map((x) => {
-            return {
-              name: x.name,
-              id: x.id,
-              children: expenseType
-                .filter((y) => y.parent_id == x.id)
-                .map((y) => {
+    ]).then(
+      ([
+        bills,
+        purchases,
+        companies,
+        [expenses, expenseType],
+        cogs,
+        overflows,
+      ]) => {
+        if (report == 0) {
+          return res.status(200).send({
+            companies: companies,
+            bills:
+              bills.length == 0
+                ? {
+                    delivery: 0,
+                    discount: 0,
+                    value: 0,
+                    service: 0,
+                  }
+                : {
+                    delivery: bills[0].delivery,
+                    discount: bills[0].discount,
+                    value: bills[0].value,
+                    service: bills[0].service,
+                  },
+            purchases:
+              purchases == undefined
+                ? []
+                : purchases.map((x) => {
+                    return {
+                      value: x.value,
+                      discount: x.discount,
+                      name: x.name,
+                      company_id: x.company_id,
+                    };
+                  }),
+            expenses: expenses,
+            expenseType: expenseType
+              .filter((x) => x.parent_id == null)
+              .map((x) => {
+                return {
+                  name: x.name,
+                  id: x.id,
+                  children: expenseType
+                    .filter((y) => y.parent_id == x.id)
+                    .map((y) => {
+                      return {
+                        name: y.name,
+                        id: y.id,
+                      };
+                    }),
+                };
+              }),
+            cogs: cogs,
+            overflows: overflows.length == 0 ? 0 : overflows[0].totalValue,
+          });
+        } else {
+          Promise.all([
+            BillCodeModel.fetchAppendix(month, year),
+            PurchaseInvoiceModel.fetchAppendix(month, year),
+            ExpenseModel.fetchAppendix(month, year),
+          ]).then(([billAppendix, purchaseAppendix, expenseAppendix]) => {
+            return res.status(200).send({
+              companies: companies,
+              bills:
+                bills.length == 0
+                  ? {
+                      delivery: 0,
+                      discount: 0,
+                      value: 0,
+                      service: 0,
+                    }
+                  : {
+                      delivery: bills[0].delivery,
+                      discount: bills[0].discount,
+                      value: bills[0].value,
+                      service: bills[0].service,
+                    },
+              purchases:
+                purchases == undefined
+                  ? []
+                  : purchases.map((x) => {
+                      return {
+                        value: x.value,
+                        discount: x.discount,
+                        name: x.name,
+                        company_id: x.company_id,
+                      };
+                    }),
+              expenses: expenses,
+              expenseType: expenseType
+                .filter((x) => x.parent_id == null)
+                .map((x) => {
                   return {
-                    name: y.name,
-                    id: y.id,
+                    name: x.name,
+                    id: x.id,
+                    children: expenseType
+                      .filter((y) => y.parent_id == x.id)
+                      .map((y) => {
+                        return {
+                          name: y.name,
+                          id: y.id,
+                        };
+                      }),
                   };
                 }),
-            };
-          }),
-        cogs: cogs,
-        overflows: overflows.length == 0 ? 0 : overflows[0].totalValue,
-      });
-    } else {
-      const [billAppendix, purchaseAppendix, expenseAppendix] =
-        await Promise.all([
-          BillCodeModel.fetchAppendix(month, year),
-          PurchaseInvoiceModel.fetchAppendix(month, year),
-          ExpenseModel.fetchAppendix(month, year),
-        ]);
-
-      return res.status(200).send({
-        companies: companies,
-        bills:
-          bills.length == 0
-            ? {
-                delivery: 0,
-                discount: 0,
-                value: 0,
-                service: 0,
-              }
-            : {
-                delivery: bills[0].delivery,
-                discount: bills[0].discount,
-                value: bills[0].value,
-                service: bills[0].service,
+              cogs: cogs,
+              appendix: {
+                bills: billAppendix,
+                purchases: purchaseAppendix,
+                expenses: expenseAppendix,
               },
-        purchases: purchases.map((x) => {
-          return {
-            value: x.value,
-            discount: x.discount,
-            name: x.name,
-            company_id: x.company_id,
-          };
-        }),
-        expenses: expenses,
-        expenseType: expenseType
-          .filter((x) => x.parent_id == null)
-          .map((x) => {
-            return {
-              name: x.name,
-              id: x.id,
-              children: expenseType
-                .filter((y) => y.parent_id == x.id)
-                .map((y) => {
-                  return {
-                    name: y.name,
-                    id: y.id,
-                  };
-                }),
-            };
-          }),
-        cogs: cogs,
-        appendix: {
-          bills: billAppendix,
-          purchases: purchaseAppendix,
-          expenses: expenseAppendix,
-        },
-      });
-    }
+            });
+          });
+        }
+      }
+    );
   };
 
   /**
@@ -1082,142 +1203,53 @@ class ReportController {
     req: Request,
     res: Response
   ) => {
-    interface AdministratorDashboard {
-      title: string;
-      compare: boolean;
-      current: number;
-      previous?: number;
-      code: number;
-    }
-
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-
-    const items = req.body.items as number[];
-    const response: AdministratorDashboard[] = [];
-
-    for (let i = 0; i < items.length; i++) {
-      switch (items[i]) {
-        case 0:
-          const billCurrentValue = await BillCodeModel.fetchByDate(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            today.getDate()
-          );
-
-          const billPreviousValue = await BillCodeModel.fetchByDate(
-            today.getFullYear(),
-            yesterday.getMonth() + 1,
-            yesterday.getDate()
-          );
-
-          response.push({
-            title: "Sales",
-            compare: true,
+    Promise.all([
+      BillCodeModel.fetchRecentSales(),
+      PurchaseInvoiceModel.fetchRecentPurchase(),
+      DepositModel.countActive(),
+      PromotionModel.countActive(),
+    ]).then(
+      ([
+        [billCurrentValue, billPreviousValue],
+        [purchaseCurrentValue, purchasePreviousValue],
+        depositCurrentValue,
+        promotionCurrentValue,
+      ]) => {
+        return res.status(200).send({
+          sales: {
             current:
               billCurrentValue == null
                 ? 0
                 : billCurrentValue[0].value == null
                 ? 0
-                : billCurrentValue[0].value,
+                : Number(billCurrentValue[0].value),
             previous:
               billPreviousValue == null
                 ? 0
                 : billPreviousValue[0].value == null
                 ? 0
-                : billPreviousValue[0].value,
-            code: items[i],
-          });
-          break;
-        case 1:
-          const purchaseCurrentValue = await PurchaseInvoiceModel.fetchByDate(
-            today.getFullYear(),
-            today.getMonth() + 1,
-            today.getDate()
-          );
-
-          const purchasePreviousValue = await PurchaseInvoiceModel.fetchByDate(
-            today.getFullYear(),
-            yesterday.getMonth() + 1,
-            yesterday.getDate()
-          );
-
-          response.push({
-            title: "Purchase",
-            compare: true,
+                : Number(billPreviousValue[0].value),
+          },
+          purchase: {
             current:
               purchaseCurrentValue == null
                 ? 0
                 : purchaseCurrentValue[0].value == null
                 ? 0
-                : purchaseCurrentValue[0].value,
+                : Number(purchaseCurrentValue[0].value),
             previous:
               purchasePreviousValue == null
                 ? 0
                 : purchasePreviousValue[0].value == null
                 ? 0
-                : purchasePreviousValue[0].value,
-            code: items[i],
-          });
-          break;
-        case 2:
-          const receivableCurrentValue = await ReceivableController.receivable;
-          response.push({
-            title: "Receivable",
-            compare: false,
-            current: receivableCurrentValue,
-            code: items[i],
-          });
-          break;
-        case 3:
-          const depositCurrentValue = await DepositModel.countActive();
-          response.push({
-            title: "Deposit",
-            compare: false,
-            current: depositCurrentValue,
-            code: items[i],
-          });
-          break;
-        case 4:
-          const promotionCurrentValue = await PromotionModel.countActive();
-          response.push({
-            title: "Promotion",
-            compare: false,
-            current: promotionCurrentValue,
-            code: items[i],
-          });
-          break;
-        case 5:
-          const inadequateCurrentValue = await mongoProductModel.countDocuments(
-            {
-              $expr: {
-                $lt: ["$currentStock", "$minimumStock"],
-              },
-            }
-          );
-
-          response.push({
-            title: "Inadequate Stock",
-            compare: false,
-            current: inadequateCurrentValue,
-            code: items[i],
-          });
-          break;
-        case 6:
-          // Internal deposit, now just calculate the deposit
-          const internalDepositCurrentValue = await DepositModel.countActive();
-          response.push({
-            title: "Internal Deposit",
-            compare: false,
-            current: internalDepositCurrentValue,
-            code: items[i],
-          });
-          break;
+                : Number(purchasePreviousValue[0].value),
+          },
+          receivable: ReceivableController.receivable,
+          deposit: depositCurrentValue,
+          promotion: promotionCurrentValue,
+        });
       }
-    }
-
-    return res.status(200).send(response);
+    );
   };
 
   static fetchAdministratorDashboardV1 = async (

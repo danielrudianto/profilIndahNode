@@ -56,6 +56,7 @@ import { PrismaClient } from "@prisma/client";
 import { queue } from "./helper/queue.helper";
 import ReceivableController from "./controller/receivable.controller";
 import compression from "compression";
+import ReportController from "./controller/report.controller";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",

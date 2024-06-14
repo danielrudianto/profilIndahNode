@@ -10,6 +10,7 @@ var CalculatePurchaseMode;
     CalculatePurchaseMode[CalculatePurchaseMode["Type"] = 2] = "Type";
     CalculatePurchaseMode[CalculatePurchaseMode["Brand"] = 3] = "Brand";
     CalculatePurchaseMode[CalculatePurchaseMode["Sum"] = 4] = "Sum";
+    CalculatePurchaseMode[CalculatePurchaseMode["V2"] = 5] = "V2";
 })(CalculatePurchaseMode = exports.CalculatePurchaseMode || (exports.CalculatePurchaseMode = {}));
 class PurchaseInvoiceModel {
     /**
@@ -220,6 +221,8 @@ class PurchaseInvoiceModel {
                 return CalculatePurchaseMode.Brand;
             case "sum":
                 return CalculatePurchaseMode.Sum;
+            case "V2":
+                return CalculatePurchaseMode.V2;
             default:
                 return null;
         }
@@ -425,6 +428,30 @@ class PurchaseInvoiceModel {
           AND purchase_invoice.is_delete = 0
           GROUP BY company.id
         `);
+            case CalculatePurchaseMode.V2:
+                return prisma.$queryRaw `
+          SELECT
+              (good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value,
+              item_brand.name AS item_brand_name,
+              item_type.name AS item_type_name,
+              supplier.name AS supplier_name,
+              item_brand_id,
+              item_type_id,
+              supplier_id,
+              good_receipt_code.id,
+              purchase_invoice.discount,
+              DAY(purchase_invoice.date) AS day
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+            JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+            JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+            JOIN item ON good_receipt.item_id = item.id
+            JOIN item_brand ON item.item_brand_id = item_brand.id
+            JOIN item_type ON item.item_type_id = item_type.id
+            AND purchase_invoice.is_delete = 0
+            AND YEAR(purchase_invoice.date) = ${year}
+            AND MONTH(purchase_invoice.date) = ${month}
+        `;
         }
     }
     /**
@@ -994,6 +1021,34 @@ class PurchaseInvoiceModel {
                 ? "AND DAY(purchase_invoice.date) <= " + Math.abs(day)
                 : "AND DAY(purchase_invoice.date) = " + day}
       ) AS a`);
+    }
+    static fetchRecentPurchase() {
+        const date = new Date();
+        const yesterday = new Date();
+        yesterday.setDate(date.getDate() - 1);
+        return prisma.$transaction([
+            prisma.$queryRawUnsafe(`
+        SELECT SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+        WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.is_confirm = 1
+        AND purchase_invoice.date BETWEEN '${date
+                .toISOString()
+                .slice(0, 10)}' AND '${yesterday.toISOString().slice(0, 10)}'`),
+            prisma.$queryRawUnsafe(`
+        SELECT SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+        WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.is_confirm = 1
+        AND purchase_invoice.date BETWEEN '${yesterday
+                .toISOString()
+                .slice(0, 10)}' AND '${date.toISOString().slice(0, 10)}'
+      `),
+        ]);
     }
 }
 exports.default = PurchaseInvoiceModel;

@@ -164,6 +164,83 @@ ReportController.fetchPurchaseReport = (req, res) => {
                         return b.value - a.value;
                     }),
                 });
+            case purchase_invoice_model_1.CalculatePurchaseMode.V2:
+                const brandMap = {};
+                const typeMap = {};
+                const supplierMap = {};
+                const dateMap = {};
+                let total = 0;
+                const codeID = [];
+                result.forEach((item) => {
+                    total += Number(item.value);
+                    // Aggregate by brand
+                    if (!brandMap[item.item_brand_id]) {
+                        brandMap[item.item_brand_id] = {
+                            name: item.item_brand_name,
+                            item_brand_id: item.item_brand_id,
+                            value: 0,
+                        };
+                    }
+                    brandMap[item.item_brand_id].value += Number(item.value);
+                    // Aggregate by type
+                    if (!typeMap[item.item_type_id]) {
+                        typeMap[item.item_type_id] = {
+                            name: item.item_type_name,
+                            item_type_id: item.item_type_id,
+                            value: 0,
+                        };
+                    }
+                    typeMap[item.item_type_id].value += Number(item.value);
+                    // Aggregate by customer
+                    if (!supplierMap[item.supplier_id]) {
+                        supplierMap[item.supplier_id] = {
+                            name: item.supplier_name,
+                            supplier_id: item.supplier_id,
+                            value: 0,
+                        };
+                    }
+                    supplierMap[item.supplier_id].value += Number(item.value);
+                    // Aggregate by date
+                    if (!dateMap[item.day]) {
+                        dateMap[item.day] = {
+                            date: item.day,
+                            delivery: 0,
+                            service: 0,
+                            discount: 0,
+                            value: 0,
+                        };
+                    }
+                    dateMap[item.day].value += Number(item.value);
+                    if (!codeID.includes(item.id)) {
+                        dateMap[item.day].delivery += Number(item.delivery);
+                        dateMap[item.day].service += Number(item.service);
+                        dateMap[item.day].discount += Number(item.discount);
+                    }
+                });
+                const brands = Object.values(brandMap);
+                const types = Object.values(typeMap);
+                const suppliers = Object.values(supplierMap);
+                const dates = Object.values(dateMap);
+                const discount = dates.reduce((a, b) => a + b.discount, 0);
+                return res.status(200).send({
+                    brand: brands.sort((a, b) => b.value - a.value),
+                    type: types.sort((a, b) => b.value - a.value),
+                    supplier: suppliers.sort((a, b) => b.value - a.value),
+                    discount: discount,
+                    date: dates.map((x) => {
+                        const date = Number(x.date.toString().replace("n", ""));
+                        return {
+                            date: date,
+                            value: Number(x.value),
+                            discount: Number(x.discount),
+                            count: new Set(result.filter((z) => z.day == date).map((z) => z.id)).size,
+                        };
+                    }),
+                    count: result.length,
+                    total: total,
+                    // Transactions if the distinct bill_code_id number
+                    transactions: new Set(result.map((x) => x.id)).size,
+                });
         }
     })
         .catch((error) => {
@@ -310,6 +387,7 @@ ReportController.fetchSalesReport = (req, res) => {
                 const salesMap = {};
                 const dateMap = {};
                 let total = 0;
+                const codeID = [];
                 sales_return_model_1.default.fetchValueByMonthYear(month, year)
                     .then((returns) => {
                     result.forEach((item) => {
@@ -353,27 +431,43 @@ ReportController.fetchSalesReport = (req, res) => {
                         if (!dateMap[item.day]) {
                             dateMap[item.day] = {
                                 date: item.day,
+                                delivery: 0,
+                                service: 0,
+                                discount: 0,
                                 value: 0,
-                                count: 0,
                             };
                         }
                         dateMap[item.day].value += Number(item.value);
+                        if (!codeID.includes(item.id)) {
+                            dateMap[item.day].delivery += Number(item.delivery);
+                            dateMap[item.day].service += Number(item.service);
+                            dateMap[item.day].discount += Number(item.discount);
+                        }
                     });
                     const brands = Object.values(brandMap);
                     const types = Object.values(typeMap);
                     const customers = Object.values(customerMap);
                     const sales = Object.values(salesMap);
                     const dates = Object.values(dateMap);
+                    const delivery = dates.reduce((a, b) => a + b.delivery, 0);
+                    const service = dates.reduce((a, b) => a + b.service, 0);
+                    const discount = dates.reduce((a, b) => a + b.discount, 0);
                     return res.status(200).send({
                         brand: brands.sort((a, b) => b.value - a.value),
                         type: types.sort((a, b) => b.value - a.value),
                         customer: customers.sort((a, b) => b.value - a.value),
                         sales: sales,
+                        delivery: delivery,
+                        discount: discount,
+                        service: service,
                         date: dates.map((x) => {
                             const date = Number(x.date.toString().replace("n", ""));
                             return {
                                 date: date,
                                 value: Number(x.value),
+                                delivery: Number(x.delivery),
+                                discount: Number(x.discount),
+                                service: Number(x.service),
                                 count: new Set(result.filter((z) => z.day == date).map((z) => z.id)).size,
                             };
                         }),
@@ -507,7 +601,7 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
     const year = parseInt(req.params.year);
     const month = parseInt(req.params.month);
     const report = parseInt(req.params.report);
-    const [bills, purchases, companies, [expenses, expenseType], cogs, overflows,] = yield Promise.all([
+    Promise.all([
         bill_code_model_1.default.fetchSum(month, year),
         purchase_invoice_model_1.default.calculateTotalPurchase(month, year, purchase_invoice_model_1.CalculatePurchaseMode.Sum),
         company_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All),
@@ -594,106 +688,112 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                 },
             },
         ]),
-    ]);
-    if (report == 0) {
-        return res.status(200).send({
-            companies: companies,
-            bills: bills.length == 0
-                ? {
-                    delivery: 0,
-                    discount: 0,
-                    value: 0,
-                    service: 0,
-                }
-                : {
-                    delivery: bills[0].delivery,
-                    discount: bills[0].discount,
-                    value: bills[0].value,
-                    service: bills[0].service,
-                },
-            purchases: purchases.map((x) => {
-                return {
-                    value: x.value,
-                    discount: x.discount,
-                    name: x.name,
-                    company_id: x.company_id,
-                };
-            }),
-            expenses: expenses,
-            expenseType: expenseType
-                .filter((x) => x.parent_id == null)
-                .map((x) => {
-                return {
-                    name: x.name,
-                    id: x.id,
-                    children: expenseType
-                        .filter((y) => y.parent_id == x.id)
-                        .map((y) => {
+    ]).then(([bills, purchases, companies, [expenses, expenseType], cogs, overflows,]) => {
+        if (report == 0) {
+            return res.status(200).send({
+                companies: companies,
+                bills: bills.length == 0
+                    ? {
+                        delivery: 0,
+                        discount: 0,
+                        value: 0,
+                        service: 0,
+                    }
+                    : {
+                        delivery: bills[0].delivery,
+                        discount: bills[0].discount,
+                        value: bills[0].value,
+                        service: bills[0].service,
+                    },
+                purchases: purchases == undefined
+                    ? []
+                    : purchases.map((x) => {
                         return {
-                            name: y.name,
-                            id: y.id,
+                            value: x.value,
+                            discount: x.discount,
+                            name: x.name,
+                            company_id: x.company_id,
                         };
                     }),
-                };
-            }),
-            cogs: cogs,
-            overflows: overflows.length == 0 ? 0 : overflows[0].totalValue,
-        });
-    }
-    else {
-        const [billAppendix, purchaseAppendix, expenseAppendix] = yield Promise.all([
-            bill_code_model_1.default.fetchAppendix(month, year),
-            purchase_invoice_model_1.default.fetchAppendix(month, year),
-            expense_model_1.default.fetchAppendix(month, year),
-        ]);
-        return res.status(200).send({
-            companies: companies,
-            bills: bills.length == 0
-                ? {
-                    delivery: 0,
-                    discount: 0,
-                    value: 0,
-                    service: 0,
-                }
-                : {
-                    delivery: bills[0].delivery,
-                    discount: bills[0].discount,
-                    value: bills[0].value,
-                    service: bills[0].service,
-                },
-            purchases: purchases.map((x) => {
-                return {
-                    value: x.value,
-                    discount: x.discount,
-                    name: x.name,
-                    company_id: x.company_id,
-                };
-            }),
-            expenses: expenses,
-            expenseType: expenseType
-                .filter((x) => x.parent_id == null)
-                .map((x) => {
-                return {
-                    name: x.name,
-                    id: x.id,
-                    children: expenseType
-                        .filter((y) => y.parent_id == x.id)
-                        .map((y) => {
+                expenses: expenses,
+                expenseType: expenseType
+                    .filter((x) => x.parent_id == null)
+                    .map((x) => {
+                    return {
+                        name: x.name,
+                        id: x.id,
+                        children: expenseType
+                            .filter((y) => y.parent_id == x.id)
+                            .map((y) => {
+                            return {
+                                name: y.name,
+                                id: y.id,
+                            };
+                        }),
+                    };
+                }),
+                cogs: cogs,
+                overflows: overflows.length == 0 ? 0 : overflows[0].totalValue,
+            });
+        }
+        else {
+            Promise.all([
+                bill_code_model_1.default.fetchAppendix(month, year),
+                purchase_invoice_model_1.default.fetchAppendix(month, year),
+                expense_model_1.default.fetchAppendix(month, year),
+            ]).then(([billAppendix, purchaseAppendix, expenseAppendix]) => {
+                return res.status(200).send({
+                    companies: companies,
+                    bills: bills.length == 0
+                        ? {
+                            delivery: 0,
+                            discount: 0,
+                            value: 0,
+                            service: 0,
+                        }
+                        : {
+                            delivery: bills[0].delivery,
+                            discount: bills[0].discount,
+                            value: bills[0].value,
+                            service: bills[0].service,
+                        },
+                    purchases: purchases == undefined
+                        ? []
+                        : purchases.map((x) => {
+                            return {
+                                value: x.value,
+                                discount: x.discount,
+                                name: x.name,
+                                company_id: x.company_id,
+                            };
+                        }),
+                    expenses: expenses,
+                    expenseType: expenseType
+                        .filter((x) => x.parent_id == null)
+                        .map((x) => {
                         return {
-                            name: y.name,
-                            id: y.id,
+                            name: x.name,
+                            id: x.id,
+                            children: expenseType
+                                .filter((y) => y.parent_id == x.id)
+                                .map((y) => {
+                                return {
+                                    name: y.name,
+                                    id: y.id,
+                                };
+                            }),
                         };
                     }),
-                };
-            }),
-            cogs: cogs,
-            appendix: {
-                bills: billAppendix,
-                purchases: purchaseAppendix,
-                expenses: expenseAppendix,
-            },
-        });
-    }
+                    cogs: cogs,
+                    appendix: {
+                        bills: billAppendix,
+                        purchases: purchaseAppendix,
+                        expenses: expenseAppendix,
+                    },
+                });
+            });
+        }
+    });
 });
 /**
  * Fetch sales item report
@@ -976,104 +1076,42 @@ ReportController.fetchSalesDashboard = (req, res) => {
  * @param res
  */
 ReportController.fetchAdministratorDashboardV2 = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    const items = req.body.items;
-    const response = [];
-    for (let i = 0; i < items.length; i++) {
-        switch (items[i]) {
-            case 0:
-                const billCurrentValue = yield bill_code_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
-                const billPreviousValue = yield bill_code_model_1.default.fetchByDate(today.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
-                response.push({
-                    title: "Sales",
-                    compare: true,
-                    current: billCurrentValue == null
+    Promise.all([
+        bill_code_model_1.default.fetchRecentSales(),
+        purchase_invoice_model_1.default.fetchRecentPurchase(),
+        deposit_model_1.default.countActive(),
+        promotion_model_1.default.countActive(),
+    ]).then(([[billCurrentValue, billPreviousValue], [purchaseCurrentValue, purchasePreviousValue], depositCurrentValue, promotionCurrentValue,]) => {
+        return res.status(200).send({
+            sales: {
+                current: billCurrentValue == null
+                    ? 0
+                    : billCurrentValue[0].value == null
                         ? 0
-                        : billCurrentValue[0].value == null
-                            ? 0
-                            : billCurrentValue[0].value,
-                    previous: billPreviousValue == null
+                        : Number(billCurrentValue[0].value),
+                previous: billPreviousValue == null
+                    ? 0
+                    : billPreviousValue[0].value == null
                         ? 0
-                        : billPreviousValue[0].value == null
-                            ? 0
-                            : billPreviousValue[0].value,
-                    code: items[i],
-                });
-                break;
-            case 1:
-                const purchaseCurrentValue = yield purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), today.getMonth() + 1, today.getDate());
-                const purchasePreviousValue = yield purchase_invoice_model_1.default.fetchByDate(today.getFullYear(), yesterday.getMonth() + 1, yesterday.getDate());
-                response.push({
-                    title: "Purchase",
-                    compare: true,
-                    current: purchaseCurrentValue == null
+                        : Number(billPreviousValue[0].value),
+            },
+            purchase: {
+                current: purchaseCurrentValue == null
+                    ? 0
+                    : purchaseCurrentValue[0].value == null
                         ? 0
-                        : purchaseCurrentValue[0].value == null
-                            ? 0
-                            : purchaseCurrentValue[0].value,
-                    previous: purchasePreviousValue == null
+                        : Number(purchaseCurrentValue[0].value),
+                previous: purchasePreviousValue == null
+                    ? 0
+                    : purchasePreviousValue[0].value == null
                         ? 0
-                        : purchasePreviousValue[0].value == null
-                            ? 0
-                            : purchasePreviousValue[0].value,
-                    code: items[i],
-                });
-                break;
-            case 2:
-                const receivableCurrentValue = yield receivable_controller_1.default.receivable;
-                response.push({
-                    title: "Receivable",
-                    compare: false,
-                    current: receivableCurrentValue,
-                    code: items[i],
-                });
-                break;
-            case 3:
-                const depositCurrentValue = yield deposit_model_1.default.countActive();
-                response.push({
-                    title: "Deposit",
-                    compare: false,
-                    current: depositCurrentValue,
-                    code: items[i],
-                });
-                break;
-            case 4:
-                const promotionCurrentValue = yield promotion_model_1.default.countActive();
-                response.push({
-                    title: "Promotion",
-                    compare: false,
-                    current: promotionCurrentValue,
-                    code: items[i],
-                });
-                break;
-            case 5:
-                const inadequateCurrentValue = yield mongo_product_model_1.mongoProductModel.countDocuments({
-                    $expr: {
-                        $lt: ["$currentStock", "$minimumStock"],
-                    },
-                });
-                response.push({
-                    title: "Inadequate Stock",
-                    compare: false,
-                    current: inadequateCurrentValue,
-                    code: items[i],
-                });
-                break;
-            case 6:
-                // Internal deposit, now just calculate the deposit
-                const internalDepositCurrentValue = yield deposit_model_1.default.countActive();
-                response.push({
-                    title: "Internal Deposit",
-                    compare: false,
-                    current: internalDepositCurrentValue,
-                    code: items[i],
-                });
-                break;
-        }
-    }
-    return res.status(200).send(response);
+                        : Number(purchasePreviousValue[0].value),
+            },
+            receivable: receivable_controller_1.default.receivable,
+            deposit: depositCurrentValue,
+            promotion: promotionCurrentValue,
+        });
+    });
 });
 ReportController.fetchAdministratorDashboardV1 = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const today = new Date();
