@@ -72,15 +72,16 @@ router.get("/inventory", ReportController.fetchInventoryReport);
 router.get("/expense/:month/:year", ReportController.fetchExpenseReport);
 
 router.get("/dashboard/sales", ReportController.fetchSalesDashboard);
+router.post("/dashboard/sales", ReportController.fetchSalesDashboardV2);
 router.post(
   "/dashboard/administrator",
   ReportController.fetchAdministratorDashboardV2
 );
-
 router.get(
   "/dashboard/administrator",
   ReportController.fetchAdministratorDashboardV1
 );
+router.post("/dashboard/purchasing", ReportController.fetchPurchaseDashboardV2);
 
 router.post(
   "/output-company/download",

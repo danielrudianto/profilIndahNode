@@ -1052,6 +1052,49 @@ class BillCodeModel {
         ]);
     }
     /**
+     * Fetch this month's and last month's sales
+     * Assuming only 1.393 sales item per day (as of 2024-06-14)
+     */
+    static fetchOlderSales() {
+        const date = new Date();
+        const month = date.getMonth();
+        const year = date.getFullYear();
+        const lastDate = new Date();
+        lastDate.setMonth(month - 1);
+        const lastMonth = lastDate.getMonth();
+        const lastYear = lastDate.getFullYear();
+        return app_1.prisma.$transaction([
+            app_1.prisma.$queryRawUnsafe(`
+        SELECT SUM(b.value) - bill_code.discount + bill_code.delivery + bill_code.service AS value
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+            FROM bill
+            GROUP BY bill.bill_code_id
+            ORDER BY bill_code_id DESC
+            LIMIT 84000
+        ) AS b
+        ON bill_code.id = b.bill_code_id
+        WHERE bill_code.is_delete = 0
+        AND MONTH(bill_code.date) = ${month + 1} AND YEAR(bill_code.date) = ${year}
+      `),
+            app_1.prisma.$queryRawUnsafe(`
+        SELECT SUM(b.value) - bill_code.discount + bill_code.delivery + bill_code.service AS value
+        FROM bill_code
+        JOIN (
+          SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
+            FROM bill
+            GROUP BY bill.bill_code_id
+            ORDER BY bill_code_id DESC
+            LIMIT 168000
+        ) AS b
+        ON bill_code.id = b.bill_code_id
+        WHERE bill_code.is_delete = 0
+        AND MONTH(bill_code.date) = ${lastMonth + 1} AND YEAR(bill_code.date) = ${lastYear}
+      `),
+        ]);
+    }
+    /**
      * Fetch all bill code
      * Used for development purpose only
      * @remarks

@@ -475,6 +475,15 @@ class SalesReturnModel {
       ORDER BY sales_return_code.date ASC
     `;
     }
+    static fetchArchiveYearsV2() {
+        return prisma.$queryRaw `
+      SELECT YEAR(sales_return_code.date) AS year, MONTH(sales_return_code.date) AS month, 
+      COUNT(id) AS count
+      FROM sales_return_code
+      GROUP BY MONTH(sales_return_code.date), YEAR(sales_return_code.date)
+      ORDER BY sales_return_code.date DESC
+    `;
+    }
     /**
      * Fetch sales return archive
      * By year
@@ -613,6 +622,42 @@ class SalesReturnModel {
         `),
                 ]);
         }
+    }
+    static fetchArchiveV2(data) {
+        return prisma.$transaction([
+            prisma.$queryRawUnsafe(`
+      SELECT sales_return_code.id, sales_return_code.date, 
+      sales_return_code.name, sales_return_code.is_delete,  
+      sales_return_code.is_confirm
+      FROM sales_return_code
+      WHERE YEAR(sales_return_code.date) = ${data.year} AND MONTH(sales_return_code.date) = ${data.month}
+      ${data.keyword == null || data.keyword == ""
+                ? ""
+                : `AND sales_return_code.name LIKE '%${data.keyword}%'`}
+      ${data.status == 0
+                ? ""
+                : data.status == 1
+                    ? "AND sales_return_code.is_delete = 1"
+                    : "AND sales_return_code.is_delete = 0"}
+      AND sales_return_code.date BETWEEN '${data.startDate}' AND '${data.endDate}'
+      ORDER BY sales_return_code.date ASC
+      LIMIT ${data.limit}
+      OFFSET ${data.offset}`),
+            prisma.$queryRawUnsafe(`
+        SELECT COUNT(id) AS count 
+        FROM sales_return_code
+        WHERE YEAR(sales_return_code.date) = ${data.year} AND MONTH(sales_return_code.date) = ${data.month}
+      ${data.keyword == null || data.keyword == ""
+                ? ""
+                : `AND sales_return_code.name LIKE '%${data.keyword}%'`}
+      ${data.status == 0
+                ? ""
+                : data.status == 1
+                    ? "AND sales_return_code.is_delete = 1"
+                    : "AND sales_return_code.is_delete = 0"}
+      AND sales_return_code.date BETWEEN '${data.startDate}' AND '${data.endDate}'
+      `),
+        ]);
     }
     /**
      * Fetch all sales return code

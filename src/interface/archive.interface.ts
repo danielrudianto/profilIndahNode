@@ -87,6 +87,17 @@ export interface SalesReturnArchive extends IArchive {
   is_confirm: number;
 }
 
+export interface IFetchSalesReturnArchiveV2 extends IFetchArchive {
+  status: number;
+  startDate: string;
+  endDate: string;
+}
+
+export interface SalesReturnArchiveV2 extends IArchive {
+  is_delete: number;
+  is_confirm: number;
+}
+
 export interface BillArchive extends IArchive {
   is_delete: number;
   customer_id: number | null;

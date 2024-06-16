@@ -28,8 +28,10 @@ router.get("/inventory/download", report_controller_1.default.downloadInventoryR
 router.get("/inventory", report_controller_1.default.fetchInventoryReport);
 router.get("/expense/:month/:year", report_controller_1.default.fetchExpenseReport);
 router.get("/dashboard/sales", report_controller_1.default.fetchSalesDashboard);
+router.post("/dashboard/sales", report_controller_1.default.fetchSalesDashboardV2);
 router.post("/dashboard/administrator", report_controller_1.default.fetchAdministratorDashboardV2);
 router.get("/dashboard/administrator", report_controller_1.default.fetchAdministratorDashboardV1);
+router.post("/dashboard/purchasing", report_controller_1.default.fetchPurchaseDashboardV2);
 router.post("/output-company/download", report_controller_1.default.fetchOutputReportCompany);
 exports.default = router;
 //# sourceMappingURL=report.route.js.map

@@ -1220,6 +1220,40 @@ class PurchaseInvoiceModel {
       `),
     ]);
   }
+
+  static fetchOlderPurchase() {
+    const date = new Date();
+    const month = date.getMonth();
+    const year = date.getFullYear();
+
+    const lastDate = new Date();
+    lastDate.setMonth(date.getMonth() - 1);
+    const lastMonth = lastDate.getMonth();
+    const lastYear = lastDate.getFullYear();
+
+    return prisma.$transaction([
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+        WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.is_confirm = 1
+        AND MONTH(purchase_invoice.date) = ${month + 1}
+        AND YEAR(purchase_invoice.date) = ${year}
+      `),
+      prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        JOIN purchase_invoice ON good_receipt_code.id = purchase_invoice.good_receipt_code_id
+        WHERE purchase_invoice.is_delete = 0
+        AND purchase_invoice.is_confirm = 1
+        AND MONTH(purchase_invoice.date) = ${lastMonth + 1}
+        AND YEAR(purchase_invoice.date) = ${lastYear}
+      `),
+    ]);
+  }
 }
 
 export default PurchaseInvoiceModel;

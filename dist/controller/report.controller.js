@@ -249,6 +249,20 @@ ReportController.fetchPurchaseReport = (req, res) => {
     });
 };
 /**
+ * Fetch dashboard purchase items
+ */
+ReportController.fetchPurchaseDashboardV2 = (req, res) => {
+    Promise.all([
+        purchase_invoice_model_1.default.fetchRecentPurchase(),
+        purchase_invoice_model_1.default.fetchOlderPurchase(),
+    ])
+        .then(([[purchaseCurrentValue, purchasePreviousValue], [purchaseMonthCurrentValye, purchaseMonthPreviousValue],]) => { })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching purchase report ${error}`);
+        return res.status(500).send(error);
+    });
+};
+/**
  * Download purchase report
  * This report will then be converted to PDF or Excel
  * Defined by user, rendered by client-side application
@@ -1033,6 +1047,43 @@ ReportController.fetchExpenseReport = (req, res) => __awaiter(void 0, void 0, vo
         types: typeResponse,
     });
 });
+ReportController.fetchSalesDashboardV2 = (req, res) => {
+    Promise.all([
+        bill_code_model_1.default.fetchRecentSales(),
+        bill_code_model_1.default.fetchOlderSales(),
+        deposit_model_1.default.countActive(),
+        promotion_model_1.default.countActive(),
+    ]).then(([[billCurrentValue, billPreviousValue], [billCurrentMonthValue, billPreiousMonthValue], depositCurrentValue, promotionCurrentValue,]) => {
+        return res.status(200).send({
+            sales: {
+                current: billCurrentValue == null
+                    ? 0
+                    : billCurrentValue[0].value == null
+                        ? 0
+                        : Number(billCurrentValue[0].value),
+                previous: billPreviousValue == null
+                    ? 0
+                    : billPreviousValue[0].value == null
+                        ? 0
+                        : Number(billPreviousValue[0].value),
+            },
+            sales_month: {
+                current: billCurrentMonthValue == null
+                    ? 0
+                    : billCurrentMonthValue[0].value == null
+                        ? 0
+                        : Number(billCurrentMonthValue[0].value),
+                previous: billPreiousMonthValue == null
+                    ? 0
+                    : billPreiousMonthValue[0].value == null
+                        ? 0
+                        : Number(billPreiousMonthValue[0].value),
+            },
+            deposit: depositCurrentValue,
+            promotion: promotionCurrentValue,
+        });
+    });
+};
 /**
  * Fetch dashboard data
  * @param req

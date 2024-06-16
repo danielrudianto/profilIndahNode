@@ -13,6 +13,7 @@ router.post(
   ErrorHelper.intercept,
   SalesReturnController.fetchSearch
 );
+router.post("/archives/v2", SalesReturnController.fetchArchivesV2);
 router.post("/archives", SalesReturnController.fetchArchives);
 router.post(
   "/",
