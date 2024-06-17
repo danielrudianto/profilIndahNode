@@ -422,6 +422,7 @@ ProductStockController.create = (req, res) => __awaiter(void 0, void 0, void 0, 
             const inadequateBrandID = req.body.brands;
             const inadequateTypeID = req.body.types;
             const page = req.body.page;
+            const keyword = req.body.keyword.toString();
             if (inadequateBrandID.length == 0 && inadequateTypeID.length == 0) {
                 Promise.all([
                     mongo_product_model_1.mongoProductModel.aggregate([
@@ -432,6 +433,24 @@ ProductStockController.create = (req, res) => __awaiter(void 0, void 0, void 0, 
                                         $expr: { $lt: ["$currentStock", "$minimumStock"] },
                                     },
                                     { $expr: { $gte: ["$currentStock", 0] } },
+                                    keyword == ""
+                                        ? {}
+                                        : {
+                                            $or: [
+                                                {
+                                                    reference: {
+                                                        $regex: keyword,
+                                                        $options: "i",
+                                                    },
+                                                },
+                                                {
+                                                    description: {
+                                                        $regex: keyword,
+                                                        $options: "i",
+                                                    },
+                                                },
+                                            ],
+                                        },
                                 ],
                             },
                         },

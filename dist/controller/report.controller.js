@@ -255,8 +255,37 @@ ReportController.fetchPurchaseDashboardV2 = (req, res) => {
     Promise.all([
         purchase_invoice_model_1.default.fetchRecentPurchase(),
         purchase_invoice_model_1.default.fetchOlderPurchase(),
+        promotion_model_1.default.countActive(),
     ])
-        .then(([[purchaseCurrentValue, purchasePreviousValue], [purchaseMonthCurrentValye, purchaseMonthPreviousValue],]) => { })
+        .then(([[purchaseCurrentValue, purchasePreviousValue], [purchaseMonthCurrentValue, purchaseMonthPreviousValue], promotionCount,]) => {
+        return res.status(200).send({
+            purchase: {
+                current: purchaseCurrentValue == null
+                    ? 0
+                    : purchaseCurrentValue[0].value == null
+                        ? 0
+                        : Number(purchaseCurrentValue[0].value),
+                previous: purchasePreviousValue == null
+                    ? 0
+                    : purchasePreviousValue[0].value == null
+                        ? 0
+                        : Number(purchasePreviousValue[0].value),
+            },
+            purchase_month: {
+                current: purchaseMonthCurrentValue == null
+                    ? 0
+                    : purchaseMonthCurrentValue[0].value == null
+                        ? 0
+                        : Number(purchaseMonthCurrentValue[0].value),
+                previous: purchaseMonthPreviousValue == null
+                    ? 0
+                    : purchaseMonthPreviousValue[0].value == null
+                        ? 0
+                        : Number(purchaseMonthPreviousValue[0].value),
+            },
+            promotion: promotionCount,
+        });
+    })
         .catch((error) => {
         console.error(`[error]: Error on fetching purchase report ${error}`);
         return res.status(500).send(error);

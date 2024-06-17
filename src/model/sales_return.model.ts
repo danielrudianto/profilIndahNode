@@ -150,6 +150,7 @@ class SalesReturnModel {
         user_sales_return_code_created_byTouser: {
           select: {
             name: true,
+            user_avatar: true,
           },
         },
         sales_return: {

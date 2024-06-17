@@ -452,6 +452,7 @@ class ProductStockController {
         const inadequateBrandID = req.body.brands as number[];
         const inadequateTypeID = req.body.types as number[];
         const page = req.body.page as number;
+        const keyword = req.body.keyword.toString();
 
         if (inadequateBrandID.length == 0 && inadequateTypeID.length == 0) {
           Promise.all([
@@ -463,6 +464,24 @@ class ProductStockController {
                       $expr: { $lt: ["$currentStock", "$minimumStock"] },
                     },
                     { $expr: { $gte: ["$currentStock", 0] } },
+                    keyword == ""
+                      ? {}
+                      : {
+                          $or: [
+                            {
+                              reference: {
+                                $regex: keyword,
+                                $options: "i",
+                              },
+                            },
+                            {
+                              description: {
+                                $regex: keyword,
+                                $options: "i",
+                              },
+                            },
+                          ],
+                        },
                   ],
                 },
               },
