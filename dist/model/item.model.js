@@ -193,7 +193,7 @@ class ItemModel {
     item.is_delete, item.item_brand_id, item.item_type_id, 
     item.unit, item.minimum_stock, item_type.name AS item_type_name, 
     item_brand.name AS item_brand_name, 
-    IF(COALESCE(b.count, 0) = 0 AND COALESCE(c.count, 0) = 0 AND COALESCE(d.count, 0) = 0, "0", "1") AS can_delete,
+    IF(COALESCE(b.count, 0) = 0 AND COALESCE(c.count, 0) = 0 AND COALESCE(d.count, 0) = 0, "1", "0") AS can_delete,
     item.is_active
     FROM item
     JOIN item_brand ON item.item_brand_id = item_brand.id

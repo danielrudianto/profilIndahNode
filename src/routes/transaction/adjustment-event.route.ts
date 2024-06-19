@@ -3,6 +3,7 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import AdjustmentCaseController from "../../controller/adjustment-event.controller";
 import ErrorHelper from "../../helper/error.helper";
+import { superadministratorMiddleware } from "../../helper/auth.helper";
 
 const router = Router();
 
@@ -10,6 +11,7 @@ router.post("/archives/v2", AdjustmentCaseController.fetchArchivesV2);
 router.post("/archives", AdjustmentCaseController.fetchArchives);
 router.post(
   "/approve/:id",
+  superadministratorMiddleware,
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
@@ -17,6 +19,7 @@ router.post(
 );
 router.post(
   "/disapprove/:id",
+  superadministratorMiddleware,
   param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
