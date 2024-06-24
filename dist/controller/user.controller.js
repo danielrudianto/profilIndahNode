@@ -290,17 +290,8 @@ UserController.updateAvatar = (req, res) => {
     const color = req.body.color;
     const eyebrows = req.body.eyebrows;
     const mouth = req.body.mouth;
-    user_avatar_model_1.default.create({
-        user_id: userID,
-        top: top,
-        accessories: accessories,
-        eyes: eyes,
-        circle: circle,
-        clothes: clothes,
-        color: color,
-        eyebrows: eyebrows,
-        mouth: mouth,
-    })
+    new user_avatar_model_1.default(userID, top, accessories, eyes, circle, clothes, color, eyebrows, mouth)
+        .create()
         .then((result) => {
         return res.status(201).send(result);
     })

@@ -47,8 +47,6 @@ CustomerController.create = (req, res) => {
         created_by: req.body.userId,
     })
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
-        const socket = new socket_helper_1.default("createCustomer", Object.assign(Object.assign({}, result), { can_delete: true }));
-        socket.create();
         yield app_1.meili.index("customer").addDocuments([result]);
         return res.status(201).send(result);
     }))

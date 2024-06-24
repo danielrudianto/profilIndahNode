@@ -59,6 +59,7 @@ const receivable_route_1 = __importDefault(require("./routes/transaction/receiva
 */
 const administrator_route_1 = __importDefault(require("./routes/distinct/administrator.route"));
 const development_routes_1 = __importDefault(require("./routes/development/development.routes"));
+const warehouse_route_1 = __importDefault(require("./routes/distinct/warehouse.route"));
 const os_route_1 = __importDefault(require("./routes/distinct/os.route"));
 const changelog_route_1 = __importDefault(require("./routes/report/changelog.route"));
 const mongoose_1 = __importDefault(require("mongoose"));
@@ -66,6 +67,7 @@ const client_1 = require("@prisma/client");
 const queue_helper_1 = require("./helper/queue.helper");
 const receivable_controller_1 = __importDefault(require("./controller/receivable.controller"));
 const compression_1 = __importDefault(require("compression"));
+const helmet_1 = __importDefault(require("helmet"));
 exports.meili = new meilisearch_1.MeiliSearch({
     host: "http://localhost:7700",
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
@@ -79,10 +81,11 @@ const options = {
     origin: allowedOrigins,
 };
 const app = (0, express_1.default)();
+app.use((0, compression_1.default)());
+app.use((0, helmet_1.default)());
 app.use((0, cors_1.default)(options));
 app.use(express_1.default.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express_1.default.json({ limit: "50mb" }));
-app.use((0, compression_1.default)());
 app.use("/auth", auth_route_1.default);
 app.use("/product", auth_helper_1.authMiddleware, product_route_1.default);
 app.use("/product-price-sales", auth_helper_1.authMiddleware, product_price_sales_route_1.default);
@@ -111,6 +114,7 @@ app.use("/expense", auth_helper_1.authMiddleware, expense_route_1.default);
 app.use("/report", report_route_1.default);
 app.use("/receivable", auth_helper_1.authMiddleware, receivable_route_1.default);
 app.use("/administrator", administrator_route_1.default);
+app.use("/warehouse", warehouse_route_1.default);
 app.use("/os", os_route_1.default);
 app.use("/changelog", changelog_route_1.default);
 app.use("/development", development_routes_1.default);
@@ -147,6 +151,27 @@ exports.io = new socket_io_1.Server(server, {
         methods: "*",
     },
 });
-exports.io.on("connection", () => { });
+exports.io.on("connection", () => {
+    console.log("New connection established");
+    setTimeout(() => {
+        exports.io.emit("createDraftBillCode", {
+            id: 8,
+            name: "B-CS-234123125",
+            date: new Date(),
+            customerName: "Retail customer",
+            bills: [
+                {
+                    id: 3,
+                    item_id: 1,
+                    reference: "CS234123125",
+                    description: "Cuci Sepatu",
+                    quantity: 20,
+                    unit: "SET",
+                    draftBillCodeId: 8,
+                },
+            ],
+        });
+    }, 1000);
+});
 exports.default = app;
 //# sourceMappingURL=app.js.map

@@ -247,7 +247,7 @@ class SalesInvoiceController {
                       ? Number(result.bill[i].item_unit!.conversion)
                       : 1),
                   unit:
-                    bill[i].item_unit == null
+                    result.bill[i].item_unit == null
                       ? result.bill[i].item!.unit
                       : result.bill[i].item_unit!.unit,
                   billID: result.bill[i].id,

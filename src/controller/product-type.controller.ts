@@ -38,6 +38,7 @@ class ItemTypeController {
    * @param res
    */
   static fetch = (req: Request, res: Response) => {
+    console.log(req.query);
     const page = !req.query.page
       ? 1
       : Math.max(parseInt(req.query.page.toString()), 1);

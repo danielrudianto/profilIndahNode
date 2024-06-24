@@ -34,12 +34,6 @@ class CustomerController {
       created_by: req.body.userId,
     })
       .then(async (result) => {
-        const socket = new SocketHelper("createCustomer", {
-          ...result,
-          can_delete: true,
-        });
-        socket.create();
-
         await meili.index("customer").addDocuments([result]);
         return res.status(201).send(result);
       })

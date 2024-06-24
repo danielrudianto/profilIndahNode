@@ -3,9 +3,7 @@ import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
-import AdjustmentCaseModel, {
-  IAdjustmentCaseCode,
-} from "../model/adjustment-case.model";
+import AdjustmentCaseModel from "../model/adjustment-case.model";
 import { StockInInterface } from "../interface/stock-in.interface";
 
 class AdjustmentCaseController {
@@ -22,34 +20,36 @@ class AdjustmentCaseController {
     const type = req.body.type;
 
     if (type == 0 && companyID == null) {
+      // If the type is found but the company is somewhat not selected
+      // Return an error
       return res.status(400).send(ErrorList["Parameter error"]);
-    }
-
-    // Insert adjustment case code
-    AdjustmentCaseModel.create({
-      name: name,
-      date: new Date(req.body.date),
-      created_by: userID,
-      company_id: companyID,
-      adjustment_case: req.body.adjustment_case.map((x: any) => {
-        return {
-          item_id: x.item_id,
-          item_unit_id: x.item_unit_id,
-          quantity: (type == 0 ? 1 : -1) * x.quantity,
-        };
-      }),
-    })
-      .then(async (result) => {
-        if (!result) {
-          return res.status(500).send(ErrorList["Internal server error"]);
-        }
-
-        return res.status(201).send(result);
+    } else {
+      // Insert adjustment case code
+      AdjustmentCaseModel.create({
+        name: name,
+        date: new Date(req.body.date),
+        created_by: userID,
+        company_id: companyID,
+        adjustment_case: req.body.adjustment_case.map((x: any) => {
+          return {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            quantity: (type == 0 ? 1 : -1) * x.quantity,
+          };
+        }),
       })
-      .catch((error) => {
-        console.error(`[error]: Error on create adjustment case: ${error}`);
-        return res.status(500).send(error);
-      });
+        .then(async (result) => {
+          if (!result) {
+            return res.status(500).send(ErrorList["Internal server error"]);
+          }
+
+          return res.status(201).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on create adjustment case: ${error}`);
+          return res.status(500).send(error);
+        });
+    }
   };
 
   static approve = (req: Request, res: Response) => {

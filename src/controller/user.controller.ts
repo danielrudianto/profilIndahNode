@@ -297,17 +297,18 @@ class UserController {
     const eyebrows = req.body.eyebrows;
     const mouth = req.body.mouth;
 
-    UserAvatarModel.create({
-      user_id: userID,
-      top: top,
-      accessories: accessories,
-      eyes: eyes,
-      circle: circle,
-      clothes: clothes,
-      color: color,
-      eyebrows: eyebrows,
-      mouth: mouth,
-    })
+    new UserAvatarModel(
+      userID,
+      top,
+      accessories,
+      eyes,
+      circle,
+      clothes,
+      color,
+      eyebrows,
+      mouth
+    )
+      .create()
       .then((result) => {
         return res.status(201).send(result);
       })

@@ -210,7 +210,7 @@ SalesInvoiceController.create = (req, res) => {
                                 (result.bill[i].item_unit != null
                                     ? Number(result.bill[i].item_unit.conversion)
                                     : 1),
-                            unit: bill[i].item_unit == null
+                            unit: result.bill[i].item_unit == null
                                 ? result.bill[i].item.unit
                                 : result.bill[i].item_unit.unit,
                             billID: result.bill[i].id,

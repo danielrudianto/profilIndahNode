@@ -49,6 +49,7 @@ import ReceivableRoutes from "./routes/transaction/receivable.route";
 
 import administratorRoutes from "./routes/distinct/administrator.route";
 import developmentRoutes from "./routes/development/development.routes";
+import warehouseRoutes from "./routes/distinct/warehouse.route";
 import osRoutes from "./routes/distinct/os.route";
 import changelogRoutes from "./routes/report/changelog.route";
 import mongoose from "mongoose";
@@ -56,6 +57,7 @@ import { PrismaClient } from "@prisma/client";
 import { queue } from "./helper/queue.helper";
 import ReceivableController from "./controller/receivable.controller";
 import compression from "compression";
+import helmet from "helmet";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
@@ -73,10 +75,12 @@ const options: cors.CorsOptions = {
 };
 
 const app = express();
+app.use(compression());
+app.use(helmet());
 app.use(cors(options));
+
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
 app.use(express.json({ limit: "50mb" }));
-app.use(compression());
 
 app.use("/auth", authRoutes);
 app.use("/product", authMiddleware, productRoutes);
@@ -111,6 +115,7 @@ app.use("/report", reportRoutes);
 app.use("/receivable", authMiddleware, ReceivableRoutes);
 
 app.use("/administrator", administratorRoutes);
+app.use("/warehouse", warehouseRoutes);
 app.use("/os", osRoutes);
 app.use("/changelog", changelogRoutes);
 app.use("/development", developmentRoutes);
@@ -160,6 +165,27 @@ export const io = new Server(server, {
   },
 });
 
-io.on("connection", () => {});
+io.on("connection", () => {
+  console.log("New connection established");
+  setTimeout(() => {
+    io.emit("createDraftBillCode", {
+      id: 8,
+      name: "B-CS-234123125",
+      date: new Date(),
+      customerName: "Retail customer",
+      bills: [
+        {
+          id: 3,
+          item_id: 1,
+          reference: "CS234123125",
+          description: "Cuci Sepatu",
+          quantity: 20,
+          unit: "SET",
+          draftBillCodeId: 8,
+        },
+      ],
+    });
+  }, 1000);
+});
 
 export default app;

@@ -50,6 +50,7 @@ ItemTypeController.create = (req, res) => {
  */
 ItemTypeController.fetch = (req, res) => {
     var _b;
+    console.log(req.query);
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
