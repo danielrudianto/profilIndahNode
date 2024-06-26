@@ -892,6 +892,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                         }
                         else {
                             overflowItem.quantity = overflowItem.quantity - stockIn.residue;
+                            yield overflowItem.save();
                             yield mongo_stock_in_model_1.mongoStockOutModel.create({
                                 adjustmentCaseID: overflowItem.adjustmentCaseID,
                                 adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,

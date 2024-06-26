@@ -955,6 +955,7 @@ const workerHandler = async (job: Job<any>) => {
               break;
             } else {
               overflowItem.quantity = overflowItem.quantity - stockIn.residue;
+              await overflowItem.save();
               await mongoStockOutModel.create({
                 adjustmentCaseID: overflowItem.adjustmentCaseID,
                 adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,
