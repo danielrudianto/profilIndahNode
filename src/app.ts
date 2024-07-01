@@ -123,7 +123,7 @@ app.use("/development", developmentRoutes);
 const server = http.createServer(app);
 export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
 
-server.listen(6000, async () => {
+server.listen(5000, async () => {
   console.log("[server]: Server is running on port 5000");
 
   redisClient.on("error", (err) =>
@@ -167,25 +167,6 @@ export const io = new Server(server, {
 
 io.on("connection", () => {
   console.log("New connection established");
-  setTimeout(() => {
-    io.emit("createDraftBillCode", {
-      id: 8,
-      name: "B-CS-234123125",
-      date: new Date(),
-      customerName: "Retail customer",
-      bills: [
-        {
-          id: 3,
-          item_id: 1,
-          reference: "CS234123125",
-          description: "Cuci Sepatu",
-          quantity: 20,
-          unit: "SET",
-          draftBillCodeId: 8,
-        },
-      ],
-    });
-  }, 1000);
 });
 
 export default app;

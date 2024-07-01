@@ -120,7 +120,7 @@ app.use("/changelog", changelog_route_1.default);
 app.use("/development", development_routes_1.default);
 const server = http_1.default.createServer(app);
 exports.redisClient = (0, redis_1.createClient)({ url: "redis://127.0.0.1:6379" });
-server.listen(6000, () => __awaiter(void 0, void 0, void 0, function* () {
+server.listen(5000, () => __awaiter(void 0, void 0, void 0, function* () {
     console.log("[server]: Server is running on port 5000");
     exports.redisClient.on("error", (err) => console.error(`[error]: Error on redis ${err}`));
     yield exports.redisClient.connect();
@@ -153,25 +153,6 @@ exports.io = new socket_io_1.Server(server, {
 });
 exports.io.on("connection", () => {
     console.log("New connection established");
-    setTimeout(() => {
-        exports.io.emit("createDraftBillCode", {
-            id: 8,
-            name: "B-CS-234123125",
-            date: new Date(),
-            customerName: "Retail customer",
-            bills: [
-                {
-                    id: 3,
-                    item_id: 1,
-                    reference: "CS234123125",
-                    description: "Cuci Sepatu",
-                    quantity: 20,
-                    unit: "SET",
-                    draftBillCodeId: 8,
-                },
-            ],
-        });
-    }, 1000);
 });
 exports.default = app;
 //# sourceMappingURL=app.js.map
