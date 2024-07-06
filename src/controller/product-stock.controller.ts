@@ -1195,6 +1195,643 @@ class ProductStockController {
             return res.status(500).send(ErrorList["Internal server error"]);
           });
         break;
+      case "problematic-pagination":
+        const problematicBrandID = req.body.brands as number[];
+        const problematicTypeID = req.body.types as number[];
+        const problematicPage = req.body.page as number;
+        const problematicKeyword = req.body.keyword.toString();
+
+        if (problematicBrandID.length == 0 && problematicTypeID.length == 0) {
+          Promise.all([
+            mongoProductModel.aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                    problematicKeyword == ""
+                      ? {}
+                      : {
+                          $or: [
+                            {
+                              reference: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                            {
+                              description: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                          ],
+                        },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+              {
+                $limit: problematicPage * 10,
+              },
+              {
+                $skip: (problematicPage - 1) * 10,
+              },
+            ]),
+            mongoProductModel.countDocuments({
+              $and: [
+                {
+                  $expr: { $lt: ["$currentStock", 0] },
+                },
+                problematicKeyword == ""
+                  ? {}
+                  : {
+                      $or: [
+                        {
+                          reference: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                        {
+                          description: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                      ],
+                    },
+              ],
+            }),
+          ])
+            .then(([result, count]) => {
+              ItemModel.fetchByIDs(result.map((x) => x.itemID))
+                .then((items) => {
+                  return res.status(200).send({
+                    data: result.map((x, index) => {
+                      return {
+                        id: x.itemID,
+                        reference: x.reference,
+                        description: x.description,
+                        stock: x.currentStock,
+                        minimum_stock: x.minimumStock,
+                        unit: x.unit,
+                        item_brand_name: items[index].item_brand_name,
+                        item_type_name: items[index].item_type_name,
+                      };
+                    }),
+                    count: count,
+                  });
+                })
+                .catch((error) => {
+                  console.error(
+                    `[error]: Error on fetching inadequate product. ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
+                });
+            })
+            .catch((error) => {
+              console.error(
+                `[error]: Error on fetching inadequate product. ${error}`
+              );
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
+        } else if (problematicBrandID.length == 0) {
+          Promise.all([
+            mongoProductModel.aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                    {
+                      itemTypeID: {
+                        $in: problematicTypeID,
+                      },
+                    },
+                    problematicKeyword == ""
+                      ? {}
+                      : {
+                          $or: [
+                            {
+                              reference: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                            {
+                              description: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                          ],
+                        },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+              {
+                $limit: problematicPage * 10,
+              },
+              {
+                $skip: (problematicPage - 1) * 10,
+              },
+            ]),
+            mongoProductModel.countDocuments({
+              $and: [
+                {
+                  $expr: { $lt: ["$currentStock", 0] },
+                },
+                problematicKeyword == ""
+                  ? {}
+                  : {
+                      $or: [
+                        {
+                          reference: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                        {
+                          description: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                      ],
+                    },
+                {
+                  itemTypeID: {
+                    $in: problematicTypeID,
+                  },
+                },
+              ],
+            }),
+          ])
+            .then(([result, count]) => {
+              ItemModel.fetchByIDs(result.map((x) => x.itemID))
+                .then((items) => {
+                  return res.status(200).send({
+                    data: result.map((x, index) => {
+                      return {
+                        id: x.itemID,
+                        reference: x.reference,
+                        description: x.description,
+                        stock: x.currentStock,
+                        minimum_stock: x.minimumStock,
+                        unit: x.unit,
+                        item_brand_name: items[index].item_brand_name,
+                        item_type_name: items[index].item_type_name,
+                      };
+                    }),
+                    count: count,
+                  });
+                })
+                .catch((error) => {
+                  console.error(
+                    `[error]: Error on fetching inadequate product. ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
+                });
+            })
+            .catch((error) => {
+              console.error(
+                `[error]: Error on fetching inadequate product. ${error}`
+              );
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
+        } else if (problematicTypeID.length == 0) {
+          Promise.all([
+            mongoProductModel.aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                    problematicKeyword == ""
+                      ? {}
+                      : {
+                          $or: [
+                            {
+                              reference: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                            {
+                              description: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                          ],
+                        },
+                    {
+                      itemBrandID: {
+                        $in: problematicBrandID,
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+              {
+                $limit: problematicPage * 10,
+              },
+              {
+                $skip: (problematicPage - 1) * 10,
+              },
+            ]),
+            mongoProductModel.countDocuments({
+              $and: [
+                {
+                  $expr: { $lt: ["$currentStock", 0] },
+                },
+                problematicKeyword == ""
+                  ? {}
+                  : {
+                      $or: [
+                        {
+                          reference: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                        {
+                          description: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                      ],
+                    },
+                {
+                  itemBrandID: {
+                    $in: problematicBrandID,
+                  },
+                },
+              ],
+            }),
+          ])
+            .then(([result, count]) => {
+              ItemModel.fetchByIDs(result.map((x) => x.itemID))
+                .then((items) => {
+                  return res.status(200).send({
+                    data: result.map((x, index) => {
+                      return {
+                        id: x.itemID,
+                        reference: x.reference,
+                        description: x.description,
+                        stock: x.currentStock,
+                        minimum_stock: x.minimumStock,
+                        unit: x.unit,
+                        item_brand_name: items[index].item_brand_name,
+                        item_type_name: items[index].item_type_name,
+                      };
+                    }),
+                    count: count,
+                  });
+                })
+                .catch((error) => {
+                  console.error(
+                    `[error]: Error on fetching inadequate product. ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
+                });
+            })
+            .catch((error) => {
+              console.error(
+                `[error]: Error on fetching inadequate product. ${error}`
+              );
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
+        } else {
+          Promise.all([
+            mongoProductModel.aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                    problematicKeyword == ""
+                      ? {}
+                      : {
+                          $or: [
+                            {
+                              reference: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                            {
+                              description: {
+                                $regex: problematicKeyword,
+                                $options: "i",
+                              },
+                            },
+                          ],
+                        },
+                    {
+                      itemBrandID: {
+                        $in: problematicBrandID,
+                      },
+                    },
+                    {
+                      itemTypeID: {
+                        $in: problematicTypeID,
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+              {
+                $limit: problematicPage * 10,
+              },
+              {
+                $skip: (problematicPage - 1) * 10,
+              },
+            ]),
+            mongoProductModel.countDocuments({
+              $and: [
+                {
+                  $expr: { $lt: ["$currentStock", 0] },
+                },
+                problematicKeyword == ""
+                  ? {}
+                  : {
+                      $or: [
+                        {
+                          reference: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                        {
+                          description: {
+                            $regex: problematicKeyword,
+                            $options: "i",
+                          },
+                        },
+                      ],
+                    },
+                {
+                  itemBrandID: {
+                    $in: problematicBrandID,
+                  },
+                },
+                {
+                  itemTypeID: {
+                    $in: problematicTypeID,
+                  },
+                },
+              ],
+            }),
+          ])
+            .then(([result, count]) => {
+              ItemModel.fetchByIDs(result.map((x) => x.itemID))
+                .then((items) => {
+                  return res.status(200).send({
+                    data: result.map((x, index) => {
+                      return {
+                        id: x.itemID,
+                        reference: x.reference,
+                        description: x.description,
+                        stock: x.currentStock,
+                        minimum_stock: x.minimumStock,
+                        unit: x.unit,
+                        item_brand_name: items[index].item_brand_name,
+                        item_type_name: items[index].item_type_name,
+                      };
+                    }),
+                    count: count,
+                  });
+                })
+                .catch((error) => {
+                  console.error(
+                    `[error]: Error on fetching inadequate product. ${error}`
+                  );
+                  return res
+                    .status(500)
+                    .send(ErrorList["Internal server error"]);
+                });
+            })
+            .catch((error) => {
+              console.error(
+                `[error]: Error on fetching inadequate product. ${error}`
+              );
+              return res.status(500).send(ErrorList["Internal server error"]);
+            });
+        }
+        break;
+      case "problematic":
+        const problematic_brand_id = req.body.brand as number[];
+        const problematic_type_id = req.body.type as number[];
+        if (
+          problematic_brand_id.length == 0 &&
+          problematic_type_id.length == 0
+        ) {
+          mongoProductModel
+            .aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+            ])
+            .then((result) => {
+              return res.status(200).send(
+                result.map((x) => {
+                  return {
+                    reference: x.reference,
+                    description: x.description,
+                    stock: x.currentStock,
+                    minimum_stock: x.minimumStock,
+                    unit: x.unit,
+                  };
+                })
+              );
+            });
+        } else if (problematic_brand_id.length == 0) {
+          mongoProductModel
+            .aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                    {
+                      itemTypeID: {
+                        $in: problematic_type_id,
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+            ])
+            .then((result) => {
+              return res.status(200).send(
+                result.map((x) => {
+                  return {
+                    reference: x.reference,
+                    description: x.description,
+                    stock: x.currentStock,
+                    minimum_stock: x.minimumStock,
+                    unit: x.unit,
+                  };
+                })
+              );
+            });
+        } else if (problematic_type_id.length == 0) {
+          mongoProductModel
+            .aggregate([
+              {
+                $match: {
+                  $and: [
+                    {
+                      $expr: { $lt: ["$currentStock", 0] },
+                    },
+                    {
+                      itemBrandID: {
+                        $in: problematic_brand_id,
+                      },
+                    },
+                  ],
+                },
+              },
+              {
+                $project: {
+                  itemID: 1,
+                  currentStock: 1,
+                  minimumStock: 1,
+                  unit: 1,
+                  reference: 1,
+                  description: 1,
+                },
+              },
+              {
+                $sort: {
+                  reference: 1,
+                },
+              },
+            ])
+            .then((result) => {
+              return res.status(200).send(
+                result.map((x) => {
+                  return {
+                    reference: x.reference,
+                    description: x.description,
+                    stock: x.currentStock,
+                    minimum_stock: x.minimumStock,
+                    unit: x.unit,
+                  };
+                })
+              );
+            });
+        }
+        break;
     }
   };
 }

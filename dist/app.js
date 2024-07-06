@@ -73,6 +73,7 @@ exports.meili = new meilisearch_1.MeiliSearch({
     apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
 const allowedOrigins = [
+    "http://localhost:4200",
     "https://app.profilindah.id",
     "https://stock.profilindah.id",
     "https://v16.profilindah.id",

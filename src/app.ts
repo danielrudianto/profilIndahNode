@@ -65,6 +65,7 @@ export const meili = new MeiliSearch({
 });
 
 const allowedOrigins = [
+  "http://localhost:4200",
   "https://app.profilindah.id",
   "https://stock.profilindah.id",
   "https://v16.profilindah.id",
