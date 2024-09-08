@@ -6,6 +6,12 @@ import ErrorHelper from "../../helper/error.helper";
 const router = Router();
 
 router.post("/search", GoodReceiptController.search);
+router.post(
+  "/check",
+  body("name").exists().withMessage(ErrorList["Name required"]),
+  ErrorHelper.intercept,
+  GoodReceiptController.check
+);
 
 router.post(
   "/",

@@ -21,6 +21,7 @@ const bill_model_1 = __importDefault(require("../model/bill.model"));
 const customer_model_1 = __importDefault(require("../model/customer.model"));
 const user_model_1 = __importDefault(require("../model/user.model"));
 const user_avatar_model_1 = __importDefault(require("../model/user-avatar.model"));
+const app_1 = require("../app");
 class UserController {
 }
 _a = UserController;
@@ -147,7 +148,7 @@ UserController.fetchByID = (req, res) => {
         if (!user) {
             return res.status(404).send(error_list_1.default["Not found"]);
         }
-        return res.status(200).send(Object.assign(Object.assign({}, user), { role: user_model_1.default.roles.filter((y) => y.id == (user === null || user === void 0 ? void 0 : user.role))[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
+        return res.status(200).send(Object.assign(Object.assign({}, user), { rawRole: user === null || user === void 0 ? void 0 : user.role, role: user_model_1.default.roles.filter((y) => y.id == (user === null || user === void 0 ? void 0 : user.role))[0].name, user_sales: user.user_sales.length == 0 ? [] : user.user_sales }));
     })
         .catch((error) => {
         console.error(`[error]: Error on fetching user ${error}`);
@@ -168,19 +169,20 @@ UserController.fetch = (req, res) => {
     const limit = parseInt(process.env.LIMIT.toString());
     const offset = (page - 1) * limit;
     user_model_1.default.fetch(keyword, offset, limit)
-        .then((result) => {
+        .then(([result, count]) => {
         return res.status(200).send({
-            data: result[0].map((x) => {
+            data: result.map((x) => {
+                const roleIndex = user_model_1.default.roles.findIndex((y) => y.id == x.role);
                 return {
                     id: x.id,
                     nik: x.nik,
                     name: x.name,
                     username: x.username,
                     user_department: x.role,
-                    role: user_model_1.default.roles.filter((y) => y.id == (x === null || x === void 0 ? void 0 : x.role))[0].name,
+                    role: roleIndex == -1 ? "" : user_model_1.default.roles[roleIndex].name,
                 };
             }),
-            count: result[1],
+            count: count,
         });
     })
         .catch((error) => {
@@ -343,7 +345,14 @@ UserController.update = (req, res) => {
                 role: role.name,
             });
             socket.create();
-            return res.status(201).send(result);
+            return res.status(201).send({
+                id: result.id,
+                name: result.name,
+                nik: result.nik,
+                username: result.username,
+                password: null,
+                role: role.name,
+            });
         })
             .catch((error) => {
             console.error(`[error]: Error on updating user ${error}`);
@@ -407,6 +416,17 @@ UserController.updatePassword = (req, res) => {
             .catch((error) => {
             return res.status(500).send(error);
         });
+    });
+};
+UserController.delete = (req, res) => {
+    const id = parseInt(req.params.id);
+    user_model_1.default.delete(id, false, req.body.userId)
+        .then((user) => __awaiter(void 0, void 0, void 0, function* () {
+        yield app_1.redisClient.del(`user:${id}`);
+        return res.status(200).send(user);
+    }))
+        .catch((error) => {
+        return res.status(500).send(error);
     });
 };
 exports.default = UserController;

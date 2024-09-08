@@ -7,6 +7,7 @@ import BillModel from "../model/bill.model";
 import CustomerModel from "../model/customer.model";
 import UserModel from "../model/user.model";
 import UserAvatarModel from "../model/user-avatar.model";
+import { redisClient } from "../app";
 
 class UserController {
   /**
@@ -140,6 +141,7 @@ class UserController {
 
         return res.status(200).send({
           ...user,
+          rawRole: user?.role,
           role: UserModel.roles.filter((y) => y.id == user?.role)[0].name,
           user_sales: user.user_sales.length == 0 ? [] : user.user_sales,
         });
@@ -164,19 +166,20 @@ class UserController {
     const offset = (page - 1) * limit;
 
     UserModel.fetch(keyword, offset, limit)
-      .then((result) => {
+      .then(([result, count]) => {
         return res.status(200).send({
-          data: result[0].map((x) => {
+          data: result.map((x) => {
+            const roleIndex = UserModel.roles.findIndex((y) => y.id == x.role);
             return {
               id: x.id,
               nik: x.nik,
               name: x.name,
               username: x.username,
               user_department: x.role,
-              role: UserModel.roles.filter((y) => y.id == x?.role)[0].name,
+              role: roleIndex == -1 ? "" : UserModel.roles[roleIndex].name,
             };
           }),
-          count: result[1],
+          count: count,
         });
       })
       .catch((error) => {
@@ -366,7 +369,14 @@ class UserController {
             });
             socket.create();
 
-            return res.status(201).send(result);
+            return res.status(201).send({
+              id: result.id,
+              name: result.name,
+              nik: result.nik,
+              username: result.username,
+              password: null,
+              role: role.name,
+            });
           })
           .catch((error) => {
             console.error(`[error]: Error on updating user ${error}`);
@@ -434,6 +444,18 @@ class UserController {
           return res.status(500).send(error);
         });
     });
+  };
+
+  static delete = (req: Request, res: Response) => {
+    const id = parseInt(req.params.id);
+    UserModel.delete(id, false, req.body.userId)
+      .then(async (user) => {
+        await redisClient.del(`user:${id}`);
+        return res.status(200).send(user);
+      })
+      .catch((error) => {
+        return res.status(500).send(error);
+      });
   };
 }
 

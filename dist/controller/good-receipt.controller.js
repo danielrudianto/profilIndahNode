@@ -144,6 +144,17 @@ GoodReceiptController.search = (req, res) => {
         return res.status(500).send(error);
     });
 };
+GoodReceiptController.check = (req, res) => {
+    const name = req.body.name;
+    good_receipt_model_1.default.fetchByName(name)
+        .then((result) => {
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on checking good receipt ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
 /**
  * Fetch good receipt by id
  * @param req

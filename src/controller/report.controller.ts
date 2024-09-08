@@ -697,7 +697,8 @@ class ReportController {
       PurchaseInvoiceModel.calculateTotalPurchase(
         month,
         year,
-        CalculatePurchaseMode.Sum
+        CalculatePurchaseMode.Sum,
+        null
       ),
       CompanyModel.fetch("", 0, 0, fetchMode.All),
       ExpenseModel.fetchSum(month, year),

@@ -646,7 +646,7 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
     const report = parseInt(req.params.report);
     Promise.all([
         bill_code_model_1.default.fetchSum(month, year),
-        purchase_invoice_model_1.default.calculateTotalPurchase(month, year, purchase_invoice_model_1.CalculatePurchaseMode.Sum),
+        purchase_invoice_model_1.default.calculateTotalPurchase(month, year, purchase_invoice_model_1.CalculatePurchaseMode.Sum, null),
         company_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All),
         expense_model_1.default.fetchSum(month, year),
         mongo_stock_in_model_1.mongoStockOutModel.aggregate([

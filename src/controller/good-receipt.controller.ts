@@ -158,6 +158,18 @@ class GoodReceiptController {
       });
   };
 
+  static check = (req: Request, res: Response) => {
+    const name = req.body.name;
+    GoodReceiptModel.fetchByName(name)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on checking good receipt ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
   /**
    * Fetch good receipt by id
    * @param req

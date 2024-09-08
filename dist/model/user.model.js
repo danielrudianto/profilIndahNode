@@ -360,6 +360,11 @@ UserModel.roles = [
         name: "Agen Penjualan",
         available: true,
     },
+    {
+        id: 7,
+        name: "Superadministrator",
+        available: true,
+    },
 ];
 exports.default = UserModel;
 //# sourceMappingURL=user.model.js.map

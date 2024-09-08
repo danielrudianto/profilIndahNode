@@ -183,6 +183,22 @@ class GoodReceiptModel {
             });
         }
     }
+    static fetchByName(name) {
+        return prisma.good_receipt_code.findFirst({
+            where: {
+                name: name,
+            },
+            select: {
+                name: true,
+                date: true,
+                supplier: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        });
+    }
     /**
      * Update good receipt
      * Update a good receipt and good receipt items

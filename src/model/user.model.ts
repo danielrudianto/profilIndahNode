@@ -68,6 +68,11 @@ class UserModel {
       name: "Agen Penjualan",
       available: true,
     },
+    {
+      id: 7,
+      name: "Superadministrator",
+      available: true,
+    },
   ];
 
   /**
