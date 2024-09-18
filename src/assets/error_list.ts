@@ -60,6 +60,7 @@ enum ErrorList {
   "Item is required" = "Item tidak boleh kosong.",
   "Discount > price" = "Diskon tidak boleh lebih besar dari harga.",
   "Internal server error" = "Terjadi kesalahan pada server. Mohon hubungi administrator.",
+  "Bill exists" = "Faktur sudah ada sebelumnya.",
 }
 
 export default ErrorList;

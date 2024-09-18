@@ -56,6 +56,7 @@ var ErrorList;
     ErrorList["Item is required"] = "Item tidak boleh kosong.";
     ErrorList["Discount > price"] = "Diskon tidak boleh lebih besar dari harga.";
     ErrorList["Internal server error"] = "Terjadi kesalahan pada server. Mohon hubungi administrator.";
+    ErrorList["Bill exists"] = "Faktur sudah ada sebelumnya.";
 })(ErrorList || (ErrorList = {}));
 exports.default = ErrorList;
 //# sourceMappingURL=error_list.js.map

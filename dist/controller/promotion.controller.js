@@ -17,14 +17,18 @@ const promotion_model_1 = __importDefault(require("../model/promotion.model"));
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const good_receipt_model_1 = __importDefault(require("../model/good_receipt.model"));
 const error_list_1 = __importDefault(require("../assets/error_list"));
+const moment_1 = __importDefault(require("moment"));
 class PromotionController {
 }
 _a = PromotionController;
 PromotionController.create = (req, res) => {
+    // convert startDate from the format "dd-MM-YYYY" to Date object
     const name = req.body.name;
     const description = req.body.description;
-    const startDate = new Date(req.body.startDate);
-    const endDate = req.body.endDate == null ? null : new Date(req.body.endDate);
+    const startDate = (0, moment_1.default)(req.body.startDate, "DD-MM-YYYY").toDate();
+    const endDate = req.body.endDate == null
+        ? null
+        : (0, moment_1.default)(req.body.endDate, "DD-MM-YYYY").toDate();
     const rules = req.body.rules;
     const target = req.body.target;
     const brandID = req.body.brand;
@@ -349,9 +353,13 @@ PromotionController.downloadResultByID = (req, res) => {
         const good_receipts = yield good_receipt_model_1.default.fetchByItemIDs(productIDs.map((x) => {
             return x.itemID;
         }), promotion.start, promotion.end, promotion.supplier_id);
+        const good_receipts_items = yield good_receipt_model_1.default.fetchItemsByItemIDs(productIDs.map((x) => {
+            return x.itemID;
+        }), promotion.start, promotion.end, promotion.supplier_id);
         return res.status(200).send({
             data: promotion,
             result: good_receipts,
+            items: good_receipts_items,
         });
     }));
 };

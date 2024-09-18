@@ -19,12 +19,14 @@ router.post(
   ErrorHelper.intercept,
   DraftBillController.confirmByID
 );
+
 router.post(
   "/delete",
   body("id").notEmpty().withMessage(ErrorList["ID is required"]),
   ErrorHelper.intercept,
   DraftBillController.deleteByID
 );
+
 router.post(
   "/",
   body("customer_id").exists().withMessage("Please fill in customer ID"),
@@ -45,9 +47,11 @@ router.get(
   },
   DraftBillController.fetch
 );
+router.get("/name/:name", DraftBillController.fetchByName);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
   DraftBillController.fetchByID
 );
 router.get(

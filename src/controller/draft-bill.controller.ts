@@ -23,23 +23,31 @@ class DraftBillController {
     const date = new Date();
     const service = req.body.service;
     const delivery = req.body.delivery;
+    const uuid = req.body.uuid;
 
-    DraftBillModel.create({
-      customer_id: customer_id,
-      note: note,
-      items: items,
-      created_by: userID,
-      name: this.generateName(date),
-      service: service,
-      delivery: delivery,
-    })
-      .then((result) => {
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on create draft bill: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    DraftBillModel.fetchByUUID(uuid).then((result) => {
+      if (result === 0) {
+        DraftBillModel.create({
+          uuid: uuid,
+          customer_id: customer_id,
+          note: note,
+          items: items,
+          created_by: userID,
+          name: this.generateName(date),
+          service: service,
+          delivery: delivery,
+        })
+          .then((result) => {
+            return res.status(201).send(result);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on create draft bill: ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
+      } else {
+        return res.status(400).send(ErrorList["Bill exists"]);
+      }
+    });
   };
 
   /**
@@ -110,6 +118,18 @@ class DraftBillController {
       })
       .catch((error) => {
         return res.status(500).send(error);
+      });
+  };
+
+  static fetchByName = (req: Request, res: Response) => {
+    const name = req.body.name;
+    DraftBillModel.fetchByName(name)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetch draft bill by name: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 

@@ -15,6 +15,8 @@ import {
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
 import { redisClient } from "../app";
+import { DraftBillModel } from "../model/draft-bill.model";
+import moment from "moment";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
@@ -442,6 +444,20 @@ class SalesInvoiceController {
       })
       .catch((error) => {
         return res.status(500).send(error);
+      });
+  };
+
+  static fetchSince = (req: Request, res: Response) => {
+    const last_fetched = req.body.last_fetched;
+    BillCodeModel.fetchSince(last_fetched)
+      .then((result) => {
+        return res.status(200).send(result);
+      })
+      .catch((error) => {
+        console.error(
+          `[error]: Error on fetching sales invoice since ${error}`
+        );
+        return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
 

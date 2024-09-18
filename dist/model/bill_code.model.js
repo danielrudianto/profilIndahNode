@@ -270,6 +270,17 @@ class BillCodeModel {
             app_1.prisma.$queryRawUnsafe(`SELECT COUNT(bill_code.id) AS count FROM bill_code ${conditionalQueries}`),
         ]);
     }
+    static fetchSince(since) {
+        return app_1.prisma.bill_code.findMany({
+            where: {
+                id: {
+                    gt: since,
+                },
+                is_delete: false,
+                is_confirm: true,
+            },
+        });
+    }
     /**
      * Fetch bill code and group them by year
      * @param mode

@@ -1,18 +1,21 @@
 import { Request, Response } from "express";
-import { prisma } from "../app";
 import PromotionModel from "../model/promotion.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import GoodReceiptModel from "../model/good_receipt.model";
-import BillCodeModel from "../model/bill_code.model";
 import ErrorList from "../assets/error_list";
+import moment from "moment";
 
 class PromotionController {
   static create = (req: Request, res: Response) => {
+    // convert startDate from the format "dd-MM-YYYY" to Date object
+
     const name = req.body.name;
     const description = req.body.description;
-    const startDate = new Date(req.body.startDate);
+    const startDate = moment(req.body.startDate, "DD-MM-YYYY").toDate();
     const endDate =
-      req.body.endDate == null ? null : new Date(req.body.endDate);
+      req.body.endDate == null
+        ? null
+        : moment(req.body.endDate, "DD-MM-YYYY").toDate();
 
     const rules = req.body.rules;
     const target = req.body.target;
@@ -380,9 +383,19 @@ class PromotionController {
         promotion.supplier_id
       );
 
+      const good_receipts_items = await GoodReceiptModel.fetchItemsByItemIDs(
+        productIDs.map((x) => {
+          return x.itemID;
+        }),
+        promotion.start,
+        promotion.end,
+        promotion.supplier_id
+      );
+
       return res.status(200).send({
         data: promotion,
         result: good_receipts,
+        items: good_receipts_items,
       });
     });
   };

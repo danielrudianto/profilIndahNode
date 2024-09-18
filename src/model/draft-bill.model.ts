@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import moment from "moment";
 import { v4 } from "uuid";
 import { fetchMode } from "../interface/fetch.interface";
+import { IConfirmSalesInvoice } from "../interface/archive.interface";
 
 const prisma = new PrismaClient();
 
@@ -13,6 +14,7 @@ interface ICreateDraftBill {
   service: number;
   delivery: number;
   items: ICreateDraftBillItems[];
+  uuid: string;
 }
 
 interface ICreateDraftBillItems {
@@ -63,6 +65,7 @@ export class DraftBillModel {
   static create(data: ICreateDraftBill) {
     return prisma.draft_bill_code.create({
       data: {
+        uuid: data.uuid,
         name: data.name,
         delivery: data.delivery,
         service: data.service,
@@ -181,6 +184,46 @@ export class DraftBillModel {
             },
           },
         },
+      },
+    });
+  }
+
+  static fetchByUUID(uuid: string) {
+    return prisma.draft_bill_code.count({
+      where: {
+        uuid: uuid,
+      },
+    });
+  }
+
+  static fetchByName(name: string) {
+    return prisma.draft_bill_code.findFirstOrThrow({
+      where: {
+        name: name,
+      },
+      include: {
+        draft_bill: {
+          include: {
+            item: true,
+            item_unit: true,
+          },
+        },
+      },
+    });
+  }
+
+  static confirmInvoice(data: IConfirmSalesInvoice) {
+    return prisma.draft_bill_code.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        is_delete: true,
+        confirmed_at: new Date(),
+        confirmed_by: data.confirm_by,
+      },
+      include: {
+        draft_bill: true,
       },
     });
   }

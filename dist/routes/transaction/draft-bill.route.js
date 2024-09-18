@@ -20,7 +20,8 @@ router.get("/unconfirmed", (req, _, next) => {
     req.body.mode = fetch_interface_1.fetchMode.Unconfirmed;
     next();
 }, draft_bill_controller_1.default.fetch);
-router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), draft_bill_controller_1.default.fetchByID);
+router.get("/name/:name", draft_bill_controller_1.default.fetchByName);
+router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, draft_bill_controller_1.default.fetchByID);
 router.get("/", (req, _, next) => {
     req.body.mode = fetch_interface_1.fetchMode.Pagination;
     next();

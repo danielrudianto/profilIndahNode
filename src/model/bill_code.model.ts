@@ -3,6 +3,7 @@ import {
   ArchiveCount,
   BillArchive,
   BillArchiveV2,
+  IConfirmSalesInvoice,
   IFetchArchive,
   IFetchSalesInvoiceArchive,
   MonthlyArchive,
@@ -347,6 +348,18 @@ class BillCodeModel {
         `SELECT COUNT(bill_code.id) AS count FROM bill_code ${conditionalQueries}`
       ),
     ]);
+  }
+
+  static fetchSince(since: number) {
+    return prisma.bill_code.findMany({
+      where: {
+        id: {
+          gt: since,
+        },
+        is_delete: false,
+        is_confirm: true,
+      },
+    });
   }
 
   /**

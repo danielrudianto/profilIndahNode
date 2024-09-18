@@ -568,6 +568,49 @@ class GoodReceiptModel {
       ORDER BY good_receipt_code.date ASC
     `);
   }
+
+  static fetchItemsByItemIDs(
+    item_ids: number[],
+    date_start: Date,
+    date_end: Date | null,
+    supplier_id: number
+  ) {
+    if (item_ids.length == 0) return Promise.resolve([]);
+
+    const formatted_date_start = `${date_start.getFullYear()}-${(
+      date_start.getMonth() + 1
+    )
+      .toString()
+      .padStart(2, "0")}-${date_start.getDate().toString().padStart(2, "0")}`;
+
+    const formatted_date_end =
+      date_end == null
+        ? null
+        : `${date_end.getFullYear()}-${(date_end.getMonth() + 1)
+            .toString()
+            .padStart(2, "0")}-${date_end
+            .getDate()
+            .toString()
+            .padStart(2, "0")}`;
+
+    return prisma.$queryRawUnsafe<any[]>(`
+      SELECT good_receipt_code.date, good_receipt_code.name as good_receipt_code_name, item.reference, COALESCE(item_unit.unit, item.unit) AS unit, good_receipt.quantity, good_receipt.price, good_receipt.discount
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
+      JOIN item ON good_receipt.item_id = item.id
+      LEFT JOIN item_unit ON good_receipt.item_unit_id = item_unit.id
+      WHERE good_receipt.item_id IN (${item_ids.join(",")})
+      ${
+        date_end != null
+          ? `AND good_receipt_code.date BETWEEN '${formatted_date_start}' AND '${formatted_date_end}'`
+          : `AND good_receipt_code.date >= '${formatted_date_start}'`
+      }
+      AND good_receipt_code.is_delete = 0
+      AND good_receipt_code.supplier_id = ${supplier_id}
+      ORDER BY good_receipt_code.date ASC
+    `);
+  }
 }
 
 export default GoodReceiptModel;

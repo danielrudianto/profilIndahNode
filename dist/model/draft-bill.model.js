@@ -18,6 +18,7 @@ class DraftBillModel {
     static create(data) {
         return prisma.draft_bill_code.create({
             data: {
+                uuid: data.uuid,
                 name: data.name,
                 delivery: data.delivery,
                 service: data.service,
@@ -135,6 +136,43 @@ class DraftBillModel {
                         },
                     },
                 },
+            },
+        });
+    }
+    static fetchByUUID(uuid) {
+        return prisma.draft_bill_code.count({
+            where: {
+                uuid: uuid,
+            },
+        });
+    }
+    static fetchByName(name) {
+        return prisma.draft_bill_code.findFirstOrThrow({
+            where: {
+                name: name,
+            },
+            include: {
+                draft_bill: {
+                    include: {
+                        item: true,
+                        item_unit: true,
+                    },
+                },
+            },
+        });
+    }
+    static confirmInvoice(data) {
+        return prisma.draft_bill_code.update({
+            where: {
+                id: data.id,
+            },
+            data: {
+                is_delete: true,
+                confirmed_at: new Date(),
+                confirmed_by: data.confirm_by,
+            },
+            include: {
+                draft_bill: true,
             },
         });
     }

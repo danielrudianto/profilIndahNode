@@ -392,6 +392,17 @@ SalesInvoiceController.fetchSearch = (req, res) => {
         return res.status(500).send(error);
     });
 };
+SalesInvoiceController.fetchSince = (req, res) => {
+    const last_fetched = req.body.last_fetched;
+    bill_code_model_1.default.fetchSince(last_fetched)
+        .then((result) => {
+        return res.status(200).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching sales invoice since ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
 /**
  * Search sales invoice data archive
  * @param req

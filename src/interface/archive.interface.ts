@@ -134,3 +134,16 @@ export interface PurchaseInvoiceArchiveV2 extends IArchive {
   gr_name: string;
   faktur: string | null;
 }
+
+export interface IConfirmSalesInvoice {
+  id: number;
+  is_confirm: boolean;
+  confirm_by: number;
+  payments: IConfirmSalesInvoicePayments[];
+}
+
+export interface IConfirmSalesInvoicePayments {
+  payment_method: number | null;
+  amount: number;
+  date: Date;
+}
