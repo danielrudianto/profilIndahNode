@@ -25,6 +25,8 @@ const sales_return_model_1 = __importDefault(require("../model/sales_return.mode
 const receivable_controller_1 = __importDefault(require("./receivable.controller"));
 const deposit_model_1 = __importDefault(require("../model/deposit.model"));
 const app_1 = require("../app");
+const draft_bill_model_1 = require("../model/draft-bill.model");
+const moment_1 = __importDefault(require("moment"));
 // import DepositModel from "../model/deposit.model";
 class SalesInvoiceController {
 }
@@ -577,6 +579,26 @@ SalesInvoiceController.fetchPaymentsByID = (req, res) => {
         .catch((error) => {
         console.error(`[error]: Error on fetching payments by ID ${error}`);
         return res.status(500).send(error);
+    });
+};
+SalesInvoiceController.fetchByOTC = (req, res) => {
+    const otc = req.params.otc;
+    const date = (0, moment_1.default)().format("YYYY-MM-DD");
+    draft_bill_model_1.DraftBillModel.fetchByOTC({
+        otc: otc,
+        date: date,
+    })
+        .then((result) => {
+        if (!result) {
+            return res.status(404).send(error_list_1.default["Not found"]);
+        }
+        else {
+            return res.status(200).send(result);
+        }
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetching bill by OTC ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 SalesInvoiceController.deletePaymentByID = (req, res) => {

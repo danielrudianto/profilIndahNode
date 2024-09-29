@@ -18,7 +18,7 @@ class DraftBillModel {
     static create(data) {
         return prisma.draft_bill_code.create({
             data: {
-                uuid: data.uuid,
+                otc: data.otc,
                 name: data.name,
                 delivery: data.delivery,
                 service: data.service,
@@ -26,6 +26,8 @@ class DraftBillModel {
                 created_at: new Date(),
                 created_by: data.created_by,
                 customer_id: data.customer_id,
+                confirmed_at: null,
+                confirmed_by: null,
                 draft_bill: {
                     createMany: {
                         data: data.items.map((x) => {
@@ -139,13 +141,6 @@ class DraftBillModel {
             },
         });
     }
-    static fetchByUUID(uuid) {
-        return prisma.draft_bill_code.count({
-            where: {
-                uuid: uuid,
-            },
-        });
-    }
     static fetchByName(name) {
         return prisma.draft_bill_code.findFirstOrThrow({
             where: {
@@ -156,6 +151,32 @@ class DraftBillModel {
                     include: {
                         item: true,
                         item_unit: true,
+                    },
+                },
+            },
+        });
+    }
+    static fetchByOTC(data) {
+        return prisma.draft_bill_code.findFirst({
+            where: {
+                otc: data.otc,
+                AND: {
+                    created_at: {
+                        gte: new Date((0, moment_1.default)(data.date).format("YYYY-MM-DD")),
+                        lt: new Date((0, moment_1.default)(data.date).add(1, "days").format("YYYY-MM-DD")),
+                    },
+                },
+            },
+            include: {
+                draft_bill: {
+                    include: {
+                        item: true,
+                        item_unit: true,
+                    },
+                },
+                user_draft_bill_code_created_byTouser: {
+                    select: {
+                        name: true,
                     },
                 },
             },

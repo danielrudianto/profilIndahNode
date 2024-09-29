@@ -43,30 +43,23 @@ DraftBillController.create = (req, res) => {
     const date = new Date();
     const service = req.body.service;
     const delivery = req.body.delivery;
-    const uuid = req.body.uuid;
-    draft_bill_model_1.DraftBillModel.fetchByUUID(uuid).then((result) => {
-        if (result === 0) {
-            draft_bill_model_1.DraftBillModel.create({
-                uuid: uuid,
-                customer_id: customer_id,
-                note: note,
-                items: items,
-                created_by: userID,
-                name: _a.generateName(date),
-                service: service,
-                delivery: delivery,
-            })
-                .then((result) => {
-                return res.status(201).send(result);
-            })
-                .catch((error) => {
-                console.error(`[error]: Error on create draft bill: ${error}`);
-                return res.status(500).send(error_list_1.default["Internal server error"]);
-            });
-        }
-        else {
-            return res.status(400).send(error_list_1.default["Bill exists"]);
-        }
+    const otc = req.body.otc;
+    draft_bill_model_1.DraftBillModel.create({
+        otc: otc,
+        customer_id: customer_id,
+        note: note,
+        items: items,
+        created_by: userID,
+        name: _a.generateName(date),
+        service: service,
+        delivery: delivery,
+    })
+        .then((result) => {
+        return res.status(201).send(result);
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on create draft bill: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
     });
 };
 /**
@@ -177,9 +170,7 @@ DraftBillController.confirmByID = (req, res) => {
             userID: userID,
         })
             .then((bill) => __awaiter(void 0, void 0, void 0, function* () {
-            const socket = new socket_helper_1.default("delete-draft-bill", {
-                id: result.id,
-            });
+            const socket = new socket_helper_1.default("confirm-draft-bill", bill);
             socket.create();
             yield queue_helper_1.queue.add("create-sales-invoice", bill);
             return res.status(201).send(result);

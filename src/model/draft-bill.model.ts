@@ -14,7 +14,7 @@ interface ICreateDraftBill {
   service: number;
   delivery: number;
   items: ICreateDraftBillItems[];
-  uuid: string;
+  otc: string;
 }
 
 interface ICreateDraftBillItems {
@@ -56,6 +56,11 @@ export interface IConfirmDraftBillItems {
   price: number;
 }
 
+export interface IFetchDraftBillOTC {
+  otc: string;
+  date: string;
+}
+
 export class DraftBillModel {
   /**
    * Create draft bill
@@ -65,7 +70,7 @@ export class DraftBillModel {
   static create(data: ICreateDraftBill) {
     return prisma.draft_bill_code.create({
       data: {
-        uuid: data.uuid,
+        otc: data.otc,
         name: data.name,
         delivery: data.delivery,
         service: data.service,
@@ -73,6 +78,8 @@ export class DraftBillModel {
         created_at: new Date(),
         created_by: data.created_by,
         customer_id: data.customer_id,
+        confirmed_at: null,
+        confirmed_by: null,
         draft_bill: {
           createMany: {
             data: data.items.map((x) => {
@@ -188,14 +195,6 @@ export class DraftBillModel {
     });
   }
 
-  static fetchByUUID(uuid: string) {
-    return prisma.draft_bill_code.count({
-      where: {
-        uuid: uuid,
-      },
-    });
-  }
-
   static fetchByName(name: string) {
     return prisma.draft_bill_code.findFirstOrThrow({
       where: {
@@ -206,6 +205,33 @@ export class DraftBillModel {
           include: {
             item: true,
             item_unit: true,
+          },
+        },
+      },
+    });
+  }
+
+  static fetchByOTC(data: IFetchDraftBillOTC) {
+    return prisma.draft_bill_code.findFirst({
+      where: {
+        otc: data.otc,
+        AND: {
+          created_at: {
+            gte: new Date(moment(data.date).format("YYYY-MM-DD")),
+            lt: new Date(moment(data.date).add(1, "days").format("YYYY-MM-DD")),
+          },
+        },
+      },
+      include: {
+        draft_bill: {
+          include: {
+            item: true,
+            item_unit: true,
+          },
+        },
+        user_draft_bill_code_created_byTouser: {
+          select: {
+            name: true,
           },
         },
       },

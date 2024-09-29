@@ -50,7 +50,6 @@ ItemTypeController.create = (req, res) => {
  */
 ItemTypeController.fetch = (req, res) => {
     var _b;
-    console.log(req.query);
     const page = !req.query.page
         ? 1
         : Math.max(parseInt(req.query.page.toString()), 1);
@@ -76,6 +75,16 @@ ItemTypeController.fetch = (req, res) => {
             }),
             count: count,
         });
+    })
+        .catch((error) => {
+        console.error(`[error]: Error on fetch item types: ${error}`);
+        return res.status(500).send(error_list_1.default["Internal server error"]);
+    });
+};
+ItemTypeController.fetchAll = (req, res) => {
+    item_type_model_1.default.fetchAll()
+        .then((result) => {
+        return res.status(200).send(result);
     })
         .catch((error) => {
         console.error(`[error]: Error on fetch item types: ${error}`);

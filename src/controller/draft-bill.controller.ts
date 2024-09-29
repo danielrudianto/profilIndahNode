@@ -23,31 +23,25 @@ class DraftBillController {
     const date = new Date();
     const service = req.body.service;
     const delivery = req.body.delivery;
-    const uuid = req.body.uuid;
+    const otc = req.body.otc;
 
-    DraftBillModel.fetchByUUID(uuid).then((result) => {
-      if (result === 0) {
-        DraftBillModel.create({
-          uuid: uuid,
-          customer_id: customer_id,
-          note: note,
-          items: items,
-          created_by: userID,
-          name: this.generateName(date),
-          service: service,
-          delivery: delivery,
-        })
-          .then((result) => {
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on create draft bill: ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      } else {
-        return res.status(400).send(ErrorList["Bill exists"]);
-      }
-    });
+    DraftBillModel.create({
+      otc: otc,
+      customer_id: customer_id,
+      note: note,
+      items: items,
+      created_by: userID,
+      name: this.generateName(date),
+      service: service,
+      delivery: delivery,
+    })
+      .then((result) => {
+        return res.status(201).send(result);
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on create draft bill: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 
   /**
@@ -190,9 +184,7 @@ class DraftBillController {
         userID: userID,
       })
         .then(async (bill) => {
-          const socket = new SocketHelper("delete-draft-bill", {
-            id: result.id,
-          });
+          const socket = new SocketHelper("confirm-draft-bill", bill);
 
           socket.create();
           await queue.add("create-sales-invoice", bill);

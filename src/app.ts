@@ -121,6 +121,12 @@ app.use("/os", osRoutes);
 app.use("/changelog", changelogRoutes);
 app.use("/development", developmentRoutes);
 
+app.use(
+  cors({
+    origin: "*",
+  })
+);
+
 const server = http.createServer(app);
 export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
 

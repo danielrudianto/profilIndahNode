@@ -717,8 +717,8 @@ model draft_bill_code {
   created_at                              DateTime?    @default(now()) @db.DateTime(0)
   is_delete                               Boolean?     @default(false)
   confirmed_by                            Int?
+  otc                                     String       @db.VarChar(6)
   confirmed_at                            DateTime?    @db.DateTime(0)
-  uuid                                    String       @unique(map: "uuid_UNIQUE") @db.VarChar(45)
   user_draft_bill_code_created_byTouser   user         @relation("draft_bill_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "draft_bill_code_ibfk_1")
   user_draft_bill_code_confirmed_byTouser user?        @relation("draft_bill_confirmed_byTouser", fields: [confirmed_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "draft_bill_code_ibfk_2")
 

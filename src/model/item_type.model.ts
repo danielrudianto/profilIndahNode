@@ -72,6 +72,17 @@ class ItemTypeModel {
     `;
   }
 
+  static fetchAll() {
+    return prisma.item_type.findMany({
+      where: {
+        is_delete: false,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
+  }
+
   /**
    * Update item type data by ID
    * @param data

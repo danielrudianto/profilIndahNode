@@ -665,6 +665,26 @@ class SalesInvoiceController {
       });
   };
 
+  static fetchByOTC = (req: Request, res: Response) => {
+    const otc = req.params.otc;
+    const date = moment().format("YYYY-MM-DD");
+    DraftBillModel.fetchByOTC({
+      otc: otc,
+      date: date,
+    })
+      .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          return res.status(200).send(result);
+        }
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching bill by OTC ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
   static deletePaymentByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     BillCodeModel.deletePaymentByID(id)

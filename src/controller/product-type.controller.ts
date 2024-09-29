@@ -38,7 +38,6 @@ class ItemTypeController {
    * @param res
    */
   static fetch = (req: Request, res: Response) => {
-    console.log(req.query);
     const page = !req.query.page
       ? 1
       : Math.max(parseInt(req.query.page.toString()), 1);
@@ -67,6 +66,17 @@ class ItemTypeController {
           }),
           count: count,
         });
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetch item types: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
+  };
+
+  static fetchAll = (req: Request, res: Response) => {
+    ItemTypeModel.fetchAll()
+      .then((result) => {
+        return res.status(200).send(result);
       })
       .catch((error) => {
         console.error(`[error]: Error on fetch item types: ${error}`);
