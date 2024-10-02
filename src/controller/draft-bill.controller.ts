@@ -134,8 +134,8 @@ class DraftBillController {
    */
   static confirmByID = (req: Request, res: Response) => {
     const id = req.body.id;
-    const payment_method_id =
-      req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
+    const payment_methods = req.body.payment_methods;
+
     const service = req.body.service;
     const delivery = req.body.delivery;
     const discount = req.body.discount;
@@ -176,7 +176,7 @@ class DraftBillController {
         name: result.name,
         date: new Date(result.created_at!),
         customer_id: result.customer_id,
-        payment_method_id: payment_method_id,
+        payment_methods: payment_methods,
         service: service,
         delivery: delivery,
         discount: discount,

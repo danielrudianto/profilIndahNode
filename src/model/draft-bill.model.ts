@@ -40,12 +40,17 @@ interface IConfirmDraftBill {
   name: string;
   date: Date;
   customer_id: number | null;
-  payment_method_id: number | null;
+  payment_methods: IConfirmDraftBillPaymentMethods[];
   service: number;
   delivery: number;
   discount: number;
   items: IConfirmDraftBillItems[];
   userID: number;
+}
+
+interface IConfirmDraftBillPaymentMethods {
+  payment_method_id: number;
+  amount: number;
 }
 
 export interface IConfirmDraftBillItems {
@@ -438,6 +443,18 @@ export class DraftBillModel {
                   reference: true,
                   description: true,
                   unit: true,
+                  item_type: {
+                    select: {
+                      name: true,
+                      id: true,
+                    },
+                  },
+                  item_brand: {
+                    select: {
+                      name: true,
+                      id: true,
+                    },
+                  },
                 },
               },
             },
