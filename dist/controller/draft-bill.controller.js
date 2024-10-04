@@ -128,7 +128,7 @@ DraftBillController.fetchByName = (req, res) => {
  */
 DraftBillController.confirmByID = (req, res) => {
     const id = req.body.id;
-    const payment_method_id = req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
+    const payment_methods = req.body.payment_methods;
     const service = req.body.service;
     const delivery = req.body.delivery;
     const discount = req.body.discount;
@@ -143,11 +143,12 @@ DraftBillController.confirmByID = (req, res) => {
         }
         const bills = [];
         items.forEach((x) => {
-            const id = x.id;
-            const draftBillIndex = result.draft_bill.findIndex((y) => y.id == id);
-            const price = Number(result.draft_bill[draftBillIndex].price);
-            const discount = Number(result.draft_bill[draftBillIndex].discount);
+            const id = x.item_id;
+            const item_unit_id = x.item_unit_id;
+            const draftBillIndex = result.draft_bill.findIndex((y) => y.item_id == id && y.item_unit_id == item_unit_id);
             if (draftBillIndex != -1) {
+                const price = Number(result.draft_bill[draftBillIndex].price);
+                const discount = Number(result.draft_bill[draftBillIndex].discount);
                 bills.push({
                     item_id: result.draft_bill[draftBillIndex].item_id,
                     item_unit_id: result.draft_bill[draftBillIndex].item_unit_id,
@@ -162,7 +163,7 @@ DraftBillController.confirmByID = (req, res) => {
             name: result.name,
             date: new Date(result.created_at),
             customer_id: result.customer_id,
-            payment_method_id: payment_method_id,
+            payment_methods: payment_methods,
             service: service,
             delivery: delivery,
             discount: discount,

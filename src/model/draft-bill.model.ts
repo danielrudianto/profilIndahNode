@@ -402,6 +402,17 @@ export class DraftBillModel {
               }),
             },
           },
+          bill_payment: {
+            createMany: {
+              data: data.payment_methods.map((x) => {
+                return {
+                  payment_method_id: x.payment_method_id,
+                  amount: x.amount,
+                  date: new Date(),
+                };
+              }),
+            },
+          },
         },
         include: {
           bill: {

@@ -155,13 +155,16 @@ class DraftBillController {
       const bills: IConfirmDraftBillItems[] = [];
 
       items.forEach((x) => {
-        const id = x.id;
+        const id = x.item_id;
+        const item_unit_id = x.item_unit_id;
 
-        const draftBillIndex = result.draft_bill.findIndex((y) => y.id == id);
-        const price = Number(result.draft_bill[draftBillIndex].price);
-        const discount = Number(result.draft_bill[draftBillIndex].discount);
+        const draftBillIndex = result.draft_bill.findIndex(
+          (y) => y.item_id == id && y.item_unit_id == item_unit_id
+        );
 
         if (draftBillIndex != -1) {
+          const price = Number(result.draft_bill[draftBillIndex].price);
+          const discount = Number(result.draft_bill[draftBillIndex].discount);
           bills.push({
             item_id: result.draft_bill[draftBillIndex].item_id,
             item_unit_id: result.draft_bill[draftBillIndex].item_unit_id,
@@ -171,6 +174,7 @@ class DraftBillController {
           });
         }
       });
+
       DraftBillModel.confirm({
         id: id,
         name: result.name,

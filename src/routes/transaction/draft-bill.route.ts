@@ -9,8 +9,11 @@ const router = Router();
 
 router.post(
   "/confirm",
-  body("payment_method_id")
+  body("payment_methods")
     .notEmpty()
+    .withMessage(ErrorList["Payment method required"]),
+  body("payment_methods")
+    .isArray()
     .withMessage(ErrorList["Payment method required"]),
   body("service").notEmpty().withMessage(ErrorList["Service required"]),
   body("delivery").notEmpty().withMessage(ErrorList["Delivery required"]),
