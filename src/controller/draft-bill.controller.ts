@@ -191,7 +191,8 @@ class DraftBillController {
           const socket = new SocketHelper("confirm-draft-bill", bill);
 
           socket.create();
-          await queue.add("create-sales-invoice", bill);
+          // await queue.add("create-sales-invoice", bill);
+          
           return res.status(201).send(result);
         })
         .catch((error) => {

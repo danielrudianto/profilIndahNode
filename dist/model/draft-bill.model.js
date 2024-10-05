@@ -306,6 +306,8 @@ class DraftBillModel {
                     is_delete: true,
                     confirmed_at: new Date(),
                     confirmed_by: data.userID,
+                    delivery: data.delivery,
+                    service: data.service,
                 },
             }),
             prisma.bill_code.create({

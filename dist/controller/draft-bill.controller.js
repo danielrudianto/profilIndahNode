@@ -14,7 +14,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const error_list_1 = __importDefault(require("../assets/error_list"));
-const queue_helper_1 = require("../helper/queue.helper");
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const fetch_interface_1 = require("../interface/fetch.interface");
 const draft_bill_model_1 = require("../model/draft-bill.model");
@@ -173,7 +172,7 @@ DraftBillController.confirmByID = (req, res) => {
             .then((bill) => __awaiter(void 0, void 0, void 0, function* () {
             const socket = new socket_helper_1.default("confirm-draft-bill", bill);
             socket.create();
-            yield queue_helper_1.queue.add("create-sales-invoice", bill);
+            // await queue.add("create-sales-invoice", bill);
             return res.status(201).send(result);
         }))
             .catch((error) => {
