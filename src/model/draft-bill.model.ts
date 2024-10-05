@@ -391,7 +391,6 @@ export class DraftBillModel {
           is_confirm: true,
           confirmed_at: new Date(),
           confirmed_by: data.userID,
-
           bill: {
             createMany: {
               data: data.items.map((x) => {
