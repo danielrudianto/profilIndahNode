@@ -226,6 +226,7 @@ export class DraftBillModel {
             lt: new Date(moment(data.date).add(1, "days").format("YYYY-MM-DD")),
           },
         },
+        is_delete: false,
       },
       include: {
         draft_bill: {
@@ -409,7 +410,7 @@ export class DraftBillModel {
               data: data.payment_methods.map((x) => {
                 return {
                   payment_method_id: x.payment_method_id,
-                  amount: x.amount,
+                  value: x.amount,
                   date: new Date(),
                 };
               }),
