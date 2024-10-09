@@ -169,7 +169,7 @@ DraftBillController.confirmByID = (req, res) => {
             items: bills,
             userID: userID,
         })
-            .then((bill) => __awaiter(void 0, void 0, void 0, function* () {
+            .then(([_, bill]) => __awaiter(void 0, void 0, void 0, function* () {
             const socket = new socket_helper_1.default("confirm-draft-bill", bill);
             socket.create();
             // await queue.add("create-sales-invoice", bill);

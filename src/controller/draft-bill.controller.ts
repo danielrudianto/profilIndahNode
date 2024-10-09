@@ -187,7 +187,7 @@ class DraftBillController {
         items: bills,
         userID: userID,
       })
-        .then(async (bill) => {
+        .then(async ([_, bill]) => {
           const socket = new SocketHelper("confirm-draft-bill", bill);
 
           socket.create();
