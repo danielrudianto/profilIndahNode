@@ -3,6 +3,7 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import PurchaseInvoiceController from "../../controller/purchase-invoice.controller";
 import ErrorHelper from "../../helper/error.helper";
+import { putriForbiddenMiddleware } from "../../helper/auth.helper";
 
 const router = Router();
 
@@ -26,6 +27,7 @@ router.post(
   body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
   body("uuid").notEmpty().withMessage(ErrorList["UUID required"]),
   ErrorHelper.intercept,
+  putriForbiddenMiddleware,
   PurchaseInvoiceController.create
 );
 

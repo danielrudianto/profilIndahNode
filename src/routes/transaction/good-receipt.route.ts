@@ -3,6 +3,7 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import GoodReceiptController from "../../controller/good-receipt.controller";
 import ErrorHelper from "../../helper/error.helper";
+import { putriForbiddenMiddleware } from "../../helper/auth.helper";
 const router = Router();
 
 router.post("/search", GoodReceiptController.search);
@@ -20,6 +21,7 @@ router.post(
   body("company_id").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("supplier_id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
+  putriForbiddenMiddleware,
   GoodReceiptController.create
 );
 

@@ -165,3 +165,16 @@ export const superadministratorMiddleware = (
     }
   });
 };
+
+export const putriForbiddenMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const userID = req.body.userId;
+  if (userID == 3) {
+    return res.status(403).send("Forbidden");
+  } else {
+    next();
+  }
+};

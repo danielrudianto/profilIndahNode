@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.superadministratorMiddleware = exports.administratorMiddleware = exports.authMiddleware = void 0;
+exports.putriForbiddenMiddleware = exports.superadministratorMiddleware = exports.administratorMiddleware = exports.authMiddleware = void 0;
 const jsonwebtoken_1 = require("jsonwebtoken");
 const client_1 = require("@prisma/client");
 const prisma = new client_1.PrismaClient();
@@ -154,4 +154,14 @@ const superadministratorMiddleware = (req, res, next) => {
     });
 };
 exports.superadministratorMiddleware = superadministratorMiddleware;
+const putriForbiddenMiddleware = (req, res, next) => {
+    const userID = req.body.userId;
+    if (userID == 3) {
+        return res.status(403).send("Forbidden");
+    }
+    else {
+        next();
+    }
+};
+exports.putriForbiddenMiddleware = putriForbiddenMiddleware;
 //# sourceMappingURL=auth.helper.js.map
