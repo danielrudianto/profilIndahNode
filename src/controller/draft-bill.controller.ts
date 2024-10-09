@@ -8,6 +8,7 @@ import {
   IConfirmDraftBillItems,
 } from "../model/draft-bill.model";
 import PaymentMethodModel from "../model/payment-method.model";
+import ItemPriceModel from "../model/item_price.model";
 
 class DraftBillController {
   /**
@@ -192,7 +193,7 @@ class DraftBillController {
 
           socket.create();
           // await queue.add("create-sales-invoice", bill);
-          
+
           return res.status(201).send(result);
         })
         .catch((error) => {

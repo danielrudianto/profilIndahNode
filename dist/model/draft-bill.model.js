@@ -35,7 +35,7 @@ class DraftBillModel {
                                 item_id: x.item_id,
                                 quantity: x.quantity,
                                 price: x.price,
-                                discount: 0,
+                                discount: x.discount,
                                 item_unit_id: x.item_unit_id,
                             };
                         }),

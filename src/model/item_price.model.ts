@@ -40,6 +40,11 @@ interface IDeleteSalesProductPrice {
   deleted_by: number;
 }
 
+export interface IFetchProductPriceDraftBill {
+  item_id: number;
+  item_unit_id: number | null;
+}
+
 class ItemPriceModel {
   /**
    * Create item price
@@ -208,6 +213,8 @@ class ItemPriceModel {
       }),
     ]);
   }
+
+  static fetchByItemIDs(itemIDs: IFetchProductPriceDraftBill[]) {}
 
   /**
    * Fetch item price by item id and item unit id

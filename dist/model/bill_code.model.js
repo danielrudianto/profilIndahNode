@@ -279,6 +279,68 @@ class BillCodeModel {
                 is_delete: false,
                 is_confirm: true,
             },
+            include: {
+                bill: {
+                    include: {
+                        package_code: {
+                            include: {
+                                package_content: {
+                                    select: {
+                                        quantity: true,
+                                        item_id: true,
+                                        item_unit: {
+                                            select: {
+                                                unit: true,
+                                                conversion: true,
+                                            },
+                                        },
+                                        item: {
+                                            select: {
+                                                reference: true,
+                                                description: true,
+                                                unit: true,
+                                            },
+                                        },
+                                        price: true,
+                                        discount: true,
+                                    },
+                                },
+                            },
+                        },
+                        item_unit: {
+                            select: {
+                                unit: true,
+                                conversion: true,
+                            },
+                        },
+                        item: {
+                            select: {
+                                id: true,
+                                reference: true,
+                                description: true,
+                                unit: true,
+                                item_type: {
+                                    select: {
+                                        name: true,
+                                        id: true,
+                                    },
+                                },
+                                item_brand: {
+                                    select: {
+                                        name: true,
+                                        id: true,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+                customer: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
         });
     }
     /**

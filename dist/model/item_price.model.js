@@ -163,6 +163,7 @@ class ItemPriceModel {
             }),
         ]);
     }
+    static fetchByItemIDs(itemIDs) { }
     /**
      * Fetch item price by item id and item unit id
      * @param item_id
