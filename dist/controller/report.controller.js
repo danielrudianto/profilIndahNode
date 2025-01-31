@@ -650,7 +650,6 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
         company_model_1.default.fetch("", 0, 0, fetch_interface_1.fetchMode.All),
         expense_model_1.default.fetchSum(month, year),
         mongo_stock_in_model_1.mongoStockOutModel.aggregate([
-            // Find the stock in value
             {
                 $lookup: {
                     from: "stock-ins",
@@ -679,12 +678,18 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                 ? {
                     $match: {
                         year: year,
+                        billID: {
+                            $ne: null,
+                        },
                     },
                 }
                 : {
                     $match: {
                         month: month,
                         year: year,
+                        billID: {
+                            $ne: null,
+                        },
                     },
                 },
             {

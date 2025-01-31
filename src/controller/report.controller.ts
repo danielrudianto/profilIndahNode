@@ -703,7 +703,6 @@ class ReportController {
       CompanyModel.fetch("", 0, 0, fetchMode.All),
       ExpenseModel.fetchSum(month, year),
       mongoStockOutModel.aggregate([
-        // Find the stock in value
         {
           $lookup: {
             from: "stock-ins",
@@ -732,12 +731,18 @@ class ReportController {
           ? {
               $match: {
                 year: year,
+                billID: {
+                  $ne: null,
+                },
               },
             }
           : {
               $match: {
                 month: month,
                 year: year,
+                billID: {
+                  $ne: null,
+                },
               },
             },
         {

@@ -322,7 +322,7 @@ SearchHelper.syncProductIn = (req, res) => __awaiter(void 0, void 0, void 0, fun
         AND good_receipt_code.is_delete = 0`)
         .then((result) => __awaiter(void 0, void 0, void 0, function* () {
         yield mongo_stock_in_model_1.mongoStockInModel.insertMany(result.map((x) => {
-            return Object.assign(Object.assign({}, x), { date: new Date(x.date), companyID: x.companyID, supplierID: x.supplier_id });
+            return Object.assign(Object.assign({}, x), { price: Number(x.price), date: new Date(x.date), companyID: x.companyID, supplierID: x.supplier_id });
         }));
         return res.status(200).send({
             message: "Stock in sync success",

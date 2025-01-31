@@ -342,9 +342,10 @@ class SearchHelper {
           result.map((x) => {
             return {
               ...x,
+              price: Number(x.price),
               date: new Date(x.date),
               companyID: x.companyID,
-              supplierID: x.supplier_id
+              supplierID: x.supplier_id,
             };
           })
         );
