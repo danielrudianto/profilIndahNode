@@ -207,7 +207,6 @@ ProductPackageController.fetchByID = (req, res) => {
  * @param res
  */
 ProductPackageController.updateByID = (req, res) => {
-    console.log(req.body);
     const price = req.body.price;
     const description = req.body.description;
     const name = req.body.name;
