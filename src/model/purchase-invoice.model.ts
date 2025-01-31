@@ -798,9 +798,9 @@ class PurchaseInvoiceModel {
     ${
       data.keyword == null || data.keyword == ""
         ? ""
-        : `AND purchase_invoice.name LIKE '%${data.keyword}%'
+        : `AND (purchase_invoice.name LIKE '%${data.keyword}%'
         OR good_receipt_code.name LIKE '%${data.keyword}%'
-        OR supplier.name LIKE '%${data.keyword}%'`
+        OR supplier.name LIKE '%${data.keyword}%')`
     }
     ${
       data.status == 0
@@ -830,9 +830,9 @@ class PurchaseInvoiceModel {
       ${
         data.keyword == null || data.keyword == ""
           ? ""
-          : `AND purchase_invoice.name LIKE '%${data.keyword}%'
+          : `AND (purchase_invoice.name LIKE '%${data.keyword}%'
           OR good_receipt_code.name LIKE '%${data.keyword}%'
-          OR supplier.name LIKE '%${data.keyword}%'`
+          OR supplier.name LIKE '%${data.keyword}%')`
       }
       ${
         data.status == 0

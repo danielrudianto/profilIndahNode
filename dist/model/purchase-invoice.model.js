@@ -676,9 +676,9 @@ class PurchaseInvoiceModel {
     AND purchase_invoice.date IS NOT NULL
     ${data.keyword == null || data.keyword == ""
                 ? ""
-                : `AND purchase_invoice.name LIKE '%${data.keyword}%'
+                : `AND (purchase_invoice.name LIKE '%${data.keyword}%'
         OR good_receipt_code.name LIKE '%${data.keyword}%'
-        OR supplier.name LIKE '%${data.keyword}%'`}
+        OR supplier.name LIKE '%${data.keyword}%')`}
     ${data.status == 0
                 ? ""
                 : data.status == 1
@@ -701,9 +701,9 @@ class PurchaseInvoiceModel {
       AND purchase_invoice.date IS NOT NULL
       ${data.keyword == null || data.keyword == ""
                 ? ""
-                : `AND purchase_invoice.name LIKE '%${data.keyword}%'
+                : `AND (purchase_invoice.name LIKE '%${data.keyword}%'
           OR good_receipt_code.name LIKE '%${data.keyword}%'
-          OR supplier.name LIKE '%${data.keyword}%'`}
+          OR supplier.name LIKE '%${data.keyword}%')`}
       ${data.status == 0
                 ? ""
                 : data.status == 1

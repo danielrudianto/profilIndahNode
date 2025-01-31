@@ -578,6 +578,7 @@ PurchaseInvoiceController.fetchArchiveV2 = (req, res) => {
             endDate: endDate,
         })
             .then((result) => {
+            console.log(result);
             return res.status(200).send({
                 data: result[0].map((x) => {
                     return {
