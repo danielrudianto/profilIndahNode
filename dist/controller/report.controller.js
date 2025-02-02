@@ -672,6 +672,7 @@ ReportController.fetchPLStats = (req, res) => __awaiter(void 0, void 0, void 0, 
                     year: { $year: "$date" },
                     quantity: "$quantity",
                     value: "$value",
+                    billID: "$billID",
                 },
             },
             month == 0

@@ -725,6 +725,7 @@ class ReportController {
             year: { $year: "$date" },
             quantity: "$quantity",
             value: "$value",
+            billID: "$billID",
           },
         },
         month == 0
@@ -757,7 +758,6 @@ class ReportController {
           },
         },
       ]),
-
       mongoOverflowModel.aggregate([
         {
           $project: {
