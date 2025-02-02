@@ -872,7 +872,7 @@ const workerHandler = async (job: Job<any>) => {
               await overflowItem.save();
               break;
             } else {
-              if (stockIn.residue > overflowItem.quantity) {
+              if (stockIn.residue >= overflowItem.quantity) {
                 stockIn.residue = stockIn.residue - overflowItem.quantity;
                 await stockIn.save();
 
@@ -892,6 +892,8 @@ const workerHandler = async (job: Job<any>) => {
                 break;
               } else {
                 overflowItem.quantity = overflowItem.quantity - stockIn.residue;
+                await overflowItem.save();
+
                 await mongoStockOutModel.create({
                   adjustmentCaseID: overflowItem.adjustmentCaseID,
                   adjustmentCaseCodeID: overflowItem.adjustmentCaseCodeID,
