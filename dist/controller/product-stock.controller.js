@@ -137,6 +137,104 @@ ProductStockController.fetch = (req, res) => {
                 }
             }));
             break;
+        case "sales-alert-inventory":
+            user_model_1.default.fetchByID(req.body.userId).then((user) => __awaiter(void 0, void 0, void 0, function* () {
+                if ((user === null || user === void 0 ? void 0 : user.role) != 6) {
+                    // Fetch all just like plain
+                    const productStock = yield mongo_product_model_1.mongoProductModel
+                        .find({
+                        $and: [
+                            {
+                                $expr: {
+                                    $lt: ["$currentStock", "$minimumStock"],
+                                },
+                            },
+                            {
+                                $expr: {
+                                    $gte: ["$currentStock", 0],
+                                },
+                            },
+                            {
+                                $or: [
+                                    {
+                                        reference: {
+                                            $regex: keyword,
+                                        },
+                                    },
+                                    {
+                                        description: {
+                                            $regex: keyword,
+                                        },
+                                    },
+                                ],
+                            },
+                        ],
+                    }, "itemID reference description unit currentStock minimumStock");
+                    return res.status(200).send({
+                        data: productStock.map((x) => {
+                            return {
+                                id: x.itemID,
+                                reference: x.reference,
+                                description: x.description,
+                                stock: x.currentStock,
+                                unit: x.unit,
+                                minimum_stock: x.minimumStock,
+                            };
+                        }),
+                    });
+                }
+                else {
+                    // Fetch only product that he is able
+                    const types = user.user_sales.map((x) => x.item_type.id);
+                    const productStock = yield mongo_product_model_1.mongoProductModel
+                        .find({
+                        $and: [
+                            {
+                                $expr: {
+                                    $lt: ["$currentStock", "$minimumStock"],
+                                },
+                            },
+                            {
+                                $expr: {
+                                    $gte: ["$currentStock", 0],
+                                },
+                            },
+                            {
+                                $or: [
+                                    {
+                                        reference: {
+                                            $regex: keyword,
+                                        },
+                                    },
+                                    {
+                                        description: {
+                                            $regex: keyword,
+                                        },
+                                    },
+                                ],
+                            },
+                            {
+                                itemTypeID: {
+                                    $in: types,
+                                },
+                            },
+                        ],
+                    }, "itemID reference description unit currentStock minimumStock");
+                    return res.status(200).send({
+                        data: productStock.map((x) => {
+                            return {
+                                id: x.itemID,
+                                reference: x.reference,
+                                description: x.description,
+                                stock: x.currentStock,
+                                unit: x.unit,
+                                minimum_stock: x.minimumStock,
+                            };
+                        }),
+                    });
+                }
+            }));
+            break;
         case "sales":
             user_model_1.default.fetchByID(req.body.userId).then((user) => {
                 if ((user === null || user === void 0 ? void 0 : user.role) != 6) {
