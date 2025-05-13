@@ -338,6 +338,9 @@ const workerHandler = async (job: Job<any>) => {
         adjustmentCaseID: job.data.adjustmentCaseID,
       });
 
+      // Added logger to check job.data
+      console.log(job.data);
+
       // Delete stock card
       await mongoStockCardModel.deleteMany({
         goodReceiptID: job.data.goodReceiptID,
