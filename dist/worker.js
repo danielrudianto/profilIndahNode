@@ -323,6 +323,7 @@ const workerHandler = (job) => __awaiter(void 0, void 0, void 0, function* () {
                 itemID: job.data.itemID,
                 adjustmentCaseID: job.data.adjustmentCaseID,
             });
+            console.log(job.data);
             // Delete stock card
             yield mongo_stock_card_model_1.mongoStockCardModel.deleteMany({
                 goodReceiptID: job.data.goodReceiptID,
