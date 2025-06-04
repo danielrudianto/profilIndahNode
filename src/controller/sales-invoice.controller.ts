@@ -8,15 +8,18 @@ import { mysql_real_escape_string } from "../helper/escape.helper";
 import { ProductPackageCodeModel } from "../model/product-package.model";
 import { queue } from "../helper/queue.helper";
 import SalesReturnModel from "../model/sales_return.model";
-import {
-  StockInInterface,
-  StockOutDeleteInterface,
-} from "../interface/stock-in.interface";
+import { StockOutDeleteInterface } from "../interface/stock-in.interface";
 import ReceivableController from "./receivable.controller";
 import DepositModel from "../model/deposit.model";
 import { redisClient } from "../app";
 import { DraftBillModel } from "../model/draft-bill.model";
 import moment from "moment";
+import {
+  IStockOutDelete,
+  IStockOutFetch,
+  StockOutModel,
+} from "../model/stock-out.model";
+import { StockInModel } from "../model/stock-in.model";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
@@ -158,111 +161,58 @@ class SalesInvoiceController {
                   );
                 }, 0);
 
-                for (
-                  let n = 0;
-                  n < result.bill[i].package_code!.package_content.length;
-                  n++
-                ) {
-                  const createSalesInvoicePackageContentItem =
-                    result.bill[i].package_code!.package_content[n];
-                  const createSalesInvoiceItemItemID =
-                    createSalesInvoicePackageContentItem.item_id;
-                  const createSalesInvoiceItemQuantity = Number(
-                    createSalesInvoicePackageContentItem.quantity
-                  );
-                  const createSalesInvoiceItemPrice = Number(
-                    createSalesInvoicePackageContentItem.price
-                  );
-                  const createSalesInvoiceItemDiscount = Number(
-                    createSalesInvoicePackageContentItem.discount
-                  );
-                  const createSalesInvoiceItemUnit =
-                    createSalesInvoicePackageContentItem.item_unit == null
-                      ? createSalesInvoicePackageContentItem.item.unit
-                      : createSalesInvoicePackageContentItem.item_unit.unit;
-                  const createSalesInvoiceItemConversion =
-                    createSalesInvoicePackageContentItem.item_unit == null
-                      ? 1
-                      : Number(
-                          createSalesInvoicePackageContentItem.item_unit
-                            .conversion
-                        );
-                  const finalUnitPrice =
-                    packageContentValue == 0
-                      ? 0
-                      : Number(
-                          ((createSalesInvoiceItemPrice -
-                            createSalesInvoiceItemDiscount) *
-                            packageFinalPrice) /
-                            (packageContentValue *
-                              createSalesInvoiceItemConversion)
-                        );
+                await StockOutModel.createMany(
+                  result.bill[i].package_code!.package_content.map((x) => {
+                    const createSalesInvoiceItemPrice = Number(x.price);
+                    const createSalesInvoiceItemDiscount = Number(x.discount);
+                    const createSalesInvoiceItemConversion =
+                      x.item_unit == null ? 1 : Number(x.item_unit.conversion);
+                    const finalUnitPrice =
+                      packageContentValue == 0
+                        ? 0
+                        : Number(
+                            ((createSalesInvoiceItemPrice -
+                              createSalesInvoiceItemDiscount) *
+                              packageFinalPrice) /
+                              (packageContentValue *
+                                createSalesInvoiceItemConversion)
+                          );
 
-                  const stockOut: StockInInterface = {
-                    itemID: createSalesInvoiceItemItemID,
-                    createdAt: result.created_at,
-                    date: date,
-                    document: result.name,
-                    opponent:
-                      result.customer == null
-                        ? "Retail customer"
-                        : result.customer.name,
-                    displayQuantity:
-                      packageQuantity * createSalesInvoiceItemQuantity * -1,
-                    quantity:
-                      packageQuantity *
-                      -1 *
-                      createSalesInvoiceItemQuantity *
-                      createSalesInvoiceItemConversion,
-                    unit: createSalesInvoiceItemUnit,
-                    billID: result.bill[i].id,
-                    billCodeID: result.id,
-                    adjustmentCaseID: null,
-                    adjustmentCaseCodeID: null,
-                    goodReceiptID: null,
-                    goodReceiptCodeID: null,
-                    salesReturnID: null,
-                    salesReturnCodeID: null,
-                    customerID: result.customer_id,
-                    supplierID: null,
-                    companyID: null,
-                    price: finalUnitPrice,
-                  };
-
-                  await queue.add("insert-stock-out", stockOut);
-                }
+                    return {
+                      bill_code_id: result.id,
+                      bill_id: result.bill[i].id,
+                      item_id: x.item_id,
+                      quantity:
+                        packageQuantity *
+                        -1 *
+                        Number(x.quantity) *
+                        (x.item_unit != null
+                          ? Number(x.item_unit.conversion)
+                          : 1),
+                      date: date,
+                      adjustment_case_code_id: null,
+                      adjustment_case_id: null,
+                      stock_in_id: null,
+                      price: finalUnitPrice,
+                    };
+                  })
+                );
               } else if (result.bill[i].item != null) {
-                const stockOut: StockInInterface = {
-                  itemID: result.bill[i].item!.id,
-                  createdAt: result.created_at,
+                // create stock out
+                await new StockOutModel({
+                  item_id: result.bill[i].item!.id,
                   date: date,
-                  document: result.name,
-                  opponent:
-                    result.customer == null
-                      ? "Retail customer"
-                      : result.customer.name,
-                  displayQuantity: bill[i].quantity * -1,
                   quantity:
                     Number(result.bill[i].quantity) *
                     -1 *
                     (result.bill[i].item_unit != null
                       ? Number(result.bill[i].item_unit!.conversion)
                       : 1),
-                  unit:
-                    result.bill[i].item_unit == null
-                      ? result.bill[i].item!.unit
-                      : result.bill[i].item_unit!.unit,
-                  billID: result.bill[i].id,
-                  billCodeID: result.id,
-                  adjustmentCaseID: null,
-                  adjustmentCaseCodeID: null,
-                  goodReceiptID: null,
-                  goodReceiptCodeID: null,
-                  salesReturnID: null,
-                  salesReturnCodeID: null,
-                  customerID: result.customer_id,
-                  supplierID: null,
-                  companyID: null,
+                  bill_id: result.bill[i].id,
+                  bill_code_id: result.id,
+                  adjustment_case_id: null,
+                  adjustment_case_code_id: null,
+                  stock_in_id: null,
                   price:
                     ((Number(result.bill[i].price) -
                       Number(result.bill[i].discount)) *
@@ -271,9 +221,7 @@ class SalesInvoiceController {
                       (result.bill[i].item_unit == null
                         ? 1
                         : Number(result.bill[i].item_unit!.conversion))),
-                };
-
-                await queue.add("insert-stock-out", stockOut);
+                }).create();
               }
             }
             return res.status(201).send(result);
@@ -768,20 +716,32 @@ class SalesInvoiceController {
       .then(async (updateBill) => {
         for (let i = 0; i < updateBill.bill.length; i++) {
           if (updateBill.bill[i].item != null) {
-            const stockOut: StockOutDeleteInterface = {
-              itemID: updateBill.bill[i].item!.id,
-              billID: updateBill.bill[i].id,
-              quantity:
-                Number(updateBill.bill[i].quantity) *
-                -1 *
-                Number(
-                  updateBill.bill[i].item_unit != null
-                    ? updateBill.bill[i].item_unit!.conversion
-                    : 1
-                ),
-              adjustmentCaseID: null,
-            };
-            await queue.add("delete-stock-out", stockOut);
+            const stockOuts = await StockOutModel.fetch(
+              IStockOutFetch.BY_REFERENCE,
+              {
+                bill_id: updateBill.bill[i].id,
+                bill_code_id: updateBill.id,
+                adjustment_case_id: null,
+                adjustment_case_code_id: null,
+              }
+            );
+
+            // delete stock out bill id
+            for (let i = 0; i < stockOuts.length; i++) {
+              await StockOutModel.delete(
+                IStockOutDelete.BY_STOCK_IN_IDS,
+                stockOuts[i].id
+              );
+
+              if (stockOuts[i].stock_in_id != null) {
+                await StockInModel.rollBack([
+                  {
+                    id: stockOuts[i].stock_in_id!,
+                    quantity: Number(stockOuts[i].quantity),
+                  },
+                ]);
+              }
+            }
           } else if (updateBill.bill[i].package_code != null) {
             for (
               let n = 0;

@@ -14,3 +14,14 @@ export enum fetchType {
   Complete,
   Simple,
 }
+
+export interface IFetchCommon {
+  page: number;
+  keyword: string;
+  pageSize: number;
+}
+
+export interface IFetchCommonResult<T> {
+  data: T[];
+  count: number;
+}

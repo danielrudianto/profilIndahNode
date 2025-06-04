@@ -14,24 +14,40 @@ export interface IProductBrand {
 export interface IFetchProductBrand {
   id: number;
   name: string;
-  created_by: number;
+  user_name: string;
   created_at: Date;
+  created_by: number;
   is_delete: boolean;
   can_delete: string;
 }
 
-export class BrandModel {
-  /**
-   * Create a new brand
-   * @param data
-   * @returns Promise<IProductBrand>
-   */
-  static create(data: IProductBrand) {
+export class ItemBrandModel {
+  id?: number;
+  name: string;
+  created_by: number;
+  created_at?: Date;
+  is_delete?: boolean;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+  can_delete?: string;
+  // initialize the model with default values
+  constructor(data: IProductBrand) {
+    this.id = data.id;
+    this.name = data.name;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at || new Date();
+    this.is_delete = data.is_delete || false;
+    this.deleted_by = data.deleted_by || null;
+    this.deleted_at = data.deleted_at || null;
+    this.can_delete = data.can_delete || "1"; // default to "1" if not provided
+  }
+
+  create() {
     return prisma.item_brand.create({
       data: {
-        name: data.name,
-        created_by: data.created_by,
-        created_at: new Date(),
+        name: this.name,
+        created_by: this.created_by,
+        created_at: this.created_at,
       },
       select: {
         id: true,
@@ -47,20 +63,15 @@ export class BrandModel {
     });
   }
 
-  /**
-   * Update brand by ID
-   * @param data
-   * @returns
-   */
-  static updateByID(data: IProductBrand) {
+  update() {
     return prisma.item_brand.update({
       where: {
-        id: data.id,
+        id: this.id,
       },
       data: {
-        name: data.name,
+        name: this.name,
         updated_at: new Date(),
-        updated_by: data.created_by,
+        updated_by: this.created_by,
       },
       select: {
         id: true,

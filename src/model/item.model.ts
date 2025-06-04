@@ -1,19 +1,25 @@
 import { PrismaClient } from "@prisma/client";
+import ItemTypeModel from "./item_type.model";
+import { ItemBrandModel } from "./brand.model";
+import { ProductUnitModel } from "./product-unit.model";
 const prisma = new PrismaClient();
 
 interface ICreateProduct {
+  id?: number;
   reference: string;
   description: string;
   brand_id: number;
   type_id: number;
-  created_by: number;
-  minimum_stock: string;
+  created_by?: number;
+  minimum_stock?: number;
   unit: string;
+  price?: number;
+  discount?: number;
+  purchase_price?: number;
+  purchase_discount?: number;
 
-  price: number;
-  discount: number;
-  purchase_price: number;
-  purchase_discount: number;
+  item_type?: ItemTypeModel;
+  item_brand?: ItemBrandModel;
 }
 
 export interface ICreateProductUnit {
@@ -73,39 +79,82 @@ interface IProductOutputReport {
   salesReturnQuantity: number;
 }
 
-export class ItemModel {
-  /**
-   * Create new product
-   * @param data
-   */
-  static create(data: ICreateProduct) {
+export class ProductModel {
+  id?: number;
+  reference: string;
+  description: string;
+  item_brand_id: number;
+  item_type_id: number;
+  created_by?: number;
+  created_at?: Date;
+  updated_by?: number | null;
+  updated_at?: Date | null;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+  is_active?: boolean = true;
+  is_delete?: boolean = false;
+  minimum_stock?: number;
+  unit: string;
+  item_brand?: ItemBrandModel;
+  item_type?: ItemTypeModel;
+  price?: number;
+  discount?: number;
+  purchase_price?: number;
+  purchase_discount?: number;
+  item_unit?: ProductUnitModel[] = [];
+
+  constructor(data: ICreateProduct) {
+    this.id = data.id;
+    this.reference = data.reference;
+    this.description = data.description;
+    this.item_brand_id = data.brand_id;
+    this.item_type_id = data.type_id;
+    this.created_by = data.created_by;
+    this.created_at = new Date();
+    this.updated_by = 0; // default to 0
+    this.updated_at = new Date();
+    this.is_active = true;
+    this.is_delete = false;
+    this.minimum_stock = data.minimum_stock || 0;
+    this.unit = data.unit;
+    this.item_brand = data.item_brand;
+    this.item_type = data.item_type;
+    this.price = data.price;
+    this.discount = data.discount;
+    this.purchase_price = data.purchase_price;
+    this.purchase_discount = data.purchase_discount;
+  }
+
+  create() {
+    this.validateCreate();
+
     return prisma.item.create({
       data: {
-        reference: data.reference,
-        description: data.description,
-        item_brand_id: data.brand_id,
-        item_type_id: data.type_id,
-        created_by: data.created_by,
+        reference: this.reference,
+        description: this.description,
+        item_brand_id: this.item_brand_id,
+        item_type_id: this.item_type_id,
+        created_by: this.created_by!,
         created_at: new Date(),
-        minimum_stock: data.minimum_stock,
+        minimum_stock: this.minimum_stock,
         item_price: {
           create: {
-            price: data.price,
-            discount: data.discount,
+            price: this.price!,
+            discount: this.discount!,
             created_at: new Date(),
             effective_date: new Date(),
-            created_by: data.created_by,
+            created_by: this.created_by!,
           },
         },
         item_price_purchase: {
           create: {
-            price: data.purchase_price,
-            discount: data.purchase_discount,
+            price: this.purchase_price!,
+            discount: this.purchase_discount!,
             created_at: new Date(),
-            created_by: data.created_by,
+            created_by: this.created_by!,
           },
         },
-        unit: data.unit,
+        unit: this.unit,
       },
       select: {
         id: true,
@@ -153,10 +202,24 @@ export class ItemModel {
     });
   }
 
-  /**
-   * Create new product unit
-   * @param data
-   */
+  private validateCreate() {
+    if (!this.reference || this.reference.length === 0) {
+      throw new Error("Reference is required");
+    }
+    if (!this.description || this.description.length === 0) {
+      throw new Error("Description is required");
+    }
+    if (!this.item_brand_id) {
+      throw new Error("Brand ID is required");
+    }
+    if (!this.item_type_id) {
+      throw new Error("Type ID is required");
+    }
+    if (!this.unit || this.unit.length === 0) {
+      throw new Error("Unit is required");
+    }
+  }
+
   static createUnits(
     itemID: number,
     userID: number,
@@ -2080,3 +2143,5 @@ export class ItemModel {
     });
   }
 }
+
+export class ItemUnitModel {}

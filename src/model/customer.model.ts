@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import ErrorList from "../assets/error_list";
 import { fetchMode } from "../interface/fetch.interface";
+import UserModel from "./user.model";
 
 const prisma = new PrismaClient();
 
@@ -22,15 +23,44 @@ export interface ICustomerResponse {
 }
 
 class CustomerModel {
-  static create(data: ICustomer) {
+  id?: number;
+  name: string;
+  address: string;
+  npwp: string | null;
+  pic: string;
+  phone_number: string;
+  created_by: number;
+  is_delete?: boolean = false;
+  can_delete?: boolean = false;
+  created_at?: Date;
+  updated_by?: number;
+  updated_at?: Date;
+  deleted_by?: number;
+  deleted_at?: Date;
+  user?: UserModel;
+
+  constructor(data: ICustomer) {
+    this.id = data.id;
+    this.name = data.name;
+    this.address = data.address;
+    this.npwp = data.npwp;
+    this.pic = data.pic;
+    this.phone_number = data.phone_number;
+    this.created_by = data.created_by;
+    this.is_delete = data.is_delete || false;
+    this.can_delete = data.can_delete || false;
+    this.created_at = new Date();
+  }
+
+  create() {
     return prisma.customer.create({
       data: {
-        name: data.name,
-        address: data.address,
-        npwp: data.npwp,
-        pic: data.pic,
-        phone_number: data.phone_number,
-        created_by: data.created_by,
+        name: this.name,
+        address: this.address,
+        npwp: this.npwp,
+        pic: this.pic,
+        phone_number: this.phone_number,
+        created_by: this.created_by,
         created_at: new Date(),
       },
       include: {
@@ -44,18 +74,18 @@ class CustomerModel {
     });
   }
 
-  static update(data: ICustomer) {
+  update() {
     return prisma.customer.update({
       where: {
-        id: data.id,
+        id: this.id,
       },
       data: {
-        name: data.name,
-        address: data.address,
-        npwp: data.npwp,
-        pic: data.pic,
-        phone_number: data.phone_number,
-        updated_by: data.created_by,
+        name: this.name,
+        address: this.address,
+        npwp: this.npwp,
+        pic: this.pic,
+        phone_number: this.phone_number,
+        updated_by: this.updated_by,
         updated_at: new Date(),
       },
       include: {
@@ -227,7 +257,7 @@ class CustomerModel {
    * @param id
    * @returns
    */
-  static async fetchByID(id: number): Promise<ICustomer> {
+  static async fetchByID(id: number): Promise<CustomerModel> {
     const customers = await prisma.$queryRaw<any[]>`
       SELECT customer.id, customer.name, customer.address, 
       customer.pic, customer.npwp, customer.phone_number, 
@@ -251,10 +281,17 @@ class CustomerModel {
       throw Error(ErrorList["Not found"]);
     }
 
-    return {
-      ...customers[0],
+    return new CustomerModel({
+      id: customers[0].id,
+      name: customers[0].name,
+      address: customers[0].address,
+      npwp: customers[0].npwp,
+      pic: customers[0].pic,
+      phone_number: customers[0].phone_number,
+      created_by: 0, // Placeholder, as created_by is not fetched
+      is_delete: customers[0].is_delete == "1" ? true : false,
       can_delete: customers[0].can_delete == "1" ? true : false,
-    };
+    });
   }
 
   /**

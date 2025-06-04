@@ -3,39 +3,52 @@ import {
   ArchiveCount,
   BillArchive,
   BillArchiveV2,
-  IConfirmSalesInvoice,
   IFetchArchive,
   IFetchSalesInvoiceArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
 import { prisma } from "../app";
+import { ProductModel } from "./item.model";
+import { ProductPackageCodeModel } from "./product-package.model";
 
-interface ICreateBill {
+interface IBillCode {
+  id?: number;
   name: string;
   customer_id: number | null;
   created_by: number;
+  created_at: Date;
   discount: number;
   delivery: number;
   service: number;
   date: Date;
   uuid: string;
-  items: ICreateBillItem[];
-  payments: ICreateBillPayment[];
+  items: IBillCodeItem[];
+  payments: IBillCodePayment[];
   payment_term: number | null;
   is_paid: boolean;
+  is_confirm: boolean;
+  is_delete: boolean;
   sales: string | null;
+
+  confirmed_by: number | null;
+  confirmed_at: Date | null;
 }
 
-interface ICreateBillItem {
+interface IBillCodeItem {
+  id?: number;
   package_code_id: number | null;
   item_id: number | null;
   item_unit_id: number | null;
   quantity: number;
   price: number;
   discount: number;
+
+  item?: ProductModel | null;
+  package_code?: ProductPackageCodeModel | null;
 }
 
-interface ICreateBillPayment {
+interface IBillCodePayment {
+  id?: number;
   bill_code_id?: number;
   payment_method_id: number | null;
   value: number;
@@ -50,34 +63,88 @@ interface IReportBill {
 }
 
 class BillCodeModel {
-  /**
-   * Create new bill code
-   * @param data
-   * @returns BillCode
-   */
-  static create(data: ICreateBill) {
-    return prisma.bill_code.create({
+  id?: number;
+  name: string;
+  date: Date;
+  discount: number;
+  delivery: number;
+  service: number;
+  sales: string | null;
+  customer_id: number | null;
+  created_by: number;
+  created_at: Date;
+  is_confirm: boolean;
+  confirmed_by?: number;
+  confirmed_at?: Date;
+  is_paid: boolean;
+  is_delete: boolean;
+  uuid: string;
+  items?: IBillCodeItem[] = [];
+  payments?: IBillCodePayment[] = [];
+  payment_term: number | null = null;
+
+  constructor(data: IBillCode) {
+    this.name = data.name;
+    this.customer_id = data.customer_id;
+    this.created_by = data.created_by;
+    this.discount = data.discount;
+    this.delivery = data.delivery;
+    this.service = data.service;
+    this.date = data.date;
+    this.is_confirm = true;
+    this.confirmed_by = data.created_by;
+    this.confirmed_at = new Date();
+    this.uuid = data.uuid;
+    this.is_paid = data.is_paid;
+    this.sales = data.sales || null;
+    this.created_at = new Date();
+    this.is_delete = false;
+    this.items = data.items.map((item) => {
+      return {
+        id: item.id,
+        package_code_id: item.package_code_id,
+        item_id: item.item_id,
+        item_unit_id: item.item_unit_id,
+        quantity: item.quantity,
+        price: item.price,
+        discount: item.discount,
+      };
+    });
+    this.payments = data.payments.map((payment) => {
+      return {
+        id: payment.id,
+        bill_code_id: payment.bill_code_id,
+        payment_method_id: payment.payment_method_id,
+        value: payment.value,
+        date: payment.date,
+      };
+    });
+    this.payment_term = data.payment_term;
+  }
+
+  async create() {
+    const bill_code = await prisma.bill_code.create({
       data: {
-        name: data.name,
-        created_by: data.created_by,
+        name: this.name,
+        created_by: this.created_by,
         created_at: new Date(),
-        customer_id: data.customer_id,
-        discount: data.discount,
-        delivery: data.delivery,
-        service: data.service,
-        date: data.date,
+        customer_id: this.customer_id,
+        discount: this.discount,
+        delivery: this.delivery,
+        service: this.service,
+        date: this.date,
         is_confirm: true,
-        confirmed_by: data.created_by,
+        confirmed_by: this.created_by,
         confirmed_at: new Date(),
-        uuid: data.uuid,
+        uuid: this.uuid,
         bill: {
           createMany: {
-            data: data.items,
+            data: this.items!,
           },
         },
         bill_payment: {
           createMany: {
-            data: data.payments.map((x) => {
+            data: this.payments!.map((x) => {
               return {
                 date: x.date,
                 value: x.value,
@@ -87,9 +154,9 @@ class BillCodeModel {
             }),
           },
         },
-        payment_term: data.payment_term,
-        is_paid: data.is_paid,
-        sales: data.sales,
+        payment_term: this.payment_term,
+        is_paid: this.is_paid,
+        sales: this.sales,
       },
       include: {
         bill: {
@@ -131,6 +198,8 @@ class BillCodeModel {
                 reference: true,
                 description: true,
                 unit: true,
+                item_type_id: true,
+                item_brand_id: true,
               },
             },
           },
@@ -141,6 +210,52 @@ class BillCodeModel {
           },
         },
       },
+    });
+
+    return new BillCodeModel({
+      id: bill_code.id,
+      name: bill_code.name,
+      date: bill_code.date!,
+      discount: Number(bill_code.discount),
+      delivery: Number(bill_code.delivery),
+      service: Number(bill_code.service),
+      sales: bill_code.sales,
+      customer_id: bill_code.customer_id,
+      created_by: bill_code.created_by,
+      created_at: new Date(bill_code.created_at),
+      is_confirm: bill_code.is_confirm,
+      confirmed_by: bill_code.confirmed_by,
+      confirmed_at: bill_code.confirmed_at,
+      is_paid: bill_code.is_paid,
+      is_delete: bill_code.is_delete,
+      uuid: bill_code.uuid,
+      items: bill_code.bill.map((item) => {
+        return {
+          id: item.id,
+          package_code_id: item.package_code_id,
+          item_id: item.item_id,
+          item_unit_id: item.item_unit_id,
+          quantity: Number(item.quantity),
+          price: Number(item.price),
+          discount: Number(item.discount),
+
+          item: item.item
+            ? new ProductModel({
+                id: item.item.id,
+                reference: item.item.reference,
+                description: item.item.description,
+                unit: item.item.unit,
+                brand_id: item.item.item_brand_id,
+                type_id: item.item.item_type_id,
+              })
+            : null,
+          package_code: item.package_code
+            ? new ProductPackageCodeModel()
+            : null,
+        };
+      }),
+      payments: [],
+      payment_term: bill_code.payment_term,
     });
   }
 

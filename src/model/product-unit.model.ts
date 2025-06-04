@@ -8,10 +8,13 @@ export enum ItemUnitMode {
 }
 
 export interface IProductUnit {
-  id: number | null;
+  id?: number;
+  item_id?: number;
   unit: string;
   conversion: number;
-  is_delete: boolean;
+  is_delete?: boolean;
+  created_by?: number;
+  created_at?: Date;
 }
 
 interface IUpdateProductUnit {
@@ -21,13 +24,52 @@ interface IUpdateProductUnit {
   created_by: number;
 }
 
-class ItemUnitModel {
-  /**
-   * Fetch item unit by item ID
-   * @param id
-   * @param mode
-   * @returns
-   */
+export class ProductUnitModel {
+  id?: number;
+  item_id?: number;
+  unit: string;
+  conversion: number;
+  is_delete?: boolean;
+  created_by?: number;
+  created_at?: Date;
+
+  constructor(data: IProductUnit) {
+    this.id = data.id;
+    this.item_id = data.item_id;
+    this.unit = data.unit;
+    this.conversion = data.conversion;
+    this.is_delete = data.is_delete;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at;
+  }
+
+  create() {
+    this.validateCreate();
+
+    return prisma.item_unit.create({
+      data: {
+        item_id: this.item_id!,
+        unit: this.unit,
+        conversion: this.conversion,
+        is_delete: this.is_delete,
+        created_by: this.created_by!,
+        created_at: this.created_at || new Date(),
+      },
+    });
+  }
+
+  private validateCreate() {
+    if (!this.item_id) {
+      throw new Error("Item ID is required");
+    }
+    if (!this.unit) {
+      throw new Error("Unit is required");
+    }
+    if (typeof this.conversion !== "number") {
+      throw new Error("Conversion must be a number");
+    }
+  }
+
   static fetchByItemID(id: number, mode: ItemUnitMode) {
     switch (mode) {
       case ItemUnitMode.Plain:
@@ -83,13 +125,85 @@ class ItemUnitModel {
     }
   }
 
-  /**
-   * Update product unit
-   * @param data
-   * @returns Promise
-   */
   static update(data: IUpdateProductUnit) {
     const transaction: any[] = [];
+    const date = new Date();
+
+    const createItemUnit = (unitData: any) => {
+      return prisma.item_unit.create({
+        data: {
+          item_id: data.item_id,
+          created_by: data.created_by,
+          created_at: date,
+          unit: unitData.unit,
+          conversion: unitData.conversion,
+          item_price: {
+            create: {
+              item_id: data.item_id,
+              price: 0,
+              discount: 0,
+              created_by: data.created_by,
+              created_at: date,
+              effective_date: date,
+            },
+          },
+          item_price_purchase: {
+            create: {
+              item_id: data.item_id,
+              price: 0,
+              discount: 0,
+              created_by: data.created_by,
+              created_at: date,
+            },
+          },
+        },
+      });
+    };
+
+    // Helper function to update item_unit
+    const updateItemUnit = (unitData: any) => {
+      return prisma.item_unit.update({
+        where: {
+          id: unitData.id,
+        },
+        data: {
+          is_delete: true,
+          deleted_by: data.created_by,
+          deleted_at: date,
+          conversion: unitData.conversion,
+          unit: unitData.unit,
+          item_price_purchase: {
+            updateMany: {
+              data: {
+                deleted_at: date,
+                deleted_by: data.created_by,
+                is_delete: true,
+              },
+              where: {
+                item_id: data.item_id,
+                item_unit_id: unitData.id,
+                is_delete: false,
+              },
+            },
+          },
+          item_price: {
+            updateMany: {
+              data: {
+                deleted_at: date,
+                deleted_by: data.created_by,
+                is_delete: true,
+              },
+              where: {
+                item_id: data.item_id,
+                item_unit_id: unitData.id,
+                is_delete: false,
+              },
+            },
+          },
+        },
+      });
+    };
+
     transaction.push(
       prisma.item.update({
         where: {
@@ -100,86 +214,15 @@ class ItemUnitModel {
         },
       })
     );
-    data.units.forEach((x) => {
-      if (x.id == null) {
-        transaction.push(
-          prisma.item_unit.create({
-            data: {
-              item_id: data.item_id,
-              created_by: data.created_by,
-              created_at: new Date(),
-              unit: x.unit,
-              conversion: x.conversion,
-              item_price: {
-                create: {
-                  item_id: data.item_id,
-                  price: 0,
-                  discount: 0,
-                  created_by: data.created_by,
-                  created_at: new Date(),
-                  effective_date: new Date(),
-                },
-              },
-              item_price_purchase: {
-                create: {
-                  item_id: data.item_id,
-                  price: 0,
-                  discount: 0,
-                  created_by: data.created_by,
-                  created_at: new Date(),
-                },
-              },
-            },
-          })
-        );
-      } else if (x.is_delete) {
-        transaction.push(
-          prisma.item_unit.update({
-            where: {
-              id: x.id,
-            },
-            data: {
-              is_delete: true,
-              deleted_by: data.created_by,
-              deleted_at: new Date(),
-              conversion: x.conversion,
-              unit: x.unit,
-              item_price_purchase: {
-                updateMany: {
-                  data: {
-                    deleted_at: new Date(),
-                    deleted_by: data.created_by,
-                    is_delete: true,
-                  },
-                  where: {
-                    item_id: data.item_id,
-                    item_unit_id: x.id,
-                    is_delete: false,
-                  },
-                },
-              },
-              item_price: {
-                updateMany: {
-                  data: {
-                    deleted_at: new Date(),
-                    deleted_by: data.created_by,
-                    is_delete: true,
-                  },
-                  where: {
-                    item_id: data.item_id,
-                    item_unit_id: x.id,
-                    is_delete: false,
-                  },
-                },
-              },
-            },
-          })
-        );
+
+    data.units.forEach((unit) => {
+      if (unit.id == null) {
+        transaction.push(createItemUnit(unit));
+      } else if (unit.is_delete) {
+        transaction.push(updateItemUnit(unit));
       }
     });
 
     return prisma.$transaction(transaction);
   }
 }
-
-export default ItemUnitModel;

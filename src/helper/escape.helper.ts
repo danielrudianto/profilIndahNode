@@ -24,3 +24,28 @@ export function mysql_real_escape_string(string: string) {
     }
   });
 }
+
+export function translateKeyword(keyword: any): string {
+  if (!keyword) {
+    return "";
+  }
+
+  return decodeURIComponent(keyword);
+}
+
+export function translatePage(page: any): number {
+  if (!page) {
+    return 1;
+  }
+
+  const pageNumber = Number(page);
+  if (isNaN(pageNumber)) {
+    return 1;
+  }
+
+  if (pageNumber < 1) {
+    return 1;
+  }
+
+  return Math.floor(pageNumber);
+}

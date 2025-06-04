@@ -5,77 +5,67 @@ import AuthController from "../../controller/auth.controller";
 import UserController from "../../controller/user.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
+import { UserRepository } from "../../repositories/user.repository";
+import { prisma } from "../../app";
 
 const router = Router();
 
+const userController = new UserController(new UserRepository(prisma));
+
+// Common validation middleware
+const validateId = [
+  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+];
+
+const validateUserFields = [
+  body("role")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(ErrorList["User role required"]),
+  body("name").notEmpty().withMessage(ErrorList["Name required"]),
+  body("username").notEmpty().withMessage(ErrorList["Username is required"]),
+  body("nik").notEmpty().withMessage(ErrorList["Parameter error"]),
+];
+
+// Routes
 router.get("/profile", AuthController.fetchProfile);
+
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  UserController.fetchByID
+  [...validateId, ErrorHelper.intercept],
+  userController.fetchByID
 );
-router.get("/", UserController.fetch);
+
+router.get("/", userController.fetch);
 
 router.post(
   "/changePassword",
   body("password").notEmpty().withMessage(ErrorList["Password required"]),
   ErrorHelper.intercept,
-  UserController.updatePassword
+  userController.updatePassword
 );
-
-router.post(
-  "/avatar",
-  body("accessories")
-    .isInt({ min: 0 })
-    .withMessage(ErrorList["Parameter error"]),
-  body("top").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  body("clothes").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  body("color").isHexColor().withMessage(ErrorList["Parameter error"]),
-  body("eyes").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  body("eyebrows").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  body("mouth").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  body("circle").isBoolean().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  UserController.updateAvatar
-);
-
 router.post(
   "/",
   administratorMiddleware,
-  body("role")
-    .notEmpty()
-    .isNumeric()
-    .withMessage(ErrorList["User role required"]),
-  body("name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("username").notEmpty().withMessage(ErrorList["Username is required"]),
-  body("nik").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  UserController.create
+  [...validateUserFields, ErrorHelper.intercept],
+  userController.create
 );
 
 router.put(
   "/",
   administratorMiddleware,
-  body("id").notEmpty().isNumeric().withMessage(ErrorList["ID is required"]),
-  body("role")
-    .notEmpty()
-    .isNumeric()
-    .withMessage(ErrorList["User role required"]),
-  body("name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("username").notEmpty().withMessage(ErrorList["Username is required"]),
-  body("nik").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  UserController.update
+  [
+    body("id").notEmpty().isNumeric().withMessage(ErrorList["ID is required"]),
+    ...validateUserFields,
+    ErrorHelper.intercept,
+  ],
+  userController.update
 );
 
 router.delete(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  UserController.toggleActive
+  [...validateId, ErrorHelper.intercept],
+  userController.toggleActive
 );
 
 export default router;

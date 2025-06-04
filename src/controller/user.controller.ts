@@ -5,195 +5,132 @@ import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
 import CustomerModel from "../model/customer.model";
-import UserModel from "../model/user.model";
-import UserAvatarModel from "../model/user-avatar.model";
+import { UserModel } from "../model/user.model";
 import { redisClient } from "../app";
+import { UserRepository } from "../repositories/user.repository";
+import { UserRoleModel } from "../model/user_role.model";
 
 class UserController {
-  /**
-   * Create a new user
-   * @param req
-   * @param res
-   * @returns User
-   */
-  static create = (req: Request, res: Response) => {
-    const roleID = parseInt(req.body.role);
-    const role = UserModel.roles.filter((x) => x.id == roleID && x.available);
-    const username = req.body.username;
-    const nik = req.body.nik;
-    const name = req.body.name;
-    const userID = req.body.userId;
-    const types = req.body.user_sales;
+  private userRepository: UserRepository;
 
-    if (role.length == 0 || role == null) {
-      return res.status(400).send(ErrorList["Role not found"]);
-    }
+  constructor(userRepository: UserRepository) {
+    this.userRepository = userRepository;
+  }
 
-    UserModel.checkByCredential(username, nik).then((check) => {
-      if (!check) {
+  async create(req: Request, res: Response) {
+    try {
+      const username = req.body.username;
+      const name = req.body.name;
+      const nik = req.body.nik;
+      const roleID = Number(req.body.role);
+
+      const checkResult = await UserModel.check(username, nik);
+
+      if (!checkResult) {
         return res.status(404).send(ErrorList["User already exist"]);
       }
 
-      let password = "";
-      const characters =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-      for (var i = 0; i < 8; i++) {
-        password +=
-          characters[Math.floor(Math.random() * (characters.length - 1))];
+      const generated_password = await this.generatePassword();
+      const hashedPassword = await this.hashPassword(generated_password);
+
+      const data = {
+        name: name,
+        username: username,
+        nik: nik,
+        created_by: req.body.userId,
+        roleID: Number(req.body.role),
+        user_sales: req.body.user_sales,
+        is_active: true,
+        password: hashedPassword,
+      };
+
+      const validationErrors = this.userRepository.validateCreate(data);
+      if (this.userRepository.validateCreate(data).length > 0) {
+        return res.status(400).send(validationErrors[0]);
       }
 
-      hash(password, 12)
-        .then((hashedPassword) => {
-          if (roleID == 6) {
-            UserModel.create({
-              name: name,
-              nik: nik,
-              username: username,
-              password: hashedPassword,
-              created_by: userID,
-              role: roleID,
-              user_sales: types,
-            })
-              .then((result) => {
-                const socket = new SocketHelper("createUser", {
-                  id: result.id,
-                  name: result.name,
-                  nik: result.nik,
-                  username: result.username,
-                  password: password,
-                  role_id: roleID,
-                  role: UserModel.fetchRole(roleID)?.name || "",
-                  user: result.user,
-                });
-                socket.create();
+      const user = await this.userRepository.create(data);
 
-                return res.status(201).send({
-                  id: result.id,
-                  name: result.name,
-                  nik: result.nik,
-                  username: result.username,
-                  password: password,
-                  role_id: roleID,
-                  role: UserModel.fetchRole(roleID)?.name || "",
-                });
-              })
-              .catch((error) => {
-                console.error(`[error]: Error on creating user. ${error}`);
-                return res.status(500).send(ErrorList["Internal server error"]);
-              });
-          } else {
-            UserModel.create({
-              name: name,
-              nik: nik,
-              username: username,
-              password: hashedPassword,
-              created_by: userID,
-              role: roleID,
-            })
-              .then((result) => {
-                const socket = new SocketHelper("createUser", {
-                  id: result.id,
-                  name: result.name,
-                  nik: result.nik,
-                  username: result.username,
-                  password: password,
-                  role_id: roleID,
-                  role: UserModel.fetchRole(roleID)?.name || "",
-                  user: result.user,
-                });
-                socket.create();
+      const result = {
+        id: user.id,
+        name: user.name,
+        nik: user.nik,
+        username: user.username,
+        password: generated_password,
+        role_id: roleID,
+        role: UserModel.fetchRole(roleID)?.name || "",
+        user: user.user,
+      };
 
-                return res.status(201).send({
-                  id: result.id,
-                  name: result.name,
-                  nik: result.nik,
-                  username: result.username,
-                  password: password,
-                  role_id: roleID,
-                  role: UserModel.fetchRole(roleID)?.name || "",
-                });
-              })
-              .catch((error) => {
-                console.error(`[error]: Error on creating user. ${error}`);
-                return res.status(500).send(ErrorList["Internal server error"]);
-              });
-          }
+      const socket = new SocketHelper("createUser", result);
+      socket.create();
+
+      await redisClient.set(
+        `user:${user.id}`,
+        JSON.stringify({
+          ...result,
+          pasword: undefined,
         })
-        .catch((error) => {
-          console.error(`[error]: Error while hashing password. ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    });
+      );
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on creating user ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  }
+
+  fetchByID = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const user = await this.userRepository.fetchByID(id);
+      if (!user) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      return res.status(200).send(user);
+    } catch (error) {
+      console.error(`[error]: Error on fetching user by ID ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Fetch user by ID
-   * @param req
-   * @param res
-   */
-  static fetchByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    UserModel.fetchByID(id)
-      .then((user) => {
-        if (!user) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
+  fetch = async (req: Request, res: Response) => {
+    try {
+      const page = !req.query.page
+        ? 1
+        : Math.max(1, parseInt(req.query.page?.toString()));
+      const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
 
-        return res.status(200).send({
-          ...user,
-          rawRole: user?.role,
-          role: UserModel.roles.filter((y) => y.id == user?.role)[0].name,
-          user_sales: user.user_sales.length == 0 ? [] : user.user_sales,
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching user ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
+      const result = await this.userRepository.fetch({
+        page: page,
+        keyword: keyword,
+        pageSize: Number(process.env.LIMIT!.toString()),
       });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching users ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Fetch users using pagination
-   * @param req
-   * @param res
-   */
-  static fetch = (req: Request, res: Response) => {
-    const page = !req.query.page
-      ? 1
-      : Math.max(1, parseInt(req.query.page?.toString()));
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const limit = parseInt(process.env.LIMIT!.toString());
-    const offset = (page - 1) * limit;
+  private async generatePassword(): Promise<string> {
+    let password = "";
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    for (let i = 0; i < 8; i++) {
+      password +=
+        characters[Math.floor(Math.random() * (characters.length - 1))];
+    }
 
-    UserModel.fetch(keyword, offset, limit)
-      .then(([result, count]) => {
-        return res.status(200).send({
-          data: result.map((x) => {
-            const roleIndex = UserModel.roles.findIndex((y) => y.id == x.role);
-            return {
-              id: x.id,
-              nik: x.nik,
-              name: x.name,
-              username: x.username,
-              user_department: x.role,
-              role: roleIndex == -1 ? "" : UserModel.roles[roleIndex].name,
-            };
-          }),
-          count: count,
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching user ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
+    return password;
+  }
 
-  /**
-   * Fetch user stats
-   * @param req
-   * @param res
-   * @returns The achievement of the user
-   */
+  private async hashPassword(password: string): Promise<string> {
+    return await hash(password, 12);
+  }
+
   static fetchStats = (req: Request, res: Response) => {
     const id = req.body.userId;
     Promise.all([
@@ -284,143 +221,78 @@ class UserController {
     });
   };
 
-  /**
-   * Update avatar
-   * @param req
-   * @param res
-   */
-  static updateAvatar = (req: Request, res: Response) => {
-    const userID = req.body.userId;
-    const top = req.body.top;
-    const accessories = req.body.accessories;
-    const eyes = req.body.eyes;
-    const circle = req.body.circle;
-    const clothes = req.body.clothes;
-    const color = req.body.color;
-    const eyebrows = req.body.eyebrows;
-    const mouth = req.body.mouth;
-
-    new UserAvatarModel(
-      userID,
-      top,
-      accessories,
-      eyes,
-      circle,
-      clothes,
-      color,
-      eyebrows,
-      mouth
-    )
-      .create()
-      .then((result) => {
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on updating user's avatar ${error}`);
-        return res.status(500).send(error);
-      });
-  };
-
-  /**
-   * Update user data
-   * @param req
-   * @param res
-   */
-  static update = (req: Request, res: Response) => {
+  update = async (req: Request, res: Response) => {
     const name = req.body.name;
     const id = req.body.id;
     const roleID = req.body.role;
-    const role = UserModel.fetchRole(roleID);
-    const userID = req.body.userId;
     const userSales = req.body.user_sales;
 
-    if (!role) {
+    const role = UserRoleModel.fromRoleID(roleID);
+
+    if (role == null) {
       return res.status(400).send(ErrorList["Role not found"]);
     }
 
-    UserModel.fetchByID(id)
-      .then(async (user) => {
-        if (!user) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
+    try {
+      const user = await this.userRepository.fetchByID(id);
+      if (!user) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-        if (!user.is_active) {
-          return res.status(400).send(ErrorList["User not active"]);
-        }
+      if (!user.is_active) {
+        return res.status(400).send(ErrorList["User not active"]);
+      }
 
-        UserModel.update({
-          id: id,
-          username: user.username,
-          nik: user.nik,
-          name: name,
-          created_by: userID,
-          password: null,
-          role: roleID,
-          user_sales: userSales,
-        })
-          .then((result) => {
-            const socket = new SocketHelper("updateUser", {
-              id: result.id,
-              name: result.name,
-              nik: result.nik,
-              username: result.username,
-              password: null,
-              role: role.name,
-            });
-            socket.create();
+      user.name = name;
+      user.roleID = roleID;
+      user.user_sales = userSales;
 
-            return res.status(201).send({
-              id: result.id,
-              name: result.name,
-              nik: result.nik,
-              username: result.username,
-              password: null,
-              role: role.name,
-            });
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on updating user ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching user ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+      const result = await user.update();
+      const response = {
+        id: result.id,
+        name: result.name,
+        nik: result.nik,
+        username: result.username,
+        password: null,
+        role: role,
+      };
+
+      const socket = new SocketHelper("updateUser", response);
+      socket.create();
+
+      return res.status(200).send(response);
+    } catch (error) {
+      console.error(`[error]: Error on updating user ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  static toggleActive = (req: Request, res: Response) => {
-    const validation_result = validationResult(req);
-    if (!validation_result.isEmpty()) {
-      return res.status(400).send(validation_result.array()[0].msg);
-    }
-
+  toggleActive = async (req: Request, res: Response) => {
     try {
-      const id = parseInt(req.params.id);
-      UserModel.fetchByID(id)
-        .then((user) => {
-          if (user == null) {
-            return res.status(404).send("Pengguna tidak ditemukan.");
-          }
+      const id = Number(req.params.id);
+      if (!id || isNaN(id)) {
+        return res.status(400).send(ErrorList["Parameter error"]);
+      }
 
-          UserModel.delete(user.id, !user.is_active, req.body.userId)
-            .then((user_delete) => {
-              // If user was active and no longer active
-              // Log him / her out from our system immidiately
-              if (user.is_active) {
-                const socket = new SocketHelper("deleteUser", user_delete);
-                socket.create();
-              }
+      const user = await this.userRepository.fetchByID(id);
+      if (!user) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-              return res.status(201).send(user_delete);
-            })
-            .catch((error) => {
-              return res.status(500).send(error);
-            });
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
+      const result = await this.userRepository.toggleActive(
+        user.id!,
+        !user.is_active!
+      );
+      if (user.is_active) {
+        const socket = new SocketHelper("deleteUser", result);
+        socket.create();
+
+        redisClient.del(`user:${id}`);
+      } else {
+        redisClient.set(`user:${id}`, JSON.stringify(result));
+      }
+
+      return res.status(201).send(result);
     } catch (err: unknown) {
       if (err instanceof Error) {
         return res.status(500).send(err);
@@ -430,32 +302,47 @@ class UserController {
     }
   };
 
-  /**
-   * Update user password
-   */
-  static updatePassword = (req: Request, res: Response) => {
-    const password = req.body.password;
-    hash(password, 12).then((hashed_password) => {
-      UserModel.updatePassword(hashed_password, req.body.userId)
-        .then((result) => {
-          return res.status(200).send(result);
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    });
+  updatePassword = async (req: Request, res: Response) => {
+    try {
+      const password = req.body.password;
+      const hashedPassword = await hash(password, 12);
+      const userID = req.body.userId;
+      const result = await this.userRepository.updatePassword(
+        userID,
+        hashedPassword
+      );
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on updating password ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  static delete = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    UserModel.delete(id, false, req.body.userId)
-      .then(async (user) => {
-        await redisClient.del(`user:${id}`);
-        return res.status(200).send(user);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+  delete = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      if (!id || isNaN(id)) {
+        return res.status(400).send(ErrorList["Parameter error"]);
+      }
+
+      const user = await this.userRepository.fetchByID(id);
+      if (!user) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      if (!user.is_active) {
+        return res.status(400).send(ErrorList["User not active"]);
+      }
+
+      const result = await user.delete();
+
+      await redisClient.del(`user:${id}`);
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting user ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 }
 

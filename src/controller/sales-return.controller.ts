@@ -8,6 +8,8 @@ import SalesReturnModel from "../model/sales_return.model";
 import { StockReturnInterface } from "../interface/stock-in.interface";
 import { mongoStockOutModel } from "../mongo-model/mongo-stock-in.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
+import { StockInModel } from "../model/stock-in.model";
+import { IStockOutFetch, StockOutModel } from "../model/stock-out.model";
 
 class SalesReturnController {
   /**
@@ -16,23 +18,22 @@ class SalesReturnController {
    * @param res
    * @returns Sales return data
    */
-  static create = (req: Request, res: Response) => {
-    const date = new Date(req.body.date);
-    const payment_method_id =
-      req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
-    const items = req.body.sales_return as any[];
-    const userID = req.body.userId;
+  static create = async (req: Request, res: Response) => {
+    try {
+      const date = new Date(req.body.date);
+      const payment_method_id =
+        req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
+      const items = req.body.sales_return as any[];
+      const userID = req.body.userId;
 
-    if (items.length == 0) {
-      return res.status(400).send(ErrorList["Parameter error"]);
-    }
+      if (items.length == 0) {
+        return res.status(400).send(ErrorList["Parameter error"]);
+      }
 
-    // Add checker for bill id
-    const billIDs = items.map((x) => x.bill_id);
-    BillModel.fetchByIDs(billIDs).then((billItems) => {
+      const billIDs: number[] = items.map((x) => x.bill_id);
+      const billItems = await BillModel.fetchByIDs(billIDs);
       for (let i = 0; i < billItems.length; i++) {
         const itemIndex = items.findIndex((x) => x.bill_id == billItems[i].id);
-
         if (itemIndex == -1) {
           return res.status(400).send(ErrorList["Parameter error"]);
         }
@@ -55,7 +56,7 @@ class SalesReturnController {
         Math.random() * 10
       )}${Math.floor(Math.random() * 10)}`;
 
-      SalesReturnModel.create({
+      const sales_return = await SalesReturnModel.create({
         name: name,
         date: date,
         created_by: userID,
@@ -66,114 +67,134 @@ class SalesReturnController {
             quantity: x.quantity,
           };
         }),
-      })
-        .then(async (result) => {
-          for (let i = 0; i < result.sales_return.length; i++) {
-            if (result.sales_return[i].bill.item != null) {
-              const stockReturn: StockReturnInterface = {
-                itemID: result.sales_return[i].bill.item!.id,
-                createdAt: result.created_at!,
-                date: date,
-                document: name,
-                opponent:
-                  result.sales_return[i].bill.bill_code.customer == null
-                    ? "Retail customer"
-                    : result.sales_return[i].bill.bill_code.customer!.name,
-                displayQuantity: Number(result.sales_return[i].quantity),
-                unit:
-                  result.sales_return[i].bill.item_unit == null
-                    ? result.sales_return[i].bill.item!.unit
-                    : result.sales_return[i].bill.item_unit!.unit,
-                quantity:
-                  Number(result.sales_return[i].quantity) *
-                  (result.sales_return[i].bill.item_unit == null
-                    ? 1
-                    : Number(
-                        result.sales_return[i].bill.item_unit!.conversion
-                      )),
-                billID: result.sales_return[i].bill_id,
-                billCodeID: result.sales_return[i].bill.bill_code.id,
-                salesReturnCodeID: result.id,
-                salesReturnID: result.sales_return[i].id,
-                customerID:
-                  result.sales_return[i].bill.bill_code.customer == null
-                    ? null
-                    : result.sales_return[i].bill.bill_code.customer!.id,
-              };
-              await queue.add("insert-stock-return", stockReturn);
-            } else if (result.sales_return[i].bill.package_code != null) {
-              for (
-                let n = 0;
-                n <
-                result.sales_return[i].bill.package_code!.package_content
-                  .length;
-                n++
-              ) {
-                const stockReturn: StockReturnInterface = {
-                  itemID:
-                    result.sales_return[i].bill.package_code!.package_content[n]
-                      .item.id,
-                  createdAt: result.created_at!,
-                  date: date,
-                  document: name,
-                  opponent:
-                    result.sales_return[i].bill.bill_code.customer == null
-                      ? "Retail customer"
-                      : result.sales_return[i].bill.bill_code.customer!.name,
-                  displayQuantity:
-                    Number(result.sales_return[i].bill.quantity) *
-                    Number(
-                      result.sales_return[i].bill.package_code!.package_content[
-                        n
-                      ].quantity
-                    ),
-                  unit:
-                    result.sales_return[i].bill.package_code!.package_content[n]
-                      .item_unit == null
-                      ? result.sales_return[i].bill.package_code!
-                          .package_content[n].item!.unit
-                      : result.sales_return[i].bill.package_code!
-                          .package_content[n].item_unit!.unit,
-                  quantity:
-                    Number(result.sales_return[i].quantity) *
-                    Number(
-                      result.sales_return[i].bill.package_code!.package_content[
-                        n
-                      ].quantity
-                    ) *
-                    (result.sales_return[i].bill.item_unit == null
-                      ? 1
-                      : Number(
-                          result.sales_return[i].bill.item_unit!.conversion
-                        )),
-                  billID: result.sales_return[i].bill_id,
-                  billCodeID: result.sales_return[i].bill.bill_code.id,
-                  salesReturnCodeID: result.id,
-                  salesReturnID: result.sales_return[i].id,
-                  customerID:
-                    result.sales_return[i].bill.bill_code.customer == null
-                      ? null
-                      : result.sales_return[i].bill.bill_code.customer!.id,
-                };
-                await queue.add("insert-stock-return", stockReturn);
+      });
+
+      for (let i = 0; i < sales_return.sales_return.length; i++) {
+        if (sales_return.sales_return[i].bill.item != null) {
+          const stockOut = await StockOutModel.fetch(
+            IStockOutFetch.BY_REFERENCE,
+            {
+              bill_id: sales_return.sales_return[i].bill_id,
+              bill_code_id: sales_return.sales_return[i].bill.bill_code.id,
+              adjustment_case_id: null,
+              adjustment_case_code_id: null,
+              item_id: sales_return.sales_return[i].bill.item!.id,
+            }
+          );
+
+          let quantity = Number(sales_return.sales_return[i].quantity);
+          while (quantity > 0) {
+            for (let j = 0; j < stockOut.length; j++) {
+              if (stockOut[j].quantity >= quantity) {
+                // rollback stockin
+                if (stockOut[j].stock_in_id != null) {
+                  await StockInModel.rollBack([
+                    {
+                      id: stockOut[j].id!,
+                      quantity: quantity,
+                    },
+                  ]);
+                }
+
+                stockOut[j].quantity -= quantity;
+                stockOut[j].update();
+
+                quantity = 0;
+                break;
+              } else if (stockOut[j].quantity < quantity) {
+                // rollback stockin
+                if (stockOut[j].stock_in_id != null) {
+                  await StockInModel.rollBack([
+                    {
+                      id: stockOut[j].id!,
+                      quantity: stockOut[j].quantity,
+                    },
+                  ]);
+                }
+
+                stockOut[j].quantity = 0;
+                stockOut[j].update();
+
+                quantity -= stockOut[j].quantity;
               }
             }
           }
-          return res.status(201).send(result);
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on creating sales return ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    });
+        } else {
+          for (
+            let n = 0;
+            n <
+            sales_return.sales_return[i].bill.package_code!.package_content
+              .length;
+            n++
+          ) {
+            const stockOut = await StockOutModel.fetch(
+              IStockOutFetch.BY_REFERENCE,
+              {
+                bill_id: sales_return.sales_return[i].bill_id,
+                bill_code_id: sales_return.sales_return[i].bill.bill_code.id,
+                item_id:
+                  sales_return.sales_return[i].bill.package_code!
+                    .package_content[n].item.id,
+                adjustment_case_id: null,
+                adjustment_case_code_id: null,
+              }
+            );
+
+            let quantity =
+              Number(sales_return.sales_return[i].quantity) *
+              Number(
+                sales_return.sales_return[i].bill.package_code!.package_content[
+                  n
+                ].quantity
+              );
+
+            while (quantity > 0) {
+              for (let j = 0; j < stockOut.length; j++) {
+                if (stockOut[j].quantity >= quantity) {
+                  // rollback stockin
+                  if (stockOut[j].stock_in_id != null) {
+                    await StockInModel.rollBack([
+                      {
+                        id: stockOut[j].id!,
+                        quantity: quantity,
+                      },
+                    ]);
+                  }
+
+                  stockOut[j].quantity -= quantity;
+                  stockOut[j].update();
+
+                  quantity = 0;
+                  break;
+                } else if (stockOut[j].quantity < quantity) {
+                  // rollback stockin
+                  if (stockOut[j].stock_in_id != null) {
+                    await StockInModel.rollBack([
+                      {
+                        id: stockOut[j].id!,
+                        quantity: stockOut[j].quantity,
+                      },
+                    ]);
+                  }
+
+                  stockOut[j].quantity = 0;
+                  stockOut[j].update();
+
+                  quantity -= stockOut[j].quantity;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return res.status(201).send(sales_return);
+    } catch (error) {
+      console.error(`[error]: Error on creating sales return: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Search for a bill that can be returned
-   * @param req
-   * @param res
-   * @returns Bill data
-   */
   static fetchSearch = (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const items = req.body.items as any[];
@@ -202,12 +223,6 @@ class SalesReturnController {
       });
   };
 
-  /**
-   * Fetch sales return archive
-   * @param req
-   * @param res
-   * @return Sales return archive
-   */
   static fetchArchives = (req: Request, res: Response) => {
     const year = req.body.year;
     const month = req.body.month;
@@ -347,12 +362,6 @@ class SalesReturnController {
     }
   };
 
-  /**
-   * Fetch sales return by ID
-   * @param req
-   * @param res
-   * @returns Sales return data
-   */
   static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
     SalesReturnModel.fetchByID(id)
@@ -393,12 +402,6 @@ class SalesReturnController {
       });
   };
 
-  /**
-   * Delete sales return by ID
-   * @param req
-   * @param res
-   * @returns
-   */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
     const userID = req.body.userId;
@@ -512,12 +515,6 @@ class SalesReturnController {
     });
   };
 
-  /**
-   * Fetch sales return code by ID
-   * @param req
-   * @param res
-   * @returns sales return code document
-   */
   static fetchCodeByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
     SalesReturnModel.fetchCodeByID(id)

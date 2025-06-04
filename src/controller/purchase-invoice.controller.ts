@@ -6,7 +6,8 @@ import SocketHelper from "../helper/socket.helper";
 import GoodReceiptModel from "../model/good_receipt.model";
 import ItemPurchasePriceModel from "../model/item_purchase_price.model";
 import PurchaseInvoiceModel from "../model/purchase-invoice.model";
-import { StockInInterface } from "../interface/stock-in.interface";
+import { IStockInFetchMethod, StockInModel } from "../model/stock-in.model";
+import { IStockOutDelete, StockOutModel } from "../model/stock-out.model";
 
 class PurchaseInvoiceController {
   /**
@@ -104,50 +105,40 @@ class PurchaseInvoiceController {
         const createPurchaseInvoiceNetValue =
           createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
 
-        for (let i = 0; i < good_receipt_result.good_receipt.length; i++) {
-          const goodReceiptItem = good_receipt_result.good_receipt[i];
-          const stockIn: StockInInterface = {
-            itemID: goodReceiptItem.item.id,
-            createdAt: good_receipt_result.created_at,
-            date: good_receipt_result.date,
-            document: good_receipt_result.name,
-            opponent: good_receipt_result.supplier.name,
-            displayQuantity: Number(goodReceiptItem.quantity),
-            unit:
-              goodReceiptItem.item_unit == null
-                ? goodReceiptItem.item.unit
-                : goodReceiptItem.item_unit.unit,
-            quantity:
-              Number(goodReceiptItem.quantity) *
-              (goodReceiptItem.item_unit == null
-                ? 1
-                : Number(goodReceiptItem.item_unit.conversion)),
-            billID: null,
-            billCodeID: null,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            goodReceiptID: goodReceiptItem.id,
-            goodReceiptCodeID: good_receipt_result.id,
-            salesReturnID: null,
-            salesReturnCodeID: null,
-            customerID: null,
-            supplierID: good_receipt_result.supplier_id,
-            companyID: good_receipt_result.company_id,
-            price:
-              createPurchaseInvoiceTotalValue == 0
-                ? 0
-                : ((Number(goodReceiptItem.price) -
-                    Number(goodReceiptItem.discount)) *
-                    createPurchaseInvoiceNetValue) /
-                  (createPurchaseInvoiceTotalValue *
-                    (goodReceiptItem.item_unit == null
-                      ? 1
-                      : Number(goodReceiptItem.item_unit?.conversion))),
-          };
-
-          await queue.add("insert-stock-in", stockIn);
-        }
-        return res.status(201).send(good_receipt_result);
+        StockInModel.createMany(
+          good_receipt_result.good_receipt.map((x) => {
+            return {
+              item_id: x.item.id,
+              date: good_receipt_result.date,
+              company_id: good_receipt_result.company_id,
+              good_receipt_code_id: good_receipt_result.id,
+              good_receipt_id: x.id,
+              adjustment_case_code_id: null,
+              adjustment_case_id: null,
+              price:
+                createPurchaseInvoiceTotalValue == 0
+                  ? 0
+                  : ((Number(x.price) - Number(x.discount)) *
+                      createPurchaseInvoiceNetValue) /
+                    (createPurchaseInvoiceTotalValue *
+                      (x.item_unit == null
+                        ? 1
+                        : Number(x.item_unit.conversion))),
+              quantity:
+                Number(x.quantity) *
+                Number(x.item_unit == null ? 1 : x.item_unit.conversion),
+            };
+          })
+        )
+          .then(() => {
+            return res.status(201).send(good_receipt_result);
+          })
+          .catch((error) => {
+            console.error(
+              `[error]: Error on creating stock in for purchase invoice ${error}`
+            );
+            return res.status(500).send(ErrorList["Internal server error"]);
+          });
       })
       .catch((error) => {
         console.error(`[error]: Error on creating purchase invoice ${error}`);
@@ -253,83 +244,66 @@ class PurchaseInvoiceController {
       },
     })
       .then(async (result) => {
-        for (let i = 0; i < goodReceipt.good_receipt.length; i++) {
-          await queue.add("delete-stock-in", {
-            goodReceiptID: goodReceipt.good_receipt[i].id,
-            adjustmentCaseID: null,
-            itemID: goodReceipt.good_receipt[i].item.id,
-            quantity:
-              Number(goodReceipt.good_receipt[i].quantity) *
-              (goodReceipt.good_receipt[i].item_unit == null
-                ? 1
-                : Number(goodReceipt.good_receipt[i].item_unit.conversion)),
-          });
-        }
+        // Remove stock outs that has stock_in_id of the good receipt
+        StockInModel.fetch(
+          IStockInFetchMethod.BY_GOOD_RECEIPT_CODE_ID,
+          goodReceipt.id
+        ).then(async (stockIns) => {
+          await StockOutModel.delete(
+            IStockOutDelete.BY_STOCK_IN_IDS,
+            stockIns.map((x) => {
+              return x.id;
+            })
+          );
 
-        const createPurchaseInvoiceTotalValue =
-          result.good_receipt_code.good_receipt.reduce((a, b) => {
-            return (
-              a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
-            );
-          }, 0);
+          await StockInModel.deleteMany(
+            stockIns.map((x) => {
+              return x.id;
+            })
+          );
 
-        const createPurchaseInvoiceDiscount =
-          result.discount == null ? 0 : Number(result.discount || 0);
+          const createPurchaseInvoiceTotalValue =
+            result.good_receipt_code.good_receipt.reduce((a, b) => {
+              return (
+                a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+              );
+            }, 0);
 
-        const createPurchaseInvoiceNetValue =
-          createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
+          const createPurchaseInvoiceDiscount =
+            result.discount == null ? 0 : Number(result.discount || 0);
 
-        for (let n = 0; n < result.good_receipt_code.good_receipt.length; n++) {
-          const stockIn: StockInInterface = {
-            itemID: result.good_receipt_code.good_receipt[n].item.id,
-            createdAt: result.created_at,
-            date: result.good_receipt_code.date,
-            document: result.good_receipt_code.name,
-            opponent: result.good_receipt_code.supplier.name,
-            displayQuantity: Number(
-              result.good_receipt_code.good_receipt[n].quantity
-            ),
-            unit:
-              result.good_receipt_code.good_receipt[n].item_unit == null
-                ? result.good_receipt_code.good_receipt[n].item.unit
-                : result.good_receipt_code.good_receipt[n].item_unit!.unit,
-            quantity:
-              Number(result.good_receipt_code.good_receipt[n].quantity) *
-              (result.good_receipt_code.good_receipt[n].item_unit == null
-                ? 1
-                : Number(
-                    result.good_receipt_code.good_receipt[n].item_unit!
-                      .conversion
-                  )),
-            billID: null,
-            billCodeID: null,
-            adjustmentCaseID: null,
-            adjustmentCaseCodeID: null,
-            goodReceiptID: result.good_receipt_code.good_receipt[n]!.id,
-            goodReceiptCodeID: result.good_receipt_code.id,
-            salesReturnID: null,
-            salesReturnCodeID: null,
-            customerID: null,
-            supplierID: result.good_receipt_code.supplier_id,
-            companyID: result.good_receipt_code.company_id,
-            price:
-              createPurchaseInvoiceTotalValue == 0
-                ? 0
-                : ((Number(result.good_receipt_code.good_receipt[n].price) -
-                    Number(result.good_receipt_code.good_receipt[n].discount)) *
-                    createPurchaseInvoiceNetValue) /
-                  (createPurchaseInvoiceTotalValue *
-                    (result.good_receipt_code.good_receipt[n].item_unit == null
-                      ? 1
-                      : Number(
-                          result.good_receipt_code.good_receipt[n].item_unit!
-                            .conversion
-                        ))),
-          };
+          const createPurchaseInvoiceNetValue =
+            createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
 
-          await queue.add("insert-stock-in", stockIn);
-        }
-        return res.status(201).send(result);
+          // Create stock in for the updated good receipt
+          await StockInModel.createMany(
+            result.good_receipt_code.good_receipt.map((x) => {
+              return {
+                date: result.good_receipt_code.date,
+                company_id: result.good_receipt_code.company_id,
+                item_id: x.item.id,
+                good_receipt_code_id: result.good_receipt_code.id,
+                good_receipt_id: x.id,
+                adjustment_case_code_id: null,
+                adjustment_case_id: null,
+                price:
+                  createPurchaseInvoiceTotalValue == 0
+                    ? 0
+                    : ((Number(x.price) - Number(x.discount)) *
+                        createPurchaseInvoiceNetValue) /
+                      (createPurchaseInvoiceTotalValue *
+                        (x.item_unit == null
+                          ? 1
+                          : Number(x.item_unit.conversion))),
+                quantity:
+                  Number(x.quantity) *
+                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
+              };
+            })
+          );
+
+          return res.status(201).send(result);
+        });
       })
       .catch((error) => {
         console.error(`[error]: Error on updating good receipt ${error}`);
@@ -462,100 +436,89 @@ class PurchaseInvoiceController {
           updatePurchaseInvoiceResult[0].discount
         );
 
-        for (
-          let i = 0;
-          i < updatedPurchaseInvoice.good_receipt_code.good_receipt.length;
-          i++
-        ) {
-          const itemID =
-            updatedPurchaseInvoice.good_receipt_code.good_receipt[i].item.id;
-          const goodReceiptID =
-            updatedPurchaseInvoice.good_receipt_code.good_receipt[i].id;
-          const price =
-            createPurchaseInvoiceTotalValue == 0
-              ? 0
-              : ((Number(
-                  updatedPurchaseInvoice.good_receipt_code.good_receipt[i].price
-                ) -
-                  Number(
-                    updatedPurchaseInvoice.good_receipt_code.good_receipt[i]
-                      .discount
-                  )) *
-                  (createPurchaseInvoiceTotalValue -
-                    createPurchaseInvoiceDiscount)) /
-                createPurchaseInvoiceTotalValue;
+        StockInModel.updatePrice(
+          updatedPurchaseInvoice.good_receipt_code.good_receipt.map((x) => {
+            return {
+              good_receipt_id: x.id,
+              good_receipt_code_id: goodReceiptCodeID,
+              adjustment_event_code_id: null,
+              adjustment_event_id: null,
+              price:
+                createPurchaseInvoiceTotalValue == 0
+                  ? 0
+                  : ((Number(x.price) - Number(x.discount)) *
+                      (createPurchaseInvoiceTotalValue -
+                        createPurchaseInvoiceDiscount)) /
+                    createPurchaseInvoiceTotalValue,
+            };
+          })
+        )
+          .then(async () => {
+            if (good_receipt.filter((x) => x.save).length > 0) {
+              // Search for saved items
+              await ItemPurchasePriceModel.delete(
+                good_receipt
+                  .filter((x) => x.save)
+                  .map((x) => {
+                    const itemIndex =
+                      updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
+                        (y) => y.id == x.id
+                      );
 
-          await queue.add("update-stock-in", {
-            itemID: itemID,
-            goodReceiptID: goodReceiptID,
-            goodReceiptCodeID: goodReceiptCodeID,
-            price: price,
+                    const itemID =
+                      updatePurchaseInvoiceResult[0].good_receipt_code
+                        .good_receipt[itemIndex].item.id;
+                    const itemUnitID =
+                      updatePurchaseInvoiceResult[0].good_receipt_code
+                        .good_receipt[itemIndex].item_unit == null
+                        ? null
+                        : updatePurchaseInvoiceResult[0].good_receipt_code
+                            .good_receipt[itemIndex].item_unit!.id;
+                    return {
+                      item_id: itemID,
+                      item_unit_id: itemUnitID,
+                      deleted_by: userID,
+                    };
+                  })
+              );
+
+              // Then save the price
+              await ItemPurchasePriceModel.create(
+                good_receipt
+                  .filter((x) => x.save)
+                  .map((x) => {
+                    const itemIndex =
+                      updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
+                        (y) => y.id == x.id
+                      );
+
+                    const itemID =
+                      updatePurchaseInvoiceResult[0].good_receipt_code
+                        .good_receipt[itemIndex].item.id;
+                    const itemUnitID =
+                      updatePurchaseInvoiceResult[0].good_receipt_code
+                        .good_receipt[itemIndex].item_unit == null
+                        ? null
+                        : updatePurchaseInvoiceResult[0].good_receipt_code
+                            .good_receipt[itemIndex].item_unit!.id;
+
+                    return {
+                      item_id: itemID,
+                      item_unit_id: itemUnitID,
+                      price: x.price,
+                      discount: x.discount,
+                      created_by: userID,
+                    };
+                  })
+              );
+            }
+
+            return res.status(201).send(updatePurchaseInvoiceResult);
+          })
+          .catch((error) => {
+            console.error(`[error]: Error on updating stock in price ${error}`);
+            return res.status(500).send(ErrorList["Internal server error"]);
           });
-        }
-        if (good_receipt.filter((x) => x.save).length > 0) {
-          // Search for saved items
-          await ItemPurchasePriceModel.delete(
-            good_receipt
-              .filter((x) => x.save)
-              .map((x) => {
-                const itemIndex =
-                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
-                    (y) => y.id == x.id
-                  );
-
-                const itemID =
-                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
-                    itemIndex
-                  ].item.id;
-                const itemUnitID =
-                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
-                    itemIndex
-                  ].item_unit == null
-                    ? null
-                    : updatePurchaseInvoiceResult[0].good_receipt_code
-                        .good_receipt[itemIndex].item_unit!.id;
-                return {
-                  item_id: itemID,
-                  item_unit_id: itemUnitID,
-                  deleted_by: userID,
-                };
-              })
-          );
-
-          // Then save the price
-          await ItemPurchasePriceModel.create(
-            good_receipt
-              .filter((x) => x.save)
-              .map((x) => {
-                const itemIndex =
-                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
-                    (y) => y.id == x.id
-                  );
-
-                const itemID =
-                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
-                    itemIndex
-                  ].item.id;
-                const itemUnitID =
-                  updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt[
-                    itemIndex
-                  ].item_unit == null
-                    ? null
-                    : updatePurchaseInvoiceResult[0].good_receipt_code
-                        .good_receipt[itemIndex].item_unit!.id;
-
-                return {
-                  item_id: itemID,
-                  item_unit_id: itemUnitID,
-                  price: x.price,
-                  discount: x.discount,
-                  created_by: userID,
-                };
-              })
-          );
-        }
-
-        return res.status(200).send(updatePurchaseInvoiceResult);
       });
     } else if (is_delete) {
       const [purchaseInvoiceUpdate, _] = await PurchaseInvoiceModel.deleteByID({
@@ -563,39 +526,39 @@ class PurchaseInvoiceController {
         deleted_by: userID,
       });
 
-      // Create delete good receipt
-      for (
-        let i = 0;
-        i < purchaseInvoiceUpdate.good_receipt_code.good_receipt.length;
-        i++
-      ) {
-        await queue.add("delete-stock-in", {
-          itemID:
-            purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].item_id,
-          goodReceiptID:
-            purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].id,
-          adjustmentCaseID: null,
-          quantity:
-            Number(
-              purchaseInvoiceUpdate.good_receipt_code.good_receipt[i].quantity
-            ) *
-            (purchaseInvoiceUpdate.good_receipt_code.good_receipt[i]
-              .item_unit == null
-              ? 1
-              : Number(
-                  purchaseInvoiceUpdate.good_receipt_code.good_receipt[i]
-                    .item_unit?.conversion
-                )),
+      StockInModel.fetch(
+        IStockInFetchMethod.BY_GOOD_RECEIPT_CODE_ID,
+        purchaseInvoiceUpdate.good_receipt_code_id
+      )
+        .then(async (result) => {
+          // Unlink the stock outs
+          await StockOutModel.delete(
+            IStockOutDelete.BY_STOCK_IN_IDS,
+            result.map((x) => {
+              return x.id;
+            })
+          );
+
+          await StockInModel.deleteMany(
+            result.map((x) => {
+              return x.id;
+            })
+          );
+
+          const socket = new SocketHelper(
+            "updatePurchaseDocumentStatus",
+            purchaseInvoiceUpdate
+          );
+          socket.create();
+
+          return res.status(200).send(purchaseInvoiceUpdate);
+        })
+        .catch((error) => {
+          console.error(
+            `[error]: Error on deleting stock in for purchase invoice ${error}`
+          );
+          return res.status(500).send(ErrorList["Internal server error"]);
         });
-      }
-
-      const socket = new SocketHelper(
-        "updatePurchaseDocumentStatus",
-        purchaseInvoiceUpdate
-      );
-      socket.create();
-
-      return res.status(200).send(purchaseInvoiceUpdate);
     }
   };
 

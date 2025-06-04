@@ -32,6 +32,7 @@ import expenseTypeRoutes from "./routes/master/expense-type.route";
 import goodReceiptRoutes from "./routes/transaction/good-receipt.route";
 import purchaseInvoiceRoutes from "./routes/transaction/purchase-invoice.route";
 import userRoutes from "./routes/master/user.route";
+import userAvatarRoutes from "./routes/master/user-avatar.route";
 import expenseRoutes from "./routes/transaction/expense.route";
 import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
 import adjustmentEventRoutes from "./routes/transaction/adjustment-event.route";
@@ -111,6 +112,7 @@ app.use("/draft-bill", authMiddleware, DraftBillRoutes);
 app.use("/cashier", authMiddleware, CashierRoutes);
 
 app.use("/user", authMiddleware, userRoutes);
+app.use("/user-avatar", authMiddleware, userAvatarRoutes);
 app.use("/expense", authMiddleware, expenseRoutes);
 app.use("/report", reportRoutes);
 app.use("/receivable", authMiddleware, ReceivableRoutes);

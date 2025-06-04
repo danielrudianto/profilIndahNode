@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import ExpenseTypeModel from "./expense.type.model";
 
 const prisma = new PrismaClient();
 
@@ -14,6 +15,7 @@ export interface IExpense {
   is_delete?: boolean;
   deleted_by?: number;
   deleted_at?: Date;
+  expense_type?: ExpenseTypeModel;
 }
 
 interface IReportExpense {
@@ -25,34 +27,120 @@ interface IReportExpense {
 }
 
 class ExpenseModel {
+  id?: number;
+  date: Date;
+  value: number;
+  created_at?: Date;
+  created_by: number;
+  description: string;
+  expense_type_id: number;
+  company_id: number;
+  is_delete?: boolean;
+  deleted_by?: number;
+  deleted_at?: Date;
+
+  constructor(data: IExpense) {
+    this.id = data.id;
+    this.date = data.date;
+    this.value = data.value;
+    this.created_at = data.created_at || new Date();
+    this.created_by = data.created_by;
+    this.description = data.description;
+    this.expense_type_id = data.expense_type_id;
+    this.company_id = data.company_id;
+    this.is_delete = data.is_delete;
+    this.deleted_by = data.deleted_by;
+    this.deleted_at = data.deleted_at;
+  }
   /**
    * Create a new expense record
    * @param data
    * @returns
    */
-  static create(data: IExpense) {
-    return prisma.expense.create({
-      data: {
-        date: data.date,
-        value: data.value,
-        created_at: new Date(),
-        created_by: data.created_by,
-        description: data.description,
-        expense_type_id: data.expense_type_id,
-        company_id: data.company_id,
-      },
-      select: {
-        id: true,
-        date: true,
-        value: true,
-        created_at: true,
-        user_expense_created_byTouser: {
-          select: {
-            name: true,
+  async create(): Promise<ExpenseModel> {
+    try {
+      const expense = await prisma.expense.create({
+        data: {
+          date: this.date,
+          value: this.value,
+          created_at: new Date(),
+          created_by: this.created_by,
+          description: this.description,
+          expense_type_id: this.expense_type_id,
+          company_id: this.company_id,
+        },
+        select: {
+          id: true,
+          date: true,
+          value: true,
+          created_at: true,
+          user_expense_created_byTouser: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-    });
+      });
+
+      return new ExpenseModel({
+        id: expense.id,
+        date: expense.date,
+        value: Number(expense.value),
+        created_at: expense.created_at,
+        created_by: this.created_by,
+        description: this.description,
+        expense_type_id: this.expense_type_id,
+        company_id: this.company_id,
+        is_delete: false,
+      });
+    } catch (error) {
+      console.error("Error creating expense:", error);
+      throw new Error("Failed to create expense record.");
+    }
+  }
+
+  async update(): Promise<ExpenseModel> {
+    try {
+      const expense = await prisma.expense.update({
+        where: {
+          id: this.id!,
+        },
+        data: {
+          date: this.date,
+          value: this.value,
+          expense_type_id: this.expense_type_id,
+          description: this.description,
+          company_id: this.company_id,
+        },
+        include: {
+          expense_type: {
+            select: {
+              name: true,
+            },
+          },
+          company: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      return new ExpenseModel({
+        id: expense.id,
+        date: expense.date,
+        value: Number(expense.value),
+        created_at: expense.created_at,
+        created_by: this.created_by,
+        description: this.description,
+        expense_type_id: this.expense_type_id,
+        company_id: this.company_id,
+        is_delete: false,
+      });
+    } catch (error) {
+      console.error("Error updating expense:", error);
+      throw new Error("Failed to update expense record.");
+    }
   }
 
   /**

@@ -980,6 +980,7 @@ class PurchaseInvoiceModel {
         include: {
           good_receipt_code: {
             select: {
+              id: true,
               good_receipt: {
                 select: {
                   id: true,

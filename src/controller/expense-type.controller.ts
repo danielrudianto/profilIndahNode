@@ -15,12 +15,16 @@ class ExpenseTypeController {
     const name = req.body.name;
     const description = req.body.description;
     const parent_id = req.body.parent_id;
-    ExpenseTypeModel.create({
+    const userID = req.body.userId;
+
+    new ExpenseTypeModel({
       name: name,
       description: description,
       parent_id: parent_id,
-      created_by: req.body.userId,
+      created_by: userID,
+      created_at: new Date(),
     })
+      .create()
       .then((result) => {
         const socket = new SocketHelper("createExpenseType", result);
         socket.create();
@@ -191,61 +195,32 @@ class ExpenseTypeController {
    * @param req
    * @param res
    */
-  static deleteByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    const userID = req.body.userId;
-    ExpenseTypeModel.fetchByID(id).then((expense) => {
+  static deleteByID = async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userID = req.body.userId;
+
+      const expense = await ExpenseTypeModel.fetchByID(id);
       if (!expense) {
         return res.status(404).send(ErrorList["Not found"]);
       }
 
       if (expense.parent_id == null) {
-        ExpenseTypeModel.fetchByParentID(expense.id)
-          .then((children) => {
-            if (children.length == 0) {
-              ExpenseTypeModel.deleteByID({
-                id: expense.id,
-                deleted_by: userID,
-              })
-                .then((result) => {
-                  const socket = new SocketHelper("deleteExpenseType", result);
-                  socket.create();
-
-                  return res.status(201).send(result);
-                })
-                .catch((error) => {
-                  console.error(
-                    `[error]: Error on deleting expense type ${error}`
-                  );
-                  return res
-                    .status(500)
-                    .send(ErrorList["Internal server error"]);
-                });
-            } else {
-              return res.status(400).send(ErrorList["Expense type has child"]);
-            }
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on fetching children ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      } else {
-        ExpenseTypeModel.deleteByID({
-          id: expense.id,
-          deleted_by: userID,
-        })
-          .then((result) => {
-            const socket = new SocketHelper("deleteExpenseType", result);
-            socket.create();
-
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on deleting expense type ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
+        const children = await ExpenseTypeModel.fetchByParentID(expense.id!);
+        if (children.length > 0) {
+          return res.status(400).send(ErrorList["Expense type has child"]);
+        }
       }
-    });
+
+      const result = await ExpenseTypeModel.deleteByID(expense.id!, userID);
+      const socket = new SocketHelper("deleteExpenseType", result);
+      socket.create();
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting expense type by id ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   /**
@@ -257,23 +232,33 @@ class ExpenseTypeController {
     const name = req.body.name;
     const description = req.body.description;
     const id = req.body.id;
+    const userID = req.body.userId;
 
-    ExpenseTypeModel.updateByID({
-      name: name,
-      description: description,
-      created_by: req.body.userId,
-      id: id,
-    })
-      .then((result) => {
-        const socket = new SocketHelper("updateExpenseType", result);
-        socket.create();
+    ExpenseTypeModel.fetchByID(id).then((result) => {
+      if (!result) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-        return res.status(200).send(result);
+      new ExpenseTypeModel({
+        name: name,
+        description: description,
+        id: id,
+        created_by: userID,
+        created_at: new Date(),
+        parent_id: result.parent_id, // Keep the parent_id unchanged
       })
-      .catch((error) => {
-        console.error(`[error]: Error on updating expense type ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+        .update()
+        .then((result) => {
+          const socket = new SocketHelper("updateExpenseType", result);
+          socket.create();
+
+          return res.status(200).send(result);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on updating expense type ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    });
   };
 }
 

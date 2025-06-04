@@ -4,8 +4,12 @@ import ErrorList from "../../assets/error_list";
 import ErrorHelper from "../../helper/error.helper";
 import CompanyController from "../../controller/company.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
+import { CompanyRepository } from "../../repositories/company.repository";
+import { prisma } from "../../app";
 
 const router = Router();
+
+const companyController = new CompanyController(new CompanyRepository(prisma));
 
 router.post(
   "/",
@@ -13,10 +17,10 @@ router.post(
   body("name").exists().withMessage(ErrorList["Parameter error"]),
   body("address").exists().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  CompanyController.create
+  companyController.create
 );
 
-router.get("/autocomplete", CompanyController.fetchAutocomplete);
+router.get("/autocomplete", companyController.fetchAutocomplete);
 
 router.get(
   "/:id",
@@ -24,17 +28,17 @@ router.get(
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  CompanyController.fetchByID
+  companyController.fetchByID
 );
 
-router.get("/", CompanyController.fetch);
+router.get("/", companyController.fetch);
 
 router.delete(
   "/:id",
   param("id").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  CompanyController.delete
+  companyController.delete
 );
 
 router.put(
@@ -42,7 +46,7 @@ router.put(
   body("name").exists().withMessage(ErrorList["Parameter error"]),
   body("address").exists().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  CompanyController.update
+  companyController.update
 );
 
 export default router;

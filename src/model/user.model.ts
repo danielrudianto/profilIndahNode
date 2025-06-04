@@ -1,33 +1,33 @@
 import { PrismaClient } from "@prisma/client";
+import UserAvatarModel, { IUserAvatar } from "./user-avatar.model";
 
 const prisma = new PrismaClient();
 
-interface IUser {
+export interface IUser {
+  id?: number;
   name: string;
   username: string;
   nik: string;
-  created_by: number;
+  created_by: number | null;
+  created_at?: Date;
+  roleID: number;
+  role?: string;
+  password?: string;
+  user_avatar?: IUserAvatar | null;
+  user_sales?: IUserSales[];
+  is_active: boolean;
+}
+
+interface IUserViewModel {
+  id?: number;
+  name: string;
+  username: string;
   role: number;
+  user_avatar?: IUserAvatar | null;
 }
 
 interface IUserSales {
   item_type_id: number;
-}
-
-interface ICreateUser extends IUser {
-  password: string;
-  user_sales?: IUserSales[];
-}
-
-interface IUpdateUser extends IUser {
-  id: number;
-  password: string | null;
-}
-
-interface IUpdateUserSales extends IUser {
-  id: number;
-  user_sales: IUserSales[];
-  password: string | null;
 }
 
 interface IUserRole {
@@ -36,7 +36,38 @@ interface IUserRole {
   available: boolean;
 }
 
-class UserModel {
+export class UserModel {
+  id?: number;
+  name: string;
+  username: string;
+  nik: string;
+  created_by: number | null;
+  roleID: number;
+  role?: string;
+  password?: string;
+  user_avatar?: IUserAvatar | null;
+  user_sales?: IUserSales[];
+  updated_by?: number;
+  updated_at?: Date;
+  deleted_at?: Date | null;
+  deleted_by?: number | null;
+  is_active?: boolean;
+  created_at?: Date;
+
+  constructor(data: IUser) {
+    this.name = data.name;
+    this.username = data.username;
+    this.nik = data.nik;
+    this.created_by = data.created_by;
+    this.roleID = data.roleID;
+    this.role = data.role;
+    this.password = data.password;
+    this.user_avatar = data.user_avatar || null;
+    this.user_sales = data.user_sales || [];
+    this.is_active = data.is_active;
+    this.created_at = data.created_at == null ? new Date() : data.created_at;
+  }
+
   static roles: IUserRole[] = [
     {
       id: 1,
@@ -75,229 +106,22 @@ class UserModel {
     },
   ];
 
-  /**
-   * Create a new user
-   * @param data
-   * @returns User
-   */
-  static create(data: ICreateUser) {
-    if (data.user_sales == undefined) {
-      return prisma.user.create({
-        data: {
-          name: data.name,
-          username: data.username,
-          password: data.password,
-          nik: data.nik,
-          created_by: data.created_by,
-          role: data.role,
-          pinned_menus: "[]",
-        },
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          nik: true,
-          user: {
-            select: {
-              name: true,
-            },
-          },
-          user_sales: {
-            select: {
-              item_type: {
-                select: {
-                  name: true,
-                },
-              },
-            },
-          },
-        },
-      });
-    } else {
-      return prisma.user.create({
-        data: {
-          name: data.name,
-          username: data.username,
-          password: data.password,
-          nik: data.nik,
-          created_by: data.created_by,
-          role: data.role,
-          pinned_menus: "[]",
-          user_sales: {
-            createMany: {
-              data: data.user_sales!.map((x) => {
-                return {
-                  item_type_id: x.item_type_id,
-                };
-              }),
-            },
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          username: true,
-          nik: true,
-          user: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      });
-    }
-  }
-
-  /**
-   * Fetch role
-   * @param roleID
-   * @returns IUserRole | null
-   */
   static fetchRole(roleID: number): IUserRole | null {
     return this.roles.filter((x) => x.id == roleID)[0] || null;
   }
 
-  /**
-   * Check if user with certain credential exists
-   * @param username
-   * @param nik
-   * @returns boolean
-   */
-  static async checkByCredential(username: string, nik: string) {
-    return (
-      (await prisma.user.count({
-        where: {
-          OR: [
-            {
-              username: username,
-            },
-            {
-              nik: nik,
-            },
-          ],
-        },
-      })) == 0
-    );
-  }
-
-  static fetch(keyword: string, offset: number, limit: number) {
-    if (keyword == "") {
-      return prisma.$transaction([
-        prisma.user.findMany({
-          where: {
-            is_active: true,
-          },
-          orderBy: {
-            name: "asc",
-          },
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            role: true,
-            nik: true,
-          },
-          take: limit,
-          skip: offset,
-        }),
-        prisma.user.count({
-          where: {
-            is_active: true,
-          },
-        }),
-      ]);
-    } else {
-      return prisma.$transaction([
-        prisma.user.findMany({
-          where: {
-            is_active: true,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                username: {
-                  contains: keyword,
-                },
-              },
-              {
-                nik: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-          orderBy: {
-            name: "asc",
-          },
-          select: {
-            id: true,
-            name: true,
-            username: true,
-            role: true,
-            nik: true,
-          },
-          take: limit,
-          skip: offset,
-        }),
-        prisma.user.count({
-          where: {
-            is_active: true,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                username: {
-                  contains: keyword,
-                },
-              },
-              {
-                nik: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-        }),
-      ]);
-    }
-  }
-
-  /**
-   * Fetch user by ID
-   * @param id
-   * @returns
-   */
-  static fetchByID(id: number) {
-    return prisma.user.findUnique({
+  static async check(username: string, nik: string): Promise<boolean> {
+    const matchingUserCount = await prisma.user.count({
       where: {
-        id: id,
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        nik: true,
-        role: true,
-        user_sales: {
-          select: {
-            item_type: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
-          },
-        },
-        is_active: true,
+        OR: [{ username: username }, { nik: nik }],
       },
     });
+
+    // Return true if no matching users are found, otherwise false
+    return matchingUserCount === 0;
   }
+
+  static fetch(keyword: string, offset: number, limit: number) {}
 
   static fetchByUsername(username: string) {
     return prisma.user.findUnique({
@@ -315,62 +139,44 @@ class UserModel {
     });
   }
 
-  static update(data: IUpdateUserSales) {
-    return data.password == null
-      ? prisma.user.update({
-          where: {
-            id: data.id,
-          },
-          data: {
-            name: data.name,
-            updated_by: data.created_by,
-            updated_at: new Date(),
-            role: data.role,
-            user_sales: {
-              deleteMany: {},
-              createMany: {
-                data: data.user_sales.map((x) => {
-                  return {
-                    item_type_id: x.item_type_id,
-                  };
-                }),
-              },
-            },
-          },
-        })
-      : prisma.user.update({
-          where: {
-            id: data.id,
-          },
-          data: {
-            name: data.name,
-            updated_by: data.created_by,
-            updated_at: new Date(),
-            password: data.password,
-            role: data.role,
-            user_sales: {
-              deleteMany: {},
-              createMany: {
-                data: data.user_sales.map((x) => {
-                  return {
-                    item_type_id: x.item_type_id,
-                  };
-                }),
-              },
-            },
-          },
-        });
-  }
+  update() {
+    const userData: any = {
+      name: this.name,
+      updated_by: this.created_by,
+      updated_at: new Date(),
+      role: this.roleID,
+      user_sales: {
+        deleteMany: {},
+        createMany: {
+          data: this.user_sales!.map((x) => ({
+            item_type_id: x.item_type_id,
+          })),
+        },
+      },
+    };
 
-  static delete(user_id: number, status: boolean, created_by: number) {
+    // Add password field only if it exists
+    if (this.password) {
+      userData.password = this.password;
+    }
+
     return prisma.user.update({
       where: {
-        id: user_id,
+        id: this.id!,
+      },
+      data: userData,
+    });
+  }
+
+  delete() {
+    return prisma.user.update({
+      where: {
+        id: this.id!,
       },
       data: {
-        is_active: status,
+        is_active: false,
         deleted_at: new Date(),
-        deleted_by: created_by,
+        deleted_by: this.created_by,
       },
       select: {
         id: true,
@@ -399,4 +205,32 @@ class UserModel {
   }
 }
 
-export default UserModel;
+export class UserViewModel {
+  id?: number;
+  name: string;
+  username: string;
+  role: number;
+  user_avatar?: IUserAvatar | null;
+
+  constructor(data: IUserViewModel) {
+    this.id = data.id;
+    this.name = data.name;
+    this.username = data.username;
+    this.role = data.role;
+    this.user_avatar = data.user_avatar || null;
+  }
+
+  static fromMap(data: any) {
+    // if user_avatar is not null, convert it to IUserAvatar
+    if (data.user_avatar) {
+      data.user_avatar = UserAvatarModel.fromMap(data.user_avatar);
+    }
+    return new UserViewModel({
+      id: data.id,
+      name: data.name,
+      username: data.username,
+      role: data.role,
+      user_avatar: data.user_avatar || null,
+    });
+  }
+}

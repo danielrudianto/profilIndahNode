@@ -3,17 +3,24 @@ import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
-import AdjustmentCaseModel from "../model/adjustment-case.model";
-import { StockInInterface } from "../interface/stock-in.interface";
+import AdjustmentCaseModel, {
+  IAdjustmentCaseApprovalStatus,
+} from "../model/adjustment-case.model";
+import { IStockInFetchMethod, StockInModel } from "../model/stock-in.model";
+import {
+  IStockOutDelete,
+  IStockOutFetch,
+  StockOutModel,
+} from "../model/stock-out.model";
 
 class AdjustmentCaseController {
-  /**
-   * Create new adjustment case
-   * Adjustment case is a list of item that will be added or removed from stock
-   * @param req
-   * @param res
-   */
   static create = (req: Request, res: Response) => {
+    /**
+     * Create new adjustment case
+     * Adjustment case is a list of item that will be added or removed from stock
+     * @param req
+     * @param res
+     */
     const name = this.generateName(new Date(req.body.date));
     const companyID = req.body.company_id;
     const userID = req.body.userId;
@@ -25,7 +32,7 @@ class AdjustmentCaseController {
       return res.status(400).send(ErrorList["Parameter error"]);
     } else {
       // Insert adjustment case code
-      AdjustmentCaseModel.create({
+      new AdjustmentCaseModel({
         name: name,
         date: new Date(req.body.date),
         created_by: userID,
@@ -38,6 +45,7 @@ class AdjustmentCaseController {
           };
         }),
       })
+        .create()
         .then(async (result) => {
           if (!result) {
             return res.status(500).send(ErrorList["Internal server error"]);
@@ -52,120 +60,88 @@ class AdjustmentCaseController {
     }
   };
 
-  static approve = (req: Request, res: Response) => {
-    const userID = req.body.userId;
-    const id = Number(req.params.id);
+  static approve = async (req: Request, res: Response) => {
+    try {
+      const userID = req.body.userId;
+      const id = Number(req.params.id);
 
-    AdjustmentCaseModel.fetchByID(id)
-      .then((adjustmentCase) => {
-        if (!adjustmentCase) {
-          return res.status(404).send(ErrorList["Not found"]);
-        } else if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
-          return res.status(404).send(ErrorList["Not found"]);
-        } else {
-          AdjustmentCaseModel.approveByID(id, userID)
-            .then(async (result) => {
-              const queueBody: StockInInterface[] = [];
+      const adjustmentCase = await AdjustmentCaseModel.fetchByID(id);
+      if (!adjustmentCase) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-              // Start inserting using queue
-              for (let i = 0; i < result.adjustment_case.length; i++) {
-                if (Number(result.adjustment_case[i].quantity) > 0) {
-                  // Added item
-                  const stockIn: StockInInterface = {
-                    itemID: result.adjustment_case[i].item.id,
-                    createdAt: result.created_at,
-                    date: result.date,
-                    document: result.name,
-                    opponent: "Internal",
-                    displayQuantity: Number(
-                      result.adjustment_case[i].quantity.toString()
-                    ),
-                    unit:
-                      result.adjustment_case[i].item_unit == null
-                        ? result.adjustment_case[i].item.unit
-                        : result.adjustment_case[i].item_unit!.unit,
-                    quantity:
-                      Number(result.adjustment_case[i].quantity) *
-                      (result.adjustment_case[i].item_unit == null
-                        ? 1
-                        : Number(
-                            result.adjustment_case[i].item_unit?.conversion
-                          )),
-                    billID: null,
-                    billCodeID: null,
-                    adjustmentCaseID: result.adjustment_case[i].id,
-                    adjustmentCaseCodeID: result.id,
-                    goodReceiptID: null,
-                    goodReceiptCodeID: null,
-                    salesReturnID: null,
-                    salesReturnCodeID: null,
-                    customerID: null,
-                    supplierID: null,
-                    companyID: result.company_id,
-                    price: 0,
-                  };
+      if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-                  queueBody.push(stockIn);
+      const result = await AdjustmentCaseModel.confirm(
+        id,
+        userID,
+        IAdjustmentCaseApprovalStatus.APPROVED
+      );
 
-                  await queue.add("insert-stock-in", stockIn);
-                } else {
-                  // Removed item
-                  const stockIn: StockInInterface = {
-                    itemID: result.adjustment_case[i].item.id,
-                    createdAt: result.created_at,
-                    date: result.date,
-                    document: result.name,
-                    opponent: "Internal",
-                    displayQuantity: Number(result.adjustment_case[i].quantity),
-                    unit:
-                      result.adjustment_case[i].item_unit == null
-                        ? result.adjustment_case[i].item.unit
-                        : result.adjustment_case[i].item_unit!.unit,
-                    quantity:
-                      Number(result.adjustment_case[i].quantity) *
-                      (result.adjustment_case[i].item_unit == null
-                        ? 1
-                        : Number(
-                            result.adjustment_case[i].item_unit!.conversion
-                          )),
-                    billID: null,
-                    billCodeID: null,
-                    adjustmentCaseID: result.adjustment_case[i].id,
-                    adjustmentCaseCodeID: result.id,
-                    goodReceiptID: null,
-                    goodReceiptCodeID: null,
-                    salesReturnID: null,
-                    salesReturnCodeID: null,
-                    customerID: null,
-                    supplierID: null,
-                    companyID: result.company_id,
-                    price: 0,
-                  };
-
-                  await queue.add("insert-stock-out", stockIn);
-                }
-              }
-
-              return res.status(201).send(adjustmentCase);
+      Promise.all([
+        StockInModel.createMany(
+          result.adjustment_case
+            .filter((x) => Number(x.quantity) > 0)
+            .map((x) => {
+              return {
+                item_id: x.item.id,
+                date: result.date,
+                company_id: result.company_id!,
+                quantity:
+                  Number(x.quantity) *
+                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
+                price: 0,
+                good_receipt_code_id: null,
+                good_receipt_id: null,
+                adjustment_case_code_id: result.id,
+                adjustment_case_id: x.id,
+              };
             })
-            .catch((error) => {
-              console.error(
-                `[error]: Error on approve adjustment case: ${error}`
-              );
-              return res.status(500).send(ErrorList["Internal server error"]);
-            });
-        }
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetch adjustment case: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+        ),
+        StockOutModel.createMany(
+          result.adjustment_case
+            .filter((x) => Number(x.quantity) < 0)
+            .map((x) => {
+              return {
+                date: result.date,
+                item_id: x.item.id,
+                quantity:
+                  Number(x.quantity) *
+                  -1 *
+                  Number(x.item_unit == null ? 1 : x.item_unit.conversion),
+                bill_id: null,
+                bill_code_id: null,
+                adjustment_case_id: x.id,
+                adjustment_case_code_id: result.id,
+                stock_in_id: null,
+                price: 0,
+              };
+            })
+        ),
+      ])
+        .then(() => {
+          return res.status(201).send(adjustmentCase);
+        })
+        .catch((error) => {
+          console.error(`[error]: Error on create stock in/out: ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        });
+    } catch (error) {
+      console.error(`[error]: Error on fetch adjustment case: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   static disapprove = (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const userID = req.body.userId;
-    AdjustmentCaseModel.disapproveByID(id, userID)
+    AdjustmentCaseModel.confirm(
+      id,
+      userID,
+      IAdjustmentCaseApprovalStatus.DISAPPROVED
+    )
       .then((result) => {
         return res.status(201).send(result);
       })
@@ -175,13 +151,13 @@ class AdjustmentCaseController {
       });
   };
 
-  /**
-   * Generate adjustment case name
-   * Generating name of adjustment case code based on date
-   * @param date
-   * @returns string
-   */
   static generateName = (date: Date) => {
+    /**
+     * Generate adjustment case name
+     * Generating name of adjustment case code based on date
+     * @param date
+     * @returns string
+     */
     return `ADJ-${date.getFullYear()}-${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}${Math.floor(
@@ -193,12 +169,6 @@ class AdjustmentCaseController {
     )}${Math.floor(Math.random() * 10)}`;
   };
 
-  /**
-   * Fetch all adjustment case
-   * Fetch all adjustment case code
-   * @param req
-   * @param res
-   */
   static fetch = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     AdjustmentCaseModel.fetchByID(id)
@@ -248,13 +218,6 @@ class AdjustmentCaseController {
         return res.status(500).send(ErrorList["Internal server error"]);
       });
   };
-
-  /**
-   * Fetch archive adjustment case
-   * Fetch all adjustment case code that has been archived
-   * @param req
-   * @param res
-   */
 
   static fetchArchives = (req: Request, res: Response) => {
     const year = req.body.year;
@@ -332,13 +295,6 @@ class AdjustmentCaseController {
     }
   };
 
-  /**
-   * Fetch archive adjustment case
-   * Fetch all adjustment case code that has been archived
-   * @param req
-   * @param res
-   */
-
   static fetchArchivesV2 = (req: Request, res: Response) => {
     const year = req.body.year;
     const month = req.body.month;
@@ -407,12 +363,6 @@ class AdjustmentCaseController {
     }
   };
 
-  /**
-   * Fetch adjustment case by id
-   * Fetch adjustment case code by id
-   * @param req
-   * @param res
-   */
   static fetchCodeByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id.toString());
     AdjustmentCaseModel.fetchByID(id)
@@ -429,12 +379,6 @@ class AdjustmentCaseController {
       });
   };
 
-  /**
-   * Delete adjustment case
-   * Delete adjustment case code by id
-   * @param req
-   * @param res
-   */
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     AdjustmentCaseModel.fetchByID(id).then((adjustmentCase) => {
@@ -444,12 +388,85 @@ class AdjustmentCaseController {
 
       AdjustmentCaseModel.deleteByID(id)
         .then(async (result) => {
-          if (!result) {
-            return res.status(404).send(ErrorList["Not found"]);
-          }
-
           const socket = new SocketHelper("deleteAdjustmentCase", result);
           socket.create();
+
+          // If all the item quantity > 0
+          if (
+            adjustmentCase.adjustment_case.every((x) => Number(x.quantity) >= 0)
+          ) {
+            // Get the stockIn IDs
+            StockInModel.fetch(
+              IStockInFetchMethod.BY_ADJUSTMENT_CASE_CODE_ID,
+              id
+            )
+              .then(async (stockIns) => {
+                await StockOutModel.delete(
+                  IStockOutDelete.BY_STOCK_IN_IDS,
+                  stockIns.map((x) => x.id)
+                );
+                await StockInModel.deleteMany(stockIns.map((x) => x.id));
+
+                return res.status(200).send(result);
+              })
+              .catch((error) => {
+                console.error(
+                  `[error]: Error on fetching stock in by good receipt code ID: ${error}`
+                );
+                return res.status(500).send(ErrorList["Internal server error"]);
+              });
+          } else if (
+            adjustmentCase.adjustment_case.every((x) => Number(x.quantity) < 0)
+          ) {
+            // only delete the stock out
+            const stockOuts = await StockOutModel.fetch(
+              IStockOutFetch.BY_REFERENCE,
+              adjustmentCase.adjustment_case.map((x) => {
+                return {
+                  adjustment_case_code_id: adjustmentCase.id,
+                  adjustment_case_id: x.id,
+                  bill_id: null,
+                  bill_code_id: null,
+                };
+              })
+            );
+
+            await StockInModel.rollBack(
+              stockOuts
+                .filter((x) => x.stock_in_id != null)
+                .map((x) => {
+                  return {
+                    id: x.stock_in_id!,
+                    quantity: Number(x.quantity),
+                  };
+                })
+            );
+
+            await StockOutModel.delete(
+              IStockOutDelete.BY_REFERENCE_IDS,
+              adjustmentCase.adjustment_case.map((x) => {
+                return {
+                  adjustment_case_code_id: adjustmentCase.id,
+                  adjustment_case_id: x.id,
+                  bill_id: null,
+                  bill_code_id: null,
+                };
+              })
+            );
+
+            return res.status(200).send(result);
+          }
+
+          StockInModel.deleteByReferenceIDs(
+            adjustmentCase.adjustment_case.map((x) => {
+              return {
+                adjustment_event_code_id: adjustmentCase.id!,
+                adjustment_event_id: x.id!,
+                good_receipt_code_id: null,
+                good_receipt_id: null,
+              };
+            })
+          ).then(() => {});
 
           for (let i = 0; i < adjustmentCase.adjustment_case.length; i++) {
             const quantity = Number(adjustmentCase.adjustment_case[i].quantity);
@@ -481,7 +498,6 @@ class AdjustmentCaseController {
               });
             }
           }
-          return res.status(200).send(result);
         })
         .catch((error) => {
           console.error(`[error]: Error on deleting adjustment case: ${error}`);

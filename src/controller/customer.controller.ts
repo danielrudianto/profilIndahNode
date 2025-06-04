@@ -7,64 +7,52 @@ import { fetchMode } from "../interface/fetch.interface";
 import CustomerModel from "../model/customer.model";
 
 class CustomerController {
-  /**
-   * Create new customer
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
-    const name = req.body.name;
-    const address = req.body.address;
-    const pic = req.body.pic;
-    const phone_number = req.body.phone_number;
-    const npwp =
-      req.body.npwp == null
-        ? null
-        : req.body.npwp.toString().length == 15 ||
-          req.body.npwp.toString().length == 16
-        ? req.body.npwp
-        : null;
+  static create = async (req: Request, res: Response) => {
+    try {
+      const name = req.body.name;
+      const address = req.body.address;
+      const pic = req.body.pic;
+      const phone_number = req.body.phone_number;
+      const npwp =
+        req.body.npwp == null
+          ? null
+          : req.body.npwp.toString().length == 15 ||
+            req.body.npwp.toString().length == 16
+          ? req.body.npwp
+          : null;
+      const userID = req.body.userId;
 
-    CustomerModel.create({
-      name: name,
-      address: address,
-      npwp: npwp,
-      pic: pic,
-      phone_number: phone_number,
-      created_by: req.body.userId,
-    })
-      .then(async (result) => {
-        await meili.index("customer").addDocuments([result]);
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on creating customer: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+      const result = await new CustomerModel({
+        name: name,
+        address: address,
+        npwp: npwp,
+        pic: pic,
+        phone_number: phone_number,
+        created_by: userID,
+      }).create();
+      await meili.index("customer").addDocuments([result]);
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on creating customer: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Fetch customer by id
-   * @param req
-   * @param res
-   */
-  static fetchByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    CustomerModel.fetchByID(id)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching customer data: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+  static fetchByID = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const customer = await CustomerModel.fetchByID(id);
+      if (!customer) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      return res.status(200).send(customer);
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer by ID: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Fetch customers with pagination
-   * @param req
-   * @param res
-   */
   static fetch = (req: Request, res: Response) => {
     const page: number = !req.query.page
       ? 1
@@ -154,40 +142,42 @@ class CustomerController {
    * @param req
    * @param res
    */
-  static update = (req: Request, res: Response) => {
-    const id = req.body.id;
-    const name = req.body.name;
-    const address = req.body.address;
-    const npwp =
-      req.body.npwp == null
-        ? null
-        : req.body.npwp.toString().length == 15 ||
-          req.body.npwp.toString().length == 16
-        ? req.body.npwp
-        : null;
-    const pic = req.body.pic;
-    const phone_number = req.body.phone_number;
+  static update = async (req: Request, res: Response) => {
+    try {
+      const id = req.body.id;
+      const name = req.body.name;
+      const address = req.body.address;
+      const npwp =
+        req.body.npwp == null
+          ? null
+          : req.body.npwp.toString().length == 15 ||
+            req.body.npwp.toString().length == 16
+          ? req.body.npwp
+          : null;
+      const pic = req.body.pic;
+      const phone_number = req.body.phone_number;
 
-    CustomerModel.update({
-      name: name,
-      address: address,
-      npwp: npwp,
-      pic: pic,
-      phone_number: phone_number,
-      created_by: req.body.userId,
-      id: id,
-    })
-      .then(async (result) => {
-        await meili.index("customer").updateDocuments([result]);
-        const socket = new SocketHelper("updateCustomer", result);
-        socket.create();
+      const customer = await CustomerModel.fetchByID(id);
+      if (!customer || customer.is_delete == true) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on update customer: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+      customer.name = name;
+      customer.address = address;
+      customer.npwp = npwp;
+      customer.pic = pic;
+      customer.phone_number = phone_number;
+      customer.updated_by = req.body.userId;
+      customer.updated_at = new Date();
+
+      await customer.update();
+      await meili.index("customer").updateDocuments([customer]);
+      const socket = new SocketHelper("updateCustomer", customer);
+      socket.create();
+    } catch (error) {
+      console.error(`[error]: Error on updating customer: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   /**

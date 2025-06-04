@@ -30,7 +30,7 @@ class ExpenseController {
         return res.status(404).send(ErrorList["Expense type not found"]);
       }
 
-      ExpenseModel.create({
+      new ExpenseModel({
         value: value,
         description: description,
         date: date,
@@ -38,6 +38,7 @@ class ExpenseController {
         company_id: company_id,
         created_by: userID,
       })
+        .create()
         .then((result) => {
           const socket = new SocketHelper("createExpense", result);
           socket.create();
@@ -92,7 +93,7 @@ class ExpenseController {
     const company_id = req.body.company_id;
     const userID = req.body.userId;
 
-    ExpenseModel.updateByID({
+    new ExpenseModel({
       id: id,
       value: value,
       description: description,
@@ -100,7 +101,9 @@ class ExpenseController {
       expense_type_id: type_id,
       company_id: company_id,
       created_by: userID,
+      created_at: new Date(),
     })
+      .update()
       .then((result) => {
         const socket = new SocketHelper("updateExpense", result);
         socket.create();

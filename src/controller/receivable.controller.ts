@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import BillCodeModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
-import BillPaymentModel from "../model/bill_payment.model";
+import { BillPaymentModel } from "../model/bill_payment.model";
 import ErrorList from "../assets/error_list";
 
 class ReceivableController {
@@ -95,26 +95,29 @@ class ReceivableController {
   };
 
   static createPayment = async (req: Request, res: Response) => {
-    const payment_method_id = req.body.payment_method_id;
-    const full_payment = req.body.full_payment;
-    const sales_invoice_id = req.body.sales_invoice_id;
-    const date = new Date(req.body.date);
+    // Helper function to validate sales invoice
+    const validateSalesInvoice = (
+      salesInvoice: any,
+      res: Response
+    ): boolean => {
+      if (!salesInvoice) {
+        res.status(404).send({ message: "Sales invoice not found" });
+        return false;
+      }
+      if (salesInvoice.is_delete) {
+        res.status(400).send({ message: "Sales invoice is already deleted" });
+        return false;
+      }
+      if (salesInvoice.is_paid) {
+        res.status(400).send({ message: "Sales invoice is already paid" });
+        return false;
+      }
+      return true;
+    };
 
-    const salesInvoice = await BillCodeModel.fetchByID(sales_invoice_id);
-    if (!salesInvoice) {
-      return res.status(404).send({
-        message: "Sales invoice not found",
-      });
-    } else if (salesInvoice.is_delete) {
-      return res.status(400).send({
-        message: "Sales invoice is already deleted",
-      });
-    } else if (salesInvoice.is_paid) {
-      return res.status(400).send({
-        message: "Sales invoice is already paid",
-      });
-    } else {
-      const totalInvoice = salesInvoice.bill.reduce((a, b) => {
+    // Helper function to calculate invoice values
+    const calculateInvoiceValues = (salesInvoice: any) => {
+      const totalInvoice = salesInvoice.bill.reduce((a: any, b: any) => {
         return (a +=
           Number(b.quantity) * (Number(b.price) - Number(b.discount)));
       }, 0);
@@ -125,88 +128,105 @@ class ReceivableController {
         Number(salesInvoice.delivery) +
         Number(salesInvoice.service);
 
-      const totalPayment = salesInvoice.bill_payment.reduce((a, b) => {
-        return (a += Number(b.value));
-      }, 0);
+      const totalPayment = salesInvoice.bill_payment.reduce(
+        (a: any, b: any) => {
+          return (a += Number(b.value));
+        },
+        0
+      );
 
-      if (full_payment == true) {
-        const payment = {
+      return { totalInvoiceValue, totalPayment };
+    };
+
+    // Helper function to create payment
+    const createPaymentRecord = async (
+      sales_invoice_id: number,
+      payment_method_id: number | null,
+      value: number,
+      date: Date,
+      is_paid: boolean,
+      res: Response
+    ) => {
+      try {
+        const result = await new BillPaymentModel({
           bill_code_id: sales_invoice_id,
-          payment_method_id: payment_method_id == 0 ? null : payment_method_id,
-          value: totalInvoiceValue - totalPayment,
+          payment_method_id: payment_method_id,
+          value: value,
           date: date,
-          is_paid: true,
-        };
+          is_paid: is_paid,
+        }).create();
 
-        BillPaymentModel.create(payment)
-          .then(([result, _]) => {
-            this.receivable -= totalInvoiceValue - totalPayment;
-            return res.status(200).send(result);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on creating payment ${error}`);
-            return res.status(500).send(error);
-          });
-      } else {
-        const value = req.body.amount;
-        if (value > totalInvoiceValue - totalPayment) {
-          return res.status(400).send({
-            message:
-              "Payment amount is greater than the remaining invoice value",
-          });
-        } else if (value + totalPayment < totalInvoiceValue) {
-          const payment = {
-            bill_code_id: sales_invoice_id,
-            payment_method_id:
-              payment_method_id == 0 ? null : payment_method_id,
-            value: value,
-            date: date,
-            is_paid: false,
-          };
-
-          BillPaymentModel.create(payment)
-            .then(([result, _]) => {
-              this.receivable -= value;
-              return res.status(200).send(result);
-            })
-            .catch((error) => {
-              console.error(`[error]: Error on creating payment ${error}`);
-              return res.status(500).send(error);
-            });
-        } else if (value + totalPayment == totalInvoiceValue) {
-          const payment = {
-            bill_code_id: sales_invoice_id,
-            payment_method_id:
-              payment_method_id == 0 ? null : payment_method_id,
-            value: value,
-            date: date,
-            is_paid: true,
-          };
-
-          BillPaymentModel.create(payment)
-            .then(([result, _]) => {
-              this.receivable -= value;
-              return res.status(200).send(result);
-            })
-            .catch((error) => {
-              console.error(`[error]: Error on creating payment ${error}`);
-              return res.status(500).send(error);
-            });
-        }
+        return res.status(200).send(result);
+      } catch (error) {
+        console.error(`[error]: Error on creating payment ${error}`);
+        return res
+          .status(500)
+          .send({ message: "Error creating payment", error });
       }
+    };
+
+    const { payment_method_id, full_payment, sales_invoice_id, date, amount } =
+      req.body;
+
+    const salesInvoice = await BillCodeModel.fetchByID(sales_invoice_id);
+
+    // Validate sales invoice
+    if (!validateSalesInvoice(salesInvoice, res)) return;
+
+    // Calculate invoice values
+    const { totalInvoiceValue, totalPayment } =
+      calculateInvoiceValues(salesInvoice);
+
+    const remainingValue = totalInvoiceValue - totalPayment;
+
+    // Handle full payment
+    if (full_payment) {
+      return createPaymentRecord(
+        sales_invoice_id,
+        payment_method_id == 0 ? null : payment_method_id,
+        remainingValue,
+        new Date(date),
+        true,
+        res
+      );
     }
+
+    // Handle partial payment
+    if (amount > remainingValue) {
+      return res.status(400).send({
+        message: "Payment amount is greater than the remaining invoice value",
+      });
+    }
+
+    const isPaid = amount + totalPayment === totalInvoiceValue;
+
+    return createPaymentRecord(
+      sales_invoice_id,
+      payment_method_id == 0 ? null : payment_method_id,
+      amount,
+      new Date(date),
+      isPaid,
+      res
+    );
   };
 
-  static deletePayment = (req: Request, res: Response) => {
+  static deletePayment = async (req: Request, res: Response) => {
     const id = req.params.id;
-    BillPaymentModel.deleteByID(Number(id))
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on delete payment ${error}`);
-        return res.status(500).send(error);
-      });
+    if (!id || isNaN(Number(id))) {
+      return res.status(400).send({ message: "Invalid payment ID" });
+    }
+    try {
+      const billPayment = await BillPaymentModel.fetchByID(Number(id));
+      if (!billPayment) {
+        return res.status(404).send({ message: "Payment not found" });
+      }
+
+      const deleteResult = await billPayment.delete();
+      return res.status(200).send(deleteResult);
+    } catch (error) {
+      console.error(`[error]: Error fetching payment by ID ${id}: ${error}`);
+      return res.status(500).send({ message: "Internal server error" });
+    }
   };
 
   static checkReceivable = () => {

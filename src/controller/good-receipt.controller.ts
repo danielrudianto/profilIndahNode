@@ -5,6 +5,7 @@ import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import { StockInInterface } from "../interface/stock-in.interface";
+import { StockInModel } from "../model/stock-in.model";
 
 class GoodReceiptController {
   /**
@@ -54,43 +55,30 @@ class GoodReceiptController {
         }),
       })
         .then(async (goodReceiptResult) => {
-          Promise.all(
+          StockInModel.createMany(
             goodReceiptResult.good_receipt.map((x) => {
-              const stockIn: StockInInterface = {
-                itemID: x.item.id,
-                createdAt: goodReceiptResult.created_at,
+              return {
                 date: goodReceiptResult.date,
-                document: goodReceiptResult.name,
-                opponent: goodReceiptResult.supplier.name,
-                displayQuantity: Number(x.quantity),
-                unit: x.item_unit == null ? x.item.unit : x.item_unit.unit,
+                company_id: goodReceiptResult.company_id,
+                good_receipt_code_id: goodReceiptResult.id,
+                adjustment_case_code_id: null,
+                adjustment_case_id: null,
+                good_receipt_id: x.id,
+                price: Number(x.price) - Number(x.discount),
                 quantity:
                   Number(x.quantity) *
-                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
-                billID: null,
-                billCodeID: null,
-                adjustmentCaseID: null,
-                adjustmentCaseCodeID: null,
-                goodReceiptID: x.id,
-                goodReceiptCodeID: goodReceiptResult.id,
-                salesReturnID: null,
-                salesReturnCodeID: null,
-                customerID: null,
-                supplierID: goodReceiptResult.supplier_id,
-                companyID: goodReceiptResult.company_id,
-                price:
-                  (Number(x.price) - Number(x.discount)) /
-                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
+                  Number(x.item_unit == null ? 1 : x.item_unit.conversion),
+                item_id: x.item.id,
               };
-
-              return queue.add("insert-stock-in", stockIn);
             })
           )
             .then(() => {
               return res.status(201).send(goodReceiptResult);
             })
             .catch((error) => {
-              console.error(`[error]: Error on creating good receipt ${error}`);
+              console.error(
+                `[error]: Error on inserting good receipt stock in ${error}`
+              );
               return res.status(500).send(ErrorList["Internal server error"]);
             });
         })

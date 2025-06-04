@@ -16,10 +16,9 @@ router.post(
 
 router.put(
   "/",
-  body("id").not().isEmpty().withMessage(ErrorList["Parameter error"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("pic").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   CustomerController.update
 );

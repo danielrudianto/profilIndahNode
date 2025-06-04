@@ -3,10 +3,16 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import SupplierController from "../../controller/supplier.controller";
 import ErrorHelper from "../../helper/error.helper";
+import { SupplierRepository } from "../../repositories/supplier.repository";
+import { prisma } from "../../app";
 
 const router = Router();
 
-router.get("/autocomplete", SupplierController.fetchAutocomplete);
+const supplierController = new SupplierController(
+  new SupplierRepository(prisma)
+);
+
+router.get("/autocomplete", supplierController.fetchAutocomplete);
 router.get(
   "/:id",
   param("id")
@@ -15,16 +21,16 @@ router.get(
     })
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SupplierController.fetchByID
+  supplierController.fetchByID
 );
-router.get("/", SupplierController.fetch);
+router.get("/", supplierController.fetch);
 
 router.post(
   "/",
   body("name").not().isEmpty().withMessage(ErrorList["Name required"]),
   body("address").not().isEmpty().withMessage(ErrorList["Address required"]),
   ErrorHelper.intercept,
-  SupplierController.create
+  supplierController.create
 );
 router.put(
   "/",
@@ -32,7 +38,7 @@ router.put(
   body("name").not().isEmpty().withMessage(ErrorList["Name required"]),
   body("address").not().isEmpty().withMessage(ErrorList["Address required"]),
   ErrorHelper.intercept,
-  SupplierController.updateByID
+  supplierController.update
 );
 
 router.delete(
@@ -40,7 +46,7 @@ router.delete(
   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
   param("id").isInt().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SupplierController.deleteByID
+  supplierController.delete
 );
 
 export default router;

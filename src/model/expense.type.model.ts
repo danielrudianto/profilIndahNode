@@ -9,49 +9,86 @@ export interface IExpenseType {
   description: string;
   created_by: number;
   created_at?: Date;
-  parent_id?: number;
+  parent_id: number | null;
   is_delete?: boolean;
-  deleted_by?: number;
-  deleted_at?: Date;
-}
-
-interface IDeleteExpenseType {
-  id: number;
-  deleted_by: number;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+  can_delete?: boolean;
 }
 
 class ExpenseTypeModel {
-  /**
-   * Create new expense type
-   * @param data
-   * @returns Promise<IExpenseType>
-   */
-  static create(data: IExpenseType) {
-    return prisma.expense_type.create({
+  id?: number;
+  name: string;
+  description: string;
+  created_by: number;
+  created_at?: Date;
+  parent_id: number | null;
+  is_delete?: boolean;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+  can_delete?: boolean = false;
+  parent?: ExpenseTypeModel | null;
+
+  constructor(data: IExpenseType) {
+    this.id = data.id;
+    this.name = data.name;
+    this.description = data.description;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at || new Date();
+    this.parent_id = data.parent_id;
+    this.is_delete = data.is_delete || false;
+    this.deleted_by = data.deleted_by;
+    this.deleted_at = data.deleted_at;
+    this.can_delete = data.can_delete;
+  }
+
+  async create(): Promise<ExpenseTypeModel> {
+    var result = await prisma.expense_type.create({
       data: {
-        name: data.name,
-        description: data.description,
-        created_by: data.created_by,
-        created_at: data.created_at,
-        parent_id: data.parent_id,
+        name: this.name,
+        description: this.description,
+        created_by: this.created_by,
+        created_at: this.created_at || new Date(),
+        parent_id: this.parent_id,
       },
+    });
+
+    return new ExpenseTypeModel({
+      id: result.id,
+      name: result.name,
+      description: result.description,
+      created_by: result.created_by,
+      created_at: result.created_at,
+      parent_id: result.parent_id,
+      is_delete: result.is_delete,
+      deleted_by: result.deleted_by,
+      deleted_at: result.deleted_at,
+      can_delete: this.can_delete,
     });
   }
 
-  /**
-   * Update expense type by ID
-   * @param data
-   * @returns Promise<IExpenseType>
-   */
-  static updateByID(data: IExpenseType) {
-    return prisma.expense_type.update({
+  async update(): Promise<ExpenseTypeModel> {
+    var result = await prisma.expense_type.update({
       where: {
-        id: data.id,
+        id: this.id!,
       },
       data: {
-        name: data.name,
-        description: data.description,
+        name: this.name,
+        description: this.description,
+        parent_id: this.parent_id,
       },
+    });
+
+    return new ExpenseTypeModel({
+      id: result.id,
+      name: result.name,
+      description: result.description,
+      created_by: result.created_by,
+      created_at: result.created_at,
+      parent_id: result.parent_id,
+      is_delete: result.is_delete,
+      deleted_by: result.deleted_by,
+      deleted_at: result.deleted_at,
     });
   }
 
@@ -63,15 +100,15 @@ class ExpenseTypeModel {
    * @param created_by
    * @returns
    */
-  static deleteByID(data: IDeleteExpenseType) {
+  static deleteByID(id: number, userID: number) {
     return prisma.expense_type.update({
       where: {
-        id: data.id,
+        id: id,
       },
       data: {
         is_delete: true,
         deleted_at: new Date(),
-        deleted_by: data.deleted_by,
+        deleted_by: userID,
       },
       select: {
         id: true,
@@ -213,21 +250,61 @@ class ExpenseTypeModel {
    * @param id
    * @returns
    */
-  static fetchByID(id: number) {
-    return prisma.expense_type.findUnique({
-      where: {
-        id: id,
-      },
-    });
+  static async fetchByID(id: number) {
+    try {
+      var result = await prisma.expense_type.findUnique({
+        where: {
+          id: id,
+        },
+      });
+
+      if (!result) {
+        return null;
+      }
+
+      return new ExpenseTypeModel({
+        id: result.id,
+        name: result.name,
+        description: result.description,
+        created_by: result.created_by,
+        created_at: result.created_at,
+        parent_id: result.parent_id,
+        is_delete: result.is_delete,
+        deleted_by: result.deleted_by,
+        deleted_at: result.deleted_at,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching expense type by id ${error}`);
+      throw error;
+    }
   }
 
-  static fetchByParentID(id: number) {
-    return prisma.expense_type.findMany({
-      where: {
-        parent_id: id,
-        is_delete: false,
-      },
-    });
+  static async fetchByParentID(id: number) {
+    try {
+      var parentResult = await prisma.expense_type.findMany({
+        where: {
+          parent_id: id,
+        },
+      });
+
+      // return list of children
+      return parentResult.map((expenseType) => {
+        return new ExpenseTypeModel({
+          id: expenseType.id,
+          name: expenseType.name,
+          description: expenseType.description,
+          created_by: expenseType.created_by,
+          created_at: expenseType.created_at,
+          parent_id: expenseType.parent_id,
+          is_delete: expenseType.is_delete,
+          deleted_by: expenseType.deleted_by,
+          deleted_at: expenseType.deleted_at,
+        });
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching expense type by id ${error}`);
+      throw error;
+    }
   }
 }
 

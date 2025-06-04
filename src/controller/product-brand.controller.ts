@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
-import { BrandModel } from "../model/brand.model";
+import { ItemBrandModel } from "../model/brand.model";
 
 class BrandController {
   /**
@@ -13,16 +13,17 @@ class BrandController {
   static create = (req: Request, res: Response) => {
     const name = req.body.name;
     const userID = req.body.userId;
-    BrandModel.fetchByName(name)
+    ItemBrandModel.fetchByName(name)
       .then((brand) => {
         if (brand) {
           return res.status(400).send(ErrorList["Brand unique constraint"]);
         }
 
-        BrandModel.create({
+        new ItemBrandModel({
           name: name,
           created_by: userID,
         })
+          .create()
           .then((result) => {
             const socket = new SocketHelper("createBrand", {
               ...result,
@@ -48,7 +49,7 @@ class BrandController {
    */
   static fetchAutocomplete = (req: Request, res: Response) => {
     const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    BrandModel.fetchAutocomplete(keyword)
+    ItemBrandModel.fetchAutocomplete(keyword)
       .then((result) => {
         return res.status(200).send(result);
       })
@@ -64,7 +65,7 @@ class BrandController {
    */
   static fetchByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
-    BrandModel.fetchByID(id)
+    ItemBrandModel.fetchByID(id)
       .then((result) => {
         if (!result) {
           return res.status(404).send(ErrorList["Not found"]);
@@ -105,7 +106,7 @@ class BrandController {
     const limit = 10;
     const offset = (page - 1) * limit;
 
-    BrandModel.fetch(keyword, offset, limit)
+    ItemBrandModel.fetch(keyword, offset, limit)
       .then((result) => {
         return res.status(200).send({
           data: (result[0] as any[]).map((x) => {
@@ -139,18 +140,19 @@ class BrandController {
     const name = req.body.name;
     const userID = req.body.userId;
 
-    BrandModel.fetchByID(id)
+    ItemBrandModel.fetchByID(id)
       .then((brand_result) => {
         const brand = brand_result[0];
         if (brand == null || brand.is_delete) {
           return res.status(400).send("Data tidak ditemukan.");
         }
 
-        BrandModel.updateByID({
+        new ItemBrandModel({
           id: id,
           name: name,
           created_by: userID,
         })
+          .update()
           .then((result) => {
             const socket = new SocketHelper("updateBrand", result);
             socket.create();
@@ -176,7 +178,7 @@ class BrandController {
   static deleteByID = (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const userID = req.body.userId;
-    BrandModel.fetchByID(id)
+    ItemBrandModel.fetchByID(id)
       .then((result) => {
         if (!result) {
           return res.status(404).send(ErrorList["Not found"]);
@@ -194,7 +196,7 @@ class BrandController {
           return res.status(400).send(ErrorList["Unable to delete"]);
         }
 
-        BrandModel.deleteByID(id, userID)
+        ItemBrandModel.deleteByID(id, userID)
           .then((result) => {
             const socket = new SocketHelper("deleteBrand", result);
             socket.create();

@@ -7,7 +7,7 @@ export interface IPaymentMethod {
   id?: number;
   name: string;
   description: string;
-  created_by: number;
+  created_by?: number;
   created_at?: Date;
   is_delete?: boolean;
   deleted_by?: number;
@@ -25,19 +25,41 @@ export interface IPaymentMethodManual {
   can_delete: string;
 }
 
-class PaymentMethodModel {
+export class PaymentMethodModel {
+  id?: number;
+  name: string;
+  description: string;
+  created_by?: number;
+  created_at?: Date;
+  is_delete?: boolean;
+  deleted_by?: number;
+  deleted_at?: Date;
+  can_delete?: boolean;
+
+  constructor(data: IPaymentMethod) {
+    this.id = data.id;
+    this.name = data.name;
+    this.description = data.description;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at;
+    this.is_delete = data.is_delete;
+    this.deleted_by = data.deleted_by;
+    this.deleted_at = data.deleted_at;
+    this.can_delete = data.can_delete;
+  }
   /**
    * Create payment method
    * @param data
    * @returns
    */
-  static create(data: IPaymentMethod) {
+  create() {
+    this.validateCreate();
     return prisma.payment_method.create({
       data: {
-        name: data.name,
-        description: data.description,
+        name: this.name,
+        description: this.description,
         created_at: new Date(),
-        created_by: data.created_by,
+        created_by: this.created_by!,
       },
       include: {
         user: {
@@ -48,6 +70,18 @@ class PaymentMethodModel {
         },
       },
     });
+  }
+
+  validateCreate() {
+    if (!this.name || this.name.trim() === "") {
+      throw new Error("Payment method name is required");
+    }
+    if (!this.description || this.description.trim() === "") {
+      throw new Error("Payment method description is required");
+    }
+    if (!this.created_by) {
+      throw new Error("Created by user ID is required");
+    }
   }
 
   /**
@@ -247,4 +281,36 @@ class PaymentMethodModel {
   }
 }
 
-export default PaymentMethodModel;
+export interface IPaymentMethodView {
+  id: number | null;
+  name: string;
+  description: string;
+}
+
+export class PaymentMethodViewModel {
+  id: number | null;
+  name: string;
+  description: string;
+
+  constructor(data: IPaymentMethodView) {
+    this.id = data.id;
+    this.name = data.name;
+    this.description = data.description;
+  }
+
+  static fromMap(data: any): PaymentMethodViewModel {
+    if (data == undefined) {
+      return new PaymentMethodViewModel({
+        id: null,
+        name: "Cash",
+        description: "Cash",
+      });
+    } else {
+      return new PaymentMethodViewModel({
+        id: data.id,
+        name: data.name,
+        description: data.description,
+      });
+    }
+  }
+}
