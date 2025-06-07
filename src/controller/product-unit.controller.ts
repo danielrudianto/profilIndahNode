@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { ItemModel } from "../model/item.model";
+import { ItemModel } from "../model/product.model";
 import ItemUnitModel, { ItemUnitMode } from "../model/product-unit.model";
 
 class ItemUnitController {

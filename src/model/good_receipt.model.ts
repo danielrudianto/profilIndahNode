@@ -6,22 +6,28 @@ import {
   IFetchArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
+import CompanyModel from "./company.model";
+import { ProductModel } from "./product.model";
+import { ProductUnitModel } from "./product-unit.model";
+import SupplierModel from "./supplier.model";
 
 const prisma = new PrismaClient();
 
 export interface IGoodReceipt {
   id?: number;
+  uuid: string;
   name: string;
-  purchase_invoice_name: string;
   date: Date;
   supplier_id: number;
   company_id: number;
-  created_by: number;
-}
 
-export interface ICreateGoodReceipt extends IGoodReceipt {
-  good_receipt: IGoodReceiptItem[];
-  uuid: string;
+  created_by?: number;
+  created_at?: Date;
+
+  good_receipt?: IGoodReceiptItem[];
+
+  company?: CompanyModel;
+  supplier?: SupplierModel;
 }
 
 export interface IGoodReceiptItem {
@@ -32,9 +38,78 @@ export interface IGoodReceiptItem {
   quantity: number;
   price: number;
   discount: number;
+
+  item?: ProductModel;
+  item_unit?: ProductUnitModel;
+  good_receipt_code?: GoodReceiptModel;
 }
 
 class GoodReceiptModel {
+  id?: number;
+  uuid: string;
+  name: string;
+  date: Date;
+  supplier_id: number;
+  company_id: number;
+  created_by?: number;
+  created_at?: Date;
+  good_receipt?: IGoodReceiptItem[];
+  company?: CompanyModel;
+  supplier?: SupplierModel;
+
+  constructor(data: IGoodReceipt) {
+    this.id = data.id;
+    this.uuid = data.uuid;
+    this.name = data.name;
+    this.purchase_invoice_name = data.purchase_invoice_name;
+    this.date = data.date;
+    this.supplier_id = data.supplier_id;
+    this.company_id = data.company_id;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at;
+    this.good_receipt = data.good_receipt;
+    this.company = data.company;
+    this.supplier = data.supplier;
+  }
+
+  static fromMap(data: any) {
+    return new GoodReceiptModel({
+      id: data.id,
+      uuid: data.uuid,
+      name: data.name,
+      date: data.date,
+      supplier_id: data.supplier_id,
+      company_id: data.company_id,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      good_receipt:
+        data.good_receipt == undefined
+          ? undefined
+          : data.good_receipt.map((item: any) => ({
+              id: item.id,
+              item_id: item.item.id,
+              item_unit_id: item.item_unit.id,
+              quantity: item.quantity,
+              price: item.price,
+              discount: item.discount,
+
+              item: ProductModel.fromMap(item.item),
+              item_unit:
+                item.item_unit == undefined
+                  ? undefined
+                  : item.item_unit == null
+                  ? null
+                  : ProductUnitModel.fromMap(item.item_unit),
+            })),
+      company:
+        data.company == undefined ? undefined : new CompanyModel(data.company),
+      supplier:
+        data.supplier == undefined
+          ? undefined
+          : new SupplierModel(data.supplier),
+    });
+  }
+
   /**
    * Create good receipt
    * Create a good receipt and good receipt items

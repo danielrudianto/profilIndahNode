@@ -4,26 +4,32 @@ import ErrorList from "../../assets/error_list";
 import PaymentMethodController from "../../controller/payment-method.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
+import { prisma } from "../../app";
+import { PaymentMethodRepository } from "../../repositories/payment-method.repository";
 
 const router = Router();
 
-router.get("/autocomplete", PaymentMethodController.fetchAutocomplete);
-router.get("/all", PaymentMethodController.fetchAll);
+const paymentMethodController = new PaymentMethodController(
+  new PaymentMethodRepository(prisma)
+);
+
+router.get("/autocomplete", paymentMethodController.fetchAutocomplete);
+router.get("/all", paymentMethodController.fetchAll);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PaymentMethodController.fetchByID
+  paymentMethodController.fetchByID
 );
-router.get("/", PaymentMethodController.fetch);
+router.get("/", paymentMethodController.fetch);
 
 router.post(
   "/",
   body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PaymentMethodController.create
+  paymentMethodController.create
 );
 
 router.put(
@@ -33,13 +39,9 @@ router.put(
   body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
   body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PaymentMethodController.updateByID
+  paymentMethodController.update
 );
 
-router.delete(
-  "/:id",
-  administratorMiddleware,
-  PaymentMethodController.deleteByID
-);
+router.delete("/:id", administratorMiddleware, paymentMethodController.delete);
 
 export default router;

@@ -38,59 +38,6 @@ class UserAvatarModel {
     this.mouth = data.mouth;
   }
 
-  create() {
-    this.validateCreate();
-
-    return prisma.user_avatar.upsert({
-      where: {
-        user_id: this.user_id,
-      },
-      update: {
-        top: this.top,
-        accessories: this.accessories,
-        circle: this.circle,
-        clothes: this.clothes,
-        color: this.color,
-        eyebrows: this.eyebrows,
-        eyes: this.eyes,
-        mouth: this.mouth,
-      },
-      create: {
-        top: this.top,
-        accessories: this.accessories,
-        circle: this.circle,
-        clothes: this.clothes,
-        color: this.color,
-        eyebrows: this.eyebrows,
-        eyes: this.eyes,
-        mouth: this.mouth,
-        user_id: this.user_id!,
-      },
-    });
-  }
-
-  private validateCreate() {
-    if (this.user_id === undefined || this.user_id <= 0) {
-      throw new Error("User ID must be provided and greater than zero.");
-    }
-    if (
-      this.top < 0 ||
-      this.accessories < 0 ||
-      this.clothes < 0 ||
-      this.eyebrows < 0 ||
-      this.eyes < 0 ||
-      this.mouth < 0
-    ) {
-      throw new Error("Avatar attributes must be non-negative integers.");
-    }
-    if (typeof this.circle !== "boolean") {
-      throw new Error("Circle must be a boolean value.");
-    }
-    if (!this.color) {
-      throw new Error("Color must be provided.");
-    }
-  }
-
   static fromMap(data: any): UserAvatarModel {
     return new UserAvatarModel({
       top: data.top,

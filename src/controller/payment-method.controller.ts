@@ -1,206 +1,153 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
-import { fetchMode } from "../interface/fetch.interface";
-import PaymentMethodModel, {
-  IPaymentMethodManual,
-} from "../model/payment-method.model";
+import { PaymentMethodRepository } from "../repositories/payment-method.repository";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 
 class PaymentMethodController {
-  /**
-   * Create a new payment method
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
+  private paymentMethodRepository: PaymentMethodRepository;
+
+  constructor(paymentMethodRepository: PaymentMethodRepository) {
+    this.paymentMethodRepository = paymentMethodRepository;
+  }
+
+  create = async (req: Request, res: Response) => {
     const name = req.body.name;
     const description = req.body.description;
     const userID = req.body.userId;
 
-    PaymentMethodModel.create({
-      name: name,
-      description: description,
-      created_by: userID,
-    })
-      .then((result) => {
-        const socket = new SocketHelper("createPaymentMethod", {
-          ...result,
-          can_delete: true,
-        });
-        socket.create();
-
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on create payment method: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
+    try {
+      const result = await this.paymentMethodRepository.create({
+        name: name,
+        description: description,
+        created_by: userID,
       });
+
+      const socket = new SocketHelper("createPaymentMethod", result);
+
+      socket.create();
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on create payment method: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Fetch payment method
-   * @param req
-   * @param res
-   */
-  static fetch = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const page = !req.query.page
-      ? 1
-      : Math.max(parseInt(req.query.page.toString()), 1);
-    const limit = parseInt(process.env.LIMIT!);
-    const offset = (page - 1) * limit;
-
-    PaymentMethodModel.fetch(keyword, offset, limit, fetchMode.Pagination)!
-      .then((result) => {
-        return res.status(200).send({
-          data: (result[0] as IPaymentMethodManual[]).map((x) => {
-            return {
-              ...x,
-              can_delete: x.can_delete == "1" ? true : false,
-            };
-          }),
-          count: result[1],
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetch payment method: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
-
-  /**
-   * Fetch payment method autocomplete
-   * @param req
-   * @param res
-   */
-  static fetchAutocomplete = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    PaymentMethodModel.fetch(keyword, 0, 5, fetchMode.Autocomplete)!
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  /**
-   * Fetch all payment method
-   * @param req
-   * @param res
-   */
-  static fetchAll = (_: Request, res: Response) => {
-    PaymentMethodModel.fetch("", 0, 0, fetchMode.All)!
-      .then((result) => {
-        return res.status(200).send({
-          data: result,
-        });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  /**
-   * Fetch payment method by id
-   * @param req
-   * @param res
-   */
-  static fetchByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    PaymentMethodModel.fetchByID(id)
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        if (result.length == 0) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        return res.status(200).send({
-          ...result[0],
-          can_delete: result[0].can_delete == "1" ? true : false,
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetch payment method: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
-
-  /**
-   * Update payment method
-   * @param req
-   * @param res
-   */
-  static updateByID = (req: Request, res: Response) => {
+  update = async (req: Request, res: Response) => {
     const id = parseInt(req.body.id);
     const name = req.body.name;
     const description = req.body.description;
     const userID = req.body.userId;
 
-    PaymentMethodModel.fetchByID(id)
-      .then((payment_method) => {
-        if (payment_method[0] == null || payment_method[0].is_delete) {
-          return res.status(404).send("Metode pembayaran tidak ditemukan.");
-        } else {
-          PaymentMethodModel.update({
-            id: id,
-            name: name,
-            description: description,
-            created_by: userID,
-          })
-            .then((result) => {
-              const socket = new SocketHelper("updatePaymentMethod", result);
-              socket.create();
+    try {
+      const paymentMethod = await this.paymentMethodRepository.fetchByID(id);
+      if (!paymentMethod) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-              return res.status(201).send(result);
-            })
-            .catch((error) => {
-              console.error(
-                `[error]: Error on update payment method: ${error}`
-              );
-              return res.status(500).send(ErrorList["Internal server error"]);
-            });
-        }
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
+      if (paymentMethod.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const result = await this.paymentMethodRepository.update({
+        id: id,
+        name: name,
+        description: description,
+        created_by: userID,
+        created_at: new Date(),
       });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on update payment method: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Delete payment method
-   * @param req
-   * @param res
-   */
-  static deleteByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    const userID = req.body.userId;
-    PaymentMethodModel.fetchByID(id)
-      .then((result) => {
-        if (!result || result.length == 0) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
+  fetch = async (req: Request, res: Response) => {
+    try {
+      const keyword = translateKeyword(req.query.keyword);
+      const page = translatePage(req.query.page);
+      const pageSize = parseInt(process.env.LIMIT!);
 
-        if (!result[0].can_delete) {
-          return res.status(400).send(ErrorList["Delete error"]);
-        }
-
-        PaymentMethodModel.delete(id, userID)
-          .then((result) => {
-            const socket = new SocketHelper("deletePaymentMethod", result);
-            socket.create();
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
+      const result = await this.paymentMethodRepository.fetch({
+        keyword: keyword,
+        page: page,
+        pageSize: pageSize,
       });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetch payment methods: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchAutocomplete = async (req: Request, res: Response) => {
+    const keyword = translateKeyword(req.query.keyword);
+    try {
+      const result = await this.paymentMethodRepository.fetchAutocomplete(
+        keyword
+      );
+      return result;
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetch autocomplete payment methods: ${error}`
+      );
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const result = await this.paymentMethodRepository.fetchByID(id);
+      if (!result) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      return result;
+    } catch (error) {
+      console.error(`[error]: Error on fetch payment method: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchAll = async (req: Request, res: Response) => {
+    try {
+      const result = await this.paymentMethodRepository.fetchAll();
+      return result;
+    } catch (error) {
+      console.error(`[error]: Error on fetch all payment methods: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const userID = req.body.userId;
+
+    try {
+      const paymentMethod = await this.paymentMethodRepository.fetchByID(id);
+      if (!paymentMethod) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      if (paymentMethod.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      if (!paymentMethod.can_delete) {
+        return res.status(400).send(ErrorList["Delete error"]);
+      }
+
+      const result = await this.paymentMethodRepository.delete(id, userID);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on delete payment method: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 }
 

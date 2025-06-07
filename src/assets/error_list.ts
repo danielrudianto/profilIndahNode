@@ -61,6 +61,7 @@ enum ErrorList {
   "Discount > price" = "Diskon tidak boleh lebih besar dari harga.",
   "Internal server error" = "Terjadi kesalahan pada server. Mohon hubungi administrator.",
   "Bill exists" = "Faktur sudah ada sebelumnya.",
+  "Type not found" = "Tipe tidak ditemukan.",
 }
 
 export default ErrorList;

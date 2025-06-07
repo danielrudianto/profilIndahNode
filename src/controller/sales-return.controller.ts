@@ -5,13 +5,19 @@ import { queue } from "../helper/queue.helper";
 import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import SalesReturnModel from "../model/sales_return.model";
-import { StockReturnInterface } from "../interface/stock-in.interface";
 import { mongoStockOutModel } from "../mongo-model/mongo-stock-in.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { StockInModel } from "../model/stock-in.model";
 import { IStockOutFetch, StockOutModel } from "../model/stock-out.model";
+import { SalesReturnRepository } from "../repositories/sales-return.repository";
 
 class SalesReturnController {
+  private salesReturnRepository: SalesReturnRepository;
+
+  constructor(salesReturnRepository: SalesReturnRepository) {
+    this.salesReturnRepository = salesReturnRepository;
+  }
+
   /**
    * Create sales return data
    * @param req

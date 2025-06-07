@@ -1,13 +1,7 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import {
-  mysql_real_escape_string,
-  translateKeyword,
-  translatePage,
-} from "../helper/escape.helper";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
-import { fetchMode } from "../interface/fetch.interface";
-import SupplierModel from "../model/supplier.model";
 import { SupplierRepository } from "../repositories/supplier.repository";
 
 class SupplierController {

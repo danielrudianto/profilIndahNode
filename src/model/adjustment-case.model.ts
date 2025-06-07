@@ -9,7 +9,7 @@ import {
 } from "../interface/archive.interface";
 import { prisma } from "../app";
 import { UserViewModel } from "./user.model";
-import { ProductModel } from "./item.model";
+import { ProductModel } from "./product.model";
 import { ProductUnitModel } from "./product-unit.model";
 
 export interface IAdjustmentCaseCode {

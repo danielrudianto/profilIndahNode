@@ -1,4 +1,5 @@
 import { prisma } from "../app";
+import { UserViewModel } from "./user.model";
 
 export interface IProductBrand {
   id?: number;
@@ -8,7 +9,9 @@ export interface IProductBrand {
   is_delete?: boolean;
   deleted_by?: number;
   deleted_at?: Date;
-  can_delete?: string;
+  can_delete?: boolean;
+
+  user?: UserViewModel;
 }
 
 export interface IFetchProductBrand {
@@ -21,7 +24,7 @@ export interface IFetchProductBrand {
   can_delete: string;
 }
 
-export class ItemBrandModel {
+export class ProductBrandModel {
   id?: number;
   name: string;
   created_by: number;
@@ -29,7 +32,10 @@ export class ItemBrandModel {
   is_delete?: boolean;
   deleted_by?: number | null;
   deleted_at?: Date | null;
-  can_delete?: string;
+  can_delete?: boolean;
+
+  user?: UserViewModel;
+
   // initialize the model with default values
   constructor(data: IProductBrand) {
     this.id = data.id;
@@ -39,7 +45,8 @@ export class ItemBrandModel {
     this.is_delete = data.is_delete || false;
     this.deleted_by = data.deleted_by || null;
     this.deleted_at = data.deleted_at || null;
-    this.can_delete = data.can_delete || "1"; // default to "1" if not provided
+    this.can_delete = data.can_delete; // default to "1" if not provided
+    this.user = data.user; // user information if available
   }
 
   create() {
@@ -123,119 +130,6 @@ export class ItemBrandModel {
         },
       },
     });
-  }
-
-  /**
-   * Fetch if any active brand has the same name
-   * @param name
-   * @returns
-   */
-  static fetchByName(name: string) {
-    return prisma.item_brand.findFirst({
-      where: {
-        name: name,
-        is_delete: false,
-      },
-    });
-  }
-
-  /**
-   * Fetch brand by ID
-   * @param id
-   * @returns
-   */
-  static fetchByID(id: number) {
-    return prisma.$queryRaw<IFetchProductBrand[]>`
-      SELECT item_brand.id, item_brand.name, user.name AS user_name, 
-      item_brand.created_at, item_brand.created_by, item_brand.is_delete, 
-      IF(COALESCE(itemCount.count, 0) = 0,"1", "0") AS can_delete
-      FROM item_brand
-      LEFT JOIN user ON user.id = item_brand.created_by
-      LEFT JOIN (
-        SELECT COUNT(*) AS count, item_brand_id 
-        FROM item 
-        WHERE is_delete = 0 
-        GROUP BY item_brand_id
-      ) itemCount ON itemCount.item_brand_id = item_brand.id
-      WHERE item_brand.id = ${id}
-    `;
-  }
-
-  /**
-   * Fetch autocomplete brand
-   * @param keyword
-   * @returns
-   */
-  static fetchAutocomplete(keyword: string) {
-    return prisma.item_brand.findMany({
-      where: {
-        name: {
-          contains: keyword,
-        },
-        is_delete: false,
-      },
-      skip: 0,
-      take: 5,
-      orderBy: {
-        name: "asc",
-      },
-    });
-  }
-
-  static fetch(keyword: string, offset: number, limit: number) {
-    if (keyword == "") {
-      return prisma.$transaction([
-        prisma.$queryRaw`
-          SELECT item_brand.id, item_brand.name, user.name AS created_by_name, item_brand.created_at, item_brand.created_by, COALESCE(itemCount.count, 0) AS count, item_brand.is_delete
-          FROM item_brand
-          LEFT JOIN (
-            SELECT COUNT(id) AS count, item_brand_id
-            FROM item
-            WHERE item.is_delete = 0
-            GROUP BY item_brand_id
-          ) itemCount
-          ON item_brand.id = itemCount.item_brand_id
-          JOIN user ON item_brand.created_by = user.id
-          WHERE item_brand.is_delete = 0
-          ORDER BY item_brand.name ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
-        `,
-        prisma.item_brand.count({
-          where: {
-            is_delete: false,
-          },
-        }),
-      ]);
-    } else {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe(`
-          SELECT item_brand.id, item_brand.name, user.name AS created_by_name, item_brand.created_at, item_brand.created_by, COALESCE(itemCount.count, 0) AS count, item_brand.is_delete
-          FROM item_brand
-          LEFT JOIN (
-            SELECT COUNT(id) AS count, item_brand_id
-            FROM item
-            WHERE item.is_delete = 0
-            GROUP BY item_brand_id
-          ) itemCount
-          ON item_brand.id = itemCount.item_brand_id
-          JOIN user ON item_brand.created_by = user.id
-          WHERE item_brand.is_delete = 0
-          AND item_brand.name LIKE '%${keyword}%'
-          ORDER BY item_brand.name ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
-        `),
-        prisma.item_brand.count({
-          where: {
-            name: {
-              contains: keyword,
-            },
-            is_delete: false,
-          },
-        }),
-      ]);
-    }
   }
 
   static fetchSales(start_date: Date, end_date: Date) {

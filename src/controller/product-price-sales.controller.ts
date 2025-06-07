@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ItemModel } from "../model/item.model";
+import { ItemModel } from "../model/product.model";
 import ItemPriceModel from "../model/item_price.model";
 import SocketHelper from "../helper/socket.helper";
 import ErrorList from "../assets/error_list";

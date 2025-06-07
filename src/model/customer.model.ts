@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import ErrorList from "../assets/error_list";
 import { fetchMode } from "../interface/fetch.interface";
-import UserModel from "./user.model";
+import { UserViewModel } from "./user.model";
 
 const prisma = new PrismaClient();
 
@@ -12,14 +12,17 @@ export interface ICustomer {
   npwp: string | null;
   pic: string;
   phone_number: string;
-  created_by: number;
+  created_by?: number;
+  created_at?: Date;
+  updated_by?: number | null;
+  updated_at?: Date | null;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+
+  user?: UserViewModel;
+
   is_delete?: boolean;
   can_delete?: boolean;
-}
-
-export interface ICustomerResponse {
-  data: ICustomer[];
-  count: number;
 }
 
 class CustomerModel {
@@ -29,15 +32,15 @@ class CustomerModel {
   npwp: string | null;
   pic: string;
   phone_number: string;
-  created_by: number;
+  created_by?: number;
   is_delete?: boolean = false;
   can_delete?: boolean = false;
   created_at?: Date;
-  updated_by?: number;
-  updated_at?: Date;
-  deleted_by?: number;
-  deleted_at?: Date;
-  user?: UserModel;
+  updated_by?: number | null;
+  updated_at?: Date | null;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+  user?: UserViewModel;
 
   constructor(data: ICustomer) {
     this.id = data.id;
@@ -47,31 +50,14 @@ class CustomerModel {
     this.pic = data.pic;
     this.phone_number = data.phone_number;
     this.created_by = data.created_by;
-    this.is_delete = data.is_delete || false;
-    this.can_delete = data.can_delete || false;
-    this.created_at = new Date();
-  }
-
-  create() {
-    return prisma.customer.create({
-      data: {
-        name: this.name,
-        address: this.address,
-        npwp: this.npwp,
-        pic: this.pic,
-        phone_number: this.phone_number,
-        created_by: this.created_by,
-        created_at: new Date(),
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
+    this.is_delete = data.is_delete;
+    this.can_delete = data.can_delete;
+    this.created_at = data.created_at;
+    this.updated_by = data.updated_by;
+    this.updated_at = data.updated_at;
+    this.deleted_by = data.deleted_by;
+    this.deleted_at = data.deleted_at;
+    this.user = data.user;
   }
 
   update() {
@@ -123,133 +109,6 @@ class CustomerModel {
         },
       },
     });
-  }
-
-  static async fetch(
-    keyword: string,
-    offset: number,
-    limit: number,
-    mode: fetchMode
-  ) {
-    if (mode == fetchMode.Pagination) {
-      const result = await prisma.$transaction([
-        prisma.$queryRawUnsafe<ICustomer[]>(`
-          SELECT customer.id, customer.name, customer.address, 
-          customer.pic, customer.npwp, customer.phone_number, 
-          customer.created_at, customer.is_delete,
-          IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
-          FROM customer
-          LEFT JOIN (
-            SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-            FROM bill_code
-            WHERE bill_code.is_delete = 0
-            GROUP BY bill_code.customer_id
-          ) itemCount
-          ON customer.id = itemCount.customer_id
-          WHERE customer.is_delete = 0
-          AND (
-            customer.name LIKE '%${keyword}%'
-            OR customer.address LIKE '%${keyword}%'
-            OR customer.npwp LIKE '%${keyword}%'
-            OR customer.pic LIKE '%${keyword}%'
-            OR customer.phone_number LIKE '%${keyword}%'
-          )
-          ORDER BY customer.name ASC
-          LIMIT ${limit}
-          OFFSET ${offset}
-        `),
-        prisma.customer.count({
-          where: {
-            is_delete: false,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                address: {
-                  contains: keyword,
-                },
-              },
-              {
-                npwp: {
-                  contains: keyword,
-                },
-              },
-              {
-                pic: {
-                  contains: keyword,
-                },
-              },
-              {
-                phone_number: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-        }),
-      ]);
-
-      if (!result[0]) {
-        throw Error(ErrorList["Not found"]);
-      }
-
-      return {
-        data: result[0].map((x: any) => {
-          return {
-            ...x,
-            can_delete: x.can_delete == "1" ? true : false,
-          };
-        }),
-        count: result[1],
-      };
-    } else if (mode == fetchMode.Autocomplete) {
-      return prisma.customer.findMany({
-        where: {
-          is_delete: false,
-          OR: [
-            {
-              name: {
-                contains: keyword,
-              },
-            },
-            {
-              address: {
-                contains: keyword,
-              },
-            },
-            {
-              npwp: {
-                contains: keyword,
-              },
-            },
-            {
-              pic: {
-                contains: keyword,
-              },
-            },
-            {
-              phone_number: {
-                contains: keyword,
-              },
-            },
-          ],
-        },
-        orderBy: {
-          name: "asc",
-        },
-        take: limit,
-        skip: offset,
-      });
-    } else if (mode == fetchMode.All) {
-      return prisma.customer.findMany({
-        where: {
-          is_delete: false,
-        },
-      });
-    }
   }
 
   /**

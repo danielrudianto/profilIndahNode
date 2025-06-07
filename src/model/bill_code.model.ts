@@ -8,33 +8,32 @@ import {
   MonthlyArchive,
 } from "../interface/archive.interface";
 import { prisma } from "../app";
-import { ProductModel } from "./item.model";
+import { ProductModel } from "./product.model";
 import { ProductPackageCodeModel } from "./product-package.model";
 
-interface IBillCode {
+export interface ISalesInvoiceCode {
   id?: number;
   name: string;
-  customer_id: number | null;
-  created_by: number;
-  created_at: Date;
+  customerID: number | null;
+  createdBy: number;
+  createdAt: Date;
   discount: number;
   delivery: number;
   service: number;
   date: Date;
   uuid: string;
-  items: IBillCodeItem[];
-  payments: IBillCodePayment[];
-  payment_term: number | null;
-  is_paid: boolean;
-  is_confirm: boolean;
-  is_delete: boolean;
+  bill: ISalesInvoice[];
+  bill_payment: ISalesInvoicePayment[];
+  paymentTerm: number | null;
+  isPaid: boolean;
+  isConfirm: boolean;
+  isDelete: boolean;
   sales: string | null;
-
-  confirmed_by: number | null;
-  confirmed_at: Date | null;
+  confirmedBy?: number | null;
+  confirmedAt?: Date | null;
 }
 
-interface IBillCodeItem {
+interface ISalesInvoice {
   id?: number;
   package_code_id: number | null;
   item_id: number | null;
@@ -47,7 +46,7 @@ interface IBillCodeItem {
   package_code?: ProductPackageCodeModel | null;
 }
 
-interface IBillCodePayment {
+interface ISalesInvoicePayment {
   id?: number;
   bill_code_id?: number;
   payment_method_id: number | null;
@@ -62,7 +61,7 @@ interface IReportBill {
   discount: number;
 }
 
-class BillCodeModel {
+export class SalesInvoiceModel {
   id?: number;
   name: string;
   date: Date;
@@ -70,36 +69,36 @@ class BillCodeModel {
   delivery: number;
   service: number;
   sales: string | null;
-  customer_id: number | null;
-  created_by: number;
-  created_at: Date;
+  customerID: number | null;
+  createdBy: number;
+  createdAt: Date;
   is_confirm: boolean;
-  confirmed_by?: number;
-  confirmed_at?: Date;
-  is_paid: boolean;
-  is_delete: boolean;
+  confirmedBy?: number | null;
+  confirmedAt?: Date | null;
+  isPaid: boolean;
+  isDelete: boolean;
   uuid: string;
-  items?: IBillCodeItem[] = [];
-  payments?: IBillCodePayment[] = [];
+  bill?: ISalesInvoice[] = [];
+  bill_payment?: ISalesInvoicePayment[] = [];
   payment_term: number | null = null;
 
-  constructor(data: IBillCode) {
+  constructor(data: ISalesInvoiceCode) {
     this.name = data.name;
-    this.customer_id = data.customer_id;
-    this.created_by = data.created_by;
+    this.customerID = data.customerID;
+    this.createdBy = data.createdBy;
+    this.createdAt = data.createdAt;
     this.discount = data.discount;
     this.delivery = data.delivery;
     this.service = data.service;
     this.date = data.date;
-    this.is_confirm = true;
-    this.confirmed_by = data.created_by;
-    this.confirmed_at = new Date();
+    this.is_confirm = data.isConfirm;
+    this.confirmedBy = data.confirmedBy;
+    this.confirmedAt = data.confirmedAt;
     this.uuid = data.uuid;
-    this.is_paid = data.is_paid;
+    this.isPaid = data.isPaid;
     this.sales = data.sales || null;
-    this.created_at = new Date();
-    this.is_delete = false;
-    this.items = data.items.map((item) => {
+    this.isDelete = false;
+    this.bill = data.bill.map((item) => {
       return {
         id: item.id,
         package_code_id: item.package_code_id,
@@ -110,7 +109,7 @@ class BillCodeModel {
         discount: item.discount,
       };
     });
-    this.payments = data.payments.map((payment) => {
+    this.bill_payment = data.bill_payment.map((payment) => {
       return {
         id: payment.id,
         bill_code_id: payment.bill_code_id,

@@ -49,3 +49,40 @@ export function translatePage(page: any): number {
 
   return Math.floor(pageNumber);
 }
+
+export function translateNPWP(npwp: any): string | null {
+  if (!npwp) {
+    return null;
+  }
+
+  const npwpString = npwp.toString();
+  if (npwpString.length !== 15 && npwpString.length !== 16) {
+    return null;
+  }
+
+  return npwpString;
+}
+
+export function translateDate(date: any): Date {
+  if (!date || date == null) {
+    return new Date();
+  }
+
+  if (typeof date === "string") {
+    const parsedDate = new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      return new Date();
+    }
+    return parsedDate;
+  }
+
+  return date;
+}
+
+export function translateSalesName(sales: string | null): string | null {
+  if (sales != null && sales.length > 0) {
+    return sales.toUpperCase();
+  }
+
+  return null;
+}

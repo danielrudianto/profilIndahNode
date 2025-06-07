@@ -4,7 +4,7 @@ import {
   IFetchProduct,
   IFetchProductSimple,
   ItemModel,
-} from "../model/item.model";
+} from "../model/product.model";
 
 import SocketHelper from "../helper/socket.helper";
 import ErrorList from "../assets/error_list";

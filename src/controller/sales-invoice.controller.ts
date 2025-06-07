@@ -4,7 +4,12 @@ import BillModel from "../model/bill.model";
 import BillCodeModel from "../model/bill_code.model";
 import ItemPriceModel from "../model/item_price.model";
 import ErrorList from "../assets/error_list";
-import { mysql_real_escape_string } from "../helper/escape.helper";
+import {
+  mysql_real_escape_string,
+  translateDate,
+  translateNPWP,
+  translateSalesName,
+} from "../helper/escape.helper";
 import { ProductPackageCodeModel } from "../model/product-package.model";
 import { queue } from "../helper/queue.helper";
 import SalesReturnModel from "../model/sales_return.model";
@@ -20,9 +25,83 @@ import {
   StockOutModel,
 } from "../model/stock-out.model";
 import { StockInModel } from "../model/stock-in.model";
+import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
+  private salesInvoiceRepository: SalesInvoiceRepository;
+
+  constructor(salesInvoiceRepository: SalesInvoiceRepository) {
+    this.salesInvoiceRepository = salesInvoiceRepository;
+  }
+
+  create = async (req: Request, res: Response) => {
+    const userID = req.body.userId;
+    const customerID = req.body.customer_id;
+    const discount = Number(req.body.discount);
+    const delivery = Number(req.body.delivery);
+    const service = Number(req.body.service);
+    const bill = req.body.bill as any[];
+    const bill_payment = req.body.payments as any[];
+    const paymentTerm = req.body.payment_term;
+    const date = translateDate(req.body.date);
+    const isPaid = req.body.is_paid;
+    const type = req.body.type;
+    const sales = translateSalesName(req.body.sales);
+    const uuid = req.body.uuid;
+
+    switch (type) {
+      case "bill":
+        try {
+          const billResult = await this.salesInvoiceRepository.create({
+            name: this.salesInvoiceRepository.generateName(date),
+            uuid: uuid,
+            customerID: customerID,
+            discount: discount,
+            delivery: delivery,
+            service: service,
+            paymentTerm: paymentTerm,
+            sales: sales,
+            isPaid: isPaid,
+            date: date,
+            createdBy: userID,
+            createdAt: new Date(),
+            isConfirm: true,
+            confirmedBy: userID,
+            confirmedAt: new Date(),
+            bill: bill,
+            bill_payment: bill_payment,
+            isDelete: false,
+          });
+
+          ReceivableController.receivable += billResult.bill.reduce((a, b) => {
+            return (
+              a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+            );
+          }, 0) as number;
+
+          ReceivableController.receivable -= discount + delivery + service;
+          ReceivableController.receivable -= payments.reduce((a, b) => {
+            return a + Number(b.value);
+          }, 0);
+        } catch (error) {
+          console.error(`[error]: Error on creating bill ${error}`);
+          return res.status(500).send(ErrorList["Internal server error"]);
+        }
+        break;
+      case "deposit":
+        break;
+      case "deposit-internal":
+        break;
+      // default treat as bill
+      default:
+        console.error(
+          `[error]: Error on creating bill, unknown type of ${type}`
+        );
+        return res.status(400).send(ErrorList["Type not found"]);
+    }
+  };
+
   /**
    * Add salesmen to set
    */

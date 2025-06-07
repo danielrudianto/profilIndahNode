@@ -1,16 +1,21 @@
 import { PrismaClient } from "@prisma/client";
-import ItemTypeModel from "./item_type.model";
-import { ItemBrandModel } from "./brand.model";
+import ItemTypeModel from "./product-type.model";
+import { ItemBrandModel, ProductBrandModel } from "./product-brand.model";
 import { ProductUnitModel } from "./product-unit.model";
 const prisma = new PrismaClient();
 
-interface ICreateProduct {
+interface IProduct {
   id?: number;
   reference: string;
   description: string;
   brand_id: number;
   type_id: number;
   created_by?: number;
+  created_at?: Date;
+  updated_by?: number | null;
+  updated_at?: Date | null;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
   minimum_stock?: number;
   unit: string;
   price?: number;
@@ -103,19 +108,19 @@ export class ProductModel {
   purchase_discount?: number;
   item_unit?: ProductUnitModel[] = [];
 
-  constructor(data: ICreateProduct) {
+  constructor(data: IProduct) {
     this.id = data.id;
     this.reference = data.reference;
     this.description = data.description;
     this.item_brand_id = data.brand_id;
     this.item_type_id = data.type_id;
     this.created_by = data.created_by;
-    this.created_at = new Date();
-    this.updated_by = 0; // default to 0
-    this.updated_at = new Date();
+    this.created_at = data.created_at;
+    this.updated_by = data.updated_by;
+    this.updated_at = data.updated_at;
     this.is_active = true;
     this.is_delete = false;
-    this.minimum_stock = data.minimum_stock || 0;
+    this.minimum_stock = data.minimum_stock;
     this.unit = data.unit;
     this.item_brand = data.item_brand;
     this.item_type = data.item_type;
@@ -123,6 +128,24 @@ export class ProductModel {
     this.discount = data.discount;
     this.purchase_price = data.purchase_price;
     this.purchase_discount = data.purchase_discount;
+  }
+
+  static fromMap(data: any) {
+    return new ProductModel({
+      id: data.id,
+      reference: data.reference,
+      description: data.description,
+      brand_id: data.item_brand_id,
+      type_id: data.item_type_id,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      updated_by: data.updated_by,
+      updated_at: data.updated_at,
+      minimum_stock: data.minimum_stock,
+      unit: data.unit,
+      item_brand: ProductBrandModel.fromMap(data.item_brand),
+      item_type: ProductTypeModel.fromMap(data.item_type),
+    });
   }
 
   create() {

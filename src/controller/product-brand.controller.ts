@@ -1,218 +1,140 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { mysql_real_escape_string } from "../helper/escape.helper";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
-import { ItemBrandModel } from "../model/brand.model";
+import { ProductBrandRepository } from "../repositories/product-brand.repository";
 
-class BrandController {
-  /**
-   * Create a new brand
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
+export class ProductBrandController {
+  private productBrandRepository: ProductBrandRepository;
+
+  constructor(productBrandRepository: ProductBrandRepository) {
+    this.productBrandRepository = productBrandRepository;
+  }
+
+  create = async (req: Request, res: Response) => {
     const name = req.body.name;
     const userID = req.body.userId;
-    ItemBrandModel.fetchByName(name)
-      .then((brand) => {
-        if (brand) {
-          return res.status(400).send(ErrorList["Brand unique constraint"]);
-        }
 
-        new ItemBrandModel({
-          name: name,
-          created_by: userID,
-        })
-          .create()
-          .then((result) => {
-            const socket = new SocketHelper("createBrand", {
-              ...result,
-              can_delete: true,
-            });
-            socket.create();
+    const validation = await this.productBrandRepository.fetchByName(name);
+    if (validation != null) {
+      return res.status(400).send(ErrorList["Brand unique constraint"]);
+    }
 
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            return res.status(500).send(error);
-          });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    const result = await this.productBrandRepository.create({
+      name: name,
+      created_by: userID,
+      created_at: new Date(),
+    });
+
+    const socket = new SocketHelper("createBrand", result);
+    socket.create();
+
+    return res.status(201).send(result);
   };
 
-  /**
-   * Fetch brand data for autocomplete
-   * @param req
-   * @param res
-   */
-  static fetchAutocomplete = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    ItemBrandModel.fetchAutocomplete(keyword)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  /**
-   * Fetch brand by id
-   * @param req
-   * @param res
-   */
-  static fetchByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
-    ItemBrandModel.fetchByID(id)
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        if (result.length == 0) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        const itemBrand = result[0];
-        return res.status(200).send({
-          ...itemBrand,
-          can_delete: itemBrand.can_delete! == "1" ? true : false,
-        });
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error while fetching brand by id [${id}] ${error}`
-        );
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
-
-  /**
-   * Fetch brand data
-   * @param req
-   * @param res
-   */
-  static fetch = (req: Request, res: Response) => {
-    const page = !req.query.page
-      ? 1
-      : Math.max(1, parseInt(req.query.page.toString()));
-    const keyword = !req.query.keyword
-      ? ""
-      : decodeURIComponent(
-          mysql_real_escape_string(req.query.keyword.toString())
-        );
-    const limit = 10;
-    const offset = (page - 1) * limit;
-
-    ItemBrandModel.fetch(keyword, offset, limit)
-      .then((result) => {
-        return res.status(200).send({
-          data: (result[0] as any[]).map((x) => {
-            return {
-              id: x.id,
-              name: x.name,
-              created_at: x.created_at,
-              created_by: x.created_by,
-              user: {
-                name: x.created_by_name,
-              },
-              is_delete: x.is_delete,
-              can_delete: x.count == 0 ? true : false,
-            };
-          }),
-          count: result[1],
-        });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
-  };
-
-  /**
-   * Update brand data
-   * @param req
-   * @param res
-   */
-  static updateByID = (req: Request, res: Response) => {
+  update = async (req: Request, res: Response) => {
     const id = req.body.id;
     const name = req.body.name;
     const userID = req.body.userId;
 
-    ItemBrandModel.fetchByID(id)
-      .then((brand_result) => {
-        const brand = brand_result[0];
-        if (brand == null || brand.is_delete) {
-          return res.status(400).send("Data tidak ditemukan.");
-        }
+    try {
+      const existingBrand = await this.productBrandRepository.fetchByID(id);
+      if (!existingBrand) {
+        return res.status(400).send(ErrorList["Not found"]);
+      }
 
-        new ItemBrandModel({
-          id: id,
-          name: name,
-          created_by: userID,
-        })
-          .update()
-          .then((result) => {
-            const socket = new SocketHelper("updateBrand", result);
-            socket.create();
+      if (existingBrand.is_delete) {
+        return res.status(400).send(ErrorList["Not found"]);
+      }
 
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on updating brand ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on updating brand ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
+      const result = await this.productBrandRepository.update({
+        name: name,
+        id: id,
+        created_by: userID,
+        created_at: new Date(),
       });
+
+      const socket = new SocketHelper("updateBrand", result);
+      socket.create();
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on updating brand ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
-  /**
-   * Delete brand data
-   * @param req
-   * @param res
-   */
-  static deleteByID = (req: Request, res: Response) => {
+  delete = async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     const userID = req.body.userId;
-    ItemBrandModel.fetchByID(id)
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
 
-        if (result.length == 0) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
+    try {
+      const existingBrand = await this.productBrandRepository.fetchByID(id);
+      if (!existingBrand) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-        if (result[0].is_delete) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
+      if (existingBrand.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
 
-        if (!result[0].can_delete) {
-          return res.status(400).send(ErrorList["Unable to delete"]);
-        }
+      if (!existingBrand.can_delete) {
+        return res.status(400).send(ErrorList["Unable to delete"]);
+      }
 
-        ItemBrandModel.deleteByID(id, userID)
-          .then((result) => {
-            const socket = new SocketHelper("deleteBrand", result);
-            socket.create();
+      const result = await this.productBrandRepository.delete(id, userID);
+      const socket = new SocketHelper("deleteBrand", result);
+      socket.create();
 
-            return res.status(201).send(result);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on deleting brand ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on deleting brand ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting brand ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchAutocomplete = async (req: Request, res: Response) => {
+    const keyword = translateKeyword(req.query.keyword);
+    try {
+      const result = await this.productBrandRepository.fetchAutocomplete(
+        keyword
+      );
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error while fetching autocomplete brands: ${error}`
+      );
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const result = await this.productBrandRepository.fetchByID(id);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error while fetching brand by ID: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetch = async (req: Request, res: Response) => {
+    const keyword = translateKeyword(req.query.keyword);
+    const page = translatePage(req.query.page);
+    const pageSize = parseInt(process.env.LIMIT!);
+
+    try {
+      const result = await this.productBrandRepository.fetch({
+        keyword: keyword,
+        page: page,
+        pageSize: pageSize,
       });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error while fetching brands: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 }
-
-export default BrandController;

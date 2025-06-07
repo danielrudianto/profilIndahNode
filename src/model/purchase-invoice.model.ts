@@ -27,6 +27,7 @@ export interface ICreatePurchaseInvoice extends ICreateGoodReceipt {
 
 export interface IPurchaseInvoice {
   id?: number;
+  uuid: string;
   name: string;
   date: Date;
   discount: number;
@@ -37,6 +38,8 @@ export interface IPurchaseInvoice {
   confirmed_by?: number;
   confirmed_at?: Date;
   faktur?: string;
+
+  good_receipt_code_id?: number;
 }
 
 export interface IUpdatePurchaseInvoice {
@@ -88,11 +91,37 @@ export interface IUpdatePurchaseInvoiceGoodReceipt {
 }
 
 class PurchaseInvoiceModel {
-  /**
-   * Create a new purchase invoice
-   * @param data
-   * @returns
-   */
+  id?: number;
+  uuid: string;
+  name: string;
+  date: Date;
+  discount: number;
+  created_by: number;
+  created_at?: Date;
+  is_delete?: boolean;
+  is_confirm?: boolean;
+  confirmed_by?: number;
+  confirmed_at?: Date;
+  faktur?: string;
+
+  good_receipt_code_id?: number;
+
+  constructor(data: IPurchaseInvoice) {
+    this.id = data.id;
+    this.uuid = data.uuid;
+    this.name = data.name;
+    this.date = data.date;
+    this.discount = data.discount;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at || new Date();
+    this.is_delete = data.is_delete || false;
+    this.is_confirm = data.is_confirm || false;
+    this.confirmed_by = data.confirmed_by;
+    this.confirmed_at = data.confirmed_at;
+    this.faktur = data.faktur;
+    this.good_receipt_code_id = data.good_receipt_code_id;
+  }
+
   static create(data: ICreatePurchaseInvoice) {
     return prisma.good_receipt_code.create({
       data: {

@@ -6,7 +6,7 @@ import { fetchMode } from "../interface/fetch.interface";
 import AdjustmentCaseCodeModel from "../model/adjustment-case.model";
 import BillCodeModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
-import { ItemModel } from "../model/item.model";
+import { ItemModel } from "../model/product.model";
 import { ProductPackageCodeModel } from "../model/product-package.model";
 import PurchaseInvoiceModel from "../model/purchase-invoice.model";
 import SalesReturnModel from "../model/sales_return.model";

@@ -1,8 +1,6 @@
 import { Request, Response } from "express";
-import CompanyModel from "../model/company.model";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
-import { fetchMode } from "../interface/fetch.interface";
 import { CompanyRepository } from "../repositories/company.repository";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
 

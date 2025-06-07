@@ -4,7 +4,7 @@ import ExpenseModel from "../model/expense.model";
 import PurchaseInvoiceModel, {
   CalculatePurchaseMode,
 } from "../model/purchase-invoice.model";
-import { ItemModel } from "../model/item.model";
+import { ItemModel } from "../model/product.model";
 import CompanyModel from "../model/company.model";
 import { fetchMode } from "../interface/fetch.interface";
 import {
