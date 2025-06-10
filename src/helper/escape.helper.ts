@@ -86,3 +86,16 @@ export function translateSalesName(sales: string | null): string | null {
 
   return null;
 }
+
+export function translateFaktur(faktur: any): string | null {
+  if (!faktur || faktur == null) {
+    return null;
+  }
+
+  const fakturString = faktur.toString();
+  if (fakturString.length !== 16) {
+    return null;
+  }
+
+  return fakturString;
+}

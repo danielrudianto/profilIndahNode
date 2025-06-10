@@ -14,6 +14,9 @@ enum ErrorList {
   "UUID required" = "UUID tidak boleh kosong.",
   "Package item id required" = "ID item paket tidak boleh kosong.",
   "Package item quantity required" = "Kuantitas item paket tidak boleh kosong.",
+  "Sales return items required" = "Item retur penjualan tidak boleh kosong.",
+  "Item ID required" = "ID item tidak boleh kosong.",
+  "Invalid status update" = "Tidak dapat memperbarui status. Status yang diberikan tidak valid.",
 
   "Product not found" = "Data produk tidak ditemukan.",
   "Product unit not found" = "Data satuan produk tidak ditemukan.",
@@ -53,7 +56,7 @@ enum ErrorList {
 
   "No changes" = "Tidak ada perubahan.",
 
-  "Password required" = "Password tidak boleh kosong.",
+  "Password is required" = "Password tidak boleh kosong.",
   "User role required" = "Role pengguna tidak boleh kosong.",
   "Username is required" = "Username tidak boleh kosong.",
 

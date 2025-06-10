@@ -5,7 +5,7 @@ import ErrorHelper from "../../helper/error.helper";
 import CompanyController from "../../controller/company.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import { CompanyRepository } from "../../repositories/company.repository";
-import { prisma } from "../../app";
+import { prisma } from "../../helper/database.helper";
 
 const router = Router();
 

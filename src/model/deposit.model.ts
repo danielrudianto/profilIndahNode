@@ -5,23 +5,28 @@ import {
   AnnualArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
+import { PackageCodeModel } from "./product-package.model";
+import { ProductUnitModel } from "./product-unit.model";
+import { ProductModel } from "./product.model";
 
-interface ICreateDeposit {
+export interface IDepositCode {
+  id?: number;
   name: string;
   customer_id: number | null;
   created_by: number;
+  created_at: Date;
   discount: number;
   delivery: number;
   service: number;
   date: Date;
   uuid: string;
-  items: ICreateDepositItem[];
+  deposit: IDeposit[];
   payments: ICreateDepositPayment[];
   type: string;
   sales: string | null;
 }
 
-interface ICreateDepositItem {
+interface IDeposit {
   package_code_id: number | null;
   item_id: number | null;
   item_unit_id: number | null;
@@ -70,6 +75,78 @@ interface IUpdateDepositBillPayment {
 }
 
 class DepositModel {
+  id?: number;
+  name: string;
+  customer_id: number | null;
+  created_by?: number;
+  created_at?: Date;
+  discount: number;
+  delivery: number;
+  service: number;
+  date: Date;
+  uuid: string;
+  deposit: IDeposit[];
+  payments: ICreateDepositPayment[];
+  type: string;
+  sales: string | null;
+  is_delete?: boolean;
+  is_confirmed?: boolean;
+  confirmed_at?: Date | null;
+  confirmed_by?: number | null;
+
+  constructor(data: IDepositCode) {
+    this.id = data.id;
+    this.name = data.name;
+    this.customer_id = data.customer_id;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at;
+    this.discount = data.discount;
+    this.delivery = data.delivery;
+    this.service = data.service;
+    this.date = data.date;
+    this.uuid = data.uuid;
+    this.deposit = data.deposit || [];
+    this.payments = data.payments || [];
+    this.type = data.type;
+    this.sales = data.sales || null;
+    this.is_delete = false;
+  }
+
+  static fromMap(data: any): DepositModel {
+    return new DepositModel({
+      id: data.id,
+      name: data.name,
+      customer_id: data.customer_id,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      discount: Number(data.discount),
+      delivery: Number(data.delivery),
+      service: Number(data.service),
+      date: new Date(data.date),
+      uuid: data.uuid,
+      deposit: data.deposit
+        ? data.deposit.map((item: any) => ({
+            package_code_id: item.package_code_id,
+            item_id: item.item_id,
+            item_unit_id: item.item_unit_id,
+            quantity: Number(item.quantity),
+            price: Number(item.price),
+            discount: Number(item.discount),
+            item: item.item ? ProductModel.fromMap(item.item) : null,
+            package_code: item.package_code
+              ? PackageCodeModel.fromMap(item.package_code)
+              : null,
+            item_unit: item.item_unit
+              ? ProductUnitModel.fromMap(item.item_unit)
+              : null,
+          }))
+        : [],
+      payments: data.deposit_payment || [],
+      type: data.type,
+      sales: data.sales || null,
+    });
+  }
+
   /**
    * Generate bill code name based on date
    * @param date
@@ -85,36 +162,6 @@ class DepositModel {
     )}${Math.floor(Math.random() * 10)}${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}`;
-  }
-
-  /**
-   * Create new deposit
-   * @param data
-   * @returns
-   */
-  static create(data: ICreateDeposit) {
-    return prisma.deposit_code.create({
-      data: {
-        name: data.name,
-        customer_id: data.customer_id,
-        created_by: data.created_by,
-        discount: data.discount,
-        delivery: data.delivery,
-        service: data.service,
-        date: data.date,
-        uuid: data.uuid,
-        deposit: {
-          createMany: {
-            data: data.items,
-          },
-        },
-        deposit_payment: {
-          create: data.payments,
-        },
-        type: data.type,
-        sales: data.sales,
-      },
-    });
   }
 
   /**

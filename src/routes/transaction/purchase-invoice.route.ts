@@ -4,10 +4,18 @@ import ErrorList from "../../assets/error_list";
 import PurchaseInvoiceController from "../../controller/purchase-invoice.controller";
 import ErrorHelper from "../../helper/error.helper";
 import { putriForbiddenMiddleware } from "../../helper/auth.helper";
+import { PurchaseInvoiceRepository } from "../../repositories/purchase-invoice.repository";
+import { prisma } from "../../helper/database.helper";
+import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 
 const router = Router();
 
-router.get("/unconfirmed", PurchaseInvoiceController.fetchUnconfirmed);
+const purchaseInvoiceController = new PurchaseInvoiceController(
+  new PurchaseInvoiceRepository(prisma),
+  new GoodReceiptRepository(prisma)
+);
+
+router.get("/unconfirmed", purchaseInvoiceController.fetchUnconfirmed);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
@@ -28,7 +36,7 @@ router.post(
   body("uuid").notEmpty().withMessage(ErrorList["UUID required"]),
   ErrorHelper.intercept,
   putriForbiddenMiddleware,
-  PurchaseInvoiceController.create
+  purchaseInvoiceController.create
 );
 
 router.put(
@@ -38,7 +46,7 @@ router.put(
     req.body.is_delete = false;
     next();
   },
-  PurchaseInvoiceController.updateStatus
+  purchaseInvoiceController.updateStatus
 );
 
 router.put(
@@ -48,7 +56,7 @@ router.put(
     req.body.is_delete = true;
     next();
   },
-  PurchaseInvoiceController.updateStatus
+  purchaseInvoiceController.updateStatus
 );
 router.put(
   "/",

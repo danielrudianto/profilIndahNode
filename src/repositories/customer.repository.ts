@@ -141,7 +141,7 @@ export class CustomerRepository {
         customer.id, customer.name, customer.address, customer.pic, 
         customer.npwp, customer.phone_number, customer.created_at, 
         customer.is_delete, customer.created_by,
-        IF(COALESCE(itemCount.count, 0) = 0, TRUE, FALSE) AS can_delete
+        IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
       FROM customer
       LEFT JOIN (
         SELECT 
@@ -212,7 +212,7 @@ export class CustomerRepository {
       const customer = await this.prisma.$queryRaw<any[]>`
         SELECT customer.id, customer.name, customer.address, 
         customer.pic, customer.npwp, customer.phone_number, 
-        IF(COALESCE(itemCount.count, 0) = 0, TRUE, FALSE) AS can_delete
+        IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
         FROM customer
         LEFT JOIN (
           SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
@@ -253,7 +253,7 @@ export class CustomerRepository {
 
     try {
       const result = await this.prisma.$queryRawUnsafe<any[]>(`
-        SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, TRUE, FALSE) AS can_delete
+        SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
         FROM customer
         LEFT JOIN (
           SELECT COUNT(bill_code.id) AS count, bill_code.customer_id

@@ -9,7 +9,7 @@ import {
 } from "../interface/archive.interface";
 import { prisma } from "../app";
 import { ProductModel } from "./product.model";
-import { ProductPackageCodeModel } from "./product-package.model";
+import { PackageCodeModel } from "./product-package.model";
 
 export interface ISalesInvoiceCode {
   id?: number;
@@ -43,7 +43,7 @@ interface ISalesInvoice {
   discount: number;
 
   item?: ProductModel | null;
-  package_code?: ProductPackageCodeModel | null;
+  package_code?: PackageCodeModel | null;
 }
 
 interface ISalesInvoicePayment {
@@ -118,32 +118,69 @@ export class SalesInvoiceModel {
         date: payment.date,
       };
     });
-    this.payment_term = data.payment_term;
+    this.payment_term = data.paymentTerm;
+  }
+
+  static fromMap(data: any) {
+    return new SalesInvoiceModel({
+      id: data.id,
+      name: data.name,
+      date: data.date,
+      discount: Number(data.discount),
+      delivery: Number(data.delivery),
+      service: Number(data.service),
+      sales: data.sales,
+      customerID: data.customer_id,
+      createdBy: data.created_by,
+      createdAt: new Date(data.created_at),
+      isConfirm: data.is_confirm,
+      confirmedBy: data.confirmed_by,
+      confirmedAt: data.confirmed_at,
+      isPaid: data.is_paid,
+      isDelete: data.is_delete,
+      uuid: data.uuid,
+      bill:
+        data.bill == undefined
+          ? []
+          : (data.bill as any[]).map((item) => {
+              return {
+                id: item.id,
+                package_code_id: item.package_code_id,
+                item_id: item.item_id,
+                item_unit_id: item.item_unit_id,
+                quantity: Number(item.quantity),
+                price: Number(item.price),
+                discount: Number(item.discount),
+              };
+            }),
+      bill_payment: [],
+      paymentTerm: data.payment_term,
+    });
   }
 
   async create() {
     const bill_code = await prisma.bill_code.create({
       data: {
         name: this.name,
-        created_by: this.created_by,
+        created_by: this.createdBy,
         created_at: new Date(),
-        customer_id: this.customer_id,
+        customer_id: this.customerID,
         discount: this.discount,
         delivery: this.delivery,
         service: this.service,
         date: this.date,
         is_confirm: true,
-        confirmed_by: this.created_by,
+        confirmed_by: this.createdBy,
         confirmed_at: new Date(),
         uuid: this.uuid,
         bill: {
           createMany: {
-            data: this.items!,
+            data: this.bill!,
           },
         },
         bill_payment: {
           createMany: {
-            data: this.payments!.map((x) => {
+            data: this.bill_payment!.map((x) => {
               return {
                 date: x.date,
                 value: x.value,
@@ -154,7 +191,7 @@ export class SalesInvoiceModel {
           },
         },
         payment_term: this.payment_term,
-        is_paid: this.is_paid,
+        is_paid: this.isPaid,
         sales: this.sales,
       },
       include: {
@@ -211,51 +248,51 @@ export class SalesInvoiceModel {
       },
     });
 
-    return new BillCodeModel({
-      id: bill_code.id,
-      name: bill_code.name,
-      date: bill_code.date!,
-      discount: Number(bill_code.discount),
-      delivery: Number(bill_code.delivery),
-      service: Number(bill_code.service),
-      sales: bill_code.sales,
-      customer_id: bill_code.customer_id,
-      created_by: bill_code.created_by,
-      created_at: new Date(bill_code.created_at),
-      is_confirm: bill_code.is_confirm,
-      confirmed_by: bill_code.confirmed_by,
-      confirmed_at: bill_code.confirmed_at,
-      is_paid: bill_code.is_paid,
-      is_delete: bill_code.is_delete,
-      uuid: bill_code.uuid,
-      items: bill_code.bill.map((item) => {
-        return {
-          id: item.id,
-          package_code_id: item.package_code_id,
-          item_id: item.item_id,
-          item_unit_id: item.item_unit_id,
-          quantity: Number(item.quantity),
-          price: Number(item.price),
-          discount: Number(item.discount),
+    // return new BillCodeModel({
+    //   id: bill_code.id,
+    //   name: bill_code.name,
+    //   date: bill_code.date!,
+    //   discount: Number(bill_code.discount),
+    //   delivery: Number(bill_code.delivery),
+    //   service: Number(bill_code.service),
+    //   sales: bill_code.sales,
+    //   customer_id: bill_code.customer_id,
+    //   created_by: bill_code.created_by,
+    //   created_at: new Date(bill_code.created_at),
+    //   is_confirm: bill_code.is_confirm,
+    //   confirmed_by: bill_code.confirmed_by,
+    //   confirmed_at: bill_code.confirmed_at,
+    //   is_paid: bill_code.is_paid,
+    //   is_delete: bill_code.is_delete,
+    //   uuid: bill_code.uuid,
+    //   items: bill_code.bill.map((item) => {
+    //     return {
+    //       id: item.id,
+    //       package_code_id: item.package_code_id,
+    //       item_id: item.item_id,
+    //       item_unit_id: item.item_unit_id,
+    //       quantity: Number(item.quantity),
+    //       price: Number(item.price),
+    //       discount: Number(item.discount),
 
-          item: item.item
-            ? new ProductModel({
-                id: item.item.id,
-                reference: item.item.reference,
-                description: item.item.description,
-                unit: item.item.unit,
-                brand_id: item.item.item_brand_id,
-                type_id: item.item.item_type_id,
-              })
-            : null,
-          package_code: item.package_code
-            ? new ProductPackageCodeModel()
-            : null,
-        };
-      }),
-      payments: [],
-      payment_term: bill_code.payment_term,
-    });
+    //       item: item.item
+    //         ? new ProductModel({
+    //             id: item.item.id,
+    //             reference: item.item.reference,
+    //             description: item.item.description,
+    //             unit: item.item.unit,
+    //             brand_id: item.item.item_brand_id,
+    //             type_id: item.item.item_type_id,
+    //           })
+    //         : null,
+    //       package_code: item.package_code
+    //         ? new ProductPackageCodeModel()
+    //         : null,
+    //     };
+    //   }),
+    //   payments: [],
+    //   payment_term: bill_code.payment_term,
+    // });
   }
 
   /**
@@ -1811,5 +1848,3 @@ export class SalesInvoiceModel {
     });
   }
 }
-
-export default BillCodeModel;

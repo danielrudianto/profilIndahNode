@@ -26,7 +26,7 @@ interface IReportExpense {
   company_id: number;
 }
 
-class ExpenseModel {
+export class ExpenseModel {
   id?: number;
   date: Date;
   value: number;
@@ -403,4 +403,4 @@ class ExpenseModel {
   }
 }
 
-export default ExpenseModel;
+export class ExpenseReportModel {}

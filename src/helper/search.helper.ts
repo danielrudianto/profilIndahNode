@@ -4,12 +4,9 @@ import mongoose from "mongoose";
 import { meili, prisma } from "../app";
 import { fetchMode } from "../interface/fetch.interface";
 import AdjustmentCaseCodeModel from "../model/adjustment-case.model";
-import BillCodeModel from "../model/bill_code.model";
 import CustomerModel from "../model/customer.model";
-import { ItemModel } from "../model/product.model";
-import { ProductPackageCodeModel } from "../model/product-package.model";
 import PurchaseInvoiceModel from "../model/purchase-invoice.model";
-import SalesReturnModel from "../model/sales_return.model";
+import SalesReturnModel from "../model/sales-return.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import {
@@ -88,213 +85,213 @@ class SearchHelper {
    */
   static syncMasterData = async (req: Request, res: Response) => {
     const mode = req.body.mode as syncMode;
-    switch (mode) {
-      case syncMode.Product:
-        // await meili.createIndex("item");
-        await meili.index("item").updateSettings({
-          searchableAttributes: ["reference", "description", "brand", "type"],
-          rankingRules: [
-            "words",
-            "typo",
-            "proximity",
-            "attribute",
-            "exactness",
-          ],
-          filterableAttributes: ["is_active", "itemBrandID", "itemTypeID"],
-          distinctAttribute: "id",
-          synonyms: {
-            "rel fe": ["Rel full extension"],
-            shelf: ["rak"],
-            knob: ["handle", "knop"],
-            double: ["doble", "dobel", "dubel", "dobel", "dubbel", "dubbel"],
-            "double bracket": [
-              "doble bracket",
-              "dobel bracket",
-              "dubel bracket",
-            ],
-            bracket: ["breket"],
-            profile: ["profil"],
-            hinge: ["engsel"],
-            hing: ["engsel"],
-            lis: ["list"],
-            "lubang angin": ["lubang udara", "lubang hawa"],
-            tacosheet: ["sheet"],
-            sss: ["stainless steel"],
-            ss: ["stainless steel"],
-            bb: ["ball bearing"],
-            "ball bearing": ["bb"],
-          },
-          typoTolerance: {
-            enabled: true,
-          },
-        });
-        await meili.index("item").deleteAllDocuments();
-        ItemModel.fetchAll(new Date())
-          .then(async (items) => {
-            meili
-              .index("item")
-              .addDocuments([
-                ...items.map((x) => {
-                  return {
-                    id: x.id,
-                    reference: x.reference,
-                    description: x.description,
-                    brand: x.item_brand.name,
-                    type: x.item_type.name,
-                    itemBrandID: x.item_brand_id,
-                    itemTypeID: x.item_type_id,
-                    is_active: x.is_active ? 1 : 0,
-                  };
-                }),
-              ])
-              .then((result) => {
-                return res.status(200).send({
-                  message: "Sync product success",
-                });
-              })
-              .catch((error) => {
-                console.error(
-                  `[error]: Error on indexing search data. ${error} `
-                );
-              });
-          })
-          .catch((error) => {
-            console.log(`[error]: Error while indexing search data. ${error}`);
-            return res.status(500).send(error);
-          });
-        break;
-      case syncMode.Customer:
-        await meili.index("customer").deleteAllDocuments();
-        CustomerModel.fetch("", 0, 0, fetchMode.All)!
-          .then(async (customers) => {
-            await meili.index("customer").addDocumentsInBatches(
-              (customers as any[]).map((x) => {
-                return {
-                  id: x.id,
-                  name: x.name,
-                  address: x.address,
-                  phone: x.phone,
-                  email: x.email,
-                  pic: x.pic,
-                };
-              })
-            );
+    // switch (mode) {
+    //   case syncMode.Product:
+    //     // await meili.createIndex("item");
+    //     await meili.index("item").updateSettings({
+    //       searchableAttributes: ["reference", "description", "brand", "type"],
+    //       rankingRules: [
+    //         "words",
+    //         "typo",
+    //         "proximity",
+    //         "attribute",
+    //         "exactness",
+    //       ],
+    //       filterableAttributes: ["is_active", "itemBrandID", "itemTypeID"],
+    //       distinctAttribute: "id",
+    //       synonyms: {
+    //         "rel fe": ["Rel full extension"],
+    //         shelf: ["rak"],
+    //         knob: ["handle", "knop"],
+    //         double: ["doble", "dobel", "dubel", "dobel", "dubbel", "dubbel"],
+    //         "double bracket": [
+    //           "doble bracket",
+    //           "dobel bracket",
+    //           "dubel bracket",
+    //         ],
+    //         bracket: ["breket"],
+    //         profile: ["profil"],
+    //         hinge: ["engsel"],
+    //         hing: ["engsel"],
+    //         lis: ["list"],
+    //         "lubang angin": ["lubang udara", "lubang hawa"],
+    //         tacosheet: ["sheet"],
+    //         sss: ["stainless steel"],
+    //         ss: ["stainless steel"],
+    //         bb: ["ball bearing"],
+    //         "ball bearing": ["bb"],
+    //       },
+    //       typoTolerance: {
+    //         enabled: true,
+    //       },
+    //     });
+    //     await meili.index("item").deleteAllDocuments();
+    //     ItemModel.fetchAll(new Date())
+    //       .then(async (items) => {
+    //         meili
+    //           .index("item")
+    //           .addDocuments([
+    //             ...items.map((x) => {
+    //               return {
+    //                 id: x.id,
+    //                 reference: x.reference,
+    //                 description: x.description,
+    //                 brand: x.item_brand.name,
+    //                 type: x.item_type.name,
+    //                 itemBrandID: x.item_brand_id,
+    //                 itemTypeID: x.item_type_id,
+    //                 is_active: x.is_active ? 1 : 0,
+    //               };
+    //             }),
+    //           ])
+    //           .then((result) => {
+    //             return res.status(200).send({
+    //               message: "Sync product success",
+    //             });
+    //           })
+    //           .catch((error) => {
+    //             console.error(
+    //               `[error]: Error on indexing search data. ${error} `
+    //             );
+    //           });
+    //       })
+    //       .catch((error) => {
+    //         console.log(`[error]: Error while indexing search data. ${error}`);
+    //         return res.status(500).send(error);
+    //       });
+    //     break;
+    //   case syncMode.Customer:
+    //     await meili.index("customer").deleteAllDocuments();
+    //     CustomerModel.fetch("", 0, 0, fetchMode.All)!
+    //       .then(async (customers) => {
+    //         await meili.index("customer").addDocumentsInBatches(
+    //           (customers as any[]).map((x) => {
+    //             return {
+    //               id: x.id,
+    //               name: x.name,
+    //               address: x.address,
+    //               phone: x.phone,
+    //               email: x.email,
+    //               pic: x.pic,
+    //             };
+    //           })
+    //         );
 
-            console.log("[info]: Indexing search data completed.");
-            return res.status(200).send({
-              message: "Sync customer success",
-            });
-          })
-          .catch((error) => {
-            console.log(`[error]: Error while fetching customer data ${error}`);
-            return res.status(500).send(error);
-          });
-        break;
-      case syncMode.Package:
-        await meili.index("package").deleteAllDocuments();
-        ProductPackageCodeModel.fetchAll()
-          .then(async (packages) => {
-            await meili.index("package").addDocumentsInBatches(
-              packages.map((x) => {
-                return {
-                  id: x.id,
-                  name: x.name,
-                  description: x.description,
-                  price: x.price,
-                  product_content: x.package_content.map((y) => {
-                    return {
-                      quantity: y.quantity,
-                      item: {
-                        reference: y.item.reference,
-                        description: y.item.description,
-                        unit: y.item.unit,
-                      },
-                      item_unit:
-                        y.item_unit == null
-                          ? null
-                          : {
-                              unit: y.item_unit.unit,
-                              conversion: y.item_unit.conversion,
-                            },
-                    };
-                  }),
-                };
-              })
-            );
-            console.log("[info]: Indexing search data completed.");
-            return res.status(200).send({
-              message: "Sync package success",
-            });
-          })
-          .catch((error) => {
-            console.log(`[error]: Error while fetching package data ${error}`);
-            return res.status(500).send(error);
-          });
-        break;
-      case syncMode.ProductNoSQL:
-        mongoProductModel
-          .deleteMany({})
-          .then(() => {
-            ItemModel.fetchAll(new Date())
-              .then(async (items) => {
-                await mongoProductModel.insertMany(
-                  items.map((x) => {
-                    return {
-                      reference: x.reference,
-                      description: x.description,
-                      itemID: x.id,
-                      itemTypeID: x.item_type_id,
-                      itemBrandID: x.item_brand_id,
-                      currentStock: 0,
-                      unit: x.unit,
-                      minimumStock: x.minimum_stock || 0,
-                      calculatedMinimumStock: 0,
-                    };
-                  })
-                );
+    //         console.log("[info]: Indexing search data completed.");
+    //         return res.status(200).send({
+    //           message: "Sync customer success",
+    //         });
+    //       })
+    //       .catch((error) => {
+    //         console.log(`[error]: Error while fetching customer data ${error}`);
+    //         return res.status(500).send(error);
+    //       });
+    //     break;
+    //   case syncMode.Package:
+    //     await meili.index("package").deleteAllDocuments();
+    //     ProductPackageCodeModel.fetchAll()
+    //       .then(async (packages) => {
+    //         await meili.index("package").addDocumentsInBatches(
+    //           packages.map((x) => {
+    //             return {
+    //               id: x.id,
+    //               name: x.name,
+    //               description: x.description,
+    //               price: x.price,
+    //               product_content: x.package_content.map((y) => {
+    //                 return {
+    //                   quantity: y.quantity,
+    //                   item: {
+    //                     reference: y.item.reference,
+    //                     description: y.item.description,
+    //                     unit: y.item.unit,
+    //                   },
+    //                   item_unit:
+    //                     y.item_unit == null
+    //                       ? null
+    //                       : {
+    //                           unit: y.item_unit.unit,
+    //                           conversion: y.item_unit.conversion,
+    //                         },
+    //                 };
+    //               }),
+    //             };
+    //           })
+    //         );
+    //         console.log("[info]: Indexing search data completed.");
+    //         return res.status(200).send({
+    //           message: "Sync package success",
+    //         });
+    //       })
+    //       .catch((error) => {
+    //         console.log(`[error]: Error while fetching package data ${error}`);
+    //         return res.status(500).send(error);
+    //       });
+    //     break;
+    //   case syncMode.ProductNoSQL:
+    //     mongoProductModel
+    //       .deleteMany({})
+    //       .then(() => {
+    //         ItemModel.fetchAll(new Date())
+    //           .then(async (items) => {
+    //             await mongoProductModel.insertMany(
+    //               items.map((x) => {
+    //                 return {
+    //                   reference: x.reference,
+    //                   description: x.description,
+    //                   itemID: x.id,
+    //                   itemTypeID: x.item_type_id,
+    //                   itemBrandID: x.item_brand_id,
+    //                   currentStock: 0,
+    //                   unit: x.unit,
+    //                   minimumStock: x.minimum_stock || 0,
+    //                   calculatedMinimumStock: 0,
+    //                 };
+    //               })
+    //             );
 
-                console.log("[info]: Sync product NoSQL completed.");
-                return res.status(200).send({
-                  message: "Sync product NoSQL success",
-                });
-              })
-              .catch((error) => {
-                console.error(`[error]: Error on sync product NoSQL. ${error}`);
-                return res.status(500).send(error);
-              });
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on deleting product NoSQL. ${error}`);
-            return res.status(500).send(error);
-          });
+    //             console.log("[info]: Sync product NoSQL completed.");
+    //             return res.status(200).send({
+    //               message: "Sync product NoSQL success",
+    //             });
+    //           })
+    //           .catch((error) => {
+    //             console.error(`[error]: Error on sync product NoSQL. ${error}`);
+    //             return res.status(500).send(error);
+    //           });
+    //       })
+    //       .catch((error) => {
+    //         console.error(`[error]: Error on deleting product NoSQL. ${error}`);
+    //         return res.status(500).send(error);
+    //       });
 
-        break;
-      case syncMode.ProductMinimumStock:
-        ItemModel.fetchAll(new Date())
-          .then(async (items) => {
-            for (let i = 0; i < items.length; i++) {
-              await mongoProductModel.findOneAndUpdate(
-                { itemID: items[i].id },
-                {
-                  $set: {
-                    minimumStock: items[0].minimum_stock || 0,
-                    calculatedMinimumStock: 0,
-                  },
-                }
-              );
-            }
+    //     break;
+    //   case syncMode.ProductMinimumStock:
+    //     ItemModel.fetchAll(new Date())
+    //       .then(async (items) => {
+    //         for (let i = 0; i < items.length; i++) {
+    //           await mongoProductModel.findOneAndUpdate(
+    //             { itemID: items[i].id },
+    //             {
+    //               $set: {
+    //                 minimumStock: items[0].minimum_stock || 0,
+    //                 calculatedMinimumStock: 0,
+    //               },
+    //             }
+    //           );
+    //         }
 
-            console.log("[info]: Sync product NoSQL completed.");
-            return res.status(200).send({
-              message: "Sync product NoSQL success",
-            });
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on sync product NoSQL. ${error}`);
-            return res.status(500).send(error);
-          });
-        break;
-    }
+    //         console.log("[info]: Sync product NoSQL completed.");
+    //         return res.status(200).send({
+    //           message: "Sync product NoSQL success",
+    //         });
+    //       })
+    //       .catch((error) => {
+    //         console.error(`[error]: Error on sync product NoSQL. ${error}`);
+    //         return res.status(500).send(error);
+    //       });
+    //     break;
+    // }
   };
 
   /**

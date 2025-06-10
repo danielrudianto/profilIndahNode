@@ -9,19 +9,14 @@ export interface IProductBrand {
   is_delete?: boolean;
   deleted_by?: number;
   deleted_at?: Date;
-  can_delete?: boolean;
+  can_delete?: boolean | string;
 
   user?: UserViewModel;
 }
 
-export interface IFetchProductBrand {
-  id: number;
+export interface IProductBrandView {
+  id?: number;
   name: string;
-  user_name: string;
-  created_at: Date;
-  created_by: number;
-  is_delete: boolean;
-  can_delete: string;
 }
 
 export class ProductBrandModel {
@@ -45,8 +40,16 @@ export class ProductBrandModel {
     this.is_delete = data.is_delete || false;
     this.deleted_by = data.deleted_by || null;
     this.deleted_at = data.deleted_at || null;
-    this.can_delete = data.can_delete; // default to "1" if not provided
     this.user = data.user; // user information if available
+
+    // if can_delete is provided
+    if (data.can_delete !== undefined) {
+      if (typeof data.can_delete === "boolean") {
+        this.can_delete = data.can_delete;
+      } else if (typeof data.can_delete === "string") {
+        this.can_delete = data.can_delete.toLowerCase() === "1";
+      }
+    }
   }
 
   create() {
@@ -201,6 +204,23 @@ export class ProductBrandModel {
           in: ids,
         },
       },
+    });
+  }
+}
+
+export class ProductBrandViewModel {
+  id?: number;
+  name: string;
+
+  constructor(data: IProductBrandView) {
+    this.id = data.id;
+    this.name = data.name;
+  }
+
+  static fromMap(data: any): ProductBrandViewModel {
+    return new ProductBrandViewModel({
+      id: data.id,
+      name: data.name,
     });
   }
 }

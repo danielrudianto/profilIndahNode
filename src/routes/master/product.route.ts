@@ -2,12 +2,23 @@ import { Router } from "express";
 import { body, param, query } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import ProductController from "../../controller/product.controller";
-import ItemPriceController from "../../controller/product-price-sales.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
 import ItemPurchasePriceController from "../../controller/product-price-purchase.controller";
+import { ProductRepository } from "../../repositories/product.repository";
+import { prisma } from "../../helper/database.helper";
+import { ProductUnitRepository } from "../../repositories/product-unit.repository";
+import { ProductSalesPriceRepository } from "../../repositories/product-sales-price.repository";
+import { ProductPurchasePriceRepository } from "../../repositories/product-purchase-price.repository";
 
 const router = Router();
+
+const productController = new ProductController(
+  new ProductRepository(prisma),
+  new ProductUnitRepository(prisma),
+  new ProductSalesPriceRepository(prisma),
+  new ProductPurchasePriceRepository(prisma)
+);
 
 router.post(
   "/",
@@ -23,25 +34,25 @@ router.post(
   body("unit").exists().withMessage(ErrorList["Parameter error"]),
   body("unit").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductController.create
+  productController.create
 );
 
-router.get("/autocomplete", ProductController.fetchAutocomplete);
+router.get("/autocomplete", productController.fetchAutocomplete);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductController.fetchByID
+  productController.fetchByID
 );
 
-router.get("/complete/:id", ProductController.fetchCompleteSalesById);
-router.get("/", ProductController.fetch);
+// router.get("/complete/:id", productController.fetchCompleteSalesById);
+router.get("/", productController.fetch);
 router.put(
   "/active",
   body("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  ProductController.activateByID
+  ErrorHelper.intercept
+  // productController.activateByID
 );
 router.put(
   "/",
@@ -56,28 +67,29 @@ router.put(
     .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   body("unit").exists().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  ProductController.updateByID
+  ErrorHelper.intercept
+  // productController.update
 );
 
 router.post(
   "/price-sales",
-  body("item_id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ItemPriceController.fetchByItemID
+  body("item_id").notEmpty().withMessage(ErrorList["Parameter error"])
+  // ItemPriceController.fetchByItemID
 );
 
-router.post(
-  "/price-purchase",
-  body("item_id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ItemPurchasePriceController.fetchByID
-);
+// router.post(
+//   "/price-purchase",
+//   body("item_id").notEmpty().withMessage(ErrorList["Parameter error"]),
+//   ItemPurchasePriceController.fetchByID
+// );
+
 -router.delete(
   "/:id",
   administratorMiddleware,
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  ProductController.deleteByID
+  ErrorHelper.intercept
+  // productController.delete
 );
 
 export default router;

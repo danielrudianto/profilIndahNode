@@ -73,7 +73,7 @@ export class ProductBrandRepository {
         SELECT  item_brand.id, item_brand.name, user.name AS user_name,
                 user.username AS user_username, user.role AS user_role, 
                 item_brand.created_at, item_brand.created_by, 
-                IF(COALESCE(itemCount.count, 0) = 0, TRUE, FALSE) AS can_delete, 
+                IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, 
                 item_brand.is_delete
         FROM item_brand
         LEFT JOIN (
@@ -102,6 +102,8 @@ export class ProductBrandRepository {
       is_delete: false,
       ...(data.keyword && { name: { contains: data.keyword } }),
     };
+
+    console.log("Executing query:", query);
 
     const [result, count] = await this.prisma.$transaction([
       this.prisma.$queryRawUnsafe<any[]>(query),
@@ -177,13 +179,13 @@ export class ProductBrandRepository {
   async fetchByID(id: number): Promise<ProductBrandModel | null> {
     const result = await this.prisma.$queryRaw<any[]>`
         SELECT item_brand.id, item_brand.name, user.name AS user_name, 
-        user.username AS user_username, user.role AS user_role
+        user.username AS user_username, user.role AS user_role,
         item_brand.created_at, item_brand.created_by, item_brand.is_delete, 
-        IF(COALESCE(itemCount.count, 0) = 0, TRUE, FALSE) AS can_delete
+        IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
         FROM item_brand
         LEFT JOIN user ON user.id = item_brand.created_by
         LEFT JOIN (
-        SELECT COUNT(*) AS count, item_brand_id 
+        SELECT COUNT(id) AS count, item_brand_id 
         FROM item 
         WHERE is_delete = 0 
         GROUP BY item_brand_id

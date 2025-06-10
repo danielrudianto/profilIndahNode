@@ -9,12 +9,33 @@ export enum ItemUnitMode {
 
 export interface IProductUnit {
   id?: number;
-  item_id?: number;
+  item_id: number;
   unit: string;
   conversion: number;
   is_delete?: boolean;
   created_by?: number;
   created_at?: Date;
+
+  item_price?: {
+    id?: number;
+    price: number;
+    discount: number;
+    item_id?: number;
+    item_unit_id?: number;
+    created_by?: number;
+    created_at?: Date;
+    effective_date?: Date;
+  };
+
+  item_price_purchase?: {
+    id?: number;
+    price: number;
+    discount: number;
+    item_id?: number;
+    item_unit_id?: number;
+    created_by?: number;
+    created_at?: Date;
+  };
 }
 
 interface IUpdateProductUnit {
@@ -41,6 +62,41 @@ export class ProductUnitModel {
     this.is_delete = data.is_delete;
     this.created_by = data.created_by;
     this.created_at = data.created_at;
+  }
+
+  static fromMap(data: any): ProductUnitModel {
+    return new ProductUnitModel({
+      id: data.id,
+      item_id: data.item_id,
+      unit: data.unit,
+      conversion: Number(data.conversion),
+      is_delete: data.is_delete,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      item_price: data.item_price
+        ? {
+            id: data.item_price.id,
+            price: Number(data.item_price.price),
+            discount: Number(data.item_price.discount),
+            item_id: data.item_price.item_id,
+            item_unit_id: data.item_price.item_unit_id,
+            created_by: data.item_price.created_by,
+            created_at: data.item_price.created_at,
+            effective_date: data.item_price.effective_date,
+          }
+        : undefined,
+      item_price_purchase: data.item_price_purchase
+        ? {
+            id: data.item_price_purchase.id,
+            price: Number(data.item_price_purchase.price),
+            discount: Number(data.item_price_purchase.discount),
+            item_id: data.item_price_purchase.item_id,
+            item_unit_id: data.item_price_purchase.item_unit_id,
+            created_by: data.item_price_purchase.created_by,
+            created_at: data.item_price_purchase.created_at,
+          }
+        : undefined,
+    });
   }
 
   create() {

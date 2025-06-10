@@ -1,6 +1,4 @@
 import { Request, Response } from "express";
-import BillCodeModel from "../model/bill_code.model";
-import CustomerModel from "../model/customer.model";
 import { BillPaymentModel } from "../model/bill_payment.model";
 import ErrorList from "../assets/error_list";
 
@@ -13,70 +11,69 @@ class ReceivableController {
    * @param res
    */
   static fetch = (req: Request, res: Response) => {
-    BillCodeModel.fetchReceivableIDs().then(async (result) => {
-      BillCodeModel.fetchReceivableByIDs(
-        result.map((x) => {
-          return x.id;
-        })
-      )
-        .then((receivables) => {
-          return res.status(200).send(receivables);
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching receivable ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    });
+    // BillCodeModel.fetchReceivableIDs().then(async (result) => {
+    //   BillCodeModel.fetchReceivableByIDs(
+    //     result.map((x) => {
+    //       return x.id;
+    //     })
+    //   )
+    //     .then((receivables) => {
+    //       return res.status(200).send(receivables);
+    //     })
+    //     .catch((error) => {
+    //       console.error(`[error]: Error on fetching receivable ${error}`);
+    //       return res.status(500).send(ErrorList["Internal server error"]);
+    //     });
+    // });
   };
 
   static fetchByCustomerID = (req: Request, res: Response) => {
-    const customerID = req.params.id;
-    BillCodeModel.fetchBillIDByCustomerID(Number(customerID))
-      .then((result) => {
-        BillCodeModel.fetchReceivableDetailByIDs(
-          result.map((x) => {
-            return x.id;
-          })
-        ).then(async (receivables) => {
-          return res.status(200).send({
-            data: receivables,
-          });
-        });
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error on fetch receivable by customer id ${error}`
-        );
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    // const customerID = req.params.id;
+    // BillCodeModel.fetchBillIDByCustomerID(Number(customerID))
+    //   .then((result) => {
+    //     BillCodeModel.fetchReceivableDetailByIDs(
+    //       result.map((x) => {
+    //         return x.id;
+    //       })
+    //     ).then(async (receivables) => {
+    //       return res.status(200).send({
+    //         data: receivables,
+    //       });
+    //     });
+    //   })
+    //   .catch((error) => {
+    //     console.error(
+    //       `[error]: Error on fetch receivable by customer id ${error}`
+    //     );
+    //     return res.status(500).send(ErrorList["Internal server error"]);
+    //   });
   };
 
   static fetchByCustomerIDV2 = (req: Request, res: Response) => {
-    const customerID = Number(req.params.id);
-    const page =
-      req.query.page == null || req.query.page == undefined
-        ? 1
-        : Number(req.query.page);
-
-    BillCodeModel.fetchBillIDByCustomerIDV2(customerID, page)
-      .then(([result, count]) => {
-        BillCodeModel.fetchReceivableDetailByIDs(
-          result.map((x) => {
-            return x.id;
-          })
-        ).then(async (receivables) => {
-          return res.status(200).send({
-            data: receivables,
-            count: count,
-          });
-        });
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error on fetching receivable by customer ID ${error}`
-        );
-        return res.status(500).send(error);
-      });
+    // const customerID = Number(req.params.id);
+    // const page =
+    //   req.query.page == null || req.query.page == undefined
+    //     ? 1
+    //     : Number(req.query.page);
+    // BillCodeModel.fetchBillIDByCustomerIDV2(customerID, page)
+    //   .then(([result, count]) => {
+    //     BillCodeModel.fetchReceivableDetailByIDs(
+    //       result.map((x) => {
+    //         return x.id;
+    //       })
+    //     ).then(async (receivables) => {
+    //       return res.status(200).send({
+    //         data: receivables,
+    //         count: count,
+    //       });
+    //     });
+    //   })
+    //   .catch((error) => {
+    //     console.error(
+    //       `[error]: Error on fetching receivable by customer ID ${error}`
+    //     );
+    //     return res.status(500).send(error);
+    //   });
   };
 
   static fetchPaymentsHistory = (req: Request, res: Response) => {
@@ -168,46 +165,46 @@ class ReceivableController {
     const { payment_method_id, full_payment, sales_invoice_id, date, amount } =
       req.body;
 
-    const salesInvoice = await BillCodeModel.fetchByID(sales_invoice_id);
+    // const salesInvoice = await BillCodeModel.fetchByID(sales_invoice_id);
 
-    // Validate sales invoice
-    if (!validateSalesInvoice(salesInvoice, res)) return;
+    // // Validate sales invoice
+    // if (!validateSalesInvoice(salesInvoice, res)) return;
 
-    // Calculate invoice values
-    const { totalInvoiceValue, totalPayment } =
-      calculateInvoiceValues(salesInvoice);
+    // // Calculate invoice values
+    // const { totalInvoiceValue, totalPayment } =
+    //   calculateInvoiceValues(salesInvoice);
 
-    const remainingValue = totalInvoiceValue - totalPayment;
+    // const remainingValue = totalInvoiceValue - totalPayment;
 
-    // Handle full payment
-    if (full_payment) {
-      return createPaymentRecord(
-        sales_invoice_id,
-        payment_method_id == 0 ? null : payment_method_id,
-        remainingValue,
-        new Date(date),
-        true,
-        res
-      );
-    }
+    // // Handle full payment
+    // if (full_payment) {
+    //   return createPaymentRecord(
+    //     sales_invoice_id,
+    //     payment_method_id == 0 ? null : payment_method_id,
+    //     remainingValue,
+    //     new Date(date),
+    //     true,
+    //     res
+    //   );
+    // }
 
-    // Handle partial payment
-    if (amount > remainingValue) {
-      return res.status(400).send({
-        message: "Payment amount is greater than the remaining invoice value",
-      });
-    }
+    // // Handle partial payment
+    // if (amount > remainingValue) {
+    //   return res.status(400).send({
+    //     message: "Payment amount is greater than the remaining invoice value",
+    //   });
+    // }
 
-    const isPaid = amount + totalPayment === totalInvoiceValue;
+    // const isPaid = amount + totalPayment === totalInvoiceValue;
 
-    return createPaymentRecord(
-      sales_invoice_id,
-      payment_method_id == 0 ? null : payment_method_id,
-      amount,
-      new Date(date),
-      isPaid,
-      res
-    );
+    // return createPaymentRecord(
+    //   sales_invoice_id,
+    //   payment_method_id == 0 ? null : payment_method_id,
+    //   amount,
+    //   new Date(date),
+    //   isPaid,
+    //   res
+    // );
   };
 
   static deletePayment = async (req: Request, res: Response) => {
@@ -230,13 +227,13 @@ class ReceivableController {
   };
 
   static checkReceivable = () => {
-    BillCodeModel.calculateReceivables()
-      .then((result) => {
-        this.receivable = result.length == 0 ? 0 : Number(result[0].value);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on check receivable ${error}`);
-      });
+    // BillCodeModel.calculateReceivables()
+    //   .then((result) => {
+    //     this.receivable = result.length == 0 ? 0 : Number(result[0].value);
+    //   })
+    //   .catch((error) => {
+    //     console.error(`[error]: Error on check receivable ${error}`);
+    //   });
   };
 }
 

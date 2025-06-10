@@ -1,19 +1,34 @@
 import { Request, Response } from "express";
-import GoodReceiptModel from "../model/good_receipt.model";
-import ItemPurchasePriceModel from "../model/item_purchase_price.model";
+import GoodReceiptModel from "../model/good-receipt.model";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import { StockInInterface } from "../interface/stock-in.interface";
 import { StockInModel } from "../model/stock-in.model";
+import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
+import { PurchaseInvoiceRepository } from "../repositories/purchase-invoice.repository";
+import { StockInRepository } from "../repositories/stock-in.repository";
+import { ProductPurchasePriceRepository } from "../repositories/product-purchase-price.repository";
 
 class GoodReceiptController {
-  /**
-   * Create new good receipt
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
+  private goodReceiptRepository: GoodReceiptRepository;
+  private purchaseInvoiceRepository: PurchaseInvoiceRepository;
+  private stockInRepository: StockInRepository;
+  private productPurchasePriceRepository: ProductPurchasePriceRepository;
+
+  constructor(
+    goodReceiptRepository: GoodReceiptRepository,
+    purchaseInvoiceRepository: PurchaseInvoiceRepository,
+    stockInRepository: StockInRepository,
+    productPurchasePriceRepository: ProductPurchasePriceRepository
+  ) {
+    this.goodReceiptRepository = goodReceiptRepository;
+    this.purchaseInvoiceRepository = purchaseInvoiceRepository;
+    this.stockInRepository = stockInRepository;
+    this.productPurchasePriceRepository = productPurchasePriceRepository;
+  }
+
+  create = async (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
     const company_id = req.body.company_id;
@@ -25,68 +40,140 @@ class GoodReceiptController {
     const userID = req.body.userId;
     const uuid = req.body.uuid;
 
-    ItemPurchasePriceModel.fetchCurrentPrice(
-      good_receipt_items.map((x) => {
-        return {
-          item_id: x.item_id,
-          item_unit_id: x.item_unit_id,
-        };
-      })
-    ).then((priceResult) => {
-      GoodReceiptModel.create({
+    try {
+      const purchasePrice =
+        await this.productPurchasePriceRepository.fetchByItemIDs(
+          good_receipt_items.map((x) => {
+            return {
+              item_id: x.item_id,
+              item_unit_id: x.item_unit_id,
+            };
+          })
+        );
+
+      const result = await this.goodReceiptRepository.create({
         uuid: uuid,
         name: name,
-        purchase_invoice_name: purchase_invoice_name,
         date: date,
-        supplier_id: supplier_id,
         company_id: company_id,
+        supplier_id: supplier_id,
+        created_at: new Date(),
         created_by: userID,
-        good_receipt: good_receipt_items.map((x) => {
-          const priceIndex = priceResult.findIndex(
-            (y) => y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
-          );
+        good_receipt: good_receipt_items.map((x, index) => {
           return {
             item_id: x.item_id,
             item_unit_id: x.item_unit_id,
             quantity: x.quantity,
-            price: priceIndex == -1 ? 0 : priceResult[priceIndex].price,
-            discount: priceIndex == -1 ? 0 : priceResult[priceIndex].discount,
+            // if the price in that index is null, set it to 0
+            price:
+              purchasePrice[index] == null ? 0 : purchasePrice[index]!.price,
+            discount:
+              purchasePrice[index] == null ? 0 : purchasePrice[index]!.discount,
           };
         }),
-      })
-        .then(async (goodReceiptResult) => {
-          StockInModel.createMany(
-            goodReceiptResult.good_receipt.map((x) => {
-              return {
-                date: goodReceiptResult.date,
-                company_id: goodReceiptResult.company_id,
-                good_receipt_code_id: goodReceiptResult.id,
-                adjustment_case_code_id: null,
-                adjustment_case_id: null,
-                good_receipt_id: x.id,
-                price: Number(x.price) - Number(x.discount),
-                quantity:
-                  Number(x.quantity) *
-                  Number(x.item_unit == null ? 1 : x.item_unit.conversion),
-                item_id: x.item.id,
-              };
-            })
-          )
-            .then(() => {
-              return res.status(201).send(goodReceiptResult);
-            })
-            .catch((error) => {
-              console.error(
-                `[error]: Error on inserting good receipt stock in ${error}`
-              );
-              return res.status(500).send(ErrorList["Internal server error"]);
-            });
+      });
+
+      await this.stockInRepository.createMany(
+        good_receipt_items.map((x) => {
+          return {
+            date: date,
+            company_id: company_id,
+            good_receipt_code_id: result.id!,
+            good_receipt_id: x.id,
+            adjustment_case_code_id: null,
+            adjustment_case_id: null,
+            price: Number(x.price) - Number(x.discount),
+            quantity:
+              Number(x.quantity) *
+              (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
+            item_id: x.item_id,
+          };
         })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching price ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    });
+      );
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on creating good receipt ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+  /**
+   * Create new good receipt
+   * @param req
+   * @param res
+   */
+  static create = (req: Request, res: Response) => {
+    // const date = new Date(req.body.date);
+    // const name = req.body.name;
+    // const company_id = req.body.company_id;
+    // const supplier_id = req.body.supplier_id;
+    // const good_receipt_items = req.body.good_receipt as any[];
+    // const purchase_invoice = req.body.purchase_invoice as any;
+    // const purchase_invoice_name = purchase_invoice.name;
+    // const userID = req.body.userId;
+    // const uuid = req.body.uuid;
+    // ItemPurchasePriceModel.fetchCurrentPrice(
+    //   good_receipt_items.map((x) => {
+    //     return {
+    //       item_id: x.item_id,
+    //       item_unit_id: x.item_unit_id,
+    //     };
+    //   })
+    // ).then((priceResult) => {
+    //   GoodReceiptModel.create({
+    //     uuid: uuid,
+    //     name: name,
+    //     purchase_invoice_name: purchase_invoice_name,
+    //     date: date,
+    //     supplier_id: supplier_id,
+    //     company_id: company_id,
+    //     created_by: userID,
+    //     good_receipt: good_receipt_items.map((x) => {
+    //       const priceIndex = priceResult.findIndex(
+    //         (y) => y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
+    //       );
+    //       return {
+    //         item_id: x.item_id,
+    //         item_unit_id: x.item_unit_id,
+    //         quantity: x.quantity,
+    //         price: priceIndex == -1 ? 0 : priceResult[priceIndex].price,
+    //         discount: priceIndex == -1 ? 0 : priceResult[priceIndex].discount,
+    //       };
+    //     }),
+    //   })
+    //     .then(async (goodReceiptResult) => {
+    //       StockInModel.createMany(
+    //         goodReceiptResult.good_receipt.map((x) => {
+    //           return {
+    //             date: goodReceiptResult.date,
+    //             company_id: goodReceiptResult.company_id,
+    //             good_receipt_code_id: goodReceiptResult.id,
+    //             adjustment_case_code_id: null,
+    //             adjustment_case_id: null,
+    //             good_receipt_id: x.id,
+    //             price: Number(x.price) - Number(x.discount),
+    //             quantity:
+    //               Number(x.quantity) *
+    //               Number(x.item_unit == null ? 1 : x.item_unit.conversion),
+    //             item_id: x.item.id,
+    //           };
+    //         })
+    //       )
+    //         .then(() => {
+    //           return res.status(201).send(goodReceiptResult);
+    //         })
+    //         .catch((error) => {
+    //           console.error(
+    //             `[error]: Error on inserting good receipt stock in ${error}`
+    //           );
+    //           return res.status(500).send(ErrorList["Internal server error"]);
+    //         });
+    //     })
+    //     .catch((error) => {
+    //       console.error(`[error]: Error on fetching price ${error}`);
+    //       return res.status(500).send(ErrorList["Internal server error"]);
+    //     });
+    // });
   };
 
   /**

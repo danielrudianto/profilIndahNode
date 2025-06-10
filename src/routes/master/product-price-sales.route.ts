@@ -1,17 +1,18 @@
 import { Router } from "express";
-import ItemPriceController from "../../controller/product-price-sales.controller";
+import { ProductSalesPriceController } from "../../controller/product-price-sales.controller";
 
+// SAPI
 const router = Router();
 
-router.get("/bulk", ItemPriceController.fetchAll);
-router.get("/v2/:id", ItemPriceController.fetchByIDV2);
-router.get("/:id", ItemPriceController.fetchByID);
-router.get("/", ItemPriceController.fetch);
+router.get("/bulk", ProductSalesPriceController.fetchAll);
+router.get("/v2/:id", ProductSalesPriceController.fetchByIDV2);
+router.get("/:id", ProductSalesPriceController.fetchByID);
+router.get("/", ProductSalesPriceController.fetch);
 
-router.post("/format", ItemPriceController.fetchFormat);
-router.post("/bulk", ItemPriceController.createBulk);
+router.post("/format", ProductSalesPriceController.fetchFormat);
+router.post("/bulk", ProductSalesPriceController.createBulk);
 
-router.put("/v2", ItemPriceController.updateByIDV2);
-router.put("/", ItemPriceController.updateByID);
+router.put("/v2", ProductSalesPriceController.updateByIDV2);
+router.put("/", ProductSalesPriceController.updateByID);
 
 export default router;

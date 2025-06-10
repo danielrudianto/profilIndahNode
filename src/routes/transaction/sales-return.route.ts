@@ -1,11 +1,19 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
+import { prisma } from "../../helper/database.helper";
 import ErrorList from "../../assets/error_list";
 import SalesReturnController from "../../controller/sales-return.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
+import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
+import { SalesReturnRepository } from "../../repositories/sales-return.repository";
 
 const router = Router();
+
+const salesReturnController = new SalesReturnController(
+  new SalesReturnRepository(prisma),
+  new SalesInvoiceRepository(prisma)
+);
 
 router.post(
   "/search",
@@ -21,8 +29,11 @@ router.post(
   body("payment_method_id")
     .notEmpty()
     .withMessage(ErrorList["Payment method required"]),
+  body("sales_return")
+    .isArray()
+    .withMessage(ErrorList["Sales return items required"]),
   ErrorHelper.intercept,
-  SalesReturnController.create
+  salesReturnController.create
 );
 
 router.get(

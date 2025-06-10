@@ -4,7 +4,7 @@ import ErrorList from "../../assets/error_list";
 import ErrorHelper from "../../helper/error.helper";
 import UserAvatarController from "../../controller/user-avatar.controller";
 import { UserAvatarRepository } from "../../repositories/user-avatar.repository";
-import { prisma } from "../../app";
+import { prisma } from "../../helper/database.helper";
 
 const router = Router();
 

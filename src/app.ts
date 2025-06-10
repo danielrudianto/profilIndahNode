@@ -5,9 +5,9 @@ import { Server } from "socket.io";
 import { MeiliSearch } from "meilisearch";
 import cron from "node-cron";
 import { createClient } from "redis";
+import { initIO } from "./helper/io";
 
 import { authMiddleware } from "./helper/auth.helper";
-
 import authRoutes from "./routes/authentication/auth.route";
 /*
   Routes for master data
@@ -35,7 +35,7 @@ import userRoutes from "./routes/master/user.route";
 import userAvatarRoutes from "./routes/master/user-avatar.route";
 import expenseRoutes from "./routes/transaction/expense.route";
 import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
-import adjustmentEventRoutes from "./routes/transaction/adjustment-event.route";
+import adjustmentEventRoutes from "./routes/transaction/adjustment-case.route";
 import reportRoutes from "./routes/report/report.route";
 import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
@@ -65,8 +65,11 @@ export const meili = new MeiliSearch({
   apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
 });
 
+export const prisma = new PrismaClient({ log: ["query", "info"] });
+export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
+
 const allowedOrigins = [
-  "http://localhost:4200",
+  "http://localhost:2100",
   "https://app.profilindah.id",
   "https://stock.profilindah.id",
   "https://v16.profilindah.id",
@@ -76,71 +79,9 @@ const options: cors.CorsOptions = {
   origin: allowedOrigins,
 };
 
-const app = express();
-app.use(compression());
-app.use(helmet());
-app.use(cors(options));
-
-app.use(express.urlencoded({ extended: true, limit: "100mb" }));
-app.use(express.json({ limit: "50mb" }));
-
-app.use("/auth", authRoutes);
-app.use("/product", authMiddleware, productRoutes);
-app.use("/product-price-sales", authMiddleware, productSalesPriceRoutes);
-app.use("/product-price-purchase", authMiddleware, productPurchasePriceRoutes);
-app.use("/product-brand", authMiddleware, productBrandRoutes);
-app.use("/product-type", authMiddleware, productTypeRoutes);
-app.use("/product-unit", authMiddleware, productUnitRoutes);
-app.use("/product-stock", authMiddleware, productStockRoutes);
-app.use("/product-package", authMiddleware, productPackageRoutes);
-app.use("/promotion", authMiddleware, PromotionRoutes);
-app.use("/deposit", authMiddleware, DepositRoutes);
-
-app.use("/supplier", authMiddleware, supplierRoutes);
-app.use("/customer", authMiddleware, customerRoutes);
-app.use("/company", authMiddleware, companyRoutes);
-app.use("/payment-method", authMiddleware, paymentMethodRoutes);
-app.use("/expense-type", authMiddleware, expenseTypeRoutes);
-
-app.use("/adjustment-event", authMiddleware, adjustmentEventRoutes);
-app.use("/sales-return", authMiddleware, salesReturnRoutes);
-
-app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
-app.use("/purchase-invoice", authMiddleware, purchaseInvoiceRoutes);
-app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
-app.use("/draft-bill", authMiddleware, DraftBillRoutes);
-app.use("/cashier", authMiddleware, CashierRoutes);
-
-app.use("/user", authMiddleware, userRoutes);
-app.use("/user-avatar", authMiddleware, userAvatarRoutes);
-app.use("/expense", authMiddleware, expenseRoutes);
-app.use("/report", reportRoutes);
-app.use("/receivable", authMiddleware, ReceivableRoutes);
-
-app.use("/administrator", administratorRoutes);
-app.use("/warehouse", warehouseRoutes);
-app.use("/os", osRoutes);
-app.use("/changelog", changelogRoutes);
-app.use("/development", developmentRoutes);
-
-app.use(
-  cors({
-    origin: "*",
-  })
-);
-
-const server = http.createServer(app);
-export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
-
-server.listen(5000, async () => {
-  console.log("[server]: Server is running on port 5000");
-
-  redisClient.on("error", (err) =>
-    console.error(`[error]: Error on redis ${err}`)
-  );
-
-  await redisClient.connect();
-  console.info("[info]: Connected with redis");
+async function main() {
+  await prisma.$connect();
+  console.info("[info]: Connected with database using Prisma");
 
   const url = "mongodb://127.0.0.1:27017/ProfilIndah";
   await mongoose.connect(url, {
@@ -148,6 +89,9 @@ server.listen(5000, async () => {
     autoCreate: true,
   });
   console.info("[info]: Connected with database");
+
+  await redisClient.connect();
+  console.info("[info]: Connected with redis");
 
   ReceivableController.checkReceivable();
   console.info("[info]: Checking receivable");
@@ -163,19 +107,68 @@ server.listen(5000, async () => {
     console.log("[info]: Checking receivable");
     ReceivableController.checkReceivable();
   });
-});
 
-export const prisma = new PrismaClient();
+  const app = express();
+  app.use(compression());
+  app.use(helmet());
+  app.use(cors(options));
 
-export const io = new Server(server, {
-  cors: {
-    origin: "*",
-    methods: "*",
-  },
-});
+  app.use(express.urlencoded({ extended: true, limit: "100mb" }));
+  app.use(express.json({ limit: "50mb" }));
 
-io.on("connection", () => {
-  console.log("New connection established");
-});
+  app.use("/auth", authRoutes);
+  app.use("/product", authMiddleware, productRoutes);
+  app.use("/product-price-sales", authMiddleware, productSalesPriceRoutes);
+  app.use(
+    "/product-price-purchase",
+    authMiddleware,
+    productPurchasePriceRoutes
+  );
+  app.use("/product-brand", authMiddleware, productBrandRoutes);
+  app.use("/product-type", authMiddleware, productTypeRoutes);
+  app.use("/product-unit", authMiddleware, productUnitRoutes);
+  app.use("/product-stock", authMiddleware, productStockRoutes);
+  app.use("/product-package", authMiddleware, productPackageRoutes);
+  app.use("/promotion", authMiddleware, PromotionRoutes);
+  app.use("/deposit", authMiddleware, DepositRoutes);
 
-export default app;
+  app.use("/supplier", authMiddleware, supplierRoutes);
+  app.use("/customer", authMiddleware, customerRoutes);
+  app.use("/company", authMiddleware, companyRoutes);
+  app.use("/payment-method", authMiddleware, paymentMethodRoutes);
+  app.use("/expense-type", authMiddleware, expenseTypeRoutes);
+
+  app.use("/adjustment-event", authMiddleware, adjustmentEventRoutes);
+  app.use("/sales-return", authMiddleware, salesReturnRoutes);
+
+  app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
+  app.use("/purchase-invoice", authMiddleware, purchaseInvoiceRoutes);
+  app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
+  app.use("/draft-bill", authMiddleware, DraftBillRoutes);
+  app.use("/cashier", authMiddleware, CashierRoutes);
+
+  app.use("/user", authMiddleware, userRoutes);
+  app.use("/user-avatar", authMiddleware, userAvatarRoutes);
+  app.use("/expense", authMiddleware, expenseRoutes);
+  app.use("/report", reportRoutes);
+  app.use("/receivable", authMiddleware, ReceivableRoutes);
+
+  app.use("/administrator", administratorRoutes);
+  app.use("/warehouse", warehouseRoutes);
+  app.use("/os", osRoutes);
+  app.use("/changelog", changelogRoutes);
+  app.use("/development", developmentRoutes);
+
+  const server = http.createServer(app);
+  server.listen(5000, () => {
+    console.log("[server]: Server is running on port 5000");
+  });
+
+  const io = initIO(server);
+
+  io.on("connection", () => {
+    console.log("New connection established");
+  });
+}
+
+main();

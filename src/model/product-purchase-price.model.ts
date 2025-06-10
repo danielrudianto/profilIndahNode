@@ -2,6 +2,16 @@ import { PrismaClient, PrismaPromise } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
+export interface IProductPurchasePrice {
+  id?: number;
+  item_id: number;
+  item_unit_id: number | null;
+  price: number;
+  discount: number;
+  created_by?: number;
+  created_at?: Date;
+}
+
 interface ICreateItemPurchasePrice {
   price: number;
   discount: number;
@@ -53,7 +63,36 @@ interface IFetchItemPurchasePriceFetch {
   item_unit_id: number | null;
 }
 
-class ItemPurchasePriceModel {
+export class ProductPurchasePriceModel {
+  id?: number;
+  item_id: number;
+  item_unit_id: number | null;
+  price: number;
+  discount: number;
+  created_by?: number;
+  created_at?: Date;
+
+  constructor(data: IProductPurchasePrice) {
+    this.id = data.id;
+    this.item_id = data.item_id;
+    this.item_unit_id = data.item_unit_id;
+    this.price = data.price;
+    this.discount = data.discount;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at;
+  }
+
+  static fromMap(data: any): ProductPurchasePriceModel {
+    return new ProductPurchasePriceModel({
+      id: data.id,
+      item_id: data.item_id,
+      item_unit_id: data.item_unit_id,
+      price: Number(data.price),
+      discount: Number(data.discount),
+      created_by: data.created_by,
+      created_at: data.created_at,
+    });
+  }
   /**
    * Create item purchase price by item ID and item unit ID
    * @param data
@@ -319,5 +358,3 @@ class ItemPurchasePriceModel {
     return prisma.$transaction(transactions);
   }
 }
-
-export default ItemPurchasePriceModel;

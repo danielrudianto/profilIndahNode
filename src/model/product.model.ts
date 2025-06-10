@@ -1,10 +1,18 @@
 import { PrismaClient } from "@prisma/client";
-import ItemTypeModel from "./product-type.model";
-import { ItemBrandModel, ProductBrandModel } from "./product-brand.model";
+import {
+  IProductBrandView,
+  ProductBrandModel,
+  ProductBrandViewModel,
+} from "./product-brand.model";
+import {
+  IProductTypeView,
+  ProductTypeViewModel,
+  ProductTypeModel,
+} from "./product-type.model";
 import { ProductUnitModel } from "./product-unit.model";
 const prisma = new PrismaClient();
 
-interface IProduct {
+export interface IProduct {
   id?: number;
   reference: string;
   description: string;
@@ -23,8 +31,8 @@ interface IProduct {
   purchase_price?: number;
   purchase_discount?: number;
 
-  item_type?: ItemTypeModel;
-  item_brand?: ItemBrandModel;
+  item_type?: IProductTypeView;
+  item_brand?: IProductBrandView;
 }
 
 export interface ICreateProductUnit {
@@ -100,10 +108,11 @@ export class ProductModel {
   is_delete?: boolean = false;
   minimum_stock?: number;
   unit: string;
-  item_brand?: ItemBrandModel;
-  item_type?: ItemTypeModel;
+  item_brand?: IProductBrandView;
+  item_type?: ProductTypeModel;
   price?: number;
   discount?: number;
+
   purchase_price?: number;
   purchase_discount?: number;
   item_unit?: ProductUnitModel[] = [];
@@ -143,8 +152,8 @@ export class ProductModel {
       updated_at: data.updated_at,
       minimum_stock: data.minimum_stock,
       unit: data.unit,
-      item_brand: ProductBrandModel.fromMap(data.item_brand),
-      item_type: ProductTypeModel.fromMap(data.item_type),
+      item_brand: ProductBrandViewModel.fromMap(data.item_brand),
+      item_type: ProductTypeViewModel.fromMap(data.item_type),
     });
   }
 

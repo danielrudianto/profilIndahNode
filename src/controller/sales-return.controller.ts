@@ -2,20 +2,59 @@ import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
-import BillModel from "../model/bill.model";
-import BillCodeModel from "../model/bill_code.model";
-import SalesReturnModel from "../model/sales_return.model";
+import SalesReturnModel from "../model/sales-return.model";
 import { mongoStockOutModel } from "../mongo-model/mongo-stock-in.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { StockInModel } from "../model/stock-in.model";
 import { IStockOutFetch, StockOutModel } from "../model/stock-out.model";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
+import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 
 class SalesReturnController {
   private salesReturnRepository: SalesReturnRepository;
+  private salesInvoiceRepository: SalesInvoiceRepository;
 
-  constructor(salesReturnRepository: SalesReturnRepository) {
+  constructor(
+    salesReturnRepository: SalesReturnRepository,
+    salesInvoiceRepository: SalesInvoiceRepository
+  ) {
     this.salesReturnRepository = salesReturnRepository;
+    this.salesInvoiceRepository = salesInvoiceRepository;
+  }
+
+  async create(req: Request, res: Response) {
+    try {
+      const date = new Date(req.body.date);
+      const payment_method_id =
+        req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
+      const items = req.body.sales_return as any[];
+      const userID = req.body.userId;
+
+      const bills: any[] = items.map((x) => {
+        return {
+          quantity: x.quantity,
+          bill_id: x.bill_id,
+        };
+      });
+      this.salesInvoiceRepository.checkSalesReturn(bills);
+    } catch (error) {
+      console.error(`[error]: Error on creating sales return: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  }
+
+  private generateName(date: Date): string {
+    const name = `RJ-${date.getFullYear()}-${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}`;
+
+    return name;
   }
 
   /**
@@ -25,180 +64,169 @@ class SalesReturnController {
    * @returns Sales return data
    */
   static create = async (req: Request, res: Response) => {
-    try {
-      const date = new Date(req.body.date);
-      const payment_method_id =
-        req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
-      const items = req.body.sales_return as any[];
-      const userID = req.body.userId;
+    // try {
+    //   const date = new Date(req.body.date);
+    //   const payment_method_id =
+    //     req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
+    //   const items = req.body.sales_return as any[];
+    //   const userID = req.body.userId;
 
-      if (items.length == 0) {
-        return res.status(400).send(ErrorList["Parameter error"]);
-      }
+    //   if (items.length == 0) {
+    //     return res.status(400).send(ErrorList["Parameter error"]);
+    //   }
 
-      const billIDs: number[] = items.map((x) => x.bill_id);
-      const billItems = await BillModel.fetchByIDs(billIDs);
-      for (let i = 0; i < billItems.length; i++) {
-        const itemIndex = items.findIndex((x) => x.bill_id == billItems[i].id);
-        if (itemIndex == -1) {
-          return res.status(400).send(ErrorList["Parameter error"]);
-        }
+    //   const billItems = await BillModel.fetchByIDs(billIDs);
+    //   for (let i = 0; i < billItems.length; i++) {
+    //     const itemIndex = items.findIndex((x) => x.bill_id == billItems[i].id);
+    //     if (itemIndex == -1) {
+    //       return res.status(400).send(ErrorList["Parameter error"]);
+    //     }
 
-        if (
-          billItems[i].quantity - billItems[i].return_quantity <
-          items[itemIndex].quantity
-        ) {
-          return res.status(400).send(ErrorList["Parameter error"]);
-        }
-      }
+    //     if (
+    //       billItems[i].quantity - billItems[i].return_quantity <
+    //       items[itemIndex].quantity
+    //     ) {
+    //       return res.status(400).send(ErrorList["Parameter error"]);
+    //     }
+    //   }
 
-      const name = `RJ-${date.getFullYear()}-${Math.floor(
-        Math.random() * 10
-      )}${Math.floor(Math.random() * 10)}${Math.floor(
-        Math.random() * 10
-      )}${Math.floor(Math.random() * 10)}${Math.floor(
-        Math.random() * 10
-      )}${Math.floor(Math.random() * 10)}${Math.floor(
-        Math.random() * 10
-      )}${Math.floor(Math.random() * 10)}`;
+    //   const sales_return = await SalesReturnModel.create({
+    //     name: name,
+    //     date: date,
+    //     created_by: userID,
+    //     payment_method_id: payment_method_id,
+    //     sales_return: items.map((x: any) => {
+    //       return {
+    //         bill_id: x.bill_id,
+    //         quantity: x.quantity,
+    //       };
+    //     }),
+    //   });
 
-      const sales_return = await SalesReturnModel.create({
-        name: name,
-        date: date,
-        created_by: userID,
-        payment_method_id: payment_method_id,
-        sales_return: items.map((x: any) => {
-          return {
-            bill_id: x.bill_id,
-            quantity: x.quantity,
-          };
-        }),
-      });
+    //   for (let i = 0; i < sales_return.sales_return.length; i++) {
+    //     if (sales_return.sales_return[i].bill.item != null) {
+    //       const stockOut = await StockOutModel.fetch(
+    //         IStockOutFetch.BY_REFERENCE,
+    //         {
+    //           bill_id: sales_return.sales_return[i].bill_id,
+    //           bill_code_id: sales_return.sales_return[i].bill.bill_code.id,
+    //           adjustment_case_id: null,
+    //           adjustment_case_code_id: null,
+    //           item_id: sales_return.sales_return[i].bill.item!.id,
+    //         }
+    //       );
 
-      for (let i = 0; i < sales_return.sales_return.length; i++) {
-        if (sales_return.sales_return[i].bill.item != null) {
-          const stockOut = await StockOutModel.fetch(
-            IStockOutFetch.BY_REFERENCE,
-            {
-              bill_id: sales_return.sales_return[i].bill_id,
-              bill_code_id: sales_return.sales_return[i].bill.bill_code.id,
-              adjustment_case_id: null,
-              adjustment_case_code_id: null,
-              item_id: sales_return.sales_return[i].bill.item!.id,
-            }
-          );
+    //       let quantity = Number(sales_return.sales_return[i].quantity);
+    //       while (quantity > 0) {
+    //         for (let j = 0; j < stockOut.length; j++) {
+    //           if (stockOut[j].quantity >= quantity) {
+    //             // rollback stockin
+    //             if (stockOut[j].stock_in_id != null) {
+    //               await StockInModel.rollBack([
+    //                 {
+    //                   id: stockOut[j].id!,
+    //                   quantity: quantity,
+    //                 },
+    //               ]);
+    //             }
 
-          let quantity = Number(sales_return.sales_return[i].quantity);
-          while (quantity > 0) {
-            for (let j = 0; j < stockOut.length; j++) {
-              if (stockOut[j].quantity >= quantity) {
-                // rollback stockin
-                if (stockOut[j].stock_in_id != null) {
-                  await StockInModel.rollBack([
-                    {
-                      id: stockOut[j].id!,
-                      quantity: quantity,
-                    },
-                  ]);
-                }
+    //             stockOut[j].quantity -= quantity;
+    //             stockOut[j].update();
 
-                stockOut[j].quantity -= quantity;
-                stockOut[j].update();
+    //             quantity = 0;
+    //             break;
+    //           } else if (stockOut[j].quantity < quantity) {
+    //             // rollback stockin
+    //             if (stockOut[j].stock_in_id != null) {
+    //               await StockInModel.rollBack([
+    //                 {
+    //                   id: stockOut[j].id!,
+    //                   quantity: stockOut[j].quantity,
+    //                 },
+    //               ]);
+    //             }
 
-                quantity = 0;
-                break;
-              } else if (stockOut[j].quantity < quantity) {
-                // rollback stockin
-                if (stockOut[j].stock_in_id != null) {
-                  await StockInModel.rollBack([
-                    {
-                      id: stockOut[j].id!,
-                      quantity: stockOut[j].quantity,
-                    },
-                  ]);
-                }
+    //             stockOut[j].quantity = 0;
+    //             stockOut[j].update();
 
-                stockOut[j].quantity = 0;
-                stockOut[j].update();
+    //             quantity -= stockOut[j].quantity;
+    //           }
+    //         }
+    //       }
+    //     } else {
+    //       for (
+    //         let n = 0;
+    //         n <
+    //         sales_return.sales_return[i].bill.package_code!.package_content
+    //           .length;
+    //         n++
+    //       ) {
+    //         const stockOut = await StockOutModel.fetch(
+    //           IStockOutFetch.BY_REFERENCE,
+    //           {
+    //             bill_id: sales_return.sales_return[i].bill_id,
+    //             bill_code_id: sales_return.sales_return[i].bill.bill_code.id,
+    //             item_id:
+    //               sales_return.sales_return[i].bill.package_code!
+    //                 .package_content[n].item.id,
+    //             adjustment_case_id: null,
+    //             adjustment_case_code_id: null,
+    //           }
+    //         );
 
-                quantity -= stockOut[j].quantity;
-              }
-            }
-          }
-        } else {
-          for (
-            let n = 0;
-            n <
-            sales_return.sales_return[i].bill.package_code!.package_content
-              .length;
-            n++
-          ) {
-            const stockOut = await StockOutModel.fetch(
-              IStockOutFetch.BY_REFERENCE,
-              {
-                bill_id: sales_return.sales_return[i].bill_id,
-                bill_code_id: sales_return.sales_return[i].bill.bill_code.id,
-                item_id:
-                  sales_return.sales_return[i].bill.package_code!
-                    .package_content[n].item.id,
-                adjustment_case_id: null,
-                adjustment_case_code_id: null,
-              }
-            );
+    //         let quantity =
+    //           Number(sales_return.sales_return[i].quantity) *
+    //           Number(
+    //             sales_return.sales_return[i].bill.package_code!.package_content[
+    //               n
+    //             ].quantity
+    //           );
 
-            let quantity =
-              Number(sales_return.sales_return[i].quantity) *
-              Number(
-                sales_return.sales_return[i].bill.package_code!.package_content[
-                  n
-                ].quantity
-              );
+    //         while (quantity > 0) {
+    //           for (let j = 0; j < stockOut.length; j++) {
+    //             if (stockOut[j].quantity >= quantity) {
+    //               // rollback stockin
+    //               if (stockOut[j].stock_in_id != null) {
+    //                 await StockInModel.rollBack([
+    //                   {
+    //                     id: stockOut[j].id!,
+    //                     quantity: quantity,
+    //                   },
+    //                 ]);
+    //               }
 
-            while (quantity > 0) {
-              for (let j = 0; j < stockOut.length; j++) {
-                if (stockOut[j].quantity >= quantity) {
-                  // rollback stockin
-                  if (stockOut[j].stock_in_id != null) {
-                    await StockInModel.rollBack([
-                      {
-                        id: stockOut[j].id!,
-                        quantity: quantity,
-                      },
-                    ]);
-                  }
+    //               stockOut[j].quantity -= quantity;
+    //               stockOut[j].update();
 
-                  stockOut[j].quantity -= quantity;
-                  stockOut[j].update();
+    //               quantity = 0;
+    //               break;
+    //             } else if (stockOut[j].quantity < quantity) {
+    //               // rollback stockin
+    //               if (stockOut[j].stock_in_id != null) {
+    //                 await StockInModel.rollBack([
+    //                   {
+    //                     id: stockOut[j].id!,
+    //                     quantity: stockOut[j].quantity,
+    //                   },
+    //                 ]);
+    //               }
 
-                  quantity = 0;
-                  break;
-                } else if (stockOut[j].quantity < quantity) {
-                  // rollback stockin
-                  if (stockOut[j].stock_in_id != null) {
-                    await StockInModel.rollBack([
-                      {
-                        id: stockOut[j].id!,
-                        quantity: stockOut[j].quantity,
-                      },
-                    ]);
-                  }
+    //               stockOut[j].quantity = 0;
+    //               stockOut[j].update();
 
-                  stockOut[j].quantity = 0;
-                  stockOut[j].update();
+    //               quantity -= stockOut[j].quantity;
+    //             }
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
 
-                  quantity -= stockOut[j].quantity;
-                }
-              }
-            }
-          }
-        }
-      }
-
-      return res.status(201).send(sales_return);
-    } catch (error) {
-      console.error(`[error]: Error on creating sales return: ${error}`);
-      return res.status(500).send(ErrorList["Internal server error"]);
-    }
+    //   return res.status(201).send(sales_return);
+    // } catch (error) {
+    //   console.error(`[error]: Error on creating sales return: ${error}`);
+    //   return res.status(500).send(ErrorList["Internal server error"]);
+    // }
   };
 
   static fetchSearch = (req: Request, res: Response) => {
@@ -378,30 +406,30 @@ class SalesReturnController {
 
         // Take the first bill to determine the bill code ID
         const bill_code_id = result.sales_return[0].bill.bill_code_id;
-        BillCodeModel.fetchByID(bill_code_id).then((bill) => {
-          if (!bill) {
-            return res.status(404).send(ErrorList["Not found"]);
-          }
+        // BillCodeModel.fetchByID(bill_code_id).then((bill) => {
+        //   if (!bill) {
+        //     return res.status(404).send(ErrorList["Not found"]);
+        //   }
 
-          let total = 0;
-          for (let item of result.sales_return) {
-            total +=
-              Number(item.quantity) *
-              (Number(item.bill.price) - Number(item.bill.discount));
-          }
-          return res.status(200).send({
-            ...result,
-            bill: bill,
-            customer:
-              result?.sales_return.length == 0 ||
-              result?.sales_return[0].bill.bill_code.customer == null
-                ? null
-                : {
-                    name: result.sales_return[0].bill.bill_code.customer.name,
-                  },
-            total: total,
-          });
-        });
+        //   let total = 0;
+        //   for (let item of result.sales_return) {
+        //     total +=
+        //       Number(item.quantity) *
+        //       (Number(item.bill.price) - Number(item.bill.discount));
+        //   }
+        //   return res.status(200).send({
+        //     ...result,
+        //     bill: bill,
+        //     customer:
+        //       result?.sales_return.length == 0 ||
+        //       result?.sales_return[0].bill.bill_code.customer == null
+        //         ? null
+        //         : {
+        //             name: result.sales_return[0].bill.bill_code.customer.name,
+        //           },
+        //     total: total,
+        //   });
+        // });
       })
       .catch((error) => {
         return res.status(500).send(error);

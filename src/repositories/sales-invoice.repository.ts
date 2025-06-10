@@ -21,9 +21,9 @@ export class SalesInvoiceRepository {
           delivery: data.delivery,
           service: data.service,
           date: data.date,
-          is_confirm: data.is_confirm,
-          confirmed_by: data.confirmed_by,
-          confirmed_at: data.confirmed_at,
+          is_confirm: data.isConfirm,
+          confirmed_by: data.confirmedBy,
+          confirmed_at: data.confirmedAt,
           bill: {
             createMany: {
               data: data.bill!,
@@ -41,8 +41,8 @@ export class SalesInvoiceRepository {
               }),
             },
           },
-          payment_term: data.payment_term,
-          is_paid: data.is_paid,
+          payment_term: data.paymentTerm,
+          is_paid: data.isPaid,
           sales: data.sales,
         },
       });
@@ -63,5 +63,41 @@ export class SalesInvoiceRepository {
     )}${Math.floor(Math.random() * 10)}${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}`;
+  }
+
+  async checkSalesReturn(
+    data: { quantity: number; bill_id: number }[]
+  ): Promise<boolean> {
+    try {
+      const result = await this.prisma.bill.findMany({
+        where: {
+          id: {
+            in: data.map((x) => x.bill_id),
+          },
+        },
+        select: {
+          id: true,
+          quantity: true,
+        },
+      });
+
+      for (let billData of data) {
+        // if the bill is not found, return false
+        const bill = result.find((x) => x.id === billData.bill_id);
+        if (!bill) {
+          return false;
+        }
+
+        // if the quantity is less than the bill quantity, return false
+        if (billData.quantity < Number(bill.quantity)) {
+          return false;
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error(`[error]: Error on checking sales return ${error}`);
+      throw new Error("Internal server error");
+    }
   }
 }

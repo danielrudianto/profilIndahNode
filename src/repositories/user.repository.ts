@@ -1,12 +1,13 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { IUser, UserModel } from "../model/user.model";
 import { UserRoleModel } from "../model/user_role.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 
 export class UserRepository {
   private prisma: PrismaClient;
+  // prisma = new PrismaClient()
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -87,6 +88,199 @@ export class UserRepository {
     return errors;
   }
 
+  async update(data: IUser): Promise<UserModel> {
+    try {
+      const user = await this.prisma.user.update({
+        where: {
+          id: data.id,
+        },
+        data: {
+          name: data.name,
+          username: data.username,
+          nik: data.nik,
+          role: data.roleID,
+          updated_by: data.created_by,
+          updated_at: data.created_at,
+          user_sales: data.user_sales
+            ? {
+                deleteMany: {},
+                createMany: {
+                  data: data.user_sales.map((x) => ({
+                    item_type_id: x.item_type_id,
+                  })),
+                },
+              }
+            : undefined,
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          nik: true,
+          role: true,
+          created_by: true,
+          created_at: true,
+          is_active: true,
+          user_sales: {
+            select: {
+              item_type: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return new UserModel({
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        nik: user.nik,
+        roleID: user.role,
+        role: UserRoleModel.fromRoleID(user.role)!,
+        // user_sales: user.user_sales.map((x) => ({
+        //   item_type_id: x.item_type.id,
+        //   item_type_name: x.item_type.name,
+        // })),
+        is_active: user.is_active,
+        created_at: user.created_at,
+        created_by: user.created_by, // Use the provided created_by
+      });
+    } catch (error) {
+      console.error(`[error]: Error on updating user ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
+  updatePassword(id: number, password: string) {
+    return this.prisma.user.update({
+      where: {
+        id: id,
+      },
+      data: {
+        password: password,
+        updated_at: new Date(),
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        nik: true,
+      },
+    });
+  }
+
+  async delete(id: number, userID: number): Promise<UserModel> {
+    try {
+      const result = await this.prisma.user.update({
+        where: {
+          id: id,
+        },
+        data: {
+          is_active: false,
+          updated_by: userID,
+          updated_at: new Date(),
+        },
+        select: {
+          id: true,
+          name: true,
+          username: true,
+          nik: true,
+          role: true,
+          created_by: true,
+          created_at: true,
+          user_sales: {
+            select: {
+              item_type: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return new UserModel({
+        id: result.id,
+        name: result.name,
+        username: result.username,
+        nik: result.nik,
+        roleID: result.role,
+        role: UserRoleModel.fromRoleID(result.role)!,
+        // user_sales: result.user_sales.map((x) => ({
+        //   item_type_id: x.item_type.id,
+        //   item_type_name: x.item_type.name,
+        // })),
+        is_active: false, // Set to false as the user is being deleted
+        created_at: result.created_at,
+        created_by: result.created_by, // Use the provided created_by
+      });
+    } catch (error) {
+      console.error(`[error]: Error on deleting user ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
+  async check(username: string, nik: string): Promise<number> {
+    const count = await this.prisma.user.count({
+      where: {
+        OR: [{ username: username }, { nik: nik }],
+      },
+    });
+
+    return count;
+  }
+
+  async fetchByUsername(username: string): Promise<UserModel | null> {
+    try {
+      const result = await this.prisma.user.findUnique({
+        where: { username: username },
+        include: {
+          user_sales: {
+            select: {
+              item_type: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          user_avatar: true,
+        },
+      });
+
+      if (!result) {
+        return null;
+      }
+
+      return new UserModel({
+        id: result.id,
+        name: result.name,
+        username: result.username,
+        password: result.password,
+        nik: result.nik,
+        roleID: result.role,
+        role: UserRoleModel.fromRoleID(result.role)!,
+        user_sales: result.user_sales.map((x) => ({
+          item_type_id: x.item_type.id,
+          item_type_name: x.item_type.name,
+        })),
+        is_active: result.is_active,
+        created_at: result.created_at,
+        created_by: result.created_by,
+      });
+    } catch (error) {
+      console.error(`[error]: Error fetching user by username ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
   async fetchByID(id: number): Promise<UserModel | null> {
     const result = await this.prisma.user.findUnique({
       where: { id },
@@ -94,6 +288,7 @@ export class UserRepository {
         id: true,
         name: true,
         username: true,
+        is_active: true,
         nik: true,
         role: true,
         user_sales: {
@@ -106,7 +301,6 @@ export class UserRepository {
             },
           },
         },
-        is_active: true,
         created_at: true,
         created_by: true,
       },
@@ -123,10 +317,10 @@ export class UserRepository {
       nik: result.nik,
       roleID: result.role,
       role: UserRoleModel.fromRoleID(result.role)!,
-      user_sales: result.user_sales.map((x) => ({
-        item_type_id: x.item_type.id,
-        item_type_name: x.item_type.name,
-      })),
+      // user_sales: result.user_sales.map((x) => ({
+      //   item_type_id: x.item_type.id,
+      //   item_type_name: x.item_type.name,
+      // })),
       is_active: result.is_active,
       created_at: result.created_at,
       created_by: result.created_by,
@@ -169,7 +363,7 @@ export class UserRepository {
     ]);
 
     return {
-      data: result.map((x) => {
+      data: result.map((x: any) => {
         return new UserModel({
           id: x.id,
           name: x.name,
@@ -195,24 +389,6 @@ export class UserRepository {
       data: {
         is_active: is_active,
         updated_at: new Date(),
-      },
-    });
-  }
-
-  updatePassword(id: number, password: string) {
-    return this.prisma.user.update({
-      where: {
-        id: id,
-      },
-      data: {
-        password: password,
-        updated_at: new Date(),
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        nik: true,
       },
     });
   }

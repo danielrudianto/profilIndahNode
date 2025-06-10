@@ -10,6 +10,7 @@ import CompanyModel from "./company.model";
 import { ProductModel } from "./product.model";
 import { ProductUnitModel } from "./product-unit.model";
 import SupplierModel from "./supplier.model";
+import { UserViewModel } from "./user.model";
 
 const prisma = new PrismaClient();
 
@@ -20,14 +21,15 @@ export interface IGoodReceipt {
   date: Date;
   supplier_id: number;
   company_id: number;
-
   created_by?: number;
   created_at?: Date;
-
   good_receipt?: IGoodReceiptItem[];
 
   company?: CompanyModel;
   supplier?: SupplierModel;
+
+  user_good_receipt_code_created_byTouser?: UserViewModel;
+  user_good_receipt_code_confirmed_byTouser?: UserViewModel;
 }
 
 export interface IGoodReceiptItem {
@@ -57,11 +59,13 @@ class GoodReceiptModel {
   company?: CompanyModel;
   supplier?: SupplierModel;
 
+  user_good_receipt_code_created_byTouser?: UserViewModel;
+  user_good_receipt_code_confirmed_byTouser?: UserViewModel;
+
   constructor(data: IGoodReceipt) {
     this.id = data.id;
     this.uuid = data.uuid;
     this.name = data.name;
-    this.purchase_invoice_name = data.purchase_invoice_name;
     this.date = data.date;
     this.supplier_id = data.supplier_id;
     this.company_id = data.company_id;
@@ -70,6 +74,10 @@ class GoodReceiptModel {
     this.good_receipt = data.good_receipt;
     this.company = data.company;
     this.supplier = data.supplier;
+    this.user_good_receipt_code_created_byTouser =
+      data.user_good_receipt_code_created_byTouser;
+    this.user_good_receipt_code_confirmed_byTouser =
+      data.user_good_receipt_code_confirmed_byTouser;
   }
 
   static fromMap(data: any) {
@@ -107,101 +115,16 @@ class GoodReceiptModel {
         data.supplier == undefined
           ? undefined
           : new SupplierModel(data.supplier),
-    });
-  }
-
-  /**
-   * Create good receipt
-   * Create a good receipt and good receipt items
-   * @param name
-   * @param date
-   * @param created_by
-   * @param supplier_id
-   * @param company_id
-   * @param items
-   * @returns
-   */
-  static create(data: ICreateGoodReceipt) {
-    return prisma.good_receipt_code.create({
-      data: {
-        uuid: data.uuid,
-        name: data.name,
-        date: data.date,
-        created_by: data.created_by,
-        created_at: new Date(),
-        confirmed_by: data.created_by,
-        confirmed_at: new Date(),
-        supplier_id: data.supplier_id,
-        company_id: data.company_id,
-        is_confirm: true,
-        good_receipt: {
-          createMany: {
-            data: data.good_receipt.map((x) => {
-              return {
-                item_id: x.item_id,
-                item_unit_id: x.item_unit_id,
-                quantity: x.quantity,
-                price: x.price,
-                discount: x.discount,
-              };
-            }),
-          },
-        },
-        purchase_invoice: {
-          create: {
-            name: "",
-            date: data.date,
-            created_by: data.created_by,
-            created_at: new Date(),
-            is_confirm: false,
-            is_delete: false,
-            confirmed_at: null,
-            confirmed_by: null,
-          },
-        },
-      },
-      include: {
-        user_good_receipt_code_created_byTouser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        supplier: {
-          select: {
-            name: true,
-            id: true,
-          },
-        },
-        company: {
-          select: {
-            name: true,
-            id: true,
-          },
-        },
-        good_receipt: {
-          select: {
-            id: true,
-            item: {
-              select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
-            quantity: true,
-            price: true,
-            discount: true,
-          },
-        },
-      },
+      user_good_receipt_code_created_byTouser:
+        data.user_good_receipt_code_created_byTouser == undefined
+          ? undefined
+          : UserViewModel.fromMap(data.user_good_receipt_code_created_byTouser),
+      user_good_receipt_code_confirmed_byTouser:
+        data.user_good_receipt_code_confirmed_byTouser == undefined
+          ? undefined
+          : UserViewModel.fromMap(
+              data.user_good_receipt_code_confirmed_byTouser
+            ),
     });
   }
 

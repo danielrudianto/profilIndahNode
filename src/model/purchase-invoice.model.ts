@@ -8,7 +8,7 @@ import {
   PurchaseInvoiceArchive,
   PurchaseInvoiceArchiveV2,
 } from "../interface/archive.interface";
-import { ICreateGoodReceipt, IGoodReceiptItem } from "./good_receipt.model";
+import GoodReceiptModel from "./good-receipt.model";
 
 const prisma = new PrismaClient();
 
@@ -19,10 +19,6 @@ export enum CalculatePurchaseMode {
   Brand,
   Sum,
   V2,
-}
-
-export interface ICreatePurchaseInvoice extends ICreateGoodReceipt {
-  purchase_invoice: IPurchaseInvoice;
 }
 
 export interface IPurchaseInvoice {
@@ -38,8 +34,9 @@ export interface IPurchaseInvoice {
   confirmed_by?: number;
   confirmed_at?: Date;
   faktur?: string;
-
   good_receipt_code_id?: number;
+
+  good_receipt_code?: GoodReceiptModel;
 }
 
 export interface IUpdatePurchaseInvoice {
@@ -103,8 +100,9 @@ class PurchaseInvoiceModel {
   confirmed_by?: number;
   confirmed_at?: Date;
   faktur?: string;
-
   good_receipt_code_id?: number;
+
+  good_receipt_code?: GoodReceiptModel;
 
   constructor(data: IPurchaseInvoice) {
     this.id = data.id;
@@ -120,84 +118,28 @@ class PurchaseInvoiceModel {
     this.confirmed_at = data.confirmed_at;
     this.faktur = data.faktur;
     this.good_receipt_code_id = data.good_receipt_code_id;
+    this.good_receipt_code = data.good_receipt_code;
   }
 
-  static create(data: ICreatePurchaseInvoice) {
-    return prisma.good_receipt_code.create({
-      data: {
-        uuid: data.uuid,
-        name: data.name,
-        date: data.date,
-        created_by: data.created_by,
-        is_confirm: true,
-        is_delete: false,
-        confirmed_by: data.created_by,
-        confirmed_at: new Date(),
-        company_id: data.company_id,
-        supplier_id: data.supplier_id,
-        purchase_invoice: {
-          create: {
-            name: data.purchase_invoice.name,
-            date: data.purchase_invoice.date,
-            faktur: data.purchase_invoice.faktur,
-            created_at: new Date(),
-            created_by: data.created_by,
-            discount: data.purchase_invoice.discount,
-            is_paid: false,
-            is_confirm: true,
-            is_delete: false,
-            confirmed_by: data.created_by,
-            confirmed_at: new Date(),
-          },
-        },
-        good_receipt: {
-          createMany: {
-            data: data.good_receipt.map((item: IGoodReceiptItem) => {
-              return {
-                item_unit_id: item.item_unit_id,
-                quantity: item.quantity,
-                price: item.price,
-                item_id: item.item_id,
-                discount: item.discount,
-              };
-            }),
-          },
-        },
-      },
-      include: {
-        good_receipt: {
-          select: {
-            id: true,
-            item: {
-              select: {
-                reference: true,
-                description: true,
-                unit: true,
-                id: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
-            quantity: true,
-            price: true,
-            discount: true,
-          },
-        },
-        supplier: {
-          select: {
-            name: true,
-          },
-        },
-        purchase_invoice: {
-          select: {
-            discount: true,
-          },
-        },
-      },
+  static fromMap(data: any) {
+    return new PurchaseInvoiceModel({
+      id: data.id,
+      uuid: data.uuid,
+      name: data.name,
+      date: data.date,
+      discount: data.discount,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      is_delete: data.is_delete,
+      is_confirm: data.is_confirm,
+      confirmed_by: data.confirmed_by,
+      confirmed_at: data.confirmed_at,
+      faktur: data.faktur,
+      good_receipt_code_id: data.good_receipt_code_id,
+
+      good_receipt_code: data.good_receipt_code
+        ? GoodReceiptModel.fromMap(data.good_receipt_code)
+        : undefined,
     });
   }
 

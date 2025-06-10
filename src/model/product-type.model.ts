@@ -19,6 +19,11 @@ export interface IProductType {
   user_item_type_created_byTouser?: UserViewModel;
 }
 
+export interface IProductTypeView {
+  id?: number;
+  name: string;
+}
+
 export class ProductTypeModel {
   id?: number;
   name: string;
@@ -29,7 +34,7 @@ export class ProductTypeModel {
   is_delete?: boolean;
   deleted_at?: Date;
   deleted_by?: number;
-  can_delete?: boolean;
+  can_delete?: boolean | string;
   user_item_type_created_byTouser?: UserViewModel;
 
   constructor(data: IProductType) {
@@ -48,6 +53,15 @@ export class ProductTypeModel {
       this.user_item_type_created_byTouser = UserViewModel.fromMap(
         data.user_item_type_created_byTouser
       );
+    }
+
+    // if can_delete is provided
+    if (data.can_delete !== undefined) {
+      if (typeof data.can_delete === "boolean") {
+        this.can_delete = data.can_delete;
+      } else if (typeof data.can_delete === "string") {
+        this.can_delete = data.can_delete === "1";
+      }
     }
   }
 
@@ -155,6 +169,23 @@ export class ProductTypeModel {
           in: id,
         },
       },
+    });
+  }
+}
+
+export class ProductTypeViewModel {
+  id?: number;
+  name: string;
+
+  constructor(data: IProductTypeView) {
+    this.id = data.id;
+    this.name = data.name;
+  }
+
+  static fromMap(data: any): ProductTypeViewModel {
+    return new ProductTypeViewModel({
+      id: data.id,
+      name: data.name,
     });
   }
 }

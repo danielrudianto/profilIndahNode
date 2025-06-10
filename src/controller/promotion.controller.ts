@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import PromotionModel from "../model/promotion.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
-import GoodReceiptModel from "../model/good_receipt.model";
+import GoodReceiptModel from "../model/good-receipt.model";
 import ErrorList from "../assets/error_list";
 import moment from "moment";
 

@@ -1,6 +1,5 @@
 import { hash } from "bcryptjs";
 import { Request, Response } from "express";
-import { validationResult } from "express-validator";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
 import BillModel from "../model/bill.model";
@@ -9,6 +8,7 @@ import { UserModel } from "../model/user.model";
 import { redisClient } from "../app";
 import { UserRepository } from "../repositories/user.repository";
 import { UserRoleModel } from "../model/user_role.model";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 
 class UserController {
   private userRepository: UserRepository;
@@ -24,9 +24,9 @@ class UserController {
       const nik = req.body.nik;
       const roleID = Number(req.body.role);
 
-      const checkResult = await UserModel.check(username, nik);
+      const checkResult = await this.userRepository.check(username, nik);
 
-      if (!checkResult) {
+      if (checkResult == 1) {
         return res.status(404).send(ErrorList["User already exist"]);
       }
 
@@ -58,8 +58,8 @@ class UserController {
         username: user.username,
         password: generated_password,
         role_id: roleID,
-        role: UserModel.fetchRole(roleID)?.name || "",
-        user: user.user,
+        role: UserRoleModel.fromRoleID(roleID),
+        // user: user.user,
       };
 
       const socket = new SocketHelper("createUser", result);
@@ -80,7 +80,7 @@ class UserController {
     }
   }
 
-  fetchByID = async (req: Request, res: Response) => {
+  async fetchByID(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);
       const user = await this.userRepository.fetchByID(id);
@@ -93,19 +93,18 @@ class UserController {
       console.error(`[error]: Error on fetching user by ID ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  };
+  }
 
-  fetch = async (req: Request, res: Response) => {
+  async fetch(req: Request, res: Response) {
     try {
-      const page = !req.query.page
-        ? 1
-        : Math.max(1, parseInt(req.query.page?.toString()));
-      const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+      const page = translatePage(req.query.page);
+      const keyword = translateKeyword(req.query.keyword);
+      const pageSize = Number(process.env.LIMIT!);
 
       const result = await this.userRepository.fetch({
         page: page,
         keyword: keyword,
-        pageSize: Number(process.env.LIMIT!.toString()),
+        pageSize: pageSize,
       });
 
       return res.status(200).send(result);
@@ -113,7 +112,7 @@ class UserController {
       console.error(`[error]: Error on fetching users ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  };
+  }
 
   private async generatePassword(): Promise<string> {
     let password = "";
@@ -225,6 +224,7 @@ class UserController {
     const name = req.body.name;
     const id = req.body.id;
     const roleID = req.body.role;
+    const userID = req.body.userId;
     const userSales = req.body.user_sales;
 
     const role = UserRoleModel.fromRoleID(roleID);
@@ -243,24 +243,22 @@ class UserController {
         return res.status(400).send(ErrorList["User not active"]);
       }
 
-      user.name = name;
-      user.roleID = roleID;
-      user.user_sales = userSales;
+      const result = await this.userRepository.update({
+        id: user.id,
+        nik: user.nik,
+        username: user.username,
+        name: name,
+        roleID: roleID,
+        user_sales: userSales,
+        created_by: userID,
+        created_at: new Date(),
+        is_active: user.is_active,
+      });
 
-      const result = await user.update();
-      const response = {
-        id: result.id,
-        name: result.name,
-        nik: result.nik,
-        username: result.username,
-        password: null,
-        role: role,
-      };
-
-      const socket = new SocketHelper("updateUser", response);
+      const socket = new SocketHelper("updateUser", result);
       socket.create();
 
-      return res.status(200).send(response);
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on updating user ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
@@ -321,6 +319,7 @@ class UserController {
   delete = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
+      const userID = req.body.userId;
       if (!id || isNaN(id)) {
         return res.status(400).send(ErrorList["Parameter error"]);
       }
@@ -334,10 +333,9 @@ class UserController {
         return res.status(400).send(ErrorList["User not active"]);
       }
 
-      const result = await user.delete();
+      const result = await this.userRepository.delete(id, userID);
 
       await redisClient.del(`user:${id}`);
-
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on deleting user ${error}`);

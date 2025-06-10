@@ -76,7 +76,7 @@ export class PaymentMethodRepository {
     const baseQuery = `
       SELECT payment_method.id, payment_method.name, 
       payment_method.description, 
-      IF(COALESCE(countPaymentMethod.count, 0) = 0, TRUE, FALSE) AS can_delete
+      IF(COALESCE(countPaymentMethod.count, 0) = 0, "1", "0") AS can_delete
       FROM payment_method
       LEFT JOIN (
         SELECT COUNT(bill_payment.id) AS count, bill_payment.payment_method_id

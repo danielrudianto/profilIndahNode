@@ -15,16 +15,6 @@ export interface IPaymentMethod {
   can_delete?: boolean;
 }
 
-export interface IPaymentMethodManual {
-  id: number;
-  name: string;
-  description: string;
-  created_by: number;
-  created_at?: Date;
-  is_delete?: boolean;
-  can_delete: string;
-}
-
 export class PaymentMethodModel {
   id?: number;
   name: string;
@@ -49,7 +39,7 @@ export class PaymentMethodModel {
   }
 }
 
-export interface IPaymentMethodView {
+interface IPaymentMethodView {
   id: number | null;
   name: string;
   description: string;

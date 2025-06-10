@@ -1,4 +1,4 @@
-import { io } from "../app";
+import { getIO } from "./io";
 
 class SocketHelper {
   event_name: string;
@@ -10,7 +10,7 @@ class SocketHelper {
   }
 
   create() {
-    io.emit(this.event_name, this.event_data);
+    getIO().emit(this.event_name, this.event_data);
   }
 }
 

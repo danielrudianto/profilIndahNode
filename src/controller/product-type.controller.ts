@@ -1,17 +1,10 @@
 import { Request, Response } from "express";
-import { meili } from "../app";
 import ErrorList from "../assets/error_list";
-import {
-  mysql_real_escape_string,
-  translateKeyword,
-  translatePage,
-} from "../helper/escape.helper";
-import { queue } from "../helper/queue.helper";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
-import { fetchMode } from "../interface/fetch.interface";
 import { ProductTypeRepository } from "../repositories/product-type.repository";
 
-class ItemTypeController {
+export class ProductTypeController {
   private productTypeRepository: ProductTypeRepository;
 
   constructor(productTypeRepository: ProductTypeRepository) {
@@ -90,11 +83,18 @@ class ItemTypeController {
     const page = translatePage(req.query.page);
     const pageSize = Number(process.env.LIMIT!);
 
-    this.productTypeRepository.fetch({
-      keyword: keyword,
-      page: page,
-      pageSize: pageSize,
-    });
+    try {
+      const result = await this.productTypeRepository.fetch({
+        keyword: keyword,
+        page: page,
+        pageSize: pageSize,
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching item types: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   fetchByID = async (req: Request, res: Response) => {
@@ -141,5 +141,3 @@ class ItemTypeController {
     }
   };
 }
-
-export default ItemTypeController;

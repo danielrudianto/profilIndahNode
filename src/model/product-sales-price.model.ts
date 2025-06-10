@@ -45,7 +45,49 @@ export interface IFetchProductPriceDraftBill {
   item_unit_id: number | null;
 }
 
-class ItemPriceModel {
+export interface IProductSalesPrice {
+  id?: number;
+  item_id: number;
+  item_unit_id: number | null;
+  price: number;
+  discount: number;
+  effective_date?: Date;
+  created_by?: number;
+  created_at?: Date;
+  is_delete?: boolean;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+}
+
+export class ProductSalesPriceModel {
+  id?: number;
+  item_id: number;
+  item_unit_id: number | null;
+  price: number;
+  discount: number;
+  effective_date?: Date;
+  created_by?: number;
+  created_at?: Date;
+  is_delete?: boolean;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+
+  constructor(data: IProductSalesPrice) {
+    this.id = data.id;
+    this.item_id = data.item_id;
+    this.item_unit_id = data.item_unit_id;
+    this.price = data.price;
+    this.discount = data.discount;
+    this.effective_date = data.effective_date;
+    this.created_by = data.created_by;
+    this.created_at = data.created_at;
+    this.is_delete = data.is_delete;
+    this.deleted_by = data.deleted_by;
+    this.deleted_at = data.deleted_at;
+  }
+}
+
+export class ItemPriceModel {
   /**
    * Create item price
    * @param data
@@ -415,5 +457,3 @@ class ItemPriceModel {
     });
   }
 }
-
-export default ItemPriceModel;

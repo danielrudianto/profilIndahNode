@@ -4,7 +4,7 @@ import ErrorList from "../../assets/error_list";
 import SupplierController from "../../controller/supplier.controller";
 import ErrorHelper from "../../helper/error.helper";
 import { SupplierRepository } from "../../repositories/supplier.repository";
-import { prisma } from "../../app";
+import { prisma } from "../../helper/database.helper";
 
 const router = Router();
 

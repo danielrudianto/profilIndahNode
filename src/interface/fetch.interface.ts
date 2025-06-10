@@ -1,3 +1,5 @@
+import { Number } from "mongoose";
+
 export enum fetchMode {
   All,
   Pagination,
@@ -24,4 +26,11 @@ export interface IFetchCommon {
 export interface IFetchCommonResult<T> {
   data: T[];
   count: number;
+}
+
+export interface IFetchPagination {
+  page: number;
+  pageSize: number;
+  month: number;
+  year: number;
 }

@@ -7,8 +7,6 @@ import {
   DraftBillModel,
   IConfirmDraftBillItems,
 } from "../model/draft-bill.model";
-import PaymentMethodModel from "../model/payment-method.model";
-import ItemPriceModel from "../model/item_price.model";
 
 class DraftBillController {
   /**
@@ -68,21 +66,21 @@ class DraftBillController {
    * @param res
    */
   static fetchByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id.toString());
-    Promise.all([
-      PaymentMethodModel.fetch("", 0, 0, fetchMode.Autocomplete),
-      DraftBillModel.fetchByID(id),
-    ])
-      .then((result) => {
-        return res.status(200).send({
-          data: result[1],
-          paymentMethods: result[0],
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetch draft bill by id: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    // const id = parseInt(req.params.id.toString());
+    // Promise.all([
+    //   PaymentMethodModel.fetch("", 0, 0, fetchMode.Autocomplete),
+    //   DraftBillModel.fetchByID(id),
+    // ])
+    //   .then((result) => {
+    //     return res.status(200).send({
+    //       data: result[1],
+    //       paymentMethods: result[0],
+    //     });
+    //   })
+    //   .catch((error) => {
+    //     console.error(`[error]: Error on fetch draft bill by id: ${error}`);
+    //     return res.status(500).send(ErrorList["Internal server error"]);
+    //   });
   };
 
   /**

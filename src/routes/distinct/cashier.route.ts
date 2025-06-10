@@ -9,7 +9,7 @@ import PaymentMethodController from "../../controller/payment-method.controller"
 
 const router = Router();
 
-router.get("/payment-method", PaymentMethodController.fetchAll);
+// router.get("/payment-method", PaymentMethodController.fetchAll);
 
 router.get("/", UserController.fetchStats);
 

@@ -91,7 +91,7 @@ export class ProductTypeRepository {
                 SELECT item_type.id, item_type.name, item_type.created_at, 
                 item_type.created_by, user.name AS user_name, user.username AS user_username,
                 user.role AS user_role, 
-                IF(COALESCE(itemCount.count, 0)=0, TRUE FALSE) AS can_delete, item_type.is_delete
+                IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, item_type.is_delete
                 FROM item_type
                 LEFT JOIN (
                   SELECT COUNT(id) AS count, item_type_id
@@ -199,7 +199,7 @@ export class ProductTypeRepository {
             item_type.created_by, user.name AS user_name, user.username AS user_username,
             user.role AS user_role,
             item_type.is_delete,
-            IF(COALESCE(itemCount.count, 0) = 0, TRUE, FALSE) AS can_delete
+            IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
             FROM item_type
             LEFT JOIN (
             SELECT COUNT(id) AS count, item_type_id

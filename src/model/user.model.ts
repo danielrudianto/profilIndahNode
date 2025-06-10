@@ -30,12 +30,6 @@ interface IUserSales {
   item_type_id: number;
 }
 
-interface IUserRole {
-  id: number;
-  name: string;
-  available: boolean;
-}
-
 export class UserModel {
   id?: number;
   name: string;
@@ -55,6 +49,7 @@ export class UserModel {
   created_at?: Date;
 
   constructor(data: IUser) {
+    this.id = data.id;
     this.name = data.name;
     this.username = data.username;
     this.nik = data.nik;
@@ -66,142 +61,6 @@ export class UserModel {
     this.user_sales = data.user_sales || [];
     this.is_active = data.is_active;
     this.created_at = data.created_at == null ? new Date() : data.created_at;
-  }
-
-  static roles: IUserRole[] = [
-    {
-      id: 1,
-      name: "Pembelian",
-      available: true,
-    },
-    {
-      id: 2,
-      name: "Penjualan",
-      available: true,
-    },
-    {
-      id: 3,
-      name: "Penjualan dan Pembelian",
-      available: true,
-    },
-    // {
-    //   id: 4,
-    //   name: "Keuangan",
-    //   available: false,
-    // },
-    {
-      id: 5,
-      name: "Administrator",
-      available: true,
-    },
-    {
-      id: 6,
-      name: "Agen Penjualan",
-      available: true,
-    },
-    {
-      id: 7,
-      name: "Superadministrator",
-      available: true,
-    },
-  ];
-
-  static fetchRole(roleID: number): IUserRole | null {
-    return this.roles.filter((x) => x.id == roleID)[0] || null;
-  }
-
-  static async check(username: string, nik: string): Promise<boolean> {
-    const matchingUserCount = await prisma.user.count({
-      where: {
-        OR: [{ username: username }, { nik: nik }],
-      },
-    });
-
-    // Return true if no matching users are found, otherwise false
-    return matchingUserCount === 0;
-  }
-
-  static fetch(keyword: string, offset: number, limit: number) {}
-
-  static fetchByUsername(username: string) {
-    return prisma.user.findUnique({
-      select: {
-        id: true,
-        name: true,
-        password: true,
-        is_active: true,
-        role: true,
-        user_avatar: true,
-      },
-      where: {
-        username: username,
-      },
-    });
-  }
-
-  update() {
-    const userData: any = {
-      name: this.name,
-      updated_by: this.created_by,
-      updated_at: new Date(),
-      role: this.roleID,
-      user_sales: {
-        deleteMany: {},
-        createMany: {
-          data: this.user_sales!.map((x) => ({
-            item_type_id: x.item_type_id,
-          })),
-        },
-      },
-    };
-
-    // Add password field only if it exists
-    if (this.password) {
-      userData.password = this.password;
-    }
-
-    return prisma.user.update({
-      where: {
-        id: this.id!,
-      },
-      data: userData,
-    });
-  }
-
-  delete() {
-    return prisma.user.update({
-      where: {
-        id: this.id!,
-      },
-      data: {
-        is_active: false,
-        deleted_at: new Date(),
-        deleted_by: this.created_by,
-      },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        nik: true,
-        user_userTouser_deleted_by: {
-          select: {
-            name: true,
-            id: true,
-          },
-        },
-      },
-    });
-  }
-
-  static updatePassword(password: string, userId: number) {
-    return prisma.user.update({
-      data: {
-        password: password,
-      },
-      where: {
-        id: userId,
-      },
-    });
   }
 }
 

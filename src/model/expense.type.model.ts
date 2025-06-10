@@ -16,7 +16,7 @@ export interface IExpenseType {
   can_delete?: boolean;
 }
 
-class ExpenseTypeModel {
+export class ExpenseTypeModel {
   id?: number;
   name: string;
   description: string;

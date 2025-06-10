@@ -1,10 +1,16 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
+import { prisma } from "../../helper/database.helper";
 import ErrorList from "../../assets/error_list";
 import ProductPackageController from "../../controller/product-package.controller";
 import ErrorHelper from "../../helper/error.helper";
+import { ProductPackageRepository } from "../../repositories/product-package.repository";
 
 const router = Router();
+
+const productPackageController = new ProductPackageController(
+  new ProductPackageRepository(prisma)
+);
 
 router.post(
   "/",
@@ -23,7 +29,7 @@ router.post(
     .notEmpty()
     .withMessage(ErrorList["Package item quantity required"]),
   ErrorHelper.intercept,
-  ProductPackageController.create
+  productPackageController.create
 );
 
 router.put(
@@ -35,7 +41,7 @@ router.put(
     .notEmpty()
     .withMessage(ErrorList["Package description required"]),
   ErrorHelper.intercept,
-  ProductPackageController.updateByID
+  productPackageController.update
 );
 
 router.get(
@@ -43,7 +49,7 @@ router.get(
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductPackageController.fetchByID
+  productPackageController.fetchByID
 );
 
 router.delete(
@@ -51,9 +57,9 @@ router.delete(
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ProductPackageController.deleteByID
+  productPackageController.delete
 );
 
-router.get("/", ProductPackageController.fetch);
+router.get("/", productPackageController.fetch);
 
 export default router;

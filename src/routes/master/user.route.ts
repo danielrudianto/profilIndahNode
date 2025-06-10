@@ -6,11 +6,12 @@ import UserController from "../../controller/user.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
 import { UserRepository } from "../../repositories/user.repository";
-import { prisma } from "../../app";
+import { prisma } from "../../helper/database.helper";
 
 const router = Router();
 
 const userController = new UserController(new UserRepository(prisma));
+const authController = new AuthController(new UserRepository(prisma));
 
 // Common validation middleware
 const validateId = [
@@ -28,7 +29,7 @@ const validateUserFields = [
 ];
 
 // Routes
-router.get("/profile", AuthController.fetchProfile);
+router.get("/profile", authController.fetchProfile);
 
 router.get(
   "/:id",
@@ -40,7 +41,7 @@ router.get("/", userController.fetch);
 
 router.post(
   "/changePassword",
-  body("password").notEmpty().withMessage(ErrorList["Password required"]),
+  body("password").notEmpty().withMessage(ErrorList["Password is required"]),
   ErrorHelper.intercept,
   userController.updatePassword
 );

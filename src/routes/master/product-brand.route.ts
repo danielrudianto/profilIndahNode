@@ -3,7 +3,7 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import { ProductBrandController } from "../../controller/product-brand.controller";
 import ErrorHelper from "../../helper/error.helper";
-import { prisma } from "../../app";
+import { prisma } from "../../helper/database.helper";
 import { ProductBrandRepository } from "../../repositories/product-brand.repository";
 
 const router = Router();

@@ -1,21 +1,32 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { mysql_real_escape_string } from "../helper/escape.helper";
+import {
+  mysql_real_escape_string,
+  translateKeyword,
+  translatePage,
+} from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
-import GoodReceiptModel from "../model/good_receipt.model";
-import ItemPurchasePriceModel from "../model/item_purchase_price.model";
+import GoodReceiptModel from "../model/good-receipt.model";
 import PurchaseInvoiceModel from "../model/purchase-invoice.model";
 import { IStockInFetchMethod, StockInModel } from "../model/stock-in.model";
 import { IStockOutDelete, StockOutModel } from "../model/stock-out.model";
+import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
+import { PurchaseInvoiceRepository } from "../repositories/purchase-invoice.repository";
 
 class PurchaseInvoiceController {
-  /**
-   * Create a new purchase invoice
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
+  private purchaseInvoiceRepository: PurchaseInvoiceRepository;
+  private goodReceiptRepository: GoodReceiptRepository;
+
+  constructor(
+    purchaseInvoiceRepository: PurchaseInvoiceRepository,
+    goodReceiptRepository: GoodReceiptRepository
+  ) {
+    this.purchaseInvoiceRepository = purchaseInvoiceRepository;
+    this.goodReceiptRepository = goodReceiptRepository;
+  }
+
+  create = async (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const name = req.body.name;
     const company_id = req.body.company_id;
@@ -25,125 +36,72 @@ class PurchaseInvoiceController {
     const purchase_invoice = req.body.purchase_invoice as any;
     const discount = purchase_invoice.discount;
     const purchase_invoice_name = purchase_invoice.name;
-    const faktur =
-      !purchase_invoice.faktur || purchase_invoice.faktur?.length < 16
-        ? null
-        : purchase_invoice.faktur;
+    const faktur = translateKeyword(purchase_invoice.faktur);
     const userID = req.body.userId;
     const uuid = req.body.uuid;
 
-    PurchaseInvoiceModel.create({
-      uuid: uuid,
-      name: name,
-      date: date,
-      supplier_id: supplier_id,
-      company_id: company_id,
-      created_by: userID,
-      purchase_invoice: {
+    try {
+      const goodReceipt = await this.goodReceiptRepository.create({
+        uuid: uuid,
+        name: name,
+        date: date,
+        supplier_id: supplier_id,
+        company_id: company_id,
+        created_by: userID,
+        good_receipt: good_receipt_items.map((x) => {
+          return {
+            item_id: x.item_id,
+            item_unit_id: x.item_unit_id,
+            quantity: x.quantity,
+            price: x.price,
+            discount: x.discount,
+          };
+        }),
+      });
+
+      const purchaseInvoice = await this.purchaseInvoiceRepository.create({
+        uuid: uuid,
         date: date,
         name: purchase_invoice_name,
         faktur: faktur,
         discount: discount,
+        good_receipt_code_id: goodReceipt.id,
         created_by: userID,
-      },
-      good_receipt: good_receipt_items.map((x) => {
-        return {
-          item_id: x.item_id,
-          item_unit_id: x.item_unit_id,
-          quantity: x.quantity,
-          price: x.price,
-          discount: x.discount,
-        };
-      }),
-      purchase_invoice_name: purchase_invoice_name,
-    })
-      .then(async (good_receipt_result) => {
-        await ItemPurchasePriceModel.delete(
-          good_receipt_items
-            .filter((x) => x.save)
-            .map((x) => {
-              return {
-                item_id: x.item_id,
-                item_unit_id: x.item_unit_id,
-                deleted_by: userID,
-              };
-            })
-        );
-
-        await ItemPurchasePriceModel.create(
-          good_receipt_items
-            .filter((x) => x.save)
-            .map((x) => {
-              return {
-                item_id: x.item_id,
-                item_unit_id: x.item_unit_id,
-                created_by: userID,
-                price: x.price,
-                discount: x.discount,
-              };
-            })
-        );
-
-        const socket = new SocketHelper("createGoodReceipt", {
-          supplier_id: good_receipt_result.supplier_id,
-          company_id: good_receipt_result.company_id,
-        });
-        socket.create();
-
-        const createPurchaseInvoiceTotalValue =
-          good_receipt_result.good_receipt.reduce((a, b) => {
-            return (
-              a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
-            );
-          }, 0);
-
-        const createPurchaseInvoiceDiscount =
-          good_receipt_result.purchase_invoice == null
-            ? 0
-            : Number(good_receipt_result.purchase_invoice.discount || 0);
-
-        const createPurchaseInvoiceNetValue =
-          createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
-
-        StockInModel.createMany(
-          good_receipt_result.good_receipt.map((x) => {
-            return {
-              item_id: x.item.id,
-              date: good_receipt_result.date,
-              company_id: good_receipt_result.company_id,
-              good_receipt_code_id: good_receipt_result.id,
-              good_receipt_id: x.id,
-              adjustment_case_code_id: null,
-              adjustment_case_id: null,
-              price:
-                createPurchaseInvoiceTotalValue == 0
-                  ? 0
-                  : ((Number(x.price) - Number(x.discount)) *
-                      createPurchaseInvoiceNetValue) /
-                    (createPurchaseInvoiceTotalValue *
-                      (x.item_unit == null
-                        ? 1
-                        : Number(x.item_unit.conversion))),
-              quantity:
-                Number(x.quantity) *
-                Number(x.item_unit == null ? 1 : x.item_unit.conversion),
-            };
-          })
-        )
-          .then(() => {
-            return res.status(201).send(good_receipt_result);
-          })
-          .catch((error) => {
-            console.error(
-              `[error]: Error on creating stock in for purchase invoice ${error}`
-            );
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on creating purchase invoice ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
+        created_at: new Date(),
       });
+
+      const socket = new SocketHelper("createGoodReceipt", {
+        supplier_id: goodReceipt.supplier_id,
+        company_id: goodReceipt.company_id,
+      });
+      socket.create();
+
+      await queue.add("good-receipt-created", {
+        id: goodReceipt.id,
+      });
+
+      return res.status(201).send(purchaseInvoice);
+    } catch (error) {
+      console.error(`[error]: Error on creating good receipt ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const purchaseInvoice = await this.purchaseInvoiceRepository.fetchByID(
+        id
+      );
+      if (!purchaseInvoice) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching purchase invoice by ID ${error}`
+      );
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   /**
@@ -182,391 +140,228 @@ class PurchaseInvoiceController {
    * @param res
    */
   static update = async (req: Request, res: Response) => {
-    const id = req.body.id;
-    const date = new Date(req.body.date);
-    const name = req.body.name;
-    const company_id = req.body.company_id;
-    const supplier_id = req.body.supplier_id;
-    const good_receipt_items = req.body.good_receipt as any[];
-    const updatePurchaseInvoice = req.body.purchase_invoice;
-
-    const faktur =
-      updatePurchaseInvoice.faktur == null
-        ? null
-        : updatePurchaseInvoice.faktur.toString().length < 16
-        ? null
-        : updatePurchaseInvoice.faktur;
-    const discount = updatePurchaseInvoice.discount;
-    const purchase_invoice_name = updatePurchaseInvoice.name;
-
-    const purchaseInvoice = await PurchaseInvoiceModel.fetchByID(id);
-    if (!purchaseInvoice) {
-      return res.status(404).send(ErrorList["Not found"]);
-    }
-
-    if (purchaseInvoice.is_delete) {
-      return res
-        .status(400)
-        .send(ErrorList["Purchase invoice already deleted"]);
-    }
-
-    const goodReceipt: any = await GoodReceiptModel.fetchByID(
-      purchaseInvoice.good_receipt_code_id
-    );
-    if (!goodReceipt) {
-      return res.status(404).send(ErrorList["Not found"]);
-    }
-
-    if (goodReceipt.is_delete) {
-      return res.status(400).send(ErrorList["Good receipt already deleted"]);
-    }
-
-    PurchaseInvoiceModel.update({
-      id: id,
-      name: purchase_invoice_name,
-      date: date,
-      faktur: faktur,
-      discount: discount,
-      good_receipt_code: {
-        supplier_id: supplier_id,
-        company_id: company_id,
-        name: name,
-        date: date,
-        good_receipt: good_receipt_items.map((x) => {
-          return {
-            item_id: x.item_id,
-            item_unit_id: x.item_unit_id,
-            quantity: x.quantity,
-            price: x.price,
-            discount: x.discount,
-          };
-        }),
-      },
-    })
-      .then(async (result) => {
-        // Remove stock outs that has stock_in_id of the good receipt
-        StockInModel.fetch(
-          IStockInFetchMethod.BY_GOOD_RECEIPT_CODE_ID,
-          goodReceipt.id
-        ).then(async (stockIns) => {
-          await StockOutModel.delete(
-            IStockOutDelete.BY_STOCK_IN_IDS,
-            stockIns.map((x) => {
-              return x.id;
-            })
-          );
-
-          await StockInModel.deleteMany(
-            stockIns.map((x) => {
-              return x.id;
-            })
-          );
-
-          const createPurchaseInvoiceTotalValue =
-            result.good_receipt_code.good_receipt.reduce((a, b) => {
-              return (
-                a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
-              );
-            }, 0);
-
-          const createPurchaseInvoiceDiscount =
-            result.discount == null ? 0 : Number(result.discount || 0);
-
-          const createPurchaseInvoiceNetValue =
-            createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
-
-          // Create stock in for the updated good receipt
-          await StockInModel.createMany(
-            result.good_receipt_code.good_receipt.map((x) => {
-              return {
-                date: result.good_receipt_code.date,
-                company_id: result.good_receipt_code.company_id,
-                item_id: x.item.id,
-                good_receipt_code_id: result.good_receipt_code.id,
-                good_receipt_id: x.id,
-                adjustment_case_code_id: null,
-                adjustment_case_id: null,
-                price:
-                  createPurchaseInvoiceTotalValue == 0
-                    ? 0
-                    : ((Number(x.price) - Number(x.discount)) *
-                        createPurchaseInvoiceNetValue) /
-                      (createPurchaseInvoiceTotalValue *
-                        (x.item_unit == null
-                          ? 1
-                          : Number(x.item_unit.conversion))),
-                quantity:
-                  Number(x.quantity) *
-                  (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
-              };
-            })
-          );
-
-          return res.status(201).send(result);
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on updating good receipt ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    // const id = req.body.id;
+    // const date = new Date(req.body.date);
+    // const name = req.body.name;
+    // const company_id = req.body.company_id;
+    // const supplier_id = req.body.supplier_id;
+    // const good_receipt_items = req.body.good_receipt as any[];
+    // const updatePurchaseInvoice = req.body.purchase_invoice;
+    // const faktur =
+    //   updatePurchaseInvoice.faktur == null
+    //     ? null
+    //     : updatePurchaseInvoice.faktur.toString().length < 16
+    //     ? null
+    //     : updatePurchaseInvoice.faktur;
+    // const discount = updatePurchaseInvoice.discount;
+    // const purchase_invoice_name = updatePurchaseInvoice.name;
+    // const purchaseInvoice = await PurchaseInvoiceModel.fetchByID(id);
+    // if (!purchaseInvoice) {
+    //   return res.status(404).send(ErrorList["Not found"]);
+    // }
+    // if (purchaseInvoice.is_delete) {
+    //   return res
+    //     .status(400)
+    //     .send(ErrorList["Purchase invoice already deleted"]);
+    // }
+    // const goodReceipt: any = await GoodReceiptModel.fetchByID(
+    //   purchaseInvoice.good_receipt_code_id
+    // );
+    // if (!goodReceipt) {
+    //   return res.status(404).send(ErrorList["Not found"]);
+    // }
+    // if (goodReceipt.is_delete) {
+    //   return res.status(400).send(ErrorList["Good receipt already deleted"]);
+    // }
+    // PurchaseInvoiceModel.update({
+    //   id: id,
+    //   name: purchase_invoice_name,
+    //   date: date,
+    //   faktur: faktur,
+    //   discount: discount,
+    //   good_receipt_code: {
+    //     supplier_id: supplier_id,
+    //     company_id: company_id,
+    //     name: name,
+    //     date: date,
+    //     good_receipt: good_receipt_items.map((x) => {
+    //       return {
+    //         item_id: x.item_id,
+    //         item_unit_id: x.item_unit_id,
+    //         quantity: x.quantity,
+    //         price: x.price,
+    //         discount: x.discount,
+    //       };
+    //     }),
+    //   },
+    // })
+    //   .then(async (result) => {
+    //     // Remove stock outs that has stock_in_id of the good receipt
+    //     StockInModel.fetch(
+    //       IStockInFetchMethod.BY_GOOD_RECEIPT_CODE_ID,
+    //       goodReceipt.id
+    //     ).then(async (stockIns) => {
+    //       await StockOutModel.delete(
+    //         IStockOutDelete.BY_STOCK_IN_IDS,
+    //         stockIns.map((x) => {
+    //           return x.id;
+    //         })
+    //       );
+    //       await StockInModel.deleteMany(
+    //         stockIns.map((x) => {
+    //           return x.id;
+    //         })
+    //       );
+    //       const createPurchaseInvoiceTotalValue =
+    //         result.good_receipt_code.good_receipt.reduce((a, b) => {
+    //           return (
+    //             a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
+    //           );
+    //         }, 0);
+    //       const createPurchaseInvoiceDiscount =
+    //         result.discount == null ? 0 : Number(result.discount || 0);
+    //       const createPurchaseInvoiceNetValue =
+    //         createPurchaseInvoiceTotalValue - createPurchaseInvoiceDiscount;
+    //       // Create stock in for the updated good receipt
+    //       await StockInModel.createMany(
+    //         result.good_receipt_code.good_receipt.map((x) => {
+    //           return {
+    //             date: result.good_receipt_code.date,
+    //             company_id: result.good_receipt_code.company_id,
+    //             item_id: x.item.id,
+    //             good_receipt_code_id: result.good_receipt_code.id,
+    //             good_receipt_id: x.id,
+    //             adjustment_case_code_id: null,
+    //             adjustment_case_id: null,
+    //             price:
+    //               createPurchaseInvoiceTotalValue == 0
+    //                 ? 0
+    //                 : ((Number(x.price) - Number(x.discount)) *
+    //                     createPurchaseInvoiceNetValue) /
+    //                   (createPurchaseInvoiceTotalValue *
+    //                     (x.item_unit == null
+    //                       ? 1
+    //                       : Number(x.item_unit.conversion))),
+    //             quantity:
+    //               Number(x.quantity) *
+    //               (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
+    //           };
+    //         })
+    //       );
+    //       return res.status(201).send(result);
+    //     });
+    //   })
+    //   .catch((error) => {
+    //     console.error(`[error]: Error on updating good receipt ${error}`);
+    //     return res.status(500).send(ErrorList["Internal server error"]);
+    //   });
   };
 
-  /**
-   * Fetch unconfirmed purchase invoice
-   * @param req
-   * @param res
-   */
-  static fetchUnconfirmed = (req: Request, res: Response) => {
-    const page = !req.query.page
-      ? 1
-      : Math.max(1, parseInt(req.query.page.toString()));
-    const limit = parseInt(process.env.LIMIT!);
-    const offset = (page - 1) * limit;
+  fetchUnconfirmed = async (req: Request, res: Response) => {
+    const page = translatePage(req.query.page);
+    const pageSize = Number(process.env.LIMIT!);
 
-    PurchaseInvoiceModel.fetchUnconfirmed(offset, limit)
-      .then(([purchaseInvoiceResult, purchaseInvoiceCount]) => {
-        return res.status(200).send({
-          data: purchaseInvoiceResult,
-          count: purchaseInvoiceCount,
-        });
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error on fetching unconfirmed purchase invoice ${error}`
-        );
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    const result = await this.purchaseInvoiceRepository.fetchUnconfirmed({
+      keyword: "",
+      page: page,
+      pageSize: pageSize,
+    });
+
+    return res.status(200).send(result);
   };
 
-  /**
-   * Update purchase invoice status
-   * Either confirm or delete
-   * @param req
-   * @param res
-   * @returns
-   */
-  static updateStatus = async (req: Request, res: Response) => {
+  updateStatus = async (req: Request, res: Response) => {
     const id = parseInt(req.body.id);
     const is_confirm = req.body.is_confirm;
     const is_delete = req.body.is_delete;
     const userID = req.body.userId;
 
-    const purchaseInvoice = await PurchaseInvoiceModel.fetchByID(id);
-    if (!purchaseInvoice) {
-      return res.status(404).send(ErrorList["Invoice not found"]);
-    }
+    try {
+      const purchaseInvoice = await this.purchaseInvoiceRepository.fetchByID(
+        id
+      );
 
-    if (purchaseInvoice.is_confirm) {
-      return res.status(400).send(ErrorList["Invoice already confirmed"]);
-    }
-
-    if (purchaseInvoice.is_delete) {
-      return res.status(400).send(ErrorList["Invoice already deleted"]);
-    }
-
-    const goodReceiptCodeID = purchaseInvoice.good_receipt_code_id;
-
-    const goodReceipt = (await GoodReceiptModel.fetchByID(
-      goodReceiptCodeID
-    )) as any;
-    if (!goodReceipt) {
-      return res.status(404).send(ErrorList["Good receipt not found"]);
-    }
-
-    if (is_confirm) {
-      const discount = req.body.discount;
-      const good_receipt = req.body.good_receipt as any[];
-      const good_receipt_name = req.body.good_receipt_name;
-      const purchase_invoice_name = req.body.name;
-      const date = new Date(req.body.date);
-
-      if (goodReceipt.purchase_invoice == null) {
-        return res.status(404).send(ErrorList["Purchase invoice not found"]);
+      if (!purchaseInvoice) {
+        return res.status(404).send(ErrorList["Invoice not found"]);
       }
 
-      if (goodReceipt.purchase_invoice.is_confirm) {
-        return res
-          .status(400)
-          .send(ErrorList["Purchase invoice already confirmed"]);
+      if (purchaseInvoice.is_confirm) {
+        return res.status(400).send(ErrorList["Invoice already confirmed"]);
       }
 
-      if (goodReceipt.purchase_invoice.is_delete) {
-        return res
-          .status(400)
-          .send(ErrorList["Purchase invoice already deleted"]);
+      if (purchaseInvoice.is_delete) {
+        return res.status(400).send(ErrorList["Invoice already deleted"]);
       }
 
-      PurchaseInvoiceModel.confirmByID({
-        id: id,
-        discount: discount,
-        good_receipt: good_receipt.map((x) => {
-          return {
-            id: x.id,
-            price: x.price,
-            discount: x.discount,
-          };
-        }),
-        good_receipt_name: good_receipt_name,
-        purchase_invoice_name: purchase_invoice_name,
-        date: date,
-        confirmed_by: userID,
-      }).then(async (updatePurchaseInvoiceResult) => {
+      if (purchaseInvoice.good_receipt_code == null) {
+        return res.status(404).send(ErrorList["Good receipt not found"]);
+      }
+
+      if (is_confirm) {
+        const discount = req.body.discount;
+        const good_receipt = req.body.good_receipt as any[];
+        const good_receipt_name = req.body.good_receipt_name;
+        const purchase_invoice_name = req.body.name;
+        const date = new Date(req.body.date);
+
+        const updatedPurchaseInvoice =
+          await this.purchaseInvoiceRepository.update({
+            id: id,
+            name: purchase_invoice_name,
+            uuid: purchaseInvoice.uuid,
+            discount: discount,
+            date: date,
+            created_by: userID,
+            created_at: new Date(),
+          });
+
+        const updatedGoodReceipt = await this.goodReceiptRepository.update({
+          id: purchaseInvoice.good_receipt_code_id,
+          uuid: purchaseInvoice.good_receipt_code.uuid,
+          name: good_receipt_name,
+          date: date,
+          supplier_id: purchaseInvoice.good_receipt_code.supplier_id,
+          company_id: purchaseInvoice.good_receipt_code.company_id,
+          created_by: userID,
+          created_at: new Date(),
+          good_receipt: good_receipt.map((x) => {
+            return {
+              item_id: x.item_id,
+              item_unit_id: x.item_unit_id,
+              quantity: x.quantity,
+              price: x.price,
+              discount: x.discount,
+            };
+          }),
+        });
+
+        await queue.add("good-receipt-updated", {
+          id: updatedGoodReceipt.id,
+        });
+
         const socket = new SocketHelper(
           "updatePurchaseDocumentStatus",
-          updatePurchaseInvoiceResult[0]
+          updatedPurchaseInvoice
         );
         socket.create();
 
-        const updatedPurchaseInvoice = await PurchaseInvoiceModel.fetchByID(id);
-        if (!updatedPurchaseInvoice) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        const createPurchaseInvoiceTotalValue =
-          updatedPurchaseInvoice.good_receipt_code.good_receipt.reduce(
-            (a, b) => {
-              return (
-                a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
-              );
-            },
-            0
-          );
-
-        const createPurchaseInvoiceDiscount = Number(
-          updatePurchaseInvoiceResult[0].discount
-        );
-
-        StockInModel.updatePrice(
-          updatedPurchaseInvoice.good_receipt_code.good_receipt.map((x) => {
-            return {
-              good_receipt_id: x.id,
-              good_receipt_code_id: goodReceiptCodeID,
-              adjustment_event_code_id: null,
-              adjustment_event_id: null,
-              price:
-                createPurchaseInvoiceTotalValue == 0
-                  ? 0
-                  : ((Number(x.price) - Number(x.discount)) *
-                      (createPurchaseInvoiceTotalValue -
-                        createPurchaseInvoiceDiscount)) /
-                    createPurchaseInvoiceTotalValue,
-            };
-          })
-        )
-          .then(async () => {
-            if (good_receipt.filter((x) => x.save).length > 0) {
-              // Search for saved items
-              await ItemPurchasePriceModel.delete(
-                good_receipt
-                  .filter((x) => x.save)
-                  .map((x) => {
-                    const itemIndex =
-                      updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
-                        (y) => y.id == x.id
-                      );
-
-                    const itemID =
-                      updatePurchaseInvoiceResult[0].good_receipt_code
-                        .good_receipt[itemIndex].item.id;
-                    const itemUnitID =
-                      updatePurchaseInvoiceResult[0].good_receipt_code
-                        .good_receipt[itemIndex].item_unit == null
-                        ? null
-                        : updatePurchaseInvoiceResult[0].good_receipt_code
-                            .good_receipt[itemIndex].item_unit!.id;
-                    return {
-                      item_id: itemID,
-                      item_unit_id: itemUnitID,
-                      deleted_by: userID,
-                    };
-                  })
-              );
-
-              // Then save the price
-              await ItemPurchasePriceModel.create(
-                good_receipt
-                  .filter((x) => x.save)
-                  .map((x) => {
-                    const itemIndex =
-                      updatePurchaseInvoiceResult[0].good_receipt_code.good_receipt.findIndex(
-                        (y) => y.id == x.id
-                      );
-
-                    const itemID =
-                      updatePurchaseInvoiceResult[0].good_receipt_code
-                        .good_receipt[itemIndex].item.id;
-                    const itemUnitID =
-                      updatePurchaseInvoiceResult[0].good_receipt_code
-                        .good_receipt[itemIndex].item_unit == null
-                        ? null
-                        : updatePurchaseInvoiceResult[0].good_receipt_code
-                            .good_receipt[itemIndex].item_unit!.id;
-
-                    return {
-                      item_id: itemID,
-                      item_unit_id: itemUnitID,
-                      price: x.price,
-                      discount: x.discount,
-                      created_by: userID,
-                    };
-                  })
-              );
-            }
-
-            return res.status(201).send(updatePurchaseInvoiceResult);
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on updating stock in price ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
-      });
-    } else if (is_delete) {
-      const [purchaseInvoiceUpdate, _] = await PurchaseInvoiceModel.deleteByID({
-        id: id,
-        deleted_by: userID,
-      });
-
-      StockInModel.fetch(
-        IStockInFetchMethod.BY_GOOD_RECEIPT_CODE_ID,
-        purchaseInvoiceUpdate.good_receipt_code_id
-      )
-        .then(async (result) => {
-          // Unlink the stock outs
-          await StockOutModel.delete(
-            IStockOutDelete.BY_STOCK_IN_IDS,
-            result.map((x) => {
-              return x.id;
-            })
-          );
-
-          await StockInModel.deleteMany(
-            result.map((x) => {
-              return x.id;
-            })
-          );
-
-          const socket = new SocketHelper(
-            "updatePurchaseDocumentStatus",
-            purchaseInvoiceUpdate
-          );
-          socket.create();
-
-          return res.status(200).send(purchaseInvoiceUpdate);
-        })
-        .catch((error) => {
-          console.error(
-            `[error]: Error on deleting stock in for purchase invoice ${error}`
-          );
-          return res.status(500).send(ErrorList["Internal server error"]);
+        return res.status(200).send(updatedPurchaseInvoice);
+      } else if (is_delete) {
+        await this.purchaseInvoiceRepository.delete(id, userID);
+        await queue.add("delete-good-receipt", {
+          id: purchaseInvoice.good_receipt_code_id,
         });
+      } else {
+        return res.status(400).send(ErrorList["Invalid status update"]);
+      }
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching purchase invoice by ID ${error}`
+      );
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
-  /**
-   * Fetch purchase invoice archive
-   * @param req
-   * @param res
-   */
   static fetchArchive = (req: Request, res: Response) => {
     const mode = req.body.mode;
     const year = req.body.year;

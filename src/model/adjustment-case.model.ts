@@ -16,7 +16,13 @@ export interface IAdjustmentCaseCode {
   id?: number;
   name: string;
   date: Date;
-  created_by: number;
+  created_by?: number;
+  created_at?: Date;
+  is_confirm?: boolean;
+  is_delete?: boolean;
+  confirmed_by?: number | null;
+  confirmed_at?: Date | null;
+
   company_id: number | null;
   adjustment_case: IAdjustmentCase[];
   user_adjustment_case_code_created_byTouser?: UserViewModel;
@@ -41,7 +47,7 @@ class AdjustmentCaseModel {
   id?: number;
   name: string;
   date: Date;
-  created_by: number;
+  created_by?: number;
   created_at?: Date;
   is_confirm?: boolean;
   is_delete?: boolean;
@@ -57,7 +63,7 @@ class AdjustmentCaseModel {
     this.name = data.name;
     this.date = data.date;
     this.created_by = data.created_by;
-    this.created_at = new Date();
+    this.created_at = data.created_at;
     this.is_confirm = false;
     this.is_delete = false;
     this.confirmed_by = null;
@@ -68,52 +74,43 @@ class AdjustmentCaseModel {
       data.user_adjustment_case_code_created_byTouser;
   }
 
-  private validateCreate() {
-    if (this.adjustment_case.length === 0) {
-      throw new Error("Adjustment case cannot be empty");
-    }
-
-    if (!this.name || this.name.trim() === "") {
-      throw new Error("Name is required");
-    }
-
-    if (!this.date) {
-      throw new Error("Date is required");
-    }
-
-    if (!this.created_by) {
-      throw new Error("Created by is required");
-    }
-
-    if (!this.company_id) {
-      throw new Error("Company ID is required");
-    }
-
-    if (this.adjustment_case.length === 0) {
-      throw new Error("At least one adjustment case is required");
-    }
-  }
-
-  create() {
-    this.validateCreate();
-
-    return prisma.adjustment_case_code.create({
-      data: {
-        name: this.name,
-        date: this.date,
-        created_by: this.created_by,
-        created_at: new Date(),
-        is_confirm: false,
-        is_delete: false,
-        confirmed_by: null,
-        confirmed_at: new Date(),
-        company_id: this.company_id,
-        adjustment_case: {
-          createMany: {
-            data: this.adjustment_case,
-          },
-        },
-      },
+  static fromMap(data: any): AdjustmentCaseModel {
+    return new AdjustmentCaseModel({
+      id: data.id,
+      name: data.name,
+      date: data.date,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      is_confirm: data.is_confirm,
+      is_delete: data.is_delete,
+      confirmed_by: data.confirmed_by,
+      confirmed_at: data.confirmed_at,
+      company_id: data.company_id,
+      adjustment_case: data.adjustment_case.map((ac: any) => ({
+        id: ac.id,
+        item_id: ac.item_id,
+        item_unit_id: ac.item_unit_id,
+        quantity: Number(ac.quantity),
+        item: new ProductModel({
+          id: ac.item.id,
+          reference: ac.item.reference,
+          description: ac.item.description,
+          unit: ac.item.unit,
+          brand_id: ac.item.item_brand_id,
+          type_id: ac.item.item_type_id,
+        }),
+        item_unit:
+          ac.item_unit == null
+            ? null
+            : new ProductUnitModel({
+                item_id: ac.item_id,
+                unit: ac.item_unit.unit,
+                conversion: Number(ac.item_unit.conversion),
+              }),
+      })),
+      user_adjustment_case_code_created_byTouser: UserViewModel.fromMap(
+        data.user_adjustment_case_code_created_byTouser
+      ),
     });
   }
 

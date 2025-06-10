@@ -1,11 +1,19 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
+import { prisma, redisClient } from "../../app";
 import ErrorList from "../../assets/error_list";
 import SalesInvoiceController from "../../controller/sales-invoice.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
+import { ReceivableRepository } from "../../repositories/receivable.repository";
+import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 
 const router = Router();
+
+const salesInvoiceController = new SalesInvoiceController(
+  new SalesInvoiceRepository(prisma),
+  new ReceivableRepository(redisClient)
+);
 
 router.post("/search", SalesInvoiceController.fetchSearch);
 router.post(
@@ -73,7 +81,7 @@ router.delete(
     })
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SalesInvoiceController.deleteByID
+  // SalesInvoiceController.deleteByID
 );
 
 export default router;
