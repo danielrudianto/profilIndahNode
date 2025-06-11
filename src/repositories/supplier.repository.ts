@@ -110,7 +110,7 @@ export class SupplierRepository {
   async fetch(data: IFetchCommon): Promise<IFetchCommonResult<ISupplier>> {
     try {
       const [result, count] = await this.prisma.$transaction([
-        this.prisma.$queryRawUnsafe(`
+        this.prisma.$queryRawUnsafe<any[]>(`
               SELECT supplier.id, supplier.name, supplier.address, 
               supplier.npwp, user.name AS created_by_name, supplier.created_by,
               supplier.created_at, COALESCE(supplierCount.count, 0) AS count
@@ -140,7 +140,7 @@ export class SupplierRepository {
       ]);
 
       return {
-        data: (result as any[]).map((item) => SupplierModel.fromMap(item)),
+        data: result.map((item) => SupplierModel.fromMap(item)),
         count: count,
       };
     } catch (error) {

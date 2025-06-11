@@ -21,8 +21,8 @@ export interface ICustomer {
 
   user?: UserViewModel;
 
-  is_delete?: boolean;
-  can_delete?: boolean;
+  is_delete?: boolean | string;
+  can_delete?: boolean | string;
 }
 
 class CustomerModel {
@@ -34,7 +34,7 @@ class CustomerModel {
   phone_number: string;
   created_by?: number;
   is_delete?: boolean = false;
-  can_delete?: boolean = false;
+  can_delete?: boolean;
   created_at?: Date;
   updated_by?: number | null;
   updated_at?: Date | null;
@@ -50,14 +50,25 @@ class CustomerModel {
     this.pic = data.pic;
     this.phone_number = data.phone_number;
     this.created_by = data.created_by;
-    this.is_delete = data.is_delete;
-    this.can_delete = data.can_delete;
     this.created_at = data.created_at;
     this.updated_by = data.updated_by;
     this.updated_at = data.updated_at;
     this.deleted_by = data.deleted_by;
     this.deleted_at = data.deleted_at;
     this.user = data.user;
+
+    // if can_delete is boolean, use it directly
+    if (typeof data.can_delete === "boolean") {
+      this.can_delete = data.can_delete;
+    } else if (typeof data.can_delete === "string") {
+      this.can_delete = data.can_delete === "1";
+    }
+
+    if (typeof data.is_delete === "boolean") {
+      this.is_delete = data.is_delete;
+    } else if (typeof data.is_delete === "string") {
+      this.is_delete = data.is_delete === "1";
+    }
   }
 
   update() {

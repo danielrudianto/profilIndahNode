@@ -137,28 +137,33 @@ export class CustomerRepository {
 
     // SQL query for fetching customers
     const customerQuery = `
-      SELECT 
-        customer.id, customer.name, customer.address, customer.pic, 
-        customer.npwp, customer.phone_number, customer.created_at, 
-        customer.is_delete, customer.created_by,
-        IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
-      FROM customer
-      LEFT JOIN (
-        SELECT 
-          COUNT(bill_code.id) AS count, bill_code.customer_id
-        FROM bill_code
-        WHERE bill_code.is_delete = 0
-        GROUP BY bill_code.customer_id
-      ) itemCount ON customer.id = itemCount.customer_id
-      WHERE customer.is_delete = 0
-        AND (
-          customer.name LIKE '%${keyword}%'
-          OR customer.address LIKE '%${keyword}%'
-          OR customer.npwp LIKE '%${keyword}%'
-          OR customer.pic LIKE '%${keyword}%'
-          OR customer.phone_number LIKE '%${keyword}%'
-        )
-      ORDER BY customer.name ASC
+      SELECT
+          c.id,
+          c.name,
+          c.address,
+          c.pic,
+          c.npwp,
+          c.phone_number,
+          c.created_at,
+          c.is_delete,
+          c.created_by,
+          IF(COUNT(bc.id) = 0, "1", "0") AS can_delete
+      FROM
+          customer c
+      LEFT JOIN
+          bill_code bc ON c.id = bc.customer_id AND bc.is_delete = 0
+      WHERE
+          c.is_delete = 0
+          AND (
+              c.name LIKE '%${keyword}%'
+              OR c.address LIKE '%${keyword}%'
+              OR c.npwp LIKE '%${keyword}%'
+              OR c.pic LIKE '%${keyword}%'
+              OR c.phone_number LIKE '%${keyword}%'
+          )
+      GROUP BY c.id, c.name, c.address, c.pic, c.npwp, c.phone_number, c.created_at, c.is_delete, c.created_by  -- Group by all non-aggregated columns
+      ORDER BY
+          c.name ASC
       LIMIT ${pageSize}
       OFFSET ${(page - 1) * pageSize}
     `;
@@ -179,10 +184,13 @@ export class CustomerRepository {
 
     // Execute queries in a transaction
     try {
+      const startTime = Date.now();
       const [result, count] = await this.prisma.$transaction([
         this.prisma.$queryRawUnsafe<any[]>(customerQuery),
         this.prisma.customer.count(countQuery),
       ]);
+      const endTime = Date.now();
+      console.log(`[debug]: Fetching customers took ${endTime - startTime} ms`);
 
       return {
         data: result.map((x) => {

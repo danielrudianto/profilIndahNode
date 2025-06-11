@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { translateKeyword, translatePage } from "../helper/escape.helper";
+import {
+  translateKeyword,
+  translatePage,
+  translatePageSize,
+} from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
 import { ProductBrandRepository } from "../repositories/product-brand.repository";
 
@@ -122,7 +126,8 @@ export class ProductBrandController {
   fetch = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     const page = translatePage(req.query.page);
-    const pageSize = parseInt(process.env.LIMIT!);
+    // const pageSize = parseInt(process.env.LIMIT!);
+    const pageSize = translatePageSize(req.query.pageSize);
 
     try {
       const result = await this.productBrandRepository.fetch({

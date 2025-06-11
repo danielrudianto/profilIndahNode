@@ -99,3 +99,16 @@ export function translateFaktur(faktur: any): string | null {
 
   return fakturString;
 }
+
+export function translatePageSize(pageSize: any): number {
+  if (!pageSize) {
+    return 10; // Default page size
+  }
+
+  const size = Number(pageSize);
+  if (isNaN(size) || size < 1 || size > 100) {
+    return 10; // Default page size if invalid
+  }
+
+  return Math.floor(size);
+}

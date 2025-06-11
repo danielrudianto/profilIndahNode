@@ -10,6 +10,7 @@ import {
   translateKeyword,
   translateNPWP,
   translatePage,
+  translatePageSize,
 } from "../helper/escape.helper";
 
 class CustomerController {
@@ -134,7 +135,8 @@ class CustomerController {
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
-    const pageSize = Number(process.env.LIMIT!);
+    // const pageSize = Number(process.env.LIMIT!);
+    const pageSize = translatePageSize(req.query.pageSize);
 
     try {
       if (keyword != "") {

@@ -113,7 +113,7 @@ class CompanyController {
         pageSize: pageSize,
       });
 
-      return data;
+      return res.status(200).send(data);
     } catch (error) {
       console.error(`[error]: Error on fetching company: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

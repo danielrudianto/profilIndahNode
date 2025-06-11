@@ -69,6 +69,7 @@ export class ProductBrandRepository {
   async fetch(
     data: IFetchCommon
   ): Promise<IFetchCommonResult<ProductBrandModel>> {
+    console.log(data);
     const baseQuery = `
         SELECT  item_brand.id, item_brand.name, user.name AS user_name,
                 user.username AS user_username, user.role AS user_role, 

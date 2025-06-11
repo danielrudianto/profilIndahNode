@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { translateKeyword, translatePage } from "../helper/escape.helper";
+import {
+  translateKeyword,
+  translatePage,
+  translatePageSize,
+} from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
 import { SupplierRepository } from "../repositories/supplier.repository";
 
@@ -88,7 +92,8 @@ class SupplierController {
     try {
       const keyword = translateKeyword(req.query.keyword);
       const page = translatePage(req.query.page);
-      const pageSize = parseInt(process.env.PAGE_SIZE!);
+      // const pageSize = parseInt(process.env.LIMIT!);
+      const pageSize = translatePageSize(req.query.pageSize);
 
       const result = await this.supplierRepository.fetch({
         keyword: keyword,
@@ -96,7 +101,7 @@ class SupplierController {
         pageSize: pageSize,
       });
 
-      return result;
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching supplier data ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
