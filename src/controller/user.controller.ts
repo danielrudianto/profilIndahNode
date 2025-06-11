@@ -17,7 +17,7 @@ class UserController {
     this.userRepository = userRepository;
   }
 
-  async create(req: Request, res: Response) {
+  create = async (req: Request, res: Response) => {
     try {
       const username = req.body.username;
       const name = req.body.name;
@@ -78,9 +78,9 @@ class UserController {
       console.error(`[error]: Error on creating user ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  }
+  };
 
-  async fetchByID(req: Request, res: Response) {
+  fetchByID = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
       const user = await this.userRepository.fetchByID(id);
@@ -93,9 +93,9 @@ class UserController {
       console.error(`[error]: Error on fetching user by ID ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  }
+  };
 
-  async fetch(req: Request, res: Response) {
+  fetch = async (req: Request, res: Response) => {
     try {
       const page = translatePage(req.query.page);
       const keyword = translateKeyword(req.query.keyword);
@@ -112,7 +112,7 @@ class UserController {
       console.error(`[error]: Error on fetching users ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  }
+  };
 
   private async generatePassword(): Promise<string> {
     let password = "";

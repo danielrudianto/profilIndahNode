@@ -156,6 +156,29 @@ export class ProductModel {
       item_type: ProductTypeViewModel.fromMap(data.item_type),
     });
   }
+  static fromMeilisearch(data: any) {
+    return new ProductModel({
+      id: data.id,
+      reference: data.reference,
+      description: data.description,
+      brand_id: data.item_brand_id,
+      type_id: data.item_type_id,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      updated_by: data.updated_by,
+      updated_at: data.updated_at,
+      minimum_stock: data.minimum_stock,
+      unit: data.unit,
+      item_brand: ProductBrandViewModel.fromMap({
+        id: data.itemBrandID,
+        name: data.brand,
+      }),
+      item_type: ProductTypeViewModel.fromMap({
+        id: data.itemTypeID,
+        name: data.type,
+      }),
+    });
+  }
 
   create() {
     this.validateCreate();

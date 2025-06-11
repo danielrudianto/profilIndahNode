@@ -9,40 +9,46 @@ export class ProductUnitRepository {
   }
 
   async create(data: IProductUnit[]) {
-    return this.prisma.item_unit.createMany({
-      data: data.map((unit) => {
-        return {
-          item_id: unit.item_id,
-          unit: unit.unit,
-          conversion: unit.conversion,
-          created_by: unit.created_by!,
-          created_at: unit.created_at!,
-          item_price: {
-            create: {
-              data: {
-                price: unit.item_price?.price,
-                discount: unit.item_price?.discount,
-                item_id: unit.item_id,
-                created_by: unit.item_price?.created_by,
-                created_at: unit.item_price?.created_at,
-                effective_date: unit.created_at!,
+    try {
+      const result = await this.prisma.item_unit.createMany({
+        data: data.map((unit) => {
+          return {
+            item_id: unit.item_id,
+            unit: unit.unit,
+            conversion: unit.conversion,
+            created_by: unit.created_by!,
+            created_at: unit.created_at!,
+            item_price: {
+              create: {
+                data: {
+                  price: unit.item_price?.price,
+                  discount: unit.item_price?.discount,
+                  item_id: unit.item_id,
+                  created_by: unit.item_price?.created_by,
+                  created_at: unit.item_price?.created_at,
+                  effective_date: unit.created_at!,
+                },
               },
             },
-          },
-          item_price_purchase: {
-            create: {
-              data: {
-                price: unit.item_price_purchase?.price,
-                discount: unit.item_price_purchase?.discount,
-                item_id: unit.item_id,
-                created_by: unit.item_price_purchase?.created_by,
-                created_at: unit.item_price_purchase?.created_at,
+            item_price_purchase: {
+              create: {
+                data: {
+                  price: unit.item_price_purchase?.price,
+                  discount: unit.item_price_purchase?.discount,
+                  item_id: unit.item_id,
+                  created_by: unit.item_price_purchase?.created_by,
+                  created_at: unit.item_price_purchase?.created_at,
+                },
               },
             },
-          },
-        };
-      }),
-    });
+          };
+        }),
+      });
+
+      return result.count;
+    } catch (error) {
+      throw error;
+    }
   }
 
   async fetchByItemID(itemID: number) {
@@ -68,6 +74,7 @@ export class ProductUnitRepository {
             orderBy: {
               effective_date: "desc",
             },
+            take: 1,
           },
           item_price_purchase: {
             select: {
@@ -80,6 +87,7 @@ export class ProductUnitRepository {
             where: {
               is_delete: false,
             },
+            take: 1,
           },
         },
       });

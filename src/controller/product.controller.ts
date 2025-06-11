@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { ICreateProductUnit, ProductModel } from "../model/product.model";
 
-import SocketHelper from "../helper/socket.helper";
 import ErrorList from "../assets/error_list";
 import { ProductRepository } from "../repositories/product.repository";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
@@ -9,10 +8,12 @@ import { ProductSalesPriceRepository } from "../repositories/product-sales-price
 import { ProductPurchasePriceRepository } from "../repositories/product-purchase-price.repository";
 
 import { meili } from "../app";
-import { translatePage, translateKeyword } from "../helper/escape.helper";
+import {
+  translatePage,
+  translateKeyword,
+  translatePageSize,
+} from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
-import { mongoProductModel } from "../mongo-model/mongo-product.model";
-import DepositModel from "../model/deposit.model";
 
 class ProductController {
   private productRepository: ProductRepository;
@@ -109,178 +110,35 @@ class ProductController {
         );
       }
 
-      await meili.index("products").addDocuments([product]);
-
+      // Add to Meilisearch index
+      await queue.add("product-created", {
+        id: product.id,
+      });
       return res.status(201).send(product);
-
-      //   const product = await this.productRepository.create({
-      //     reference: reference,
-      //     description: description,
-      //     brand_id: brandID,
-      //     type_id: typeID,
-      //     created_by: userID,
-      //     created_at: created_at,
-      //     minimum_stock: minimum_stock,
-      //     unit: unit,
-      //   });
-
-      //   if (product) {
-      //     const [unitResult, salesPriceResult, purchasePriceResult] =
-      //       await Promise.all([
-      //         this.productUnitRepository.create(
-      //           units.map((x) => {
-      //             return {
-      //               item_id: product.id!,
-      //               unit: x.unit,
-      //               conversion: x.conversion,
-      //               created_by: userID,
-      //               created_at: created_at,
-      //             };
-      //           })
-      //         ),
-      //         this.productSalesPriceRepository.create({
-      //           item_id: product.id!,
-      //           price: price,
-      //           discount: discount,
-      //           created_at: created_at,
-      //           created_by: userID,
-      //           effective_date: created_at,
-      //         }),
-      //         this.productPurchasePriceRepository.create({
-      //           item_id: product.id!,
-      //           price: purchase_price,
-      //           discount: purchase_discount,
-      //           created_at: created_at,
-      //           created_by: userID,
-      //         }),
-      //       ]);
-      //   } else {
-      //     return res.status(500).send(ErrorList["Internal server error"]);
-      //   }
-
-      //   const itemID = item.id;
-      //   const unitResult = await ItemModel.createUnits(itemID, userID, units);
-
-      //   await queue.add("insert-product", {
-      //     reference: item.reference,
-      //     description: item.description,
-      //     id: item.id,
-      //     itemTypeID: item.item_type_id,
-      //     itemBrandID: item.item_brand_id,
-      //     unit: item.unit,
-      //     itemBrand: item.item_brand.name,
-      //     itemType: item.item_type.name,
-      //     minimumStock: item.minimum_stock,
-      //   });
-
-      //   const response = {
-      //     ...item,
-      //     item_price: item.item_price[0],
-      //     item_price_purchase: item.item_price_purchase[0],
-      //     units: unitResult,
-      //   };
-
-      //   const itemSocket = new SocketHelper("createItem", response);
-      //   itemSocket.create();
-
-      //   return res.status(201).send(response);
     } catch (error) {
       console.error(`[error]: Error on creating item ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
-  // /**
-  //  * Create new item
-  //  * @param req
-  //  * @param res
-  //  * @returns {Promise<Response<any, Record<string, any>, number>>}
-  //  */
-  // static create = async (req: Request, res: Response) => {
-  //   const reference = req.body.reference;
-  //   const description = req.body.description;
-  //   const brand_id = req.body.brand;
-  //   const type_id = req.body.type;
-  //   const minimum_stock = req.body.minimum_stock;
-  //   const userID = req.body.userId;
-  //   const unit = req.body.unit;
-  //   const price = req.body.price;
-  //   const discount = req.body.discount;
-  //   const purchase_price = req.body.purchase_price;
-  //   const purchase_discount = req.body.purchase_discount;
-  //   const units = req.body.units as ICreateProductUnit[];
-
-  //   const existingItem = await this.productRepository.fetchByReference(
-  //     reference
-  //   );
-  //   if (existingItem) {
-  //     return res.status(400).send(ErrorList["Reference unique constraint"]);
-  //   }
-
-  //   ItemModel.create({
-  //     reference: reference,
-  //     description: description,
-  //     minimum_stock: minimum_stock,
-  //     brand_id: brand_id,
-  //     type_id: type_id,
-  //     created_by: userID,
-  //     price: price,
-  //     discount: discount,
-  //     purchase_price: purchase_price,
-  //     purchase_discount: purchase_discount,
-  //     unit: unit,
-  //   })
-  //     .then(async (item) => {
-  //       const itemID = item.id;
-  //       const unitResult = await ItemModel.createUnits(itemID, userID, units);
-
-  //       await queue.add("insert-product", {
-  //         reference: item.reference,
-  //         description: item.description,
-  //         id: item.id,
-  //         itemTypeID: item.item_type_id,
-  //         itemBrandID: item.item_brand_id,
-  //         unit: item.unit,
-  //         itemBrand: item.item_brand.name,
-  //         itemType: item.item_type.name,
-  //         minimumStock: item.minimum_stock,
-  //       });
-
-  //       const response = {
-  //         ...item,
-  //         item_price: item.item_price[0],
-  //         item_price_purchase: item.item_price_purchase[0],
-  //         units: unitResult,
-  //       };
-
-  //       const itemSocket = new SocketHelper("createItem", response);
-  //       itemSocket.create();
-
-  //       return res.status(201).send(response);
-  //     })
-  //     .catch((error) => {
-  //       console.error(`[error]: Error on creating item ${error}`);
-  //       return res.status(500).send(ErrorList["Internal server error"]);
-  //     });
-  // };
 
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
-    const pageSize = Number(process.env.LIMIT!);
+    // const pageSize = Number(process.env.LIMIT!);
+    const pageSize = translatePageSize(req.query.pageSize);
     const mode = req.query.mode;
 
     try {
-      const [result, count] = await Promise.all([
-        await meili.index("products").search(keyword, {
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
-        }),
-        (await meili.index("products").search(keyword)).totalHits,
-      ]);
+      const result = await meili.index("item").search(keyword, {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      });
 
       return res.status(200).send({
-        data: result,
-        count: count,
+        data: result.hits.map((x: any) => {
+          return ProductModel.fromMeilisearch(x);
+        }),
+        count: result.estimatedTotalHits,
       });
     } catch (error) {
       console.error(`[error]: Error on fetching items ${error}`);

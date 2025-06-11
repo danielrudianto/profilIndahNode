@@ -12,7 +12,27 @@ export class ProductPurchasePriceRepository {
     this.prisma = prisma;
   }
 
-  create(data: IProductPurchasePrice) {}
+  async create(data: IProductPurchasePrice) {
+    try {
+      const result = await this.prisma.item_price_purchase.create({
+        data: {
+          item_id: data.item_id,
+          item_unit_id: data.item_unit_id,
+          price: data.price,
+          discount: data.discount,
+          created_by: data.created_by!,
+          created_at: data.created_at,
+        },
+      });
+
+      return ProductPurchasePriceModel.fromMap(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error while creating item purchase price: ${error}`
+      );
+      throw new Error("Internal server error");
+    }
+  }
 
   createMany(data: IProductPurchasePrice[]) {
     return Promise.all([

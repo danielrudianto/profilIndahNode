@@ -4,7 +4,6 @@ import ErrorList from "../../assets/error_list";
 import ProductController from "../../controller/product.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
-import ItemPurchasePriceController from "../../controller/product-price-purchase.controller";
 import { ProductRepository } from "../../repositories/product.repository";
 import { prisma } from "../../helper/database.helper";
 import { ProductUnitRepository } from "../../repositories/product-unit.repository";

@@ -1,13 +1,12 @@
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { IUser, UserModel } from "../model/user.model";
 import { UserRoleModel } from "../model/user_role.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 
 export class UserRepository {
   private prisma: PrismaClient;
-  // prisma = new PrismaClient()
 
-  constructor(prisma: PrismaClient) {
+  constructor(prisma: any) {
     this.prisma = prisma;
   }
 

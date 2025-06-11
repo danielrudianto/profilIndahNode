@@ -62,7 +62,7 @@ import helmet from "helmet";
 
 export const meili = new MeiliSearch({
   host: "http://localhost:7700",
-  apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
+  apiKey: process.env.MEILISEARCH_MASTER_KEY!
 });
 
 export const prisma = new PrismaClient({ log: ["query", "info"] });

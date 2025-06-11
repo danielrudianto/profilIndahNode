@@ -15,12 +15,12 @@ export class UserRoleModel {
 
   // list of available roles
   static roles: IUserRole[] = [
-    { id: 1, name: "Administrator", available: true },
-    { id: 2, name: "Sales", available: true },
-    { id: 3, name: "Warehouse", available: true },
-    { id: 4, name: "Accounting", available: true },
-    { id: 5, name: "Owner", available: true },
-    { id: 6, name: "Guest", available: false },
+    { id: 1, name: "Pembelian", available: true },
+    { id: 2, name: "Penjualan", available: true },
+    { id: 3, name: "Penjualan & Pembelian", available: true },
+    { id: 5, name: "Administrator", available: true },
+    { id: 6, name: "Gudang", available: false },
+    { id: 7, name: "Superadministrator", available: false },
   ];
 
   // from roleID to role name

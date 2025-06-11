@@ -1,5 +1,4 @@
 import { Job, Worker } from "bullmq";
-import MeiliSearch from "meilisearch";
 import mongoose, { mongo } from "mongoose";
 import { queue } from "./helper/queue.helper";
 import { mongoOverflowModel } from "./mongo-model/mongo-overflow.model";
@@ -16,11 +15,12 @@ import {
   StockReturnInterface,
 } from "./interface/stock-in.interface";
 import { mongoStockCardModel } from "./mongo-model/mongo-stock-card.model";
-
-const meili = new MeiliSearch({
-  host: "http://127.0.0.1:7700",
-  apiKey: "UTw9kRYvov_K4fd1mQnDFKpdcxXVevHPcVEPWWlTVSg",
-});
+import { ProductService } from "./services/product.service";
+import { ProductRepository } from "./repositories/product.repository";
+import { ProductUnitRepository } from "./repositories/product-unit.repository";
+import { ProductSalesPriceRepository } from "./repositories/product-sales-price.repository";
+import { ProductPurchasePriceRepository } from "./repositories/product-purchase-price.repository";
+import { prisma } from "./app";
 
 const workerOptions = {
   connection: {
@@ -40,9 +40,18 @@ async function connectToDatabase() {
   });
 }
 
+const productService = new ProductService(
+  new ProductRepository(prisma),
+  new ProductUnitRepository(prisma),
+  new ProductSalesPriceRepository(prisma),
+  new ProductPurchasePriceRepository(prisma)
+);
+
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
+    case "product-created":
+      await productService.createProduct(job.data.id);
     case "updateItem":
       const item = job.data;
       try {
