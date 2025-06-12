@@ -44,7 +44,17 @@ export class GoodReceiptRepository {
             },
           },
         },
+        include: {
+          good_receipt: {
+            include: {
+              item: true,
+              item_unit: true,
+            },
+          },
+        },
       });
+
+      console.log(result);
 
       return GoodReceiptModel.fromMap(result);
     } catch (error) {
@@ -79,6 +89,24 @@ export class GoodReceiptRepository {
       });
 
       return GoodReceiptModel.fromMap(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async fetchByName(name: string): Promise<GoodReceiptModel> {
+    try {
+      const goodReceipt = await this.prisma.good_receipt_code.findFirst({
+        where: {
+          name: name,
+          is_delete: false,
+        },
+        include: {
+          supplier: true,
+        },
+      });
+
+      return GoodReceiptModel.fromMap(goodReceipt);
     } catch (error) {
       throw error;
     }

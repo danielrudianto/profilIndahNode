@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { validationResult } from "express-validator";
-import { meili } from "../app";
+import { meili } from "../helper/meili.helper";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
 import { fetchMode } from "../interface/fetch.interface";

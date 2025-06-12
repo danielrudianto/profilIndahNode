@@ -95,8 +95,8 @@ class GoodReceiptModel {
           ? undefined
           : data.good_receipt.map((item: any) => ({
               id: item.id,
-              item_id: item.item.id,
-              item_unit_id: item.item_unit.id,
+              item_id: item.item_id,
+              item_unit_id: item.item_unit_id,
               quantity: item.quantity,
               price: item.price,
               discount: item.discount,

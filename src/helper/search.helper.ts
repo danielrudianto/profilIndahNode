@@ -1,7 +1,8 @@
 import e, { Request, Response } from "express";
 import moment from "moment";
 import mongoose from "mongoose";
-import { meili, prisma } from "../app";
+import { meili } from "./meili.helper";
+import { prisma } from "./database.helper";
 import { fetchMode } from "../interface/fetch.interface";
 import AdjustmentCaseCodeModel from "../model/adjustment-case.model";
 import CustomerModel from "../model/customer.model";

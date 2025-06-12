@@ -60,11 +60,6 @@ import ReceivableController from "./controller/receivable.controller";
 import compression from "compression";
 import helmet from "helmet";
 
-export const meili = new MeiliSearch({
-  host: "http://localhost:7700",
-  apiKey: process.env.MEILISEARCH_MASTER_KEY!
-});
-
 export const prisma = new PrismaClient({ log: ["query", "info"] });
 export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
 

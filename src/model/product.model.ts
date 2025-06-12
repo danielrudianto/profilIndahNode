@@ -152,8 +152,14 @@ export class ProductModel {
       updated_at: data.updated_at,
       minimum_stock: data.minimum_stock,
       unit: data.unit,
-      item_brand: ProductBrandViewModel.fromMap(data.item_brand),
-      item_type: ProductTypeViewModel.fromMap(data.item_type),
+      item_brand:
+        data.item_brand == undefined
+          ? undefined
+          : ProductBrandViewModel.fromMap(data.item_brand),
+      item_type:
+        data.item_type == undefined
+          ? undefined
+          : ProductTypeViewModel.fromMap(data.item_type),
     });
   }
   static fromMeilisearch(data: any) {

@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import {
   translateKeyword,
+  translateNPWP,
   translatePage,
   translatePageSize,
 } from "../helper/escape.helper";
@@ -40,7 +41,7 @@ class SupplierController {
       const id = Number(req.body.id);
       const name = req.body.name;
       const address = req.body.address;
-      const npwp = req.body.npwp.toString().length == 15 ? req.body.npwp : null;
+      const npwp = translateNPWP(req.body.npwp);
       const userID = req.body.userId;
 
       const result = await this.supplierRepository.update({
@@ -112,7 +113,7 @@ class SupplierController {
     try {
       const keyword = translateKeyword(req.query.keyword);
       const result = await this.supplierRepository.fetchAutocomplete(keyword);
-      return result;
+      return res.status(200).send(result);
     } catch (error) {
       console.error(
         `[error]: Error on fetching autocomplete supplier data ${error}`

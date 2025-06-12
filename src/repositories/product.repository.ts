@@ -3,10 +3,12 @@ import { IProduct, ProductModel } from "../model/product.model";
 import { ProductBrandViewModel } from "../model/product-brand.model";
 import { ProductTypeViewModel } from "../model/product-type.model";
 
+console.log("ProductRepository loaded");
+
 export class ProductRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 

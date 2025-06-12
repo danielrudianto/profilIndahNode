@@ -73,19 +73,21 @@ class GoodReceiptController {
         }),
       });
 
+      console.log(result);
+
       await this.stockInRepository.createMany(
-        good_receipt_items.map((x) => {
+        result.good_receipt!.map((x) => {
           return {
             date: date,
             company_id: company_id,
             good_receipt_code_id: result.id!,
-            good_receipt_id: x.id,
+            good_receipt_id: x.id!,
             adjustment_case_code_id: null,
             adjustment_case_id: null,
-            price: Number(x.price) - Number(x.discount),
+            price: x.price - x.discount,
             quantity:
-              Number(x.quantity) *
-              (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
+              x.quantity *
+              (x.item_unit == null ? 1 : Number(x.item_unit!.conversion)),
             item_id: x.item_id,
           };
         })
@@ -233,16 +235,15 @@ class GoodReceiptController {
       });
   };
 
-  static check = (req: Request, res: Response) => {
+  check = async (req: Request, res: Response) => {
     const name = req.body.name;
-    GoodReceiptModel.fetchByName(name)
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on checking good receipt ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    try {
+      const result = await this.goodReceiptRepository.fetchByName(name);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on checking good receipt ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   /**

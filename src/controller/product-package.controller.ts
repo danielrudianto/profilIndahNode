@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { meili } from "../app";
+import { meili } from "../helper/meili.helper";
 import ErrorList from "../assets/error_list";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";

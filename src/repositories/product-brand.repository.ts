@@ -104,8 +104,6 @@ export class ProductBrandRepository {
       ...(data.keyword && { name: { contains: data.keyword } }),
     };
 
-    console.log("Executing query:", query);
-
     const [result, count] = await this.prisma.$transaction([
       this.prisma.$queryRawUnsafe<any[]>(query),
       this.prisma.item_brand.count({ where: countCondition }),

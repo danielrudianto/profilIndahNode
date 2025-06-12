@@ -4,14 +4,27 @@ import ErrorList from "../../assets/error_list";
 import GoodReceiptController from "../../controller/good-receipt.controller";
 import ErrorHelper from "../../helper/error.helper";
 import { putriForbiddenMiddleware } from "../../helper/auth.helper";
+import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
+import { prisma } from "../../helper/database.helper";
+import { PurchaseInvoiceRepository } from "../../repositories/purchase-invoice.repository";
+import { StockInRepository } from "../../repositories/stock-in.repository";
+import { ProductPurchasePriceRepository } from "../../repositories/product-purchase-price.repository";
+
 const router = Router();
+
+const goodReceiptController = new GoodReceiptController(
+  new GoodReceiptRepository(prisma),
+  new PurchaseInvoiceRepository(prisma),
+  new StockInRepository(prisma),
+  new ProductPurchasePriceRepository(prisma)
+);
 
 router.post("/search", GoodReceiptController.search);
 router.post(
   "/check",
   body("name").exists().withMessage(ErrorList["Name required"]),
   ErrorHelper.intercept,
-  GoodReceiptController.check
+  goodReceiptController.check
 );
 
 router.post(
@@ -22,7 +35,7 @@ router.post(
   body("supplier_id").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   putriForbiddenMiddleware,
-  GoodReceiptController.create
+  goodReceiptController.create
 );
 
 router.post("/archives", GoodReceiptController.fetchArchive);

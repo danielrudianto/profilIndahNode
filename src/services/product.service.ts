@@ -1,24 +1,19 @@
-import { meili } from "../app";
+import { meili } from "../helper/meili.helper";
 import { ProductPurchasePriceRepository } from "../repositories/product-purchase-price.repository";
 import { ProductSalesPriceRepository } from "../repositories/product-sales-price.repository";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { ProductRepository } from "../repositories/product.repository";
 
 export class ProductService {
-  productRepository: ProductRepository;
-  productUnitRepository: ProductUnitRepository;
-  productSalesPriceRepository: ProductSalesPriceRepository;
-  productPurchasePriceRepository: ProductPurchasePriceRepository;
+  private productRepository: ProductRepository;
+  private productUnitRepository: ProductUnitRepository;
+
   constructor(
     productRepository: ProductRepository,
-    productUnitRepository: ProductUnitRepository,
-    productSalesPriceRepository: ProductSalesPriceRepository,
-    productPurchasePriceRepository: ProductPurchasePriceRepository
+    productUnitRepository: ProductUnitRepository
   ) {
-    this.productPurchasePriceRepository = productPurchasePriceRepository;
     this.productRepository = productRepository;
     this.productUnitRepository = productUnitRepository;
-    this.productSalesPriceRepository = productSalesPriceRepository;
   }
 
   async createProduct(id: number) {

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { meili, prisma } from "../app";
+import { meili } from "../helper/meili.helper";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 import DepositModel from "../model/deposit.model";

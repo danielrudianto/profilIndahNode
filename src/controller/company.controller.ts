@@ -123,11 +123,7 @@ class CompanyController {
   fetchAutocomplete = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     try {
-      const companies = this.companyRepository.fetchAutocomplete(keyword);
-      if (!companies) {
-        return res.status(404).send(ErrorList["Not found"]);
-      }
-
+      const companies = await this.companyRepository.fetchAutocomplete(keyword);
       return res.status(200).send(companies);
     } catch (error) {
       console.error(

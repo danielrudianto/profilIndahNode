@@ -7,7 +7,7 @@ import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { ProductSalesPriceRepository } from "../repositories/product-sales-price.repository";
 import { ProductPurchasePriceRepository } from "../repositories/product-purchase-price.repository";
 
-import { meili } from "../app";
+import { meili } from "../helper/meili.helper";
 import {
   translatePage,
   translateKeyword,
