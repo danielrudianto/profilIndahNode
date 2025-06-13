@@ -10,6 +10,7 @@ import {
 import { prisma } from "../app";
 import { ProductModel } from "./product.model";
 import { PackageCodeModel } from "./product-package.model";
+import CustomerModel from "./customer.model";
 
 export interface ISalesInvoiceCode {
   id?: number;
@@ -78,9 +79,11 @@ export class SalesInvoiceModel {
   isPaid: boolean;
   isDelete: boolean;
   uuid: string;
+  payment_term: number | null = null;
+
   bill?: ISalesInvoice[] = [];
   bill_payment?: ISalesInvoicePayment[] = [];
-  payment_term: number | null = null;
+  customer?: CustomerModel;
 
   constructor(data: ISalesInvoiceCode) {
     this.name = data.name;

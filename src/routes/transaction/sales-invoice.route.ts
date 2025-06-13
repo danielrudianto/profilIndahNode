@@ -15,13 +15,13 @@ const salesInvoiceController = new SalesInvoiceController(
   new ReceivableRepository(redisClient)
 );
 
-router.post("/search", SalesInvoiceController.fetchSearch);
 router.post(
-  "/salesman/delete",
-  body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
+  "/search",
+  body("customers").isArray().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SalesInvoiceController.deleteSalesman
+  salesInvoiceController.search
 );
+
 router.post(
   "/",
   body("uuid").notEmpty().withMessage(ErrorList["Parameter error"]),
@@ -44,7 +44,29 @@ router.post(
 );
 
 router.post("/archives/v2", SalesInvoiceController.fetchArchiveV2);
+
+router.post(
+  "/archives",
+  body("year")
+    .optional()
+    .isInt({ min: 1900, max: new Date().getFullYear() }) // Validates as integer, reasonable range
+    .toInt()
+    .withMessage(ErrorList["Parameter error"]),
+  body("month")
+    .optional()
+    .isInt({ min: 1, max: 12 }) // Ensures month is between 1-12
+    .toInt()
+    .withMessage(ErrorList["Parameter error"]),
+  body().custom((body) => {
+    if (body.month !== undefined && body.year === undefined) {
+      throw new Error(ErrorList["Parameter error"]);
+    }
+    return true;
+  }),
+  salesInvoiceController.fetchArchive
+);
 router.post("/archives", SalesInvoiceController.fetchArchive);
+
 router.get("/salesman", SalesInvoiceController.fetchSalesmen);
 router.get(
   "/salesman/pagination",
@@ -80,7 +102,7 @@ router.delete(
       min: 0,
     })
     .withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  ErrorHelper.intercept
   // SalesInvoiceController.deleteByID
 );
 

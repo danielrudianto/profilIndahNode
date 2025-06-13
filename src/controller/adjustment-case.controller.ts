@@ -1,17 +1,11 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { mysql_real_escape_string } from "../helper/escape.helper";
-import { queue } from "../helper/queue.helper";
-import SocketHelper from "../helper/socket.helper";
-import AdjustmentCaseModel, {
-  IAdjustmentCaseApprovalStatus,
-} from "../model/adjustment-case.model";
-import { IStockInFetchMethod, StockInModel } from "../model/stock-in.model";
 import {
-  IStockOutDelete,
-  IStockOutFetch,
-  StockOutModel,
-} from "../model/stock-out.model";
+  mysql_real_escape_string,
+  translatePage,
+} from "../helper/escape.helper";
+import { queue } from "../helper/queue.helper";
+import AdjustmentCaseModel from "../model/adjustment-case.model";
 import { AdjustmentCaseRepository } from "../repositories/adjustment-case.repository";
 
 class AdjustmentCaseController {
@@ -184,7 +178,7 @@ class AdjustmentCaseController {
   };
 
   static fetch = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
     AdjustmentCaseModel.fetchByID(id)
       .then((result) => {
         if (!result) {
@@ -200,6 +194,25 @@ class AdjustmentCaseController {
         console.error(`[error]: Error on fetching adjustment case: ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);
       });
+  };
+
+  fetchUnconfirmed = async (req: Request, res: Response) => {
+    const page = translatePage(req.query.page);
+    const pageSize = Number(process.env.LIMIT!);
+    try {
+      const result = await this.adjustmentCaseRepository.fetchUnconfirmed({
+        page: page,
+        pageSize: pageSize,
+        keyword: "",
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching unconfirmed adjustment case: ${error}`
+      );
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   static fetchUnconfirmed = (req: Request, res: Response) => {

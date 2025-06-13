@@ -71,6 +71,20 @@ class CustomerModel {
     }
   }
 
+  static fromMap(data: any): CustomerModel {
+    return new CustomerModel({
+      id: data.id,
+      name: data.name,
+      address: data.address,
+      npwp: data.npwp,
+      pic: data.pic,
+      phone_number: data.phone_number,
+      created_by: data.created_by,
+      created_at: new Date(data.created_at),
+      is_delete: data.is_delete,
+    });
+  }
+
   update() {
     return prisma.customer.update({
       where: {

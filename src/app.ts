@@ -43,6 +43,7 @@ import CashierRoutes from "./routes/distinct/cashier.route";
 import PromotionRoutes from "./routes/master/promotion.route";
 import DepositRoutes from "./routes/transaction/deposit.route";
 import ReceivableRoutes from "./routes/transaction/receivable.route";
+import SalesmanRoutes from "./routes/master/salesman.route";
 
 /*
   Administrator Routes
@@ -126,6 +127,7 @@ async function main() {
   app.use("/product-package", authMiddleware, productPackageRoutes);
   app.use("/promotion", authMiddleware, PromotionRoutes);
   app.use("/deposit", authMiddleware, DepositRoutes);
+  app.use("/salesman", authMiddleware, SalesmanRoutes);
 
   app.use("/supplier", authMiddleware, supplierRoutes);
   app.use("/customer", authMiddleware, customerRoutes);

@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import AdjustmentCaseModel, {
   IAdjustmentCaseCode,
 } from "../model/adjustment-case.model";
+import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 
 export class AdjustmentCaseRepository {
   private prisma: PrismaClient;
@@ -74,6 +75,42 @@ export class AdjustmentCaseRepository {
     } catch (error) {
       console.error(
         `[error]: Error while fetching adjustment case by ID: ${error}`
+      );
+      throw new Error("Internal server error");
+    }
+  }
+
+  async fetchUnconfirmed(
+    data: IFetchCommon
+  ): Promise<IFetchCommonResult<AdjustmentCaseModel>> {
+    try {
+      const [result, count] = await Promise.all([
+        this.prisma.adjustment_case_code.findMany({
+          where: {
+            is_confirm: false,
+            is_delete: false,
+          },
+          orderBy: {
+            date: "asc",
+          },
+          skip: (data.page - 1) * data.pageSize,
+          take: data.pageSize,
+        }),
+        this.prisma.adjustment_case_code.count({
+          where: {
+            is_confirm: false,
+            is_delete: false,
+          },
+        }),
+      ]);
+
+      return {
+        data: result.map((x) => AdjustmentCaseModel.fromMap(x)),
+        count: count,
+      };
+    } catch (error) {
+      console.error(
+        `[error]: Error while fetching unconfirmed adjustment cases: ${error}`
       );
       throw new Error("Internal server error");
     }

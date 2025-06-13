@@ -1,26 +1,14 @@
 import { NextFunction, Request, Response } from "express";
-import SocketHelper from "../helper/socket.helper";
-import BillModel from "../model/bill.model";
 import ErrorList from "../assets/error_list";
 import {
-  mysql_real_escape_string,
   translateDate,
-  translateNPWP,
+  translateKeyword,
+  translatePage,
   translateSalesName,
 } from "../helper/escape.helper";
-import { queue } from "../helper/queue.helper";
-import SalesReturnModel from "../model/sales-return.model";
-import { StockOutDeleteInterface } from "../interface/stock-in.interface";
-import ReceivableController from "./receivable.controller";
-import DepositModel from "../model/deposit.model";
 import { redisClient } from "../app";
 import { DraftBillModel } from "../model/draft-bill.model";
 import moment from "moment";
-import {
-  IStockOutDelete,
-  IStockOutFetch,
-  StockOutModel,
-} from "../model/stock-out.model";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 // import DepositModel from "../model/deposit.model";
@@ -417,74 +405,48 @@ class SalesInvoiceController {
     // }
   };
 
-  /**
-   * Search sales invoice data
-   * Can be narrowed down by customer, item, date, page, keyword
-   * @param req
-   * @param res
-   */
-  static fetchSearch = (req: Request, res: Response) => {
-    //   const customers = req.body.customers as number[];
-    //   const items = req.body.items as number[];
-    //   const date = req.body.date as any[];
-    //   const page = req.body.page as number;
-    //   const keyword = req.body.keyword as string;
-    //   const status = req.body.status;
-    //   // status 0 => active
-    //   // status 1 => deleted
-    //   // status 2 => all
-    //   const formattedDate_1 =
-    //     date[0] == null
-    //       ? null
-    //       : `${new Date(date[0]).getFullYear()}}-${(
-    //           new Date(date[0]).getMonth() + 1
-    //         )
-    //           .toString()
-    //           .padStart(2, "0")}-${new Date(date[0])
-    //           .getDate()
-    //           .toString()
-    //           .padStart(2, "0")}`;
-    //   const formattedDate_2 =
-    //     date[1] == null
-    //       ? null
-    //       : `${new Date(date[1]).getFullYear()}}-${(
-    //           new Date(date[1]).getMonth() + 1
-    //         )
-    //           .toString()
-    //           .padStart(2, "0")}-${new Date(date[1])
-    //           .getDate()
-    //           .toString()
-    //           .padStart(2, "0")}`;
-    //   BillCodeModel.search(
-    //     customers,
-    //     items,
-    //     [formattedDate_1, formattedDate_2],
-    //     mysql_real_escape_string(keyword),
-    //     page,
-    //     status
-    //   )
-    //     .then((result) => {
-    //       return res.status(200).send({
-    //         data: result[0],
-    //         count: parseInt(result[1][0].count.toString()),
-    //       });
-    //     })
-    //     .catch((error) => {
-    //       return res.status(500).send(error);
-    //     });
-    // };
-    // static fetchSince = (req: Request, res: Response) => {
-    //   const last_fetched = req.body.last_fetched;
-    //   BillCodeModel.fetchSince(last_fetched)
-    //     .then((result) => {
-    //       return res.status(200).send(result);
-    //     })
-    //     .catch((error) => {
-    //       console.error(
-    //         `[error]: Error on fetching sales invoice since ${error}`
-    //       );
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
+  fetchArchive = async (req: Request, res: Response) => {
+    const year = req.body.year;
+    const month = req.body.month;
+
+    // if both of them is undefined or null
+    if (year == null) {
+    }
+
+    if (year != null && month == null) {
+    }
+  };
+
+  search = async (req: Request, res: Response) => {
+    const filterObject = req.body.filterObject;
+    const keyword = translateKeyword(req.body.keyword);
+    const page = translatePage(req.body.page);
+    const pageSize = Number(process.env.LIMIT);
+
+    try {
+      const result = await this.salesInvoiceRepository.search(
+        this.validateSearch(filterObject),
+        keyword,
+        page,
+        pageSize
+      );
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on searching sales invoice ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  private validateSearch = (filters: any) => {
+    const {
+      dateStart = null,
+      dateEnd = null,
+      customers = [],
+      status = 2,
+    } = filters;
+
+    return { dateStart, dateEnd, customers, status };
   };
 
   /**
@@ -657,7 +619,6 @@ class SalesInvoiceController {
     //     if (!result) {
     //       return res.status(404).send(ErrorList["Not found"]);
     //     }
-
     //     let subTotal = 0;
     //     for (let item of result.bill) {
     //       subTotal += Number(item.price) * Number(item.quantity);
@@ -920,35 +881,6 @@ class SalesInvoiceController {
             .splice((page - 1) * 10, 10),
           count: result.length,
         });
-      }
-    });
-  };
-
-  /**
-   * Delete salesman
-   */
-  static deleteSalesman = (req: Request, res: Response) => {
-    const name = req.body.name;
-
-    redisClient.sMembers("salesman_set").then((result) => {
-      const index = result.findIndex(
-        (x) => x.toUpperCase() == name.toUpperCase()
-      );
-
-      if (index == -1) {
-        return res.status(400).send("Salesman not found");
-      } else {
-        redisClient
-          .sRem("salesman_set", name.toUpperCase())
-          .then(() => {
-            return res.status(200).send({
-              name: name,
-            });
-          })
-          .catch((error) => {
-            console.error(`[error]: Error on deleting salesman ${error}`);
-            return res.status(500).send(ErrorList["Internal server error"]);
-          });
       }
     });
   };
