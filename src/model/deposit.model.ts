@@ -1,4 +1,4 @@
-import { prisma } from "../app";
+import { prisma } from "../helper/database.helper";
 import {
   ArchiveCount,
   IFetchArchive,

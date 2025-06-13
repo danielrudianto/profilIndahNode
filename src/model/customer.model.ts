@@ -137,48 +137,6 @@ class CustomerModel {
   }
 
   /**
-   * Fetch customer by ID
-   * @param id
-   * @returns
-   */
-  static async fetchByID(id: number): Promise<CustomerModel> {
-    const customers = await prisma.$queryRaw<any[]>`
-      SELECT customer.id, customer.name, customer.address, 
-      customer.pic, customer.npwp, customer.phone_number, 
-      IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
-      FROM customer
-      LEFT JOIN (
-        SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-        FROM bill_code
-        WHERE bill_code.is_delete = 0
-        AND bill_code.customer_id = ${id}
-      ) itemCount
-      ON customer.id = itemCount.customer_id
-      WHERE customer.id = ${id}
-    `;
-
-    if (!customers) {
-      throw Error(ErrorList["Not found"]);
-    }
-
-    if (customers.length == 0) {
-      throw Error(ErrorList["Not found"]);
-    }
-
-    return new CustomerModel({
-      id: customers[0].id,
-      name: customers[0].name,
-      address: customers[0].address,
-      npwp: customers[0].npwp,
-      pic: customers[0].pic,
-      phone_number: customers[0].phone_number,
-      created_by: 0, // Placeholder, as created_by is not fetched
-      is_delete: customers[0].is_delete == "1" ? true : false,
-      can_delete: customers[0].can_delete == "1" ? true : false,
-    });
-  }
-
-  /**
    * Fetch customer by IDs
    * @param id
    * @returns

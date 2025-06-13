@@ -3,8 +3,6 @@ import { IProduct, ProductModel } from "../model/product.model";
 import { ProductBrandViewModel } from "../model/product-brand.model";
 import { ProductTypeViewModel } from "../model/product-type.model";
 
-console.log("ProductRepository loaded");
-
 export class ProductRepository {
   private prisma: PrismaClient;
 
@@ -23,6 +21,19 @@ export class ProductRepository {
           created_by: data.created_by!,
           created_at: data.created_at,
           unit: data.unit,
+          // create item_price as well
+          item_price:
+            data.price !== undefined &&
+            data.discount !== undefined &&
+            data.effective_date !== undefined
+              ? {
+                  create: {
+                    price: data.price,
+                    discount: data.discount,
+                    effective_date: data.effective_date as Date,
+                  },
+                }
+              : undefined,
         },
       });
 
@@ -67,24 +78,39 @@ export class ProductRepository {
               name: true,
             },
           },
+          item_price: {
+            select: {
+              price: true,
+              discount: true,
+              effective_date: true,
+            },
+            where: {
+              is_delete: false,
+            },
+            orderBy: {
+              effective_date: "desc",
+            },
+            take: 1,
+          },
+          item_price_purchase: {
+            select: {
+              price: true,
+              discount: true,
+            },
+            where: {
+              is_delete: false,
+            },
+            orderBy: {
+              created_at: "desc",
+            },
+            take: 1,
+          },
         },
       });
 
       if (!result) return null;
 
-      return new ProductModel({
-        id: result.id,
-        reference: result.reference,
-        description: result.description,
-        brand_id: result.item_brand_id,
-        type_id: result.item_type_id,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        minimum_stock: Number(result.minimum_stock),
-        unit: result.unit,
-        item_brand: ProductBrandViewModel.fromMap(result.item_brand),
-        item_type: ProductTypeViewModel.fromMap(result.item_type),
-      });
+      return ProductModel.fromMap(result);
     } catch (error) {
       throw error;
     }

@@ -7,7 +7,7 @@ import {
   IFetchArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
-import { prisma } from "../app";
+import { prisma } from "../helper/database.helper";
 import { UserViewModel } from "./user.model";
 import { ProductModel } from "./product.model";
 import { ProductUnitModel } from "./product-unit.model";

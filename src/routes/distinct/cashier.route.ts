@@ -6,12 +6,22 @@ import ErrorList from "../../assets/error_list";
 import ErrorHelper from "../../helper/error.helper";
 import DraftBillController from "../../controller/draft-bill.controller";
 import PaymentMethodController from "../../controller/payment-method.controller";
+import { UserRepository } from "../../repositories/user.repository";
+import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
+import { CustomerRepository } from "../../repositories/customer.repository";
+import { prisma } from "../../helper/database.helper";
 
 const router = Router();
 
+const userController = new UserController(
+  new UserRepository(prisma),
+  new SalesInvoiceRepository(prisma),
+  new CustomerRepository(prisma)
+);
+
 // router.get("/payment-method", PaymentMethodController.fetchAll);
 
-router.get("/", UserController.fetchStats);
+router.get("/", userController.fetchStatistics);
 
 router.get(
   "/bill/:otc",

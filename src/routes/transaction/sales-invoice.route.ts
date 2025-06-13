@@ -1,12 +1,13 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
-import { prisma, redisClient } from "../../app";
+import { prisma } from "../../helper/database.helper";
 import ErrorList from "../../assets/error_list";
 import SalesInvoiceController from "../../controller/sales-invoice.controller";
 import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
 import { ReceivableRepository } from "../../repositories/receivable.repository";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
+import { redisClient } from "../../helper/redis.helper";
 
 const router = Router();
 

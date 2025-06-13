@@ -6,7 +6,12 @@ import {
   translatePage,
   translateSalesName,
 } from "../helper/escape.helper";
-import { redisClient } from "../app";
+import { queue } from "../helper/queue.helper";
+import SalesReturnModel from "../model/sales-return.model";
+import { StockOutDeleteInterface } from "../interface/stock-in.interface";
+import ReceivableController from "./receivable.controller";
+import DepositModel from "../model/deposit.model";
+import { redisClient } from "../helper/redis.helper";
 import { DraftBillModel } from "../model/draft-bill.model";
 import moment from "moment";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";

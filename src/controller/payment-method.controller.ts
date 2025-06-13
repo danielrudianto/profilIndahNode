@@ -107,7 +107,7 @@ class PaymentMethodController {
         return res.status(404).send(ErrorList["Not found"]);
       }
 
-      return result;
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetch payment method: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

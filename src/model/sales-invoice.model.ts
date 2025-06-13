@@ -7,7 +7,7 @@ import {
   IFetchSalesInvoiceArchive,
   MonthlyArchive,
 } from "../interface/archive.interface";
-import { prisma } from "../app";
+import { prisma } from "../helper/database.helper";
 import { ProductModel } from "./product.model";
 import { PackageCodeModel } from "./product-package.model";
 import CustomerModel from "./customer.model";

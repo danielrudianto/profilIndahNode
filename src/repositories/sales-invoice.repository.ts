@@ -267,4 +267,34 @@ export class SalesInvoiceRepository {
       throw new Error("Internal server error");
     }
   }
+
+  async fetchSalesStatistics(userID: number): Promise<number> {
+    try {
+      const result = await this.prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, SUM(bill_code.discount) AS discount, SUM(bill_code.delivery) AS delivery, SUM(bill_code.service) AS service
+        FROM bill
+        JOIN bill_code ON bill.bill_code_id = bill_code.id
+        WHERE bill_code.is_confirm = 1
+        AND bill_code.is_delete = 0
+        AND bill_code.created_by = ${userID}
+      `);
+
+      if (result.length === 0 || !result[0]) {
+        return 0;
+      }
+
+      const data = result[0];
+      const value = Number(data.value) || 0;
+      const discount = Number(data.discount) || 0;
+      const service = Number(data.service) || 0;
+      const delivery = Number(data.delivery) || 0;
+
+      return value - discount + service + delivery;
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching sales by user ID ${userID}: ${error}`
+      );
+      throw new Error("Internal server error");
+    }
+  }
 }

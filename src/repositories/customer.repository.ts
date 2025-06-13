@@ -350,6 +350,21 @@ export class CustomerRepository {
     }
   }
 
+  async fetchSalesStatistics(userID: number): Promise<number> {
+    try {
+      const count = await this.prisma.customer.count({
+        where: {
+          created_by: userID,
+        },
+      });
+
+      return count;
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer statistics: ${error}`);
+      throw error;
+    }
+  }
+
   async fetchAll(): Promise<CustomerModel[]> {
     try {
       const result = await this.prisma.customer.findMany({

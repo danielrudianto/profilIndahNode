@@ -3,17 +3,8 @@ import moment from "moment";
 import mongoose from "mongoose";
 import { meili } from "./meili.helper";
 import { prisma } from "./database.helper";
-import { fetchMode } from "../interface/fetch.interface";
-import AdjustmentCaseCodeModel from "../model/adjustment-case.model";
-import CustomerModel from "../model/customer.model";
-import PurchaseInvoiceModel from "../model/purchase-invoice.model";
-import SalesReturnModel from "../model/sales-return.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
-import {
-  mongoStockInModel,
-  mongoStockOutModel,
-} from "../mongo-model/mongo-stock-in.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 
 export enum syncMode {
@@ -336,17 +327,17 @@ class SearchHelper {
         AND good_receipt_code.is_delete = 0`
       )
       .then(async (result) => {
-        await mongoStockInModel.insertMany(
-          result.map((x) => {
-            return {
-              ...x,
-              price: Number(x.price),
-              date: new Date(x.date),
-              companyID: x.companyID,
-              supplierID: x.supplier_id,
-            };
-          })
-        );
+        // await mongoStockInModel.insertMany(
+        //   result.map((x) => {
+        //     return {
+        //       ...x,
+        //       price: Number(x.price),
+        //       date: new Date(x.date),
+        //       companyID: x.companyID,
+        //       supplierID: x.supplier_id,
+        //     };
+        //   })
+        // );
 
         return res.status(200).send({
           message: "Stock in sync success",
@@ -459,89 +450,89 @@ class SearchHelper {
       `
     );
 
-    for (let i = 0; i < stockOuts.length; i++) {
-      // Create loading bar in console log
-      const progress = Math.round((i / stockOuts.length) * 100);
-      const loadingBar = new Array(Math.round(progress / 10)).fill("=");
-      console.info(
-        `Stock out sync progress: ${loadingBar.join("")} ${progress}% ${i}/${
-          stockOuts.length
-        }`
-      );
+    // for (let i = 0; i < stockOuts.length; i++) {
+    //   // Create loading bar in console log
+    //   const progress = Math.round((i / stockOuts.length) * 100);
+    //   const loadingBar = new Array(Math.round(progress / 10)).fill("=");
+    //   console.info(
+    //     `Stock out sync progress: ${loadingBar.join("")} ${progress}% ${i}/${
+    //       stockOuts.length
+    //     }`
+    //   );
 
-      let quantity = Number(stockOuts[i].quantity);
-      while (quantity > 0) {
-        if (quantity == 0) {
-          break;
-        } else {
-          const stockIn = await mongoStockInModel
-            .findOne({
-              itemID: stockOuts[i].itemID,
-              residue: { $gt: 0 },
-            })
-            .sort({ date: 1 });
+    //   let quantity = Number(stockOuts[i].quantity);
+    //   while (quantity > 0) {
+    //     if (quantity == 0) {
+    //       break;
+    //     } else {
+    //       const stockIn = await mongoStockInModel
+    //         .findOne({
+    //           itemID: stockOuts[i].itemID,
+    //           residue: { $gt: 0 },
+    //         })
+    //         .sort({ date: 1 });
 
-          if (stockIn == null) {
-            await mongoOverflowModel.create({
-              itemID: stockOuts[i].itemID,
-              date: stockOuts[i].date,
-              quantity: quantity,
-              billCodeID: stockOuts[i].billCodeID,
-              billID: stockOuts[i].billID,
-              adjustmentCaseID: stockOuts[i].adjustmentCaseID,
-              adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
-              value: Number(stockOuts[i].value),
-            });
-            break;
-          } else {
-            const stockInResidue = stockIn.residue;
-            if (stockInResidue >= quantity) {
-              try {
-                stockIn.residue = stockInResidue - quantity;
-                await mongoStockOutModel.create({
-                  billCodeID: stockOuts[i].billCodeID,
-                  billID: stockOuts[i].billID,
-                  adjustmentCaseID: stockOuts[i].adjustmentCaseID,
-                  adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
-                  date: stockOuts[i].date,
-                  quantity: Number(quantity),
-                  value: Number(stockOuts[i].value),
-                  stockInID: stockIn._id,
-                  itemID: stockOuts[i].itemID,
-                });
+    //       if (stockIn == null) {
+    //         await mongoOverflowModel.create({
+    //           itemID: stockOuts[i].itemID,
+    //           date: stockOuts[i].date,
+    //           quantity: quantity,
+    //           billCodeID: stockOuts[i].billCodeID,
+    //           billID: stockOuts[i].billID,
+    //           adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+    //           adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+    //           value: Number(stockOuts[i].value),
+    //         });
+    //         break;
+    //       } else {
+    //         const stockInResidue = stockIn.residue;
+    //         if (stockInResidue >= quantity) {
+    //           try {
+    //             stockIn.residue = stockInResidue - quantity;
+    //             await mongoStockOutModel.create({
+    //               billCodeID: stockOuts[i].billCodeID,
+    //               billID: stockOuts[i].billID,
+    //               adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+    //               adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+    //               date: stockOuts[i].date,
+    //               quantity: Number(quantity),
+    //               value: Number(stockOuts[i].value),
+    //               stockInID: stockIn._id,
+    //               itemID: stockOuts[i].itemID,
+    //             });
 
-                quantity = 0;
-                await stockIn.save();
-              } catch (e: any) {
-                console.error(e.toString());
-                throw new Error(e);
-              }
-              break;
-            } else {
-              try {
-                stockIn.residue = 0;
-                await mongoStockOutModel.create({
-                  billCodeID: stockOuts[i].billCodeID,
-                  billID: stockOuts[i].billID,
-                  adjustmentCaseID: stockOuts[i].adjustmentCaseID,
-                  adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
-                  date: stockOuts[i].date,
-                  quantity: stockInResidue,
-                  value: Number(stockOuts[i].value),
-                  stockInID: stockIn._id,
-                  itemID: stockOuts[i].itemID,
-                });
-                quantity -= stockInResidue;
-                await stockIn.save();
-              } catch (e: any) {
-                console.error(e.toString());
-                throw new Error(e);
-              }
-            }
-          }
-        }
-      }
-    }
+    //             quantity = 0;
+    //             await stockIn.save();
+    //           } catch (e: any) {
+    //             console.error(e.toString());
+    //             throw new Error(e);
+    //           }
+    //           break;
+    //         } else {
+    //           try {
+    //             stockIn.residue = 0;
+    //             await mongoStockOutModel.create({
+    //               billCodeID: stockOuts[i].billCodeID,
+    //               billID: stockOuts[i].billID,
+    //               adjustmentCaseID: stockOuts[i].adjustmentCaseID,
+    //               adjustmentCaseCodeID: stockOuts[i].adjustmentCaseCodeID,
+    //               date: stockOuts[i].date,
+    //               quantity: stockInResidue,
+    //               value: Number(stockOuts[i].value),
+    //               stockInID: stockIn._id,
+    //               itemID: stockOuts[i].itemID,
+    //             });
+    //             quantity -= stockInResidue;
+    //             await stockIn.save();
+    //           } catch (e: any) {
+    //             console.error(e.toString());
+    //             throw new Error(e);
+    //           }
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
 
     return res.status(200).send({
       message: "Stock out sync success",

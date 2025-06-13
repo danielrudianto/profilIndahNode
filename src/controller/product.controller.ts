@@ -67,25 +67,15 @@ class ProductController {
         created_at: created_at,
         minimum_stock: minimum_stock,
         unit: unit,
-      });
-
-      await this.productSalesPriceRepository.create({
-        item_id: product.id!,
-        item_unit_id: null,
-        price: price,
-        discount: discount,
-        created_at: created_at,
-        created_by: userID,
-        effective_date: created_at,
-      });
-
-      await this.productPurchasePriceRepository.create({
-        item_id: product.id!,
-        item_unit_id: null,
-        price: purchase_price,
-        discount: purchase_discount,
-        created_at: created_at,
-        created_by: userID,
+        item_sales_price: {
+          price: price,
+          discount: discount,
+          effective_date: created_at,
+        },
+        item_purchase_price: {
+          price: purchase_price,
+          discount: purchase_discount,
+        },
       });
 
       if (units.length > 0) {
@@ -100,6 +90,7 @@ class ProductController {
               item_price: {
                 price: x.price,
                 discount: x.discount,
+                effective_date: created_at,
               },
               item_price_purchase: {
                 price: x.price_purchase,
@@ -129,7 +120,7 @@ class ProductController {
     const mode = req.query.mode;
 
     try {
-      const result = await meili.index("item").search(keyword, {
+      const result = await meili.index("product").search(keyword, {
         limit: pageSize,
         offset: (page - 1) * pageSize,
       });

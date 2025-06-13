@@ -1,4 +1,4 @@
-import { prisma } from "../app";
+import { prisma } from "../helper/database.helper";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import {
   mongoStockInModel,

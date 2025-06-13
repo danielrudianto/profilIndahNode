@@ -21,9 +21,12 @@ const idParam = [
 const customerBody = [
   body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("pic").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("phone_number").exists().withMessage(ErrorList["Parameter error"]),
+  body("address").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("npwp").exists().withMessage(ErrorList["Parameter error"]),
+  body("npwp").optional().isString().withMessage(ErrorList["Parameter error"]),
 ];
 
-// Routes
 router.post(
   "/",
   ...customerBody,

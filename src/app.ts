@@ -1,10 +1,10 @@
+import dotenv from "dotenv"; // If you load .env here for testing this file directly
+dotenv.config(); // If you load .env here
+
 import express from "express";
 import cors from "cors";
 import http from "http";
-import { Server } from "socket.io";
-import { MeiliSearch } from "meilisearch";
 import cron from "node-cron";
-import { createClient } from "redis";
 import { initIO } from "./helper/io";
 
 import { authMiddleware } from "./helper/auth.helper";
@@ -55,14 +55,12 @@ import warehouseRoutes from "./routes/distinct/warehouse.route";
 import osRoutes from "./routes/distinct/os.route";
 import changelogRoutes from "./routes/report/changelog.route";
 import mongoose from "mongoose";
-import { PrismaClient } from "@prisma/client";
 import { queue } from "./helper/queue.helper";
 import ReceivableController from "./controller/receivable.controller";
 import compression from "compression";
 import helmet from "helmet";
-
-export const prisma = new PrismaClient({ log: ["query", "info"] });
-export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
+import { redisClient } from "./helper/redis.helper";
+import { prisma } from "./helper/database.helper";
 
 const allowedOrigins = [
   "http://localhost:2100",

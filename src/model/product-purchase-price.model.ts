@@ -358,3 +358,37 @@ export class ProductPurchasePriceModel {
     return prisma.$transaction(transactions);
   }
 }
+
+interface IProductPurchasePriceViewModel {
+  id?: number;
+  item_id?: number;
+  item_unit_id?: number | null;
+  price: number;
+  discount: number;
+}
+
+export class ProductPurchasePriceViewModel {
+  id?: number;
+  item_id?: number;
+  item_unit_id?: number | null;
+  price: number;
+  discount: number;
+
+  constructor(data: IProductPurchasePriceViewModel) {
+    this.id = data.id;
+    this.item_id = data.item_id;
+    this.item_unit_id = data.item_unit_id;
+    this.price = data.price;
+    this.discount = data.discount;
+  }
+
+  static fromMap(data: any): ProductPurchasePriceViewModel {
+    return new ProductPurchasePriceViewModel({
+      id: data.id,
+      item_id: data.item_id,
+      item_unit_id: data.item_unit_id,
+      price: Number(data.price),
+      discount: Number(data.discount),
+    });
+  }
+}

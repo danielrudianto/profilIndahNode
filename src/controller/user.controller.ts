@@ -2,19 +2,27 @@ import { hash } from "bcryptjs";
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
-import BillModel from "../model/bill.model";
-import CustomerModel from "../model/customer.model";
-import { UserModel } from "../model/user.model";
-import { redisClient } from "../app";
+import { redisClient } from "../helper/redis.helper";
 import { UserRepository } from "../repositories/user.repository";
 import { UserRoleModel } from "../model/user_role.model";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
+import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
+import { CustomerRepository } from "../repositories/customer.repository";
+import { AchivementModel } from "../model/achivement.model";
 
 class UserController {
   private userRepository: UserRepository;
+  private salesInvoiceRepository: SalesInvoiceRepository;
+  private customerRepository: CustomerRepository;
 
-  constructor(userRepository: UserRepository) {
+  constructor(
+    userRepository: UserRepository,
+    salesInvoiceRepository: SalesInvoiceRepository,
+    customerRepository: CustomerRepository
+  ) {
     this.userRepository = userRepository;
+    this.salesInvoiceRepository = salesInvoiceRepository;
+    this.customerRepository = customerRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -130,94 +138,24 @@ class UserController {
     return await hash(password, 12);
   }
 
-  static fetchStats = (req: Request, res: Response) => {
-    const id = req.body.userId;
-    Promise.all([
-      BillModel.fetchSalesByUserID(id),
-      CustomerModel.fetchBySales(id),
-    ]).then((result) => {
-      const customers = result[1];
+  fetchStatistics = async (req: Request, res: Response) => {
+    const userID = req.body.userId;
+    try {
+      const customersCreated =
+        await this.customerRepository.fetchSalesStatistics(userID);
+      const salesInvoices =
+        await this.salesInvoiceRepository.fetchSalesStatistics(userID);
 
-      const value =
-        result[0] == null || result[0].length == 0 ? 0 : result[0][0].value;
-      const discount =
-        result[0] == null || result[0].length == 0 ? 0 : result[0][0].discount;
-      const delivery =
-        result[0] == null || result[0].length == 0 ? 0 : result[0][0].delivery;
-      const service =
-        result[0] == null || result[0].length == 0 ? 0 : result[0][0].service;
-
-      var totalSales = value + delivery + service - discount;
-
-      const achivements = [
-        {
-          name: "Ordinary sales",
-          shortName: "OrdinarySales",
-          description: "Sales value is more than 10.000.000 IDR",
-          value: totalSales > 10000000 ? 10000000 : totalSales,
-          target: 10000000,
-          achieved: totalSales > 10000000,
-        },
-        {
-          name: "Extraordinary sales",
-          shortName: "ExtraordinarySales",
-          description: "Sales value is more than 100.000.000 IDR",
-          value: totalSales > 100000000 ? 100000000 : totalSales,
-          target: 100000000,
-          achieved: totalSales > 100000000,
-        },
-        {
-          name: "Super sales",
-          shortName: "SuperSales",
-          description: "Sales value is more than 1.000.000.000 IDR",
-          value: totalSales >= 1000000000 ? 1000000000 : totalSales,
-          target: 1000000000,
-          achieved: totalSales > 1000000000,
-        },
-        {
-          name: "Mega sales",
-          shortName: "MegaSales",
-          description: "Sales value is more than 10.000.000.000 IDR",
-          value: totalSales >= 10000000000 ? 10000000000 : totalSales,
-          target: 10000000000,
-          achieved: totalSales > 10000000000,
-        },
-        {
-          name: "Junior customer hunter",
-          shortName: "JuniorCustomerHunter",
-          description: "Acquired new customer",
-          value: customers >= 1 ? 1 : customers,
-          target: 1,
-          achieved: customers >= 1,
-        },
-        {
-          name: "Customer hunter",
-          shortName: "CustomerHunter",
-          description: "Acquired more than 50 new customer",
-          value: customers >= 50 ? 50 : customers,
-          target: 50,
-          achieved: customers >= 50,
-        },
-        {
-          name: "Senior customer hunter",
-          shortName: "SeniorCustomerHunter",
-          description: "Acquired more than 150 new customer",
-          value: customers >= 150 ? 150 : customers,
-          target: 150,
-          achieved: customers >= 250,
-        },
-        {
-          name: "Master customer hunter",
-          shortName: "MasterCustomerHunter",
-          description: "Acquired more than 500 new customer",
-          value: customers >= 500 ? 500 : customers,
-          target: 500,
-          achieved: customers >= 500,
-        },
-      ];
+      const achivements = new AchivementModel({
+        customer: customersCreated,
+        sales: salesInvoices,
+      }).getAchivements();
 
       return res.status(200).send(achivements);
-    });
+    } catch (error) {
+      console.error(`[error]: Error on fetching user statistics ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   update = async (req: Request, res: Response) => {

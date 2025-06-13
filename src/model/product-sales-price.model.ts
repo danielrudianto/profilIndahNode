@@ -87,6 +87,42 @@ export class ProductSalesPriceModel {
   }
 }
 
+export interface IProductSalesPriceView {
+  id?: number;
+  price: number;
+  discount: number;
+  effective_date?: Date | string;
+}
+
+export class ProductSalesPriceViewModel {
+  id?: number;
+  price: number;
+  discount: number;
+  effective_date: Date | null;
+
+  constructor(data: IProductSalesPriceView) {
+    this.id = data.id;
+    this.price = data.price;
+    this.discount = data.discount;
+    this.effective_date = null;
+
+    if (data.effective_date instanceof Date) {
+      this.effective_date = data.effective_date;
+    } else if (typeof data.effective_date === "string") {
+      this.effective_date = new Date(data.effective_date);
+    }
+  }
+
+  static fromMap(data: any): ProductSalesPriceViewModel {
+    return new ProductSalesPriceViewModel({
+      id: data.id,
+      price: data.price,
+      discount: data.discount,
+      effective_date: data.effective_date,
+    });
+  }
+}
+
 export class ItemPriceModel {
   /**
    * Create item price

@@ -1,10 +1,10 @@
+import dotenv from "dotenv"; // If you load .env here for testing this file directly
+dotenv.config(); // If you load .env here
+
 import { Job, Worker } from "bullmq";
-import { mongoErrorModel } from "./mongo-model/mongo-error.model";
 import { ProductService } from "./services/product.service";
 import { ProductRepository } from "./repositories/product.repository";
 import { ProductUnitRepository } from "./repositories/product-unit.repository";
-import { ProductSalesPriceRepository } from "./repositories/product-sales-price.repository";
-import { ProductPurchasePriceRepository } from "./repositories/product-purchase-price.repository";
 import { prisma } from "./helper/database.helper";
 
 const workerOptions = {

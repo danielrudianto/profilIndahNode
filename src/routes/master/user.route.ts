@@ -7,10 +7,16 @@ import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
 import { UserRepository } from "../../repositories/user.repository";
 import { prisma } from "../../helper/database.helper";
+import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
+import { CustomerRepository } from "../../repositories/customer.repository";
 
 const router = Router();
 
-const userController = new UserController(new UserRepository(prisma));
+const userController = new UserController(
+  new UserRepository(prisma),
+  new SalesInvoiceRepository(prisma),
+  new CustomerRepository(prisma)
+);
 const authController = new AuthController(new UserRepository(prisma));
 
 // Common validation middleware
