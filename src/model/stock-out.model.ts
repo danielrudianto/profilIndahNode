@@ -1,3 +1,7 @@
+<<<<<<< Updated upstream
+=======
+import { prisma } from "../helper/database.helper";
+>>>>>>> Stashed changes
 import { StockInModel } from "./stock-in.model";
 
 export interface IStockoutModel {

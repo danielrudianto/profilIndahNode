@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { ICreateProductUnit, ProductModel } from "../model/product.model";
+import { ProductModel } from "../model/product.model";
 
 import ErrorList from "../assets/error_list";
 import { ProductRepository } from "../repositories/product.repository";
@@ -47,7 +47,7 @@ class ProductController {
     const purchase_discount = req.body.purchase_discount;
     const created_at = new Date();
 
-    const units = req.body.units as ICreateProductUnit[];
+    const units = req.body.units as any[];
 
     try {
       const existingItem = await this.productRepository.fetchByReference(

@@ -9,8 +9,6 @@ import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
 import GoodReceiptModel from "../model/good-receipt.model";
 import PurchaseInvoiceModel from "../model/purchase-invoice.model";
-import { IStockInFetchMethod, StockInModel } from "../model/stock-in.model";
-import { IStockOutDelete, StockOutModel } from "../model/stock-out.model";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { PurchaseInvoiceRepository } from "../repositories/purchase-invoice.repository";
 

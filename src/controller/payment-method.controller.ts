@@ -90,7 +90,7 @@ class PaymentMethodController {
       const result = await this.paymentMethodRepository.fetchAutocomplete(
         keyword
       );
-      return result;
+      return res.status(200).send(result);
     } catch (error) {
       console.error(
         `[error]: Error on fetch autocomplete payment methods: ${error}`
@@ -117,7 +117,7 @@ class PaymentMethodController {
   fetchAll = async (req: Request, res: Response) => {
     try {
       const result = await this.paymentMethodRepository.fetchAll();
-      return result;
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetch all payment methods: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

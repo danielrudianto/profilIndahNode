@@ -21,19 +21,6 @@ export class ProductRepository {
           created_by: data.created_by!,
           created_at: data.created_at,
           unit: data.unit,
-          // create item_price as well
-          item_price:
-            data.price !== undefined &&
-            data.discount !== undefined &&
-            data.effective_date !== undefined
-              ? {
-                  create: {
-                    price: data.price,
-                    discount: data.discount,
-                    effective_date: data.effective_date as Date,
-                  },
-                }
-              : undefined,
         },
       });
 

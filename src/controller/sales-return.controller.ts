@@ -5,8 +5,6 @@ import { queue } from "../helper/queue.helper";
 import SalesReturnModel from "../model/sales-return.model";
 import { mongoStockOutModel } from "../mongo-model/mongo-stock-in.model";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
-import { StockInModel } from "../model/stock-in.model";
-import { IStockOutFetch, StockOutModel } from "../model/stock-out.model";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 
@@ -70,18 +68,15 @@ class SalesReturnController {
     //     req.body.payment_method_id == 0 ? null : req.body.payment_method_id;
     //   const items = req.body.sales_return as any[];
     //   const userID = req.body.userId;
-
     //   if (items.length == 0) {
     //     return res.status(400).send(ErrorList["Parameter error"]);
     //   }
-
     //   const billItems = await BillModel.fetchByIDs(billIDs);
     //   for (let i = 0; i < billItems.length; i++) {
     //     const itemIndex = items.findIndex((x) => x.bill_id == billItems[i].id);
     //     if (itemIndex == -1) {
     //       return res.status(400).send(ErrorList["Parameter error"]);
     //     }
-
     //     if (
     //       billItems[i].quantity - billItems[i].return_quantity <
     //       items[itemIndex].quantity
@@ -89,7 +84,6 @@ class SalesReturnController {
     //       return res.status(400).send(ErrorList["Parameter error"]);
     //     }
     //   }
-
     //   const sales_return = await SalesReturnModel.create({
     //     name: name,
     //     date: date,
@@ -102,7 +96,6 @@ class SalesReturnController {
     //       };
     //     }),
     //   });
-
     //   for (let i = 0; i < sales_return.sales_return.length; i++) {
     //     if (sales_return.sales_return[i].bill.item != null) {
     //       const stockOut = await StockOutModel.fetch(
@@ -115,7 +108,6 @@ class SalesReturnController {
     //           item_id: sales_return.sales_return[i].bill.item!.id,
     //         }
     //       );
-
     //       let quantity = Number(sales_return.sales_return[i].quantity);
     //       while (quantity > 0) {
     //         for (let j = 0; j < stockOut.length; j++) {
@@ -129,10 +121,8 @@ class SalesReturnController {
     //                 },
     //               ]);
     //             }
-
     //             stockOut[j].quantity -= quantity;
     //             stockOut[j].update();
-
     //             quantity = 0;
     //             break;
     //           } else if (stockOut[j].quantity < quantity) {
@@ -145,10 +135,8 @@ class SalesReturnController {
     //                 },
     //               ]);
     //             }
-
     //             stockOut[j].quantity = 0;
     //             stockOut[j].update();
-
     //             quantity -= stockOut[j].quantity;
     //           }
     //         }
@@ -173,7 +161,6 @@ class SalesReturnController {
     //             adjustment_case_code_id: null,
     //           }
     //         );
-
     //         let quantity =
     //           Number(sales_return.sales_return[i].quantity) *
     //           Number(
@@ -181,7 +168,6 @@ class SalesReturnController {
     //               n
     //             ].quantity
     //           );
-
     //         while (quantity > 0) {
     //           for (let j = 0; j < stockOut.length; j++) {
     //             if (stockOut[j].quantity >= quantity) {
@@ -194,10 +180,8 @@ class SalesReturnController {
     //                   },
     //                 ]);
     //               }
-
     //               stockOut[j].quantity -= quantity;
     //               stockOut[j].update();
-
     //               quantity = 0;
     //               break;
     //             } else if (stockOut[j].quantity < quantity) {
@@ -210,10 +194,8 @@ class SalesReturnController {
     //                   },
     //                 ]);
     //               }
-
     //               stockOut[j].quantity = 0;
     //               stockOut[j].update();
-
     //               quantity -= stockOut[j].quantity;
     //             }
     //           }
@@ -221,7 +203,6 @@ class SalesReturnController {
     //       }
     //     }
     //   }
-
     //   return res.status(201).send(sales_return);
     // } catch (error) {
     //   console.error(`[error]: Error on creating sales return: ${error}`);

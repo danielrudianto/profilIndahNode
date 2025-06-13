@@ -1,5 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { ISalesInvoiceCode, SalesInvoiceModel } from "../model/bill_code.model";
+import {
+  ISalesInvoiceCode,
+  SalesInvoiceModel,
+} from "../model/sales-invoice.model";
 import { IFetchCommonResult } from "../interface/fetch.interface";
 
 export class SalesInvoiceRepository {

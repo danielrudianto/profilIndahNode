@@ -1,4 +1,3 @@
-
 export interface IStockIn {
   id?: number;
   date: Date;

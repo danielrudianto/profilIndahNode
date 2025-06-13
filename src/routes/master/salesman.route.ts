@@ -3,10 +3,11 @@ import { SalesmanController } from "../../controller/sales.controller";
 import { body } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import ErrorHelper from "../../helper/error.helper";
+import { redisClient } from "../../helper/redis.helper";
 
 const router = Router();
 
-const salesmanController = new SalesmanController(redis);
+const salesmanController = new SalesmanController(redisClient);
 
 router.post(
   "/",
