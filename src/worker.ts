@@ -6,6 +6,11 @@ import { ProductService } from "./services/product.service";
 import { ProductRepository } from "./repositories/product.repository";
 import { ProductUnitRepository } from "./repositories/product-unit.repository";
 import { prisma } from "./helper/database.helper";
+import { ProductBrandRepository } from "./repositories/product-brand.repository";
+import { ProductBrandService } from "./services/product-brand.service";
+import { GoodReceiptService } from "./services/good-receipt.service";
+import { GoodReceiptRepository } from "./repositories/good-receipt.repository";
+import { StockInRepository } from "./repositories/stock-in.repository";
 
 const workerOptions = {
   connection: {
@@ -28,11 +33,28 @@ const productService = new ProductService(
   new ProductUnitRepository(prisma)
 );
 
+const productBrandService = new ProductBrandService(
+  new ProductBrandRepository(prisma)
+);
+
+const goodReceiptService = new GoodReceiptService(
+  new GoodReceiptRepository(prisma),
+  new StockInRepository(prisma),
+)
+
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
     case "product-created":
-      await productService.createProduct(job.data.id);
+      await productService.create(job.data.id);
+    case "product-updated":
+      await productService.update(job.data.id);
+    case "product-deleted":
+      await productService.delete(job.data.id);
+    case "product-brand-updated":
+      await productBrandService.update(job.data.id);
+    case 'good-receipt-created':
+      await goodReceiptService.create(job.data.id);
     // console.log("product created!!");
     // case "updateItem":
     //   const item = job.data;

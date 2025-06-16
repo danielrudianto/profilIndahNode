@@ -51,6 +51,17 @@ router.post(
   "/",
   body("date").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("type").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("adjustment_case").isArray().withMessage(ErrorList["Parameter error"]),
+  body("adjustment_case.*.item_id")
+    .notEmpty()
+    .withMessage(ErrorList["Parameter error"]),
+  body("adjustment_case.*.quantity")
+    .notEmpty()
+    .isNumeric()
+    .withMessage(ErrorList["Parameter error"]),
+  body("adjustment_case.*.item_unit_id")
+    .exists()
+    .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   adjustmentCaseController.create
 );

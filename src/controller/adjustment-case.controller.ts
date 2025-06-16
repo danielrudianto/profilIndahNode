@@ -177,6 +177,31 @@ class AdjustmentCaseController {
     // }
   };
 
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const adjustmentCase = await this.adjustmentCaseRepository.fetchByID(id);
+      if (!adjustmentCase) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const result = await this.adjustmentCaseRepository.delete(id);
+
+      await queue.add("adjustment-case-deleted", {
+        id: result.id,
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting adjustment case: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   static fetch = (req: Request, res: Response) => {
     const id = Number(req.params.id);
     AdjustmentCaseModel.fetchByID(id)

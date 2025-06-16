@@ -1,12 +1,10 @@
-import { RedisClient } from "bullmq";
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { translateKeyword } from "../helper/escape.helper";
 
 export class SalesmanController {
-  redisClient: RedisClient;
+  redisClient: any;
 
-  constructor(redisClient: RedisClient) {
+  constructor(redisClient: any) {
     this.redisClient = redisClient;
   }
 

@@ -269,7 +269,7 @@ class PurchaseInvoiceController {
   };
 
   updateStatus = async (req: Request, res: Response) => {
-    const id = parseInt(req.body.id);
+    const id = Number(req.body.id);
     const is_confirm = req.body.is_confirm;
     const is_delete = req.body.is_delete;
     const userID = req.body.userId;

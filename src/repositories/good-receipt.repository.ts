@@ -111,4 +111,32 @@ export class GoodReceiptRepository {
       throw error;
     }
   }
+
+  async fetchByID(id: number): Promise<GoodReceiptModel | null> {
+    try {
+      const goodReceipt = await this.prisma.good_receipt_code.findUnique({
+        where: {
+          id: id,
+        },
+        include: {
+          supplier: true,
+          company: true,
+          good_receipt: {
+            include: {
+              item: true,
+              item_unit: true,
+            },
+          },
+        },
+      });
+
+      if (!goodReceipt) {
+        return null;
+      }
+
+      return GoodReceiptModel.fromMap(goodReceipt);
+    } catch (error) {
+      throw error;
+    }
+  }
 }

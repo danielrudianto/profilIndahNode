@@ -51,6 +51,24 @@ export class AdjustmentCaseRepository {
     }
   }
 
+  async delete(id: number) {
+    try {
+      const result = await this.prisma.adjustment_case_code.update({
+        where: {
+          id: id,
+        },
+        data: {
+          is_delete: true,
+        },
+      });
+
+      return AdjustmentCaseModel.fromMap(result);
+    } catch (error) {
+      console.error(`[error]: Error while deleting adjustment case: ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
   async fetchByID(id: number) {
     try {
       const result = await this.prisma.adjustment_case_code.findUnique({

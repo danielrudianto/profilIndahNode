@@ -73,25 +73,9 @@ class GoodReceiptController {
         }),
       });
 
-      console.log(result);
-
-      await this.stockInRepository.createMany(
-        result.good_receipt!.map((x) => {
-          return {
-            date: date,
-            company_id: company_id,
-            good_receipt_code_id: result.id!,
-            good_receipt_id: x.id!,
-            adjustment_case_code_id: null,
-            adjustment_case_id: null,
-            price: x.price - x.discount,
-            quantity:
-              x.quantity *
-              (x.item_unit == null ? 1 : Number(x.item_unit!.conversion)),
-            item_id: x.item_id,
-          };
-        })
-      );
+      await queue.add("good-receipt-created", {
+        id: result.id,
+      });
 
       return res.status(201).send(result);
     } catch (error) {
@@ -99,85 +83,7 @@ class GoodReceiptController {
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
-  /**
-   * Create new good receipt
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
-    // const date = new Date(req.body.date);
-    // const name = req.body.name;
-    // const company_id = req.body.company_id;
-    // const supplier_id = req.body.supplier_id;
-    // const good_receipt_items = req.body.good_receipt as any[];
-    // const purchase_invoice = req.body.purchase_invoice as any;
-    // const purchase_invoice_name = purchase_invoice.name;
-    // const userID = req.body.userId;
-    // const uuid = req.body.uuid;
-    // ItemPurchasePriceModel.fetchCurrentPrice(
-    //   good_receipt_items.map((x) => {
-    //     return {
-    //       item_id: x.item_id,
-    //       item_unit_id: x.item_unit_id,
-    //     };
-    //   })
-    // ).then((priceResult) => {
-    //   GoodReceiptModel.create({
-    //     uuid: uuid,
-    //     name: name,
-    //     purchase_invoice_name: purchase_invoice_name,
-    //     date: date,
-    //     supplier_id: supplier_id,
-    //     company_id: company_id,
-    //     created_by: userID,
-    //     good_receipt: good_receipt_items.map((x) => {
-    //       const priceIndex = priceResult.findIndex(
-    //         (y) => y.item_id == x.item_id && y.item_unit_id == x.item_unit_id
-    //       );
-    //       return {
-    //         item_id: x.item_id,
-    //         item_unit_id: x.item_unit_id,
-    //         quantity: x.quantity,
-    //         price: priceIndex == -1 ? 0 : priceResult[priceIndex].price,
-    //         discount: priceIndex == -1 ? 0 : priceResult[priceIndex].discount,
-    //       };
-    //     }),
-    //   })
-    //     .then(async (goodReceiptResult) => {
-    //       StockInModel.createMany(
-    //         goodReceiptResult.good_receipt.map((x) => {
-    //           return {
-    //             date: goodReceiptResult.date,
-    //             company_id: goodReceiptResult.company_id,
-    //             good_receipt_code_id: goodReceiptResult.id,
-    //             adjustment_case_code_id: null,
-    //             adjustment_case_id: null,
-    //             good_receipt_id: x.id,
-    //             price: Number(x.price) - Number(x.discount),
-    //             quantity:
-    //               Number(x.quantity) *
-    //               Number(x.item_unit == null ? 1 : x.item_unit.conversion),
-    //             item_id: x.item.id,
-    //           };
-    //         })
-    //       )
-    //         .then(() => {
-    //           return res.status(201).send(goodReceiptResult);
-    //         })
-    //         .catch((error) => {
-    //           console.error(
-    //             `[error]: Error on inserting good receipt stock in ${error}`
-    //           );
-    //           return res.status(500).send(ErrorList["Internal server error"]);
-    //         });
-    //     })
-    //     .catch((error) => {
-    //       console.error(`[error]: Error on fetching price ${error}`);
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // });
-  };
-
+  
   /**
    * Search good receipt
    * @param req

@@ -1,4 +1,4 @@
-import { Request, response, Response } from "express";
+import { Request, Response } from "express";
 import DepositModel from "../model/deposit.model";
 import {
   mysql_real_escape_string,
@@ -6,9 +6,6 @@ import {
   translatePage,
 } from "../helper/escape.helper";
 import ErrorList from "../assets/error_list";
-import { v4 } from "uuid";
-import { StockInInterface } from "../interface/stock-in.interface";
-import { queue } from "../helper/queue.helper";
 import { DepositRepository } from "../repositories/deposit.repository";
 
 class DepositController {

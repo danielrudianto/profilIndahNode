@@ -31,7 +31,6 @@ export class ProductBrandModel {
 
   user?: UserViewModel;
 
-  // initialize the model with default values
   constructor(data: IProductBrand) {
     this.id = data.id;
     this.name = data.name;
@@ -50,6 +49,21 @@ export class ProductBrandModel {
         this.can_delete = data.can_delete.toLowerCase() === "1";
       }
     }
+  }
+
+  static fromMap(data: any): ProductBrandModel {
+    return new ProductBrandModel({
+      id: data.id,
+      name: data.name,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      is_delete: data.is_delete || false,
+      deleted_by: data.deleted_by || null,
+      deleted_at: data.deleted_at || null,
+      can_delete: data.can_delete || false,
+      user:
+        data.user == undefined ? undefined : UserViewModel.fromMap(data.user),
+    });
   }
 
   create() {

@@ -17,8 +17,9 @@ enum ErrorList {
   "Sales return items required" = "Item retur penjualan tidak boleh kosong.",
   "Item ID required" = "ID item tidak boleh kosong.",
   "Invalid status update" = "Tidak dapat memperbarui status. Status yang diberikan tidak valid.",
-  
+
   "Salesman already exists" = "Sales sudah ada sebelumnya.",
+
   "Salesman not found" = "Sales tidak ditemukan.",
   "Salesman name required" = "Nama sales tidak boleh kosong.",
 

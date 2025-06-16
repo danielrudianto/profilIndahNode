@@ -14,7 +14,7 @@ export class ProductService {
     this.productUnitRepository = productUnitRepository;
   }
 
-  async createProduct(id: number) {
+  async create(id: number) {
     try {
       const product = await this.productRepository.fetchByID(id);
 
@@ -34,6 +34,39 @@ export class ProductService {
     } catch (error) {
       console.error("Error creating product in MeiliSearch:", error);
       throw new Error("Failed to create product in search index");
+    }
+  }
+
+  async update(id: number) {
+    try {
+      const product = await this.productRepository.fetchByID(id);
+
+      if (!product) {
+        throw new Error("Product not found");
+      }
+
+      const productUnits = await this.productUnitRepository.fetchByItemID(id);
+      const result = await meili.index("product").updateDocuments([
+        {
+          ...product,
+          item_unit: productUnits,
+        },
+      ]);
+
+      return result;
+    } catch (error) {
+      console.error("Error creating product in MeiliSearch:", error);
+      throw new Error("Failed to create product in search index");
+    }
+  }
+
+  async delete(id: number) {
+    try {
+      const result = await meili.index("product").deleteDocument(id.toString());
+      return result;
+    } catch (error) {
+      console.error("Error deleting product in MeiliSearch:", error);
+      throw new Error("Failed to delete product in search index");
     }
   }
 }
