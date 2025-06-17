@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import CompanyModel, { ICompany } from "../model/company.model";
+import { CompanyModel, ICompany } from "../model/company.model";
 import { UserViewModel } from "../model/user.model";
 
 export class CompanyRepository {

@@ -1,8 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import { fetchMode } from "../interface/fetch.interface";
 import { UserViewModel } from "./user.model";
-
-const prisma = new PrismaClient();
 
 export interface ICompany {
   id?: number;
@@ -25,7 +21,7 @@ export interface ICompanyUpdate extends ICompany {
   id: number;
 }
 
-class CompanyModel {
+export class CompanyModel {
   id?: number;
   name: string;
   address: string;
@@ -61,5 +57,3 @@ class CompanyModel {
     }
   }
 }
-
-export default CompanyModel;

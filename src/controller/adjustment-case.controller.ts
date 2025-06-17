@@ -45,7 +45,10 @@ class AdjustmentCaseController {
       });
 
       return res.status(201).send(result);
-    } catch (error) {}
+    } catch (error) {
+      console.error(`[error]: Error on creating adjustment case: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   private generateName = (date: Date) => {

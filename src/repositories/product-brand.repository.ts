@@ -12,7 +12,7 @@ export class ProductBrandRepository {
 
   async create(data: IProductBrand): Promise<ProductBrandModel> {
     try {
-      const result = await this.prisma.item_brand.create({
+      const result = await this.prisma.product_brand.create({
         data: {
           name: data.name,
           created_by: data.created_by,
@@ -41,7 +41,7 @@ export class ProductBrandRepository {
   }
 
   update(data: IProductBrand) {
-    return this.prisma.item_brand.update({
+    return this.prisma.product_brand.update({
       where: {
         id: data.id,
       },
@@ -54,7 +54,7 @@ export class ProductBrandRepository {
   }
 
   delete(id: number, userID: number) {
-    return this.prisma.item_brand.update({
+    return this.prisma.product_brand.update({
       where: {
         id: id,
       },
@@ -106,7 +106,7 @@ export class ProductBrandRepository {
 
     const [result, count] = await this.prisma.$transaction([
       this.prisma.$queryRawUnsafe<any[]>(query),
-      this.prisma.item_brand.count({ where: countCondition }),
+      this.prisma.product_brand.count({ where: countCondition }),
     ]);
 
     return {
@@ -131,7 +131,7 @@ export class ProductBrandRepository {
   }
 
   async fetchByName(name: string): Promise<ProductBrandModel | null> {
-    const result = await this.prisma.item_brand.findFirst({
+    const result = await this.prisma.product_brand.findFirst({
       where: {
         name: name,
         is_delete: false,
@@ -151,7 +151,7 @@ export class ProductBrandRepository {
   }
 
   async fetchAutocomplete(keyword: string): Promise<ProductBrandModel[]> {
-    const result = await this.prisma.item_brand.findMany({
+    const result = await this.prisma.product_brand.findMany({
       where: {
         name: {
           contains: keyword,

@@ -1,22 +1,3 @@
-import { Number } from "mongoose";
-
-export enum fetchMode {
-  All,
-  Pagination,
-  Autocomplete,
-  Child,
-  ChildByParentID,
-  ParentAutocomplete,
-  ChildAutocomplete,
-  Unconfirmed,
-  AllV2,
-}
-
-export enum fetchType {
-  Complete,
-  Simple,
-}
-
 export interface IFetchCommon {
   page: number;
   keyword: string;
@@ -33,4 +14,20 @@ export interface IFetchPagination {
   pageSize: number;
   month: number;
   year: number;
+}
+
+export interface IFetchAnnualArchives {
+  year: number;
+  count: number;
+}
+
+export interface IFetchMonthlyArchives {
+  year: number;
+  month: number;
+  count: number;
+}
+
+export interface IFetchArchives<T> {
+  data: T[];
+  count: number;
 }

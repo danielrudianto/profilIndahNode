@@ -14,12 +14,13 @@ export interface IPackageCode {
 
 export interface IPackageContent {
   id?: number;
-  item_id: number;
-  item_unit_id: number | null;
+  product_id: number;
+  product_unit_id: number | null;
   quantity: number;
   price: number;
-  package_code_id?: number;
   discount: number;
+  
+  package_code_id?: number;
 }
 
 export class PackageCodeModel {
@@ -101,19 +102,8 @@ export class PackageCodeModel {
         include: {
           package_content: {
             include: {
-              item: {
-                select: {
-                  reference: true,
-                  description: true,
-                  unit: true,
-                },
-              },
-              item_unit: {
-                select: {
-                  unit: true,
-                  conversion: true,
-                },
-              },
+              product: true,
+              product_unit: true,
             },
           },
         },
@@ -151,19 +141,8 @@ export class PackageCodeModel {
       include: {
         package_content: {
           include: {
-            item: {
-              select: {
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
+            product: true,
+            product_unit: true,
           },
         },
       },
@@ -181,19 +160,8 @@ export class PackageCodeModel {
       include: {
         package_content: {
           include: {
-            item: {
-              select: {
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
+            product: true,
+            product_unit: true,
           },
         },
       },
@@ -218,19 +186,8 @@ export class PackageCodeModel {
       include: {
         package_content: {
           include: {
-            item: {
-              select: {
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
+            product: true,
+            product_unit: true,
           },
         },
       },

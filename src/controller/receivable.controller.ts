@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { BillPaymentModel } from "../model/bill_payment.model";
+import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
 import ErrorList from "../assets/error_list";
 
 class ReceivableController {

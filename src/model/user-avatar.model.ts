@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { UserViewModel } from "./user.model";
 const prisma = new PrismaClient();
 
 export interface IUserAvatar {
@@ -6,12 +7,14 @@ export interface IUserAvatar {
   user_id?: number;
   top: number;
   accessories: number;
-  circle: boolean;
   clothes: number;
-  color: string;
-  eyebrows: number;
   eyes: number;
+  eyebrows: number;
   mouth: number;
+  color: string;
+  circle: boolean;
+
+  user?: UserViewModel;
 }
 
 class UserAvatarModel {
@@ -26,7 +29,10 @@ class UserAvatarModel {
   eyes: number;
   mouth: number;
 
+  user?: UserViewModel;
+
   constructor(data: IUserAvatar) {
+    this.id = data.id;
     this.user_id = data.user_id;
     this.top = data.top;
     this.accessories = data.accessories;
@@ -36,6 +42,7 @@ class UserAvatarModel {
     this.eyebrows = data.eyebrows;
     this.eyes = data.eyes;
     this.mouth = data.mouth;
+    this.user = data.user;
   }
 
   static fromMap(data: any): UserAvatarModel {
@@ -48,6 +55,9 @@ class UserAvatarModel {
       eyebrows: data.eyebrows,
       eyes: data.eyes,
       mouth: data.mouth,
+      user_id: data.user_id,
+      id: data.id,
+      user: data.user ? UserViewModel.fromMap(data.user) : undefined,
     });
   }
 }

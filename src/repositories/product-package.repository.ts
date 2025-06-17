@@ -23,8 +23,8 @@ export class ProductPackageRepository {
             createMany: {
               data: data.package_content!.map((x) => {
                 return {
-                  item_id: x.item_id,
-                  item_unit_id: x.item_unit_id,
+                  product_id: x.product_id,
+                  product_unit_id: x.product_unit_id,
                   quantity: x.quantity,
                   price: x.price,
                   discount: x.discount,
@@ -36,8 +36,8 @@ export class ProductPackageRepository {
         include: {
           package_content: {
             include: {
-              item: true,
-              item_unit: true,
+              product: true,
+              product_unit: true,
             },
           },
         },
@@ -64,8 +64,8 @@ export class ProductPackageRepository {
         include: {
           package_content: {
             include: {
-              item: true,
-              item_unit: true,
+              product: true,
+              product_unit: true,
             },
           },
         },
@@ -112,8 +112,8 @@ export class ProductPackageRepository {
         include: {
           package_content: {
             include: {
-              item: true,
-              item_unit: true,
+              product: true,
+              product_unit: true,
             },
           },
         },

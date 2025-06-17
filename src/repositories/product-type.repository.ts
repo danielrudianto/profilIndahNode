@@ -13,7 +13,7 @@ export class ProductTypeRepository {
 
   async create(data: IProductType): Promise<ProductTypeModel> {
     try {
-      const result = await this.prisma.item_type.create({
+      const result = await this.prisma.product_type.create({
         data: {
           name: data.name,
           created_by: data.created_by!,
@@ -34,7 +34,7 @@ export class ProductTypeRepository {
 
   async update(data: IProductType): Promise<ProductTypeModel> {
     try {
-      const result = await this.prisma.item_type.update({
+      const result = await this.prisma.product_type.update({
         where: {
           id: data.id,
         },
@@ -58,7 +58,7 @@ export class ProductTypeRepository {
 
   async delete(id: number, userID: number) {
     try {
-      const result = await this.prisma.item_type.update({
+      const result = await this.prisma.product_type.update({
         where: {
           id: id,
         },
@@ -108,7 +108,7 @@ export class ProductTypeRepository {
                 OFFSET ${(data.page - 1) * data.pageSize}
               `
         ),
-        this.prisma.item_type.count({
+        this.prisma.product_type.count({
           where: {
             is_delete: false,
             name: {
@@ -144,7 +144,7 @@ export class ProductTypeRepository {
 
   async fetchAutocomplete(keyword: string) {
     try {
-      const result = await this.prisma.item_type.findMany({
+      const result = await this.prisma.product_type.findMany({
         where: {
           is_delete: false,
           name: {
@@ -170,7 +170,7 @@ export class ProductTypeRepository {
 
   async fetchAll() {
     try {
-      const result = await this.prisma.item_type.findMany({
+      const result = await this.prisma.product_type.findMany({
         where: {
           is_delete: false,
         },

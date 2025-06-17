@@ -46,7 +46,7 @@ class AuthController {
           id: user.id,
           name: user.name,
           role: user.role,
-          roleID: user.roleID,
+          roleText: user.roleText,
         },
         user_avatar: user.user_avatar,
         token: token,

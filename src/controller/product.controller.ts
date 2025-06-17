@@ -4,9 +4,6 @@ import { ProductModel } from "../model/product.model";
 import ErrorList from "../assets/error_list";
 import { ProductRepository } from "../repositories/product.repository";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
-import { ProductSalesPriceRepository } from "../repositories/product-sales-price.repository";
-import { ProductPurchasePriceRepository } from "../repositories/product-purchase-price.repository";
-
 import { meili } from "../helper/meili.helper";
 import {
   translatePage,
@@ -18,19 +15,13 @@ import { queue } from "../helper/queue.helper";
 class ProductController {
   private productRepository: ProductRepository;
   private productUnitRepository: ProductUnitRepository;
-  private productSalesPriceRepository: ProductSalesPriceRepository;
-  private productPurchasePriceRepository: ProductPurchasePriceRepository;
 
   constructor(
     productRepository: ProductRepository,
-    productUnitRepository: ProductUnitRepository,
-    productSalesPriceRepository: ProductSalesPriceRepository,
-    productPurchasePriceRepository: ProductPurchasePriceRepository
+    productUnitRepository: ProductUnitRepository
   ) {
     this.productRepository = productRepository;
     this.productUnitRepository = productUnitRepository;
-    this.productSalesPriceRepository = productSalesPriceRepository;
-    this.productPurchasePriceRepository = productPurchasePriceRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -61,41 +52,31 @@ class ProductController {
       const product = await this.productRepository.create({
         reference: reference,
         description: description,
-        brand_id: brandID,
-        type_id: typeID,
+        product_brand_id: brandID,
+        product_type_id: typeID,
         created_by: userID,
         created_at: created_at,
         minimum_stock: minimum_stock,
         unit: unit,
-        item_sales_price: {
-          price: price,
-          discount: discount,
-          effective_date: created_at,
-        },
-        item_purchase_price: {
-          price: purchase_price,
-          discount: purchase_discount,
-        },
+        sales_price: price,
+        sales_discount: discount,
+        purchase_price: purchase_price,
+        purchase_discount: purchase_discount,
       });
 
       if (units.length > 0) {
         await this.productUnitRepository.create(
           units.map((x) => {
             return {
-              item_id: product.id!,
+              product_id: product.id!,
               unit: x.unit,
               conversion: x.conversion,
               created_by: userID,
               created_at: created_at,
-              item_price: {
-                price: x.price,
-                discount: x.discount,
-                effective_date: created_at,
-              },
-              item_price_purchase: {
-                price: x.price_purchase,
-                discount: x.discount_purchase,
-              },
+              sales_price: x.sales_price,
+              sales_discount: x.sales_discount,
+              purchase_price: x.purchase_price,
+              purchase_discount: x.purchase_discount,
             };
           })
         );

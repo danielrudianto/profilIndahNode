@@ -57,95 +57,12 @@ export class ProductBrandModel {
       name: data.name,
       created_by: data.created_by,
       created_at: data.created_at,
-      is_delete: data.is_delete || false,
-      deleted_by: data.deleted_by || null,
-      deleted_at: data.deleted_at || null,
-      can_delete: data.can_delete || false,
+      is_delete: data.is_delete,
+      deleted_by: data.deleted_by,
+      deleted_at: data.deleted_at,
+      can_delete: data.can_delete,
       user:
         data.user == undefined ? undefined : UserViewModel.fromMap(data.user),
-    });
-  }
-
-  create() {
-    return prisma.item_brand.create({
-      data: {
-        name: this.name,
-        created_by: this.created_by,
-        created_at: this.created_at,
-      },
-      select: {
-        id: true,
-        name: true,
-        created_by: true,
-        created_at: true,
-        user: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  update() {
-    return prisma.item_brand.update({
-      where: {
-        id: this.id,
-      },
-      data: {
-        name: this.name,
-        updated_at: new Date(),
-        updated_by: this.created_by,
-      },
-      select: {
-        id: true,
-        name: true,
-        created_at: true,
-        user: {
-          select: {
-            name: true,
-          },
-        },
-        updated_at: true,
-        updated_by: true,
-        user_item_brand_updated_byTouser: {
-          select: {
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  /**
-   * Delete brand by ID
-   * @param id
-   * @param created_by
-   * @returns
-   */
-  static deleteByID(id: number, created_by: number) {
-    return prisma.item_brand.update({
-      where: {
-        id: id,
-      },
-      data: {
-        deleted_at: new Date(),
-        deleted_by: created_by,
-        is_delete: true,
-      },
-      include: {
-        user_item_brand_deleted_byTouser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-        user: {
-          select: {
-            name: true,
-          },
-        },
-      },
     });
   }
 
@@ -206,19 +123,6 @@ export class ProductBrandModel {
       ORDER BY ordered DESC
       LIMIT ${limit}
     `);
-  }
-
-  /**
-   * Fetching brand data by IDs (array of ID)
-   */
-  static fetchByIDs(ids: number[]) {
-    return prisma.item_brand.findMany({
-      where: {
-        id: {
-          in: ids,
-        },
-      },
-    });
   }
 }
 

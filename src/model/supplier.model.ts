@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { UserViewModel } from "./user.model";
 
 const prisma = new PrismaClient();
 
@@ -12,7 +13,11 @@ export interface ISupplier {
   is_delete?: boolean;
   deleted_by?: number | null;
   deleted_at?: Date | null;
+  updated_by?: number | null;
+  updated_at?: Date | null;
   can_delete?: boolean;
+
+  user?: UserViewModel;
 }
 
 class SupplierModel {
@@ -26,18 +31,23 @@ class SupplierModel {
   deleted_by?: number | null;
   deleted_at?: Date | null;
   can_delete?: boolean = false;
+  updated_by?: number | null;
+  updated_at?: Date | null;
+  user?: UserViewModel;
 
   constructor(data: ISupplier) {
     this.id = data.id;
     this.name = data.name;
     this.address = data.address;
-    this.npwp = data.npwp || null;
+    this.npwp = data.npwp;
     this.created_by = data.created_by;
-    this.created_at = data.created_at || new Date();
-    this.is_delete = data.is_delete || false;
-    this.deleted_by = data.deleted_by || null;
-    this.deleted_at = data.deleted_at || null;
-    this.can_delete = data.can_delete || false;
+    this.created_at = data.created_at;
+    this.is_delete = data.is_delete;
+    this.deleted_by = data.deleted_by;
+    this.deleted_at = data.deleted_at;
+    this.can_delete = data.can_delete;
+    this.updated_by = data.updated_by;
+    this.updated_at = data.updated_at;
   }
 
   static fromMap(data: any) {
@@ -45,13 +55,16 @@ class SupplierModel {
       id: data.id,
       name: data.name,
       address: data.address,
-      npwp: data.npwp || null,
+      npwp: data.npwp,
       created_by: data.created_by,
-      created_at: data.created_at || new Date(),
-      is_delete: data.is_delete || false,
-      deleted_by: data.deleted_by || null,
-      deleted_at: data.deleted_at || null,
-      can_delete: (data.count || 0) == 0,
+      created_at: data.created_at,
+      is_delete: data.is_delete,
+      deleted_by: data.deleted_by,
+      deleted_at: data.deleted_at,
+      can_delete: data.can_delete == "1",
+      updated_by: data.updated_by,
+      updated_at: data.updated_at,
+      user: data.user ? UserViewModel.fromMap(data.user) : undefined,
     });
   }
 }

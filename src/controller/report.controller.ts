@@ -249,13 +249,13 @@ class ReportController {
     Promise.all([
       PurchaseInvoiceModel.fetchRecentPurchase(),
       PurchaseInvoiceModel.fetchOlderPurchase(),
-      PromotionModel.countActive(),
+      // PromotionModel.countActive(),
     ])
       .then(
         ([
           [purchaseCurrentValue, purchasePreviousValue],
           [purchaseMonthCurrentValue, purchaseMonthPreviousValue],
-          promotionCount,
+          // promotionCount,
         ]) => {
           return res.status(200).send({
             purchase: {
@@ -286,7 +286,7 @@ class ReportController {
                   ? 0
                   : Number(purchaseMonthPreviousValue[0].value),
             },
-            promotion: promotionCount,
+            // promotion: promotionCount,
           });
         }
       )
@@ -1313,13 +1313,13 @@ class ReportController {
       // BillCodeModel.fetchRecentSales(),
       PurchaseInvoiceModel.fetchRecentPurchase(),
       DepositModel.countActive(),
-      PromotionModel.countActive(),
+      // PromotionModel.countActive(),
     ]).then(
       ([
         // [billCurrentValue, billPreviousValue],
         [purchaseCurrentValue, purchasePreviousValue],
         depositCurrentValue,
-        promotionCurrentValue,
+        // promotionCurrentValue,
       ]) => {
         // return res.status(200).send({
         //   sales: {
@@ -1387,7 +1387,7 @@ class ReportController {
         yesterday.getMonth() + 1,
         yesterday.getDate()
       ),
-      PromotionModel.countActive(),
+      // PromotionModel.countActive(),
       DepositModel.countActive(),
     ])
       .then(
@@ -1396,7 +1396,7 @@ class ReportController {
           // sales2,
           purchase1,
           purchase2,
-          countPromotion,
+          // countPromotion,
           countDeposit,
         ]: any[]) => {
           // return res.status(200).send({

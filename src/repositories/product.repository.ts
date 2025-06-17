@@ -12,12 +12,12 @@ export class ProductRepository {
 
   async create(data: IProduct): Promise<ProductModel> {
     try {
-      const result = await this.prisma.item.create({
+      const result = await this.prisma.product.create({
         data: {
           reference: data.reference,
           description: data.description,
-          item_brand_id: data.brand_id,
-          item_type_id: data.type_id,
+          product_brand_id: data.product_brand_id,
+          product_type_id: data.product_type_id,
           created_by: data.created_by!,
           created_at: data.created_at,
           unit: data.unit,
@@ -28,8 +28,8 @@ export class ProductRepository {
         id: result.id,
         reference: result.reference,
         description: result.description,
-        brand_id: result.item_brand_id,
-        type_id: result.item_type_id,
+        product_brand_id: result.product_brand_id,
+        product_type_id: result.product_type_id,
         created_by: result.created_by,
         created_at: result.created_at,
         unit: result.unit,
@@ -41,57 +41,11 @@ export class ProductRepository {
 
   async fetchByID(id: number): Promise<ProductModel | null> {
     try {
-      const result = await this.prisma.item.findUnique({
+      const result = await this.prisma.product.findUnique({
         where: { id },
-        select: {
-          id: true,
-          reference: true,
-          description: true,
-          item_brand_id: true,
-          item_type_id: true,
-          created_by: true,
-          created_at: true,
-          minimum_stock: true,
-          unit: true,
-          item_brand: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          item_type: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
-          item_price: {
-            select: {
-              price: true,
-              discount: true,
-              effective_date: true,
-            },
-            where: {
-              is_delete: false,
-            },
-            orderBy: {
-              effective_date: "desc",
-            },
-            take: 1,
-          },
-          item_price_purchase: {
-            select: {
-              price: true,
-              discount: true,
-            },
-            where: {
-              is_delete: false,
-            },
-            orderBy: {
-              created_at: "desc",
-            },
-            take: 1,
-          },
+        include: {
+          product_brand: true,
+          product_type: true,
         },
       });
 
@@ -105,7 +59,7 @@ export class ProductRepository {
 
   async fetchAutocomplete(keyword: string) {
     try {
-      const result = await this.prisma.item.findMany({
+      const result = await this.prisma.product.findMany({
         select: {
           id: true,
           reference: true,
@@ -132,7 +86,7 @@ export class ProductRepository {
 
   async fetchByReference(reference: string): Promise<ProductModel | null> {
     try {
-      const result = await this.prisma.item.findFirst({
+      const result = await this.prisma.product.findFirst({
         where: { reference },
       });
 
@@ -142,8 +96,8 @@ export class ProductRepository {
         id: result.id,
         reference: result.reference,
         description: result.description,
-        brand_id: result.item_brand_id,
-        type_id: result.item_type_id,
+        product_brand_id: result.product_brand_id,
+        product_type_id: result.product_type_id,
         created_by: result.created_by,
         created_at: result.created_at,
         unit: result.unit,

@@ -8,18 +8,16 @@ import { GoodReceiptRepository } from "../../repositories/good-receipt.repositor
 import { prisma } from "../../helper/database.helper";
 import { PurchaseInvoiceRepository } from "../../repositories/purchase-invoice.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
-import { ProductPurchasePriceRepository } from "../../repositories/product-purchase-price.repository";
 
 const router = Router();
 
 const goodReceiptController = new GoodReceiptController(
   new GoodReceiptRepository(prisma),
   new PurchaseInvoiceRepository(prisma),
-  new StockInRepository(prisma),
-  new ProductPurchasePriceRepository(prisma)
+  new StockInRepository(prisma)
 );
 
-router.post("/search", GoodReceiptController.search);
+// router.post("/search", GoodReceiptController.search);
 router.post(
   "/check",
   body("name").exists().withMessage(ErrorList["Name required"]),
@@ -45,7 +43,7 @@ router.get(
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  GoodReceiptController.fetchByID
+  goodReceiptController.fetchByID
 );
 
 export default router;

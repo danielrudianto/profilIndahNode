@@ -7,16 +7,12 @@ import ErrorHelper from "../../helper/error.helper";
 import { ProductRepository } from "../../repositories/product.repository";
 import { prisma } from "../../helper/database.helper";
 import { ProductUnitRepository } from "../../repositories/product-unit.repository";
-import { ProductSalesPriceRepository } from "../../repositories/product-sales-price.repository";
-import { ProductPurchasePriceRepository } from "../../repositories/product-purchase-price.repository";
 
 const router = Router();
 
 const productController = new ProductController(
   new ProductRepository(prisma),
   new ProductUnitRepository(prisma),
-  new ProductSalesPriceRepository(prisma),
-  new ProductPurchasePriceRepository(prisma)
 );
 
 router.post(

@@ -16,7 +16,9 @@ export class ProductService {
 
   async create(id: number) {
     try {
+      console.log(id);
       const product = await this.productRepository.fetchByID(id);
+      console.log(product);
 
       if (!product) {
         throw new Error("Product not found");

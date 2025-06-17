@@ -1,0 +1,36 @@
+import { prisma } from "../helper/database.helper";
+import { PaymentMethodViewModel } from "./payment-method.model";
+
+export interface ISalesInvoicePayment {
+  id?: number;
+  sales_invoice_code_id: number;
+  payment_method_id: number | null;
+  value: number;
+  date: Date;
+
+  payment_method?: PaymentMethodViewModel; // Optional field to include payment method details
+
+  // to update the bill code status
+  is_paid?: boolean;
+}
+
+export class SalesInvoicePaymentModel {
+  id?: number;
+  sales_invoice_code_id: number;
+  payment_method_id: number | null;
+  value: number;
+  date: Date;
+  is_paid?: boolean;
+
+  payment_method?: PaymentMethodViewModel; // Optional field to include payment method details
+
+  constructor(data: ISalesInvoicePayment) {
+    this.id = data.id;
+    this.sales_invoice_code_id = data.sales_invoice_code_id;
+    this.payment_method_id = data.payment_method_id;
+    this.value = data.value;
+    this.date = data.date;
+    this.is_paid = data.is_paid;
+    this.payment_method = PaymentMethodViewModel.fromMap(data.payment_method);
+  }
+}

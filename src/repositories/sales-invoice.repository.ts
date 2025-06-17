@@ -14,7 +14,7 @@ export class SalesInvoiceRepository {
 
   async create(data: ISalesInvoiceCode): Promise<SalesInvoiceModel> {
     try {
-      const result = await this.prisma.bill_code.create({
+      const result = await this.prisma.sales_invoice_code.create({
         data: {
           uuid: data.uuid,
           name: data.name,
@@ -28,14 +28,14 @@ export class SalesInvoiceRepository {
           is_confirm: data.isConfirm,
           confirmed_by: data.confirmedBy,
           confirmed_at: data.confirmedAt,
-          bill: {
+          sales_invoice: {
             createMany: {
-              data: data.bill!,
+              data: data.sales_invoice!,
             },
           },
-          bill_payment: {
+          sales_invoice_payment: {
             createMany: {
-              data: data.bill_payment!.map((x) => {
+              data: data.sales_invoice_payment!.map((x) => {
                 return {
                   date: x.date,
                   value: x.value,
@@ -71,50 +71,14 @@ export class SalesInvoiceRepository {
 
   async fetchByID(id: number): Promise<SalesInvoiceModel> {
     try {
-      const salesInvoice = await this.prisma.bill_code.findUnique({
+      const salesInvoice = await this.prisma.sales_invoice_code.findUnique({
         where: {
           id: id,
         },
         include: {
-          bill: {
-            select: {
-              id: true,
-              item_id: true,
-              item_unit_id: true,
-              quantity: true,
-              price: true,
-              discount: true,
-              item: {
-                select: {
-                  reference: true,
-                  description: true,
-                  unit: true,
-                  item_brand_id: true,
-                  item_type_id: true,
-                },
-              },
-              item_unit: {
-                select: {
-                  unit: true,
-                  conversion: true,
-                },
-              },
-            },
-          },
-          bill_payment: {
-            select: {
-              id: true,
-              date: true,
-              value: true,
-              payment_method_id: true,
-            },
-          },
-          customer: {
-            select: {
-              id: true,
-              name: true,
-            },
-          },
+          sales_invoice: true,
+          sales_invoice_payment: true,
+          customer: true,
         },
       });
 
@@ -203,7 +167,7 @@ export class SalesInvoiceRepository {
     }
 
     const [result, count] = await Promise.all([
-      this.prisma.bill_code.findMany({
+      this.prisma.sales_invoice_code.findMany({
         where: {
           ...where,
         },
@@ -217,12 +181,12 @@ export class SalesInvoiceRepository {
         take: pageSize,
       }),
 
-      this.prisma.bill_code.count({
+      this.prisma.sales_invoice_code.count({
         where: {
           ...where,
         },
       }),
-      this.prisma.bill_code.count({
+      this.prisma.sales_invoice_code.count({
         where: {
           ...where,
         },

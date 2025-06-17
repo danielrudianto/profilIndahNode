@@ -17,14 +17,15 @@ export class UserRepository {
       password: data.password!,
       nik: data.nik,
       created_by: data.created_by,
-      role: data.roleID,
-      pinned_menus: "[]",
+      role: data.role,
     };
 
     if (data.user_sales !== undefined) {
       userData.user_sales = {
         createMany: {
-          data: data.user_sales.map((x) => ({ item_type_id: x.item_type_id })),
+          data: data.user_sales.map((x) => ({
+            product_type_id: x.product_type_id,
+          })),
         },
       };
     }
@@ -45,11 +46,7 @@ export class UserRepository {
           data.user_sales !== undefined
             ? {
                 select: {
-                  item_type: {
-                    select: {
-                      name: true,
-                    },
-                  },
+                  product_type: true,
                 },
               }
             : undefined,
@@ -76,7 +73,7 @@ export class UserRepository {
       errors.push("NIK is required.");
     }
 
-    if (!data.roleID || isNaN(data.roleID)) {
+    if (!data.role || isNaN(data.role)) {
       errors.push("Valid role ID is required.");
     }
 
@@ -97,7 +94,7 @@ export class UserRepository {
           name: data.name,
           username: data.username,
           nik: data.nik,
-          role: data.roleID,
+          role: data.role,
           updated_by: data.created_by,
           updated_at: data.created_at,
           user_sales: data.user_sales
@@ -105,7 +102,7 @@ export class UserRepository {
                 deleteMany: {},
                 createMany: {
                   data: data.user_sales.map((x) => ({
-                    item_type_id: x.item_type_id,
+                    product_type_id: x.product_type_id,
                   })),
                 },
               }
@@ -122,12 +119,7 @@ export class UserRepository {
           is_active: true,
           user_sales: {
             select: {
-              item_type: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
+              product_type: true,
             },
           },
         },
@@ -138,8 +130,8 @@ export class UserRepository {
         name: user.name,
         username: user.username,
         nik: user.nik,
-        roleID: user.role,
-        role: UserRoleModel.fromRoleID(user.role)!,
+        role: user.role,
+        roleText: UserRoleModel.fromRoleID(user.role)!,
         // user_sales: user.user_sales.map((x) => ({
         //   item_type_id: x.item_type.id,
         //   item_type_name: x.item_type.name,
@@ -193,12 +185,7 @@ export class UserRepository {
           created_at: true,
           user_sales: {
             select: {
-              item_type: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
+              product_type: true,
             },
           },
         },
@@ -209,8 +196,8 @@ export class UserRepository {
         name: result.name,
         username: result.username,
         nik: result.nik,
-        roleID: result.role,
-        role: UserRoleModel.fromRoleID(result.role)!,
+        role: result.role,
+        roleText: UserRoleModel.fromRoleID(result.role)!,
         // user_sales: result.user_sales.map((x) => ({
         //   item_type_id: x.item_type.id,
         //   item_type_name: x.item_type.name,
@@ -242,12 +229,7 @@ export class UserRepository {
         include: {
           user_sales: {
             select: {
-              item_type: {
-                select: {
-                  id: true,
-                  name: true,
-                },
-              },
+              product_type: true,
             },
           },
           user_avatar: true,
@@ -258,22 +240,7 @@ export class UserRepository {
         return null;
       }
 
-      return new UserModel({
-        id: result.id,
-        name: result.name,
-        username: result.username,
-        password: result.password,
-        nik: result.nik,
-        roleID: result.role,
-        role: UserRoleModel.fromRoleID(result.role)!,
-        user_sales: result.user_sales.map((x) => ({
-          item_type_id: x.item_type.id,
-          item_type_name: x.item_type.name,
-        })),
-        is_active: result.is_active,
-        created_at: result.created_at,
-        created_by: result.created_by,
-      });
+      return UserModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error fetching user by username ${error}`);
       throw new Error("Internal server error");
@@ -292,12 +259,7 @@ export class UserRepository {
         role: true,
         user_sales: {
           select: {
-            item_type: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+            product_type: true,
           },
         },
         created_at: true,
@@ -314,8 +276,8 @@ export class UserRepository {
       name: result.name,
       username: result.username,
       nik: result.nik,
-      roleID: result.role,
-      role: UserRoleModel.fromRoleID(result.role)!,
+      role: result.role,
+      roleText: UserRoleModel.fromRoleID(result.role)!,
       // user_sales: result.user_sales.map((x) => ({
       //   item_type_id: x.item_type.id,
       //   item_type_name: x.item_type.name,
@@ -367,9 +329,9 @@ export class UserRepository {
           id: x.id,
           name: x.name,
           username: x.username,
-          roleID: x.role,
+          role: x.role,
           nik: x.nik,
-          role: UserRoleModel.fromRoleID(x.role)!,
+          roleText: UserRoleModel.fromRoleID(x.role)!,
           user_sales: [],
           is_active: true, // Default value, adjust as necessary
           created_at: new Date(), // Default value, adjust as necessary

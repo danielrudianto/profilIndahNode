@@ -37,8 +37,8 @@ export class AdjustmentCaseRepository {
         include: {
           adjustment_case: {
             include: {
-              item: true,
-              item_unit: true,
+              product: true,
+              product_unit: true,
             },
           },
         },
@@ -78,8 +78,8 @@ export class AdjustmentCaseRepository {
         include: {
           adjustment_case: {
             include: {
-              item: true,
-              item_unit: true,
+              product: true,
+              product_unit: true,
             },
           },
         },
@@ -148,8 +148,8 @@ export class AdjustmentCaseRepository {
         include: {
           adjustment_case: {
             include: {
-              item: true,
-              item_unit: true,
+              product: true,
+              product_unit: true,
             },
           },
         },

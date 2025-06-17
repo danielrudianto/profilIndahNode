@@ -172,7 +172,7 @@ class AdjustmentCaseModel {
           adjustment_case: {
             select: {
               id: true,
-              item: {
+              product: {
                 select: {
                   id: true,
                   reference: true,
@@ -181,7 +181,7 @@ class AdjustmentCaseModel {
                 },
               },
               quantity: true,
-              item_unit: {
+              product_unit: {
                 select: {
                   unit: true,
                   conversion: true,
@@ -205,7 +205,7 @@ class AdjustmentCaseModel {
           adjustment_case: {
             select: {
               id: true,
-              item: {
+              product: {
                 select: {
                   id: true,
                   reference: true,
@@ -214,7 +214,7 @@ class AdjustmentCaseModel {
                 },
               },
               quantity: true,
-              item_unit: {
+              product_unit: {
                 select: {
                   unit: true,
                   conversion: true,
@@ -270,15 +270,15 @@ class AdjustmentCaseModel {
           select: {
             id: true,
             item_id: true,
-            item_unit_id: true,
-            item: {
+            product_unit_id: true,
+            product: {
               select: {
                 id: true,
                 reference: true,
                 description: true,
                 unit: true,
-                item_brand_id: true,
-                item_type_id: true,
+                product_brand_id: true,
+                product_type_id: true,
               },
             },
             quantity: true,

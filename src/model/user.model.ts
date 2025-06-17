@@ -1,21 +1,24 @@
-import { PrismaClient } from "@prisma/client";
 import UserAvatarModel, { IUserAvatar } from "./user-avatar.model";
-
-const prisma = new PrismaClient();
+import { UserSalesModel } from "./user-sales.model";
 
 export interface IUser {
   id?: number;
   name: string;
-  username: string;
   nik: string;
+  username: string;
+  password?: string;
   created_by: number | null;
   created_at?: Date;
-  roleID: number;
-  role?: string;
-  password?: string;
-  user_avatar?: IUserAvatar | null;
-  user_sales?: IUserSales[];
   is_active: boolean;
+  updated_by?: number | null;
+  updated_at?: Date | null;
+  deleted_by?: number | null;
+  deleted_at?: Date | null;
+  role: number;
+  roleText?: string;
+
+  user_avatar?: IUserAvatar | null;
+  user_sales?: UserSalesModel[];
 }
 
 interface IUserViewModel {
@@ -26,21 +29,17 @@ interface IUserViewModel {
   user_avatar?: IUserAvatar | null;
 }
 
-interface IUserSales {
-  item_type_id: number;
-}
-
 export class UserModel {
   id?: number;
   name: string;
   username: string;
   nik: string;
   created_by: number | null;
-  roleID: number;
-  role?: string;
+  role: number;
+  roleText?: string;
   password?: string;
   user_avatar?: IUserAvatar | null;
-  user_sales?: IUserSales[];
+  user_sales?: UserSalesModel[];
   updated_by?: number;
   updated_at?: Date;
   deleted_at?: Date | null;
@@ -54,13 +53,38 @@ export class UserModel {
     this.username = data.username;
     this.nik = data.nik;
     this.created_by = data.created_by;
-    this.roleID = data.roleID;
     this.role = data.role;
+    this.roleText = data.roleText;
     this.password = data.password;
-    this.user_avatar = data.user_avatar || null;
-    this.user_sales = data.user_sales || [];
+    this.user_avatar = data.user_avatar;
+    this.user_sales = data.user_sales;
     this.is_active = data.is_active;
-    this.created_at = data.created_at == null ? new Date() : data.created_at;
+    this.created_at = data.created_at;
+  }
+
+  static fromMap(data: any): UserModel {
+    // if user_avatar is not null, convert it to IUserAvatar
+    if (data.user_avatar) {
+      data.user_avatar = UserAvatarModel.fromMap(data.user_avatar);
+    }
+
+    return new UserModel({
+      id: data.id,
+      name: data.name,
+      username: data.username,
+      nik: data.nik,
+      created_by: data.created_by,
+      role: data.role,
+      roleText: data.roleText,
+      password: data.password,
+      is_active: data.is_active, // default to true if not provided
+      created_at: data.created_at,
+      user_avatar:
+        data.user_avatar == undefined
+          ? undefined
+          : UserAvatarModel.fromMap(data.user_avatar),
+      user_sales: data.user_sales,
+    });
   }
 }
 
