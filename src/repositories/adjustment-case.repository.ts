@@ -26,8 +26,8 @@ export class AdjustmentCaseRepository {
             createMany: {
               data: data.adjustment_case.map((x) => {
                 return {
-                  item_id: x.item_id,
-                  item_unit_id: x.item_unit_id,
+                  product_id: x.product_id,
+                  product_unit_id: x.product_unit_id,
                   quantity: x.quantity,
                 };
               }),

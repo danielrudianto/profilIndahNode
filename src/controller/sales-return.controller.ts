@@ -386,7 +386,7 @@ class SalesReturnController {
         }
 
         // Take the first bill to determine the bill code ID
-        const bill_code_id = result.sales_return[0].bill.bill_code_id;
+        // const bill_code_id = result.sales_return[0].bill.bill_code_id;
         // BillCodeModel.fetchByID(bill_code_id).then((bill) => {
         //   if (!bill) {
         //     return res.status(404).send(ErrorList["Not found"]);
@@ -418,116 +418,110 @@ class SalesReturnController {
   };
 
   static deleteByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id.toString());
-    const userID = req.body.userId;
-    SalesReturnModel.fetchByID(id).then((salesReturn) => {
-      if (!salesReturn) {
-        return res.status(404).send(ErrorList["Not found"]);
-      }
-
-      if (salesReturn.is_delete) {
-        return res.status(404).send(ErrorList["Not found"]);
-      }
-
-      SalesReturnModel.deleteByID(id, userID)
-        .then(async (result) => {
-          for (let i = 0; i < result.sales_return.length; i++) {
-            await queue.add("delete-stock-return", {
-              salesReturnID: result.sales_return[i].id,
-            });
-
-            if (result.sales_return[i].bill.item != null) {
-              const overflowBill = await mongoOverflowModel.findOne({
-                billID: result.sales_return[i].bill_id,
-                itemID: result.sales_return[i].bill.item!.id,
-              });
-
-              if (overflowBill) {
-                const itemUnit = result.sales_return[i].bill.item_unit;
-                const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
-                await queue.add("insert-stock-out-plain", {
-                  itemID: overflowBill.itemID,
-                  billID: result.sales_return[i].bill_id,
-                  billCodeID: result.sales_return[i].bill.bill_code.id,
-                  adjustmentCaseID: null,
-                  adjustmentCaseCodeID: null,
-                  date: result.date,
-                  quantity:
-                    Number(result.sales_return[i].quantity) * conversion,
-                  value: overflowBill.value,
-                });
-              } else {
-                const bill = await mongoStockOutModel.findOne({
-                  billID: result.sales_return[i].bill_id,
-                  itemID: result.sales_return[i].bill.item!.id,
-                });
-
-                if (!bill) {
-                  console.error(`[error]: Bill not found`);
-                } else {
-                  const itemUnit = result.sales_return[i].bill.item_unit;
-                  const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
-                  await queue.add("insert-stock-out-plain", {
-                    itemID: bill.itemID,
-                    billID: result.sales_return[i].bill_id,
-                    billCodeID: result.sales_return[i].bill.bill_code.id,
-                    adjustmentCaseID: null,
-                    adjustmentCaseCodeID: null,
-                    date: result.date,
-                    quantity:
-                      Number(result.sales_return[i].quantity) * conversion,
-                    value: bill.value,
-                  });
-                }
-              }
-            } else if (result.sales_return[i].bill.package_code != null) {
-              for (
-                let n = 0;
-                n <
-                result.sales_return[i].bill.package_code!.package_content
-                  .length;
-                n++
-              ) {
-                const bill = await mongoStockOutModel.findOne({
-                  billID: result.sales_return[i].bill_id,
-                  itemID:
-                    result.sales_return[i].bill.package_code!.package_content[n]
-                      .item.id,
-                });
-
-                if (!bill) {
-                  console.error(`[error]: Bill not found`);
-                } else {
-                  const itemUnit =
-                    result.sales_return[i].bill.package_code!.package_content[n]
-                      .item_unit;
-                  const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
-                  await queue.add("insert-stock-out", {
-                    itemID: bill.itemID,
-                    billID: result.sales_return[i].bill_id,
-                    billCodeID: result.sales_return[i].bill.bill_code.id,
-                    adjustmentCaseID: null,
-                    adjustmentCaseCodeID: null,
-                    date: result.date,
-                    quantity:
-                      Number(result.sales_return[i].quantity) *
-                      Number(
-                        result.sales_return[i].bill.package_code!
-                          .package_content[n].quantity
-                      ) *
-                      conversion,
-                    value: bill.value,
-                  });
-                }
-              }
-            }
-          }
-          return res.status(201).send(result);
-        })
-        .catch((error) => {
-          return res.status(500).send(error);
-        });
-    });
+    // const id = parseInt(req.params.id.toString());
+    // const userID = req.body.userId;
+    // SalesReturnModel.fetchByID(id).then((salesReturn) => {
+    //   if (!salesReturn) {
+    //     return res.status(404).send(ErrorList["Not found"]);
+    //   }
+    //   if (salesReturn.is_delete) {
+    //     return res.status(404).send(ErrorList["Not found"]);
+    //   }
+    //   SalesReturnModel.deleteByID(id, userID)
+    //     .then(async (result) => {
+    //       for (let i = 0; i < result.sales_return.length; i++) {
+    //         await queue.add("delete-stock-return", {
+    //           salesReturnID: result.sales_return[i].id,
+    //         });
+    //         if (result.sales_return[i].bill.item != null) {
+    //           const overflowBill = await mongoOverflowModel.findOne({
+    //             billID: result.sales_return[i].bill_id,
+    //             itemID: result.sales_return[i].bill.item!.id,
+    //           });
+    //           if (overflowBill) {
+    //             const itemUnit = result.sales_return[i].bill.item_unit;
+    //             const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+    //             await queue.add("insert-stock-out-plain", {
+    //               itemID: overflowBill.itemID,
+    //               billID: result.sales_return[i].bill_id,
+    //               billCodeID: result.sales_return[i].bill.bill_code.id,
+    //               adjustmentCaseID: null,
+    //               adjustmentCaseCodeID: null,
+    //               date: result.date,
+    //               quantity:
+    //                 Number(result.sales_return[i].quantity) * conversion,
+    //               value: overflowBill.value,
+    //             });
+    //           } else {
+    //             const bill = await mongoStockOutModel.findOne({
+    //               billID: result.sales_return[i].bill_id,
+    //               itemID: result.sales_return[i].bill.item!.id,
+    //             });
+    //             if (!bill) {
+    //               console.error(`[error]: Bill not found`);
+    //             } else {
+    //               const itemUnit = result.sales_return[i].bill.item_unit;
+    //               const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+    //               await queue.add("insert-stock-out-plain", {
+    //                 itemID: bill.itemID,
+    //                 billID: result.sales_return[i].bill_id,
+    //                 billCodeID: result.sales_return[i].bill.bill_code.id,
+    //                 adjustmentCaseID: null,
+    //                 adjustmentCaseCodeID: null,
+    //                 date: result.date,
+    //                 quantity:
+    //                   Number(result.sales_return[i].quantity) * conversion,
+    //                 value: bill.value,
+    //               });
+    //             }
+    //           }
+    //         } else if (result.sales_return[i].bill.package_code != null) {
+    //           for (
+    //             let n = 0;
+    //             n <
+    //             result.sales_return[i].bill.package_code!.package_content
+    //               .length;
+    //             n++
+    //           ) {
+    //             const bill = await mongoStockOutModel.findOne({
+    //               billID: result.sales_return[i].bill_id,
+    //               itemID:
+    //                 result.sales_return[i].bill.package_code!.package_content[n]
+    //                   .item.id,
+    //             });
+    //             if (!bill) {
+    //               console.error(`[error]: Bill not found`);
+    //             } else {
+    //               const itemUnit =
+    //                 result.sales_return[i].bill.package_code!.package_content[n]
+    //                   .item_unit;
+    //               const conversion = itemUnit ? Number(itemUnit.conversion) : 1;
+    //               await queue.add("insert-stock-out", {
+    //                 itemID: bill.itemID,
+    //                 billID: result.sales_return[i].bill_id,
+    //                 billCodeID: result.sales_return[i].bill.bill_code.id,
+    //                 adjustmentCaseID: null,
+    //                 adjustmentCaseCodeID: null,
+    //                 date: result.date,
+    //                 quantity:
+    //                   Number(result.sales_return[i].quantity) *
+    //                   Number(
+    //                     result.sales_return[i].bill.package_code!
+    //                       .package_content[n].quantity
+    //                   ) *
+    //                   conversion,
+    //                 value: bill.value,
+    //               });
+    //             }
+    //           }
+    //         }
+    //       }
+    //       return res.status(201).send(result);
+    //     })
+    //     .catch((error) => {
+    //       return res.status(500).send(error);
+    //     });
+    // });
   };
 
   static fetchCodeByID = (req: Request, res: Response) => {

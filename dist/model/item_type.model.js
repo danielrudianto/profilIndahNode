@@ -39,7 +39,7 @@ class ItemTypeModel {
       SELECT item_type.id, item_type.created_at, item_type.name, 
       item_type.created_by, user.name AS createdByName, item_type.is_delete,
       COALESCE(itemCount.count, 0) AS count
-      FROM item_type
+      FROM product_type
       LEFT JOIN (
         SELECT COUNT(id) AS count, item_type_id
         FROM item
@@ -92,7 +92,7 @@ class ItemTypeModel {
           SELECT item_type.id, item_type.name, item_type.created_at, 
           item_type.created_by, user.name AS createdByName, 
           COALESCE(itemCount.count, 0) AS count, item_type.is_delete
-          FROM item_type
+          FROM product_type
           LEFT JOIN (
             SELECT COUNT(id) AS count, item_type_id
             FROM item

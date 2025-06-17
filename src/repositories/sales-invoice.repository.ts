@@ -203,7 +203,7 @@ export class SalesInvoiceRepository {
     data: { quantity: number; bill_id: number }[]
   ): Promise<boolean> {
     try {
-      const result = await this.prisma.bill.findMany({
+      const result = await this.prisma.sales_invoice.findMany({
         where: {
           id: {
             in: data.map((x) => x.bill_id),

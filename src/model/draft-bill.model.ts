@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import moment from "moment";
 import { v4 } from "uuid";
-import { fetchMode } from "../interface/fetch.interface";
 import { IConfirmSalesInvoice } from "../interface/archive.interface";
 
 const prisma = new PrismaClient();
@@ -89,11 +88,11 @@ export class DraftBillModel {
           createMany: {
             data: data.items.map((x) => {
               return {
-                item_id: x.item_id,
+                product_id: x.item_id,
                 quantity: x.quantity,
                 price: x.price,
                 discount: x.discount,
-                item_unit_id: x.item_unit_id,
+                product_unit_id: x.item_unit_id,
               };
             }),
           },
@@ -122,29 +121,8 @@ export class DraftBillModel {
         service: true,
         draft_bill: {
           select: {
-            item: {
-              select: {
-                reference: true,
-                description: true,
-                unit: true,
-                item_type: {
-                  select: {
-                    name: true,
-                  },
-                },
-                item_brand: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            },
-            item_unit: {
-              select: {
-                conversion: true,
-                unit: true,
-              },
-            },
+            product: true,
+            product_unit: true,
             quantity: true,
             price: true,
             discount: true,
@@ -174,26 +152,9 @@ export class DraftBillModel {
           },
         },
         draft_bill: {
-          select: {
-            id: true,
-            price: true,
-            discount: true,
-            quantity: true,
-            item_id: true,
-            item_unit_id: true,
-            item: {
-              select: {
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
+          include: {
+            product: true,
+            product_unit: true,
           },
         },
       },
@@ -208,8 +169,8 @@ export class DraftBillModel {
       include: {
         draft_bill: {
           include: {
-            item: true,
-            item_unit: true,
+            product: true,
+            product_unit: true,
           },
         },
       },
@@ -231,8 +192,8 @@ export class DraftBillModel {
       include: {
         draft_bill: {
           include: {
-            item: true,
-            item_unit: true,
+            product: true,
+            product_unit: true,
           },
         },
         user_draft_bill_code_created_byTouser: {
@@ -271,92 +232,92 @@ export class DraftBillModel {
   static fetch(
     keyword: string,
     limit: number,
-    offset: number,
-    mode: fetchMode
+    offset: number
+    // mode: fetchMode
   ) {
-    if (mode == fetchMode.Unconfirmed) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<IFetchDraftBill[]>(`
-        SELECT draft_bill_code.id, draft_bill_code.name, 
-        draft_bill_code.created_at, user.name as created_by, 
-        customer.name as customer_name, total.total,
-        draft_bill_code.is_delete
-        FROM draft_bill_code
-        INNER JOIN user ON draft_bill_code.created_by = user.id
-        LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
-        JOIN (
-          SELECT SUM(draft_bill.quantity * draft_bill.price) as total, draft_bill.draft_bill_code_id
-          FROM draft_bill
-          GROUP BY draft_bill.draft_bill_code_id
-        ) as total 
-        ON total.draft_bill_code_id = draft_bill_code.id
-        WHERE draft_bill_code.is_delete = 0
-        AND draft_bill_code.name LIKE '%${keyword}%'
-        OR customer.name LIKE '%${keyword}%'
-        ORDER BY draft_bill_code.id DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `),
-        prisma.draft_bill_code.count({
-          where: {
-            is_delete: false,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                customer: {
-                  name: {
-                    contains: keyword,
-                  },
-                },
-              },
-            ],
-          },
-        }),
-      ]);
-    } else if (mode == fetchMode.Pagination) {
-      return prisma.$transaction([
-        prisma.$queryRawUnsafe<IFetchDraftBill[]>(`
-        SELECT draft_bill_code.id, draft_bill_code.name, 
-        draft_bill_code.created_at, user.name as created_by, 
-        customer.name as customer_name, total.total,
-        draft_bill_code.is_delete
-        FROM draft_bill_code
-        INNER JOIN user ON draft_bill_code.created_by = user.id
-        LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
-        JOIN (
-          SELECT SUM(draft_bill.quantity * draft_bill.price) as total, draft_bill.draft_bill_code_id
-          FROM draft_bill
-          GROUP BY draft_bill.draft_bill_code_id
-        ) as total 
-        ON total.draft_bill_code_id = draft_bill_code.id
-        WHERE draft_bill_code.name LIKE '%${keyword}%'
-        OR customer.name LIKE '%${keyword}%'
-        ORDER BY draft_bill_code.id DESC
-        LIMIT ${limit} OFFSET ${offset}
-      `),
-        prisma.draft_bill_code.count({
-          where: {
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                customer: {
-                  name: {
-                    contains: keyword,
-                  },
-                },
-              },
-            ],
-          },
-        }),
-      ]);
-    }
+    // if (mode == fetchMode.Unconfirmed) {
+    //   return prisma.$transaction([
+    //     prisma.$queryRawUnsafe<IFetchDraftBill[]>(`
+    //     SELECT draft_bill_code.id, draft_bill_code.name,
+    //     draft_bill_code.created_at, user.name as created_by,
+    //     customer.name as customer_name, total.total,
+    //     draft_bill_code.is_delete
+    //     FROM draft_bill_code
+    //     INNER JOIN user ON draft_bill_code.created_by = user.id
+    //     LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
+    //     JOIN (
+    //       SELECT SUM(draft_bill.quantity * draft_bill.price) as total, draft_bill.draft_bill_code_id
+    //       FROM draft_bill
+    //       GROUP BY draft_bill.draft_bill_code_id
+    //     ) as total
+    //     ON total.draft_bill_code_id = draft_bill_code.id
+    //     WHERE draft_bill_code.is_delete = 0
+    //     AND draft_bill_code.name LIKE '%${keyword}%'
+    //     OR customer.name LIKE '%${keyword}%'
+    //     ORDER BY draft_bill_code.id DESC
+    //     LIMIT ${limit} OFFSET ${offset}
+    //   `),
+    //     prisma.draft_bill_code.count({
+    //       where: {
+    //         is_delete: false,
+    //         OR: [
+    //           {
+    //             name: {
+    //               contains: keyword,
+    //             },
+    //           },
+    //           {
+    //             customer: {
+    //               name: {
+    //                 contains: keyword,
+    //               },
+    //             },
+    //           },
+    //         ],
+    //       },
+    //     }),
+    //   ]);
+    // } else if (mode == fetchMode.Pagination) {
+    //   return prisma.$transaction([
+    //     prisma.$queryRawUnsafe<IFetchDraftBill[]>(`
+    //     SELECT draft_bill_code.id, draft_bill_code.name,
+    //     draft_bill_code.created_at, user.name as created_by,
+    //     customer.name as customer_name, total.total,
+    //     draft_bill_code.is_delete
+    //     FROM draft_bill_code
+    //     INNER JOIN user ON draft_bill_code.created_by = user.id
+    //     LEFT JOIN customer ON draft_bill_code.customer_id = customer.id
+    //     JOIN (
+    //       SELECT SUM(draft_bill.quantity * draft_bill.price) as total, draft_bill.draft_bill_code_id
+    //       FROM draft_bill
+    //       GROUP BY draft_bill.draft_bill_code_id
+    //     ) as total
+    //     ON total.draft_bill_code_id = draft_bill_code.id
+    //     WHERE draft_bill_code.name LIKE '%${keyword}%'
+    //     OR customer.name LIKE '%${keyword}%'
+    //     ORDER BY draft_bill_code.id DESC
+    //     LIMIT ${limit} OFFSET ${offset}
+    //   `),
+    //     prisma.draft_bill_code.count({
+    //       where: {
+    //         OR: [
+    //           {
+    //             name: {
+    //               contains: keyword,
+    //             },
+    //           },
+    //           {
+    //             customer: {
+    //               name: {
+    //                 contains: keyword,
+    //               },
+    //             },
+    //           },
+    //         ],
+    //       },
+    //     }),
+    //   ]);
+    // }
   }
 
   /**
@@ -378,7 +339,7 @@ export class DraftBillModel {
           service: data.service,
         },
       }),
-      prisma.bill_code.create({
+      prisma.sales_invoice_code.create({
         data: {
           name: data.name,
           date: new Date(moment(data.date).format("YYYY-MM-DD")),
@@ -392,7 +353,7 @@ export class DraftBillModel {
           is_confirm: true,
           confirmed_at: new Date(),
           confirmed_by: data.userID,
-          bill: {
+          sales_invoice: {
             createMany: {
               data: data.items.map((x) => {
                 return {
@@ -405,7 +366,7 @@ export class DraftBillModel {
               }),
             },
           },
-          bill_payment: {
+          sales_invoice_payment: {
             createMany: {
               data: data.payment_methods.map((x) => {
                 return {
@@ -418,52 +379,27 @@ export class DraftBillModel {
           },
         },
         include: {
-          bill: {
+          sales_invoice: {
             include: {
-              package_code: {
-                include: {
-                  package_content: {
-                    select: {
-                      quantity: true,
-                      item_id: true,
-                      item_unit: {
-                        select: {
-                          unit: true,
-                          conversion: true,
-                        },
-                      },
-                      item: {
-                        select: {
-                          reference: true,
-                          description: true,
-                          unit: true,
-                        },
-                      },
-                      price: true,
-                      discount: true,
-                    },
-                  },
-                },
-              },
-              item_unit: {
+              product_unit: {
                 select: {
                   unit: true,
                   conversion: true,
                 },
               },
-              item: {
+              product: {
                 select: {
                   id: true,
                   reference: true,
                   description: true,
                   unit: true,
-                  item_type: {
+                  product_type: {
                     select: {
                       name: true,
                       id: true,
                     },
                   },
-                  item_brand: {
+                  product_brand: {
                     select: {
                       name: true,
                       id: true,

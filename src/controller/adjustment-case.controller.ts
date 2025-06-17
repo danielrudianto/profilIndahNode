@@ -109,77 +109,6 @@ class AdjustmentCaseController {
     }
   };
 
-  static approve = async (req: Request, res: Response) => {
-    // try {
-    //   const userID = req.body.userId;
-    //   const id = Number(req.params.id);
-    //   const adjustmentCase = await AdjustmentCaseModel.fetchByID(id);
-    //   if (!adjustmentCase) {
-    //     return res.status(404).send(ErrorList["Not found"]);
-    //   }
-    //   if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
-    //     return res.status(404).send(ErrorList["Not found"]);
-    //   }
-    //   const result = await AdjustmentCaseModel.confirm(
-    //     id,
-    //     userID,
-    //     IAdjustmentCaseApprovalStatus.APPROVED
-    //   );
-    //   Promise.all([
-    //     this.stockInRepository.createMany(),
-    //     StockInModel.createMany(
-    //       result.adjustment_case
-    //         .filter((x) => Number(x.quantity) > 0)
-    //         .map((x) => {
-    //           return {
-    //             item_id: x.item.id,
-    //             date: result.date,
-    //             company_id: result.company_id!,
-    //             quantity:
-    //               Number(x.quantity) *
-    //               (x.item_unit == null ? 1 : Number(x.item_unit.conversion)),
-    //             price: 0,
-    //             good_receipt_code_id: null,
-    //             good_receipt_id: null,
-    //             adjustment_case_code_id: result.id,
-    //             adjustment_case_id: x.id,
-    //           };
-    //         })
-    //     ),
-    //     StockOutModel.createMany(
-    //       result.adjustment_case
-    //         .filter((x) => Number(x.quantity) < 0)
-    //         .map((x) => {
-    //           return {
-    //             date: result.date,
-    //             item_id: x.item.id,
-    //             quantity:
-    //               Number(x.quantity) *
-    //               -1 *
-    //               Number(x.item_unit == null ? 1 : x.item_unit.conversion),
-    //             bill_id: null,
-    //             bill_code_id: null,
-    //             adjustment_case_id: x.id,
-    //             adjustment_case_code_id: result.id,
-    //             stock_in_id: null,
-    //             price: 0,
-    //           };
-    //         })
-    //     ),
-    //   ])
-    //     .then(() => {
-    //       return res.status(201).send(adjustmentCase);
-    //     })
-    //     .catch((error) => {
-    //       console.error(`[error]: Error on create stock in/out: ${error}`);
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // } catch (error) {
-    //   console.error(`[error]: Error on fetch adjustment case: ${error}`);
-    //   return res.status(500).send(ErrorList["Internal server error"]);
-    // }
-  };
-
   delete = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     try {
@@ -205,23 +134,18 @@ class AdjustmentCaseController {
     }
   };
 
-  static fetch = (req: Request, res: Response) => {
+  fetchByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    AdjustmentCaseModel.fetchByID(id)
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        return res.status(200).send({
-          ...result,
-          type: Number(result.adjustment_case[0].quantity) > 0 ? 0 : 1,
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching adjustment case: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    try {
+      const adjustmentCase = await this.adjustmentCaseRepository.fetchByID(id);
+      if (!adjustmentCase) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+      return res.status(200).send(adjustmentCase);
+    } catch (error) {
+      console.error(`[error]: Error on fetching adjustment case: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
   };
 
   fetchUnconfirmed = async (req: Request, res: Response) => {
@@ -241,37 +165,6 @@ class AdjustmentCaseController {
       );
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  };
-
-  static fetchUnconfirmed = (req: Request, res: Response) => {
-    const page =
-      req.query.page == null || req.query.page == undefined
-        ? 1
-        : Number(req.query.page);
-
-    AdjustmentCaseModel.fetchUnconfirmed(page)
-      .then(([result, count]) => {
-        return res.status(200).send({
-          data: result.map((x) => {
-            return {
-              id: x.id,
-              name: x.name,
-              date: x.date,
-              type: Number(x.adjustment_case[0].quantity) > 0 ? 0 : 1,
-              user_adjustment_case_code_created_byTouser:
-                x.user_adjustment_case_code_created_byTouser,
-              company: x.company,
-            };
-          }),
-          count: count,
-        });
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error on fetching unconfirmed adjustment case ${error}`
-        );
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
   };
 
   static fetchArchives = (req: Request, res: Response) => {
@@ -416,22 +309,6 @@ class AdjustmentCaseController {
           return res.status(500).send(ErrorList["Internal server error"]);
         });
     }
-  };
-
-  static fetchCodeByID = (req: Request, res: Response) => {
-    const id = parseInt(req.params.id.toString());
-    AdjustmentCaseModel.fetchByID(id)
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
-        }
-
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching adjustment case: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
   };
 
   static deleteByID = (req: Request, res: Response) => {

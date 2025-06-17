@@ -3,7 +3,6 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import DraftBillController from "../../controller/draft-bill.controller";
 import ErrorHelper from "../../helper/error.helper";
-import { fetchMode } from "../../interface/fetch.interface";
 
 const router = Router();
 
@@ -42,14 +41,14 @@ router.post(
 );
 
 router.get("/archives", DraftBillController.fetchArchives);
-router.get(
-  "/unconfirmed",
-  (req: Request, _, next: NextFunction) => {
-    req.body.mode = fetchMode.Unconfirmed;
-    next();
-  },
-  DraftBillController.fetch
-);
+// router.get(
+//   "/unconfirmed",
+//   (req: Request, _, next: NextFunction) => {
+//     req.body.mode = fetchMode.Unconfirmed;
+//     next();
+//   },
+//   DraftBillController.fetch
+// );
 router.get("/name/:name", DraftBillController.fetchByName);
 router.get(
   "/:id",
@@ -57,13 +56,13 @@ router.get(
   ErrorHelper.intercept,
   DraftBillController.fetchByID
 );
-router.get(
-  "/",
-  (req: Request, _, next: NextFunction) => {
-    req.body.mode = fetchMode.Pagination;
-    next();
-  },
-  DraftBillController.fetch
-);
+// router.get(
+//   "/",
+//   (req: Request, _, next: NextFunction) => {
+//     req.body.mode = fetchMode.Pagination;
+//     next();
+//   },
+//   DraftBillController.fetch
+// );
 
 export default router;

@@ -21,6 +21,11 @@ export class ProductRepository {
           created_by: data.created_by!,
           created_at: data.created_at,
           unit: data.unit,
+          sales_price: data.sales_price,
+          purchase_price: data.purchase_price,
+          sales_discount: data.sales_discount,
+          purchase_discount: data.purchase_discount,
+          minimum_stock: data.minimum_stock,
         },
       });
 

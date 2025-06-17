@@ -197,45 +197,11 @@ class DepositModel {
         deposit: {
           select: {
             id: true,
-            item: {
-              select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
-            item_unit: {
+            product: true,
+            product_unit: {
               select: {
                 unit: true,
                 conversion: true,
-              },
-            },
-            package_code_id: true,
-            package_code: {
-              select: {
-                id: true,
-                name: true,
-                description: true,
-                package_content: {
-                  select: {
-                    item_id: true,
-                    item: {
-                      select: {
-                        reference: true,
-                        description: true,
-                        unit: true,
-                      },
-                    },
-                    item_unit: {
-                      select: {
-                        unit: true,
-                        conversion: true,
-                      },
-                    },
-                    quantity: true,
-                  },
-                },
               },
             },
             quantity: true,

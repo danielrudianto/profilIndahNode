@@ -2,7 +2,6 @@ import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
-import { fetchMode } from "../interface/fetch.interface";
 import {
   DraftBillModel,
   IConfirmDraftBillItems,
@@ -102,16 +101,16 @@ class DraftBillController {
         ? ""
         : decodeURIComponent(req.query.keyword.toString());
 
-    DraftBillModel.fetch(keyword, limit, offset, mode)!
-      .then(([result, count]) => {
-        return res.status(200).send({
-          data: result,
-          count: count,
-        });
-      })
-      .catch((error) => {
-        return res.status(500).send(error);
-      });
+    // DraftBillModel.fetch(keyword, limit, offset, mode)!
+    //   .then(([result, count]) => {
+    //     return res.status(200).send({
+    //       data: result,
+    //       count: count,
+    //     });
+    //   })
+    //   .catch((error) => {
+    //     return res.status(500).send(error);
+    //   });
   };
 
   static fetchByName = (req: Request, res: Response) => {
@@ -155,23 +154,23 @@ class DraftBillController {
 
       items.forEach((x) => {
         const id = x.item_id;
-        const item_unit_id = x.item_unit_id;
+        const product_unit_id = x.product_unit_id;
 
         const draftBillIndex = result.draft_bill.findIndex(
-          (y) => y.item_id == id && y.item_unit_id == item_unit_id
+          (y) => y.product_id == id && y.product_unit_id == product_unit_id
         );
 
-        if (draftBillIndex != -1) {
-          const price = Number(result.draft_bill[draftBillIndex].price);
-          const discount = Number(result.draft_bill[draftBillIndex].discount);
-          bills.push({
-            item_id: result.draft_bill[draftBillIndex].item_id,
-            item_unit_id: result.draft_bill[draftBillIndex].item_unit_id,
-            quantity: Number(result.draft_bill[draftBillIndex].quantity),
-            discount: discount,
-            price: price,
-          });
-        }
+        // if (draftBillIndex != -1) {
+        //   const price = Number(result.draft_bill[draftBillIndex].price);
+        //   const discount = Number(result.draft_bill[draftBillIndex].discount);
+        //   bills.push({
+        //     product_id: result.draft_bill[draftBillIndex].product_id,
+        //     product_unit_id: result.draft_bill[draftBillIndex].product_unit_id,
+        //     quantity: Number(result.draft_bill[draftBillIndex].quantity),
+        //     discount: discount,
+        //     price: price,
+        //   });
+        // }
       });
 
       DraftBillModel.confirm({

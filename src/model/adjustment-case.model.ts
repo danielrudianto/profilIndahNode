@@ -10,7 +10,7 @@ import {
 import { prisma } from "../helper/database.helper";
 import { UserViewModel } from "./user.model";
 import { ProductModel } from "./product.model";
-import { ProductUnitModel } from "./product-unit.model";
+import { ProductUnitModel, ProductUnitViewModel } from "./product-unit.model";
 
 export interface IAdjustmentCaseCode {
   id?: number;
@@ -30,17 +30,12 @@ export interface IAdjustmentCaseCode {
 
 interface IAdjustmentCase {
   id?: number;
-  item_id: number;
-  item_unit_id: number | null;
+  product_id: number;
+  product_unit_id: number | null;
   quantity: number;
 
-  item?: ProductModel;
-  item_unit?: ProductUnitModel | null;
-}
-
-export enum IAdjustmentCaseApprovalStatus {
-  APPROVED = "approved",
-  DISAPPROVED = "disapproved",
+  product?: ProductModel;
+  product_unit?: ProductUnitViewModel | null;
 }
 
 class AdjustmentCaseModel {
@@ -57,7 +52,6 @@ class AdjustmentCaseModel {
   adjustment_case: IAdjustmentCase[];
   user_adjustment_case_code_created_byTouser?: UserViewModel;
 
-  // initialize the model with default values
   constructor(data: IAdjustmentCaseCode) {
     this.id = data.id;
     this.name = data.name;
@@ -88,22 +82,22 @@ class AdjustmentCaseModel {
       company_id: data.company_id,
       adjustment_case: data.adjustment_case.map((ac: any) => ({
         id: ac.id,
-        item_id: ac.item_id,
-        item_unit_id: ac.item_unit_id,
+        product_id: ac.product_id,
+        product_unit_id: ac.product_unit_id,
         quantity: Number(ac.quantity),
         item: new ProductModel({
           id: ac.item.id,
           reference: ac.item.reference,
           description: ac.item.description,
           unit: ac.item.unit,
-          brand_id: ac.item.item_brand_id,
-          type_id: ac.item.item_type_id,
+          product_brand_id: ac.item.product_brand_id,
+          product_type_id: ac.item.product_type_id,
         }),
-        item_unit:
+        product_unit:
           ac.item_unit == null
             ? null
-            : new ProductUnitModel({
-                item_id: ac.item_id,
+            : new ProductUnitViewModel({
+                product_id: ac.product_id,
                 unit: ac.item_unit.unit,
                 conversion: Number(ac.item_unit.conversion),
               }),
@@ -153,190 +147,6 @@ class AdjustmentCaseModel {
     ]);
   }
 
-  static confirm(
-    id: number,
-    userID: number,
-    approvalStatus: IAdjustmentCaseApprovalStatus
-  ) {
-    if (approvalStatus == IAdjustmentCaseApprovalStatus.DISAPPROVED) {
-      return prisma.adjustment_case_code.update({
-        where: {
-          id: id,
-        },
-        data: {
-          is_delete: true,
-          confirmed_by: userID,
-          confirmed_at: new Date(),
-        },
-        include: {
-          adjustment_case: {
-            select: {
-              id: true,
-              product: {
-                select: {
-                  id: true,
-                  reference: true,
-                  description: true,
-                  unit: true,
-                },
-              },
-              quantity: true,
-              product_unit: {
-                select: {
-                  unit: true,
-                  conversion: true,
-                },
-              },
-            },
-          },
-        },
-      });
-    } else if (approvalStatus == IAdjustmentCaseApprovalStatus.APPROVED) {
-      return prisma.adjustment_case_code.update({
-        where: {
-          id: id,
-        },
-        data: {
-          is_confirm: true,
-          confirmed_by: userID,
-          confirmed_at: new Date(),
-        },
-        include: {
-          adjustment_case: {
-            select: {
-              id: true,
-              product: {
-                select: {
-                  id: true,
-                  reference: true,
-                  description: true,
-                  unit: true,
-                },
-              },
-              quantity: true,
-              product_unit: {
-                select: {
-                  unit: true,
-                  conversion: true,
-                },
-              },
-            },
-          },
-        },
-      });
-    } else {
-      throw new Error("Invalid approval status provided");
-    }
-  }
-  /**
-   * Fetch all adjustment case code
-   * @param id
-   * @returns
-   */
-  static async fetchByID(id: number) {
-    const adjustment_case = await prisma.adjustment_case_code.findUnique({
-      where: {
-        id: id,
-      },
-      select: {
-        name: true,
-        date: true,
-        id: true,
-        is_confirm: true,
-        is_delete: true,
-        company_id: true,
-        user_adjustment_case_code_created_byTouser: {
-          select: {
-            name: true,
-            username: true,
-            role: true,
-            user_avatar: {
-              select: {
-                top: true,
-                accessories: true,
-                clothes: true,
-                eyes: true,
-                eyebrows: true,
-                mouth: true,
-                circle: true,
-                color: true,
-              },
-            },
-          },
-        },
-        created_at: true,
-        created_by: true,
-        adjustment_case: {
-          select: {
-            id: true,
-            item_id: true,
-            product_unit_id: true,
-            product: {
-              select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-                product_brand_id: true,
-                product_type_id: true,
-              },
-            },
-            quantity: true,
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
-          },
-        },
-        company: {
-          select: {
-            name: true,
-            address: true,
-            npwp: true,
-          },
-        },
-      },
-    });
-
-    if (!adjustment_case) {
-      throw new Error("Adjustment case code not found");
-    }
-
-    return new AdjustmentCaseModel({
-      id: adjustment_case.id,
-      name: adjustment_case.name,
-      date: adjustment_case.date,
-      created_by: adjustment_case.created_by,
-      company_id: adjustment_case.company_id,
-      adjustment_case: adjustment_case.adjustment_case.map((ac) => ({
-        item_id: ac.item.id,
-        item_unit_id: ac.item_unit_id,
-        quantity: Number(ac.quantity),
-        item: new ProductModel({
-          id: ac.item.id,
-          reference: ac.item.reference,
-          description: ac.item.description,
-          unit: ac.item.unit,
-          brand_id: ac.item.item_brand_id,
-          type_id: ac.item.item_type_id,
-        }),
-        item_unit:
-          ac.item_unit == null
-            ? null
-            : new ProductUnitModel({
-                item_id: ac.item_id,
-                unit: ac.item_unit.unit,
-                conversion: Number(ac.item_unit.conversion),
-              }),
-      })),
-      user_adjustment_case_code_created_byTouser: UserViewModel.fromMap(
-        adjustment_case.user_adjustment_case_code_created_byTouser
-      ),
-    });
-  }
-
   /**
    * Delete adjustment case code
    * @param id
@@ -366,21 +176,9 @@ class AdjustmentCaseModel {
         adjustment_case: {
           select: {
             id: true,
-            item: {
-              select: {
-                id: true,
-                reference: true,
-                description: true,
-                unit: true,
-              },
-            },
+            product: true,
             quantity: true,
-            item_unit: {
-              select: {
-                unit: true,
-                conversion: true,
-              },
-            },
+            product_unit: true,
           },
         },
         company: {

@@ -77,18 +77,17 @@ class ReceivableController {
   };
 
   static fetchPaymentsHistory = (req: Request, res: Response) => {
-    const id = req.params.id;
-    BillPaymentModel.fetchByBillCodeID(Number(id))
-      .then((result) => {
-        return res.status(200).send(result);
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error on fetch payments history by bill code id [${id}]`
-        );
-
-        return res.status(500).send(error);
-      });
+    // const id = req.params.id;
+    // BillPaymentModel.fetchByBillCodeID(Number(id))
+    //   .then((result) => {
+    //     return res.status(200).send(result);
+    //   })
+    //   .catch((error) => {
+    //     console.error(
+    //       `[error]: Error on fetch payments history by bill code id [${id}]`
+    //     );
+    //     return res.status(500).send(error);
+    //   });
   };
 
   static createPayment = async (req: Request, res: Response) => {
@@ -145,15 +144,14 @@ class ReceivableController {
       res: Response
     ) => {
       try {
-        const result = await new BillPaymentModel({
-          bill_code_id: sales_invoice_id,
-          payment_method_id: payment_method_id,
-          value: value,
-          date: date,
-          is_paid: is_paid,
-        }).create();
-
-        return res.status(200).send(result);
+        // const result = await new BillPaymentModel({
+        //   bill_code_id: sales_invoice_id,
+        //   payment_method_id: payment_method_id,
+        //   value: value,
+        //   date: date,
+        //   is_paid: is_paid,
+        // }).create();
+        // return res.status(200).send(result);
       } catch (error) {
         console.error(`[error]: Error on creating payment ${error}`);
         return res
@@ -213,13 +211,12 @@ class ReceivableController {
       return res.status(400).send({ message: "Invalid payment ID" });
     }
     try {
-      const billPayment = await BillPaymentModel.fetchByID(Number(id));
-      if (!billPayment) {
-        return res.status(404).send({ message: "Payment not found" });
-      }
-
-      const deleteResult = await billPayment.delete();
-      return res.status(200).send(deleteResult);
+      // const billPayment = await salesInvoice.fetchByID(Number(id));
+      // if (!billPayment) {
+      //   return res.status(404).send({ message: "Payment not found" });
+      // }
+      // const deleteResult = await billPayment.delete();
+      // return res.status(200).send(deleteResult);
     } catch (error) {
       console.error(`[error]: Error fetching payment by ID ${id}: ${error}`);
       return res.status(500).send({ message: "Internal server error" });

@@ -2,8 +2,6 @@ import { Request, Response } from "express";
 import PurchaseInvoiceModel, {
   CalculatePurchaseMode,
 } from "../model/purchase-invoice.model";
-import CompanyModel from "../model/company.model";
-import { fetchMode } from "../interface/fetch.interface";
 import {
   mongoStockInModel,
   mongoStockOutModel,
@@ -53,7 +51,6 @@ class ReportController {
     //         });
     //       }
     //     });
-
     //     return res
     //       .status(200)
     //       .send(response.sort((a, b) => a.name.localeCompare(b.name)));
@@ -306,20 +303,20 @@ class ReportController {
     const month = req.body.month;
     const year = req.body.year;
 
-    PurchaseInvoiceModel.fetchReport({
-      month: month,
-      year: year,
-    })
-      .then(([goodReceiptResult, goodReceiptItemsResult]) => {
-        return res.status(200).send({
-          document: goodReceiptResult,
-          items: goodReceiptItemsResult,
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching purchase report ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
+    // PurchaseInvoiceModel.fetchReport({
+    //   month: month,
+    //   year: year,
+    // })
+    //   .then(([goodReceiptResult, goodReceiptItemsResult]) => {
+    //     return res.status(200).send({
+    //       document: goodReceiptResult,
+    //       items: goodReceiptItemsResult,
+    //     });
+    //   })
+    //   .catch((error) => {
+    //     console.error(`[error]: Error on fetching purchase report ${error}`);
+    //     return res.status(500).send(ErrorList["Internal server error"]);
+    //   });
   };
 
   /**
@@ -648,7 +645,6 @@ class ReportController {
         //     return x._id;
         //   })
         // );
-
         // return res.status(200).send(
         //   result
         //     .map((x) => {
@@ -1479,15 +1475,15 @@ class ReportController {
             .map((x) => x.adjustmentCaseCodeID)
         );
 
-        const goodReceipts = await GoodReceiptModel.fetchByCompanyID(
-          company_id,
-          date
-        );
+        // const goodReceipts = await goodReceiptMo.fetchByCompanyID(
+        //   company_id,
+        //   date
+        // );
 
-        const adjustmentCases = await AdjustmentCaseModel.fetchByCompanyID(
-          company_id,
-          date
-        );
+        // const adjustmentCases = await AdjustmentCaseModel.fetchByCompanyID(
+        //   company_id,
+        //   date
+        // );
 
         // return res.status(200).send({
         //   output: result

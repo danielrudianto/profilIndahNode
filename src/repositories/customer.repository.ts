@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import CustomerModel, { ICustomer } from "../model/customer.model";
+import { CustomerModel, ICustomer } from "../model/customer.model";
 import { UserViewModel } from "../model/user.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 

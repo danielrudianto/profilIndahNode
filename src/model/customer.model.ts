@@ -1,9 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import ErrorList from "../assets/error_list";
-import { fetchMode } from "../interface/fetch.interface";
 import { UserViewModel } from "./user.model";
-
-const prisma = new PrismaClient();
 
 export interface ICustomer {
   id?: number;
@@ -25,7 +20,7 @@ export interface ICustomer {
   can_delete?: boolean | string;
 }
 
-class CustomerModel {
+export class CustomerModel {
   id?: number;
   name: string;
   address: string;
@@ -84,87 +79,4 @@ class CustomerModel {
       is_delete: data.is_delete,
     });
   }
-
-  update() {
-    return prisma.customer.update({
-      where: {
-        id: this.id,
-      },
-      data: {
-        name: this.name,
-        address: this.address,
-        npwp: this.npwp,
-        pic: this.pic,
-        phone_number: this.phone_number,
-        updated_by: this.updated_by,
-        updated_at: new Date(),
-      },
-      include: {
-        user_customer_updated_byTouser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  static delete(id: number, created_by: number) {
-    return prisma.customer.update({
-      where: {
-        id: id,
-      },
-      data: {
-        is_delete: true,
-        deleted_by: created_by,
-      },
-      include: {
-        user: {
-          select: {
-            name: true,
-            id: true,
-          },
-        },
-        user_customer_deleted_byTouser: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
-    });
-  }
-
-  /**
-   * Fetch customer by IDs
-   * @param id
-   * @returns
-   */
-  static async fetchByIDs(ids: number[]) {
-    if (ids.length == 0) return Promise.resolve([]);
-
-    return prisma.$queryRawUnsafe(`
-      SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, '1', '0') AS can_delete
-      FROM customer
-      LEFT JOIN (
-        SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-        FROM bill_code
-        WHERE bill_code.is_delete = 0
-      ) itemCount
-      ON customer.id = itemCount.customer_id
-      WHERE customer.id IN (${ids.join(",")})
-    `);
-  }
-
-  static fetchBySales(id: number) {
-    return prisma.customer.count({
-      where: {
-        is_delete: false,
-        created_by: id,
-      },
-    });
-  }
 }
-
-export default CustomerModel;

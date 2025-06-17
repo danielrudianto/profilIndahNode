@@ -36,8 +36,8 @@ class SalesInvoiceController {
     const discount = Number(req.body.discount);
     const delivery = Number(req.body.delivery);
     const service = Number(req.body.service);
-    const bill = req.body.bill as any[];
-    const bill_payment = req.body.payments as any[];
+    const sales_invoice = req.body.sales_invoice as any[];
+    const sales_invoice_payment = req.body.sales_invoice_payment as any[];
     const paymentTerm = req.body.payment_term;
     const date = translateDate(req.body.date);
     const isPaid = req.body.is_paid;
@@ -64,8 +64,8 @@ class SalesInvoiceController {
             isConfirm: true,
             confirmedBy: userID,
             confirmedAt: new Date(),
-            bill: bill,
-            bill_payment: bill_payment,
+            sales_invoice: sales_invoice,
+            sales_invoice_payment: sales_invoice_payment,
             isDelete: false,
           });
 

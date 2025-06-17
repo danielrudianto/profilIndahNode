@@ -3,8 +3,7 @@ import { validationResult } from "express-validator";
 import { meili } from "../helper/meili.helper";
 import ErrorList from "../assets/error_list";
 import SocketHelper from "../helper/socket.helper";
-import { fetchMode } from "../interface/fetch.interface";
-import CustomerModel from "../model/customer.model";
+import { CustomerModel } from "../model/customer.model";
 import { CustomerRepository } from "../repositories/customer.repository";
 import {
   translateKeyword,

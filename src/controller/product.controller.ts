@@ -27,13 +27,13 @@ class ProductController {
   create = async (req: Request, res: Response) => {
     const reference = req.body.reference;
     const description = req.body.description;
-    const brandID = req.body.brand;
-    const typeID = req.body.type;
+    const product_brand_id = req.body.product_brand_id;
+    const product_type_id = req.body.product_type_id;
     const minimum_stock = req.body.minimum_stock;
     const userID = req.body.userId;
     const unit = req.body.unit;
-    const price = req.body.price;
-    const discount = req.body.discount;
+    const sales_price = req.body.sales_price;
+    const sales_discount = req.body.sales_discount;
     const purchase_price = req.body.purchase_price;
     const purchase_discount = req.body.purchase_discount;
     const created_at = new Date();
@@ -52,14 +52,14 @@ class ProductController {
       const product = await this.productRepository.create({
         reference: reference,
         description: description,
-        product_brand_id: brandID,
-        product_type_id: typeID,
+        product_brand_id: product_brand_id,
+        product_type_id: product_type_id,
         created_by: userID,
         created_at: created_at,
         minimum_stock: minimum_stock,
         unit: unit,
-        sales_price: price,
-        sales_discount: discount,
+        sales_price: sales_price,
+        sales_discount: sales_discount,
         purchase_price: purchase_price,
         purchase_discount: purchase_discount,
       });
@@ -98,13 +98,14 @@ class ProductController {
     const keyword = translateKeyword(req.query.keyword);
     // const pageSize = Number(process.env.LIMIT!);
     const pageSize = translatePageSize(req.query.pageSize);
-    const mode = req.query.mode;
 
     try {
       const result = await meili.index("product").search(keyword, {
         limit: pageSize,
         offset: (page - 1) * pageSize,
       });
+
+      console.log(result.hits[0]);
 
       return res.status(200).send({
         data: result.hits.map((x: any) => {

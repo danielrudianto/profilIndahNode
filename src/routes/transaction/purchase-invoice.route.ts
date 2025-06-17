@@ -21,7 +21,7 @@ router.get(
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PurchaseInvoiceController.fetchByID
+  purchaseInvoiceController.fetchByID
 );
 
 router.post("/archives", PurchaseInvoiceController.fetchArchive);
@@ -74,7 +74,7 @@ router.delete(
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  PurchaseInvoiceController.deleteByID
+  purchaseInvoiceController.delete
 );
 
 export default router;

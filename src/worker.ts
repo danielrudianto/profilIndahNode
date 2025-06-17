@@ -39,22 +39,27 @@ const productBrandService = new ProductBrandService(
 
 const goodReceiptService = new GoodReceiptService(
   new GoodReceiptRepository(prisma),
-  new StockInRepository(prisma),
-)
+  new StockInRepository(prisma)
+);
 
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
     case "product-created":
       await productService.create(job.data.id);
+      break;
     case "product-updated":
       await productService.update(job.data.id);
+      break;
     case "product-deleted":
       await productService.delete(job.data.id);
+      break;
     case "product-brand-updated":
       await productBrandService.update(job.data.id);
-    case 'good-receipt-created':
+      break;
+    case "good-receipt-created":
       await goodReceiptService.create(job.data.id);
+      break;
     // console.log("product created!!");
     // case "updateItem":
     //   const item = job.data;

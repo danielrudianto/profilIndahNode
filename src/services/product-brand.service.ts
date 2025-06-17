@@ -15,14 +15,14 @@ export class ProductBrandService {
 
     const products = await meili
       .index("product")
-      .search("", { filter: `brand_id = ${id}` });
+      .search("", { filter: `product_brand_id = ${id}` });
 
     if (products.hits.length > 0) {
       const updatePromises = products.hits.map((product: any) => {
         return meili.index("product").updateDocuments([
           {
             id: product.id,
-            brand: productBrand.name,
+            name: productBrand.name,
           },
         ]);
       });

@@ -1,8 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-import { fetchMode } from "../interface/fetch.interface";
 import { UserViewModel } from "./user.model";
-
-const prisma = new PrismaClient();
 
 export interface IProductType {
   id?: number;

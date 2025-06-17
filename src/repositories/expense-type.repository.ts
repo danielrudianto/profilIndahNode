@@ -60,7 +60,30 @@ export class ExpenseTypeRepository {
     }
   }
 
-  async delete(id: number, userID: number) {}
+  async delete(id: number, userID: number) {
+    try {
+      const expenseType = await this.prisma.expense_type.findUnique({
+        where: { id },
+      });
+
+      if (!expenseType) {
+        throw new Error("Expense type not found");
+      }
+
+      await this.prisma.expense_type.update({
+        where: {
+          id: id,
+        },
+        data: {
+          deleted_at: new Date(),
+          deleted_by: userID,
+        },
+      });
+    } catch (error) {
+      console.error(`[error]: Error on deleting expense type ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
 
   async fetchByID(id: number) {
     try {
@@ -94,7 +117,46 @@ export class ExpenseTypeRepository {
     }
   }
 
-  async fetchAutocomplete(keyword: string) {}
+  async fetchAutocomplete(keyword: string) {
+    try {
+      const result = await this.prisma.expense_type.findMany({
+        where: {
+          is_delete: false,
+          parent_id: {
+            not: null,
+          }, // Only fetch top-level expense types
+          OR: [
+            {
+              name: {
+                contains: keyword,
+              },
+            },
+            {
+              description: {
+                contains: keyword,
+              },
+            },
+          ],
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          parent_id: true,
+        },
+        take: 5,
+      });
+
+      return result.map((item) => {
+        return ExpenseTypeModel.fromMap(item);
+      });
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching expense type autocomplete ${error}`
+      );
+      throw new Error("Internal server error");
+    }
+  }
 
   async fetchAll() {
     try {

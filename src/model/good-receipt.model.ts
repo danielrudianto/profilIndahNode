@@ -1,23 +1,15 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import {
-  AnnualArchive,
-  ArchiveCount,
-  GoodReceiptArchive,
-  IFetchArchive,
-  MonthlyArchive,
-} from "../interface/archive.interface";
 import { CompanyModel } from "./company.model";
 import { ProductModel } from "./product.model";
 import { ProductUnitModel } from "./product-unit.model";
 import SupplierModel from "./supplier.model";
 import { UserViewModel } from "./user.model";
 
-const prisma = new PrismaClient();
-
 export interface IGoodReceipt {
   id?: number;
   uuid: string;
   name: string;
+  invoice_name: string;
+  faktur: string;
   date: Date;
   supplier_id: number;
   company_id: number;
@@ -35,14 +27,14 @@ export interface IGoodReceipt {
 export interface IGoodReceiptItem {
   id?: number;
   good_receipt_id?: number;
-  item_id: number;
-  item_unit_id: number;
+  product_id: number;
+  product_unit_id: number;
   quantity: number;
   price: number;
   discount: number;
 
-  item?: ProductModel;
-  item_unit?: ProductUnitModel;
+  product?: ProductModel;
+  product_unit?: ProductUnitModel;
   good_receipt_code?: GoodReceiptModel;
 }
 
@@ -50,6 +42,8 @@ class GoodReceiptModel {
   id?: number;
   uuid: string;
   name: string;
+  invoice_name: string;
+  faktur: string;
   date: Date;
   supplier_id: number;
   company_id: number;
@@ -66,6 +60,8 @@ class GoodReceiptModel {
     this.id = data.id;
     this.uuid = data.uuid;
     this.name = data.name;
+    this.invoice_name = data.invoice_name;
+    this.faktur = data.faktur;
     this.date = data.date;
     this.supplier_id = data.supplier_id;
     this.company_id = data.company_id;
@@ -85,6 +81,8 @@ class GoodReceiptModel {
       id: data.id,
       uuid: data.uuid,
       name: data.name,
+      invoice_name: data.invoice_name,
+      faktur: data.faktur,
       date: data.date,
       supplier_id: data.supplier_id,
       company_id: data.company_id,

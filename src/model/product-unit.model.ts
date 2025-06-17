@@ -64,3 +64,24 @@ export class ProductUnitModel {
     });
   }
 }
+
+interface IProductUnitView {
+  id?: number;
+  product_id: number;
+  unit: string;
+  conversion: number;
+}
+
+export class ProductUnitViewModel {
+  id?: number;
+  product_id: number;
+  unit: string;
+  conversion: number;
+
+  constructor(data: IProductUnitView) {
+    this.id = data.id;
+    this.product_id = data.product_id;
+    this.unit = data.unit;
+    this.conversion = data.conversion;
+  }
+}

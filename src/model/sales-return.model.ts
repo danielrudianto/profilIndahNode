@@ -64,61 +64,15 @@ class SalesReturnModel {
       include: {
         sales_return: {
           include: {
-            bill: {
-              select: {
-                id: true,
-                item: {
-                  select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    unit: true,
+            sales_invoice: {
+              include: {
+                sales_invoice_code: {
+                  include: {
+                    customer: true,
                   },
                 },
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-                price: true,
-                quantity: true,
-                discount: true,
-                package_code: {
-                  select: {
-                    package_content: {
-                      select: {
-                        item: {
-                          select: {
-                            id: true,
-                            reference: true,
-                            description: true,
-                            unit: true,
-                          },
-                        },
-                        item_unit: {
-                          select: {
-                            unit: true,
-                            conversion: true,
-                          },
-                        },
-                        quantity: true,
-                      },
-                    },
-                    price: true,
-                  },
-                },
-                bill_code: {
-                  select: {
-                    id: true,
-                    customer: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
-                  },
-                },
+                product: true,
+                product_unit: true,
               },
             },
           },
@@ -154,64 +108,18 @@ class SalesReturnModel {
           },
         },
         sales_return: {
-          select: {
-            bill: {
-              select: {
-                bill_code_id: true,
-                quantity: true,
-                price: true,
-                discount: true,
-                item: {
-                  select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    unit: true,
+          include: {
+            sales_invoice: {
+              include: {
+                sales_invoice_code: {
+                  include: {
+                    customer: true,
                   },
                 },
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-                package_code: {
-                  select: {
-                    name: true,
-                    description: true,
-                    package_content: {
-                      select: {
-                        item: {
-                          select: {
-                            id: true,
-                            reference: true,
-                            description: true,
-                            unit: true,
-                          },
-                        },
-                        item_unit: {
-                          select: {
-                            unit: true,
-                            conversion: true,
-                          },
-                        },
-                        quantity: true,
-                      },
-                    },
-                  },
-                },
-                bill_code: {
-                  select: {
-                    customer: {
-                      select: {
-                        name: true,
-                      },
-                    },
-                  },
-                },
+                product: true,
+                product_unit: true,
               },
             },
-            quantity: true,
           },
         },
         is_confirm: true,
@@ -275,62 +183,15 @@ class SalesReturnModel {
       include: {
         sales_return: {
           include: {
-            bill: {
-              select: {
-                id: true,
-                item: {
-                  select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    unit: true,
+            sales_invoice: {
+              include: {
+                sales_invoice_code: {
+                  include: {
+                    customer: true,
                   },
                 },
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-                price: true,
-                quantity: true,
-                discount: true,
-                package_code: {
-                  select: {
-                    package_content: {
-                      select: {
-                        item: {
-                          select: {
-                            id: true,
-                            reference: true,
-                            description: true,
-                            unit: true,
-                          },
-                        },
-                        item_unit: {
-                          select: {
-                            unit: true,
-                            conversion: true,
-                          },
-                        },
-                        quantity: true,
-                      },
-                    },
-                    price: true,
-                  },
-                },
-                bill_code: {
-                  select: {
-                    id: true,
-                    date: true,
-                    created_at: true,
-                    customer: {
-                      select: {
-                        name: true,
-                      },
-                    },
-                  },
-                },
+                product: true,
+                product_unit: true,
               },
             },
           },
@@ -367,53 +228,15 @@ class SalesReturnModel {
           select: {
             id: true,
             quantity: true,
-            bill: {
-              select: {
-                item: {
-                  select: {
-                    reference: true,
-                    description: true,
-                    item_brand: {
-                      select: {
-                        name: true,
-                      },
-                    },
-                    item_type: {
-                      select: {
-                        name: true,
-                      },
-                    },
-                    unit: true,
+            sales_invoice: {
+              include: {
+                sales_invoice_code: {
+                  include: {
+                    customer: true,
                   },
                 },
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-                package_code: {
-                  select: {
-                    package_content: {
-                      select: {
-                        item: {
-                          select: {
-                            reference: true,
-                            description: true,
-                            unit: true,
-                          },
-                        },
-                        item_unit: {
-                          select: {
-                            unit: true,
-                            conversion: true,
-                          },
-                        },
-                        quantity: true,
-                      },
-                    },
-                  },
-                },
+                product: true,
+                product_unit: true,
               },
             },
           },
@@ -773,57 +596,15 @@ class SalesReturnModel {
           select: {
             id: true,
             quantity: true,
-            bill: {
-              select: {
-                id: true,
-                bill_code_id: true,
-                bill_code: {
-                  select: {
-                    customer: {
-                      select: {
-                        id: true,
-                        name: true,
-                      },
-                    },
+            sales_invoice: {
+              include: {
+                sales_invoice_code: {
+                  include: {
+                    customer: true,
                   },
                 },
-                item: {
-                  select: {
-                    id: true,
-                    reference: true,
-                    description: true,
-                    unit: true,
-                  },
-                },
-                item_unit: {
-                  select: {
-                    unit: true,
-                    conversion: true,
-                  },
-                },
-                package_code: {
-                  select: {
-                    package_content: {
-                      select: {
-                        item: {
-                          select: {
-                            id: true,
-                            reference: true,
-                            description: true,
-                            unit: true,
-                          },
-                        },
-                        item_unit: {
-                          select: {
-                            unit: true,
-                            conversion: true,
-                          },
-                        },
-                        quantity: true,
-                      },
-                    },
-                  },
-                },
+                product: true,
+                product_unit: true,
               },
             },
           },

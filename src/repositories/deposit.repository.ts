@@ -39,18 +39,8 @@ export class DepositRepository {
         include: {
           deposit: {
             include: {
-              item: true,
-              item_unit: true,
-              package_code: {
-                include: {
-                  package_content: {
-                    include: {
-                      item: true,
-                      item_unit: true,
-                    },
-                  },
-                },
-              },
+              product: true,
+              product_unit: true,
             },
           },
         },
@@ -109,18 +99,8 @@ export class DepositRepository {
           is_delete: false,
         },
         include: {
-          item: true,
-          item_unit: true,
-          package_code: {
-            include: {
-              package_content: {
-                include: {
-                  item: true,
-                  item_unit: true,
-                },
-              },
-            },
-          },
+          product: true,
+          product_unit: true,
         },
         skip: data.pageSize,
         take: (data.page - 1) * data.pageSize,
@@ -153,18 +133,8 @@ export class DepositRepository {
           is_delete: false,
         },
         include: {
-          item: true,
-          item_unit: true,
-          package_code: {
-            include: {
-              package_content: {
-                include: {
-                  item: true,
-                  item_unit: true,
-                },
-              },
-            },
-          },
+          product: true,
+          product_unit: true,
         },
       });
 

@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { fetchMode } from "../interface/fetch.interface";
 
 const prisma = new PrismaClient();
 

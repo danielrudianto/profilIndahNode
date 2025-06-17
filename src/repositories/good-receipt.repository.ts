@@ -33,6 +33,8 @@ export class GoodReceiptRepository {
           date: data.date,
           supplier_id: data.supplier_id,
           company_id: data.company_id,
+          invoice_name: data.invoice_name,
+          faktur: data.faktur,
           good_receipt: {
             createMany: {
               data: data.good_receipt!.map((item) => {
@@ -40,8 +42,8 @@ export class GoodReceiptRepository {
                   quantity: item.quantity,
                   price: item.price,
                   discount: item.discount,
-                  product_id: item.item_id,
-                  product_unit_id: item.item_unit_id,
+                  product_id: item.product_id,
+                  product_unit_id: item.product_unit_id,
                 };
               }),
             },
@@ -80,8 +82,8 @@ export class GoodReceiptRepository {
                   quantity: item.quantity,
                   price: item.price,
                   discount: item.discount,
-                  product_id: item.item_id,
-                  product_unit_id: item.item_unit_id,
+                  product_id: item.product_id,
+                  product_unit_id: item.product_unit_id,
                 };
               }),
             },
@@ -92,6 +94,26 @@ export class GoodReceiptRepository {
       return GoodReceiptModel.fromMap(result);
     } catch (error) {
       throw error;
+    }
+  }
+
+  async delete(id: number, userID: number): Promise<GoodReceiptModel> {
+    try {
+      const result = await this.prisma.good_receipt_code.update({
+        where: {
+          id: id,
+        },
+        data: {
+          is_delete: true,
+          confirmed_by: userID,
+          confirmed_at: new Date(),
+        },
+      });
+
+      return GoodReceiptModel.fromMap(result);
+    } catch (error) {
+      console.error("Error deleting good receipt:", error);
+      throw new Error("Failed to delete good receipt");
     }
   }
 
@@ -184,6 +206,74 @@ export class GoodReceiptRepository {
       });
     } catch (error) {
       console.error(`[error]: Error while fetching monthly archives: ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
+  async fetchArchives(data: {
+    year: number;
+    month: number;
+    keyword: string;
+    page: number;
+    pageSize: number;
+    filterObject?: {
+      isDelete: boolean;
+    };
+  }) {
+    try {
+      const [result, count] = await Promise.all([
+        this.prisma.good_receipt_code.findMany({
+          where: {
+            date: {
+              gte: new Date(data.year, data.month - 1, 1),
+              lt: new Date(data.year, data.month, 1),
+            },
+            name: {
+              contains: data.keyword,
+            },
+            is_delete:
+              data.filterObject == undefined
+                ? undefined
+                : data.filterObject.isDelete,
+          },
+          include: {
+            supplier: true,
+            company: true,
+            user_good_receipt_code_created_byTouser: {
+              include: {
+                user_avatar: true,
+              },
+            },
+          },
+          skip: (data.page - 1) * data.pageSize,
+          take: data.pageSize,
+          orderBy: {
+            date: "desc",
+          },
+        }),
+        this.prisma.good_receipt_code.count({
+          where: {
+            date: {
+              gte: new Date(data.year, data.month - 1, 1),
+              lt: new Date(data.year, data.month, 1),
+            },
+            name: {
+              contains: data.keyword,
+            },
+            is_delete:
+              data.filterObject == undefined
+                ? undefined
+                : data.filterObject.isDelete,
+          },
+        }),
+      ]);
+
+      return {
+        data: result.map((x) => GoodReceiptModel.fromMap(x)),
+        count: count,
+      };
+    } catch (error) {
+      console.error(`[error]: Error while fetching archives: ${error}`);
       throw new Error("Internal server error");
     }
   }

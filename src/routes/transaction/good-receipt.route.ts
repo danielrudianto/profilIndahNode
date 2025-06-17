@@ -36,7 +36,25 @@ router.post(
   goodReceiptController.create
 );
 
-router.post("/archives", GoodReceiptController.fetchArchive);
+router.get("/archives", goodReceiptController.fetchAnnualArchives);
+router.get(
+  "/archives/:year",
+  param("year").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("year").isInt({ min: 2000 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  goodReceiptController.fetchMonthlyArchives
+);
+router.post(
+  "/archives/:year/:month",
+  param("year").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("year").isInt({ min: 2000 }).withMessage(ErrorList["Parameter error"]),
+  param("month").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("month")
+    .isInt({ min: 1, max: 12 })
+    .withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  goodReceiptController.fetchArchives
+);
 
 router.get(
   "/:id",

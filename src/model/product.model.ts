@@ -30,6 +30,7 @@ export interface IProduct {
 
   product_type?: IProductTypeView;
   product_brand?: IProductBrandView;
+  product_unit?: ProductUnitModel[];
 }
 
 export class ProductModel {
@@ -77,6 +78,7 @@ export class ProductModel {
     this.sales_discount = data.sales_discount;
     this.purchase_price = data.purchase_price;
     this.purchase_discount = data.purchase_discount;
+    this.product_unit = data.product_unit;
   }
 
   static fromMap(data: any) {
@@ -91,6 +93,10 @@ export class ProductModel {
       updated_by: data.updated_by,
       updated_at: data.updated_at,
       minimum_stock: data.minimum_stock,
+      sales_discount: data.sales_discount,
+      sales_price: data.sales_price,
+      purchase_discount: data.purchase_discount,
+      purchase_price: data.purchase_price,
       unit: data.unit,
       product_brand:
         data.product_brand == undefined
@@ -115,13 +121,10 @@ export class ProductModel {
       updated_at: data.updated_at,
       minimum_stock: data.minimum_stock,
       unit: data.unit,
-      product_brand: ProductBrandViewModel.fromMap({
-        id: data.itemBrandID,
-        name: data.brand,
-      }),
-      product_type: ProductTypeViewModel.fromMap({
-        id: data.itemTypeID,
-        name: data.type,
+      product_brand: ProductBrandViewModel.fromMap(data.product_brand),
+      product_type: ProductTypeViewModel.fromMap(data.product_type),
+      product_unit: data.product_unit.map((x: any) => {
+        return ProductUnitModel.fromMap(x);
       }),
     });
   }

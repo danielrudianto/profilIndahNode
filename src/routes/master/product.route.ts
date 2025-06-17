@@ -12,7 +12,7 @@ const router = Router();
 
 const productController = new ProductController(
   new ProductRepository(prisma),
-  new ProductUnitRepository(prisma),
+  new ProductUnitRepository(prisma)
 );
 
 router.post(
@@ -21,13 +21,24 @@ router.post(
   body("reference").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").exists().withMessage(ErrorList["Parameter error"]),
   body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("brand").exists().withMessage(ErrorList["Parameter error"]),
-  body("type").exists().withMessage(ErrorList["Parameter error"]),
+  body("product_type_id").exists().withMessage(ErrorList["Parameter error"]),
+  body("product_brand_id").exists().withMessage(ErrorList["Parameter error"]),
   body("minimum_stock")
     .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   body("unit").exists().withMessage(ErrorList["Parameter error"]),
-  body("unit").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("sales_price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("purchase_price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("sales_discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("purchase_discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   productController.create
 );
@@ -56,12 +67,24 @@ router.put(
   body("reference").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("description").exists().withMessage(ErrorList["Parameter error"]),
   body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("brand").exists().withMessage(ErrorList["Parameter error"]),
-  body("type").exists().withMessage(ErrorList["Parameter error"]),
+  body("product_brand_id").exists().withMessage(ErrorList["Parameter error"]),
+  body("product_type_id").exists().withMessage(ErrorList["Parameter error"]),
   body("minimum_stock")
     .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   body("unit").exists().withMessage(ErrorList["Parameter error"]),
+  body("sales_price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("purchase_price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("sales_discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
+  body("purchase_discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept
   // productController.update
 );

@@ -65,65 +65,6 @@ export class ProductBrandModel {
         data.user == undefined ? undefined : UserViewModel.fromMap(data.user),
     });
   }
-
-  static fetchSales(start_date: Date, end_date: Date) {
-    return prisma.$queryRawUnsafe(`
-      SELECT item_brand.id, item_brand.name, SUM((bill.price - bill.discount) * bill.quantity) AS value
-      FROM bill
-      JOIN item ON bill.item_id = item.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.is_confirm = 1
-      AND bill_code.is_delete = 0
-      AND bill_code.date >= '${start_date.getFullYear()}-${(
-      start_date.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}'
-      AND bill_code.date <= '${end_date.getFullYear()}-${(
-      end_date.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}'
-      GROUP BY item.item_brand_id
-      ORDER BY value DESC
-    `);
-  }
-
-  static fetchFrequent(
-    brand_id: number,
-    start_date: Date,
-    end_date: Date,
-    limit: number
-  ) {
-    const formatted_start_date = `${start_date.getFullYear()}-${(
-      start_date.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}-${start_date.getDate().toString().padStart(2, "0")}`;
-    const formatted_end_date = `${end_date.getFullYear()}-${(
-      end_date.getMonth() + 1
-    )
-      .toString()
-      .padStart(2, "0")}-${end_date.getDate().toString().padStart(2, "0")}`;
-
-    return prisma.$queryRawUnsafe(`
-      SELECT item.reference, item.description, item_brand.name AS brand_name, item_type.name AS type_name, SUM(bill.quantity * IF(bill.item_unit_id IS NULL, 1, item_unit.conversion)) AS ordered
-      FROM bill
-      JOIN item ON bill.item_id = item.id
-      LEFT JOIN item_unit ON bill.item_unit_id = item_unit.id
-      JOIN item_brand ON item.item_brand_id = item_brand.id
-      JOIN item_type ON item.item_type_id = item_type.id
-      JOIN bill_code ON bill.bill_code_id = bill_code.id
-      WHERE bill_code.date >= '${formatted_start_date}'
-      AND bill_code.date <= '${formatted_end_date}'
-      AND bill_code.is_confirm = 1
-      AND item_brand.id = ${brand_id}
-      GROUP BY bill.item_id
-      ORDER BY ordered DESC
-      LIMIT ${limit}
-    `);
-  }
 }
 
 export class ProductBrandViewModel {

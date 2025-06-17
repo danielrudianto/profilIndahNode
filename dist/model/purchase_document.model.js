@@ -811,7 +811,7 @@ class PurchaseInvoiceModel {
         else if (type == 1) {
             return prisma.$queryRawUnsafe(`
         SELECT item_type.id, item_type.name, a.value
-        FROM item_type
+        FROM product_type
         JOIN (
           SELECT SUM(good_receipt.quantity * good_receipt.price) AS value, good_receipt_code.id, item.item_type_id
           FROM good_receipt

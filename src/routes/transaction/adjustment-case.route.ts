@@ -32,19 +32,12 @@ router.post(
   adjustmentCaseController.reject
 );
 
-router.get("/unconfirmed", AdjustmentCaseController.fetchUnconfirmed);
-router.get(
-  "/code/:id",
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  AdjustmentCaseController.fetchCodeByID
-);
-
+router.get("/unconfirmed", adjustmentCaseController.fetchUnconfirmed);
 router.get(
   "/:id",
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  AdjustmentCaseController.fetch
+  adjustmentCaseController.fetchByID
 );
 
 router.post(
@@ -52,14 +45,14 @@ router.post(
   body("date").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("type").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
   body("adjustment_case").isArray().withMessage(ErrorList["Parameter error"]),
-  body("adjustment_case.*.item_id")
+  body("adjustment_case.*.product_id")
     .notEmpty()
     .withMessage(ErrorList["Parameter error"]),
   body("adjustment_case.*.quantity")
     .notEmpty()
     .isNumeric()
     .withMessage(ErrorList["Parameter error"]),
-  body("adjustment_case.*.item_unit_id")
+  body("adjustment_case.*.product_unit_id")
     .exists()
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,

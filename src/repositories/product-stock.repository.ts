@@ -10,7 +10,7 @@ class ProductStockRepository {
   async incrementStock(productID: number, quantity: number) {
     try {
       //update or insert stock
-      const result = await this.prisma.stock.upsert({
+      const result = await this.prisma.product_stock.upsert({
         where: { id: productID },
         update: {
           stock: {
@@ -30,7 +30,7 @@ class ProductStockRepository {
 
   async fetchStock(productID: number[]) {
     try {
-      const stocks = await this.prisma.stock.findMany({
+      const stocks = await this.prisma.product_stock.findMany({
         where: {
           id: {
             in: productID,

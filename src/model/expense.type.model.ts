@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { fetchMode } from "../interface/fetch.interface";
 
 const prisma = new PrismaClient();
 
@@ -42,80 +41,18 @@ export class ExpenseTypeModel {
     this.can_delete = data.can_delete;
   }
 
-  async create(): Promise<ExpenseTypeModel> {
-    var result = await prisma.expense_type.create({
-      data: {
-        name: this.name,
-        description: this.description,
-        created_by: this.created_by,
-        created_at: this.created_at || new Date(),
-        parent_id: this.parent_id,
-      },
-    });
-
+  static fromMap(data: any): ExpenseTypeModel {
     return new ExpenseTypeModel({
-      id: result.id,
-      name: result.name,
-      description: result.description,
-      created_by: result.created_by,
-      created_at: result.created_at,
-      parent_id: result.parent_id,
-      is_delete: result.is_delete,
-      deleted_by: result.deleted_by,
-      deleted_at: result.deleted_at,
-      can_delete: this.can_delete,
-    });
-  }
-
-  async update(): Promise<ExpenseTypeModel> {
-    var result = await prisma.expense_type.update({
-      where: {
-        id: this.id!,
-      },
-      data: {
-        name: this.name,
-        description: this.description,
-        parent_id: this.parent_id,
-      },
-    });
-
-    return new ExpenseTypeModel({
-      id: result.id,
-      name: result.name,
-      description: result.description,
-      created_by: result.created_by,
-      created_at: result.created_at,
-      parent_id: result.parent_id,
-      is_delete: result.is_delete,
-      deleted_by: result.deleted_by,
-      deleted_at: result.deleted_at,
-    });
-  }
-
-  /**
-   * Delete expense type by ID
-   * Before deleting, check whether the data is a parent or child
-   * Then check if there is still expense data that uses this type
-   * @param id
-   * @param created_by
-   * @returns
-   */
-  static deleteByID(id: number, userID: number) {
-    return prisma.expense_type.update({
-      where: {
-        id: id,
-      },
-      data: {
-        is_delete: true,
-        deleted_at: new Date(),
-        deleted_by: userID,
-      },
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        parent_id: true,
-      },
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      parent_id: data.parent_id,
+      is_delete: data.is_delete,
+      deleted_by: data.deleted_by,
+      deleted_at: data.deleted_at,
+      can_delete: data.can_delete || false,
     });
   }
 
@@ -128,122 +65,122 @@ export class ExpenseTypeModel {
    * @param mode
    * @returns Promise<IExpenseType[]>
    */
-  static fetch(
-    keyword: string,
-    limit: number,
-    offset: number,
-    mode: fetchMode,
-    id?: number
-  ) {
-    switch (mode) {
-      case fetchMode.ParentAutocomplete:
-        return prisma.expense_type.findMany({
-          where: {
-            is_delete: false,
-            parent_id: null,
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                description: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: limit,
-          skip: offset,
-        });
-      case fetchMode.ChildAutocomplete:
-        return prisma.expense_type.findMany({
-          where: {
-            is_delete: false,
-            parent_id: {
-              not: null,
-            },
-            OR: [
-              {
-                name: {
-                  contains: keyword,
-                },
-              },
-              {
-                description: {
-                  contains: keyword,
-                },
-              },
-            ],
-          },
-          orderBy: {
-            name: "asc",
-          },
-          take: limit,
-          skip: offset,
-        });
-      case fetchMode.Child:
-        return prisma.expense_type.findMany({
-          where: {
-            is_delete: false,
-            parent_id: {
-              not: null,
-            },
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            parent_id: true,
-          },
-        });
-      case fetchMode.ChildByParentID:
-        return prisma.expense_type.findMany({
-          where: {
-            is_delete: false,
-            parent_id: id,
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            parent_id: true,
-          },
-        });
-      case fetchMode.AllV2:
-        return prisma.$queryRaw<any[]>`
-          SELECT expense_type.id, expense_type.name, expense_type.description, 
-          IF(COALESCE(c.count, 0) > 0, 0, 1) AS can_delete 
-          FROM expense_type 
-          LEFT JOIN (
-            SELECT COUNT(id) AS count, expense_type.parent_id
-            FROM expense_type
-            WHERE is_delete = 0
-            AND expense_type.parent_id IS NOT NULL
-            GROUP BY expense_type.parent_id
-          ) c
-          ON expense_type.id = c.parent_id
-          WHERE is_delete = 0 AND expense_type.parent_id IS NULL`;
-        break;
-      case fetchMode.All:
-      default:
-        return prisma.expense_type.findMany({
-          where: {
-            is_delete: false,
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            parent_id: true,
-          },
-        });
-    }
-  }
+  // static fetch(
+  //   keyword: string,
+  //   limit: number,
+  //   offset: number,
+  //   mode: fetchMode,
+  //   id?: number
+  // ) {
+  //   switch (mode) {
+  //     case fetchMode.ParentAutocomplete:
+  //       return prisma.expense_type.findMany({
+  //         where: {
+  //           is_delete: false,
+  //           parent_id: null,
+  //           OR: [
+  //             {
+  //               name: {
+  //                 contains: keyword,
+  //               },
+  //             },
+  //             {
+  //               description: {
+  //                 contains: keyword,
+  //               },
+  //             },
+  //           ],
+  //         },
+  //         orderBy: {
+  //           name: "asc",
+  //         },
+  //         take: limit,
+  //         skip: offset,
+  //       });
+  //     case fetchMode.ChildAutocomplete:
+  //       return prisma.expense_type.findMany({
+  //         where: {
+  //           is_delete: false,
+  //           parent_id: {
+  //             not: null,
+  //           },
+  //           OR: [
+  //             {
+  //               name: {
+  //                 contains: keyword,
+  //               },
+  //             },
+  //             {
+  //               description: {
+  //                 contains: keyword,
+  //               },
+  //             },
+  //           ],
+  //         },
+  //         orderBy: {
+  //           name: "asc",
+  //         },
+  //         take: limit,
+  //         skip: offset,
+  //       });
+  //     case fetchMode.Child:
+  //       return prisma.expense_type.findMany({
+  //         where: {
+  //           is_delete: false,
+  //           parent_id: {
+  //             not: null,
+  //           },
+  //         },
+  //         select: {
+  //           id: true,
+  //           name: true,
+  //           description: true,
+  //           parent_id: true,
+  //         },
+  //       });
+  //     case fetchMode.ChildByParentID:
+  //       return prisma.expense_type.findMany({
+  //         where: {
+  //           is_delete: false,
+  //           parent_id: id,
+  //         },
+  //         select: {
+  //           id: true,
+  //           name: true,
+  //           description: true,
+  //           parent_id: true,
+  //         },
+  //       });
+  //     case fetchMode.AllV2:
+  //       return prisma.$queryRaw<any[]>`
+  //         SELECT expense_type.id, expense_type.name, expense_type.description, 
+  //         IF(COALESCE(c.count, 0) > 0, 0, 1) AS can_delete 
+  //         FROM expense_type 
+  //         LEFT JOIN (
+  //           SELECT COUNT(id) AS count, expense_type.parent_id
+  //           FROM expense_type
+  //           WHERE is_delete = 0
+  //           AND expense_type.parent_id IS NOT NULL
+  //           GROUP BY expense_type.parent_id
+  //         ) c
+  //         ON expense_type.id = c.parent_id
+  //         WHERE is_delete = 0 AND expense_type.parent_id IS NULL`;
+  //       break;
+  //     case fetchMode.All:
+  //     default:
+  //       return prisma.expense_type.findMany({
+  //         where: {
+  //           is_delete: false,
+  //         },
+  //         select: {
+  //           id: true,
+  //           name: true,
+  //           description: true,
+  //           parent_id: true,
+  //         },
+  //       });
+  //   }
+  // }
 
   /**
    * Fetch expense by ID

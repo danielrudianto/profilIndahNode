@@ -16,7 +16,6 @@ export class ProductService {
 
   async create(id: number) {
     try {
-      console.log(id);
       const product = await this.productRepository.fetchByID(id);
       console.log(product);
 
@@ -25,10 +24,11 @@ export class ProductService {
       }
 
       const productUnits = await this.productUnitRepository.fetchByItemID(id);
+      console.log(productUnits);
       const result = await meili.index("product").addDocuments([
         {
           ...product,
-          item_unit: productUnits,
+          product_unit: productUnits,
         },
       ]);
 

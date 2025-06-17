@@ -88,22 +88,22 @@ export class ProductTypeRepository {
       const [result, count] = await this.prisma.$transaction([
         this.prisma.$queryRawUnsafe<any[]>(
           `
-                SELECT item_type.id, item_type.name, item_type.created_at, 
-                item_type.created_by, user.name AS user_name, user.username AS user_username,
+                SELECT product_type.id, product_type.name, product_type.created_at, 
+                product_type.created_by, user.name AS user_name, user.username AS user_username,
                 user.role AS user_role, 
-                IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, item_type.is_delete
-                FROM item_type
+                IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, product_type.is_delete
+                FROM product_type
                 LEFT JOIN (
-                  SELECT COUNT(id) AS count, item_type_id
-                  FROM item
-                  WHERE item.is_delete = 0
-                  GROUP BY item.item_type_id
+                  SELECT COUNT(id) AS count, product_type_id
+                  FROM product
+                  WHERE product.is_delete = 0
+                  GROUP BY product.product_type_id
                 ) AS itemCount
-                ON item_type.id = itemCount.item_type_id
-                JOIN user ON item_type.created_by = user.id
-                WHERE item_type.is_delete = 0
-                AND item_type.name LIKE '%${data.keyword}%'
-                ORDER BY item_type.name ASC
+                ON product_type.id = itemCount.product_type_id
+                JOIN user ON product_type.created_by = user.id
+                WHERE product_type.is_delete = 0
+                AND product_type.name LIKE '%${data.keyword}%'
+                ORDER BY product_type.name ASC
                 LIMIT ${data.pageSize} 
                 OFFSET ${(data.page - 1) * data.pageSize}
               `
@@ -195,21 +195,21 @@ export class ProductTypeRepository {
   async fetchByID(id: number) {
     try {
       const result = await this.prisma.$queryRaw<any[]>`
-            SELECT item_type.id, item_type.created_at, item_type.name, 
-            item_type.created_by, user.name AS user_name, user.username AS user_username,
+            SELECT product_type.id, product_type.created_at, product_type.name, 
+            product_type.created_by, user.name AS user_name, user.username AS user_username,
             user.role AS user_role,
-            item_type.is_delete,
+            product_type.is_delete,
             IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
-            FROM item_type
+            FROM product_type
             LEFT JOIN (
-            SELECT COUNT(id) AS count, item_type_id
-            FROM item
-            WHERE item.is_delete = 0
-            GROUP BY item.item_type_id
+            SELECT COUNT(id) AS count, product_type_id
+            FROM product
+            WHERE product.is_delete = 0
+            GROUP BY product.product_type_id
             ) AS itemCount
-            ON item_type.id = itemCount.item_type_id
-            JOIN user ON item_type.created_by = user.id
-            WHERE item_type.id = ${id}
+            ON product_type.id = itemCount.product_type_id
+            JOIN user ON product_type.created_by = user.id
+            WHERE product_type.id = ${id}
         `;
 
       if (result.length === 0) {

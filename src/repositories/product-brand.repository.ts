@@ -69,32 +69,31 @@ export class ProductBrandRepository {
   async fetch(
     data: IFetchCommon
   ): Promise<IFetchCommonResult<ProductBrandModel>> {
-    console.log(data);
     const baseQuery = `
-        SELECT  item_brand.id, item_brand.name, user.name AS user_name,
+        SELECT  product_brand.id, product_brand.name, user.name AS user_name,
                 user.username AS user_username, user.role AS user_role, 
-                item_brand.created_at, item_brand.created_by, 
+                product_brand.created_at, product_brand.created_by, 
                 IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, 
-                item_brand.is_delete
-        FROM item_brand
+                product_brand.is_delete
+        FROM product_brand
         LEFT JOIN (
-            SELECT COUNT(id) AS count, item_brand_id
-            FROM item
-            WHERE item.is_delete = 0
-            GROUP BY item_brand_id
-        ) itemCount ON item_brand.id = itemCount.item_brand_id
-        JOIN user ON item_brand.created_by = user.id
-        WHERE item_brand.is_delete = 0
+            SELECT COUNT(id) AS count, product_brand_id
+            FROM product
+            WHERE product.is_delete = 0
+            GROUP BY product_brand_id
+        ) itemCount ON product_brand.id = itemCount.product_brand_id
+        JOIN user ON product_brand.created_by = user.id
+        WHERE product_brand.is_delete = 0
     `;
 
     const keywordCondition = data.keyword
-      ? `AND item_brand.name LIKE '%${data.keyword}%'`
+      ? `AND product_brand.name LIKE '%${data.keyword}%'`
       : "";
 
     const query = `
       ${baseQuery}
       ${keywordCondition}
-      ORDER BY item_brand.name ASC
+      ORDER BY product_brand.name ASC
       LIMIT ${data.pageSize}
       OFFSET ${(data.page - 1) * data.pageSize}
     `;
@@ -177,19 +176,19 @@ export class ProductBrandRepository {
 
   async fetchByID(id: number): Promise<ProductBrandModel | null> {
     const result = await this.prisma.$queryRaw<any[]>`
-        SELECT item_brand.id, item_brand.name, user.name AS user_name, 
+        SELECT product_brand.id, product_brand.name, user.name AS user_name, 
         user.username AS user_username, user.role AS user_role,
-        item_brand.created_at, item_brand.created_by, item_brand.is_delete, 
+        product_brand.created_at, product_brand.created_by, product_brand.is_delete, 
         IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
-        FROM item_brand
-        LEFT JOIN user ON user.id = item_brand.created_by
+        FROM product_brand
+        LEFT JOIN user ON user.id = product_brand.created_by
         LEFT JOIN (
-        SELECT COUNT(id) AS count, item_brand_id 
-        FROM item 
+        SELECT COUNT(id) AS count, product_brand_id 
+        FROM product 
         WHERE is_delete = 0 
-        GROUP BY item_brand_id
-        ) itemCount ON itemCount.item_brand_id = item_brand.id
-        WHERE item_brand.id = ${id}
+        GROUP BY product_brand_id
+        ) itemCount ON itemCount.product_brand_id = product_brand.id
+        WHERE product_brand.id = ${id}
     `;
 
     if (result.length === 0) {

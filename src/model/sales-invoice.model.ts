@@ -1,6 +1,5 @@
 import { ProductModel } from "./product.model";
-import { PackageCodeModel } from "./product-package.model";
-import CustomerModel from "./customer.model";
+import { CustomerModel } from "./customer.model";
 import { SalesInvoicePaymentModel } from "./sales-invoice-payment.model";
 
 export interface ISalesInvoiceCode {
@@ -225,51 +224,51 @@ export class SalesInvoiceModel {
   //     },
   //   });
 
-    // return new BillCodeModel({
-    //   id: bill_code.id,
-    //   name: bill_code.name,
-    //   date: bill_code.date!,
-    //   discount: Number(bill_code.discount),
-    //   delivery: Number(bill_code.delivery),
-    //   service: Number(bill_code.service),
-    //   sales: bill_code.sales,
-    //   customer_id: bill_code.customer_id,
-    //   created_by: bill_code.created_by,
-    //   created_at: new Date(bill_code.created_at),
-    //   is_confirm: bill_code.is_confirm,
-    //   confirmed_by: bill_code.confirmed_by,
-    //   confirmed_at: bill_code.confirmed_at,
-    //   is_paid: bill_code.is_paid,
-    //   is_delete: bill_code.is_delete,
-    //   uuid: bill_code.uuid,
-    //   items: bill_code.bill.map((item) => {
-    //     return {
-    //       id: item.id,
-    //       package_code_id: item.package_code_id,
-    //       item_id: item.item_id,
-    //       item_unit_id: item.item_unit_id,
-    //       quantity: Number(item.quantity),
-    //       price: Number(item.price),
-    //       discount: Number(item.discount),
+  // return new BillCodeModel({
+  //   id: bill_code.id,
+  //   name: bill_code.name,
+  //   date: bill_code.date!,
+  //   discount: Number(bill_code.discount),
+  //   delivery: Number(bill_code.delivery),
+  //   service: Number(bill_code.service),
+  //   sales: bill_code.sales,
+  //   customer_id: bill_code.customer_id,
+  //   created_by: bill_code.created_by,
+  //   created_at: new Date(bill_code.created_at),
+  //   is_confirm: bill_code.is_confirm,
+  //   confirmed_by: bill_code.confirmed_by,
+  //   confirmed_at: bill_code.confirmed_at,
+  //   is_paid: bill_code.is_paid,
+  //   is_delete: bill_code.is_delete,
+  //   uuid: bill_code.uuid,
+  //   items: bill_code.bill.map((item) => {
+  //     return {
+  //       id: item.id,
+  //       package_code_id: item.package_code_id,
+  //       item_id: item.item_id,
+  //       item_unit_id: item.item_unit_id,
+  //       quantity: Number(item.quantity),
+  //       price: Number(item.price),
+  //       discount: Number(item.discount),
 
-    //       item: item.item
-    //         ? new ProductModel({
-    //             id: item.item.id,
-    //             reference: item.item.reference,
-    //             description: item.item.description,
-    //             unit: item.item.unit,
-    //             brand_id: item.item.item_brand_id,
-    //             type_id: item.item.item_type_id,
-    //           })
-    //         : null,
-    //       package_code: item.package_code
-    //         ? new ProductPackageCodeModel()
-    //         : null,
-    //     };
-    //   }),
-    //   payments: [],
-    //   payment_term: bill_code.payment_term,
-    // });
+  //       item: item.item
+  //         ? new ProductModel({
+  //             id: item.item.id,
+  //             reference: item.item.reference,
+  //             description: item.item.description,
+  //             unit: item.item.unit,
+  //             brand_id: item.item.item_brand_id,
+  //             type_id: item.item.item_type_id,
+  //           })
+  //         : null,
+  //       package_code: item.package_code
+  //         ? new ProductPackageCodeModel()
+  //         : null,
+  //     };
+  //   }),
+  //   payments: [],
+  //   payment_term: bill_code.payment_term,
+  // });
   // }
 
   // /**
@@ -421,7 +420,7 @@ export class SalesInvoiceModel {
   //   mode: number
   // ) {
   //   let query = `SELECT bill_code.name, bill_code.id, bill_code.date, COALESCE(customer.name, 'Retail customer') AS customer_name, bill_code.is_confirm, bill_code.is_delete
-  //     FROM bill_code 
+  //     FROM bill_code
   //     LEFT JOIN customer ON bill_code.customer_id = customer.id`;
   //   let conditionalQueries = "";
   //   if (items.length > 0) {
@@ -567,7 +566,7 @@ export class SalesInvoiceModel {
 
   // static fetchArchiveYearsV2() {
   //   return prisma.$queryRaw<MonthlyArchive[]>`
-  //     SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month, 
+  //     SELECT YEAR(bill_code.date) AS year, MONTH(bill_code.date) AS month,
   //     COUNT(id) AS count
   //     FROM bill_code
   //     GROUP BY MONTH(bill_code.date), YEAR(bill_code.date)
@@ -582,7 +581,7 @@ export class SalesInvoiceModel {
   //  */
   // static fetchArchiveMonths(year: number) {
   //   return prisma.$queryRaw<MonthlyArchive[]>`
-  //     SELECT DISTINCT(MONTH(bill_code.date)) AS month, 
+  //     SELECT DISTINCT(MONTH(bill_code.date)) AS month,
   //     YEAR(bill_code.date) AS year,
   //      COUNT(id) AS count
   //     FROM bill_code
@@ -601,9 +600,9 @@ export class SalesInvoiceModel {
   //     case 0:
   //       return prisma.$transaction([
   //         prisma.$queryRawUnsafe<BillArchive[]>(`
-  //           SELECT bill_code.id, bill_code.date, bill_code.name, 
-  //           bill_code.is_delete, 
-  //           COALESCE(customer.name, 'Retail customer') AS customer_name, 
+  //           SELECT bill_code.id, bill_code.date, bill_code.name,
+  //           bill_code.is_delete,
+  //           COALESCE(customer.name, 'Retail customer') AS customer_name,
   //           COALESCE(bill_code.sales, 'Internal') AS sales,
   //           bill_code.is_confirm, bill_code.customer_id
   //           FROM bill_code
@@ -614,8 +613,8 @@ export class SalesInvoiceModel {
   //           ${
   //             data.keyword == null
   //               ? ""
-  //               : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //               OR COALESCE(customer.name, 'Retail customer') 
+  //               : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //               OR COALESCE(customer.name, 'Retail customer')
   //               LIKE '%${data.keyword}%')`
   //           }
   //           ORDER BY date ASC
@@ -623,7 +622,7 @@ export class SalesInvoiceModel {
   //           OFFSET ${data.offset}
   //         `),
   //         prisma.$queryRawUnsafe<ArchiveCount[]>(`
-  //           SELECT COUNT(bill_code.id) AS count 
+  //           SELECT COUNT(bill_code.id) AS count
   //           FROM bill_code
   //           LEFT JOIN customer ON bill_code.customer_id = customer.id
   //           WHERE YEAR(bill_code.date) = ${
@@ -632,8 +631,8 @@ export class SalesInvoiceModel {
   //           ${
   //             data.keyword == null
   //               ? ""
-  //               : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //               OR COALESCE(customer.name, 'Retail customer') 
+  //               : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //               OR COALESCE(customer.name, 'Retail customer')
   //               LIKE '%${data.keyword}%')`
   //           }
   //         `),
@@ -641,10 +640,10 @@ export class SalesInvoiceModel {
   //     case 1:
   //       return prisma.$transaction([
   //         prisma.$queryRawUnsafe<BillArchive[]>(`
-  //         SELECT * 
+  //         SELECT *
   //         FROM (
-  //           SELECT bill_code.id, bill_code.date, bill_code.name, 
-  //           bill_code.is_delete, 
+  //           SELECT bill_code.id, bill_code.date, bill_code.name,
+  //           bill_code.is_delete,
   //           COALESCE(customer.name, 'Retail customer') AS customer_name,
   //           COALESCE(bill_code.sales, 'Internal') AS sales,
   //           bill_code.is_confirm, bill_code.customer_id
@@ -657,14 +656,14 @@ export class SalesInvoiceModel {
   //           ${
   //             data.keyword == null
   //               ? ""
-  //               : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //               OR COALESCE(customer.name, 'Retail customer') 
+  //               : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //               OR COALESCE(customer.name, 'Retail customer')
   //               LIKE '%${data.keyword}%')`
   //           }
   //           ORDER BY date ASC
   //           LIMIT ${data.limit}
   //           OFFSET ${data.offset}
-  //         ) AS bill 
+  //         ) AS bill
   //         `),
   //         prisma.$queryRawUnsafe<ArchiveCount[]>(`
   //           SELECT COUNT(bill_code.id) AS count FROM bill_code
@@ -677,8 +676,8 @@ export class SalesInvoiceModel {
   //         ${
   //           data.keyword == null
   //             ? ""
-  //             : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //               OR COALESCE(customer.name, 'Retail customer') 
+  //             : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //               OR COALESCE(customer.name, 'Retail customer')
   //               LIKE '%${data.keyword}%')`
   //         }
   //         `),
@@ -686,12 +685,12 @@ export class SalesInvoiceModel {
   //     case 2:
   //       return prisma.$transaction([
   //         prisma.$queryRawUnsafe<BillArchive[]>(`
-  //         SELECT * 
+  //         SELECT *
   //         FROM (
-  //           SELECT bill_code.id, bill_code.date, bill_code.name, 
-  //           bill_code.is_delete, 
+  //           SELECT bill_code.id, bill_code.date, bill_code.name,
+  //           bill_code.is_delete,
   //           COALESCE(customer.name, 'Retail customer') AS customer_name,
-  //           COALESCE(bill_code.sales, 'Internal') AS sales, 
+  //           COALESCE(bill_code.sales, 'Internal') AS sales,
   //           bill_code.is_confirm, bill_code.customer_id
   //           FROM bill_code
   //           LEFT JOIN customer ON bill_code.customer_id = customer.id
@@ -702,8 +701,8 @@ export class SalesInvoiceModel {
   //           ${
   //             data.keyword == null
   //               ? ""
-  //               : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //               OR COALESCE(customer.name, 'Retail customer') 
+  //               : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //               OR COALESCE(customer.name, 'Retail customer')
   //               LIKE '%${data.keyword}%')`
   //           }
   //           ORDER BY date ASC
@@ -722,8 +721,8 @@ export class SalesInvoiceModel {
   //         ${
   //           data.keyword == null
   //             ? ""
-  //             : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //             OR COALESCE(customer.name, 'Retail customer') 
+  //             : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //             OR COALESCE(customer.name, 'Retail customer')
   //             LIKE '%${data.keyword}%')`
   //         }
   //         `),
@@ -734,10 +733,10 @@ export class SalesInvoiceModel {
   // static fetchArchiveV2(data: IFetchSalesInvoiceArchive) {
   //   return prisma.$transaction([
   //     prisma.$queryRawUnsafe<BillArchiveV2[]>(`
-  //     SELECT * 
+  //     SELECT *
   //     FROM (
-  //       SELECT bill_code.id, bill_code.date, bill_code.name, 
-  //       bill_code.is_delete, 
+  //       SELECT bill_code.id, bill_code.date, bill_code.name,
+  //       bill_code.is_delete,
   //       COALESCE(customer.name, 'Retail customer') AS customer_name,
   //       COALESCE(bill_code.sales, 'Internal') AS sales,
   //       bill_code.is_confirm, bill_code.customer_id, bill_code.is_paid
@@ -749,8 +748,8 @@ export class SalesInvoiceModel {
   //       ${
   //         data.keyword == null || data.keyword == ""
   //           ? ""
-  //           : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //           OR COALESCE(customer.name, 'Retail customer') 
+  //           : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //           OR COALESCE(customer.name, 'Retail customer')
   //           LIKE '%${data.keyword}%'
   //           OR COALESCE(bill_code.sales, 'Internal') LIKE '%${data.keyword}%'
   //           )`
@@ -773,7 +772,7 @@ export class SalesInvoiceModel {
   //       ORDER BY date ASC
   //       LIMIT ${data.limit}
   //       OFFSET ${data.offset}
-  //     ) AS bill 
+  //     ) AS bill
   //     `),
   //     prisma.$queryRawUnsafe<ArchiveCount[]>(`
   //       SELECT COUNT(bill_code.id) AS count FROM bill_code
@@ -784,8 +783,8 @@ export class SalesInvoiceModel {
   //     ${
   //       data.keyword == null || data.keyword == ""
   //         ? ""
-  //         : `AND (bill_code.name LIKE '%${data.keyword}%' 
-  //           OR COALESCE(customer.name, 'Retail customer') 
+  //         : `AND (bill_code.name LIKE '%${data.keyword}%'
+  //           OR COALESCE(customer.name, 'Retail customer')
   //           LIKE '%${data.keyword}%'
   //           OR COALESCE(bill_code.sales, 'Internal') LIKE '%${data.keyword}%')`
   //     }
@@ -989,7 +988,7 @@ export class SalesInvoiceModel {
 
   // static fetchSum(month: number = 0, year: number) {
   //   return prisma.$queryRawUnsafe<IReportBill[]>(`
-  //       SELECT SUM(value) AS value, SUM(discount) AS discount, 
+  //       SELECT SUM(value) AS value, SUM(discount) AS discount,
   //       SUM(delivery) AS delivery, SUM(service) AS service
   //       FROM bill_code
   //       JOIN (
@@ -1016,12 +1015,12 @@ export class SalesInvoiceModel {
 
   // static fetchMoneyReceipt(formattedDate: string) {
   //   return prisma.$queryRawUnsafe(`
-  //   SELECT method.id, COALESCE(method.name, "Cash") AS name, 
-  //   pm.value AS bill, 
-  //   sr.value AS sales_return, 
+  //   SELECT method.id, COALESCE(method.name, "Cash") AS name,
+  //   pm.value AS bill,
+  //   sr.value AS sales_return,
   //   dp.value AS deposit
   //   FROM (
-	// 	SELECT id, name FROM payment_method
+  // 	SELECT id, name FROM payment_method
   //       WHERE payment_method.is_delete = 0
   //       UNION ALL
   //       SELECT 0 AS id, "Cash" AS name
@@ -1049,7 +1048,7 @@ export class SalesInvoiceModel {
   //       WHERE sales_return_code.is_confirm = 1
   //       AND sales_return_code.is_delete = 0
   //       AND sales_return_code.date = '${formattedDate}'
-  //       GROUP BY sales_return_code.payment_method_id  
+  //       GROUP BY sales_return_code.payment_method_id
   //   ) sr
   //   ON method.id = sr.payment_method_id
   //   LEFT JOIN (
@@ -1066,14 +1065,14 @@ export class SalesInvoiceModel {
 
   // static fetchAppendix(month: number, year: number) {
   //   return prisma.$queryRawUnsafe(`
-  //       SELECT bill_code.date, bill_code.name, 
-  //       COALESCE(customer.name, "Retail") AS customer_name, 
-  //       billValue.discount, billValue.value, bill_code.delivery, 
+  //       SELECT bill_code.date, bill_code.name,
+  //       COALESCE(customer.name, "Retail") AS customer_name,
+  //       billValue.discount, billValue.value, bill_code.delivery,
   //       bill_code.service
   //       FROM bill_code
   //       JOIN (
-  //         SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value, 
-  //         SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.discount) AS discount, 
+  //         SELECT SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.price) AS value,
+  //         SUM((bill.quantity - COALESCE(returnTable.quantity, 0)) * bill.discount) AS discount,
   //         bill.bill_code_id
   //         FROM bill
   //         LEFT JOIN (
@@ -1220,7 +1219,7 @@ export class SalesInvoiceModel {
   //         LEFT JOIN (
   //           SELECT SUM(sales_return.quantity) AS quantity, sales_return.bill_id
   //             FROM sales_return
-  //             JOIN sales_return_code 
+  //             JOIN sales_return_code
   //             ON sales_return.sales_return_code_id = sales_return_code.id
   //             WHERE sales_return_code.is_confirm = 1
   //             AND sales_return_code.is_delete = 0
@@ -1230,7 +1229,7 @@ export class SalesInvoiceModel {
   //         JOIN package_code ON bill.package_code_id = package_code.id
   //         JOIN bill_code ON bill.bill_code_id = bill_code.id
   //         WHERE bill_code.is_confirm = 1
-  //         AND bill_code.is_delete = 0 
+  //         AND bill_code.is_delete = 0
   //         AND YEAR(bill_code.date) = ${year}
   //         AND MONTH(bill_code.date) = ${month}
   //         group by bill.package_code_id
@@ -1249,13 +1248,13 @@ export class SalesInvoiceModel {
   //       `;
   //     case "V2":
   //       return prisma.$queryRaw<any[]>`
-  //         SELECT 
-  //           ((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value, 
-  //           item_brand.name AS item_brand_name, 
+  //         SELECT
+  //           ((bill.quantity - COALESCE(salesReturn.quantity, 0)) * (bill.price - bill.discount)) AS value,
+  //           item_brand.name AS item_brand_name,
   //           item_type.name AS item_type_name,
-  //           customer.name AS customer_name, 
-  //           item_brand_id, 
-  //           item_type_id, 
+  //           customer.name AS customer_name,
+  //           item_brand_id,
+  //           item_type_id,
   //           customer_id,
   //           bill_code.sales,
   //           bill_code.id,
@@ -1263,32 +1262,32 @@ export class SalesInvoiceModel {
   //           bill_code.service,
   //           bill_code.discount,
   //           DAY(bill_code.date) AS day
-  //         FROM 
+  //         FROM
   //           bill
-  //         JOIN 
+  //         JOIN
   //           bill_code ON bill.bill_code_id = bill_code.id
-  //         JOIN 
+  //         JOIN
   //           item ON bill.item_id = item.id
-  //         JOIN 
+  //         JOIN
   //           item_brand ON item.item_brand_id = item_brand.id
-  //         JOIN 
+  //         JOIN
   //           item_type ON item.item_type_id = item_type.id
-  //         LEFT JOIN 
+  //         LEFT JOIN
   //           customer ON bill_code.customer_id = customer.id
   //         LEFT JOIN (
-  //           SELECT 
+  //           SELECT
   //             bill_id, SUM(quantity) AS quantity
-  //           FROM 
+  //           FROM
   //             sales_return
-  //           JOIN 
+  //           JOIN
   //             sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
-  //           WHERE 
+  //           WHERE
   //             sales_return_code.is_confirm = 1
   //             AND sales_return_code.is_delete = 0
-  //           GROUP BY 
+  //           GROUP BY
   //             bill_id
   //         ) salesReturn ON bill.id = salesReturn.bill_id
-  //         WHERE 
+  //         WHERE
   //           bill_code.is_confirm = 1
   //           AND bill_code.is_delete = 0
   //           AND YEAR(bill_code.date) = ${year}
@@ -1301,7 +1300,7 @@ export class SalesInvoiceModel {
   //           FROM bill_code
   //           LEFT JOIN customer ON bill_code.customer_id = customer.id
   //           JOIN (
-  //             SELECT (bill.quantity * (bill.price - bill.discount)) AS value, 
+  //             SELECT (bill.quantity * (bill.price - bill.discount)) AS value,
   //             bill.bill_code_id
   //             FROM bill
   //             GROUP BY bill.bill_code_id
@@ -1358,7 +1357,7 @@ export class SalesInvoiceModel {
 
   // static fetchByDate(year: number, month: number, day: number | null) {
   //   return prisma.$queryRawUnsafe<any[]>(`
-  //     SELECT (a.delivery + a.value - a.discount + a.service) AS value 
+  //     SELECT (a.delivery + a.value - a.discount + a.service) AS value
   //     FROM (
   //       SELECT SUM((bill.price - bill.discount) * bill.quantity) AS value, bill_code.delivery, bill_code.discount, bill_code.service
   //       FROM bill
@@ -1555,13 +1554,13 @@ export class SalesInvoiceModel {
   // static fetchReceivableByIDs(ids: number[]) {
   //   if (ids.length == 0) return Promise.resolve([]);
   //   return prisma.$queryRawUnsafe(`
-  //     SELECT SUM(COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service - COALESCE(p.value, 0)) AS value, 
-  //     bill_code.customer_id, 
+  //     SELECT SUM(COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service - COALESCE(p.value, 0)) AS value,
+  //     bill_code.customer_id,
   //     COALESCE(customer.name, 'Retail customer') AS customer_name
   //     FROM bill_code
   //     LEFT JOIN customer ON bill_code.customer_id = customer.id
   //     LEFT JOIN (
-  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
   //       FROM bill
   //       WHERE bill.bill_code_id IN (${ids.join(",")})
   //       GROUP BY bill.bill_code_id
@@ -1574,7 +1573,7 @@ export class SalesInvoiceModel {
   //         GROUP BY bill_code_id
   //     ) AS p
   //     ON bill_code.id = p.bill_code_id
-  //     WHERE bill_code.is_delete = 0 
+  //     WHERE bill_code.is_delete = 0
   //     AND bill_code.id IN (${ids.join(",")})
   //     GROUP BY bill_code.customer_id
   //     HAVING value > 0
@@ -1590,7 +1589,7 @@ export class SalesInvoiceModel {
   //     bill_code.customer_id, bill_code.name, bill_code.date
   //     FROM bill_code
   //     JOIN (
-  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
   //       FROM bill
   //       WHERE bill.bill_code_id IN (${ids.join(",")})
   //       GROUP BY bill.bill_code_id
@@ -1615,13 +1614,13 @@ export class SalesInvoiceModel {
   //  */
   // static fetchReceivables() {
   //   return prisma.$queryRawUnsafe(`
-  //     SELECT SUM(COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service - COALESCE(p.value, 0)) AS value, 
-  //     bill_code.customer_id, 
+  //     SELECT SUM(COALESCE(b.value, 0) - bill_code.discount + bill_code.delivery + bill_code.service - COALESCE(p.value, 0)) AS value,
+  //     bill_code.customer_id,
   //     COALESCE(customer.name, 'Retail customer') AS customer_name
   //     FROM bill_code
   //     LEFT JOIN customer ON bill_code.customer_id = customer.id
   //     LEFT JOIN (
-  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
   //       FROM bill
   //       GROUP BY bill.bill_code_id
   //     ) AS b
@@ -1633,7 +1632,7 @@ export class SalesInvoiceModel {
   //     ) AS p
   //     ON bill_code.id = p.bill_code_id
   //     WHERE bill_code.is_confirm = 1
-  //     AND bill_code.is_delete = 0 
+  //     AND bill_code.is_delete = 0
   //     AND bill_code.is_paid = 0
   //     GROUP BY bill_code.customer_id
   //     ORDER BY value DESC
@@ -1704,7 +1703,7 @@ export class SalesInvoiceModel {
   //         bill_code.customer_id, bill_code.name, bill_code.date
   //         FROM bill_code
   //         JOIN (
-  //           SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+  //           SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
   //           FROM bill
   //           GROUP BY bill.bill_code_id
   //         ) AS b
@@ -1728,7 +1727,7 @@ export class SalesInvoiceModel {
   //         bill_code.customer_id, bill_code.name, bill_code.date
   //         FROM bill_code
   //         JOIN (
-  //           SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+  //           SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
   //           FROM bill
   //           GROUP BY bill.bill_code_id
   //         ) AS b
@@ -1799,7 +1798,7 @@ export class SalesInvoiceModel {
   //     SELECT SUM(COALESCE(b.value) + bill_code.delivery - bill_code.discount + bill_code.service - COALESCE(pm.value, 0)) AS value
   //     FROM bill_code
   //     LEFT JOIN (
-  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id 
+  //       SELECT SUM(bill.quantity * (bill.price - bill.discount)) AS value, bill.bill_code_id
   //       FROM bill
   //       GROUP BY bill.bill_code_id
   //     ) AS b

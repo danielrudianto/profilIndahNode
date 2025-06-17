@@ -46,7 +46,7 @@ class UserController {
         username: username,
         nik: nik,
         created_by: req.body.userId,
-        roleID: Number(req.body.role),
+        role: Number(req.body.role),
         user_sales: req.body.user_sales,
         is_active: true,
         password: hashedPassword,
@@ -161,13 +161,13 @@ class UserController {
   update = async (req: Request, res: Response) => {
     const name = req.body.name;
     const id = req.body.id;
-    const roleID = req.body.role;
+    const role = req.body.role;
     const userID = req.body.userId;
     const userSales = req.body.user_sales;
 
-    const role = UserRoleModel.fromRoleID(roleID);
+    const roleText = UserRoleModel.fromRoleID(role);
 
-    if (role == null) {
+    if (roleText == null) {
       return res.status(400).send(ErrorList["Role not found"]);
     }
 
@@ -186,7 +186,7 @@ class UserController {
         nik: user.nik,
         username: user.username,
         name: name,
-        roleID: roleID,
+        role: role,
         user_sales: userSales,
         created_by: userID,
         created_at: new Date(),
