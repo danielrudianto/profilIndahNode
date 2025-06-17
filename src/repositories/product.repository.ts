@@ -111,4 +111,20 @@ export class ProductRepository {
       throw error;
     }
   }
+
+  async fetchAll(): Promise<ProductModel[]> {
+    try {
+      const results = await this.prisma.product.findMany({
+        include: {
+          product_brand: true,
+          product_type: true,
+          product_unit: true,
+        },
+      });
+
+      return results.map((item) => ProductModel.fromMap(item));
+    } catch (error) {
+      throw error;
+    }
+  }
 }

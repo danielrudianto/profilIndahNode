@@ -6,14 +6,12 @@ import ErrorHelper from "../../helper/error.helper";
 import { putriForbiddenMiddleware } from "../../helper/auth.helper";
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 import { prisma } from "../../helper/database.helper";
-import { PurchaseInvoiceRepository } from "../../repositories/purchase-invoice.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 
 const router = Router();
 
 const goodReceiptController = new GoodReceiptController(
   new GoodReceiptRepository(prisma),
-  new PurchaseInvoiceRepository(prisma),
   new StockInRepository(prisma)
 );
 
@@ -37,6 +35,7 @@ router.post(
 );
 
 router.get("/archives", goodReceiptController.fetchAnnualArchives);
+
 router.get(
   "/archives/:year",
   param("year").isNumeric().withMessage(ErrorList["Parameter error"]),
@@ -44,6 +43,7 @@ router.get(
   ErrorHelper.intercept,
   goodReceiptController.fetchMonthlyArchives
 );
+
 router.post(
   "/archives/:year/:month",
   param("year").isNumeric().withMessage(ErrorList["Parameter error"]),
@@ -55,6 +55,8 @@ router.post(
   ErrorHelper.intercept,
   goodReceiptController.fetchArchives
 );
+
+router.get("/unconfirmed", goodReceiptController.fetchUnconfirmed);
 
 router.get(
   "/:id",

@@ -105,8 +105,6 @@ class ProductController {
         offset: (page - 1) * pageSize,
       });
 
-      console.log(result.hits[0]);
-
       return res.status(200).send({
         data: result.hits.map((x: any) => {
           return ProductModel.fromMeilisearch(x);

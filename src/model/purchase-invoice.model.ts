@@ -630,55 +630,6 @@ class PurchaseInvoiceModel {
    * @param limit
    * @returns Promise<PurchaseInvoice[]>
    */
-  static fetchUnconfirmed(offset: number, limit: number) {
-    return prisma.$transaction([
-      prisma.purchase_invoice.findMany({
-        where: {
-          AND: [
-            {
-              is_confirm: false,
-            },
-            {
-              is_delete: false,
-            },
-          ],
-        },
-        select: {
-          id: true,
-          date: true,
-          name: true,
-          faktur: true,
-          created_at: true,
-          user_purchase_invoice_created_byTouser: {
-            select: {
-              name: true,
-              user_avatar: true,
-            },
-          },
-          good_receipt_code: {
-            select: {
-              name: true,
-              date: true,
-              supplier: {
-                select: {
-                  name: true,
-                  address: true,
-                },
-              },
-            },
-          },
-        },
-        take: limit,
-        skip: offset,
-      }),
-      prisma.purchase_invoice.count({
-        where: {
-          is_confirm: false,
-          is_delete: false,
-        },
-      }),
-    ]);
-  }
 
   static fetchReport(data: any) {
     // return prisma.$transaction([

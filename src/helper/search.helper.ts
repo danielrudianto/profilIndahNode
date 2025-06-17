@@ -6,6 +6,7 @@ import { prisma } from "./database.helper";
 import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
+import { ProductRepository } from "../repositories/product.repository";
 
 export enum syncMode {
   Product,
@@ -16,27 +17,37 @@ export enum syncMode {
 }
 
 class SearchHelper {
-  /**
-   * Sync product, customer, or package data to meilisearch
-   * @param req
-   * @param res
-   * @returns
-   */
+  private productRepository: ProductRepository;
+  constructor(productRepository: ProductRepository) {
+    this.productRepository = productRepository;
+  }
+
   static createIndex = async (req: Request, res: Response) => {
     await meili.deleteIndexIfExists("item");
     await meili.deleteIndexIfExists("customer");
     await meili.deleteIndexIfExists("package");
+    await meili.deleteIndexIfExists("product");
+    await meili.deleteIndexIfExists("products");
 
-    await meili.createIndex("item", {
-      primaryKey: "id",
-    });
-    await meili.createIndex("customer");
-    await meili.createIndex("package");
+    // await meili.createIndex("item", {
+    //   primaryKey: "id",
+    // });
+    // await meili.createIndex("customer");
+    // await meili.createIndex("package");
 
-    await meili.index("item").updateSettings({
-      searchableAttributes: ["reference", "description", "brand", "type"],
+    await meili.index("product").updateSettings({
+      searchableAttributes: [
+        "reference",
+        "description",
+        "product_brand",
+        "product_type",
+      ],
       rankingRules: ["words", "typo", "proximity", "attribute", "exactness"],
-      filterableAttributes: ["is_active", "itemBrandID", "itemTypeID"],
+      filterableAttributes: [
+        "is_active",
+        "product_brand_id",
+        "product_type_id",
+      ],
       distinctAttribute: "id",
       synonyms: {
         "rel fe": ["Rel full extension"],
@@ -64,6 +75,22 @@ class SearchHelper {
     return res.status(200).send({
       message: "Create index success",
     });
+  };
+
+  fillProducts = async (req: Request, res: Response) => {
+    const products = await this.productRepository.fetchAll();
+    try {
+      await meili.index("product").addDocuments(products);
+      console.log("[info]: Indexing products completed.");
+      return res.status(200).send({
+        message: "Indexing products completed",
+      });
+    } catch (error) {
+      console.error(`[error]: Error while indexing products. ${error}`);
+      return res.status(500).send({
+        message: "Error while indexing products",
+      });
+    }
   };
 
   static getTasks = async (req: Request, res: Response) => {

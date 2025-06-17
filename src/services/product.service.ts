@@ -17,14 +17,12 @@ export class ProductService {
   async create(id: number) {
     try {
       const product = await this.productRepository.fetchByID(id);
-      console.log(product);
 
       if (!product) {
         throw new Error("Product not found");
       }
 
       const productUnits = await this.productUnitRepository.fetchByItemID(id);
-      console.log(productUnits);
       const result = await meili.index("product").addDocuments([
         {
           ...product,
@@ -36,6 +34,23 @@ export class ProductService {
     } catch (error) {
       console.error("Error creating product in MeiliSearch:", error);
       throw new Error("Failed to create product in search index");
+    }
+  }
+
+  async fillProductIndex() {
+    try {
+      const products = await this.productRepository.fetchAll();
+
+      if (!products || products.length === 0) {
+        throw new Error("No products found");
+      }
+
+      const result = await meili.index("product").addDocuments(products);
+      return result;
+      return result;
+    } catch (error) {
+      console.error("Error filling product index in MeiliSearch:", error);
+      throw new Error("Failed to fill product index in search");
     }
   }
 

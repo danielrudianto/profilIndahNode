@@ -2,6 +2,8 @@ import { PrismaClient } from "@prisma/client";
 import GoodReceiptModel, { IGoodReceipt } from "../model/good-receipt.model";
 import {
   IFetchAnnualArchives,
+  IFetchCommon,
+  IFetchCommonResult,
   IFetchMonthlyArchives,
 } from "../interface/fetch.interface";
 
@@ -160,6 +162,51 @@ export class GoodReceiptRepository {
       return GoodReceiptModel.fromMap(goodReceipt);
     } catch (error) {
       throw error;
+    }
+  }
+
+  async fetchUnconfirmed(
+    data: IFetchCommon
+  ): Promise<IFetchCommonResult<GoodReceiptModel>> {
+    try {
+      const [result, count] = await Promise.all([
+        this.prisma.good_receipt_code.findMany({
+          where: {
+            is_confirm: false,
+            is_delete: false,
+          },
+          include: {
+            supplier: true,
+            company: true,
+            user_good_receipt_code_created_byTouser: {
+              include: {
+                user_avatar: true,
+              },
+            },
+          },
+          skip: (data.page - 1) * data.pageSize,
+          take: data.pageSize,
+          orderBy: {
+            date: "desc",
+          },
+        }),
+        this.prisma.good_receipt_code.count({
+          where: {
+            is_confirm: false,
+            is_delete: false,
+          },
+        }),
+      ]);
+
+      return {
+        data: result.map((x) => GoodReceiptModel.fromMap(x)),
+        count: count,
+      };
+    } catch (error) {
+      console.error(
+        `[error]: Error while fetching unconfirmed good receipts: ${error}`
+      );
+      throw new Error("Internal server error");
     }
   }
 

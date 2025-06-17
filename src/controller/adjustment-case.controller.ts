@@ -37,8 +37,8 @@ class AdjustmentCaseController {
         company_id: companyID,
         adjustment_case: req.body.adjustment_case.map((x: any) => {
           return {
-            item_id: x.item_id,
-            item_unit_id: x.item_unit_id,
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
             quantity: (type == 0 ? 1 : -1) * x.quantity,
           };
         }),

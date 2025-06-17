@@ -31,7 +31,7 @@ class GoodReceiptController {
 
     const invoice_name = req.body.invoice_name;
     const faktur = req.body.faktur;
-    
+
     const userID = req.body.userId;
     const uuid = req.body.uuid;
 
@@ -86,6 +86,25 @@ class GoodReceiptController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching good receipt ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchUnconfirmed = async (req: Request, res: Response) => {
+    const page = translatePage(req.query.page);
+    const pageSize = Number(process.env.LIMIT);
+
+    try {
+      const result = await this.goodReceiptRepository.fetchUnconfirmed({
+        keyword: "",
+        page: page,
+        pageSize: pageSize,
+      });
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching unconfirmed good receipts ${error}`
+      );
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };

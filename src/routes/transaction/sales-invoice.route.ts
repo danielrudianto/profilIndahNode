@@ -28,16 +28,16 @@ router.post(
   body("uuid").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("customer_id").exists().withMessage(ErrorList["Parameter error"]),
   body("discount")
-    .toInt()
-    .isInt({ min: 0 })
+    .toFloat()
+    .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   body("delivery")
-    .toInt()
-    .isInt({ min: 0 })
+    .toFloat()
+    .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   body("service")
-    .toInt()
-    .isInt({ min: 0 })
+    .toFloat()
+    .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   SalesInvoiceController.createSalesman,
