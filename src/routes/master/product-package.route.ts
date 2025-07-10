@@ -22,12 +22,21 @@ router.post(
   body("package_content")
     .notEmpty()
     .withMessage(ErrorList["Package items required"]),
-  body("package_content.*.item_id")
+  body("package_content.*.product_id")
     .notEmpty()
     .withMessage(ErrorList["Package item id required"]),
   body("package_content.*.quantity")
     .notEmpty()
     .withMessage(ErrorList["Package item quantity required"]),
+  body("package_content.*.product_unit_id")
+    .exists()
+    .withMessage(ErrorList["Package item unit id required"]),
+  body("package_content.*.price")
+    .notEmpty()
+    .withMessage(ErrorList["Package item price required"]),
+  body("package_content.*.discount")
+    .notEmpty()
+    .withMessage(ErrorList["Package item discount required"]),
   ErrorHelper.intercept,
   productPackageController.create
 );

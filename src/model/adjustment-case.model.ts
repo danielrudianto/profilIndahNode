@@ -85,26 +85,30 @@ class AdjustmentCaseModel {
         product_id: ac.product_id,
         product_unit_id: ac.product_unit_id,
         quantity: Number(ac.quantity),
-        item: new ProductModel({
-          id: ac.item.id,
-          reference: ac.item.reference,
-          description: ac.item.description,
-          unit: ac.item.unit,
-          product_brand_id: ac.item.product_brand_id,
-          product_type_id: ac.item.product_type_id,
+        product: new ProductModel({
+          id: ac.product.id,
+          reference: ac.product.reference,
+          description: ac.product.description,
+          unit: ac.product.unit,
+          product_brand_id: ac.product.product_brand_id,
+          product_type_id: ac.product.product_type_id,
         }),
         product_unit:
-          ac.item_unit == null
+          ac.product_unit == null
             ? null
             : new ProductUnitViewModel({
                 product_id: ac.product_id,
-                unit: ac.item_unit.unit,
-                conversion: Number(ac.item_unit.conversion),
+                unit: ac.product_unit.unit,
+                conversion: Number(ac.product_unit.conversion),
               }),
       })),
-      user_adjustment_case_code_created_byTouser: UserViewModel.fromMap(
-        data.user_adjustment_case_code_created_byTouser
-      ),
+      user_adjustment_case_code_created_byTouser:
+        data.user_adjustment_case_code_created_byTouser == null ||
+        data.user_adjustment_case_code_created_byTouser == undefined
+          ? undefined
+          : UserViewModel.fromMap(
+              data.user_adjustment_case_code_created_byTouser
+            ),
     });
   }
 

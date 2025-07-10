@@ -19,12 +19,15 @@ const idParam = [
 ];
 
 const customerBody = [
-  body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("pic").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("phone_number").exists().withMessage(ErrorList["Parameter error"]),
-  body("address").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("npwp").exists().withMessage(ErrorList["Parameter error"]),
-  body("npwp").optional().isString().withMessage(ErrorList["Parameter error"]),
+  body("name").notEmpty().withMessage(ErrorList["Customer name is required"]),
+  body("pic").notEmpty().withMessage(ErrorList["Customer PIC is required"]),
+  body("phone_number")
+    .exists()
+    .withMessage(ErrorList["Customer phone number is required"]),
+  body("address")
+    .notEmpty()
+    .withMessage(ErrorList["Customer address is required"]),
+  body("npwp").exists().withMessage(ErrorList["Customer NPWP is required"]),
 ];
 
 router.post(
@@ -36,8 +39,10 @@ router.post(
 
 router.put(
   "/",
-  body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  body("id").notEmpty().withMessage(ErrorList["Customer ID is required"]),
+  body("id")
+    .isInt({ min: 1 })
+    .withMessage(ErrorList["CUstomer ID must be integer"]),
   ...customerBody,
   ErrorHelper.intercept,
   customerController.update

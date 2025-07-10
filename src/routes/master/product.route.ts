@@ -46,7 +46,8 @@ router.post(
 router.get("/autocomplete", productController.fetchAutocomplete);
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
   ErrorHelper.intercept,
   productController.fetchByID
 );
@@ -57,36 +58,60 @@ router.put(
   "/active",
   body("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept
-  // productController.activateByID
+  ErrorHelper.intercept,
+  productController.toggleActive
 );
 router.put(
   "/",
-  body("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
-  body("reference").exists().withMessage(ErrorList["Parameter error"]),
-  body("reference").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("description").exists().withMessage(ErrorList["Parameter error"]),
-  body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("product_brand_id").exists().withMessage(ErrorList["Parameter error"]),
-  body("product_type_id").exists().withMessage(ErrorList["Parameter error"]),
+  body("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  body("reference")
+    .exists()
+    .withMessage(ErrorList["Product reference is required"]),
+  body("reference")
+    .notEmpty()
+    .withMessage(ErrorList["Product reference is required"]),
+  body("description")
+    .exists()
+    .withMessage(ErrorList["Product description is required"]),
+  body("description")
+    .notEmpty()
+    .withMessage(ErrorList["Product description is required"]),
+  body("product_brand_id")
+    .exists()
+    .withMessage(ErrorList["Product brand is required"]),
+  body("product_type_id")
+    .exists()
+    .withMessage(ErrorList["Product type is required"]),
   body("minimum_stock")
     .isFloat({ min: 0 })
-    .withMessage(ErrorList["Parameter error"]),
-  body("unit").exists().withMessage(ErrorList["Parameter error"]),
-  body("sales_price")
+    .withMessage(ErrorList["Product minimum stock is required"]),
+  body("unit").exists().withMessage(ErrorList["Product unit is required"]),
+  ErrorHelper.intercept,
+  productController.update
+);
+
+router.put(
+  "/price-purchase",
+  body("items").isArray().withMessage(ErrorList["Parameter error"]),
+  body("items.*.product_id")
+    .notEmpty()
+    .withMessage(ErrorList["Item ID required"]),
+  body("items.*.product_id")
+    .isNumeric()
+    .withMessage(ErrorList["Item ID must be numeric"]),
+  body("items.*.price").notEmpty().withMessage(ErrorList["Price required"]),
+  body("items.*.price")
     .isFloat({ min: 0 })
-    .withMessage(ErrorList["Parameter error"]),
-  body("purchase_price")
+    .withMessage(ErrorList["Price must be numeric"]),
+  body("items.*.discount")
+    .notEmpty()
+    .withMessage(ErrorList["Discount required"]),
+  body("items.*.discount")
     .isFloat({ min: 0 })
-    .withMessage(ErrorList["Parameter error"]),
-  body("sales_discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Parameter error"]),
-  body("purchase_discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept
-  // productController.update
+    .withMessage(ErrorList["Discount must be numeric"]),
+  ErrorHelper.intercept,
+  productController.updatePurchasePrice
 );
 
 router.post(

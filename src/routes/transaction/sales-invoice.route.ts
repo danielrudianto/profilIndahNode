@@ -8,13 +8,18 @@ import ErrorHelper from "../../helper/error.helper";
 import { ReceivableRepository } from "../../repositories/receivable.repository";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { redisClient } from "../../helper/redis.helper";
+import { SalesmanController } from "../../controller/sales.controller";
+import { SalesReturnRepository } from "../../repositories/sales-return.repository";
 
 const router = Router();
 
 const salesInvoiceController = new SalesInvoiceController(
   new SalesInvoiceRepository(prisma),
-  new ReceivableRepository(redisClient)
+  new ReceivableRepository(redisClient),
+  new SalesReturnRepository(prisma)
 );
+
+const salesmanController = new SalesmanController(redisClient);
 
 router.post(
   "/search",
@@ -40,8 +45,8 @@ router.post(
     .isFloat({ min: 0 })
     .withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  SalesInvoiceController.createSalesman,
-  SalesInvoiceController.create
+  salesmanController.createSalesman,
+  salesInvoiceController.create
 );
 
 router.post("/archives/v2", SalesInvoiceController.fetchArchiveV2);
@@ -103,7 +108,8 @@ router.delete(
       min: 0,
     })
     .withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept
+  ErrorHelper.intercept,
+  salesInvoiceController.delete
   // SalesInvoiceController.deleteByID
 );
 

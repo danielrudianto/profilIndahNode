@@ -2,8 +2,10 @@ import { Request, Response } from "express";
 import DepositModel from "../model/deposit.model";
 import {
   mysql_real_escape_string,
+  translateDate,
   translateKeyword,
   translatePage,
+  translateSalesName,
 } from "../helper/escape.helper";
 import ErrorList from "../assets/error_list";
 import { DepositRepository } from "../repositories/deposit.repository";
@@ -15,7 +17,43 @@ class DepositController {
     this.depositRepository = depositRepository;
   }
 
-  create = async (req: Request, res: Response) => {};
+  create = async (req: Request, res: Response) => {
+    const userID = req.body.userId;
+    const customerID = req.body.customer_id;
+    const discount = Number(req.body.discount);
+    const delivery = Number(req.body.delivery);
+    const service = Number(req.body.service);
+    const deposit = req.body.deposit as any[];
+    const deposit_payment = req.body.deposit_payment as any[];
+    const date = translateDate(req.body.date);
+    const isPaid = req.body.is_paid;
+    const sales = translateSalesName(req.body.sales);
+    const uuid = req.body.uuid;
+    const type = req.body.type;
+
+    try {
+      const billResult = await this.depositRepository.create({
+        name: this.depositRepository.generateName(date),
+        uuid: uuid,
+        customer_id: customerID,
+        discount: discount,
+        delivery: delivery,
+        service: service,
+        sales: sales,
+        date: date,
+        created_by: userID,
+        created_at: new Date(),
+        deposit: deposit,
+        deposit_payment: deposit_payment,
+        type: type,
+      });
+
+      return res.status(201).send(billResult);
+    } catch (error) {
+      console.error(`[error]: Error on creating bill ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
 
   fetchByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
@@ -50,34 +88,42 @@ class DepositController {
     }
   };
 
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const result = this.depositRepository.fetchByID(id);
+    if (!result) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+  };
+
   /**
    * Fetch deposit
    * @param req
    * @param res
    */
-  static fetchV2 = (req: Request, res: Response) => {
-    const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
-    const page = !req.query.page ? 1 : Number(req.query.page);
+  // static fetchV2 = (req: Request, res: Response) => {
+  //   const keyword = !req.query.keyword ? "" : req.query.keyword.toString();
+  //   const page = !req.query.page ? 1 : Number(req.query.page);
 
-    DepositModel.fetchIdsV2(keyword).then((ids) => {
-      DepositModel.fetchV2(
-        ids.map((x) => {
-          return x.id;
-        }),
-        page
-      )
-        .then((result) => {
-          return res.status(200).send({
-            data: result,
-            count: ids.length,
-          });
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching deposit ${error}`);
-          return res.status(500).send(error);
-        });
-    });
-  };
+  //   DepositModel.fetchIdsV2(keyword).then((ids) => {
+  //     DepositModel.fetchV2(
+  //       ids.map((x) => {
+  //         return x.id;
+  //       }),
+  //       page
+  //     )
+  //       .then((result) => {
+  //         return res.status(200).send({
+  //           data: result,
+  //           count: ids.length,
+  //         });
+  //       })
+  //       .catch((error) => {
+  //         console.error(`[error]: Error on fetching deposit ${error}`);
+  //         return res.status(500).send(error);
+  //       });
+  //   });
+  // };
 
   /**
    * Delete deposit by ID
@@ -85,104 +131,104 @@ class DepositController {
    * @param res
    * @returns
    */
-  static deleteByID = async (req: Request, res: Response) => {
-    const id = Number(req.params.id);
-    const result = await DepositModel.fetchByID(id);
-    if (!result) {
-      return res.status(404).send(ErrorList["Not found"]);
-    }
+  // static deleteByID = async (req: Request, res: Response) => {
+  //   const id = Number(req.params.id);
+  //   const result = await this.
+  //   if (!result) {
+  //     return res.status(404).send(ErrorList["Not found"]);
+  //   }
 
-    if (result.is_delete) {
-      return res.status(400).send(ErrorList["Not found"]);
-    }
+  //   if (result.is_delete) {
+  //     return res.status(400).send(ErrorList["Not found"]);
+  //   }
 
-    DepositModel.deleteByID(id)
-      .then((result) => {
-        return res.status(201).send(result);
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on deleting deposit ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
+  //   DepositModel.deleteByID(id)
+  //     .then((result) => {
+  //       return res.status(201).send(result);
+  //     })
+  //     .catch((error) => {
+  //       console.error(`[error]: Error on deleting deposit ${error}`);
+  //       return res.status(500).send(ErrorList["Internal server error"]);
+  //     });
+  // };
 
-  static fetchArchive = (req: Request, res: Response) => {
-    const year = req.body.year;
-    const month = req.body.month;
-    const mode = req.body.mode;
-    if (year == null && month == null) {
-      DepositModel.fetchArchiveYears(mode)!
-        .then((result) => {
-          return res.status(200).send(
-            result
-              .map((x) => {
-                return {
-                  year: x.year,
-                  count: parseInt(x.count.toString().replace("n", "")),
-                };
-              })
-              .sort((a, b) => {
-                return a.year - b.year;
-              })
-          );
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching deposit archive ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    } else if (year != null && month == null) {
-      const year = req.body.year;
-      DepositModel.fetchArchiveMonths(year, mode)
-        .then((result) => {
-          const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-          result.forEach((x) => {
-            response[x.month - 1] = parseInt(
-              x.count.toString().replace("n", "")
-            );
-          });
-          return res.status(200).send(response);
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching deposit archive ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    } else {
-      const page = req.body.limit.page;
-      const keyword = req.body.search.keyword;
-      DepositModel.fetchArchive({
-        year: year,
-        month: month,
-        mode: mode,
-        limit: 10,
-        offset: (page - 1) * 10,
-        keyword: mysql_real_escape_string(keyword),
-      })!
-        .then((result) => {
-          return res.status(200).send({
-            data: result[0].map((x) => {
-              return {
-                id: x.id,
-                name: x.name,
-                date: x.date,
-                customer_name: x.customer_name,
-                value: x.value,
-                payment: x.payment,
-              };
-            }),
-            count:
-              result[1] == null || result[1].length == 0
-                ? 0
-                : parseInt(result[1][0].count.toString().replace("n", "")),
-          });
-        })
-        .catch((error) => {
-          console.error(
-            `[error]: Error on fetching sales invoice archive ${error}`
-          );
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    }
-  };
+  // static fetchArchive = (req: Request, res: Response) => {
+  //   const year = req.body.year;
+  //   const month = req.body.month;
+  //   const mode = req.body.mode;
+  //   if (year == null && month == null) {
+  //     DepositModel.fetchArchiveYears(mode)!
+  //       .then((result) => {
+  //         return res.status(200).send(
+  //           result
+  //             .map((x) => {
+  //               return {
+  //                 year: x.year,
+  //                 count: parseInt(x.count.toString().replace("n", "")),
+  //               };
+  //             })
+  //             .sort((a, b) => {
+  //               return a.year - b.year;
+  //             })
+  //         );
+  //       })
+  //       .catch((error) => {
+  //         console.error(`[error]: Error on fetching deposit archive ${error}`);
+  //         return res.status(500).send(ErrorList["Internal server error"]);
+  //       });
+  //   } else if (year != null && month == null) {
+  //     const year = req.body.year;
+  //     DepositModel.fetchArchiveMonths(year, mode)
+  //       .then((result) => {
+  //         const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+  //         result.forEach((x) => {
+  //           response[x.month - 1] = parseInt(
+  //             x.count.toString().replace("n", "")
+  //           );
+  //         });
+  //         return res.status(200).send(response);
+  //       })
+  //       .catch((error) => {
+  //         console.error(`[error]: Error on fetching deposit archive ${error}`);
+  //         return res.status(500).send(ErrorList["Internal server error"]);
+  //       });
+  //   } else {
+  //     const page = req.body.limit.page;
+  //     const keyword = req.body.search.keyword;
+  //     DepositModel.fetchArchive({
+  //       year: year,
+  //       month: month,
+  //       mode: mode,
+  //       limit: 10,
+  //       offset: (page - 1) * 10,
+  //       keyword: mysql_real_escape_string(keyword),
+  //     })!
+  //       .then((result) => {
+  //         return res.status(200).send({
+  //           data: result[0].map((x) => {
+  //             return {
+  //               id: x.id,
+  //               name: x.name,
+  //               date: x.date,
+  //               customer_name: x.customer_name,
+  //               value: x.value,
+  //               payment: x.payment,
+  //             };
+  //           }),
+  //           count:
+  //             result[1] == null || result[1].length == 0
+  //               ? 0
+  //               : parseInt(result[1][0].count.toString().replace("n", "")),
+  //         });
+  //       })
+  //       .catch((error) => {
+  //         console.error(
+  //           `[error]: Error on fetching sales invoice archive ${error}`
+  //         );
+  //         return res.status(500).send(ErrorList["Internal server error"]);
+  //       });
+  //   }
+  // };
 
   /**
    * Confirm by ID

@@ -369,7 +369,7 @@ model good_receipt_code {
   id                                        Int            @id @default(autoincrement())
   name                                      String         @db.VarChar(100)
   invoice_name                              String
-  faktur                                    String
+  faktur                                    String?
   is_paid                                   Boolean        @default(false)
   discount                                  Decimal        @default(0.00) @db.Decimal(12, 2)
   date                                      DateTime       @db.Date
@@ -736,7 +736,7 @@ model promotion_rules {
 
 model stock_in {
   id                      Int                   @id @default(autoincrement())
-  item_id                 Int
+  product_id              Int
   quantity                Decimal               @db.Decimal(12, 2)
   price                   Decimal               @db.Decimal(12, 2)
   date                    DateTime              @db.Date
@@ -752,7 +752,7 @@ model stock_in {
   good_receipt_code_id    Int?
   good_receipt_code       good_receipt_code?    @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_in_ibfk_6")
 
-  product   product     @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_in_ibfk_1")
+  product   product     @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_in_ibfk_1")
   stock_out stock_out[]
 }
 

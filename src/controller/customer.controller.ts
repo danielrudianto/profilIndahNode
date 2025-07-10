@@ -28,7 +28,7 @@ class CustomerController {
     const userID = req.body.userId;
 
     try {
-      const result = this.customerRepository.create({
+      const result = await this.customerRepository.create({
         name: name,
         address: address,
         npwp: npwp,
@@ -37,8 +37,6 @@ class CustomerController {
         created_by: userID,
         created_at: new Date(),
       });
-
-      await meili.index("customer").addDocuments([result]);
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on creating customer: ${error}`);
@@ -75,7 +73,6 @@ class CustomerController {
         created_at: new Date(),
       });
 
-      await meili.index("customer").updateDocuments([result]);
       const socket = new SocketHelper("updateCustomer", result);
       socket.create();
 
@@ -138,30 +135,13 @@ class CustomerController {
     const pageSize = translatePageSize(req.query.pageSize);
 
     try {
-      if (keyword != "") {
-        const searchResult = await meili.index("customer").search(keyword, {
-          limit: pageSize,
-          offset: (page - 1) * pageSize,
-        });
+      const result = await this.customerRepository.fetch({
+        keyword: keyword,
+        page: page,
+        pageSize: pageSize,
+      });
 
-        const ids = searchResult.hits.map((item) => item.id);
-        const customer = await this.customerRepository.fetchByIDs(ids);
-        return res.status(200).send({
-          result: searchResult.hits.map((x) => {
-            const index = customer.findIndex((y) => y.id == x.id);
-            return index == -1 ? undefined : customer[index];
-          }),
-          count: searchResult.hits.length,
-        });
-      } else {
-        const result = await this.customerRepository.fetch({
-          keyword: keyword,
-          page: page,
-          pageSize: pageSize,
-        });
-
-        return res.status(200).send(result);
-      }
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching customer data: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

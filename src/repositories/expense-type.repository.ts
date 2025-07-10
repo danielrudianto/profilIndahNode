@@ -103,6 +103,24 @@ export class ExpenseTypeRepository {
         throw new Error("Expense type not found");
       }
 
+      let children: any[] = [];
+
+      if (result.parent_id == null) {
+        children = await this.prisma.expense_type.findMany({
+          where: {
+            parent_id: id,
+            is_delete: false,
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            created_by: true,
+            created_at: true,
+          },
+        });
+      }
+
       return new ExpenseTypeModel({
         id: result.id,
         name: result.name,
@@ -110,6 +128,16 @@ export class ExpenseTypeRepository {
         created_by: result.created_by,
         created_at: result.created_at,
         parent_id: result.parent_id,
+        children: children.map((child) => {
+          return new ExpenseTypeModel({
+            id: child.id,
+            name: child.name,
+            description: child.description,
+            created_by: child.created_by,
+            created_at: child.created_at,
+            parent_id: result.id, // Set parent_id to the current expense type ID
+          });
+        }),
       });
     } catch (error) {
       console.error(`[error]: Error on fetching expense type by ID ${error}`);
@@ -158,7 +186,41 @@ export class ExpenseTypeRepository {
     }
   }
 
-  async fetchAll() {
+  async fetch() {
+    try {
+      const result = await this.prisma.$queryRaw<any[]>`
+        SELECT expense_type.*, IF(c.count > 0, FALSE, TRUE) AS can_delete
+        FROM expense_type
+        LEFT JOIN (
+          SELECT COUNT(id) AS count, expense_type.parent_id
+          FROM expense_type
+          WHERE is_delete = false
+          AND expense_type.parent_id IS NOT NULL
+          GROUP BY expense_type.parent_id
+        ) c ON expense_type.id = c.parent_id
+        WHERE is_delete = 0
+        AND expense_type.parent_id IS NULL
+        ORDER BY expense_type.name ASC
+      `;
+
+      return result.map((item) => {
+        return new ExpenseTypeModel({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          created_by: item.created_by,
+          created_at: item.created_at,
+          parent_id: item.parent_id,
+          can_delete: Boolean(Number(item.can_delete)),
+        });
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching expense types ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
+  async fetchAll(data: { withChildren: boolean }) {
     try {
       const result = await this.prisma.$queryRaw<any[]>`
         SELECT expense_type.id, expense_type.name, expense_type.description, 
@@ -175,6 +237,38 @@ export class ExpenseTypeRepository {
         WHERE is_delete = 0 AND expense_type.parent_id IS NULL
       `;
 
+      if (!data.withChildren) {
+        return result.map((item) => {
+          return new ExpenseTypeModel({
+            id: item.id,
+            name: item.name,
+            description: item.description,
+            created_by: item.created_by,
+            created_at: item.created_at,
+            parent_id: item.parent_id,
+            can_delete: item.can_delete,
+          });
+        });
+      }
+
+      const children = await this.prisma.expense_type.findMany({
+        where: {
+          parent_id: {
+            not: null,
+          },
+          is_delete: false,
+        },
+        select: {
+          id: true,
+          name: true,
+          description: true,
+          created_by: true,
+          created_at: true,
+          parent_id: true,
+        },
+      });
+
+      // Map the result to ExpenseTypeModel and include children
       return result.map((item) => {
         return new ExpenseTypeModel({
           id: item.id,
@@ -183,7 +277,19 @@ export class ExpenseTypeRepository {
           created_by: item.created_by,
           created_at: item.created_at,
           parent_id: item.parent_id,
-          can_delete: item.can_delete,
+          can_delete: Boolean(Number(item.can_delete)),
+          children: children
+            .filter((child) => child.parent_id === item.id)
+            .map((child) => {
+              return new ExpenseTypeModel({
+                id: child.id,
+                name: child.name,
+                description: child.description,
+                created_by: child.created_by,
+                created_at: child.created_at,
+                parent_id: item.id, // Set parent_id to the current expense type ID
+              });
+            }),
         });
       });
     } catch (error) {

@@ -160,6 +160,30 @@ export class ExpenseRepository {
     }
   }
 
+  async fetchReport(month: number, year: number) {
+    console.log(month);
+    console.log(year);
+    try {
+      const result = await this.prisma.expense.findMany({
+        where: {
+          date: {
+            gte: new Date(year, month - 1, 1, 0, 0, 0),
+            lt: new Date(year, month, 1, 0, 0, 0),
+          },
+          is_delete: false,
+        },
+        orderBy: { date: "desc" },
+      });
+
+      return result.map((x) => {
+        return ExpenseModel.fromMap(x);
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching expense report ${error}`);
+      throw error;
+    }
+  }
+
   async fetchByID(id: number) {
     const result = await this.prisma.expense.findUnique({
       where: { id },

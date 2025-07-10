@@ -8,15 +8,11 @@ import {
 } from "../mongo-model/mongo-stock-in.model";
 import ErrorList from "../assets/error_list";
 import moment from "moment";
-import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
-import PromotionModel from "../model/promotion.model";
 import AdjustmentCaseModel from "../model/adjustment-case.model";
-import GoodReceiptModel from "../model/good-receipt.model";
-import ReceivableController from "./receivable.controller";
-import DepositModel from "../model/deposit.model";
-import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
-import SalesReturnModel from "../model/sales-return.model";
+import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
+import { PromotionRepository } from "../repositories/promotion.repository";
+import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 
 interface AdministratorDashboard {
   title: string;
@@ -27,6 +23,148 @@ interface AdministratorDashboard {
 }
 
 class ReportController {
+  private salesInvoiceRepository: SalesInvoiceRepository;
+  private promotionRepository: PromotionRepository;
+  private goodReceiptRepository: GoodReceiptRepository;
+
+  constructor(
+    salesInvoiceRepository: SalesInvoiceRepository,
+    promotionRepository: PromotionRepository,
+    goodReceiptRepository: GoodReceiptRepository
+  ) {
+    this.salesInvoiceRepository = salesInvoiceRepository;
+    this.promotionRepository = promotionRepository;
+    this.goodReceiptRepository = goodReceiptRepository;
+  }
+
+  fetchAdministratorDashboard = (req: Request, res: Response) => {};
+
+  fetchSalesDashboard = async (req: Request, res: Response) => {
+    try {
+      const date = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const lastMonth = new Date(
+        date.getFullYear(),
+        date.getMonth() - 1,
+        1,
+        0,
+        0,
+        0
+      );
+
+      const thisMonth = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        1,
+        0,
+        0,
+        0
+      );
+      const endOfMonth = new Date(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        0,
+        0,
+        0,
+        0
+      );
+
+      const [
+        currentSales,
+        previousSales,
+        currentMonth,
+        previousMonth,
+        activePromotion,
+      ] = await Promise.all([
+        this.salesInvoiceRepository.fetchByDateRange(date, date),
+        this.salesInvoiceRepository.fetchByDateRange(yesterday, yesterday),
+        this.salesInvoiceRepository.fetchByDateRange(thisMonth, endOfMonth),
+        this.salesInvoiceRepository.fetchByDateRange(lastMonth, thisMonth),
+        this.promotionRepository.countActive(),
+      ]);
+
+      return res.status(200).send({
+        sales: {
+          current: currentSales,
+          previous: previousSales,
+        },
+        sales_month: {
+          current: currentMonth,
+          previous: previousMonth,
+        },
+        promotion: activePromotion,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales dashboard ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchPurchaseDashboard = async (req: Request, res: Response) => {
+    try {
+      const date = new Date();
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+
+      const lastMonth = new Date(
+        date.getFullYear(),
+        date.getMonth() - 1,
+        1,
+        0,
+        0,
+        0
+      );
+
+      const thisMonth = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        1,
+        0,
+        0,
+        0
+      );
+      const endOfMonth = new Date(
+        date.getFullYear(),
+        date.getMonth() + 1,
+        0,
+        0,
+        0,
+        0
+      );
+
+      const [
+        currentSales,
+        previousSales,
+        currentMonth,
+        previousMonth,
+        activePromotion,
+      ] = await Promise.all([
+        this.goodReceiptRepository.fetchByDateRange(date, date),
+        this.goodReceiptRepository.fetchByDateRange(yesterday, yesterday),
+        this.goodReceiptRepository.fetchByDateRange(thisMonth, endOfMonth),
+        this.goodReceiptRepository.fetchByDateRange(lastMonth, thisMonth),
+        this.promotionRepository.countActive(),
+      ]);
+
+      return res.status(200).send({
+        sales: {
+          current: currentSales,
+          previous: previousSales,
+        },
+        sales_month: {
+          current: currentMonth,
+          previous: previousMonth,
+        },
+        promotion: activePromotion,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales dashboard ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   /**
    * Fetch money receipt
    * @param req
@@ -1308,13 +1446,13 @@ class ReportController {
     Promise.all([
       // BillCodeModel.fetchRecentSales(),
       PurchaseInvoiceModel.fetchRecentPurchase(),
-      DepositModel.countActive(),
+      // DepositModel.countActive(),
       // PromotionModel.countActive(),
     ]).then(
       ([
         // [billCurrentValue, billPreviousValue],
         [purchaseCurrentValue, purchasePreviousValue],
-        depositCurrentValue,
+        // depositCurrentValue,
         // promotionCurrentValue,
       ]) => {
         // return res.status(200).send({
@@ -1384,7 +1522,7 @@ class ReportController {
         yesterday.getDate()
       ),
       // PromotionModel.countActive(),
-      DepositModel.countActive(),
+      // DepositModel.countActive(),
     ])
       .then(
         ([
@@ -1392,9 +1530,9 @@ class ReportController {
           // sales2,
           purchase1,
           purchase2,
-          // countPromotion,
-          countDeposit,
-        ]: any[]) => {
+        ]: // countPromotion,
+        // countDeposit,
+        any[]) => {
           // return res.status(200).send({
           //   todaySales: sales1[0].value == null ? 0 : Number(sales1[0].value),
           //   yesterdaySales:

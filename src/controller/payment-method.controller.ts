@@ -117,7 +117,15 @@ class PaymentMethodController {
   fetchAll = async (req: Request, res: Response) => {
     try {
       const result = await this.paymentMethodRepository.fetchAll();
-      return res.status(200).send(result);
+      return res.status(200).send([
+        {
+          id: null,
+          name: "Cash",
+          description: "Cash payment",
+          can_delete: false,
+        },
+        ...result,
+      ]);
     } catch (error) {
       console.error(`[error]: Error on fetch all payment methods: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

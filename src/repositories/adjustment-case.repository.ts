@@ -82,6 +82,11 @@ export class AdjustmentCaseRepository {
               product_unit: true,
             },
           },
+          user_adjustment_case_code_created_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
         },
       });
 
@@ -132,6 +137,39 @@ export class AdjustmentCaseRepository {
       );
       throw new Error("Internal server error");
     }
+  }
+
+  async fetchAnnualArchives() {
+    const result = await this.prisma.$queryRaw<
+      { year: number; count: number }[]
+    >`
+      SELECT YEAR(date) AS year, COUNT(*) AS count
+      FROM adjustment_case_code
+      GROUP BY YEAR(date)
+      ORDER BY YEAR(date) DESC
+    `;
+
+    return result.map((x) => ({
+      year: x.year,
+      count: x.count,
+    }));
+  }
+
+  async fetchMonthlyArchives(year: number) {
+    const result = await this.prisma.$queryRaw<
+      { month: number; count: number }[]
+    >`
+      SELECT MONTH(date) AS month, COUNT(*) AS count
+      FROM adjustment_case_code
+      WHERE YEAR(date) = ${year}
+      GROUP BY MONTH(date)
+      ORDER BY MONTH(date) DESC
+    `;
+
+    return result.map((x) => ({
+      month: x.month,
+      count: x.count,
+    }));
   }
 
   async approve(id: number, userID: number) {

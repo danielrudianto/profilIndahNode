@@ -12,40 +12,50 @@ const expenseTypeController = new ExpenseTypeController(
   new ExpenseTypeRepository(prisma)
 );
 
-// router.get("/autocomplete", expenseTypeController.fetchAutocomplete);
-// router.get("/children/:id", expenseTypeController.fetchChildren);
-// router.get("/v2", expenseTypeController.fetchV2);
+router.get("/autocomplete", expenseTypeController.fetchAutocomplete);
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be integer"]),
   ErrorHelper.intercept,
   expenseTypeController.fetchByID
 );
-router.get("/", ExpenseTypeController.fetch);
+router.get("/", expenseTypeController.fetch);
 
 router.post(
   "/",
-  body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
+  body("name")
+    .not()
+    .isEmpty()
+    .withMessage(ErrorList["Expense type name is required"]),
+  body("description")
+    .not()
+    .isEmpty()
+    .withMessage(ErrorList["Expense type description is required"]),
   ErrorHelper.intercept,
   expenseTypeController.create
 );
 
 router.delete(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  param("id").isNumeric().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be integer"]),
   ErrorHelper.intercept,
   expenseTypeController.delete
 );
 
 router.put(
   "/",
-  body("name").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  body("name")
+    .not()
+    .isEmpty()
+    .withMessage(ErrorList["Expense type name is required"]),
+  body("description")
+    .not()
+    .isEmpty()
+    .withMessage(ErrorList["Expense type description is required"]),
+  body("id").isNumeric().withMessage(ErrorList["ID is required"]),
+  body("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be integer"]),
   ErrorHelper.intercept,
   expenseTypeController.update
 );

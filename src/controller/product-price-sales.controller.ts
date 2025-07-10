@@ -1,7 +1,43 @@
+import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
+import { ProductRepository } from "../repositories/product.repository";
 
 export class ProductSalesPriceController {
+  private productRepository: ProductRepository;
+
+  constructor(productRepository: ProductRepository) {
+    this.productRepository = productRepository;
+  }
+
+  fetch = async (req: Request, res: Response) => {
+    try {
+      const keyword = translateKeyword(req.query.keyword);
+      const page = translatePage(req.query.page);
+      const pageSize = Number(process.env.LIMIT!);
+
+      const result = await this.productRepository.fetchSales({
+        keyword: keyword,
+        page: page,
+        pageSize: pageSize,
+      });
+      return res.status(200).send(result);
+    } catch (error) {
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const product = await this.productRepository.fetchSalesPriceByID(id);
+      return res.status(200).send(product);
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales price by ID ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   /**
    * Fetch all item price
    * @param req
@@ -84,12 +120,6 @@ export class ProductSalesPriceController {
     //       return res.status(500).send(error);
     //     });
     // }
-  };
-
-  fetch = (req: Request, res: Response) => {
-    const keyword = translateKeyword(req.query.keyword);
-    const page = translatePage(req.query.page);
-    const pageSize = Number(process.env.LIMIT!);
   };
 
   /**

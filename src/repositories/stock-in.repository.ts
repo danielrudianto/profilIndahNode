@@ -15,7 +15,7 @@ export class StockInRepository {
       data: data.map((x) => {
         return {
           date: x.date,
-          item_id: x.item_id,
+          product_id: x.product_id,
           quantity: x.quantity,
           price: x.price,
           company_id: x.company_id,

@@ -151,7 +151,7 @@ export class CustomerRepository {
       FROM
           customer c
       LEFT JOIN
-          bill_code bc ON c.id = bc.customer_id AND bc.is_delete = 0
+          sales_invoice_code bc ON c.id = bc.customer_id AND bc.is_delete = 0
       WHERE
           c.is_delete = 0
           AND (
@@ -223,10 +223,10 @@ export class CustomerRepository {
         IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
         FROM customer
         LEFT JOIN (
-          SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-          FROM bill_code
-          WHERE bill_code.is_delete = 0
-          AND bill_code.customer_id = ${id}
+          SELECT COUNT(sales_invoice_code.id) AS count, sales_invoice_code.customer_id
+          FROM sales_invoice_code
+          WHERE sales_invoice_code.is_delete = 0
+          AND sales_invoice_code.customer_id = ${id}
         ) itemCount
         ON customer.id = itemCount.customer_id
         WHERE customer.id = ${id}
@@ -264,9 +264,9 @@ export class CustomerRepository {
         SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
         FROM customer
         LEFT JOIN (
-          SELECT COUNT(bill_code.id) AS count, bill_code.customer_id
-          FROM bill_code
-          WHERE bill_code.is_delete = 0
+          SELECT COUNT(sales_invoice_code.id) AS count, sales_invoice_code.customer_id
+          FROM sales_invoice_code
+          WHERE sales_invoice_code.is_delete = 0
         ) itemCount
         ON customer.id = itemCount.customer_id
         WHERE customer.id IN (${ids.join(",")})

@@ -70,6 +70,10 @@ interface IProductUnitView {
   product_id: number;
   unit: string;
   conversion: number;
+  sales_price?: number;
+  sales_discount?: number;
+  purchase_price?: number;
+  purchase_discount?: number;
 }
 
 export class ProductUnitViewModel {
@@ -77,11 +81,42 @@ export class ProductUnitViewModel {
   product_id: number;
   unit: string;
   conversion: number;
+  sales_price?: number;
+  sales_discount?: number;
+  purchase_price?: number;
+  purchase_discount?: number;
 
   constructor(data: IProductUnitView) {
     this.id = data.id;
     this.product_id = data.product_id;
     this.unit = data.unit;
     this.conversion = data.conversion;
+    this.sales_price = data.sales_price;
+    this.sales_discount = data.sales_discount;
+    this.purchase_price = data.purchase_price;
+    this.purchase_discount = data.purchase_discount;
+  }
+
+  static fromMap(data: any): ProductUnitViewModel {
+    return {
+      id: data.id,
+      product_id: data.product_id,
+      unit: data.unit,
+      conversion: Number(data.conversion),
+      sales_price:
+        data.sales_price == undefined ? undefined : Number(data.sales_price),
+      sales_discount:
+        data.sales_discount == undefined
+          ? undefined
+          : Number(data.sales_discount),
+      purchase_price:
+        data.purchase_price == undefined
+          ? undefined
+          : Number(data.purchase_price),
+      purchase_discount:
+        data.purchase_discount == undefined
+          ? undefined
+          : Number(data.purchase_discount),
+    };
   }
 }

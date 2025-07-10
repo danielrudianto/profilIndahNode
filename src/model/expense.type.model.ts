@@ -13,6 +13,8 @@ export interface IExpenseType {
   deleted_by?: number | null;
   deleted_at?: Date | null;
   can_delete?: boolean;
+
+  children?: ExpenseTypeModel[];
 }
 
 export class ExpenseTypeModel {
@@ -27,6 +29,7 @@ export class ExpenseTypeModel {
   deleted_at?: Date | null;
   can_delete?: boolean = false;
   parent?: ExpenseTypeModel | null;
+  children?: ExpenseTypeModel[] = [];
 
   constructor(data: IExpenseType) {
     this.id = data.id;
@@ -39,6 +42,7 @@ export class ExpenseTypeModel {
     this.deleted_by = data.deleted_by;
     this.deleted_at = data.deleted_at;
     this.can_delete = data.can_delete;
+    this.children = data.children || [];
   }
 
   static fromMap(data: any): ExpenseTypeModel {
@@ -53,6 +57,7 @@ export class ExpenseTypeModel {
       deleted_by: data.deleted_by,
       deleted_at: data.deleted_at,
       can_delete: data.can_delete || false,
+      children: data.children,
     });
   }
 
@@ -153,9 +158,9 @@ export class ExpenseTypeModel {
   //       });
   //     case fetchMode.AllV2:
   //       return prisma.$queryRaw<any[]>`
-  //         SELECT expense_type.id, expense_type.name, expense_type.description, 
-  //         IF(COALESCE(c.count, 0) > 0, 0, 1) AS can_delete 
-  //         FROM expense_type 
+  //         SELECT expense_type.id, expense_type.name, expense_type.description,
+  //         IF(COALESCE(c.count, 0) > 0, 0, 1) AS can_delete
+  //         FROM expense_type
   //         LEFT JOIN (
   //           SELECT COUNT(id) AS count, expense_type.parent_id
   //           FROM expense_type

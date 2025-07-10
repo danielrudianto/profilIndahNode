@@ -8,7 +8,7 @@ export interface IStockIn {
   good_receipt_code_id: number | null;
   adjustment_case_id: number | null;
   adjustment_case_code_id: number | null;
-  item_id: number;
+  product_id: number;
 }
 
 export class StockInModel {
@@ -21,7 +21,7 @@ export class StockInModel {
   good_receipt_code_id: number | null;
   adjustment_case_id: number | null;
   adjustment_case_code_id: number | null;
-  item_id: number;
+  product_id: number;
   residue: number;
   // initialize the model with default values
   constructor(data: IStockIn) {
@@ -34,7 +34,7 @@ export class StockInModel {
     this.good_receipt_code_id = data.good_receipt_code_id;
     this.adjustment_case_id = data.adjustment_case_id;
     this.adjustment_case_code_id = data.adjustment_case_code_id;
-    this.item_id = data.item_id;
+    this.product_id = data.product_id;
     this.residue = data.quantity;
   }
 }

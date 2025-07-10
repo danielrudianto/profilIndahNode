@@ -1,13 +1,25 @@
 import { Router } from "express";
+import { param } from "express-validator";
+import ErrorList from "../../assets/error_list";
 import { ProductSalesPriceController } from "../../controller/product-price-sales.controller";
+import { prisma } from "../../helper/database.helper";
+import ErrorHelper from "../../helper/error.helper";
+import { ProductRepository } from "../../repositories/product.repository";
 
-// SAPI
 const router = Router();
 
-router.get("/bulk", ProductSalesPriceController.fetchAll);
-router.get("/v2/:id", ProductSalesPriceController.fetchByIDV2);
-router.get("/:id", ProductSalesPriceController.fetchByID);
-router.get("/", ProductSalesPriceController.fetch);
+const productSalesPriceController = new ProductSalesPriceController(
+  new ProductRepository(prisma)
+);
+
+router.get(
+  "/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  productSalesPriceController.fetchByID
+);
+router.get("/", productSalesPriceController.fetch);
 
 router.post("/format", ProductSalesPriceController.fetchFormat);
 router.post("/bulk", ProductSalesPriceController.createBulk);

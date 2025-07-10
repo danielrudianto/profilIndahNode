@@ -7,7 +7,7 @@ import {
   ProductTypeViewModel,
   ProductTypeModel,
 } from "./product-type.model";
-import { ProductUnitModel } from "./product-unit.model";
+import { ProductUnitModel, ProductUnitViewModel } from "./product-unit.model";
 
 export interface IProduct {
   id?: number;
@@ -106,6 +106,12 @@ export class ProductModel {
         data.product_type == undefined
           ? undefined
           : ProductTypeViewModel.fromMap(data.product_type),
+      product_unit:
+        data.product_unit == undefined
+          ? undefined
+          : data.product_unit.map((x: any) => {
+              return ProductUnitViewModel.fromMap(x);
+            }),
     });
   }
   static fromMeilisearch(data: any) {
@@ -123,9 +129,16 @@ export class ProductModel {
       unit: data.unit,
       product_brand: ProductBrandViewModel.fromMap(data.product_brand),
       product_type: ProductTypeViewModel.fromMap(data.product_type),
-      product_unit: data.product_unit.map((x: any) => {
-        return ProductUnitModel.fromMap(x);
-      }),
+      product_unit:
+        data.product_unit == undefined
+          ? []
+          : data.product_unit.map((x: any) => {
+              return ProductUnitModel.fromMap(x);
+            }),
+      sales_price: Number(data.sales_price),
+      sales_discount: Number(data.sales_discount),
+      purchase_price: Number(data.purchase_price),
+      purchase_discount: Number(data.purchase_discount),
     });
   }
 
@@ -1741,6 +1754,13 @@ export class ProductModel {
   //     },
   //   });
   // }
+}
+
+export interface IPriceProduct {
+  product_id: number;
+  product_unit_id: number | null;
+  price: number;
+  discount: number;
 }
 
 export class ItemUnitModel {}

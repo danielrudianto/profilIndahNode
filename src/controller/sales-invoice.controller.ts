@@ -6,28 +6,28 @@ import {
   translatePage,
   translateSalesName,
 } from "../helper/escape.helper";
-import { queue } from "../helper/queue.helper";
-import SalesReturnModel from "../model/sales-return.model";
-import { StockOutDeleteInterface } from "../interface/stock-in.interface";
-import ReceivableController from "./receivable.controller";
-import DepositModel from "../model/deposit.model";
 import { redisClient } from "../helper/redis.helper";
 import { DraftBillModel } from "../model/draft-bill.model";
 import moment from "moment";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { ReceivableRepository } from "../repositories/receivable.repository";
+import { SalesReturnRepository } from "../repositories/sales-return.repository";
+import { queue } from "../helper/queue.helper";
 // import DepositModel from "../model/deposit.model";
 
 class SalesInvoiceController {
   private salesInvoiceRepository: SalesInvoiceRepository;
   private receivableRepository: ReceivableRepository;
+  private salesReturnRepository: SalesReturnRepository;
 
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
-    receivableRepository: ReceivableRepository
+    receivableRepository: ReceivableRepository,
+    salesReturnRepository: SalesReturnRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.receivableRepository = receivableRepository;
+    this.salesReturnRepository = salesReturnRepository;
   }
 
   create = async (req: Request, res: Response, next: NextFunction) => {
@@ -41,80 +41,86 @@ class SalesInvoiceController {
     const paymentTerm = req.body.payment_term;
     const date = translateDate(req.body.date);
     const isPaid = req.body.is_paid;
-    const type = req.body.type;
     const sales = translateSalesName(req.body.sales);
     const uuid = req.body.uuid;
 
-    switch (type) {
-      case "bill":
-        try {
-          const billResult = await this.salesInvoiceRepository.create({
-            name: this.salesInvoiceRepository.generateName(date),
-            uuid: uuid,
-            customerID: customerID,
-            discount: discount,
-            delivery: delivery,
-            service: service,
-            paymentTerm: paymentTerm,
-            sales: sales,
-            isPaid: isPaid,
-            date: date,
-            createdBy: userID,
-            createdAt: new Date(),
-            isConfirm: true,
-            confirmedBy: userID,
-            confirmedAt: new Date(),
-            sales_invoice: sales_invoice,
-            sales_invoice_payment: sales_invoice_payment,
-            isDelete: false,
-          });
+    try {
+      const billResult = await this.salesInvoiceRepository.create({
+        name: this.salesInvoiceRepository.generateName(date),
+        uuid: uuid,
+        customerID: customerID,
+        discount: discount,
+        delivery: delivery,
+        service: service,
+        paymentTerm: paymentTerm,
+        sales: sales,
+        isPaid: isPaid,
+        date: date,
+        createdBy: userID,
+        createdAt: new Date(),
+        isConfirm: true,
+        confirmedBy: userID,
+        confirmedAt: new Date(),
+        sales_invoice: sales_invoice,
+        sales_invoice_payment: sales_invoice_payment,
+        isDelete: false,
+      });
 
-          await this.receivableRepository.addReceivableValue(
-            billResult.delivery +
-              billResult.service -
-              billResult.discount +
-              billResult.bill!.reduce((a, b) => {
-                return a + (b.price - b.discount) * b.quantity;
-              }, 0) -
-              billResult.bill_payment!.reduce((a, b) => {
-                return a + b.value;
-              }, 0)
-          );
+      await this.receivableRepository.addReceivableValue(
+        billResult.delivery +
+          billResult.service -
+          billResult.discount +
+          billResult.sales_invoice!.reduce((a, b) => {
+            return a + (b.price - b.discount) * b.quantity;
+          }, 0) -
+          billResult.sales_invoice_payment!.reduce((a, b) => {
+            return a + b.value;
+          }, 0)
+      );
 
-          return res.status(201).send(billResult);
-        } catch (error) {
-          console.error(`[error]: Error on creating bill ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        }
-      case "deposit":
-        break;
-      case "deposit-internal":
-        break;
-      // default treat as bill
-      default:
-        console.error(
-          `[error]: Error on creating bill, unknown type of ${type}`
-        );
-        return res.status(400).send(ErrorList["Type not found"]);
+      return res.status(201).send(billResult);
+    } catch (error) {
+      console.error(`[error]: Error on creating bill ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
-  static createSalesman = (req: Request, res: Response, next: NextFunction) => {
-    const sales = req.body.sales == "" ? null : req.body.sales;
-    if (sales == null) {
-      next();
-    } else {
-      redisClient
-        .sAdd("salesman_set", sales.toString().toUpperCase())
-        .then(() => {
-          next();
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on inserting sales to list ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const userID = req.body.userId;
+
+    const salesInvoice = await this.salesInvoiceRepository.fetchByID(id);
+    if (!salesInvoice) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+
+    if (salesInvoice.isDelete) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+
+    const salesReturn = await this.salesReturnRepository.fetchByBillIDs(
+      salesInvoice.sales_invoice!.map((x) => {
+        return x.id!;
+      })
+    );
+
+    if (salesReturn) {
+      return res.status(400).send(ErrorList["Sales return exists"]);
+    }
+
+    try {
+      const result = await this.salesInvoiceRepository.deleteByID(id, userID);
+      await queue.add("sales-invoice-deleted", {
+        id: id,
+      });
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting sales invoice ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
+
   /**
    * Create sales invoice data
    * @param req

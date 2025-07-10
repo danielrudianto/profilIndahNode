@@ -27,10 +27,11 @@ class ProductPackageController {
         description: description,
         price: price,
         created_by: userID,
+        created_at: new Date(),
         package_content: package_content.map((x: any) => {
           return {
-            item_id: x.item_id,
-            item_unit_id: x.item_unit_id,
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
             quantity: x.quantity,
             price: x.price,
             discount: x.discount,
@@ -38,19 +39,9 @@ class ProductPackageController {
         }),
       });
 
-      await meili.index("package").addDocuments(
-        [
-          {
-            id: result.id,
-            name: result.name,
-            description: result.description,
-            product_content: result.package_content,
-          },
-        ],
-        {
-          primaryKey: "id",
-        }
-      );
+      console.log(JSON.stringify(result));
+
+      await meili.index("package").addDocuments([result]);
 
       return res.status(201).send(result);
     } catch (error) {
@@ -137,22 +128,22 @@ class ProductPackageController {
           price: x.price,
           package_content: x.product_content.map((item: any) => {
             return {
-              item_id: item.item.id,
-              item_unit_id: item.item_unit ? item.item_unit.id : null,
+              product_id: item.product_id,
+              product_unit_id: item.product_unit_id,
               quantity: item.quantity,
               price: item.price,
               discount: item.discount,
-              item: {
-                id: item.item.id,
-                reference: item.item.reference,
-                description: item.item.description,
-                unit: item.item.unit,
+              product: {
+                id: item.product.id,
+                reference: item.product.reference,
+                description: item.product.description,
+                unit: item.product.unit,
               },
-              item_unit: item.item_unit
+              product_unit: item.product_unit
                 ? {
-                    id: item.item_unit.id,
-                    conversion: item.item_unit.conversion,
-                    unit: item.item_unit.unit,
+                    id: item.product_unit.id,
+                    conversion: item.product_unit.conversion,
+                    unit: item.product_unit.unit,
                   }
                 : null,
             };

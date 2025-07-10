@@ -6,6 +6,7 @@ import {
   IFetchCommonResult,
   IFetchMonthlyArchives,
 } from "../interface/fetch.interface";
+import { DateHelper, formatDate } from "../helper/date.helper";
 
 export class GoodReceiptRepository {
   private prisma: PrismaClient;
@@ -32,6 +33,8 @@ export class GoodReceiptRepository {
           name: data.name,
           created_by: data.created_by!,
           created_at: data.created_at,
+          confirmed_at: data.confirmed_at,
+          confirmed_by: data.confirmed_by,
           date: data.date,
           supplier_id: data.supplier_id,
           company_id: data.company_id,
@@ -63,7 +66,8 @@ export class GoodReceiptRepository {
 
       return GoodReceiptModel.fromMap(result);
     } catch (error) {
-      throw error;
+      console.error("Error creating good receipt:", error);
+      throw new Error("Failed to create good receipt");
     }
   }
 
@@ -323,5 +327,29 @@ export class GoodReceiptRepository {
       console.error(`[error]: Error while fetching archives: ${error}`);
       throw new Error("Internal server error");
     }
+  }
+
+  async fetchByDateRange(minimumDate: Date, maximumDate: Date) {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT SUM(gr.value + good_receipt_code.service + good_receipt_code.delivery - good_receipt_code.discount) AS value
+      FROM good_receit_code
+      JOIN (
+        SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, good_receipt.good_receipt_code_id
+        FROM good_receipt
+        GROUP BY good_receipt.good_receipt_code_id
+      ) gr
+      JOIN good_receipt_code.id = gr.good_receipt_code_id
+      WHERE good_receipt_code.is_delete = 0
+      AND good_receipt_code.date BETWEEN ${DateHelper.convertDate(
+        minimumDate,
+        formatDate.DDMMYYYY
+      )} AND ${DateHelper.convertDate(maximumDate, formatDate.DDMMYYYY)}
+    `;
+
+    if (!result || result.length == 0) {
+      return 0;
+    }
+
+    return result[0].value;
   }
 }

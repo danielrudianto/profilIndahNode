@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import moment from "moment";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { PromotionRepository } from "../repositories/promotion.repository";
 
 class PromotionController {
@@ -12,16 +13,16 @@ class PromotionController {
   create = async (req: Request, res: Response) => {
     const name = req.body.name;
     const description = req.body.description;
-    const startDate = moment(req.body.startDate, "DD-MM-YYYY").toDate();
+    const startDate = moment(req.body.start_date, "DD-MM-YYYY").toDate();
     const endDate =
       req.body.endDate == null
         ? null
-        : moment(req.body.endDate, "DD-MM-YYYY").toDate();
-    const promotion = req.body.promotion;
+        : moment(req.body.end_date, "DD-MM-YYYY").toDate();
     const target = req.body.target;
     const supplierID = req.body.supplier_id;
     const userID = req.body.userId;
-    const brands = req.body.brand_id;
+    const promotion_brand = req.body.promotion_brand;
+    const promotion_rules = req.body.promotion_rules;
 
     try {
       const result = await this.promotionRepository.create({
@@ -32,18 +33,51 @@ class PromotionController {
         target: target,
         created_by: userID,
         created_at: new Date(),
-        promotion: promotion,
-        promotion_brand: brands.map((brand: any) => {
-          return {
-            brand_id: brand.id,
-          };
-        }),
+        promotion_rules: promotion_rules,
+        promotion_brand: promotion_brand,
         supplier_id: supplierID,
+        is_delete: false,
+        deleted_by: null,
+        deleted_at: null,
       });
 
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on create promotion code ${error}`);
+      return res.status(500).send("Internal Server Error");
+    }
+  };
+
+  fetch = async (req: Request, res: Response) => {
+    try {
+      const keyword = translateKeyword(req.query.keyword);
+      const page = translatePage(req.query.page);
+      const pageSize = Number(process.env.LIMIT!);
+
+      const result = await this.promotionRepository.fetch({
+        keyword: keyword,
+        page: page,
+        pageSize: pageSize,
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetch promotion code ${error}`);
+      return res.status(500).send("Internal Server Error");
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const promotion = await this.promotionRepository.fetchByID(id);
+      if (!promotion) {
+        return res.status(404).send("Not Found");
+      }
+
+      return res.status(200).send(promotion);
+    } catch (error) {
+      console.error(`[error]: Error on fetch promotion code by id ${error}`);
       return res.status(500).send("Internal Server Error");
     }
   };

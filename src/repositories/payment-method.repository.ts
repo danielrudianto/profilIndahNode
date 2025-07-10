@@ -79,10 +79,10 @@ export class PaymentMethodRepository {
       IF(COALESCE(countPaymentMethod.count, 0) = 0, "1", "0") AS can_delete
       FROM payment_method
       LEFT JOIN (
-        SELECT COUNT(bill_payment.id) AS count, bill_payment.payment_method_id
-        FROM bill_payment
-        JOIN bill_code ON bill_payment.bill_code_id = bill_code.id
-        WHERE bill_code.is_delete = 0
+        SELECT COUNT(sales_invoice_payment.id) AS count, sales_invoice_payment.payment_method_id
+        FROM sales_invoice_payment
+        JOIN sales_invoice_code ON sales_invoice_payment.sales_invoice_code_id = sales_invoice_code.id
+        WHERE sales_invoice_code.is_delete = 0
         GROUP BY payment_method_id
       ) countPaymentMethod ON countPaymentMethod.payment_method_id = payment_method.id
       WHERE payment_method.is_delete = 0

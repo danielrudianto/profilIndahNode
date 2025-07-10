@@ -1,6 +1,6 @@
-import { createClient } from "redis";
+import { createClient, RedisClientType } from "redis";
 
-export const redisClient = createClient({ url: "redis://127.0.0.1:6379" });
+export const redisClient: RedisClientType = createClient({ url: "redis://127.0.0.1:6379" });
 
 export async function connectRedis() {
   if (!redisClient.isOpen) {

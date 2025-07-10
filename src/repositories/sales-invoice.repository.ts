@@ -4,6 +4,7 @@ import {
   SalesInvoiceModel,
 } from "../model/sales-invoice.model";
 import { IFetchCommonResult } from "../interface/fetch.interface";
+import { DateHelper, formatDate } from "../helper/date.helper";
 
 export class SalesInvoiceRepository {
   private prisma: PrismaClient;
@@ -69,6 +70,23 @@ export class SalesInvoiceRepository {
     )}${Math.floor(Math.random() * 10)}`;
   }
 
+  async deleteByID(id: number, userID: number): Promise<SalesInvoiceModel> {
+    const result = await this.prisma.sales_invoice_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+      },
+    });
+
+    if (!result) {
+      throw new Error("Sales invoice not found or already deleted");
+    }
+
+    return SalesInvoiceModel.fromMap(result);
+  }
+
   async fetchByID(id: number): Promise<SalesInvoiceModel> {
     try {
       const salesInvoice = await this.prisma.sales_invoice_code.findUnique({
@@ -94,6 +112,27 @@ export class SalesInvoiceRepository {
       );
       throw new Error("Internal server error");
     }
+  }
+
+  async fetchByDateRange(startDate: Date, endDate: Date) {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value
+      FROM sales_invoice
+      JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+      WHERE sales_invoice_code.is_delete = 0
+      AND sales_invoice_code.date BETWEEN ${DateHelper.convertDate(
+        startDate,
+        formatDate.DDMMYYYY
+      )}
+      AND ${DateHelper.convertDate(endDate, formatDate.DDMMYYYY)};
+    `;
+
+    if (!result || result.length == 0) {
+      return 0;
+    }
+
+    const data = result[0];
+    return Number(data.value);
   }
 
   async search(

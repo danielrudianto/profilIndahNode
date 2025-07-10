@@ -93,6 +93,137 @@ class ProductController {
     }
   };
 
+  updateSalesPrice = async (req: Request, res: Response) => {
+    const productID = req.body.productID;
+    const productUnitID = req.body.productUnitID;
+    const price = req.body.price;
+    const discount = req.body.discount;
+
+    try {
+      const result = await this.productRepository.updateSalesPrice({
+        product_id: productID,
+        product_unit_id: productUnitID,
+        price: price,
+        discount: discount,
+      });
+
+      await queue.add("product-updated", {
+        id: productID,
+      });
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on updating sales price ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  updatePurchasePrice = async (req: Request, res: Response) => {
+    const items = req.body.items;
+
+    try {
+      const result = await this.productRepository.updatePurchasePrice(
+        items.map((x: any) => {
+          return {
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
+            price: x.price,
+            discount: x.discount,
+          };
+        })
+      );
+
+      for (let i = 0; i < items.length; i++) {
+        await queue.add("product-updated", {
+          id: items[i].product_id,
+        });
+      }
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on updating purchase price ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  update = async (req: Request, res: Response) => {
+    const reference = req.body.reference;
+    const description = req.body.description;
+    const product_brand_id = req.body.product_brand_id;
+    const product_type_id = req.body.product_type_id;
+    const minimum_stock = req.body.minimum_stock;
+    const userID = req.body.userId;
+    const unit = req.body.unit;
+    const created_at = new Date();
+    const id = req.body.id;
+
+    const product = await this.productRepository.fetchByID(id);
+    if (!product) {
+      return res.status(404).send(ErrorList["Product not found"]);
+    }
+
+    if (product.is_delete) {
+      return res.status(400).send(ErrorList["Product not found"]);
+    }
+
+    try {
+      const existingItem = await this.productRepository.fetchByReference(
+        reference
+      );
+
+      if (existingItem != null && existingItem.id !== id) {
+        return res.status(400).send(ErrorList["Reference unique constraint"]);
+      }
+
+      const updatedProduct = await this.productRepository.update({
+        id: id,
+        reference: reference,
+        description: description,
+        product_brand_id: product_brand_id,
+        product_type_id: product_type_id,
+        created_by: userID,
+        created_at: created_at,
+        minimum_stock: minimum_stock,
+        unit: unit,
+      });
+
+      // Add to Meilisearch index
+      await queue.add("product-updated", {
+        id: id,
+      });
+
+      return res.status(200).send(updatedProduct);
+    } catch (error) {
+      console.error(`[error]: Error on updating item ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  toggleActive = async (req: Request, res: Response) => {
+    const id = Number(req.body.id);
+
+    try {
+      const product = await this.productRepository.fetchByID(id);
+      if (!product) {
+        return res.status(404).send(ErrorList["Product not found"]);
+      }
+
+      if (product.is_delete) {
+        return res.status(400).send(ErrorList["Product not found"]);
+      }
+
+      const updatedProduct = await this.productRepository.toggleActive(
+        id,
+        product.is_active!
+      );
+
+      return res.status(201).send(updatedProduct);
+    } catch (error) {
+      console.error(`[error]: Error on fetching item by id ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);

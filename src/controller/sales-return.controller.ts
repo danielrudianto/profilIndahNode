@@ -3,8 +3,6 @@ import ErrorList from "../assets/error_list";
 import { mysql_real_escape_string } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import SalesReturnModel from "../model/sales-return.model";
-import { mongoStockOutModel } from "../mongo-model/mongo-stock-in.model";
-import { mongoOverflowModel } from "../mongo-model/mongo-overflow.model";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 

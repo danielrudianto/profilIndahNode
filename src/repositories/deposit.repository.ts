@@ -25,10 +25,9 @@ export class DepositRepository {
             createMany: {
               data: data.deposit.map((x) => {
                 return {
-                  item_id: x.item_id,
-                  item_unit_id: x.item_unit_id,
+                  product_id: x.product_id,
+                  product_unit_id: x.product_unit_id,
                   quantity: x.quantity,
-                  package_code_id: x.package_code_id || null,
                   price: x.price,
                   discount: x.discount,
                 };
@@ -51,6 +50,18 @@ export class DepositRepository {
       console.error(`[error]: Error while creating deposit: ${error}`);
       throw new Error("Internal server error");
     }
+  }
+
+  generateName(date: Date = new Date()) {
+    return `DPS-${date.getFullYear()}-${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}${Math.floor(
+      Math.random() * 10
+    )}${Math.floor(Math.random() * 10)}`;
   }
 
   async fetchByProductID(productID: number[]): Promise<number[]> {

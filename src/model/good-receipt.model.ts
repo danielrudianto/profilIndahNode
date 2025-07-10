@@ -10,11 +10,14 @@ export interface IGoodReceipt {
   name: string;
   invoice_name: string;
   faktur: string;
+  discount: number;
   date: Date;
   supplier_id: number;
   company_id: number;
   created_by?: number;
   created_at?: Date;
+  confirmed_by?: number | null;
+  confirmed_at?: Date | null;
   good_receipt?: IGoodReceiptItem[];
 
   company?: CompanyModel;
@@ -44,11 +47,14 @@ class GoodReceiptModel {
   name: string;
   invoice_name: string;
   faktur: string;
+  discount: number;
   date: Date;
   supplier_id: number;
   company_id: number;
   created_by?: number;
   created_at?: Date;
+  confirmed_by?: number | null;
+  confirmed_at?: Date | null;
   good_receipt?: IGoodReceiptItem[];
   company?: CompanyModel;
   supplier?: SupplierModel;
@@ -62,6 +68,7 @@ class GoodReceiptModel {
     this.name = data.name;
     this.invoice_name = data.invoice_name;
     this.faktur = data.faktur;
+    this.discount = data.discount;
     this.date = data.date;
     this.supplier_id = data.supplier_id;
     this.company_id = data.company_id;
@@ -83,6 +90,7 @@ class GoodReceiptModel {
       name: data.name,
       invoice_name: data.invoice_name,
       faktur: data.faktur,
+      discount: data.discount,
       date: data.date,
       supplier_id: data.supplier_id,
       company_id: data.company_id,
@@ -93,19 +101,19 @@ class GoodReceiptModel {
           ? undefined
           : data.good_receipt.map((item: any) => ({
               id: item.id,
-              item_id: item.item_id,
-              item_unit_id: item.item_unit_id,
-              quantity: item.quantity,
-              price: item.price,
-              discount: item.discount,
+              product_id: item.product_id,
+              product_unit_id: item.product_unit_id,
+              quantity: Number(item.quantity),
+              price: Number(item.price),
+              discount: Number(item.discount),
 
-              item: ProductModel.fromMap(item.item),
-              item_unit:
-                item.item_unit == undefined
+              product: ProductModel.fromMap(item.product),
+              product_unit:
+                item.product_unit == undefined
                   ? undefined
-                  : item.item_unit == null
+                  : item.product_unit == null
                   ? null
-                  : ProductUnitModel.fromMap(item.item_unit),
+                  : ProductUnitModel.fromMap(item.product_unit),
             })),
       company:
         data.company == undefined ? undefined : new CompanyModel(data.company),

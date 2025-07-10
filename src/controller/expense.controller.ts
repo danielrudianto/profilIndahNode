@@ -4,12 +4,22 @@ import SocketHelper from "../helper/socket.helper";
 import ErrorList from "../assets/error_list";
 import { ExpenseRepository } from "../repositories/expense.repository";
 import { translatePage } from "../helper/escape.helper";
+import { CompanyRepository } from "../repositories/company.repository";
+import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 
 class ExpenseController {
   private expenseRepository: ExpenseRepository;
+  private companyRepository: CompanyRepository;
+  private expenseTypeRepository: ExpenseTypeRepository;
 
-  constructor(expenseRepository: ExpenseRepository) {
+  constructor(
+    expenseRepository: ExpenseRepository,
+    companyRepository: CompanyRepository,
+    expenseTypeRepository: ExpenseTypeRepository
+  ) {
     this.expenseRepository = expenseRepository;
+    this.companyRepository = companyRepository;
+    this.expenseTypeRepository = expenseTypeRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -111,6 +121,27 @@ class ExpenseController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching expense by ID: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchReport = async (req: Request, res: Response) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    try {
+      const result = await this.expenseRepository.fetchReport(month, year);
+      const company = await this.companyRepository.fetchAll();
+      const expenseTypes = await this.expenseTypeRepository.fetchAll({
+        withChildren: true,
+      });
+
+      return res.status(200).send({
+        result: result,
+        company: company,
+        expenseTypes: expenseTypes,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching expense report: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };

@@ -1,5 +1,7 @@
 import MeiliSearch from "meilisearch";
 import dotenv from "dotenv";
+import { ProductRepository } from "../repositories/product.repository";
+import { prisma } from "./database.helper";
 dotenv.config(); // Load environment variables from .env file
 
 console.log(process.env.MEILISEARCH_MASTER_KEY);
@@ -10,6 +12,9 @@ export const meili = new MeiliSearch({
 });
 
 const INDEX_UID = "product"; // Change this to your desired index UID
+const CUSTOMER_INDEX_UID = "customer"; // Example for another index, if needed
+
+// const productRepository = new ProductRepository(prisma);
 
 export const initializeMeiliSearch = async () => {
   if (!process.env.MEILISEARCH_MASTER_KEY) {
@@ -43,8 +48,8 @@ export const initializeMeiliSearch = async () => {
         );
         const settingsTask = await meili.index(INDEX_UID).updateSettings({
           filterableAttributes: [
-            "brand_id",
-            "type_id",
+            "product_brand_id",
+            "product_type_id",
             "is_active" /* add other common filters */,
           ],
           sortableAttributes: [
@@ -60,6 +65,33 @@ export const initializeMeiliSearch = async () => {
         );
       } else {
         // Different error, re-throw or handle
+        throw error;
+      }
+    }
+
+    try {
+      await meili.getIndex(CUSTOMER_INDEX_UID);
+      console.log(`Index "${CUSTOMER_INDEX_UID}" already exists.`);
+    } catch (error: any) {
+      if (error.code === "index_not_found") {
+        console.log(
+          `Index "${CUSTOMER_INDEX_UID}" not found. Creating index...`
+        );
+        const task = await meili.createIndex(CUSTOMER_INDEX_UID, {
+          primaryKey: "id",
+        });
+        await meili.waitForTask(task.taskUid);
+        console.log(`Index "${CUSTOMER_INDEX_UID}" created successfully.`);
+
+        // Set up initial settings for the customer index
+        console.log(
+          `Setting up initial attributes for index "${CUSTOMER_INDEX_UID}"...`
+        );
+
+        console.log(
+          `Initial attributes for index "${CUSTOMER_INDEX_UID}" have been set.`
+        );
+      } else {
         throw error;
       }
     }

@@ -24,15 +24,14 @@ export interface ISalesInvoiceCode {
   confirmedAt?: Date | null;
 }
 
-interface ISalesInvoice {
+export interface ISalesInvoice {
   id?: number;
-  package_code_id: number | null;
-  item_id: number | null;
-  item_unit_id: number | null;
+  product_id: number;
+  product_unit_id: number | null;
   quantity: number;
   price: number;
   discount: number;
-  item?: ProductModel | null;
+  product?: ProductModel;
 }
 
 export class SalesInvoiceModel {
@@ -54,8 +53,8 @@ export class SalesInvoiceModel {
   uuid: string;
   payment_term: number | null = null;
 
-  bill?: ISalesInvoice[] = [];
-  bill_payment?: SalesInvoicePaymentModel[] = [];
+  sales_invoice?: ISalesInvoice[] = [];
+  sales_invoice_payment?: SalesInvoicePaymentModel[] = [];
   customer?: CustomerModel;
 
   constructor(data: ISalesInvoiceCode) {
@@ -74,18 +73,17 @@ export class SalesInvoiceModel {
     this.isPaid = data.isPaid;
     this.sales = data.sales || null;
     this.isDelete = false;
-    this.bill = data.sales_invoice.map((item) => {
+    this.sales_invoice = data.sales_invoice.map((item) => {
       return {
         id: item.id,
-        package_code_id: item.package_code_id,
-        item_id: item.item_id,
-        item_unit_id: item.item_unit_id,
+        product_id: item.product_id,
+        product_unit_id: item.product_unit_id,
         quantity: item.quantity,
         price: item.price,
         discount: item.discount,
       };
     });
-    this.bill_payment = data.sales_invoice_payment.map((payment) => {
+    this.sales_invoice_payment = data.sales_invoice_payment.map((payment) => {
       return {
         id: payment.id,
         sales_invoice_code_id: payment.sales_invoice_code_id,
@@ -121,9 +119,8 @@ export class SalesInvoiceModel {
           : (data.sales_invoice as any[]).map((item) => {
               return {
                 id: item.id,
-                package_code_id: item.package_code_id,
-                item_id: item.item_id,
-                item_unit_id: item.item_unit_id,
+                product_id: item.product_id,
+                product_unit_id: item.product_unit_id,
                 quantity: Number(item.quantity),
                 price: Number(item.price),
                 discount: Number(item.discount),

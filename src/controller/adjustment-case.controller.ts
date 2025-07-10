@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import {
   mysql_real_escape_string,
+  translateKeyword,
   translatePage,
 } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
@@ -240,6 +241,50 @@ class AdjustmentCaseController {
           console.error(`[error]: Error on fetching adjustment case: ${error}`);
           return res.status(500).send(ErrorList["Internal server error"]);
         });
+    }
+  };
+
+  fetchArchives = async (req: Request, res: Response) => {
+    const year = req.body.year;
+    const month = req.body.month;
+    if (month == null && year == null) {
+      try {
+        const result =
+          await this.adjustmentCaseRepository.fetchAnnualArchives();
+        return res.status(200).send(result);
+      } catch (error) {
+        console.error(`[error]: Error on fetching adjustment case: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      }
+    }
+
+    if (year != null && month == null) {
+      const numberedYear = Number(year);
+      try {
+        const result = await this.adjustmentCaseRepository.fetchMonthlyArchives(
+          numberedYear
+        );
+        return res.status(200).send(result);
+      } catch (error) {
+        console.error(`[error]: Error on fetching adjustment case: ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      }
+    }
+
+    if (year != null && month != null) {
+      const keyword = translateKeyword(req.body.keyword);
+      const page = translatePage(req.body.page);
+      const status = req.body.status;
+      const startDate = req.body.startDate;
+      const endDate = req.body.endDate;
+      const type = req.body.type;
+      const pageSize = Number(process.env.LIMIT!);
+
+      // const result = await this.adjustmentCaseRepository.fetchArchives({
+      //   page: page,
+      //   pageSize: pageSize,
+      //   keyword: keyword,
+      // });
     }
   };
 

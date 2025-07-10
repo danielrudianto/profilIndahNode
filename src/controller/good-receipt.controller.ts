@@ -31,9 +31,13 @@ class GoodReceiptController {
 
     const invoice_name = req.body.invoice_name;
     const faktur = req.body.faktur;
+    const discount = req.body.discount;
 
     const userID = req.body.userId;
     const uuid = req.body.uuid;
+
+    const is_confirm =
+      req.body.is_confirm == undefined ? false : req.body.is_confirm;
 
     try {
       const result = await this.goodReceiptRepository.create({
@@ -55,6 +59,9 @@ class GoodReceiptController {
             discount: x.discount,
           };
         }),
+        discount: discount,
+        confirmed_at: is_confirm ? new Date() : null,
+        confirmed_by: is_confirm ? userID : null,
       });
 
       await queue.add("good-receipt-created", {

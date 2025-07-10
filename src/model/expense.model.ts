@@ -42,6 +42,22 @@ export class ExpenseModel {
     this.deleted_at = data.deleted_at;
   }
 
+  static fromMap(data: any): ExpenseModel {
+    return new ExpenseModel({
+      id: data.id,
+      date: data.date,
+      value: Number(data.value),
+      created_at: data.created_at,
+      created_by: data.created_by,
+      description: data.description,
+      expense_type_id: data.expense_type_id,
+      company_id: data.company_id,
+      is_delete: data.is_delete,
+      deleted_by: data.deleted_by,
+      deleted_at: data.deleted_at,
+    });
+  }
+
   // static countByType(expense_type_id: number) {
   //   return prisma.expense.count({
   //     where: {

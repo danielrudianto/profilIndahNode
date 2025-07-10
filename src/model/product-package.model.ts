@@ -55,26 +55,26 @@ export class PackageCodeModel {
       is_delete: data.is_delete,
       package_content: data.package_content.map((content: any) => ({
         id: content.id,
-        item_id: content.item_id,
-        item_unit_id: content.item_unit_id,
+        product_id: content.product_id,
+        product_unit_id: content.product_unit_id,
         quantity: Number(content.quantity),
         price: Number(content.price),
         discount: Number(content.discount),
         package_code_id: content.package_code_id,
         // item can be undefined
-        item: content.item
+        product: content.product
           ? {
-              id: content.item.id,
-              reference: content.item.reference,
-              description: content.item.description,
-              unit: content.item.unit,
+              id: content.product.id,
+              reference: content.product.reference,
+              description: content.product.description,
+              unit: content.product.unit,
             }
           : undefined,
-        item_unit: content.item_unit
+        product_unit: content.product_unit
           ? {
-              id: content.item_unit.id,
-              conversion: Number(content.item_unit.conversion),
-              unit: content.item_unit.unit,
+              id: content.product_unit.id,
+              conversion: Number(content.product_unit.conversion),
+              unit: content.product_unit.unit,
             }
           : undefined,
       })),

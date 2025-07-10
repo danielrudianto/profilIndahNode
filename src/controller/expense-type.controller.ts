@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
+import { translateKeyword } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
 import ExpenseTypeModel from "../model/expense.type.model";
 import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
@@ -91,10 +92,25 @@ class ExpenseTypeController {
 
   fetch = async (req: Request, res: Response) => {
     try {
-      const result = await this.expenseTypeRepository.fetchAll();
+      const result = await this.expenseTypeRepository.fetch();
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching expense types: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  fetchAutocomplete = async (req: Request, res: Response) => {
+    const keyword = translateKeyword(req.query.keyword);
+    try {
+      const result = await this.expenseTypeRepository.fetchAutocomplete(
+        keyword
+      );
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching expense type autocomplete: ${error}`
+      );
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
@@ -151,7 +167,6 @@ class ExpenseTypeController {
     //   const parentExpenseType = result.filter((x) => x.parent_id == null);
     //   const childExpenseType = result.filter((x) => x.parent_id != null);
     //   const expenseType: any[] = [];
-
     //   parentExpenseType.forEach((parent) => {
     //     const children: any[] = [];
     //     childExpenseType

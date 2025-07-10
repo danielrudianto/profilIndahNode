@@ -37,6 +37,7 @@ import expenseRoutes from "./routes/transaction/expense.route";
 import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
 import adjustmentEventRoutes from "./routes/transaction/adjustment-case.route";
 import reportRoutes from "./routes/report/report.route";
+import dashboardRoutes from "./routes/report/dashboard.route";
 import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
 import CashierRoutes from "./routes/distinct/cashier.route";
@@ -48,18 +49,21 @@ import SalesmanRoutes from "./routes/master/salesman.route";
 /*
   Administrator Routes
 */
-
 import administratorRoutes from "./routes/distinct/administrator.route";
 import developmentRoutes from "./routes/development/development.routes";
 import warehouseRoutes from "./routes/distinct/warehouse.route";
 import osRoutes from "./routes/distinct/os.route";
 import changelogRoutes from "./routes/report/changelog.route";
+
+/*
+  Importing other
+*/
 import mongoose from "mongoose";
 import { queue } from "./helper/queue.helper";
-import ReceivableController from "./controller/receivable.controller";
 import compression from "compression";
 import helmet from "helmet";
-import { redisClient } from "./helper/redis.helper";
+
+import { connectRedis, redisClient } from "./helper/redis.helper";
 import { prisma } from "./helper/database.helper";
 
 const allowedOrigins = [
@@ -87,19 +91,10 @@ async function main() {
   await redisClient.connect();
   console.info("[info]: Connected with redis");
 
-  ReceivableController.checkReceivable();
-  console.info("[info]: Checking receivable");
-
   // Every day at midnight check for overflow
   cron.schedule("0 0 * * *", async () => {
     console.log("[info]: Checking for overflow");
     await queue.add("check-all-overflow", {});
-  });
-
-  // Schedule for checking receivable
-  cron.schedule("0 0 * * *", async () => {
-    console.log("[info]: Checking receivable");
-    ReceivableController.checkReceivable();
   });
 
   const app = express();
@@ -146,6 +141,7 @@ async function main() {
   app.use("/user-avatar", authMiddleware, userAvatarRoutes);
   app.use("/expense", authMiddleware, expenseRoutes);
   app.use("/report", reportRoutes);
+  app.use("/dashboard", authMiddleware, dashboardRoutes);
   app.use("/receivable", authMiddleware, ReceivableRoutes);
 
   app.use("/administrator", administratorRoutes);
@@ -164,6 +160,9 @@ async function main() {
   io.on("connection", () => {
     console.log("New connection established");
   });
+
+  connectRedis();
+  console.log("Redis client is connected");
 }
 
 main();
