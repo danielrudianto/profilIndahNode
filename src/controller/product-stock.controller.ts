@@ -3,19 +3,118 @@ import ErrorList from "../assets/error_list";
 import { meili } from "../helper/meili.helper";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
 import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
-import DepositModel from "../model/deposit.model";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
+import { ProductRepository } from "../repositories/product.repository";
 
 class ProductStockController {
-  /**
-   * Fetch product stock
-   * @param req
-   * @param res
-   */
-  static fetch = (req: Request, res: Response) => {
+  productStockRepository: ProductStockRepository;
+  productRepository: ProductRepository;
+
+  constructor(
+    productStockRepository: ProductStockRepository,
+    productRepository: ProductRepository
+  ) {
+    this.productStockRepository = productStockRepository;
+    this.productRepository = productRepository;
+  }
+
+  fetchProblematic = async (req: Request, res: Response) => {
+    const page = translatePage(req.body.page);
+    const keyword = translateKeyword(req.body.keyword);
+    const limit = Number(process.env.LIMIT!);
+    const brands = req.body.brands;
+    const types = req.body.types;
+
+    try {
+      const problematicResult =
+        await this.productStockRepository.fetchProblematicStock({
+          keyword: keyword,
+          page: page,
+          pageSize: limit,
+          brands: brands,
+          types: types,
+        });
+
+      return res.status(200).send(problematicResult);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching problematic product stock ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchInadequate = async (req: Request, res: Response) => {
+    const page = translatePage(req.body.page);
+    const keyword = translateKeyword(req.body.keyword);
+    const limit = Number(process.env.LIMIT!);
+    const brands = req.body.brands;
+    const types = req.body.types;
+
+    try {
+      const problematicResult =
+        await this.productStockRepository.fetchInadequateStock({
+          keyword: keyword,
+          page: page,
+          pageSize: limit,
+          brands: brands,
+          types: types,
+        });
+
+      return res.status(200).send(problematicResult);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching problematic product stock ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
+  fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
     const mode = req.query.mode;
+    const limit = Number(process.env.LIMIT!);
+
+    switch (mode) {
+      case "default":
+        try {
+          const result = await meili.index("product").search(keyword, {
+            limit: limit,
+            offset: (page - 1) * limit,
+            // filter: "is_active = true",
+          });
+
+          const productStock = await this.productStockRepository.fetchStock(
+            result.hits.map((x) => {
+              return x.id;
+            })
+          );
+
+          return res.status(200).send({
+            data: result.hits.map((x) => {
+              const index = productStock.findIndex((y) => {
+                return y.id == x.id;
+              });
+
+              return {
+                ...x,
+                product_stock: {
+                  stock: index == -1 ? 0 : productStock[index].stock,
+                },
+              };
+            }),
+            count: result.estimatedTotalHits,
+          });
+        } catch (error) {
+          console.error(
+            `[error]: Error on fetching default product stock ${error}`
+          );
+          return res.status(500).send(error);
+        }
+        break;
+    }
     // switch (mode) {
     //   case "sales-alert":
     //     UserModel.fetchByID(req.body.userId).then(async (user) => {
@@ -446,6 +545,36 @@ class ProductStockController {
     //       });
     //     break;
     // }
+  };
+
+  fetchProductMetaDataByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const result = await this.productRepository.fetchByID(id);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching product meta data ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const page = translatePage(req.query.page);
+    const pageSize = Number(process.env.LIMIT!);
+
+    try {
+      const result = await this.productStockRepository.fetchByProductID({
+        page: page,
+        pageSize: pageSize,
+        productID: id,
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching product stock card ${error}`);
+      return res.status(500).send(error);
+    }
   };
 
   static fetchMetaByID = (req: Request, res: Response) => {

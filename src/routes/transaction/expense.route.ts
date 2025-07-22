@@ -41,11 +41,23 @@ const expenseBody = [
 router.get(
   "/",
   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  query("month").isNumeric().withMessage(ErrorList["Month must be numeric"]),
+  query("month")
+    .isInt({ min: 0, max: 12 })
+    .withMessage(ErrorList["Month must be numeric"]),
   query("year").notEmpty().withMessage(ErrorList["Year is required"]),
   query("year").isNumeric().withMessage(ErrorList["Year must be numeric"]),
   ErrorHelper.intercept,
   expenseController.fetchReport
+);
+
+router.get(
+  "/mutation",
+  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  query("month").isNumeric().withMessage(ErrorList["Month must be numeric"]),
+  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  query("year").isNumeric().withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  expenseController.fetch
 );
 
 router.get(

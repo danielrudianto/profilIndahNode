@@ -18,8 +18,14 @@ export interface IFetchArchive {
   month: number;
   limit: number;
   offset: number;
-  mode: number;
   keyword: string;
+  is_active: boolean;
+  is_delete: boolean;
+}
+
+export interface IFetchArchiveResult<T> {
+  data: T[];
+  count: number;
 }
 
 export interface IFetchSalesInvoiceArchive extends IFetchArchive {

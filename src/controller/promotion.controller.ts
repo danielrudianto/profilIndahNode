@@ -1,13 +1,20 @@
 import { Request, Response } from "express";
 import moment from "moment";
+import ErrorList from "../assets/error_list";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
+import { ProductRepository } from "../repositories/product.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
 
 class PromotionController {
   private promotionRepository: PromotionRepository;
+  private productRepository: ProductRepository;
 
-  constructor(promotionRepository: PromotionRepository) {
+  constructor(
+    promotionRepository: PromotionRepository,
+    productRepository: ProductRepository
+  ) {
     this.promotionRepository = promotionRepository;
+    this.productRepository = productRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -197,81 +204,74 @@ class PromotionController {
   //     });
   // };
 
+  fetchResult = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const promotion = await this.promotionRepository.fetchByID(id);
+    if (!promotion) {
+      return res.status(404).send(ErrorList["Not found"]);
+    }
+
+    const startsWith = promotion.promotion_rules!.filter((x) => {
+      return x.rule == "Starts with";
+    });
+    const endsWith = promotion.promotion_rules!.filter((x) => {
+      return x.rule == "Ends with";
+    });
+    const contains = promotion.promotion_rules!.filter((x) => {
+      return x.rule == "Contains";
+    });
+    const doesNotStartWith = promotion.promotion_rules!.filter((x) => {
+      return x.rule == "Does not start with";
+    });
+    const doesNotEndWith = promotion.promotion_rules!.filter((x) => {
+      return x.rule == "Does not end with";
+    });
+    const doesNotContain = promotion.promotion_rules!.filter((x) => {
+      return x.rule == "Does not contain";
+    });
+
+    const productBrands =
+      promotion.promotion_brand?.map((x) => {
+        return x.product_brand_id;
+      }) ?? [];
+
+    const productID = await this.productRepository.fetchPromotion({
+      brands: productBrands,
+      startsWith: startsWith.map((x) => {
+        return x.value;
+      }),
+      endsWith: endsWith.map((x) => {
+        return x.value;
+      }),
+      contains: contains.map((x) => {
+        return x.value;
+      }),
+      doesNotStartWith: doesNotStartWith.map((x) => {
+        return x.value;
+      }),
+      doesNotEndWith: doesNotEndWith.map((x) => {
+        return x.value;
+      }),
+      doesNotContain: doesNotContain.map((x) => {
+        return x.value;
+      }),
+    });
+
+    const result = await this.promotionRepository.fetchResult(
+      productID,
+      promotion.supplier_id,
+      promotion.startDate,
+      promotion.endDate
+    );
+
+    return res.status(200).send({
+      promotion: promotion,
+      result: result,
+    });
+  };
+
   // static fetchResultByID = (req: Request, res: Response) => {
   //   const id = (!req.params.id ? null : parseInt(req.params.id)) as number;
-
-  //   PromotionModel.fetchByID(id)
-  //     .then(async (promotion) => {
-  //       if (!promotion) {
-  //         return res.status(404).send("Not Found");
-  //       }
-
-  //       const startsWith = promotion.promotion.filter((x) => {
-  //         return x.rule == "Starts with";
-  //       });
-  //       const endsWith = promotion.promotion.filter((x) => {
-  //         return x.rule == "Ends with";
-  //       });
-  //       const contains = promotion.promotion.filter((x) => {
-  //         return x.rule == "Contains";
-  //       });
-  //       const doesNotStartWith = promotion.promotion.filter((x) => {
-  //         return x.rule == "Does not start with";
-  //       });
-  //       const doesNotEndWith = promotion.promotion.filter((x) => {
-  //         return x.rule == "Does not end with";
-  //       });
-  //       const doesNotContain = promotion.promotion.filter((x) => {
-  //         return x.rule == "Does not contain";
-  //       });
-
-  //       const productIDs = await mongoProductModel.find({
-  //         $and: [
-  //           { itemBrandID: promotion.brand_id },
-  //           startsWith.length > 0
-  //             ? {
-  //                 $or: startsWith.map((x) => ({
-  //                   reference: new RegExp(`^${x.value}`, "i"),
-  //                 })),
-  //               }
-  //             : {},
-  //           endsWith.length > 0
-  //             ? {
-  //                 $or: endsWith.map((x) => ({
-  //                   reference: new RegExp(`${x.value}$`, "i"),
-  //                 })),
-  //               }
-  //             : {},
-  //           contains.length > 0
-  //             ? {
-  //                 $or: contains.map((x) => ({
-  //                   reference: new RegExp(`${x.value}`, "i"),
-  //                 })),
-  //               }
-  //             : {},
-  //           doesNotStartWith.length > 0
-  //             ? {
-  //                 $and: doesNotStartWith.map((x) => ({
-  //                   reference: { $not: new RegExp(`^${x.value}`, "i") },
-  //                 })),
-  //               }
-  //             : {},
-  //           doesNotEndWith.length > 0
-  //             ? {
-  //                 $and: doesNotEndWith.map((x) => ({
-  //                   reference: { $not: new RegExp(`${x.value}$`, "i") },
-  //                 })),
-  //               }
-  //             : {},
-  //           doesNotContain.length > 0
-  //             ? {
-  //                 $and: doesNotContain.map((x) => ({
-  //                   reference: { $not: new RegExp(`${x.value}`, "i") },
-  //                 })),
-  //               }
-  //             : {},
-  //         ],
-  //       });
 
   //       const calculation = await PromotionModel.calculateByID(
   //         productIDs.map((x) => {

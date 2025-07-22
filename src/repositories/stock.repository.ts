@@ -1,38 +1,47 @@
-import { RedisClient } from "bullmq";
+import { PrismaClient } from "@prisma/client";
 
 export class StockRepository {
-  private redis: RedisClient;
+  private prisma: PrismaClient;
 
-  constructor(redis: RedisClient) {
-    this.redis = redis;
+  constructor(prisma: PrismaClient) {
+    this.prisma = prisma;
   }
 
-  initialize = async () => {};
+  update = async (itemID: number, quantity: number) => {};
 
-  update = async (itemID: number, quantity: number) => {
-    const key = "stock:current";
+  updateMany = async (items: { productID: number; quantity: number }[]) => {
+    try {
+      const updateData = [];
+      for (let item of items) {
+        updateData.push(
+          this.prisma.product_stock.upsert({
+            where: {
+              id: item.productID,
+            },
+            create: {
+              id: item.productID,
+              stock: item.quantity,
+            },
+            update: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          })
+        );
+      }
 
-    // Atomically increment the stock
-    const newStock = await this.redis.hincrby(key, itemID.toString(), quantity);
-
-    // Optional: validate if stock goes negative
-    if (newStock < 0) {
-      console.warn(
-        `⚠️ Stock for item ${itemID} dropped below zero: ${newStock}`
-      );
-      // You might want to alert, reverse, or tag the item here
+      return this.prisma.$transaction(updateData);
+    } catch (error) {
+      throw error;
     }
   };
 
-  updateMany = async (items: { itemID: number; quantity: number }[]) => {
-    const key = "stock:current";
-    const multi = this.redis.multi();
-
-    items.forEach(({ itemID, quantity }) => {
-      multi.hincrby(key, itemID.toString(), quantity);
-    });
-
-    const results = await multi.exec();
-    return results;
+  fetchOutputReport = async (data: {
+    product_id: number[];
+    month: number;
+    year: number;
+  }) => {
+    
   };
 }

@@ -9,7 +9,7 @@ export interface IGoodReceipt {
   uuid: string;
   name: string;
   invoice_name: string;
-  faktur: string;
+  faktur: string | null;
   discount: number;
   date: Date;
   supplier_id: number;
@@ -20,11 +20,14 @@ export interface IGoodReceipt {
   confirmed_at?: Date | null;
   good_receipt?: IGoodReceiptItem[];
 
+  is_confirm: boolean;
+  is_delete: boolean;
+
   company?: CompanyModel;
   supplier?: SupplierModel;
 
   user_good_receipt_code_created_byTouser?: UserViewModel;
-  user_good_receipt_code_confirmed_byTouser?: UserViewModel;
+  user_good_receipt_code_confirmed_byTouser?: UserViewModel | null;
 }
 
 export interface IGoodReceiptItem {
@@ -46,7 +49,7 @@ class GoodReceiptModel {
   uuid: string;
   name: string;
   invoice_name: string;
-  faktur: string;
+  faktur: string | null;
   discount: number;
   date: Date;
   supplier_id: number;
@@ -58,9 +61,11 @@ class GoodReceiptModel {
   good_receipt?: IGoodReceiptItem[];
   company?: CompanyModel;
   supplier?: SupplierModel;
+  is_confirm: boolean;
+  is_delete: boolean;
 
   user_good_receipt_code_created_byTouser?: UserViewModel;
-  user_good_receipt_code_confirmed_byTouser?: UserViewModel;
+  user_good_receipt_code_confirmed_byTouser?: UserViewModel | null;
 
   constructor(data: IGoodReceipt) {
     this.id = data.id;
@@ -81,6 +86,8 @@ class GoodReceiptModel {
       data.user_good_receipt_code_created_byTouser;
     this.user_good_receipt_code_confirmed_byTouser =
       data.user_good_receipt_code_confirmed_byTouser;
+    this.is_confirm = data.is_confirm;
+    this.is_delete = data.is_delete;
   }
 
   static fromMap(data: any) {
@@ -96,6 +103,8 @@ class GoodReceiptModel {
       company_id: data.company_id,
       created_by: data.created_by,
       created_at: data.created_at,
+      is_confirm: data.is_confirm,
+      is_delete: data.is_delete,
       good_receipt:
         data.good_receipt == undefined
           ? undefined
@@ -107,7 +116,10 @@ class GoodReceiptModel {
               price: Number(item.price),
               discount: Number(item.discount),
 
-              product: ProductModel.fromMap(item.product),
+              product:
+                item.product == undefined
+                  ? undefined
+                  : ProductModel.fromMap(item.product),
               product_unit:
                 item.product_unit == undefined
                   ? undefined
@@ -128,6 +140,8 @@ class GoodReceiptModel {
       user_good_receipt_code_confirmed_byTouser:
         data.user_good_receipt_code_confirmed_byTouser == undefined
           ? undefined
+          : data.user_good_receipt_code_confirmed_byTouser == null
+          ? null
           : UserViewModel.fromMap(
               data.user_good_receipt_code_confirmed_byTouser
             ),

@@ -34,9 +34,6 @@ router.post(
   body("package_content.*.price")
     .notEmpty()
     .withMessage(ErrorList["Package item price required"]),
-  body("package_content.*.discount")
-    .notEmpty()
-    .withMessage(ErrorList["Package item discount required"]),
   ErrorHelper.intercept,
   productPackageController.create
 );
@@ -51,6 +48,20 @@ router.put(
     .withMessage(ErrorList["Package description required"]),
   ErrorHelper.intercept,
   productPackageController.update
+);
+
+router.put(
+  "/price-sales",
+  body("items").isArray().withMessage(ErrorList["Parameter error"]),
+  body("items.*.package_code_id")
+    .notEmpty()
+    .withMessage(ErrorList["Package ID is required"]),
+  body("items.*.price").notEmpty().withMessage(ErrorList["Price is required"]),
+  body("items.*.price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Price must be numeric"]),
+  ErrorHelper.intercept,
+  productPackageController.updateSalesPrice
 );
 
 router.get(

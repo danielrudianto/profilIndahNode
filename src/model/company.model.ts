@@ -56,4 +56,19 @@ export class CompanyModel {
       this.id = data.id;
     }
   }
+
+  static fromMap(data: any) {
+    return new CompanyModel({
+      name: data.name,
+      address: data.address,
+      npwp: data.npwp,
+      created_by: data.created_by,
+      created_at: data.created_at,
+      is_delete: data.is_delete,
+      updated_by: data.updated_by,
+      updated_at: data.updated_at,
+      deleted_by: data.deleted_by,
+      deleted_at: data.deleted_at,
+    });
+  }
 }

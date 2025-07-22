@@ -13,6 +13,15 @@ import AdjustmentCaseModel from "../model/adjustment-case.model";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
+import { CustomerRepository } from "../repositories/customer.repository";
+import { SalesReturnRepository } from "../repositories/sales-return.repository";
+import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-payment.repository";
+import { SalesDepositPaymentRepository } from "../repositories/sales-deposit-payment.repository";
+import { PaymentMethodRepository } from "../repositories/payment-method.repository";
+import { StockInRepository } from "../repositories/stock-in.repository";
+import { StockOutRepository } from "../repositories/stock-out.repository";
+import { ProductRepository } from "../repositories/product.repository";
+import { StockRepository } from "../repositories/stock.repository";
 
 interface AdministratorDashboard {
   title: string;
@@ -23,21 +32,74 @@ interface AdministratorDashboard {
 }
 
 class ReportController {
-  private salesInvoiceRepository: SalesInvoiceRepository;
-  private promotionRepository: PromotionRepository;
-  private goodReceiptRepository: GoodReceiptRepository;
+  salesInvoiceRepository: SalesInvoiceRepository;
+  promotionRepository: PromotionRepository;
+  goodReceiptRepository: GoodReceiptRepository;
+  customerRepository: CustomerRepository;
+  salesReturnRepository: SalesReturnRepository;
+
+  salesInvoicePaymentRepository: SalesInvoicePaymentRepository;
+  salesDepositPaymentRepository: SalesDepositPaymentRepository;
+
+  paymentMethodRepository: PaymentMethodRepository;
+
+  stockInRepository: StockInRepository;
+  stockOutRepository: StockOutRepository;
+
+  productRepository: ProductRepository;
+  stockRepository: StockRepository;
 
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
     promotionRepository: PromotionRepository,
-    goodReceiptRepository: GoodReceiptRepository
+    goodReceiptRepository: GoodReceiptRepository,
+    customerRepository: CustomerRepository,
+    salesReturnRepository: SalesReturnRepository,
+
+    salesInvoicePaymentRepository: SalesInvoicePaymentRepository,
+    salesDepositPaymentRepository: SalesDepositPaymentRepository,
+
+    paymentMethodRepository: PaymentMethodRepository,
+
+    stockInRepository: StockInRepository,
+    stockOutRepository: StockOutRepository,
+
+    productRepository: ProductRepository,
+    stockRepository: StockRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.promotionRepository = promotionRepository;
     this.goodReceiptRepository = goodReceiptRepository;
+    this.customerRepository = customerRepository;
+    this.salesReturnRepository = salesReturnRepository;
+
+    this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
+    this.salesDepositPaymentRepository = salesDepositPaymentRepository;
+
+    this.paymentMethodRepository = paymentMethodRepository;
+
+    this.stockInRepository = stockInRepository;
+    this.stockOutRepository = stockOutRepository;
+
+    this.productRepository = productRepository;
+    this.stockRepository = stockRepository;
   }
 
-  fetchAdministratorDashboard = (req: Request, res: Response) => {};
+  fetchAdministratorDashboard = (req: Request, res: Response) => {
+    return res.status(200).send({
+      sales: {
+        current: 0,
+        previous: 0,
+      },
+      purchase: {
+        current: 0,
+        previous: 0,
+      },
+      deposit: 0,
+      promotion: 0,
+      receivable: 0,
+    });
+  };
 
   fetchSalesDashboard = async (req: Request, res: Response) => {
     try {
@@ -87,12 +149,12 @@ class ReportController {
 
       return res.status(200).send({
         sales: {
-          current: currentSales,
-          previous: previousSales,
+          current: currentSales.value,
+          previous: previousSales.value,
         },
         sales_month: {
-          current: currentMonth,
-          previous: previousMonth,
+          current: currentMonth.value,
+          previous: previousMonth.value,
         },
         promotion: activePromotion,
       });
@@ -107,6 +169,8 @@ class ReportController {
       const date = new Date();
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
+
+      console.log(yesterday);
 
       const lastMonth = new Date(
         date.getFullYear(),
@@ -135,8 +199,8 @@ class ReportController {
       );
 
       const [
-        currentSales,
-        previousSales,
+        currentPurchase,
+        previousPurchase,
         currentMonth,
         previousMonth,
         activePromotion,
@@ -149,18 +213,191 @@ class ReportController {
       ]);
 
       return res.status(200).send({
-        sales: {
-          current: currentSales,
-          previous: previousSales,
+        purchase: {
+          current: currentPurchase.total,
+          previous: previousPurchase.total,
         },
-        sales_month: {
-          current: currentMonth,
-          previous: previousMonth,
+        purchase_month: {
+          current: currentMonth.total,
+          previous: previousMonth.total,
         },
         promotion: activePromotion,
       });
     } catch (error) {
       console.error(`[error]: Error on fetching sales dashboard ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchSalesReport = async (req: Request, res: Response) => {
+    const month = Number(req.body.month);
+    const year = Number(req.body.year);
+
+    const result = await this.salesInvoiceRepository.fetchByDateRange(
+      new Date(year, month - 1, 1),
+      new Date(year, month, 0)
+    );
+
+    const chart = await this.salesInvoiceRepository.fetchChart(month, year);
+    const brand = await this.salesInvoiceRepository.fetchBestBrand(month, year);
+    const type = await this.salesInvoiceRepository.fetchBestType(month, year);
+    const sales = await this.salesInvoiceRepository.fetchBestSales(month, year);
+
+    return res.status(200).send({
+      salesInvoiceCount: result.salesInvoiceCount,
+      delivery: result.delivery,
+      discount: result.discount,
+      service: result.service,
+      total: result.value + result.delivery + result.service - result.discount,
+      chart: chart,
+      brand: brand,
+      sales: sales,
+      type: type,
+    });
+  };
+
+  fetchPurchaseReport = async (req: Request, res: Response) => {
+    const month = Number(req.body.month);
+    const year = Number(req.body.year);
+
+    const result = await this.goodReceiptRepository.fetchByDateRange(
+      new Date(year, month - 1, 1),
+      new Date(year, month, 0)
+    );
+
+    const chart = await this.goodReceiptRepository.fetchChart(month, year);
+    const brand = await this.goodReceiptRepository.fetchBestBrand(month, year);
+    const type = await this.goodReceiptRepository.fetchBestType(month, year);
+    const supplier = await this.goodReceiptRepository.fetchBestSupplier(
+      month,
+      year
+    );
+
+    return res.status(200).send({
+      total: result.total,
+      goodReceiptCount: result.goodReceiptCount,
+      chart: chart,
+      brand: brand,
+      supplier: supplier,
+      type: type,
+    });
+  };
+
+  fetchMoneyReceipt = async (req: Request, res: Response) => {
+    try {
+      const date = new Date(req.body.date);
+
+      const paymentMethods = await this.paymentMethodRepository.fetchAll();
+      const salesInvoicePayments =
+        await this.salesInvoicePaymentRepository.fetchPaymentsByDate(date);
+      const salesDepositPayments =
+        await this.salesDepositPaymentRepository.fetchPaymentsByDate(date);
+      const salesReturnPayments =
+        await this.salesReturnRepository.fetchPaymentsByDate(date);
+
+      const salesInvoicePaymentIndex = salesInvoicePayments.findIndex(
+        (x) => x.payment_method_id == null
+      );
+      const salesDepositPaymentIndex = salesDepositPayments.findIndex(
+        (x) => x.payment_method_id == null
+      );
+      const salesReturnPaymentIndex = salesReturnPayments.findIndex(
+        (x) => x.payment_method_id == null
+      );
+
+      return res.status(200).send([
+        {
+          id: null,
+          name: "Cash",
+          salesInvoice:
+            salesInvoicePaymentIndex == -1
+              ? 0
+              : salesInvoicePayments[salesInvoicePaymentIndex].value,
+          salesDeposit:
+            salesDepositPaymentIndex == -1
+              ? 0
+              : salesDepositPayments[salesDepositPaymentIndex].value,
+          salesReturn:
+            salesReturnPaymentIndex == -1
+              ? 0
+              : salesReturnPayments[salesReturnPaymentIndex].value,
+        },
+        ...paymentMethods.map((x) => {
+          const salesInvoiceIndex = salesInvoicePayments.findIndex(
+            (y) => y.payment_method_id == x.id
+          );
+          const salesDepositIndex = salesDepositPayments.findIndex(
+            (y) => y.payment_method_id == x.id
+          );
+          const salesReturnIndex = salesReturnPayments.findIndex(
+            (y) => y.payment_method_id == x.id
+          );
+
+          return {
+            id: x.id,
+            name: x.name,
+            salesInvoice:
+              salesInvoiceIndex == -1
+                ? 0
+                : salesInvoicePayments[salesInvoiceIndex].value,
+            salesDeposit:
+              salesDepositIndex == -1
+                ? 0
+                : salesDepositPayments[salesDepositIndex].value,
+            salesReturn:
+              salesReturnIndex == -1
+                ? 0
+                : salesReturnPayments[salesReturnIndex].value,
+          };
+        }),
+      ]);
+    } catch (error) {
+      console.error(`[error]: Error on fetching money receipt ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchInventoryReport = async (req: Request, res: Response) => {
+    try {
+      const result = await this.stockInRepository.calculate();
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching inventory report ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchOutputReport = async (req: Request, res: Response) => {
+    const brand = req.body.brand as number[];
+    const type = req.body.type as number[];
+    const month = req.body.month;
+    const year = req.body.year;
+    const group = req.body.group;
+
+    try {
+      const result = await this.productRepository.fetchOutputReport({
+        month: month,
+        year: year,
+        brand: brand,
+        type: type,
+        group: group,
+      });
+
+      const stock = await this.stockRepository.fetchOutputReport({
+        product_id: result.data.map((x) => {
+          return x.id;
+        }),
+        month: month,
+        year: year,
+      });
+
+      if (group === "brand") {
+      }
+
+      if (group === "type") {
+      }
+    } catch (error) {
+      console.error(`[error]: Error on fetching output report ${error}`);
       return res.status(500).send(error);
     }
   };
@@ -1048,7 +1285,7 @@ class ReportController {
    * @param req
    * @param res
    */
-  static fetchSalesItemReport = (req: Request, res: Response) => {
+  static fetchOutputReport = (req: Request, res: Response) => {
     const brand = req.body.brand as number[];
     const type = req.body.type as number[];
     const month = req.body.month;

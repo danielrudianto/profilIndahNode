@@ -1,3 +1,4 @@
+import { CompanyModel } from "./company.model";
 import ExpenseTypeModel from "./expense.type.model";
 
 export interface IExpense {
@@ -13,6 +14,7 @@ export interface IExpense {
   deleted_by?: number;
   deleted_at?: Date;
   expense_type?: ExpenseTypeModel;
+  company?: CompanyModel;
 }
 
 export class ExpenseModel {
@@ -27,6 +29,8 @@ export class ExpenseModel {
   is_delete?: boolean;
   deleted_by?: number;
   deleted_at?: Date;
+  expense_type?: ExpenseTypeModel;
+  company?: CompanyModel;
 
   constructor(data: IExpense) {
     this.id = data.id;
@@ -40,6 +44,9 @@ export class ExpenseModel {
     this.is_delete = data.is_delete;
     this.deleted_by = data.deleted_by;
     this.deleted_at = data.deleted_at;
+
+    this.expense_type = data.expense_type;
+    this.company = data.company;
   }
 
   static fromMap(data: any): ExpenseModel {

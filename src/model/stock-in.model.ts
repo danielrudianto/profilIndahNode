@@ -11,6 +11,14 @@ export interface IStockIn {
   product_id: number;
 }
 
+export interface IStockInUpdate {
+  good_receipt_id: number | null;
+  good_receipt_code_id: number | null;
+  adjustment_case_id: number | null;
+  adjustment_case_code_id: number | null;
+  price: number;
+}
+
 export class StockInModel {
   id?: number;
   date: Date;

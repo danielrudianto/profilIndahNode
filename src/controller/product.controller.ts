@@ -94,26 +94,29 @@ class ProductController {
   };
 
   updateSalesPrice = async (req: Request, res: Response) => {
-    const productID = req.body.productID;
-    const productUnitID = req.body.productUnitID;
-    const price = req.body.price;
-    const discount = req.body.discount;
+    const items = req.body.items;
 
     try {
-      const result = await this.productRepository.updateSalesPrice({
-        product_id: productID,
-        product_unit_id: productUnitID,
-        price: price,
-        discount: discount,
-      });
+      const result = await this.productRepository.updateSalesPrice(
+        items.map((x: any) => {
+          return {
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
+            price: x.price,
+            discount: x.discount,
+          };
+        })
+      );
 
-      await queue.add("product-updated", {
-        id: productID,
-      });
+      for (let i = 0; i < items.length; i++) {
+        await queue.add("product-updated", {
+          id: items[i].product_id,
+        });
+      }
 
       return res.status(201).send(result);
     } catch (error) {
-      console.error(`[error]: Error on updating sales price ${error}`);
+      console.error(`[error]: Error on updating purchase price ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
@@ -133,9 +136,9 @@ class ProductController {
         })
       );
 
-      for (let i = 0; i < items.length; i++) {
+      for (const item of items) {
         await queue.add("product-updated", {
-          id: items[i].product_id,
+          id: item.product_id,
         });
       }
 

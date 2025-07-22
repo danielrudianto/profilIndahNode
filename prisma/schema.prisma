@@ -24,6 +24,7 @@ model payment_method {
   sales_return_code                    sales_return_code[]
   sales_invoice_payment                sales_invoice_payment[]
   deposit_payment                      deposit_payment[]
+  overpayment                          overpayment[]
 
   @@index([created_by], map: "payment_method_ibfk_1_idx")
   @@index([deleted_by], map: "payment_method_ibfk_2_idx")
@@ -96,6 +97,7 @@ model user {
   deposit_code                                                 deposit_code[]
   user_avatar                                                  user_avatar?
   notification                                                 notification[]
+  overpayment_code                                             overpayment_code[]
 
   @@index([created_by], map: "user_ibfk_1_idx")
   @@index([deleted_by], map: "user_ibfk_2_idx")
@@ -172,6 +174,7 @@ model sales_invoice_code {
   sales_invoice_payment             sales_invoice_payment[]
   stock_out                         stock_out[]
   stock_card                        stock_card[]
+  overpayment_code                  overpayment_code[]
 
   @@index([created_by], map: "bill_code_ibfk_1_idx")
   @@index([confirmed_by], map: "bill_code_ibfk_2_idx")
@@ -191,20 +194,20 @@ model sales_invoice_payment {
 
 model deposit {
   id              Int           @id @default(autoincrement())
-  item_id         Int?
-  item_unit_id    Int?
+  product_id      Int?
+  product_unit_id Int?
   price           Decimal       @db.Decimal(50, 4)
   discount        Decimal       @db.Decimal(50, 4)
   quantity        Decimal       @db.Decimal(50, 4)
   deposit_code_id Int
   deposit_code    deposit_code  @relation(fields: [deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_1")
-  product         product?      @relation(fields: [item_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_2")
-  product_unit    product_unit? @relation(fields: [item_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_3")
+  product         product?      @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_2")
+  product_unit    product_unit? @relation(fields: [product_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_ibfk_3")
   is_delete       Boolean       @default(false)
 
   @@index([deposit_code_id], map: "deposit_ibfk_1_idx")
-  @@index([item_unit_id], map: "deposit_ibfk_3_idx")
-  @@index([item_id], map: "item_id")
+  @@index([product_unit_id], map: "deposit_ibfk_3_idx")
+  @@index([product_id], map: "product_id")
 }
 
 model deposit_code {
@@ -294,6 +297,7 @@ model customer {
   draft_bill_code                draft_bill_code[]
   deposit_code                   deposit_code[]
   stock_card                     stock_card[]
+  overpayment_code               overpayment_code[]
 
   @@index([name, address, pic, phone_number, npwp], map: "customer_fulltext")
   @@index([created_by], map: "customer_ibfk_1_idx")
@@ -351,7 +355,6 @@ model good_receipt {
   good_receipt_code_id Int
   price                Decimal @db.Decimal(12, 2)
   discount             Decimal @db.Decimal(12, 2)
-  net_price            Decimal @default(0.00) @db.Decimal(12, 2)
   product_unit_id      Int?
 
   good_receipt_code good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_1")
@@ -553,6 +556,7 @@ model product_unit {
   draft_bill                      draft_bill[]
   package_content                 package_content[]
   deposit                         deposit[]
+  stock_card                      stock_card[]
 
   @@index([product_id], map: "product_id")
   @@index([deleted_by], map: "deleted_by")
@@ -584,15 +588,15 @@ model product_type {
 
 model sales_return {
   id                   Int               @id @default(autoincrement())
-  bill_id              Int
+  sales_invoice_id     Int
   quantity             Decimal           @db.Decimal(12, 2)
   sales_return_code_id Int
-  sales_invoice        sales_invoice     @relation(fields: [bill_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "sales_return_ibfk_1")
+  sales_invoice        sales_invoice     @relation(fields: [sales_invoice_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "sales_return_ibfk_1")
   sales_return_code    sales_return_code @relation(fields: [sales_return_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "sales_return_ibfk_2")
   stock_card           stock_card[]
 
   @@index([sales_return_code_id], map: "sales_return_ibfk_12_idx")
-  @@index([bill_id], map: "sales_return_ibfk_1_idx")
+  @@index([sales_invoice_id], map: "sales_return_ibfk_1_idx")
 }
 
 model sales_return_code {
@@ -638,7 +642,6 @@ model package_content {
   product_unit_id Int?
   quantity        Int
   price           Decimal @db.Decimal(12, 2)
-  discount        Decimal @db.Decimal(12, 2)
   package_code_id Int
 
   product      product       @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "package_ibfk_2")
@@ -778,13 +781,14 @@ model stock_out {
 model stock_card {
   id               Int      @id @default(autoincrement())
   product_id       Int
+  product_unit_id  Int?
   quantity         Decimal  @db.Decimal(12, 2)
   display_quantity Decimal  @db.Decimal(12, 2)
-  unit             String   @db.VarChar(45)
   date             DateTime @db.Date
   customer_id      Int?
   supplier_id      Int?
   document_name    String?  @db.VarChar(100)
+  stock            Decimal? @db.Decimal(12, 2)
 
   customer customer? @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_card_ibfk_1")
   supplier supplier? @relation(fields: [supplier_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_card_ibfk_2")
@@ -809,7 +813,8 @@ model stock_card {
   sales_return_code_id Int?
   sales_return_code    sales_return_code? @relation(fields: [sales_return_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_card_ibfk_11")
 
-  product product @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "stock_card_ibfk_9")
+  product      product       @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  product_unit product_unit? @relation(fields: [product_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
 model notification {
@@ -821,4 +826,32 @@ model notification {
 
   // user relation
   user_notification_created_byTouser user @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "notification_ibfk_1")
+}
+
+model overpayment_code {
+  id                    Int      @id @default(autoincrement())
+  customer_id           Int
+  date                  DateTime
+  payment_method_id     Int?
+  sales_invoice_code_id Int
+  return_payment_method String
+  return_payment_number String?
+  return_date           DateTime
+  created_by            Int
+  created_at            DateTime @default(now()) @db.DateTime(0)
+  is_resolved           Boolean  @default(false)
+
+  customer                          customer           @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk1")
+  sales_invoice_code                sales_invoice_code @relation(fields: [sales_invoice_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk3")
+  user_overpayment_created_byTouser user               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk4")
+  overpayment                       overpayment[]
+}
+
+model overpayment {
+  id                  Int              @id @default(autoincrement())
+  amount              Decimal          @db.Decimal(12, 2)
+  payment_method_id   Int?
+  overpayment_code    overpayment_code @relation(fields: [overpayment_code_id], references: [id])
+  payment_method      payment_method?  @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  overpayment_code_id Int
 }

@@ -1,0 +1,88 @@
+import { queue } from "../helper/queue.helper";
+import { StockCardRepository } from "../repositories/stock-card.repository";
+
+export class StockCardService {
+  private stockCardRepository: StockCardRepository;
+
+  constructor(stockCardRepository: StockCardRepository) {
+    this.stockCardRepository = stockCardRepository;
+  }
+
+  async update(id: number) {
+    try {
+      const stockCard = await this.stockCardRepository.fetchByID(id);
+      if (!stockCard) {
+        throw new Error("Stock card not found");
+      }
+
+      const previous = await this.stockCardRepository.fetchPrevious({
+        product_id: stockCard.product_id,
+        date: new Date(stockCard.date),
+        id: id,
+      });
+
+      if (previous == null) {
+        await this.stockCardRepository.reorderSince({
+          product_id: stockCard.product_id,
+          id: id,
+          initial_stock: 0,
+          date: new Date(stockCard.date),
+        });
+      } else {
+        const runningStock = previous.stock!;
+        await this.stockCardRepository.reorderSince({
+          product_id: stockCard.product_id,
+          id: id,
+          initial_stock: runningStock,
+          date: new Date(stockCard.date),
+        });
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async delete(data: {
+    sales_invoice_id: number | null;
+    sales_invoice_code_id: number | null;
+    good_receipt_id: number | null;
+    good_receipt_code_id: number | null;
+    adjustment_case_id: number | null;
+    adjustment_case_code_id: number | null;
+    sales_return_id: number | null;
+    sales_return_code_id: number | null;
+  }) {
+    console.log(data);
+    const stockCard = await this.stockCardRepository.fetch(data);
+    if (!stockCard) {
+      throw new Error("Stock card not found");
+    }
+
+    const id = stockCard.id;
+
+    const previous = await this.stockCardRepository.fetchPrevious({
+      product_id: stockCard.product_id,
+      date: new Date(stockCard.date),
+      id: id!,
+    });
+
+    await this.stockCardRepository.delete(id!);
+
+    if (previous == null) {
+      await this.stockCardRepository.reorderSince({
+        product_id: stockCard.product_id,
+        id: id!,
+        initial_stock: 0,
+        date: new Date(stockCard.date),
+      });
+    } else {
+      const runningStock = previous.stock!;
+      await this.stockCardRepository.reorderSince({
+        product_id: stockCard.product_id,
+        id: id!,
+        initial_stock: runningStock,
+        date: new Date(stockCard.date),
+      });
+    }
+  }
+}

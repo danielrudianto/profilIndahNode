@@ -184,13 +184,10 @@ export class CustomerRepository {
 
     // Execute queries in a transaction
     try {
-      const startTime = Date.now();
       const [result, count] = await this.prisma.$transaction([
         this.prisma.$queryRawUnsafe<any[]>(customerQuery),
         this.prisma.customer.count(countQuery),
       ]);
-      const endTime = Date.now();
-      console.log(`[debug]: Fetching customers took ${endTime - startTime} ms`);
 
       return {
         data: result.map((x) => {

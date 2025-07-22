@@ -1,18 +1,32 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import {
-  mysql_real_escape_string,
-  translateKeyword,
-  translatePage,
-} from "../helper/escape.helper";
+import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
-import AdjustmentCaseModel from "../model/adjustment-case.model";
 import { AdjustmentCaseRepository } from "../repositories/adjustment-case.repository";
+import { StockCardRepository } from "../repositories/stock-card.repository";
+import { StockInRepository } from "../repositories/stock-in.repository";
+import { StockOutRepository } from "../repositories/stock-out.repository";
+import { StockRepository } from "../repositories/stock.repository";
 
 class AdjustmentCaseController {
   private adjustmentCaseRepository: AdjustmentCaseRepository;
-  constructor(adjustmentCaseRepository: AdjustmentCaseRepository) {
+  private stockRepository: StockRepository;
+  private stockInRepository: StockInRepository;
+  private stockOutRepository: StockOutRepository;
+  private stockCardRepository: StockCardRepository;
+
+  constructor(
+    adjustmentCaseRepository: AdjustmentCaseRepository,
+    stockRepository: StockRepository,
+    stockInRepository: StockInRepository,
+    stockOutRepository: StockOutRepository,
+    stockCardRepository: StockCardRepository
+  ) {
     this.adjustmentCaseRepository = adjustmentCaseRepository;
+    this.stockRepository = stockRepository;
+    this.stockInRepository = stockInRepository;
+    this.stockOutRepository = stockOutRepository;
+    this.stockCardRepository = stockCardRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -21,10 +35,9 @@ class AdjustmentCaseController {
     const companyID = req.body.company_id;
     const userID = req.body.userId;
     const type = req.body.type;
+    const adjustment_case = req.body.adjustment_case;
 
     if (type == 0 && companyID == null) {
-      // If the type is found but the company is somewhat not selected
-      // Return an error
       return res.status(400).send(ErrorList["Parameter error"]);
     }
 
@@ -36,7 +49,7 @@ class AdjustmentCaseController {
         created_by: userID,
         created_at: new Date(),
         company_id: companyID,
-        adjustment_case: req.body.adjustment_case.map((x: any) => {
+        adjustment_case: adjustment_case.map((x: any) => {
           return {
             product_id: x.product_id,
             product_unit_id: x.product_unit_id,
@@ -86,8 +99,87 @@ class AdjustmentCaseController {
 
       const result = await this.adjustmentCaseRepository.approve(id, userID);
 
-      await queue.add("adjustment-case-approved", {
-        id: result.id,
+      await this.stockRepository.updateMany(
+        result.adjustment_case.map((x) => {
+          return {
+            productID: x.product_id,
+            quantity:
+              x.quantity *
+              (x.product_unit == null ? 1 : x.product_unit.conversion),
+          };
+        })
+      );
+
+      const type = this.checkType(result.adjustment_case);
+
+      if (type == 0) {
+        await this.stockInRepository.createMany(
+          result.adjustment_case.map((x) => {
+            return {
+              date: result.date,
+              product_id: x.product_id,
+              quantity:
+                x.quantity *
+                (x.product_unit == null ? 1 : x.product_unit.conversion),
+              price: 0,
+              adjustment_case_code_id: result.id!,
+              adjustment_case_id: x.id!,
+              good_receipt_code_id: null,
+              good_receipt_id: null,
+              company_id: result.company_id!,
+            };
+          })
+        );
+      } else {
+        await this.stockOutRepository.create(
+          result.adjustment_case.map((x) => {
+            return {
+              date: result.date,
+              product_id: x.product_id,
+              quantity:
+                x.quantity *
+                (x.product_unit == null ? 1 : x.product_unit.conversion),
+              adjustment_case_code_id: result.id!,
+              adjustment_case_id: x.id!,
+              sales_invoice_code_id: null,
+              sales_invoice_id: null,
+              price: 0,
+              stock_in_id: null,
+            };
+          })
+        );
+      }
+
+      const stockCardResult = await this.stockCardRepository.createMany(
+        result.adjustment_case!.map((x) => {
+          return {
+            document_name: result.name,
+            customer_id: null,
+            supplier_id: null,
+            date: result.date,
+            good_receipt_id: null,
+            good_receipt_code_id: null,
+            adjustment_case_code_id: result.id!,
+            adjustment_case_id: x.id!,
+            sales_invoice_code_id: null,
+            sales_invoice_id: null,
+            sales_return_code_id: null,
+            sales_return_id: null,
+            quantity:
+              x.quantity *
+              (x.product_unit_id == null ? 1 : x.product_unit!.conversion),
+            display_quantity: x.quantity,
+            stock: null,
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
+          };
+        })
+      );
+
+      stockCardResult.forEach(async (x) => {
+        await queue.add("stock-card-inserted", {
+          id: x.id,
+        });
       });
 
       return res.status(201).send(adjustmentCase);
@@ -96,6 +188,21 @@ class AdjustmentCaseController {
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
+
+  private checkType(data: any[]) {
+    const allPositive = data.every((x) => x.quantity > 0);
+    const allNegative = data.every((x) => x.quantity < 0);
+
+    if (allPositive) {
+      return 0;
+    }
+
+    if (allNegative) {
+      return 1;
+    }
+
+    return null;
+  }
 
   reject = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
@@ -168,193 +275,114 @@ class AdjustmentCaseController {
     }
   };
 
-  static fetchArchives = (req: Request, res: Response) => {
-    const year = req.body.year;
-    const month = req.body.month;
-
-    if (year == null) {
-      AdjustmentCaseModel.fetchArchiveYears()
-        .then((result) => {
-          return res.status(200).send(
-            result
-              .map((x) => {
-                return {
-                  year: x.year,
-                  count: parseInt(x.count.toString()),
-                };
-              })
-              .sort((a, b) => {
-                return a.year - b.year;
-              })
-          );
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching adjustment case: ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    } else if (year != null && month == null) {
-      AdjustmentCaseModel.fetchArchiveMonths(year)!
-        .then((result) => {
-          const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-          result.forEach((x) => {
-            response[x.month - 1] = parseInt(x.count.toString());
-          });
-          return res.status(200).send(response);
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching adjustment case: ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    } else {
-      const page = req.body.limit.page;
-      req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
-      const keyword = req.body.search.keyword;
-      const mode = req.body.mode;
-
-      AdjustmentCaseModel.fetchArchive({
-        year: year,
-        month: month,
-        keyword: mysql_real_escape_string(keyword),
-        limit: 10,
-        offset: (page - 1) * 10,
-        mode: mode,
-      })!
-        .then((result) => {
-          return res.status(200).send({
-            data: result[0].map((x) => {
-              return {
-                id: x.id,
-                name: x.name,
-                date: x.date,
-                is_delete: x.is_delete == 1,
-                is_confirm: x.is_confirm == 1,
-                company_name: x.company_name,
-              };
-            }),
-            count:
-              result[1] == null || result[1].length == 0
-                ? 0
-                : parseInt(result[1][0].count.toString()),
-          });
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching adjustment case: ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    }
-  };
-
   fetchArchives = async (req: Request, res: Response) => {
-    const year = req.body.year;
-    const month = req.body.month;
-    if (month == null && year == null) {
+    const yearQuery = req.query.year;
+    const monthQuery = req.query.month;
+
+    if (!monthQuery && !yearQuery) {
       try {
         const result =
           await this.adjustmentCaseRepository.fetchAnnualArchives();
         return res.status(200).send(result);
       } catch (error) {
-        console.error(`[error]: Error on fetching adjustment case: ${error}`);
+        console.error(`[error]: Error on fetching annual archives ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);
       }
     }
 
-    if (year != null && month == null) {
-      const numberedYear = Number(year);
-      try {
-        const result = await this.adjustmentCaseRepository.fetchMonthlyArchives(
-          numberedYear
-        );
-        return res.status(200).send(result);
-      } catch (error) {
-        console.error(`[error]: Error on fetching adjustment case: ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      }
-    }
+    const keyword = translateKeyword(req.body.keyword);
+    const page = translatePage(req.body.page);
+    const pageSize = Number(process.env.LIMIT!);
+    const month = Number(monthQuery);
+    const year = Number(yearQuery);
 
-    if (year != null && month != null) {
-      const keyword = translateKeyword(req.body.keyword);
-      const page = translatePage(req.body.page);
-      const status = req.body.status;
-      const startDate = req.body.startDate;
-      const endDate = req.body.endDate;
-      const type = req.body.type;
-      const pageSize = Number(process.env.LIMIT!);
+    const startDate = req.query.startDate
+      ? new Date(req.query.startDate.toString())
+      : undefined;
+    const endDate = req.query.endDate
+      ? new Date(req.query.endDate.toString())
+      : undefined;
 
-      // const result = await this.adjustmentCaseRepository.fetchArchives({
-      //   page: page,
-      //   pageSize: pageSize,
-      //   keyword: keyword,
-      // });
-    }
-  };
+    try {
+      const result = await this.adjustmentCaseRepository.fetchArchives({
+        month: month,
+        year: year,
+        keyword: keyword,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        is_active: true,
+        is_delete: true,
+      });
 
-  static fetchArchivesV2 = (req: Request, res: Response) => {
-    const year = req.body.year;
-    const month = req.body.month;
+      console.log(result);
 
-    if (year == null && month == null) {
-      AdjustmentCaseModel.fetchArchiveYearsV2()!
-        .then((result) => {
-          return res.status(200).send(
-            result.map((x) => {
-              return {
-                year: x.year,
-                month: x.month,
-                count: Number(x.count.toString().replace("n", "")),
-              };
-            })
-          );
-        })
-        .catch((error) => {
-          console.error(`[error]: Error on fetching adjustment case: ${error}`);
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
-    } else {
-      const keyword = req.body.keyword;
-      const page = req.body.page ?? 1;
-      const status = req.body.status;
-      const startDate = req.body.startDate;
-      const endDate = req.body.endDate;
-      const type = req.body.type;
-      AdjustmentCaseModel.fetchArchiveV2({
-        year: Number(year),
-        month: Number(month),
-        mode: status,
-        status: status,
-        limit: 20,
-        offset: (page - 1) * 20,
-        keyword: mysql_real_escape_string(keyword ?? ""),
-        startDate: startDate,
-        endDate: endDate,
-        type: type,
-      })!
-        .then(([result, count]) => {
-          return res.status(200).send({
-            data: result.map((x) => {
-              return {
-                id: x.id,
-                name: x.name,
-                date: x.date,
-                is_delete: x.is_delete == 1,
-                is_confirm: x.is_confirm == 1,
-                company_name: x.company_name,
-                type: x.type.toString().replace("n", ""),
-              };
-            }),
-            count:
-              count == null || count.length == 0
-                ? 0
-                : parseInt(count[0].count.toString().replace("n", "")),
-          });
-        })
-        .catch((error) => {
-          console.error(
-            `[error]: Error on fetching adjustment archive ${error}`
-          );
-          return res.status(500).send(ErrorList["Internal server error"]);
-        });
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching archives ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
+
+  // static fetchArchivesV2 = (req: Request, res: Response) => {
+  //   const year = req.body.year;
+  //   const month = req.body.month;
+
+  //   if (year == null && month == null) {
+  //     AdjustmentCaseModel.fetchArchiveYearsV2()!
+  //       .then((result) => {
+  //         return res.status(200).send(
+  //           result.map((x) => {
+  //             return {
+  //               year: x.year,
+  //               month: x.month,
+  //               count: Number(x.count.toString().replace("n", "")),
+  //             };
+  //           })
+  //         );
+  //       })
+  //       .catch((error) => {
+  //         console.error(`[error]: Error on fetching adjustment case: ${error}`);
+  //         return res.status(500).send(ErrorList["Internal server error"]);
+  //       });
+  //   } else {
+  //     const keyword = translateKeyword(req.body.keyword);
+  //     const page = translatePage(req.body.page);
+  //     const limit = Number(process.env.LIMIT!);
+
+  //     AdjustmentCaseModel.fetchArchiveV2({
+  //       year: Number(year),
+  //       month: Number(month),
+  //       limit: limit,
+  //       offset: (page - 1) * limit,
+  //       keyword: keyword,
+  //     })!
+  //       .then(([result, count]) => {
+  //         return res.status(200).send({
+  //           data: result.map((x) => {
+  //             return {
+  //               id: x.id,
+  //               name: x.name,
+  //               date: x.date,
+  //               is_delete: x.is_delete == 1,
+  //               is_confirm: x.is_confirm == 1,
+  //               company_name: x.company_name,
+  //               type: x.type.toString().replace("n", ""),
+  //             };
+  //           }),
+  //           count:
+  //             count == null || count.length == 0
+  //               ? 0
+  //               : parseInt(count[0].count.toString().replace("n", "")),
+  //         });
+  //       })
+  //       .catch((error) => {
+  //         console.error(
+  //           `[error]: Error on fetching adjustment archive ${error}`
+  //         );
+  //         return res.status(500).send(ErrorList["Internal server error"]);
+  //       });
+  //   }
+  // };
 
   static deleteByID = (req: Request, res: Response) => {
     // const id = parseInt(req.params.id);

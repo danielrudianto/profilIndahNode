@@ -11,6 +11,10 @@ import { ProductBrandService } from "./services/product-brand.service";
 import { GoodReceiptService } from "./services/good-receipt.service";
 import { GoodReceiptRepository } from "./repositories/good-receipt.repository";
 import { StockInRepository } from "./repositories/stock-in.repository";
+import { ProductPackageService } from "./services/package.service";
+import { ProductPackageRepository } from "./repositories/product-package.repository";
+import { StockCardService } from "./services/stock-card.service";
+import { StockCardRepository } from "./repositories/stock-card.repository";
 
 const workerOptions = {
   connection: {
@@ -42,6 +46,12 @@ const goodReceiptService = new GoodReceiptService(
   new StockInRepository(prisma)
 );
 
+const productPackageService = new ProductPackageService(
+  new ProductPackageRepository(prisma)
+);
+
+const stockCardService = new StockCardService(new StockCardRepository(prisma));
+
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
@@ -60,6 +70,14 @@ const workerHandler = async (job: Job<any>) => {
     case "good-receipt-created":
       await goodReceiptService.create(job.data.id);
       break;
+    case "package-updated":
+      await productPackageService.update(job.data.id);
+      break;
+    case "stock-card-inserted":
+      await stockCardService.update(job.data.id);
+      break;
+    case "stock-card-deleted":
+      await stockCardService.delete(job.data);
     // console.log("product created!!");
     // case "updateItem":
     //   const item = job.data;

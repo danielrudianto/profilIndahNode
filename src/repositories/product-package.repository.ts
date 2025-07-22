@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { IPackageCode, PackageCodeModel } from "../model/product-package.model";
+import {
+  IPackageCode,
+  IPackagePrice,
+  PackageCodeModel,
+} from "../model/product-package.model";
 import { ProductUnitModel } from "../model/product-unit.model";
 import { ProductModel } from "../model/product.model";
 
@@ -82,6 +86,30 @@ export class ProductPackageRepository {
     }
   }
 
+  async updateSalesPrice(data: IPackagePrice[]) {
+    try {
+      const updateData = [];
+      for (let i = 0; i < data.length; i++) {
+        const item = data[i];
+        updateData.push(
+          this.prisma.package_code.update({
+            where: {
+              id: item.package_code_id,
+            },
+            data: {
+              price: item.price,
+            },
+          })
+        );
+      }
+
+      // prisma transaction
+      await this.prisma.$transaction(updateData);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async delete(id: number, userID: number) {
     // First get the package code by ID
     try {
@@ -130,5 +158,22 @@ export class ProductPackageRepository {
       );
       throw error;
     }
+  }
+
+  async fetchAll(): Promise<PackageCodeModel[]> {
+    const result = await this.prisma.package_code.findMany({
+      include: {
+        package_content: {
+          include: {
+            product: true,
+            product_unit: true,
+          },
+        },
+      },
+    });
+
+    return result.map((x) => {
+      return PackageCodeModel.fromMap(x);
+    });
   }
 }

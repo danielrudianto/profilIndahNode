@@ -1,26 +1,30 @@
 import { PrismaClient } from "@prisma/client";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import DepositModel, { IDepositCode } from "../model/deposit.model";
+import {
+  ISalesDepositCode,
+  SalesDepositModel,
+} from "../model/sales-deposit.model";
 
-export class DepositRepository {
+export class SalesDepositRepository {
   private prisma: PrismaClient;
 
   constructor(prisma: any) {
     this.prisma = prisma;
   }
 
-  async create(data: IDepositCode) {
+  async create(data: ISalesDepositCode) {
     try {
       const result = await this.prisma.deposit_code.create({
         data: {
           uuid: data.uuid,
           name: data.name,
           date: data.date,
-          created_by: data.created_by!,
-          created_at: data.created_at!,
+          created_by: data.createdBy!,
+          created_at: data.createdAt!,
           is_delete: false,
           deleted_at: null,
           deleted_by: null,
+          type: data.type,
           deposit: {
             createMany: {
               data: data.deposit.map((x) => {
@@ -30,6 +34,17 @@ export class DepositRepository {
                   quantity: x.quantity,
                   price: x.price,
                   discount: x.discount,
+                };
+              }),
+            },
+          },
+          deposit_payment: {
+            createMany: {
+              data: data.deposit_payment.map((x) => {
+                return {
+                  payment_method_id: x.payment_method_id,
+                  value: x.value,
+                  date: x.date,
                 };
               }),
             },
@@ -45,7 +60,7 @@ export class DepositRepository {
         },
       });
 
-      return DepositModel.fromMap(result);
+      return SalesDepositModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error while creating deposit: ${error}`);
       throw new Error("Internal server error");
@@ -68,12 +83,12 @@ export class DepositRepository {
     try {
       // fetch the sums
       const deposits = await this.prisma.deposit.groupBy({
-        by: ["item_id"],
+        by: ["product_id"],
         _sum: {
           quantity: true,
         },
         where: {
-          item_id: {
+          product_id: {
             in: productID,
           },
           is_delete: false,
@@ -81,15 +96,15 @@ export class DepositRepository {
       });
 
       const response: {
-        item_id: number;
+        product_id: number;
         quantity: number;
       }[] = [];
 
       for (let i = 0; i < productID.length; i++) {
-        const itemID = productID[i];
-        const deposit = deposits.find((d) => d.item_id === itemID);
+        const product = productID[i];
+        const deposit = deposits.find((d) => d.product_id === product);
         response.push({
-          item_id: itemID,
+          product_id: product,
           quantity: deposit ? Number(deposit) : 0,
         });
       }
@@ -103,7 +118,9 @@ export class DepositRepository {
     }
   }
 
-  async fetch(data: IFetchCommon): Promise<IFetchCommonResult<DepositModel>> {
+  async fetch(
+    data: IFetchCommon
+  ): Promise<IFetchCommonResult<SalesDepositModel>> {
     try {
       const result = await this.prisma.deposit.findMany({
         where: {
@@ -127,7 +144,7 @@ export class DepositRepository {
       });
 
       return {
-        data: result.map((x) => DepositModel.fromMap(x)),
+        data: result.map((x) => SalesDepositModel.fromMap(x)),
         count: totalCount,
       };
     } catch (error) {
@@ -153,7 +170,7 @@ export class DepositRepository {
         return null;
       }
 
-      return DepositModel.fromMap(result);
+      return SalesDepositModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error on fetching deposit by ID ${error}`);
       throw new Error("Internal server error");

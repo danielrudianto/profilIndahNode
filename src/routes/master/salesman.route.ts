@@ -15,14 +15,13 @@ router.post(
   ErrorHelper.intercept,
   salesmanController.createSalesman
 );
-
 router.post(
   "/delete",
   body("name").notEmpty().withMessage(ErrorList["Salesman name required"]),
   ErrorHelper.intercept,
   salesmanController.deleteSalesman
 );
-
 router.get("/", salesmanController.fetch);
+router.get("/all", salesmanController.fetchAll);
 
 export default router;

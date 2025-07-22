@@ -81,3 +81,8 @@ export class PackageCodeModel {
     });
   }
 }
+
+export interface IPackagePrice {
+  package_code_id: number;
+  price: number;
+}

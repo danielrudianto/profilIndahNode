@@ -36,6 +36,20 @@ export class PaymentMethodModel {
     this.deleted_at = data.deleted_at;
     this.can_delete = data.can_delete;
   }
+
+  static fromMap(data: any) {
+    return new PaymentMethodModel({
+      id: data.id,
+      name: data.name,
+      description: data.description,
+      created_by: data.created_by,
+      created_at: new Date(data.created_at),
+      is_delete: data.is_delete,
+      deleted_by: data.deleted_by,
+      deleted_at: new Date(data.deleted_at),
+      can_delete: data.can_delete ?? false,
+    });
+  }
 }
 
 interface IPaymentMethodView {

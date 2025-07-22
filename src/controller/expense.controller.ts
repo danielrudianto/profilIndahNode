@@ -99,19 +99,23 @@ class ExpenseController {
   };
 
   fetch = async (req: Request, res: Response) => {
-    const year = Number(req.params.year);
-    const month = Number(req.params.month);
-    const page = translatePage(req.query.page);
-    const pageSize = Number(process.env.LIMIT);
+    try {
+      const year = Number(req.query.year);
+      const month = Number(req.query.month);
+      const page = translatePage(req.query.page);
+      const pageSize = Number(process.env.LIMIT);
 
-    const result = await this.expenseRepository.fetch({
-      year: year,
-      month: month,
-      page: page,
-      pageSize: pageSize,
-    });
+      const result = await this.expenseRepository.fetch({
+        year: year,
+        month: month,
+        page: page,
+        pageSize: pageSize,
+      });
 
-    return result;
+      return res.status(200).send(result);
+    } catch (error) {
+      return res.status(500).send(error);
+    }
   };
 
   fetchByID = async (req: Request, res: Response) => {

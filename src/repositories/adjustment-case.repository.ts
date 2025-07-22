@@ -3,6 +3,7 @@ import AdjustmentCaseModel, {
   IAdjustmentCaseCode,
 } from "../model/adjustment-case.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+import { IFetchArchive } from "../interface/archive.interface";
 
 export class AdjustmentCaseRepository {
   private prisma: PrismaClient;
@@ -140,36 +141,101 @@ export class AdjustmentCaseRepository {
   }
 
   async fetchAnnualArchives() {
-    const result = await this.prisma.$queryRaw<
-      { year: number; count: number }[]
-    >`
-      SELECT YEAR(date) AS year, COUNT(*) AS count
-      FROM adjustment_case_code
-      GROUP BY YEAR(date)
-      ORDER BY YEAR(date) DESC
-    `;
+    try {
+      const result = await this.prisma.$queryRaw<
+        { year: number; month: number; count: BigInt }[]
+      >`
+        SELECT 
+          EXTRACT(YEAR FROM date) AS year,
+          EXTRACT(MONTH FROM date) AS month,
+          COUNT(id) AS count
+        FROM adjustment_case_code
+        GROUP BY month, year
+        ORDER BY date DESC;
+      `;
 
-    return result.map((x) => ({
-      year: x.year,
-      count: x.count,
-    }));
+      const years = Array.from(new Set(result.map((x) => x.year)));
+
+      const filled = years.flatMap((year) =>
+        Array.from({ length: 12 }, (_, i) => {
+          const month = i + 1;
+          const found = result.find(
+            (x) => x.year === year && x.month === month
+          );
+          return {
+            year: year,
+            month: month,
+            count: found ? Number(found.count) : 0,
+          };
+        })
+      );
+
+      return filled;
+    } catch (error) {
+      console.error(`[error]: Error while fetching annual archives: ${error}`);
+      throw new Error("Internal server error");
+    }
   }
 
-  async fetchMonthlyArchives(year: number) {
-    const result = await this.prisma.$queryRaw<
-      { month: number; count: number }[]
-    >`
-      SELECT MONTH(date) AS month, COUNT(*) AS count
-      FROM adjustment_case_code
-      WHERE YEAR(date) = ${year}
-      GROUP BY MONTH(date)
-      ORDER BY MONTH(date) DESC
-    `;
+  async fetchArchives(data: IFetchArchive) {
+    try {
+      const [result, count] = await this.prisma.$transaction([
+        this.prisma.adjustment_case_code.findMany({
+          where: {
+            OR: [
+              {
+                name: {
+                  contains: data.keyword,
+                },
+              },
+            ],
+            AND: [
+              {
+                date: {
+                  gte: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lte: new Date(data.year, data.month, 0),
+                },
+              },
+            ],
+          },
+          include: {
+            company: true,
+          },
+          take: data.limit,
+          skip: data.offset,
+          orderBy: {
+            date: "desc",
+          },
+        }),
+        this.prisma.adjustment_case_code.count({
+          where: {
+            AND: [
+              {
+                date: {
+                  gte: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lte: new Date(data.year, data.month, 0),
+                },
+              },
+            ],
+          },
+        }),
+      ]);
 
-    return result.map((x) => ({
-      month: x.month,
-      count: x.count,
-    }));
+      return {
+        data: result,
+        count: count,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
 
   async approve(id: number, userID: number) {

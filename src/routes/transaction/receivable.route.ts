@@ -3,8 +3,17 @@ import ReceivableController from "../../controller/receivable.controller";
 import { param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import ErrorHelper from "../../helper/error.helper";
+import { ReceivableRepository } from "../../repositories/receivable.repository";
+import { redisClient } from "../../helper/redis.helper";
+import { prisma } from "../../helper/database.helper";
 
 const router = Router();
+
+const receivableController = new ReceivableController(
+  new ReceivableRepository(redisClient, prisma)
+);
+
+router.get("/", receivableController.fetch);
 
 router.get("/history/:id", ReceivableController.fetchPaymentsHistory);
 router.get(

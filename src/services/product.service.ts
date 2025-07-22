@@ -86,4 +86,13 @@ export class ProductService {
       throw new Error("Failed to delete product in search index");
     }
   }
+
+  async fetchAll() {
+    try {
+      const products = await this.productRepository.fetchAll();
+      return products;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

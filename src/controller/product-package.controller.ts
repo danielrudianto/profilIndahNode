@@ -2,10 +2,10 @@ import { Request, Response } from "express";
 import { meili } from "../helper/meili.helper";
 import ErrorList from "../assets/error_list";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
-import { queue } from "../helper/queue.helper";
 import SocketHelper from "../helper/socket.helper";
 import { PackageCodeModel } from "../model/product-package.model";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
+import { queue } from "../helper/queue.helper";
 
 class ProductPackageController {
   private productPackageRepository: ProductPackageRepository;
@@ -34,12 +34,9 @@ class ProductPackageController {
             product_unit_id: x.product_unit_id,
             quantity: x.quantity,
             price: x.price,
-            discount: x.discount,
           };
         }),
       });
-
-      console.log(JSON.stringify(result));
 
       await meili.index("package").addDocuments([result]);
 
@@ -58,6 +55,11 @@ class ProductPackageController {
     const userID = req.body.userId;
 
     try {
+      const productPackage = await this.productPackageRepository.fetchByID(id);
+      if (!productPackage) {
+        return res.status(404).send(ErrorList["Product package not found"]);
+      }
+
       const result = await this.productPackageRepository.update({
         id: id,
         name: name,
@@ -70,6 +72,24 @@ class ProductPackageController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on updating product package: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  updateSalesPrice = async (req: Request, res: Response) => {
+    try {
+      const items = req.body.items;
+      const result = await this.productPackageRepository.updateSalesPrice(
+        items
+      );
+
+      for (let item of items) {
+        await queue.add("package-updated", { id: item.package_code_id });
+      }
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error updating sales price ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
@@ -111,13 +131,10 @@ class ProductPackageController {
     const content = req.query.content;
     const pageSize = Number(process.env.LIMIT!);
 
-    const [result, count] = await Promise.all([
-      meili.index("package").search(keyword, {
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-      }),
-      meili.index("package").getStats(),
-    ]);
+    const result = await meili.index("package").search(keyword, {
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    });
 
     return res.status(200).send({
       data: result.hits.map((x) => {
@@ -126,7 +143,7 @@ class ProductPackageController {
           name: x.name,
           description: x.description,
           price: x.price,
-          package_content: x.product_content.map((item: any) => {
+          package_content: x.package_content.map((item: any) => {
             return {
               product_id: item.product_id,
               product_unit_id: item.product_unit_id,
@@ -151,7 +168,7 @@ class ProductPackageController {
           is_delete: false, // Assuming is_delete is false for fetched packages
         });
       }),
-      count: count.numberOfDocuments,
+      count: result.estimatedTotalHits,
     });
   };
 
@@ -163,6 +180,8 @@ class ProductPackageController {
       if (!result) {
         return res.status(404).send(ErrorList["Not found"]);
       }
+
+      return res.status(200).send(result);
     } catch (error) {
       console.error(
         `[error]: Error on fetching product package by ID ${error}`

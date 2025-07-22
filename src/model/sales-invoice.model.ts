@@ -1,6 +1,8 @@
 import { ProductModel } from "./product.model";
 import { CustomerModel } from "./customer.model";
 import { SalesInvoicePaymentModel } from "./sales-invoice-payment.model";
+import { ProductUnitModel } from "./product-unit.model";
+import { UserViewModel } from "./user.model";
 
 export interface ISalesInvoiceCode {
   id?: number;
@@ -22,6 +24,10 @@ export interface ISalesInvoiceCode {
   sales: string | null;
   confirmedBy?: number | null;
   confirmedAt?: Date | null;
+
+  customer?: CustomerModel | null;
+  user_bill_code_created_byTouser?: UserViewModel;
+  user_bill_code_confirmed_byTouser?: UserViewModel | null;
 }
 
 export interface ISalesInvoice {
@@ -32,6 +38,7 @@ export interface ISalesInvoice {
   price: number;
   discount: number;
   product?: ProductModel;
+  product_unit?: ProductUnitModel | null;
 }
 
 export class SalesInvoiceModel {
@@ -55,11 +62,16 @@ export class SalesInvoiceModel {
 
   sales_invoice?: ISalesInvoice[] = [];
   sales_invoice_payment?: SalesInvoicePaymentModel[] = [];
-  customer?: CustomerModel;
+
+  customer?: CustomerModel | null;
+  user_bill_code_created_byTouser?: UserViewModel;
+  user_bill_code_confirmed_byTouser?: UserViewModel | null;
 
   constructor(data: ISalesInvoiceCode) {
+    this.id = data.id;
     this.name = data.name;
     this.customerID = data.customerID;
+    this.customer = data.customer;
     this.createdBy = data.createdBy;
     this.createdAt = data.createdAt;
     this.discount = data.discount;
@@ -81,6 +93,17 @@ export class SalesInvoiceModel {
         quantity: item.quantity,
         price: item.price,
         discount: item.discount,
+
+        product:
+          item.product == undefined
+            ? undefined
+            : ProductModel.fromMap(item.product),
+        product_unit:
+          item.product_unit == undefined
+            ? undefined
+            : item.product_unit == null
+            ? null
+            : ProductUnitModel.fromMap(item.product_unit),
       };
     });
     this.sales_invoice_payment = data.sales_invoice_payment.map((payment) => {
@@ -93,6 +116,10 @@ export class SalesInvoiceModel {
       };
     });
     this.payment_term = data.paymentTerm;
+    this.customer = data.customer;
+    this.user_bill_code_created_byTouser = data.user_bill_code_created_byTouser;
+    this.user_bill_code_confirmed_byTouser =
+      data.user_bill_code_confirmed_byTouser;
   }
 
   static fromMap(data: any) {
@@ -124,279 +151,40 @@ export class SalesInvoiceModel {
                 quantity: Number(item.quantity),
                 price: Number(item.price),
                 discount: Number(item.discount),
+
+                product:
+                  item.product == undefined
+                    ? undefined
+                    : ProductModel.fromMap(item.product),
+                product_unit:
+                  item.product_unit == null
+                    ? null
+                    : item.product_unit == undefined
+                    ? undefined
+                    : ProductUnitModel.fromMap(item.product_unit),
               };
             }),
       sales_invoice_payment: [],
       paymentTerm: data.payment_term,
+      customer:
+        data.customer == null
+          ? null
+          : data.customer == undefined
+          ? undefined
+          : CustomerModel.fromMap(data.customer),
+
+      user_bill_code_created_byTouser:
+        data.user_bill_code_created_byTouser == undefined
+          ? undefined
+          : UserViewModel.fromMap(data.user_bill_code_created_byTouser),
+      user_bill_code_confirmed_byTouser:
+        data.user_bill_code_confirmed_byTouser == undefined
+          ? undefined
+          : data.user_bill_code_confirmed_byTouser == null
+          ? null
+          : UserViewModel.fromMap(data.user_bill_code_confirmed_byTouser),
     });
   }
-
-  // async create() {
-  //   const bill_code = await prisma.sales_invoice_code.create({
-  //     data: {
-  //       name: this.name,
-  //       created_by: this.createdBy,
-  //       created_at: new Date(),
-  //       customer_id: this.customerID,
-  //       discount: this.discount,
-  //       delivery: this.delivery,
-  //       service: this.service,
-  //       date: this.date,
-  //       is_confirm: true,
-  //       confirmed_by: this.createdBy,
-  //       confirmed_at: new Date(),
-  //       uuid: this.uuid,
-  //       bill: {
-  //         createMany: {
-  //           data: this.bill!,
-  //         },
-  //       },
-  //       bill_payment: {
-  //         createMany: {
-  //           data: this.bill_payment!.map((x) => {
-  //             return {
-  //               date: x.date,
-  //               value: x.value,
-  //               payment_method_id:
-  //                 x.payment_method_id == 0 ? null : x.payment_method_id,
-  //             };
-  //           }),
-  //         },
-  //       },
-  //       payment_term: this.payment_term,
-  //       is_paid: this.isPaid,
-  //       sales: this.sales,
-  //     },
-  //     include: {
-  //       bill: {
-  //         include: {
-  //           package_code: {
-  //             include: {
-  //               package_content: {
-  //                 select: {
-  //                   quantity: true,
-  //                   item_id: true,
-  //                   item_unit: {
-  //                     select: {
-  //                       unit: true,
-  //                       conversion: true,
-  //                     },
-  //                   },
-  //                   item: {
-  //                     select: {
-  //                       reference: true,
-  //                       description: true,
-  //                       unit: true,
-  //                     },
-  //                   },
-  //                   price: true,
-  //                   discount: true,
-  //                 },
-  //               },
-  //             },
-  //           },
-  //           item_unit: {
-  //             select: {
-  //               unit: true,
-  //               conversion: true,
-  //             },
-  //           },
-  //           item: {
-  //             select: {
-  //               id: true,
-  //               reference: true,
-  //               description: true,
-  //               unit: true,
-  //               item_type_id: true,
-  //               item_brand_id: true,
-  //             },
-  //           },
-  //         },
-  //       },
-  //       customer: {
-  //         select: {
-  //           name: true,
-  //         },
-  //       },
-  //     },
-  //   });
-
-  // return new BillCodeModel({
-  //   id: bill_code.id,
-  //   name: bill_code.name,
-  //   date: bill_code.date!,
-  //   discount: Number(bill_code.discount),
-  //   delivery: Number(bill_code.delivery),
-  //   service: Number(bill_code.service),
-  //   sales: bill_code.sales,
-  //   customer_id: bill_code.customer_id,
-  //   created_by: bill_code.created_by,
-  //   created_at: new Date(bill_code.created_at),
-  //   is_confirm: bill_code.is_confirm,
-  //   confirmed_by: bill_code.confirmed_by,
-  //   confirmed_at: bill_code.confirmed_at,
-  //   is_paid: bill_code.is_paid,
-  //   is_delete: bill_code.is_delete,
-  //   uuid: bill_code.uuid,
-  //   items: bill_code.bill.map((item) => {
-  //     return {
-  //       id: item.id,
-  //       package_code_id: item.package_code_id,
-  //       item_id: item.item_id,
-  //       item_unit_id: item.item_unit_id,
-  //       quantity: Number(item.quantity),
-  //       price: Number(item.price),
-  //       discount: Number(item.discount),
-
-  //       item: item.item
-  //         ? new ProductModel({
-  //             id: item.item.id,
-  //             reference: item.item.reference,
-  //             description: item.item.description,
-  //             unit: item.item.unit,
-  //             brand_id: item.item.item_brand_id,
-  //             type_id: item.item.item_type_id,
-  //           })
-  //         : null,
-  //       package_code: item.package_code
-  //         ? new ProductPackageCodeModel()
-  //         : null,
-  //     };
-  //   }),
-  //   payments: [],
-  //   payment_term: bill_code.payment_term,
-  // });
-  // }
-
-  // /**
-  //  * Generate bill code name based on date
-  //  * @param date
-  //  * @returns string
-  //  */
-  // static generateName(date: Date = new Date()) {
-  //   return `INV-${date.getFullYear()}-${Math.floor(
-  //     Math.random() * 10
-  //   )}${Math.floor(Math.random() * 10)}${Math.floor(
-  //     Math.random() * 10
-  //   )}${Math.floor(Math.random() * 10)}${Math.floor(
-  //     Math.random() * 10
-  //   )}${Math.floor(Math.random() * 10)}${Math.floor(
-  //     Math.random() * 10
-  //   )}${Math.floor(Math.random() * 10)}`;
-  // }
-
-  // /**
-  //  * Fetch bill code by id
-  //  * @param id
-  //  * @returns BillCode
-  //  */
-  // static fetchByID(id: number) {
-  //   return prisma.bill_code.findUnique({
-  //     where: {
-  //       id: id,
-  //     },
-  //     select: {
-  //       id: true,
-  //       name: true,
-  //       date: true,
-  //       discount: true,
-  //       delivery: true,
-  //       service: true,
-  //       sales: true,
-  //       bill: {
-  //         select: {
-  //           id: true,
-  //           item: {
-  //             select: {
-  //               reference: true,
-  //               description: true,
-  //               unit: true,
-  //             },
-  //           },
-  //           item_unit: {
-  //             select: {
-  //               unit: true,
-  //               conversion: true,
-  //             },
-  //           },
-  //           package_code_id: true,
-  //           package_code: {
-  //             select: {
-  //               name: true,
-  //               description: true,
-  //               package_content: {
-  //                 select: {
-  //                   item_id: true,
-  //                   item: {
-  //                     select: {
-  //                       reference: true,
-  //                       description: true,
-  //                       unit: true,
-  //                     },
-  //                   },
-  //                   item_unit: {
-  //                     select: {
-  //                       unit: true,
-  //                       conversion: true,
-  //                     },
-  //                   },
-  //                   quantity: true,
-  //                 },
-  //               },
-  //             },
-  //           },
-  //           quantity: true,
-  //           price: true,
-  //           discount: true,
-  //           item_unit_id: true,
-  //           item_id: true,
-  //         },
-  //       },
-  //       bill_payment: {
-  //         select: {
-  //           id: true,
-  //           value: true,
-  //           date: true,
-  //           payment_method: {
-  //             select: {
-  //               name: true,
-  //               description: true,
-  //             },
-  //           },
-  //         },
-  //       },
-  //       payment_term: true,
-  //       user_bill_code_created_byTouser: {
-  //         select: {
-  //           name: true,
-  //           user_avatar: {
-  //             select: {
-  //               top: true,
-  //               accessories: true,
-  //               clothes: true,
-  //               eyes: true,
-  //               eyebrows: true,
-  //               mouth: true,
-  //               circle: true,
-  //               color: true,
-  //             },
-  //           },
-  //         },
-  //       },
-  //       is_confirm: true,
-  //       is_paid: true,
-  //       is_delete: true,
-  //       created_at: true,
-  //       customer: {
-  //         select: {
-  //           name: true,
-  //           address: true,
-  //         },
-  //       },
-  //     },
-  //   });
-  // }
-
   // /**
   //  * Search for bill codes
   //  * Based on customer, item, date, keyword, page, and mode
@@ -1820,4 +1608,47 @@ export class SalesInvoiceModel {
   //     data: {},
   //   });
   // }
+}
+
+export class SalesInvoiceItemModel {
+  id?: number;
+  product_id: number;
+  product_unit_id: number | null;
+  quantity: number;
+  price: number;
+  discount: number;
+  product?: ProductModel;
+  product_unit?: ProductUnitModel | null;
+
+  constructor(data: ISalesInvoice) {
+    this.id = data.id;
+    this.product_id = data.product_id;
+    this.product_unit_id = data.product_unit_id;
+    this.quantity = data.quantity;
+    this.price = data.price;
+    this.discount = data.discount;
+    this.product = data.product;
+    this.product_unit = data.product_unit;
+  }
+
+  static fromMap(data: any) {
+    return new SalesInvoiceItemModel({
+      id: data.id,
+      product_id: data.product_id,
+      product_unit_id: data.product_unit_id,
+      quantity: data.quantity,
+      price: data.price,
+      discount: data.discount,
+      product:
+        data.product == undefined
+          ? undefined
+          : ProductModel.fromMap(data.product),
+      product_unit:
+        data.product_unit == undefined
+          ? undefined
+          : data.product_unit == null
+          ? null
+          : ProductUnitModel.fromMap(data.product_unit),
+    });
+  }
 }

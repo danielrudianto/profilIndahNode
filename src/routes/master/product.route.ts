@@ -52,7 +52,6 @@ router.get(
   productController.fetchByID
 );
 
-// router.get("/complete/:id", productController.fetchCompleteSalesById);
 router.get("/", productController.fetch);
 router.put(
   "/active",
@@ -114,10 +113,27 @@ router.put(
   productController.updatePurchasePrice
 );
 
-router.post(
+router.put(
   "/price-sales",
-  body("item_id").notEmpty().withMessage(ErrorList["Parameter error"])
-  // ItemPriceController.fetchByItemID
+  body("items").isArray().withMessage(ErrorList["Parameter error"]),
+  body("items.*.product_id")
+    .notEmpty()
+    .withMessage(ErrorList["Item ID required"]),
+  body("items.*.product_id")
+    .isNumeric()
+    .withMessage(ErrorList["Item ID must be numeric"]),
+  body("items.*.price").notEmpty().withMessage(ErrorList["Price required"]),
+  body("items.*.price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Price must be numeric"]),
+  body("items.*.discount")
+    .notEmpty()
+    .withMessage(ErrorList["Discount required"]),
+  body("items.*.discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Discount must be numeric"]),
+  ErrorHelper.intercept,
+  productController.updateSalesPrice
 );
 
 // router.post(

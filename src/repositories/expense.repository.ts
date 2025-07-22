@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { translatePage } from "../helper/escape.helper";
 import { IFetchPagination } from "../interface/fetch.interface";
+import { CompanyModel } from "../model/company.model";
 import { IExpense, ExpenseModel } from "../model/expense.model";
+import ExpenseTypeModel from "../model/expense.type.model";
 
 export class ExpenseRepository {
   private prisma: PrismaClient;
@@ -113,6 +115,10 @@ export class ExpenseRepository {
           skip: (data.page - 1) * data.pageSize,
           take: data.pageSize,
           orderBy: { date: "desc" },
+          include: {
+            expense_type: true,
+            company: true,
+          },
         }),
         this.prisma.expense.count({ where }),
       ]);
@@ -129,6 +135,8 @@ export class ExpenseRepository {
               created_by: item.created_by,
               created_at: item.created_at,
               expense_type_id: item.expense_type_id,
+              expense_type: ExpenseTypeModel.fromMap(item.expense_type),
+              company: CompanyModel.fromMap(item.company),
             })
         ),
         count: count,
@@ -161,8 +169,6 @@ export class ExpenseRepository {
   }
 
   async fetchReport(month: number, year: number) {
-    console.log(month);
-    console.log(year);
     try {
       const result = await this.prisma.expense.findMany({
         where: {

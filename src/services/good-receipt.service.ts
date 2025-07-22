@@ -38,8 +38,6 @@ export class GoodReceiptService {
           };
         })
       );
-
-      console.log("Stock in created successfully:", result);
       return result;
     } catch (error) {
       console.error("Error creating good receipt:", error);

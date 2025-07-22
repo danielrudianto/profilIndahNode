@@ -18,7 +18,10 @@ enum ErrorList {
   "Package item quantity required" = "Kuantitas item paket tidak boleh kosong.",
   "Package item price required" = "Harga item paket tidak boleh kosong.",
   "Package item discount required" = "Diskon item paket tidak boleh kosong.",
+  "Package ID is required" = "ID paket tidak boleh kosong.",
+  "Package ID must be numeric" = "ID paket harus berupa angka.",
   "Sales return items required" = "Item retur penjualan tidak boleh kosong.",
+  "Sales invoice creation faled" = "Gagal membentuk dokumen penjualan.",
   "Item ID required" = "ID item tidak boleh kosong.",
   "Item ID must be numeric" = "ID item harus berupa angka.",
   "Price required" = "Harga tidak boleh kosong.",
@@ -57,6 +60,8 @@ enum ErrorList {
   "Purchase invoice already confirmed" = "Invoice pembelian sudah dikonfirmasi.",
   "Purchase invoice already deleted" = "Invoice pembelian sudah dihapus.",
   "Payment method required" = "Metode pembayaran tidak boleh kosong.",
+  "Payment method must be numeric" = "Metode pembayaran harus berupa angka.",
+  "Payment status is required" = "Status pembyaaran tidak boleh kosong.",
   "Delivery required" = "Pengiriman tidak boleh kosong.",
   "Service required" = "Biaya layanan tidak boleh kosong.",
 
@@ -115,6 +120,36 @@ enum ErrorList {
   "Supplier ID must be numeric" = "ID supplier harus berupa angka.",
   "Promotion brand is required" = "Merek promosi tidak boleh kosong.",
   "Promotion brand must be an array" = "Merek promosi harus berupa array.",
+  "Product unit must be an array" = "Satuan barang harus berupa array.",
+
+  "Sales invoice creation failed" = "Gagal membentuk nota baru.",
+  "Good receipt creation failed" = "Gagal membentuk penerimaan barang baru.",
+  "Sales deposit creation failed" = "Gagal membentuk deposit baru.",
+  "Sales return creation failed" = "Gagal membentuk retur penjualan baru.",
+
+  "Archives parameter error" = "Terjadi kesalahan pada parameter arsip.",
+  "Sales invoice item must be an array" = "Pencarian harus berupa array.",
+  "Quantity is required" = "Kuantitas tidak boleh kosong.",
+  "Quantity must be numeric" = "Kuantitas harus berupa angka.",
+  "Sales invoice ID is required" = "Data barang tidak boleh kosong.",
+  "Sales invoice ID must be numeric" = "Data barang harus berupa angka",
+
+  "Sales return insufficient" = "Retur lebih besar daripada barang yang dibeli.",
+  "Invoice name required" = "Nama faktur tidak boleh kosong",
+  "Tax invoice required" = "Faktur pajak tidak boleh kosong",
+  "Good receipt ID required" = "ID penerimaan barang tidak boleh kosong",
+  "Good receipt must be array" = "Penerimaan barang harus berupa array",
+
+  "Brand is required" = "Merek tidak boleh kosong",
+  "Brand must be an array" = "Data merek harus berupa array",
+  "Brand must be an integer" = "Data merek harus berupa angka",
+  "Type is required" = "Tipe tidak boleh kosong",
+  "Type must be an array" = "Data tipe harus berupa array",
+  "Type must be an integer" = "Data tipe harus berupa angka",
+
+  "Invalid group report" = "Grup laporan harus merupakan merek atau tipe produk.",
+  "Sort by required" = "Urutan dibutuhkan",
+  "Sort direction only supports ascending or descending" = "Urutan hanya dapat dilakukan secara ascending atau descending",
 }
 
 export default ErrorList;

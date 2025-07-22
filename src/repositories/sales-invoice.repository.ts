@@ -3,8 +3,15 @@ import {
   ISalesInvoiceCode,
   SalesInvoiceModel,
 } from "../model/sales-invoice.model";
-import { IFetchCommonResult } from "../interface/fetch.interface";
+import {
+  IFetchAnnualArchives,
+  IFetchCommonResult,
+} from "../interface/fetch.interface";
 import { DateHelper, formatDate } from "../helper/date.helper";
+import {
+  IFetchArchive,
+  IFetchArchiveResult,
+} from "../interface/archive.interface";
 
 export class SalesInvoiceRepository {
   private prisma: PrismaClient;
@@ -40,8 +47,7 @@ export class SalesInvoiceRepository {
                 return {
                   date: x.date,
                   value: x.value,
-                  payment_method_id:
-                    x.payment_method_id == 0 ? null : x.payment_method_id,
+                  payment_method_id: x.payment_method_id,
                 };
               }),
             },
@@ -49,6 +55,13 @@ export class SalesInvoiceRepository {
           payment_term: data.paymentTerm,
           is_paid: data.isPaid,
           sales: data.sales,
+        },
+        include: {
+          sales_invoice: {
+            include: {
+              product_unit: true,
+            },
+          },
         },
       });
 
@@ -87,21 +100,36 @@ export class SalesInvoiceRepository {
     return SalesInvoiceModel.fromMap(result);
   }
 
-  async fetchByID(id: number): Promise<SalesInvoiceModel> {
+  async fetchByID(id: number): Promise<SalesInvoiceModel | null> {
     try {
       const salesInvoice = await this.prisma.sales_invoice_code.findUnique({
         where: {
           id: id,
         },
         include: {
-          sales_invoice: true,
+          sales_invoice: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
           sales_invoice_payment: true,
           customer: true,
+          user_bill_code_created_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
+          user_bill_code_confirmed_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
         },
       });
 
       if (!salesInvoice) {
-        throw new Error(`Sales invoice with ID ${id} not found`);
+        return null;
       }
 
       const result = SalesInvoiceModel.fromMap(salesInvoice);
@@ -114,25 +142,227 @@ export class SalesInvoiceRepository {
     }
   }
 
-  async fetchByDateRange(startDate: Date, endDate: Date) {
-    const result = await this.prisma.$queryRaw<any[]>`
-      SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value
+  async fetchByDateRange(
+    startDate: Date,
+    endDate: Date
+  ): Promise<{
+    value: number;
+    discount: number;
+    delivery: number;
+    service: number;
+    salesInvoiceCount: number;
+    customerCount: number;
+  }> {
+    try {
+      const result = await this.prisma.$queryRaw<any[]>`
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
+        SUM(sales_invoice_code.discount) AS discount, 
+        SUM(sales_invoice_code.service) AS service, 
+        SUM(sales_invoice_code.delivery) AS delivery,
+        COUNT(sales_invoice_code.id) AS salesInvoiceCount,
+        COUNT(DISTINCT(sales_invoice_code.customer_id)) AS customerCount
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        WHERE sales_invoice_code.is_delete = 0
+        AND sales_invoice_code.date BETWEEN ${DateHelper.convertDate(
+          startDate,
+          formatDate.YYYYMMDD
+        )}
+        AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)};
+    `;
+
+      if (!result || result.length == 0) {
+        return {
+          value: 0,
+          delivery: 0,
+          discount: 0,
+          service: 0,
+          salesInvoiceCount: 0,
+          customerCount: 0,
+        };
+      }
+
+      const data = result[0];
+      return {
+        value: Number(data.value),
+        delivery: Number(data.delivery),
+        discount: Number(data.discount),
+        service: Number(data.service),
+        salesInvoiceCount: Number(data.salesInvoiceCount),
+        customerCount: Number(data.customerCount),
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async fetchChart(month: number, year: number) {
+    try {
+      const result = await this.prisma.$queryRaw<any[]>`
+      SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
+      SUM(sales_invoice_code.discount) AS discount, 
+      SUM(sales_invoice_code.service) AS service, 
+      SUM(sales_invoice_code.delivery) AS delivery,
+      COUNT(sales_invoice_code.id) AS salesInvoiceCount,
+      DAY(sales_invoice_code.date) AS date
       FROM sales_invoice
       JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
       WHERE sales_invoice_code.is_delete = 0
-      AND sales_invoice_code.date BETWEEN ${DateHelper.convertDate(
-        startDate,
-        formatDate.DDMMYYYY
-      )}
-      AND ${DateHelper.convertDate(endDate, formatDate.DDMMYYYY)};
+      AND MONTH(sales_invoice_code.date) = ${month}
+      AND YEAR(sales_invoice_code.date) = ${year}
+      GROUP BY DAY(sales_invoice_code.date)
+    `;
+
+      return result.map((x) => {
+        return {
+          date: Number(x.date),
+          value: Number(x.value),
+          discount: Number(x.discount),
+          delivery: Number(x.delivery),
+          service: Number(x.service),
+          salesInvoiceCount: Number(x.salesInvoiceCount),
+        };
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async fetchBestBrand(month: number, year: number): Promise<string | null> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT product_brand.id AS id,
+      product_brand.name AS name,
+      SUM((sales_invoice.price - sales_invoice.discount) * sales_invoice.quantity) AS value
+      FROM sales_invoice
+      JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+      JOIN product ON sales_invoice.product_id = product.id
+      JOIN product_brand ON product.product_brand_id = product_brand.id
+      WHERE sales_invoice_code.is_delete = 0
+      AND MONTH(sales_invoice_code.date) = ${month}
+      AND YEAR(sales_invoice_code.date) = ${year}
+      GROUP BY product_brand.id
+      ORDER BY value DESC
+      LIMIT 1
     `;
 
     if (!result || result.length == 0) {
-      return 0;
+      return null;
     }
 
     const data = result[0];
-    return Number(data.value);
+    return data.name;
+  }
+
+  async fetchBestType(month: number, year: number): Promise<string | null> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT product_type.id AS id,
+      product_type.name AS name,
+      SUM((sales_invoice.price - sales_invoice.discount) * sales_invoice.quantity) AS value
+      FROM sales_invoice
+      JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+      JOIN product ON sales_invoice.product_id = product.id
+      JOIN product_type ON product.product_type_id = product_type.id
+      WHERE sales_invoice_code.is_delete = 0
+      AND MONTH(sales_invoice_code.date) = ${month}
+      AND YEAR(sales_invoice_code.date) = ${year}
+      GROUP BY product_type.id
+      ORDER BY value DESC
+      LIMIT 1
+    `;
+
+    if (!result || result.length == 0) {
+      return null;
+    }
+
+    const data = result[0];
+    return data.name;
+  }
+
+  async fetchBestSales(month: number, year: number) {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT sales_invoice_code.sales,
+      SUM((sales_invoice.price - sales_invoice.discount) * sales_invoice.quantity) AS value
+      FROM sales_invoice
+      JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+      WHERE sales_invoice_code.is_delete = 0
+      AND MONTH(sales_invoice_code.date) = ${month}
+      AND YEAR(sales_invoice_code.date) = ${year}
+      AND sales_invoice_code.sales IS NOT NULL
+      GROUP BY sales_invoice_code.sales
+      ORDER BY value DESC
+      LIMIT 1
+    `;
+
+    if (!result || result.length == 0) {
+      return null;
+    }
+
+    const data = result[0];
+    return data.sales;
+  }
+
+  async searchByReturns(
+    date: Date,
+    sales_invoice: {
+      product_id: number;
+      product_unit_id: number | null;
+      quantity: number;
+    }[]
+  ): Promise<SalesInvoiceModel[]> {
+    const where = [];
+    for (let item of sales_invoice) {
+      where.push({
+        product_id: item.product_id,
+        product_unit_id: item.product_unit_id,
+        quantity: {
+          gte: item.quantity,
+        },
+      });
+    }
+
+    try {
+      const result = await this.prisma.sales_invoice.findMany({
+        where: {
+          AND: where,
+          sales_invoice_code: {
+            is_delete: false,
+            date: date,
+          },
+        },
+        distinct: ["sales_invoice_code_id"],
+      });
+
+      const sales_invoices = await this.prisma.sales_invoice_code.findMany({
+        where: {
+          id: {
+            in: result.map((x) => {
+              return x.sales_invoice_code_id;
+            }),
+          },
+        },
+        include: {
+          sales_invoice: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
+          sales_invoice_payment: {
+            include: {
+              payment_method: true,
+            },
+          },
+          customer: true,
+        },
+      });
+
+      return sales_invoices.map((x) => {
+        return SalesInvoiceModel.fromMap(x);
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales invoice ${error}`);
+      throw error;
+    }
   }
 
   async search(
@@ -302,5 +532,256 @@ export class SalesInvoiceRepository {
       );
       throw new Error("Internal server error");
     }
+  }
+
+  async fetchAnnualArchives(): Promise<IFetchAnnualArchives[]> {
+    try {
+      const result = await this.prisma.$queryRaw<
+        { year: number; month: number; count: BigInt }[]
+      >`
+        SELECT 
+          EXTRACT(YEAR FROM date) AS year,
+          EXTRACT(MONTH FROM date) AS month,
+          COUNT(id) AS count
+        FROM sales_invoice_code
+        GROUP BY month, year
+        ORDER BY date DESC;
+      `;
+
+      const years = Array.from(new Set(result.map((x) => x.year)));
+
+      const filled = years.flatMap((year) =>
+        Array.from({ length: 12 }, (_, i) => {
+          const month = i + 1;
+          const found = result.find(
+            (x) => x.year === year && x.month === month
+          );
+          return {
+            year: year,
+            month: month,
+            count: found ? Number(found.count) : 0,
+          };
+        })
+      );
+
+      return filled;
+    } catch (error) {
+      console.error(`[error]: Error while fetching annual archives: ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
+  async fetchArchives(data: {
+    month: number;
+    year: number;
+    limit: number;
+    offset: number;
+    keyword: string;
+    isPaid: boolean;
+    isUnpaid: boolean;
+    isActive: boolean;
+    isDelete: boolean;
+    sortBy: string;
+    sortDirection: "asc" | "desc";
+  }): Promise<IFetchArchiveResult<SalesInvoiceModel>> {
+    try {
+      let paymentFilter: any = {};
+      if ((!data.isPaid && !data.isUnpaid) || (data.isPaid && data.isUnpaid)) {
+        paymentFilter = {
+          OR: [
+            {
+              is_paid: true,
+            },
+            {
+              is_paid: false,
+            },
+          ],
+        };
+      } else if (data.isPaid) {
+        paymentFilter = {
+          is_paid: true,
+        };
+      } else {
+        paymentFilter = {
+          is_paid: false,
+        };
+      }
+
+      let statusFilter: any = {};
+      if (
+        (!data.isActive && !data.isDelete) ||
+        (data.isActive && data.isDelete)
+      ) {
+        statusFilter = {
+          OR: [
+            {
+              is_confirm: true,
+            },
+            {
+              is_delete: true,
+            },
+          ],
+        };
+      } else if (data.isActive) {
+        statusFilter = {
+          is_confirm: true,
+        };
+      } else {
+        statusFilter = {
+          is_delete: true,
+        };
+      }
+
+      let orderBy;
+
+      if (data.sortBy == "date") {
+        orderBy = {
+          date: data.sortDirection,
+        };
+      } else if (data.sortBy == "name") {
+        orderBy = {
+          name: data.sortDirection,
+        };
+      } else if (data.sortBy === "customer") {
+        orderBy = {
+          customer: {
+            name: data.sortDirection,
+          },
+        };
+      } else if (data.sortBy == "sales") {
+        orderBy = {
+          sales: data.sortDirection,
+        };
+      }
+
+      const [result, count] = await this.prisma.$transaction([
+        this.prisma.sales_invoice_code.findMany({
+          where: {
+            AND: [
+              {
+                date: {
+                  gt: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                OR: [
+                  {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    sales: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    customer: {
+                      name: {
+                        contains: data.keyword,
+                      },
+                    },
+                  },
+                ],
+              },
+              paymentFilter,
+              statusFilter,
+            ],
+          },
+          orderBy: orderBy,
+          include: {
+            customer: true,
+          },
+          take: data.limit,
+          skip: data.offset,
+        }),
+        this.prisma.sales_invoice_code.count({
+          where: {
+            AND: [
+              {
+                date: {
+                  gt: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                OR: [
+                  {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    sales: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    customer: {
+                      name: {
+                        contains: data.keyword,
+                      },
+                    },
+                  },
+                ],
+              },
+              paymentFilter,
+              statusFilter,
+            ],
+          },
+        }),
+      ]);
+
+      return {
+        data: result.map((x) => {
+          return SalesInvoiceModel.fromMap(x);
+        }),
+        count: count,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async validateSalesReturn(
+    sales_return_items: { sales_invoice_id: number; quantity: number }[]
+  ): Promise<boolean> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        COALESCE(SUM(sales_return.quantity), 0) AS returned,
+        sales_invoice.quantity,
+        sales_invoice.id
+      FROM sales_invoice
+      LEFT JOIN sales_return ON sales_return.sales_invoice_id = sales_invoice.id
+      LEFT JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id 
+      AND sales_return_code.is_delete = 0
+      WHERE sales_invoice.id IN (${sales_return_items
+        .map((x) => x.sales_invoice_id)
+        .join(",")})
+      GROUP BY sales_invoice.id
+    `;
+
+    return (
+      result.filter((x) => {
+        const quantity = Number(x.quantity);
+        const returned = Number(x.returned);
+        const sales_invoice_id = Number(x.id);
+        const returnIndex = sales_return_items.findIndex(
+          (y) => y.sales_invoice_id == sales_invoice_id
+        );
+        const returnQuantity =
+          returnIndex == -1 ? 0 : sales_return_items[returnIndex].quantity;
+        return quantity < returned + returnQuantity;
+      }).length == 0
+    );
   }
 }

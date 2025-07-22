@@ -8,7 +8,7 @@ import {
   translateSalesName,
 } from "../helper/escape.helper";
 import ErrorList from "../assets/error_list";
-import { DepositRepository } from "../repositories/deposit.repository";
+import { DepositRepository } from "../repositories/sales-deposit.repository";
 
 class DepositController {
   private depositRepository: DepositRepository;

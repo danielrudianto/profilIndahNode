@@ -6,28 +6,43 @@ import {
   translatePage,
   translateSalesName,
 } from "../helper/escape.helper";
-import { redisClient } from "../helper/redis.helper";
 import { DraftBillModel } from "../model/draft-bill.model";
 import moment from "moment";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { queue } from "../helper/queue.helper";
-// import DepositModel from "../model/deposit.model";
+import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
+import { StockOutRepository } from "../repositories/stock-out.repository";
+import { StockRepository } from "../repositories/stock.repository";
+import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-payment.repository";
+import { StockCardRepository } from "../repositories/stock-card.repository";
 
 class SalesInvoiceController {
-  private salesInvoiceRepository: SalesInvoiceRepository;
-  private receivableRepository: ReceivableRepository;
-  private salesReturnRepository: SalesReturnRepository;
+  salesInvoiceRepository: SalesInvoiceRepository;
+  receivableRepository: ReceivableRepository;
+  salesReturnRepository: SalesReturnRepository;
+  stockOutRepository: StockOutRepository;
+  stockRepository: StockRepository;
+  salesInvoicePaymentRepository: SalesInvoicePaymentRepository;
+  stockCardRepository: StockCardRepository;
 
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
     receivableRepository: ReceivableRepository,
-    salesReturnRepository: SalesReturnRepository
+    salesReturnRepository: SalesReturnRepository,
+    stockOutRepository: StockOutRepository,
+    stockRepository: StockRepository,
+    salesInvoicePaymentRepository: SalesInvoicePaymentRepository,
+    stockCardRepository: StockCardRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.receivableRepository = receivableRepository;
     this.salesReturnRepository = salesReturnRepository;
+    this.stockOutRepository = stockOutRepository;
+    this.stockRepository = stockRepository;
+    this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
+    this.stockCardRepository = stockCardRepository;
   }
 
   create = async (req: Request, res: Response, next: NextFunction) => {
@@ -62,21 +77,97 @@ class SalesInvoiceController {
         confirmedBy: userID,
         confirmedAt: new Date(),
         sales_invoice: sales_invoice,
-        sales_invoice_payment: sales_invoice_payment,
+        sales_invoice_payment: sales_invoice_payment.map((x) => {
+          return new SalesInvoicePaymentModel({
+            date: translateDate(x.date),
+            payment_method_id: x.payment_method_id,
+            value: Number(x.value),
+            sales_invoice_code_id: 0,
+          });
+        }),
         isDelete: false,
       });
 
-      await this.receivableRepository.addReceivableValue(
-        billResult.delivery +
-          billResult.service -
-          billResult.discount +
-          billResult.sales_invoice!.reduce((a, b) => {
-            return a + (b.price - b.discount) * b.quantity;
-          }, 0) -
-          billResult.sales_invoice_payment!.reduce((a, b) => {
-            return a + b.value;
-          }, 0)
+      if (!billResult) {
+        return res.status(500).send(ErrorList["Sales invoice creation failed"]);
+      }
+
+      if (!isPaid) {
+        await this.receivableRepository.addReceivableValue(
+          billResult.delivery +
+            billResult.service -
+            billResult.discount +
+            billResult.sales_invoice!.reduce((a, b) => {
+              return a + (b.price - b.discount) * b.quantity;
+            }, 0) -
+            billResult.sales_invoice_payment!.reduce((a, b) => {
+              return a + b.value;
+            }, 0)
+        );
+      }
+
+      await this.stockOutRepository.create(
+        billResult.sales_invoice!.map((x) => {
+          const conversion =
+            x.product_unit == null ? 1 : x.product_unit.conversion;
+          return {
+            stock_in_id: null,
+            product_id: x.product_id,
+            adjustment_case_code_id: null,
+            adjustment_case_id: null,
+            date: date,
+            quantity: Number(x.quantity * conversion),
+            price: Number(x.price / conversion),
+            sales_invoice_id: x.id!,
+            sales_invoice_code_id: billResult.id!,
+          };
+        })
       );
+
+      await this.stockRepository.updateMany(
+        billResult.sales_invoice!.map((x) => {
+          const conversion =
+            x.product_unit == null ? 1 : x.product_unit.conversion;
+
+          return {
+            productID: x.product_id,
+            quantity: -1 * x.quantity * conversion,
+          };
+        })
+      );
+
+      const stockCardResult = await this.stockCardRepository.createMany(
+        billResult.sales_invoice!.map((x) => {
+          const conversion =
+            x.product_unit == null ? 1 : x.product_unit.conversion;
+
+          return {
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
+            quantity: -1 * x.quantity * conversion,
+            display_quantity: -1 * x.quantity,
+            date: billResult.date,
+            document_name: billResult.name,
+            sales_invoice_id: x.id!,
+            sales_invoice_code_id: billResult.id!,
+            adjustment_case_code_id: null,
+            adjustment_case_id: null,
+            good_receipt_code_id: null,
+            good_receipt_id: null,
+            sales_return_id: null,
+            sales_return_code_id: null,
+            stock: null,
+            customer_id: billResult.customerID,
+            supplier_id: null,
+          };
+        })
+      );
+
+      stockCardResult.forEach(async (x) => {
+        await queue.add("stock-card-inserted", {
+          id: x.id,
+        });
+      });
 
       return res.status(201).send(billResult);
     } catch (error) {
@@ -110,9 +201,40 @@ class SalesInvoiceController {
 
     try {
       const result = await this.salesInvoiceRepository.deleteByID(id, userID);
-      await queue.add("sales-invoice-deleted", {
-        id: id,
-      });
+      await this.stockRepository.updateMany(
+        salesInvoice.sales_invoice!.map((x) => {
+          return {
+            productID: x.product_id,
+            quantity:
+              (x.product_unit == null ? 1 : x.product_unit.conversion) *
+              x.quantity,
+          };
+        })
+      );
+
+      await this.stockOutRepository.deleteMany(
+        salesInvoice.sales_invoice!.map((x) => {
+          return {
+            sales_invoice_id: x.id!,
+            sales_invoice_code_id: salesInvoice.id!,
+            adjustment_case_id: null,
+            adjustment_case_code_id: null,
+          };
+        })
+      );
+
+      for (let i = 0; i < salesInvoice.sales_invoice!.length; i++) {
+        await queue.add("stock-card-deleted", {
+          sales_invoice_code_id: salesInvoice.id,
+          sales_invoice_id: salesInvoice.sales_invoice![i].id,
+          adjustment_case_code_id: null,
+          adjustment_case_id: null,
+          sales_return_code_id: null,
+          sales_return_id: null,
+          good_receipt_code_id: null,
+          good_receipt_id: null,
+        });
+      }
 
       return res.status(201).send(result);
     } catch (error) {
@@ -121,310 +243,81 @@ class SalesInvoiceController {
     }
   };
 
-  /**
-   * Create sales invoice data
-   * @param req
-   * @param res
-   */
-  static create = (req: Request, res: Response) => {
-    const uuid = req.body.uuid;
-    const customer_id = req.body.customer_id;
-    const discount = Number(req.body.discount);
-    const delivery = Number(req.body.delivery);
-    const service = Number(req.body.service);
-    const bill = req.body.bill as any[];
-    const payments = req.body.payments as any[];
-    const payment_term = req.body.payment_term;
-    const date =
-      !req.body.date || req.body.date == null
-        ? new Date()
-        : new Date(req.body.date);
-    const userID = req.body.userId;
-    const is_paid = req.body.is_paid;
-    const type = req.body.type;
-    const sales =
-      req.body.sales == "" || req.body.sales == null
-        ? null
-        : req.body.sales.toString().toUpperCase();
-
-    // if (type == "sales") {
-    //   BillCodeModel.create({
-    //     sales: sales,
-    //     name: BillCodeModel.generateName(date),
-    //     customer_id: customer_id,
-    //     discount: discount,
-    //     delivery: delivery,
-    //     service: service,
-    //     date: date,
-    //     uuid: uuid,
-    //     items: bill.map((x) => {
-    //       if (x.package_code_id != undefined) {
-    //         return {
-    //           package_code_id: x.package_code_id,
-    //           item_id: null,
-    //           item_unit_id: null,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: 0,
-    //         };
-    //       } else {
-    //         return {
-    //           package_code_id: null,
-    //           item_id: x.item_id,
-    //           item_unit_id: x.item_unit_id,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: x.discount,
-    //         };
-    //       }
-    //     }),
-    //     payments: payments.map((x) => {
-    //       return {
-    //         date: date,
-    //         value: x.value,
-    //         payment_method_id: x.payment_method_id,
-    //       };
-    //     }),
-    //     created_by: userID,
-    //     payment_term: payment_term,
-    //     is_paid: is_paid,
-    //   }).then(async (result) => {
-    //     if (!is_paid) {
-    //       ReceivableController.receivable += result.bill.reduce((a, b) => {
-    //         return (
-    //           a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
-    //         );
-    //       }, 0) as number;
-
-    //       ReceivableController.receivable -= discount + delivery + service;
-    //       ReceivableController.receivable -= payments.reduce((a, b) => {
-    //         return a + Number(b.value);
-    //       }, 0);
-    //     }
-
-    //     const createSalesInvoiceTotal = result.bill.reduce((a, b) => {
-    //       return (
-    //         a + (Number(b.price) - Number(b.discount)) * Number(b.quantity)
-    //       );
-    //     }, 0);
-
-    //     const createSalesInvoiceNetTotal =
-    //       createSalesInvoiceTotal - discount + delivery + service;
-
-    //     Promise.all([
-    //       ItemPriceModel.updateMany(
-    //         bill.filter((x) => x.save && x.item_id != null),
-    //         req.body.userId
-    //       ),
-    //       ProductPackageCodeModel.updatePrice(
-    //         bill.filter((x) => x.save && x.package_code_id != null)
-    //       ),
-    //     ])
-    //       .then(async () => {
-    //         for (let i = 0; i < result.bill.length; i++) {
-    //           if (result.bill[i].package_code != null) {
-    //             const packagePrice = Number(result.bill[i].price);
-    //             const packageQuantity = Number(result.bill[i].quantity);
-    //             const packageDiscount = Number(result.bill[i].discount);
-    //             const packageFinalPrice =
-    //               ((packagePrice - packageDiscount) *
-    //                 createSalesInvoiceNetTotal) /
-    //               createSalesInvoiceTotal;
-
-    //             const packageContentValue = result.bill[
-    //               i
-    //             ].package_code!.package_content.reduce((a, b) => {
-    //               return (
-    //                 a +
-    //                 Number(b.quantity) * (Number(b.price) - Number(b.discount))
-    //               );
-    //             }, 0);
-
-    //             await StockOutModel.createMany(
-    //               result.bill[i].package_code!.package_content.map((x) => {
-    //                 const createSalesInvoiceItemPrice = Number(x.price);
-    //                 const createSalesInvoiceItemDiscount = Number(x.discount);
-    //                 const createSalesInvoiceItemConversion =
-    //                   x.item_unit == null ? 1 : Number(x.item_unit.conversion);
-    //                 const finalUnitPrice =
-    //                   packageContentValue == 0
-    //                     ? 0
-    //                     : Number(
-    //                         ((createSalesInvoiceItemPrice -
-    //                           createSalesInvoiceItemDiscount) *
-    //                           packageFinalPrice) /
-    //                           (packageContentValue *
-    //                             createSalesInvoiceItemConversion)
-    //                       );
-
-    //                 return {
-    //                   bill_code_id: result.id,
-    //                   bill_id: result.bill[i].id,
-    //                   item_id: x.item_id,
-    //                   quantity:
-    //                     packageQuantity *
-    //                     -1 *
-    //                     Number(x.quantity) *
-    //                     (x.item_unit != null
-    //                       ? Number(x.item_unit.conversion)
-    //                       : 1),
-    //                   date: date,
-    //                   adjustment_case_code_id: null,
-    //                   adjustment_case_id: null,
-    //                   stock_in_id: null,
-    //                   price: finalUnitPrice,
-    //                 };
-    //               })
-    //             );
-    //           } else if (result.bill[i].item != null) {
-    //             // create stock out
-    //             await new StockOutModel({
-    //               item_id: result.bill[i].item!.id,
-    //               date: date,
-    //               quantity:
-    //                 Number(result.bill[i].quantity) *
-    //                 -1 *
-    //                 (result.bill[i].item_unit != null
-    //                   ? Number(result.bill[i].item_unit!.conversion)
-    //                   : 1),
-    //               bill_id: result.bill[i].id,
-    //               bill_code_id: result.id,
-    //               adjustment_case_id: null,
-    //               adjustment_case_code_id: null,
-    //               stock_in_id: null,
-    //               price:
-    //                 ((Number(result.bill[i].price) -
-    //                   Number(result.bill[i].discount)) *
-    //                   createSalesInvoiceNetTotal) /
-    //                 (createSalesInvoiceTotal *
-    //                   (result.bill[i].item_unit == null
-    //                     ? 1
-    //                     : Number(result.bill[i].item_unit!.conversion))),
-    //             }).create();
-    //           }
-    //         }
-    //         return res.status(201).send(result);
-    //       })
-    //       .catch((error) => {
-    //         console.error(`[error]: Error on updating stock ${error}`);
-    //         return res.status(500).send(ErrorList["Internal server error"]);
-    //       });
-    //   });
-    //   // })
-    //   // .catch((error) => {
-    //   //   console.error(`[error]: Error on creating bill ${error}`);
-    //   //   return res.status(500).send(error);
-    //   // });
-    // } else if (type == "deposit") {
-    //   DepositModel.create({
-    //     sales: sales,
-    //     name: DepositModel.generateName(date),
-    //     customer_id: customer_id,
-    //     discount: discount,
-    //     delivery: delivery,
-    //     service: service,
-    //     date: date,
-    //     uuid: uuid,
-    //     items: bill.map((x) => {
-    //       if (x.package_code_id != undefined) {
-    //         return {
-    //           package_code_id: x.package_code_id,
-    //           item_id: null,
-    //           item_unit_id: null,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: x.discount,
-    //         };
-    //       } else {
-    //         return {
-    //           package_code_id: null,
-    //           item_id: x.item_id,
-    //           item_unit_id: x.item_unit_id,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: x.discount,
-    //         };
-    //       }
-    //     }),
-    //     payments: payments.map((x) => {
-    //       return {
-    //         date: date,
-    //         value: x.value,
-    //         payment_method_id:
-    //           x.payment_method_id == 0 ? null : x.payment_method_id,
-    //       };
-    //     }),
-    //     created_by: userID,
-    //     type: "EXTERNAL",
-    //   })
-    //     .then(async (result) => {
-    //       return res.status(201).send(result);
-    //     })
-    //     .catch((error) => {
-    //       console.error(`[error]: Error on creating deposit ${error}`);
-    //       return res.status(500).send(error);
-    //     });
-    // } else if (type == "deposit-internal") {
-    //   DepositModel.create({
-    //     sales: sales,
-    //     name: DepositModel.generateName(date),
-    //     customer_id: null,
-    //     discount: discount,
-    //     delivery: delivery,
-    //     service: service,
-    //     date: date,
-    //     uuid: uuid,
-    //     items: bill.map((x) => {
-    //       if (x.package_code_id != undefined) {
-    //         return {
-    //           package_code_id: x.package_code_id,
-    //           item_id: null,
-    //           item_unit_id: null,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: x.discount,
-    //         };
-    //       } else {
-    //         return {
-    //           package_code_id: null,
-    //           item_id: x.item_id,
-    //           item_unit_id: x.item_unit_id,
-    //           quantity: x.quantity,
-    //           price: x.price,
-    //           discount: x.discount,
-    //         };
-    //       }
-    //     }),
-    //     payments: payments.map((x) => {
-    //       return {
-    //         date: date,
-    //         value: x.value,
-    //         payment_method_id:
-    //           x.payment_method_id == 0 ? null : x.payment_method_id,
-    //       };
-    //     }),
-    //     created_by: userID,
-    //     type: "INTERNAL",
-    //   })
-    //     .then(async (result) => {
-    //       return res.status(201).send(result);
-    //     })
-    //     .catch((error) => {
-    //       console.error(`[error]: Error on creating deposit ${error}`);
-    //       return res.status(500).send(error);
-    //     });
-    // }
+  fetchAnnualArchives = async (req: Request, res: Response) => {
+    try {
+      const result = await this.salesInvoiceRepository.fetchAnnualArchives();
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching archives ${error}`);
+      return res.status(500).send(error);
+    }
   };
 
-  fetchArchive = async (req: Request, res: Response) => {
+  fetchArchives = async (req: Request, res: Response) => {
     const year = req.body.year;
     const month = req.body.month;
+    const keyword = translateKeyword(req.query.keyword);
+    const page = translatePage(req.query.page);
+    const offset = Number(process.env.LIMIT!);
+    const isActive = req.body.isActive as boolean;
+    const isDelete = req.body.isDelete as boolean;
 
-    // if both of them is undefined or null
-    if (year == null) {
+    const isPaid = req.body.isPaid as boolean;
+    const isUnpaid = req.body.isUnpaid as boolean;
+
+    const sortBy = req.body.sortBy;
+    const sortDirection = req.body.sortDirection;
+
+    try {
+      const result = await this.salesInvoiceRepository.fetchArchives({
+        month: month,
+        year: year,
+        keyword: keyword,
+        limit: offset,
+        offset: (page - 1) * offset,
+        isPaid: isPaid,
+        isActive: isActive,
+        isUnpaid: isUnpaid,
+        isDelete: isDelete,
+        sortBy: sortBy,
+        sortDirection: sortDirection,
+      });
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching archive ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
+  };
 
-    if (year != null && month == null) {
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+
+    try {
+      const result = await this.salesInvoiceRepository.fetchByID(id);
+      if (!result) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: error during fetching sales invoice by ID ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchPayments = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const payments =
+        this.salesInvoicePaymentRepository.fetchPaymentsBySalesInvoiceCodeID(
+          id
+        );
+      return res.status(200).send(payments);
+    } catch (error) {
+      console.error(`[error]: Error on fetching payments ${error}`);
+      return res.status(500).send(error);
     }
   };
 
@@ -446,6 +339,23 @@ class SalesInvoiceController {
     } catch (error) {
       console.error(`[error]: Error on searching sales invoice ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  searchSalesReturn = async (req: Request, res: Response) => {
+    const date = new Date(req.body.date);
+    const sales_invoice = req.body.sales_invoice;
+
+    try {
+      const result = await this.salesInvoiceRepository.searchByReturns(
+        date,
+        sales_invoice
+      );
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales return ${error}`);
+      return res.status(500).send(error);
     }
   };
 
@@ -722,178 +632,6 @@ class SalesInvoiceController {
     //     console.error(`[error]: Error on fetching bill code ${error}`);
     //     return res.status(500).send(ErrorList["Internal server error"]);
     //   });
-  };
-
-  /**
-   * Delete bill by ID
-   * @param req
-   * @param res
-   * @returns
-   */
-  // static deleteByID = async (req: Request, res: Response) => {
-  //   const id = parseInt(req.params.id.toString());
-  //   const userID = req.body.userId;
-
-  //   const result = await BillCodeModel.fetchByID(id);
-  //   if (!result) {
-  //     return res.status(404).send(ErrorList["Not found"]);
-  //   }
-
-  //   if (result.is_delete) {
-  //     return res.status(404).send(ErrorList["Not found"]);
-  //   }
-
-  //   // Check if there is any sales return on this bill
-  //   const salesReturn = await SalesReturnModel.fetchByBillIDs(
-  //     result.bill.map((x) => {
-  //       return x.id;
-  //     })
-  //   );
-
-  //   if (salesReturn.length > 0) {
-  //     return res
-  //       .status(400)
-  //       .send(ErrorList["Delete bill sales return constraint"]);
-  //   }
-
-  //   const socket = new SocketHelper("deleteBill", result);
-  //   socket.create();
-
-  //   BillCodeModel.deleteByID(id, userID)
-  //     .then(async (updateBill) => {
-  //       for (let i = 0; i < updateBill.bill.length; i++) {
-  //         if (updateBill.bill[i].item != null) {
-  //           const stockOuts = await StockOutModel.fetch(
-  //             IStockOutFetch.BY_REFERENCE,
-  //             {
-  //               bill_id: updateBill.bill[i].id,
-  //               bill_code_id: updateBill.id,
-  //               adjustment_case_id: null,
-  //               adjustment_case_code_id: null,
-  //             }
-  //           );
-
-  //           // delete stock out bill id
-  //           for (let i = 0; i < stockOuts.length; i++) {
-  //             await StockOutModel.delete(
-  //               IStockOutDelete.BY_STOCK_IN_IDS,
-  //               stockOuts[i].id
-  //             );
-
-  //             if (stockOuts[i].stock_in_id != null) {
-  //               await StockInModel.rollBack([
-  //                 {
-  //                   id: stockOuts[i].stock_in_id!,
-  //                   quantity: Number(stockOuts[i].quantity),
-  //                 },
-  //               ]);
-  //             }
-  //           }
-  //         } else if (updateBill.bill[i].package_code != null) {
-  //           for (
-  //             let n = 0;
-  //             n < updateBill.bill[i].package_code!.package_content.length;
-  //             n++
-  //           ) {
-  //             const packageContent =
-  //               updateBill.bill[i].package_code!.package_content[n];
-  //             const stockOut: StockOutDeleteInterface = {
-  //               itemID: packageContent.item_id,
-  //               billID: updateBill.bill[i].id,
-  //               quantity:
-  //                 Number(updateBill.bill[i].quantity) *
-  //                 -1 *
-  //                 Number(packageContent.quantity) *
-  //                 Number(
-  //                   packageContent.item_unit != null
-  //                     ? packageContent.item_unit.conversion
-  //                     : 1
-  //                 ),
-  //               adjustmentCaseID: null,
-  //             };
-  //             await queue.add("delete-stock-out", stockOut);
-  //           }
-  //         }
-  //       }
-  //       return res.status(201).send(updateBill);
-  //     })
-  //     .catch((error) => {
-  //       console.error(`[error]: Error on deleting bill ${error}`);
-  //       return res.status(500).send(ErrorList["Internal server error"]);
-  //     });
-  // };
-
-  /**
-   * Fetch salesmen
-   */
-  static fetchSalesmen = (req: Request, res: Response) => {
-    const keyword = req.query.keyword;
-    redisClient
-      .sMembers("salesman_set")
-      .then((result) => {
-        // Filter by keyword
-        if (keyword == "" || keyword == null) {
-          return res.status(200).send(
-            result
-              .sort((a, b) => {
-                return a.localeCompare(b);
-              })
-              .map((x) => x.toUpperCase())
-              .splice(0, 5)
-          );
-        } else {
-          return res.status(200).send(
-            result
-              .filter((x) => {
-                return x.includes(keyword.toString().toUpperCase());
-              })
-              .sort((a, b) => {
-                return a.localeCompare(b);
-              })
-              .map((x) => x.toUpperCase())
-              .splice(0, 5)
-          );
-        }
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching salesmen ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
-
-  /**
-   * Fetch salesmen pagination
-   */
-  static fetchSalesmenPagination = (req: Request, res: Response) => {
-    const keyword = req.query.keyword;
-    const page = !req.query.page ? 1 : parseInt(req.query.page.toString());
-    redisClient.sMembers("salesman_set").then((result) => {
-      if (keyword == "" || keyword == null) {
-        return res.status(200).send({
-          data: result
-            .sort((a, b) => {
-              return a.localeCompare(b);
-            })
-            .map((x) => x.toUpperCase())
-            .splice((page - 1) * 10, 10),
-          count: result.length,
-        });
-      } else {
-        return res.status(200).send({
-          data: result
-            .map((x) => x.toUpperCase())
-            .filter((x) => {
-              return x.includes(keyword.toString().toUpperCase());
-            })
-            .sort((a, b) => {
-              return a.localeCompare(b);
-            })
-            .map((x) => x.toUpperCase())
-            .splice((page - 1) * 10, 10),
-          count: result.length,
-        });
-      }
-    });
   };
 }
 

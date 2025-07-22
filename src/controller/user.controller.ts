@@ -11,9 +11,9 @@ import { CustomerRepository } from "../repositories/customer.repository";
 import { AchivementModel } from "../model/achivement.model";
 
 class UserController {
-  private userRepository: UserRepository;
-  private salesInvoiceRepository: SalesInvoiceRepository;
-  private customerRepository: CustomerRepository;
+  userRepository: UserRepository;
+  salesInvoiceRepository: SalesInvoiceRepository;
+  customerRepository: CustomerRepository;
 
   constructor(
     userRepository: UserRepository,

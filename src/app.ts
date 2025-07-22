@@ -35,14 +35,15 @@ import userRoutes from "./routes/master/user.route";
 import userAvatarRoutes from "./routes/master/user-avatar.route";
 import expenseRoutes from "./routes/transaction/expense.route";
 import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
+import salesDepositRoutes from "./routes/transaction/sales-deposit.route";
 import adjustmentEventRoutes from "./routes/transaction/adjustment-case.route";
 import reportRoutes from "./routes/report/report.route";
 import dashboardRoutes from "./routes/report/dashboard.route";
 import salesReturnRoutes from "./routes/transaction/sales-return.route";
 import DraftBillRoutes from "./routes/transaction/draft-bill.route";
+import OverpaymentRoutes from "./routes/transaction/overpayment.route";
 import CashierRoutes from "./routes/distinct/cashier.route";
 import PromotionRoutes from "./routes/master/promotion.route";
-import DepositRoutes from "./routes/transaction/deposit.route";
 import ReceivableRoutes from "./routes/transaction/receivable.route";
 import SalesmanRoutes from "./routes/master/salesman.route";
 
@@ -59,7 +60,6 @@ import changelogRoutes from "./routes/report/changelog.route";
   Importing other
 */
 import mongoose from "mongoose";
-import { queue } from "./helper/queue.helper";
 import compression from "compression";
 import helmet from "helmet";
 
@@ -93,8 +93,7 @@ async function main() {
 
   // Every day at midnight check for overflow
   cron.schedule("0 0 * * *", async () => {
-    console.log("[info]: Checking for overflow");
-    await queue.add("check-all-overflow", {});
+    // Assigning
   });
 
   const app = express();
@@ -119,7 +118,6 @@ async function main() {
   app.use("/product-stock", authMiddleware, productStockRoutes);
   app.use("/product-package", authMiddleware, productPackageRoutes);
   app.use("/promotion", authMiddleware, PromotionRoutes);
-  app.use("/deposit", authMiddleware, DepositRoutes);
   app.use("/salesman", authMiddleware, SalesmanRoutes);
 
   app.use("/supplier", authMiddleware, supplierRoutes);
@@ -134,7 +132,9 @@ async function main() {
   app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
   app.use("/purchase-invoice", authMiddleware, purchaseInvoiceRoutes);
   app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
+  app.use("/sales-deposit", authMiddleware, salesDepositRoutes);
   app.use("/draft-bill", authMiddleware, DraftBillRoutes);
+  app.use("/overpayment", authMiddleware, OverpaymentRoutes);
   app.use("/cashier", authMiddleware, CashierRoutes);
 
   app.use("/user", authMiddleware, userRoutes);

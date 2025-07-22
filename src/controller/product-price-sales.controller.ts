@@ -1,5 +1,5 @@
-import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
+import ErrorList from "../assets/error_list";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { ProductRepository } from "../repositories/product.repository";
 
@@ -35,6 +35,41 @@ export class ProductSalesPriceController {
     } catch (error) {
       console.error(`[error]: Error on fetching sales price by ID ${error}`);
       return res.status(500).send(error);
+    }
+  };
+
+  update = async (req: Request, res: Response) => {
+    const product_id = req.body.product_id;
+    const sales_price = req.body.sales_price;
+    const sales_discount = req.body.sales_discount;
+    const product_unit = req.body.product_unit;
+
+    try {
+      const product = await this.productRepository.fetchByID(product_id);
+      if (!product || product.is_delete!) {
+        return res.status(404).send(ErrorList["Product not found"]);
+      }
+
+      await this.productRepository.updateSalesPrice([
+        {
+          product_id: product_id,
+          product_unit_id: null,
+          price: sales_price,
+          discount: sales_discount,
+        },
+        ...product_unit.map((x: any) => {
+          return {
+            product_id: x.product_id,
+            product_unit_id: x.product_unit_id,
+            price: x.sales_price,
+            discount: x.sales_discount,
+          };
+        }),
+      ]);
+
+      return res.status(200).send(product);
+    } catch (error) {
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

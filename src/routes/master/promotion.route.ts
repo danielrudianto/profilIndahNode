@@ -4,12 +4,14 @@ import ErrorList from "../../assets/error_list";
 import PromotionController from "../../controller/promotion.controller";
 import { prisma } from "../../helper/database.helper";
 import ErrorHelper from "../../helper/error.helper";
+import { ProductRepository } from "../../repositories/product.repository";
 import { PromotionRepository } from "../../repositories/promotion.repository";
 
 const router = Router();
 
 const promotionController = new PromotionController(
-  new PromotionRepository(prisma)
+  new PromotionRepository(prisma),
+  new ProductRepository(prisma)
 );
 
 // router.get("/result/:id", PromotionController.fetchResultByID);
@@ -46,6 +48,7 @@ router.post(
   ErrorHelper.intercept,
   promotionController.create
 );
+
 router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
@@ -53,7 +56,19 @@ router.get(
   ErrorHelper.intercept,
   promotionController.fetchByID
 );
+
 router.get("/", promotionController.fetch);
+router.get(
+  "/result/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["ID must be integer"]),
+  ErrorHelper.intercept,
+  promotionController.fetchResult
+);
 
 // router.post("/download", PromotionController.downloadResultByID);
 

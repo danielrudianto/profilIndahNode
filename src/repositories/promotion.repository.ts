@@ -1,4 +1,5 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { DateHelper, formatDate } from "../helper/date.helper";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 import PromotionModel, { IPromotion } from "../model/promotion.model";
 
@@ -166,13 +167,72 @@ export class PromotionRepository {
 
       if (!result) return null;
 
-      console.log(result);
-
       return PromotionModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error while fetching promotion by ID: ${error}`);
       throw new Error("Internal server error");
     }
+  }
+
+  async fetchResult(
+    productID: number[],
+    supplierID: number,
+    startDate: Date,
+    endDate: Date | null
+  ) {
+    let salesDateFilter = "";
+    let purchaseDateFilter = "";
+    if (endDate == null) {
+      salesDateFilter = `AND sales_invoice_code.date >= ${DateHelper.convertDate(
+        startDate,
+        formatDate.YYYYMMDD
+      )}`;
+
+      purchaseDateFilter = `AND good_receipt_code.date >= ${DateHelper.convertDate(
+        startDate,
+        formatDate.YYYYMMDD
+      )}`;
+    } else {
+      salesDateFilter = `AND sales_invoice_code.date BETWEEN ${DateHelper.convertDate(
+        startDate,
+        formatDate.YYYYMMDD
+      )} AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)}`;
+
+      purchaseDateFilter = `AND good_receipt_code.date BETWEEN ${DateHelper.convertDate(
+        startDate,
+        formatDate.YYYYMMDD
+      )} AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)}`;
+    }
+
+    const [sales, purchase] = await this.prisma.$transaction([
+      this.prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        WHERE sales_invoice_code.is_delete = 0
+        ${salesDateFilter}
+        AND sales_invoice.product_id IN (${productID.join(",")})
+      `),
+      this.prisma.$queryRawUnsafe<any[]>(`
+        SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value
+        FROM good_receipt
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        WHERE good_receipt_code.is_delete = 0
+        ${purchaseDateFilter}
+        AND good_receipt_code.supplier_id = ${supplierID}
+        AND good_receipt.product_id IN (${productID.join(",")})
+      `),
+    ]);
+
+    const salesNumber =
+      sales == undefined || sales == null ? 0 : Number(sales[0].value);
+    const purchaseNumber =
+      purchase == undefined || purchase == null ? 0 : Number(purchase[0].value);
+
+    return {
+      sales: salesNumber,
+      purchase: purchaseNumber,
+    };
   }
 
   async countActive(): Promise<number> {

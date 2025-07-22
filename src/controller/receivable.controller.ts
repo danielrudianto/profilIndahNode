@@ -1,9 +1,24 @@
 import { Request, Response } from "express";
 import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
 import ErrorList from "../assets/error_list";
+import { ReceivableRepository } from "../repositories/receivable.repository";
 
 class ReceivableController {
-  static receivable = 0;
+  private receivableRepository: ReceivableRepository;
+
+  constructor(receivableRepository: ReceivableRepository) {
+    this.receivableRepository = receivableRepository;
+  }
+
+  fetch = async (req: Request, res: Response) => {
+    try {
+      const result = await this.receivableRepository.fetch();
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching receivable ${error}`);
+      return res.status(500).send(error);
+    }
+  };
 
   /**
    * Fetch all receivable

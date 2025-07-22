@@ -7,7 +7,9 @@
     "start": "nodemon src/app.ts",
     "pretty": "npx prettier --write \"**/*.ts\"",
     "build": "tsc",
-    "start:worker": "npx ts-node src/worker.ts"
+    "start:worker": "npx ts-node src/worker.ts",
+    "start:setup": "npx ts-node src/setup/meilisearch.setup.ts",
+    "start:sync-product": "npx ts-node src/startup.ts syncProduct"
   },
   "author": "PT Terra Nusa Teknologi",
   "license": "ISC",
