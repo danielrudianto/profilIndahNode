@@ -256,9 +256,9 @@ class SalesInvoiceController {
   fetchArchives = async (req: Request, res: Response) => {
     const year = req.body.year;
     const month = req.body.month;
-    const keyword = translateKeyword(req.query.keyword);
-    const page = translatePage(req.query.page);
-    const offset = Number(process.env.LIMIT!);
+    const keyword = translateKeyword(req.body.keyword);
+    const page = translatePage(req.body.page);
+    const offset = req.body.pageSize;
     const isActive = req.body.isActive as boolean;
     const isDelete = req.body.isDelete as boolean;
 

@@ -8,6 +8,7 @@ import {
 } from "../helper/escape.helper";
 import { SalesDepositPaymentModel } from "../model/sales-deposit-payment.model";
 import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
+import { SalesDepositModel } from "../model/sales-deposit.model";
 
 export class SalesDepositController {
   private salesDepositRepository: SalesDepositRepository;
@@ -87,6 +88,22 @@ export class SalesDepositController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching sales deposit ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchByID = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+
+    try {
+      const salesDeposit = await this.salesDepositRepository.fetchByID(id);
+      if (!salesDeposit) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      return res.status(200).send(salesDeposit);
+    } catch (error) {
+      console.error(`[error]: Error fetching sales deposit ${error}`);
       return res.status(500).send(error);
     }
   };

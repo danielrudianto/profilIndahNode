@@ -122,22 +122,27 @@ export class SalesDepositRepository {
     data: IFetchCommon
   ): Promise<IFetchCommonResult<SalesDepositModel>> {
     try {
-      const result = await this.prisma.deposit.findMany({
+      const result = await this.prisma.deposit_code.findMany({
         where: {
           is_delete: false,
         },
         include: {
-          product: true,
-          product_unit: true,
+          customer: true,
+          deposit: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
         },
-        skip: data.pageSize,
-        take: (data.page - 1) * data.pageSize,
+        take: data.pageSize,
+        skip: (data.page - 1) * data.pageSize,
         orderBy: {
           id: "desc",
         },
       });
 
-      const totalCount = await this.prisma.deposit.count({
+      const totalCount = await this.prisma.deposit_code.count({
         where: {
           is_delete: false,
         },
@@ -155,14 +160,18 @@ export class SalesDepositRepository {
 
   async fetchByID(id: number) {
     try {
-      const result = await this.prisma.deposit.findFirst({
+      const result = await this.prisma.deposit_code.findFirst({
         where: {
           id: id,
           is_delete: false,
         },
         include: {
-          product: true,
-          product_unit: true,
+          deposit: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
         },
       });
 
