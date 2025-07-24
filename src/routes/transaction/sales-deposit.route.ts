@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import { SalesDepositController } from "../../controller/sales-deposit.controller";
 import { prisma } from "../../helper/database.helper";
@@ -60,9 +60,20 @@ router.post(
   body("type")
     .isIn(["INTERNAL", "EXTERNAL"])
     .withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
   salesDepositController.create
 );
+
+router.get(
+  "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  salesDepositController.fetchByID
+);
+
 router.get("/", salesDepositController.fetch);
+
 // router.get("/v2", DepositController.fetchV2);
 // router.get("/:id", depositController.fetchByID);
 // router.get("/", depositController.fetch);

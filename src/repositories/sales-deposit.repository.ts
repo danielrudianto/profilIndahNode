@@ -131,11 +131,16 @@ export class SalesDepositRepository {
           is_delete: false,
         },
         include: {
-          product: true,
-          product_unit: true,
+          customer: true,
+          deposit: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
         },
-        skip: data.pageSize,
-        take: (data.page - 1) * data.pageSize,
+        take: data.pageSize,
+        skip: (data.page - 1) * data.pageSize,
         orderBy: {
           id: "desc",
         },
@@ -347,8 +352,12 @@ export class SalesDepositRepository {
           is_delete: false,
         },
         include: {
-          product: true,
-          product_unit: true,
+          deposit: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
         },
       });
 
