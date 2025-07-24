@@ -2,6 +2,7 @@ import { CustomerModel } from "../model/customer.model";
 import { ProductUnitModel } from "../model/product-unit.model";
 import { ProductModel } from "../model/product.model";
 import { UserViewModel } from "../model/user.model";
+import { PaymentMethodViewModel } from "./payment-method.model";
 import { SalesDepositPaymentModel } from "./sales-deposit-payment.model";
 
 export interface ISalesDepositCode {
@@ -15,9 +16,8 @@ export interface ISalesDepositCode {
   service: number;
   date: Date;
   uuid: string;
-  deposit: ISalesDeposit[];
-  deposit_payment: SalesDepositPaymentModel[];
-  paymentTerm: number | null;
+  sales_deposit: ISalesDeposit[];
+  sales_deposit_payment: SalesDepositPaymentModel[];
   isPaid: boolean;
   isConfirm: boolean;
   isDelete: boolean;
@@ -53,17 +53,16 @@ export class SalesDepositModel {
   customerID: number | null;
   createdBy: number;
   createdAt: Date;
-  is_confirm: boolean;
+  isConfirm: boolean;
   confirmedBy?: number | null;
   confirmedAt?: Date | null;
   isPaid: boolean;
   isDelete: boolean;
   uuid: string;
-  payment_term: number | null = null;
   type: string;
 
-  deposit?: ISalesDeposit[] = [];
-  deposit_payment?: SalesDepositPaymentModel[] = [];
+  sales_deposit?: ISalesDeposit[] = [];
+  sales_deposit_payment?: SalesDepositPaymentModel[] = [];
 
   customer?: CustomerModel | null;
   user_bill_code_created_byTouser?: UserViewModel;
@@ -80,7 +79,7 @@ export class SalesDepositModel {
     this.delivery = data.delivery;
     this.service = data.service;
     this.date = data.date;
-    this.is_confirm = data.isConfirm;
+    this.isConfirm = data.isConfirm;
     this.confirmedBy = data.confirmedBy;
     this.confirmedAt = data.confirmedAt;
     this.uuid = data.uuid;
@@ -88,7 +87,7 @@ export class SalesDepositModel {
     this.sales = data.sales || null;
     this.isDelete = data.isDelete;
     this.type = data.type;
-    this.deposit = data.deposit.map((item) => {
+    this.sales_deposit = data.sales_deposit.map((item) => {
       return {
         id: item.id,
         product_id: item.product_id,
@@ -109,7 +108,7 @@ export class SalesDepositModel {
             : ProductUnitModel.fromMap(item.product_unit),
       };
     });
-    this.deposit_payment = data.deposit_payment.map((payment) => {
+    this.sales_deposit_payment = data.sales_deposit_payment.map((payment) => {
       return {
         id: payment.id,
         sales_deposit_code_id: payment.sales_deposit_code_id,
@@ -118,7 +117,6 @@ export class SalesDepositModel {
         date: payment.date,
       };
     });
-    this.payment_term = data.paymentTerm;
     this.customer = data.customer;
     this.user_bill_code_created_byTouser = data.user_bill_code_created_byTouser;
     this.user_bill_code_confirmed_byTouser =
@@ -144,10 +142,10 @@ export class SalesDepositModel {
       isDelete: data.is_delete,
       uuid: data.uuid,
       type: data.type,
-      deposit:
-        data.deposit == undefined
+      sales_deposit:
+        data.sales_deposit == undefined
           ? []
-          : (data.deposit as any[]).map((item) => {
+          : (data.sales_deposit as any[]).map((item) => {
               return {
                 id: item.id,
                 product_id: item.product_id,
@@ -168,8 +166,28 @@ export class SalesDepositModel {
                     : ProductUnitModel.fromMap(item.product_unit),
               };
             }),
-      deposit_payment: [],
-      paymentTerm: data.payment_term,
+      sales_deposit_payment:
+        data.sales_deposit_payment == undefined
+          ? undefined
+          : data.sales_deposit_payment.map((x: any) => {
+              return new SalesDepositPaymentModel({
+                id: x.id,
+                date: new Date(x.date),
+                value: Number(x.value),
+                payment_method_id: x.payment_method_id,
+                payment_method:
+                  x.payment_method == undefined
+                    ? undefined
+                    : x.payment_method == null
+                    ? null
+                    : new PaymentMethodViewModel({
+                        id: x.payment_method_id,
+                        name: x.payment_method.name,
+                        description: x.payment_method.description,
+                      }),
+                sales_deposit_code_id: data.id,
+              });
+            }),
       customer:
         data.customer == null
           ? null

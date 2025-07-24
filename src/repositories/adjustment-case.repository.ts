@@ -52,7 +52,7 @@ export class AdjustmentCaseRepository {
     }
   }
 
-  async delete(id: number) {
+  async delete(id: number, userID: number) {
     try {
       const result = await this.prisma.adjustment_case_code.update({
         where: {
@@ -60,6 +60,9 @@ export class AdjustmentCaseRepository {
         },
         data: {
           is_delete: true,
+          is_confirm: false,
+          confirmed_at: new Date(),
+          confirmed_by: userID,
         },
       });
 

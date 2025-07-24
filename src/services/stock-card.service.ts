@@ -85,4 +85,16 @@ export class StockCardService {
       });
     }
   }
+
+  async startup() {
+    console.info(`[info]: Starting inserting stock card`);
+
+    await this.stockCardRepository.startup();
+
+    console.info(`[info]: Inserting stock card completed`);
+    console.info(`[info]: Starting reordering stock card`);
+
+    await this.stockCardRepository.reorder();
+    console.info(`[info]: Reordering stock card completed`);
+  }
 }

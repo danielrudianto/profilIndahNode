@@ -1,10 +1,30 @@
 import { PrismaClient } from "@prisma/client";
-import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
+import {
+  ISalesInvoicePayment,
+  SalesInvoicePaymentModel,
+} from "../model/sales-invoice-payment.model";
 
 export class SalesInvoicePaymentRepository {
   private prisma: PrismaClient;
   constructor(prisma: any) {
     this.prisma = prisma;
+  }
+
+  async create(data: ISalesInvoicePayment) {
+    try {
+      const result = await this.prisma.sales_invoice_payment.create({
+        data: {
+          value: data.value,
+          payment_method_id: data.payment_method_id,
+          date: data.date,
+          sales_invoice_code_id: data.sales_invoice_code_id,
+        },
+      });
+
+      return SalesInvoicePaymentModel.fromMap(result);
+    } catch (error) {
+      throw error;
+    }
   }
 
   async fetchPaymentsBySalesInvoiceCodeID(id: number) {

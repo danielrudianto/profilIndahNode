@@ -6,7 +6,7 @@ export interface IOverpaymentCode {
   id?: number;
   customer_id: number;
   date: Date;
-  sales_invoice_code_id: number;
+  sales_deposit_code_id: number | null;
   return_payment_method: string;
   return_payment_number: string | null;
   return_date: Date;
@@ -23,7 +23,7 @@ export class OverpaymentCodeModel {
   id?: number;
   customer_id: number;
   date: Date;
-  sales_invoice_code_id: number;
+  sales_deposit_code_id: number | null;
   return_payment_method: string;
   return_payment_number: string | null;
   return_date: Date;
@@ -34,7 +34,7 @@ export class OverpaymentCodeModel {
     this.id = data.id;
     this.customer_id = data.customer_id;
     this.date = data.date;
-    this.sales_invoice_code_id = data.sales_invoice_code_id;
+    this.sales_deposit_code_id = data.sales_deposit_code_id;
     this.return_payment_method = data.return_payment_method;
     this.return_payment_number = data.return_payment_number;
     this.return_date = data.return_date;
@@ -47,20 +47,19 @@ export class OverpaymentCodeModel {
       id: data.id,
       customer_id: data.customer_id,
       date: new Date(data.date),
-      sales_invoice_code_id: data.sales_invoice_code_id,
+      sales_deposit_code_id: data.sales_deposit_code_id,
       return_payment_method: data.return_payment_method,
       return_payment_number: data.return_payment_number,
       return_date: new Date(data.return_date),
       created_by: data.created_by,
       created_at: new Date(data.created_at),
-
       overpayment:
         data.overpayment == undefined
           ? undefined
           : data.overpayment.map((x: any) => {
               return new OverpaymentModel({
                 id: x.id,
-                amount: Number(x.amount),
+                value: Number(x.value),
                 payment_method_id: x.payment_method_id,
                 payment_method: PaymentMethodModel.fromMap(x.payment_method),
                 overpayment_code_id: x.overpayment_code_id,
@@ -73,7 +72,7 @@ export class OverpaymentCodeModel {
 export interface IOverpayment {
   id?: number;
   payment_method_id: number | null;
-  amount: number;
+  value: number;
   overpayment_code_id: number;
 
   payment_method?: PaymentMethodModel | null;
@@ -82,14 +81,14 @@ export interface IOverpayment {
 export class OverpaymentModel {
   id?: number;
   payment_method_id: number | null;
-  amount: number;
+  value: number;
   overpayment_code_id: number;
   payment_method?: PaymentMethodModel | null;
 
   constructor(data: IOverpayment) {
     this.id = data.id;
     this.payment_method_id = data.payment_method_id;
-    this.amount = data.amount;
+    this.value = data.value;
     this.overpayment_code_id = data.overpayment_code_id;
     this.payment_method = data.payment_method;
   }

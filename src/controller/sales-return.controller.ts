@@ -4,20 +4,28 @@ import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { StockRepository } from "../repositories/stock.repository";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
+import { StockOutRepository } from "../repositories/stock-out.repository";
+import { StockCardRepository } from "../repositories/stock-card.repository";
 
 class SalesReturnController {
   salesReturnRepository: SalesReturnRepository;
   salesInvoiceRepository: SalesInvoiceRepository;
   stockRepository: StockRepository;
+  stockOutRepository: StockOutRepository;
+  stockCardRepository: StockCardRepository;
 
   constructor(
     salesReturnRepository: SalesReturnRepository,
     salesInvoiceRepository: SalesInvoiceRepository,
-    stockRepository: StockRepository
+    stockRepository: StockRepository,
+    stockOutRepository: StockOutRepository,
+    stockCardRepository: StockCardRepository
   ) {
     this.salesReturnRepository = salesReturnRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.stockRepository = stockRepository;
+    this.stockOutRepository = stockOutRepository;
+    this.stockCardRepository = stockCardRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -29,6 +37,7 @@ class SalesReturnController {
       const userID = req.body.userId;
       const sales_return = req.body.sales_return;
       const name = this.generateName(date);
+      const sales_invoice_code_id = req.body.sales_invoice_code_id;
 
       // first need to check if the quantity satisfies
       const validation = await this.salesInvoiceRepository.validateSalesReturn(
@@ -56,6 +65,7 @@ class SalesReturnController {
             sales_return_code_id: 0,
           };
         }),
+        sales_invoice_code_id: sales_invoice_code_id,
       });
 
       if (!result) {
@@ -71,6 +81,47 @@ class SalesReturnController {
                 ? 1
                 : x.sales_invoice.product_unit.conversion),
             productID: x.sales_invoice!.product_id!,
+          };
+        })
+      );
+
+      await this.stockCardRepository.createMany(
+        result.sales_return!.map((x) => {
+          return {
+            date: result.date,
+            quantity:
+              x.quantity *
+              (x.sales_invoice?.product_unit == null
+                ? 1
+                : x.sales_invoice.product_unit.conversion),
+            display_quantity: x.quantity,
+            product_id: x.sales_invoice!.product_id,
+            product_unit_id: x.sales_invoice!.product_unit_id,
+            supplier_id: null,
+            customer_id: result.sales_invoice_code!.customerID,
+            stock: null,
+            document_name: result.name,
+            adjustment_case_code_id: null,
+            adjustment_case_id: null,
+            sales_return_id: x.id!,
+            sales_return_code_id: result.id!,
+            good_receipt_code_id: null,
+            good_receipt_id: null,
+            sales_invoice_id: x.sales_invoice_id,
+            sales_invoice_code_id: result.sales_invoice_code_id,
+          };
+        })
+      );
+
+      await this.stockOutRepository.decreaseMany(
+        result.sales_return!.map((x) => {
+          return {
+            sales_invoice_id: x.sales_invoice_id,
+            quantity:
+              x.quantity *
+              (x.sales_invoice?.product_unit == null
+                ? 1
+                : x.sales_invoice.product_unit.conversion),
           };
         })
       );

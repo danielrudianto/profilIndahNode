@@ -85,6 +85,138 @@ export class StockOutRepository {
     });
   }
 
+  async decreaseMany(
+    data: {
+      sales_invoice_id: number;
+      quantity: number;
+    }[]
+  ) {
+    try {
+      for (let i = 0; i < data.length; i++) {
+        let quantity = 0;
+        while (quantity > 0) {
+          if (quantity == 0) {
+            break;
+          }
+
+          const stockOut = await this.prisma.stock_out.findFirst({
+            where: {
+              sales_invoice_id: data[i].sales_invoice_id,
+            },
+          });
+
+          if (!stockOut) {
+            console.error(`[error]: Stock out not found`);
+            return;
+          }
+
+          const stockOutQuantity = Number(stockOut.quantity);
+
+          if (stockOutQuantity > quantity) {
+            await this.prisma.stock_out.update({
+              where: {
+                id: stockOut.id,
+              },
+              data: {
+                quantity: {
+                  increment: -1 * quantity,
+                },
+              },
+            });
+
+            if (stockOut.stock_in_id != null) {
+              await this.prisma.stock_in.update({
+                where: {
+                  id: stockOut.stock_in_id,
+                },
+                data: {
+                  residue: {
+                    increment: quantity,
+                  },
+                },
+              });
+            }
+            quantity = 0;
+            break;
+          } else if (stockOutQuantity == quantity) {
+            await this.prisma.stock_out.delete({
+              where: {
+                id: stockOut.id,
+              },
+            });
+
+            if (stockOut.stock_in_id != null) {
+              await this.prisma.stock_in.update({
+                where: {
+                  id: stockOut.stock_in_id,
+                },
+                data: {
+                  residue: {
+                    increment: quantity,
+                  },
+                },
+              });
+            }
+            quantity = 0;
+            break;
+          } else {
+            await this.prisma.stock_out.delete({
+              where: {
+                id: stockOut.id,
+              },
+            });
+
+            if (stockOut.stock_in_id != null) {
+              await this.prisma.stock_in.update({
+                where: {
+                  id: stockOut.stock_in_id,
+                },
+                data: {
+                  residue: {
+                    increment: stockOutQuantity,
+                  },
+                },
+              });
+            }
+
+            quantity -= stockOutQuantity;
+          }
+        }
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async calculate(month: number, year: number) {
+    const [assigned, unassigned] = await this.prisma.$transaction([
+      this.prisma.$queryRaw`
+        SELECT
+        (stock_in.price * stock_out.quantity) AS hpp,
+        stock_out.price * stock_out.quantity AS sales,
+        stock_in.company_id
+        FROM stock_out
+        JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+        WHERE MONTH(stock_out.date) = ${month}
+        AND YEAR(stock_out.date) = ${year}
+        GROUP BY stock_in.company_id
+      `,
+      this.prisma.$queryRaw`
+        SELECT
+        0 AS hpp,
+        stock_out.price * stock_out.quantity AS sales
+        FROM stock_out
+        WHERE MONTH(stock_out.date) = ${month}
+        AND YEAR(stock_out.date) = ${year}
+      `,
+    ]);
+
+    return {
+      assigned: assigned,
+      unassigned: unassigned,
+    };
+  }
+
   async insertFromSalesInvoices() {
     await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_out (product_id, quantity, date, stock_in_id, price, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id)

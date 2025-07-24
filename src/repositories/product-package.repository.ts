@@ -111,7 +111,6 @@ export class ProductPackageRepository {
   }
 
   async delete(id: number, userID: number) {
-    // First get the package code by ID
     try {
       const result = await this.prisma.package_code.update({
         where: {

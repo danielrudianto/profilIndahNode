@@ -1,5 +1,8 @@
 import { PaymentMethodModel } from "./payment-method.model";
-import { SalesInvoiceItemModel } from "./sales-invoice.model";
+import {
+  SalesInvoiceItemModel,
+  SalesInvoiceModel,
+} from "./sales-invoice.model";
 
 export interface ISalesReturnCode {
   id?: number;
@@ -12,8 +15,10 @@ export interface ISalesReturnCode {
   is_delete: boolean;
   confirmed_by: number | null;
   confirmed_at: Date | null;
+  sales_invoice_code_id: number;
 
   sales_return?: SalesReturnModel[];
+  sales_invoice_code?: SalesInvoiceModel;
 }
 
 export interface ISalesReturn {
@@ -37,6 +42,8 @@ export class SalesReturnCodeModel {
   is_delete: boolean;
   confirmed_by: number | null;
   confirmed_at: Date | null;
+  sales_invoice_code_id: number;
+  sales_invoice_code?: SalesInvoiceModel;
 
   payment_method?: PaymentMethodModel;
   sales_return?: SalesReturnModel[];
@@ -52,7 +59,9 @@ export class SalesReturnCodeModel {
     this.is_delete = data.is_delete;
     this.confirmed_at = data.confirmed_at;
     this.confirmed_by = data.confirmed_by;
+    this.sales_invoice_code_id = data.sales_invoice_code_id;
 
+    this.sales_invoice_code = data.sales_invoice_code;
     this.sales_return = data.sales_return;
   }
 
@@ -68,7 +77,11 @@ export class SalesReturnCodeModel {
       is_delete: data.is_delete,
       confirmed_at: new Date(data.confirmed_at),
       confirmed_by: data.confirmed_by,
-
+      sales_invoice_code_id: data.sales_invoice_code_id,
+      sales_invoice_code:
+        data.sales_invoice_code == undefined
+          ? undefined
+          : SalesInvoiceModel.fromMap(data.sales_invoice_code),
       sales_return:
         data.sales_return == undefined
           ? undefined

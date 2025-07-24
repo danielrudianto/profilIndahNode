@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import DepositModel from "../model/deposit.model";
 import {
   mysql_real_escape_string,
   translateDate,
@@ -8,13 +7,13 @@ import {
   translateSalesName,
 } from "../helper/escape.helper";
 import ErrorList from "../assets/error_list";
-import { DepositRepository } from "../repositories/sales-deposit.repository";
+import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
 
 class DepositController {
-  private depositRepository: DepositRepository;
+  private salesDepositRepository: SalesDepositRepository;
 
-  constructor(depositRepository: DepositRepository) {
-    this.depositRepository = depositRepository;
+  constructor(salesDepositRepository: SalesDepositRepository) {
+    this.salesDepositRepository = salesDepositRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -32,20 +31,23 @@ class DepositController {
     const type = req.body.type;
 
     try {
-      const billResult = await this.depositRepository.create({
-        name: this.depositRepository.generateName(date),
+      const billResult = await this.salesDepositRepository.create({
+        name: this.salesDepositRepository.generateName(date),
         uuid: uuid,
-        customer_id: customerID,
+        customerID: customerID,
         discount: discount,
         delivery: delivery,
         service: service,
         sales: sales,
         date: date,
-        created_by: userID,
-        created_at: new Date(),
-        deposit: deposit,
-        deposit_payment: deposit_payment,
+        createdBy: userID,
+        createdAt: new Date(),
+        sales_deposit: deposit,
+        sales_deposit_payment: deposit_payment,
         type: type,
+        isPaid: isPaid,
+        isConfirm: false,
+        isDelete: false,
       });
 
       return res.status(201).send(billResult);
@@ -58,7 +60,7 @@ class DepositController {
   fetchByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     try {
-      const result = await this.depositRepository.fetchByID(id);
+      const result = await this.salesDepositRepository.fetchByID(id);
       if (!result) {
         return res.status(404).send(ErrorList["Not found"]);
       }
@@ -75,7 +77,7 @@ class DepositController {
     const page = translatePage(req.query.page);
     const pageSize = Number(process.env.LIMIT!);
     try {
-      const result = await this.depositRepository.fetch({
+      const result = await this.salesDepositRepository.fetch({
         page: page,
         keyword: keyword,
         pageSize: pageSize,
@@ -90,7 +92,7 @@ class DepositController {
 
   delete = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
-    const result = this.depositRepository.fetchByID(id);
+    const result = this.salesDepositRepository.fetchByID(id);
     if (!result) {
       return res.status(404).send(ErrorList["Not found"]);
     }

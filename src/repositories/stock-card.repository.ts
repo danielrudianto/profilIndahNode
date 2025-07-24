@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { Decimal } from "@prisma/client/runtime";
 import { IStockCard, StockCardModel } from "../model/stock-card.model";
 
 export class StockCardRepository {
@@ -199,6 +200,126 @@ export class StockCardRepository {
 
       const result = await this.prisma.$transaction(deleteQuery);
       return result;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async startup() {
+    const result = await this.prisma.$queryRaw`
+      INSERT INTO stock_card (product_id, product_unit_id, quantity, display_quantity, date, customer_id, supplier_id, document_name, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, sales_return_id, sales_return_code_id, stock)
+      (
+        SELECT * FROM (
+        SELECT good_receipt.product_id, good_receipt.product_unit_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, good_receipt.quantity AS display_quantity,
+        good_receipt_code.date, NULL as customer_id, good_receipt_code.supplier_id, good_receipt_code.name AS document_name, NULL AS sales_invoice_id, NULL AS sales_invoice_code_id,
+        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, good_receipt.id AS good_receipt_id, good_receipt_code.id AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock
+        FROM good_receipt
+        JOIN product ON good_receipt.product_id = product.id
+        LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
+        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          WHERE good_receipt_code.is_delete = 0
+          
+        UNION ALL
+        SELECT adjustment_case.product_id, adjustment_case.product_unit_id, adjustment_case.quantity * IF(adjustment_case.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, adjustment_case.quantity AS display_quantity,
+        adjustment_case_code.date, NULL as customer_id, NULL AS supplier_id, adjustment_case_code.name AS document_name, NULL AS sales_invoice_id, NULL AS sales_invoice_code_id,
+        adjustment_case.id as adjustment_case_id, adjustment_case_code.id AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock
+        FROM adjustment_case
+        JOIN product ON adjustment_case.product_id = product.id
+        LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
+        JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
+          WHERE adjustment_case_code.is_delete = 0
+          
+        UNION ALL
+        SELECT sales_invoice.product_id, sales_invoice.product_unit_id, -1 * sales_invoice.quantity * IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, sales_invoice.quantity * -1 AS display_quantity,
+        sales_invoice_code.date, sales_invoice_code.customer_id as customer_id, NULL AS supplier_id, sales_invoice_code.name AS document_name, sales_invoice.id AS sales_invoice_id, sales_invoice.sales_invoice_code_id AS sales_invoice_code_id,
+        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock
+        FROM sales_invoice
+        JOIN product ON sales_invoice.product_id = product.id
+        LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+          WHERE sales_invoice_code.is_delete = 0
+          
+        UNION ALL
+        SELECT sales_invoice.product_id, sales_invoice.product_unit_id, sales_return.quantity * IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, sales_return.quantity AS display_quantity,
+        sales_return_code.date, sales_invoice_code.customer_id as customer_id, NULL AS supplier_id, sales_return_code.name AS document_name, sales_invoice.id AS sales_invoice_id, sales_invoice_code.id AS sales_invoice_code_id,
+        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, sales_return.id AS sales_return_id, sales_return_code.id AS sales_return_code_id, NULL AS stock
+        FROM sales_return
+        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+        JOIN sales_invoice ON sales_return.sales_invoice_id = sales_invoice.id
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        JOIN product ON sales_invoice.product_id = product.id
+        LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
+          WHERE sales_return_code.is_delete = 0
+        ) AS a
+        ORDER BY product_id ASC, date ASC
+      )
+    `;
+
+    return result;
+  }
+
+  async reorder() {
+    try {
+      const productIDs = await this.prisma.stock_card.findMany({
+        distinct: ["product_id"],
+        where: {
+          stock: null,
+        },
+      });
+
+      console.info(
+        `[info]: Found ${productIDs.length} products that needs to be reorder`
+      );
+
+      for (let i = 0; i < productIDs.length; i++) {
+        console.info(
+          `[info]: Start reordering ${i + 1}/${
+            productIDs.length
+          } product stock card`
+        );
+        const product_id = productIDs[i].product_id;
+
+        const stockCards = await this.prisma.stock_card.findMany({
+          where: {
+            product_id: product_id,
+          },
+          orderBy: [
+            {
+              date: "asc",
+            },
+            {
+              id: "asc",
+            },
+          ],
+        });
+
+        let initialQuantity = 0;
+        const updateQuery = [];
+
+        for (let j = 0; j < stockCards.length; j++) {
+          initialQuantity += Number(stockCards[j].quantity);
+          updateQuery.push(
+            this.prisma.stock_card.update({
+              where: {
+                id: stockCards[j].id,
+              },
+              data: {
+                stock: initialQuantity,
+              },
+            })
+          );
+        }
+
+        await this.prisma.$transaction(updateQuery);
+
+        console.info(
+          `[info]: Done reordering ${i + 1}/${
+            productIDs.length
+          } product stock card`
+        );
+      }
+
+      console.info(`[info]: Reordering completed`);
     } catch (error) {
       throw error;
     }

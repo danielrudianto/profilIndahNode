@@ -36,6 +36,7 @@ export class SalesReturnRepository {
               }),
             },
           },
+          sales_invoice_code_id: data.sales_invoice_code_id,
         },
         include: {
           sales_return: {
@@ -48,6 +49,7 @@ export class SalesReturnRepository {
               },
             },
           },
+          sales_invoice_code: true,
         },
       });
 

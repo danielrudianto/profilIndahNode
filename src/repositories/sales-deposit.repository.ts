@@ -1,5 +1,9 @@
 import { PrismaClient } from "@prisma/client";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+import {
+  IFetchAnnualArchives,
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interface/fetch.interface";
 import {
   ISalesDepositCode,
   SalesDepositModel,
@@ -14,7 +18,7 @@ export class SalesDepositRepository {
 
   async create(data: ISalesDepositCode) {
     try {
-      const result = await this.prisma.deposit_code.create({
+      const result = await this.prisma.sales_deposit_code.create({
         data: {
           uuid: data.uuid,
           name: data.name,
@@ -25,9 +29,9 @@ export class SalesDepositRepository {
           deleted_at: null,
           deleted_by: null,
           type: data.type,
-          deposit: {
+          sales_deposit: {
             createMany: {
-              data: data.deposit.map((x) => {
+              data: data.sales_deposit.map((x) => {
                 return {
                   product_id: x.product_id,
                   product_unit_id: x.product_unit_id,
@@ -38,9 +42,9 @@ export class SalesDepositRepository {
               }),
             },
           },
-          deposit_payment: {
+          sales_deposit_payment: {
             createMany: {
-              data: data.deposit_payment.map((x) => {
+              data: data.sales_deposit_payment.map((x) => {
                 return {
                   payment_method_id: x.payment_method_id,
                   value: x.value,
@@ -51,7 +55,7 @@ export class SalesDepositRepository {
           },
         },
         include: {
-          deposit: {
+          sales_deposit: {
             include: {
               product: true,
               product_unit: true,
@@ -82,7 +86,7 @@ export class SalesDepositRepository {
   async fetchByProductID(productID: number[]): Promise<number[]> {
     try {
       // fetch the sums
-      const deposits = await this.prisma.deposit.groupBy({
+      const deposits = await this.prisma.sales_deposit.groupBy({
         by: ["product_id"],
         _sum: {
           quantity: true,
@@ -122,7 +126,7 @@ export class SalesDepositRepository {
     data: IFetchCommon
   ): Promise<IFetchCommonResult<SalesDepositModel>> {
     try {
-      const result = await this.prisma.deposit.findMany({
+      const result = await this.prisma.sales_deposit.findMany({
         where: {
           is_delete: false,
         },
@@ -137,7 +141,7 @@ export class SalesDepositRepository {
         },
       });
 
-      const totalCount = await this.prisma.deposit.count({
+      const totalCount = await this.prisma.sales_deposit.count({
         where: {
           is_delete: false,
         },
@@ -153,9 +157,191 @@ export class SalesDepositRepository {
     }
   }
 
+  async fetchAnnualArchives(): Promise<IFetchAnnualArchives[]> {
+    try {
+      const result = await this.prisma.$queryRaw<
+        { year: number; month: number; count: BigInt }[]
+      >`
+        SELECT 
+          EXTRACT(YEAR FROM date) AS year,
+          EXTRACT(MONTH FROM date) AS month,
+          COUNT(id) AS count
+        FROM deposit_code
+        GROUP BY month, year
+        ORDER BY date DESC;
+      `;
+
+      return result.map((x) => {
+        return {
+          year: Number(x.year),
+          month: Number(x.month),
+          count: Number(x.count),
+        };
+      });
+    } catch (error) {
+      console.error(`[error]: Error while fetching annual archives: ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
+  async fetchArchives(data: {
+    month: number;
+    year: number;
+    keyword: string;
+    limit: number;
+    offset: number;
+    isActive: boolean;
+    isDelete: boolean;
+    sortBy: string;
+    sortDirection: "asc" | "desc";
+  }) {
+    try {
+      let statusFilter: any = {};
+      if (
+        (!data.isActive && !data.isDelete) ||
+        (data.isActive && data.isDelete)
+      ) {
+        statusFilter = {
+          OR: [
+            {
+              is_confirm: true,
+            },
+            {
+              is_delete: true,
+            },
+          ],
+        };
+      } else if (data.isActive) {
+        statusFilter = {
+          is_confirm: true,
+        };
+      } else {
+        statusFilter = {
+          is_delete: true,
+        };
+      }
+
+      let orderBy;
+
+      if (data.sortBy == "date") {
+        orderBy = {
+          date: data.sortDirection,
+        };
+      } else if (data.sortBy == "name") {
+        orderBy = {
+          name: data.sortDirection,
+        };
+      } else if (data.sortBy === "customer") {
+        orderBy = {
+          customer: {
+            name: data.sortDirection,
+          },
+        };
+      } else if (data.sortBy == "sales") {
+        orderBy = {
+          sales: data.sortDirection,
+        };
+      }
+
+      const [result, count] = await this.prisma.$transaction([
+        this.prisma.sales_deposit_code.findMany({
+          where: {
+            AND: [
+              {
+                date: {
+                  gt: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                OR: [
+                  {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    sales: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    customer: {
+                      name: {
+                        contains: data.keyword,
+                      },
+                    },
+                  },
+                ],
+              },
+              statusFilter,
+            ],
+          },
+          orderBy: orderBy,
+          include: {
+            customer: true,
+          },
+          take: data.limit,
+          skip: data.offset,
+        }),
+        this.prisma.sales_deposit_code.count({
+          where: {
+            AND: [
+              {
+                date: {
+                  gt: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                OR: [
+                  {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    sales: {
+                      contains: data.keyword,
+                    },
+                  },
+                  {
+                    customer: {
+                      name: {
+                        contains: data.keyword,
+                      },
+                    },
+                  },
+                ],
+              },
+              statusFilter,
+            ],
+          },
+        }),
+      ]);
+
+      return {
+        data: result.map((x) => {
+          return SalesDepositModel.fromMap(x);
+        }),
+        count: count,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchByID(id: number) {
     try {
-      const result = await this.prisma.deposit.findFirst({
+      const result = await this.prisma.sales_deposit.findFirst({
         where: {
           id: id,
           is_delete: false,
@@ -174,6 +360,34 @@ export class SalesDepositRepository {
     } catch (error) {
       console.error(`[error]: Error on fetching deposit by ID ${error}`);
       throw new Error("Internal server error");
+    }
+  }
+
+  async delete(id: number, userID: number) {
+    try {
+      const result = await this.prisma.sales_deposit_code.update({
+        where: {
+          id: id,
+        },
+        data: {
+          is_delete: true,
+          deleted_by: userID,
+          deleted_at: new Date(),
+        },
+        include: {
+          sales_deposit: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
+          sales_deposit_payment: true,
+        },
+      });
+
+      return SalesDepositModel.fromMap(result);
+    } catch (error) {
+      throw error;
     }
   }
 }

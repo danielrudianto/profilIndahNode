@@ -74,6 +74,7 @@ enum ErrorList {
   "Company ID required" = "ID perusahaan tidak boleh kosong.",
   "Purchase invoice name required" = "Nama invoice pembelian tidak boleh kosong.",
   "Adjustment case not found" = "Data kasus penyesuaian tidak ditemukan.",
+  "Adjustment case has not been confirmed" = "Data kasus penyesuaian belum dikonfirmasi",
   "Delete bill sales return constraint" = "Tidak dapat menghapus faktur karena ada retur penjualan yang terkait.",
 
   "Expense type not found" = "Data jenis pengeluaran tidak ditemukan.",
@@ -105,6 +106,8 @@ enum ErrorList {
   "Expense type name is required" = "Nama jenis pengeluaran tidak boleh kosong.",
   "Expense type description is required" = "Deskripsi jenis pengeluaran tidak boleh kosong.",
 
+  "Day is required" = "Tanggal tidak boleh kosong",
+  "Day must be numeric" = "Tanggal harus berupa angka",
   "Month is required" = "Bulan tidak boleh kosong.",
   "Month must be numeric" = "Bulan harus berupa angka.",
   "Year is required" = "Tahun tidak boleh kosong.",
@@ -150,6 +153,10 @@ enum ErrorList {
   "Invalid group report" = "Grup laporan harus merupakan merek atau tipe produk.",
   "Sort by required" = "Urutan dibutuhkan",
   "Sort direction only supports ascending or descending" = "Urutan hanya dapat dilakukan secara ascending atau descending",
+  "Amount is required" = "Nominal tidak boleh kosong",
+  "Amount must be numeric" = "Nominal harus berupa angka",
+  "Sales invoice payment is greater than value" = "Nilai pembayaran lebih besar daripada nilai nota",
+  "Deposit already confirmed" = "Deposit sudah dikonfirmasi atau dihapus sebelumnya",
 }
 
 export default ErrorList;

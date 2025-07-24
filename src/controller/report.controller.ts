@@ -22,6 +22,9 @@ import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import { ProductRepository } from "../repositories/product.repository";
 import { StockRepository } from "../repositories/stock.repository";
+import { CompanyRepository } from "../repositories/company.repository";
+import { ExpenseRepository } from "../repositories/expense.repository";
+import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 
 interface AdministratorDashboard {
   title: string;
@@ -49,6 +52,10 @@ class ReportController {
   productRepository: ProductRepository;
   stockRepository: StockRepository;
 
+  companyRepository: CompanyRepository;
+  expenseRepository: ExpenseRepository;
+  expenseTypeRepository: ExpenseTypeRepository;
+
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
     promotionRepository: PromotionRepository,
@@ -65,7 +72,11 @@ class ReportController {
     stockOutRepository: StockOutRepository,
 
     productRepository: ProductRepository,
-    stockRepository: StockRepository
+    stockRepository: StockRepository,
+    companyRepository: CompanyRepository,
+
+    expenseRepository: ExpenseRepository,
+    expenseTypeRepository: ExpenseTypeRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.promotionRepository = promotionRepository;
@@ -83,6 +94,10 @@ class ReportController {
 
     this.productRepository = productRepository;
     this.stockRepository = stockRepository;
+    this.companyRepository = companyRepository;
+
+    this.expenseRepository = expenseRepository;
+    this.expenseTypeRepository = expenseTypeRepository;
   }
 
   fetchAdministratorDashboard = (req: Request, res: Response) => {
@@ -1277,6 +1292,26 @@ class ReportController {
     //     }
     //   }
     // );
+  };
+
+  fetchProfitLoss = async (req: Request, res: Response) => {
+    const year = parseInt(req.body.year);
+    const month = parseInt(req.body.month);
+    const report = parseInt(req.body.report);
+
+    const [sales, purchase, company, expense] = await Promise.all([
+      this.salesInvoiceRepository.fetchByDateRange(
+        new Date(year, month, 1),
+        new Date(year, month + 1, 0)
+      ),
+      this.goodReceiptRepository.fetchByDateRange(
+        new Date(year, month, 1),
+        new Date(year, month + 1, 0)
+      ),
+      this.companyRepository.fetchAll(),
+      this.expenseRepository.fetchReport(month, year),
+      this.stockOutRepository.calculate(month, year),
+    ]);
   };
 
   /**

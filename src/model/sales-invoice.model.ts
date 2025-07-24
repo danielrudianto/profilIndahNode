@@ -3,6 +3,7 @@ import { CustomerModel } from "./customer.model";
 import { SalesInvoicePaymentModel } from "./sales-invoice-payment.model";
 import { ProductUnitModel } from "./product-unit.model";
 import { UserViewModel } from "./user.model";
+import { PaymentMethodViewModel } from "./payment-method.model";
 
 export interface ISalesInvoiceCode {
   id?: number;
@@ -17,7 +18,6 @@ export interface ISalesInvoiceCode {
   uuid: string;
   sales_invoice: ISalesInvoice[];
   sales_invoice_payment: SalesInvoicePaymentModel[];
-  paymentTerm: number | null;
   isPaid: boolean;
   isConfirm: boolean;
   isDelete: boolean;
@@ -115,7 +115,6 @@ export class SalesInvoiceModel {
         date: payment.date,
       };
     });
-    this.payment_term = data.paymentTerm;
     this.customer = data.customer;
     this.user_bill_code_created_byTouser = data.user_bill_code_created_byTouser;
     this.user_bill_code_confirmed_byTouser =
@@ -164,8 +163,26 @@ export class SalesInvoiceModel {
                     : ProductUnitModel.fromMap(item.product_unit),
               };
             }),
-      sales_invoice_payment: [],
-      paymentTerm: data.payment_term,
+      sales_invoice_payment:
+        data.sales_invoice_payment == undefined
+          ? undefined
+          : data.sales_invoice_payment!.map((x: any) => {
+              return new SalesInvoicePaymentModel({
+                id: x.id,
+                date: new Date(x.date),
+                payment_method_id: x.payment_method_id,
+                value: Number(x.value),
+                payment_method:
+                  x.payment_method_id == null
+                    ? null
+                    : new PaymentMethodViewModel({
+                        id: x.payment_method_id,
+                        name: x.payment_method.name,
+                        description: x.payment_method.description,
+                      }),
+                sales_invoice_code_id: data.id,
+              });
+            }),
       customer:
         data.customer == null
           ? null

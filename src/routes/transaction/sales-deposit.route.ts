@@ -3,13 +3,32 @@ import { body } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import { SalesDepositController } from "../../controller/sales-deposit.controller";
 import { prisma } from "../../helper/database.helper";
+import { redisClient } from "../../helper/redis.helper";
+import { OverpaymentRepository } from "../../repositories/overpayment.repository";
+import { ReceivableRepository } from "../../repositories/receivable.repository";
 import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
+import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { StockOutRepository } from "../../repositories/stock-out.repository";
+import { StockRepository } from "../../repositories/stock.repository";
 
 const router = Router();
 
 const salesDepositController = new SalesDepositController(
-  new SalesDepositRepository(prisma)
+  new SalesDepositRepository(prisma),
+  new SalesInvoiceRepository(prisma),
+  new StockCardRepository(prisma),
+  new StockRepository(prisma),
+  new StockOutRepository(prisma),
+  new ReceivableRepository(redisClient, prisma),
+  new OverpaymentRepository(prisma)
 );
+
+router.get("/archives", salesDepositController.fetchAnnualArchives);
+router.post("/archives", salesDepositController.fetchArchives);
+
+router.post("/confirm");
+router.post("/delete");
 
 router.post(
   "/",
@@ -43,7 +62,6 @@ router.post(
     .withMessage(ErrorList["Parameter error"]),
   salesDepositController.create
 );
-
 router.get("/", salesDepositController.fetch);
 // router.get("/v2", DepositController.fetchV2);
 // router.get("/:id", depositController.fetchByID);

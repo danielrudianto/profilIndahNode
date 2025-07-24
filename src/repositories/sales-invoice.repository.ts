@@ -52,7 +52,6 @@ export class SalesInvoiceRepository {
               }),
             },
           },
-          payment_term: data.paymentTerm,
           is_paid: data.isPaid,
           sales: data.sales,
         },
@@ -113,7 +112,11 @@ export class SalesInvoiceRepository {
               product_unit: true,
             },
           },
-          sales_invoice_payment: true,
+          sales_invoice_payment: {
+            include: {
+              payment_method: true,
+            },
+          },
           customer: true,
           user_bill_code_created_byTouser: {
             include: {
@@ -548,23 +551,13 @@ export class SalesInvoiceRepository {
         ORDER BY date DESC;
       `;
 
-      const years = Array.from(new Set(result.map((x) => x.year)));
-
-      const filled = years.flatMap((year) =>
-        Array.from({ length: 12 }, (_, i) => {
-          const month = i + 1;
-          const found = result.find(
-            (x) => x.year === year && x.month === month
-          );
-          return {
-            year: year,
-            month: month,
-            count: found ? Number(found.count) : 0,
-          };
-        })
-      );
-
-      return filled;
+      return result.map((x) => {
+        return {
+          year: Number(x.year),
+          month: Number(x.month),
+          count: Number(x.count),
+        };
+      });
     } catch (error) {
       console.error(`[error]: Error while fetching annual archives: ${error}`);
       throw new Error("Internal server error");

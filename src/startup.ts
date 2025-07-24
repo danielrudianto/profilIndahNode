@@ -15,6 +15,8 @@ import { GoodReceiptService } from "./services/good-receipt.service";
 import { GoodReceiptRepository } from "./repositories/good-receipt.repository";
 import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";
+import { StockCardService } from "./services/stock-card.service";
+import { StockCardRepository } from "./repositories/stock-card.repository";
 
 async function connect() {
   await prisma.$connect();
@@ -100,10 +102,14 @@ async function insertStockInOut() {
     new StockInRepository(prisma)
   );
 
+  console.info(`[info]: Start inserting stock in data`);
+
   await stockInService.delete();
   await stockInService.insertFromDocuments();
 
   console.info(`[info]: Stock in successfully inserted`);
+
+  console.info(`[info]: Start inserting stock out data`);
 
   await stockOutService.delete();
   await stockOutService.insertFromDocuments();
@@ -114,7 +120,12 @@ async function insertStockInOut() {
   await stockOutService.calculateStockOut();
 }
 
-async function insertStockCard() {}
+async function insertStockCard() {
+  const stockCardService = new StockCardService(
+    new StockCardRepository(prisma)
+  );
+  await stockCardService.startup();
+}
 
 async function runFunction(funcName: string) {
   await connect();

@@ -130,7 +130,7 @@ class AdjustmentCaseController {
             };
           })
         );
-      } else {
+      } else if (type == 1) {
         await this.stockOutRepository.create(
           result.adjustment_case.map((x) => {
             return {
@@ -219,21 +219,78 @@ class AdjustmentCaseController {
 
   delete = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
+    const userID = req.body.userId;
     try {
       const adjustmentCase = await this.adjustmentCaseRepository.fetchByID(id);
       if (!adjustmentCase) {
+        return res.status(404).send(ErrorList["Adjustment case not found"]);
+      }
+
+      if (adjustmentCase.is_delete) {
         return res.status(404).send(ErrorList["Not found"]);
       }
 
-      if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
-        return res.status(404).send(ErrorList["Not found"]);
+      if (!adjustmentCase.is_confirm) {
+        return res
+          .status(400)
+          .send(ErrorList["Adjustment case has not been confirmed"]);
       }
 
-      const result = await this.adjustmentCaseRepository.delete(id);
+      const result = await this.adjustmentCaseRepository.delete(id, userID);
 
-      await queue.add("adjustment-case-deleted", {
-        id: result.id,
-      });
+      await this.stockRepository.updateMany(
+        result.adjustment_case.map((x) => {
+          return {
+            productID: x.product_id,
+            quantity:
+              -1 *
+              x.quantity *
+              (x.product_unit == null ? 1 : x.product_unit.conversion),
+          };
+        })
+      );
+
+      const type = this.checkType(result.adjustment_case);
+
+      if (type == 0) {
+        // found
+        await this.stockInRepository.deleteMany(
+          result.adjustment_case!.map((x: any) => {
+            return {
+              good_receipt_id: null,
+              good_receipt_code_id: null,
+              adjustment_case_id: x.id,
+              adjustment_case_code_id: id,
+              price: 0,
+            };
+          })
+        );
+      } else if (type == 1) {
+        // lost
+        await this.stockOutRepository.deleteMany(
+          result.adjustment_case!.map((x: any) => {
+            return {
+              sales_invoice_code_id: null,
+              sales_invoice_id: null,
+              adjustment_case_id: x.id,
+              adjustment_case_code_id: id,
+            };
+          })
+        );
+      }
+
+      for (let i = 0; i < result.adjustment_case!.length; i++) {
+        await queue.add("stock-card-deleted", {
+          sales_invoice_code_id: null,
+          sales_invoice_id: null,
+          adjustment_case_code_id: id,
+          adjustment_case_id: result.adjustment_case![i].id,
+          sales_return_code_id: null,
+          sales_return_id: null,
+          good_receipt_code_id: null,
+          good_receipt_id: null,
+        });
+      }
 
       return res.status(200).send(result);
     } catch (error) {

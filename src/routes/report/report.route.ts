@@ -8,7 +8,10 @@ import {
 } from "../../helper/auth.helper";
 import { prisma } from "../../helper/database.helper";
 import ErrorHelper from "../../helper/error.helper";
+import { CompanyRepository } from "../../repositories/company.repository";
 import { CustomerRepository } from "../../repositories/customer.repository";
+import { ExpenseTypeRepository } from "../../repositories/expense-type.repository";
+import { ExpenseRepository } from "../../repositories/expense.repository";
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 import { PaymentMethodRepository } from "../../repositories/payment-method.repository";
 import { ProductRepository } from "../../repositories/product.repository";
@@ -35,7 +38,10 @@ const reportController = new ReportController(
   new StockInRepository(prisma),
   new StockOutRepository(prisma),
   new ProductRepository(prisma),
-  new StockRepository(prisma)
+  new StockRepository(prisma),
+  new CompanyRepository(prisma),
+  new ExpenseRepository(prisma),
+  new ExpenseTypeRepository(prisma)
 );
 
 router.post(
@@ -104,12 +110,27 @@ router.post(
   reportController.fetchOutputReport
 );
 
-router.get("/inventory", reportController.fetchInventoryReport);
+router.get(
+  "/inventory",
+  superadministratorMiddleware,
+  reportController.fetchInventoryReport
+);
 
 router.post(
   "/sales-item",
-  body("month").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("year").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
   body("group").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ReportController.fetchOutputReport
@@ -117,9 +138,26 @@ router.post(
 
 router.post(
   "/sales-item-daily",
-  body("day").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("month").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("year").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("day").notEmpty().withMessage(ErrorList["Day is required"]),
+  body("day")
+    .isInt({
+      min: 0,
+      max: 31,
+    })
+    .withMessage(ErrorList["Day must be numeric"]),
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
   body("group").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
   ReportController.fetchSalesItemDailyReport
@@ -127,28 +165,77 @@ router.post(
 
 router.post(
   "/purchase",
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
-    .notEmpty()
-    .isNumeric()
-    .withMessage(ErrorList["Parameter error"]),
-  body("year").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
   ErrorHelper.intercept,
   ReportController.fetchPurchaseReport
 );
 router.post(
   "/purchase/download",
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
-    .notEmpty()
-    .isNumeric()
-    .withMessage(ErrorList["Parameter error"]),
-  body("year").notEmpty().isNumeric().withMessage(ErrorList["Parameter error"]),
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
   ErrorHelper.intercept,
   ReportController.downloadPurchaseReport
+);
+
+router.post(
+  "/profitloss",
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  reportController.fetchProfitLoss
 );
 
 router.get(
   "/profitloss/:month/:year/:report",
   superadministratorMiddleware,
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
   ReportController.fetchPLStats
 );
 

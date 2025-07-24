@@ -16,7 +16,7 @@ export class OverpaymentRepository {
       const result = await this.prisma.overpayment_code.create({
         data: {
           date: data.date,
-          sales_invoice_code_id: data.sales_invoice_code_id,
+          sales_deposit_code_id: data.sales_deposit_code_id,
           customer_id: data.customer_id,
           return_date: data.return_date,
           return_payment_method: data.return_payment_method,
@@ -27,7 +27,7 @@ export class OverpaymentRepository {
             createMany: {
               data: data.overpayment!.map((x) => {
                 return {
-                  amount: x.amount,
+                  value: x.value,
                   payment_method_id: x.payment_method_id,
                 };
               }),
@@ -48,4 +48,6 @@ export class OverpaymentRepository {
       throw error;
     }
   }
+
+  async createMany(data: IOverpaymentCode[]) {}
 }
