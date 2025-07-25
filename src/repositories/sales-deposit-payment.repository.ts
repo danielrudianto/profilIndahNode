@@ -10,13 +10,13 @@ export class SalesDepositPaymentRepository {
     date: Date
   ): Promise<{ payment_method_id: number | null; value: number }[]> {
     try {
-      const result = await this.prisma.deposit_payment.groupBy({
+      const result = await this.prisma.sales_deposit_payment.groupBy({
         by: ["payment_method_id"],
         _sum: {
           value: true,
         },
         where: {
-          deposit_code: {
+          sales_deposit_code: {
             is_delete: false,
             date: new Date(date),
           },

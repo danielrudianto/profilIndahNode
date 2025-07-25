@@ -117,6 +117,17 @@ export class SalesDepositController {
     }
   };
 
+  fetchByID = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const result = await this.salesDepositRepository.fetchByID(id);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales deposit ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   fetchAnnualArchives = async (req: Request, res: Response) => {
     try {
       const result = await this.salesDepositRepository.fetchAnnualArchives();
@@ -297,8 +308,12 @@ export class SalesDepositController {
     const id = Number(req.body.id);
     const userID = req.body.userId;
     const date = new Date(req.body.date);
+
+    const return_payment_date = new Date(req.body.return_payment_date);
     const return_payment_method = req.body.return_payment_method;
     const return_payment_number = req.body.return_payment_number;
+    const return_payment_bank = req.body.return_payment_bank;
+    const return_payment_name = req.body.return_payment_name;
 
     try {
       const salesDeposit = await this.salesDepositRepository.fetchByID(id);
@@ -311,23 +326,24 @@ export class SalesDepositController {
       }
 
       const result = await this.salesDepositRepository.delete(id, userID);
-      await this.overpaymentRepository.create({
-        date: salesDeposit.date,
-        return_date: date,
-        return_payment_method: return_payment_method,
-        return_payment_number: return_payment_number,
-        created_by: userID,
-        created_at: new Date(),
-        overpayment: salesDeposit.sales_deposit_payment!.map((x) => {
+
+      await this.overpaymentRepository.createMany(
+        salesDeposit.sales_deposit_payment!.map((x) => {
           return {
+            date: x.date,
+            sales_deposit_code_id: id,
+            customer_id: salesDeposit.customerID!,
+            return_payment_date: return_payment_date,
+            return_payment_bank: return_payment_bank,
+            return_payment_name: return_payment_name,
+            return_payment_method: return_payment_method,
+            return_payment_number: return_payment_number,
+            created_by: userID,
+            created_at: new Date(),
             value: Number(x.value),
-            payment_method_id: x.payment_method_id,
-            overpayment_code_id: 0,
           };
-        }),
-        customer_id: salesDeposit.customerID!,
-        sales_deposit_code_id: id,
-      });
+        })
+      );
 
       return res.status(200).send(result);
     } catch (error) {

@@ -1,7 +1,11 @@
 import { Router } from "express";
 import ReportController from "../../controller/report.controller";
 import { prisma } from "../../helper/database.helper";
+import { ExpenseReportModel } from "../../model/expense.model";
+import { CompanyRepository } from "../../repositories/company.repository";
 import { CustomerRepository } from "../../repositories/customer.repository";
+import { ExpenseTypeRepository } from "../../repositories/expense-type.repository";
+import { ExpenseRepository } from "../../repositories/expense.repository";
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 import { PaymentMethodRepository } from "../../repositories/payment-method.repository";
 import { ProductRepository } from "../../repositories/product.repository";
@@ -26,7 +30,10 @@ const reportController = new ReportController(
   new StockInRepository(prisma),
   new StockOutRepository(prisma),
   new ProductRepository(prisma),
-  new StockRepository(prisma)
+  new StockRepository(prisma),
+  new CompanyRepository(prisma),
+  new ExpenseRepository(prisma),
+  new ExpenseTypeRepository(prisma)
 );
 
 const router = Router();

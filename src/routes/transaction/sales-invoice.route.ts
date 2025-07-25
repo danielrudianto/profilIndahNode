@@ -40,6 +40,15 @@ router.post(
   body("month")
     .isInt({ min: 1, max: 12 })
     .withMessage(ErrorList["Month must be numeric"]),
+  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  body("page").isInt({ min: 1 }).withMessage(ErrorList["Page must be numeric"]),
+  body("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
+  body("pageSize")
+    .isInt({
+      min: 10,
+      max: 50,
+    })
+    .withMessage(ErrorList["Page size must be numeric"]),
   body("isPaid").exists().withMessage(ErrorList["Parameter error"]),
   body("isUnpaid").exists().withMessage(ErrorList["Parameter error"]),
   body("isActive").exists().withMessage(ErrorList["Parameter error"]),

@@ -85,36 +85,8 @@ export class SalesInvoiceModel {
     this.isPaid = data.isPaid;
     this.sales = data.sales || null;
     this.isDelete = false;
-    this.sales_invoice = data.sales_invoice.map((item) => {
-      return {
-        id: item.id,
-        product_id: item.product_id,
-        product_unit_id: item.product_unit_id,
-        quantity: item.quantity,
-        price: item.price,
-        discount: item.discount,
-
-        product:
-          item.product == undefined
-            ? undefined
-            : ProductModel.fromMap(item.product),
-        product_unit:
-          item.product_unit == undefined
-            ? undefined
-            : item.product_unit == null
-            ? null
-            : ProductUnitModel.fromMap(item.product_unit),
-      };
-    });
-    this.sales_invoice_payment = data.sales_invoice_payment.map((payment) => {
-      return {
-        id: payment.id,
-        sales_invoice_code_id: payment.sales_invoice_code_id,
-        payment_method_id: payment.payment_method_id,
-        value: payment.value,
-        date: payment.date,
-      };
-    });
+    this.sales_invoice = data.sales_invoice;
+    this.sales_invoice_payment = data.sales_invoice_payment;
     this.customer = data.customer;
     this.user_bill_code_created_byTouser = data.user_bill_code_created_byTouser;
     this.user_bill_code_confirmed_byTouser =
@@ -184,12 +156,11 @@ export class SalesInvoiceModel {
               });
             }),
       customer:
-        data.customer == null
-          ? null
-          : data.customer == undefined
+        data.customer == undefined
           ? undefined
+          : data.customer == null
+          ? null
           : CustomerModel.fromMap(data.customer),
-
       user_bill_code_created_byTouser:
         data.user_bill_code_created_byTouser == undefined
           ? undefined

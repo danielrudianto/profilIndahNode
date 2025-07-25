@@ -146,23 +146,13 @@ export class SalesReturnRepository {
         ORDER BY date DESC;
       `;
 
-      const years = Array.from(new Set(result.map((x) => x.year)));
-
-      const filled = years.flatMap((year) =>
-        Array.from({ length: 12 }, (_, i) => {
-          const month: number = i + 1;
-          const found = result.find(
-            (x) => x.year === year && x.month === month
-          );
-          return {
-            year: year,
-            month: month,
-            count: found ? Number(found.count) : 0,
-          };
-        })
-      );
-
-      return filled;
+      return result.map((x) => {
+        return {
+          year: Number(x.year),
+          month: Number(x.month),
+          count: Number(x.count),
+        };
+      });
     } catch (error) {
       console.error(`[error]: Error while fetching annual archives: ${error}`);
       throw new Error("Internal server error");
@@ -175,25 +165,59 @@ export class SalesReturnRepository {
     keyword: string;
     page: number;
     pageSize: number;
-    filterObject?: {
-      isDelete: boolean;
-    };
+    isActive: boolean;
+    isDelete: boolean;
   }) {
     try {
+      let formattedIsActive: boolean = data.isActive;
+      let formattedIsDelete: boolean = data.isDelete;
+
+      if (!data.isActive && !data.isDelete) {
+        formattedIsActive = true;
+        formattedIsDelete = true;
+      }
+
+      let statusFilter: any[] = [];
+
+      if (formattedIsActive) {
+        statusFilter.push({
+          is_delete: false,
+        });
+      }
+
+      if (formattedIsDelete) {
+        statusFilter.push({
+          is_delete: true,
+        });
+      }
+
       const [result, count] = await Promise.all([
         this.prisma.sales_return_code.findMany({
           where: {
-            date: {
-              gte: new Date(data.year, data.month - 1, 1),
-              lt: new Date(data.year, data.month, 1),
-            },
-            name: {
-              contains: data.keyword,
-            },
-            is_delete:
-              data.filterObject == undefined
-                ? undefined
-                : data.filterObject.isDelete,
+            AND: [
+              {
+                date: {
+                  gte: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lt: new Date(data.year, data.month, 1),
+                },
+              },
+              {
+                OR: [
+                  {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                ],
+              },
+              {
+                OR: statusFilter,
+              },
+            ],
           },
           include: {
             user_sales_return_code_created_byTouser: {
@@ -210,17 +234,30 @@ export class SalesReturnRepository {
         }),
         this.prisma.sales_return_code.count({
           where: {
-            date: {
-              gte: new Date(data.year, data.month - 1, 1),
-              lt: new Date(data.year, data.month, 1),
-            },
-            name: {
-              contains: data.keyword,
-            },
-            is_delete:
-              data.filterObject == undefined
-                ? undefined
-                : data.filterObject.isDelete,
+            AND: [
+              {
+                date: {
+                  gte: new Date(data.year, data.month - 1, 1),
+                },
+              },
+              {
+                date: {
+                  lt: new Date(data.year, data.month, 1),
+                },
+              },
+              {
+                OR: [
+                  {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                ],
+              },
+              {
+                OR: statusFilter,
+              },
+            ],
           },
         }),
       ]);

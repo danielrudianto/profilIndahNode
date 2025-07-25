@@ -3,6 +3,7 @@ import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import { SalesDepositController } from "../../controller/sales-deposit.controller";
 import { prisma } from "../../helper/database.helper";
+import ErrorHelper from "../../helper/error.helper";
 import { redisClient } from "../../helper/redis.helper";
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 import { ReceivableRepository } from "../../repositories/receivable.repository";

@@ -170,11 +170,13 @@ class SalesReturnController {
   };
 
   fetchArchives = async (req: Request, res: Response) => {
-    const year = Number(req.params.year);
-    const month = Number(req.params.month);
-    const page = translatePage(req.query.page);
+    const year = Number(req.body.year);
+    const month = Number(req.body.month);
+    const page = translatePage(req.body.page);
     const pageSize = Number(process.env.LIMIT);
-    const keyword = translateKeyword(req.query.keyword);
+    const keyword = translateKeyword(req.body.keyword);
+    const isDelete = req.body.isDelete;
+    const isActive = req.body.isActive;
 
     try {
       const result = await this.salesReturnRepository.fetchArchives({
@@ -183,6 +185,8 @@ class SalesReturnController {
         page: page,
         pageSize: pageSize,
         keyword: keyword,
+        isDelete: isDelete,
+        isActive: isActive,
       });
 
       return res.status(200).send(result);

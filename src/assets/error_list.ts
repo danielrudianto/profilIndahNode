@@ -69,6 +69,12 @@ enum ErrorList {
   "Good receipt already confirmed" = "Penerimaan barang sudah dikonfirmasi.",
   "Good receipt already deleted" = "Penerimaan barang sudah dihapus.",
   "Date required" = "Tanggal tidak boleh kosong.",
+  "Return date is required" = "Tanggal pengembalian tidak boleh kosong",
+  "Return payment method must be either Cash or Transfer" = "Metode pengembalian kelebihan pembayaran harus berupa Cash atau Transfer bank",
+  "Return name is required" = "Nama penerima kelebihan dana tidak boleh kosong",
+  "Return payment bank is required" = "Nama bank untuk pengembalian kelebihan dana tidak boleh kosong",
+  "Return payment number is required" = "Nomor akun bank untuk pengembalian kelebihan dana tidak boleh kosong",
+
   "Name required" = "Nama tidak boleh kosong.",
   "Supplier ID required" = "ID supplier tidak boleh kosong.",
   "Company ID required" = "ID perusahaan tidak boleh kosong.",
@@ -157,6 +163,11 @@ enum ErrorList {
   "Amount must be numeric" = "Nominal harus berupa angka",
   "Sales invoice payment is greater than value" = "Nilai pembayaran lebih besar daripada nilai nota",
   "Deposit already confirmed" = "Deposit sudah dikonfirmasi atau dihapus sebelumnya",
+
+  "Page is required" = "Halaman tidak boleh kosong",
+  "Page must be numeric" = "Parameter halaman harus berupa angka",
+  "Page size is required" = "Jumlah data tidak boleh kosong",
+  "Page size must be numeric" = "Parameter jumlah data harus berupa angka",
 }
 
 export default ErrorList;

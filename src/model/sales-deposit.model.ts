@@ -87,36 +87,8 @@ export class SalesDepositModel {
     this.sales = data.sales || null;
     this.isDelete = data.isDelete;
     this.type = data.type;
-    this.sales_deposit = data.sales_deposit.map((item) => {
-      return {
-        id: item.id,
-        product_id: item.product_id,
-        product_unit_id: item.product_unit_id,
-        quantity: item.quantity,
-        price: item.price,
-        discount: item.discount,
-
-        product:
-          item.product == undefined
-            ? undefined
-            : ProductModel.fromMap(item.product),
-        product_unit:
-          item.product_unit == undefined
-            ? undefined
-            : item.product_unit == null
-            ? null
-            : ProductUnitModel.fromMap(item.product_unit),
-      };
-    });
-    this.sales_deposit_payment = data.sales_deposit_payment.map((payment) => {
-      return {
-        id: payment.id,
-        sales_deposit_code_id: payment.sales_deposit_code_id,
-        payment_method_id: payment.payment_method_id,
-        value: payment.value,
-        date: payment.date,
-      };
-    });
+    this.sales_deposit = data.sales_deposit;
+    this.sales_deposit_payment = data.sales_deposit_payment;
     this.customer = data.customer;
     this.user_bill_code_created_byTouser = data.user_bill_code_created_byTouser;
     this.user_bill_code_confirmed_byTouser =

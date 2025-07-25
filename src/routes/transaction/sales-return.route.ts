@@ -8,13 +8,42 @@ import ErrorHelper from "../../helper/error.helper";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
 import { StockRepository } from "../../repositories/stock.repository";
+import { StockOutRepository } from "../../repositories/stock-out.repository";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
 
 const router = Router();
 
 const salesReturnController = new SalesReturnController(
   new SalesReturnRepository(prisma),
   new SalesInvoiceRepository(prisma),
-  new StockRepository(prisma)
+  new StockRepository(prisma),
+  new StockOutRepository(prisma),
+  new StockCardRepository(prisma)
+);
+
+router.get("/archives", salesReturnController.fetchAnnualArchives);
+router.post(
+  "/archives",
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({ min: 2000 })
+    .withMessage(ErrorList["Year must be numeric"]),
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({ min: 1, max: 12 })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("isActive").exists().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").exists().withMessage(ErrorList["Parameter error"]),
+  body("isActive").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
+  body("sortDirection")
+    .isIn(["asc", "desc"])
+    .withMessage(
+      ErrorList["Sort direction only supports ascending or descending"]
+    ),
+  ErrorHelper.intercept,
+  salesReturnController.fetchArchives
 );
 
 router.post(
@@ -49,22 +78,6 @@ router.post(
     .withMessage(ErrorList["Quantity must be numeric"]),
   ErrorHelper.intercept,
   salesReturnController.create
-);
-
-router.get("/archives", salesReturnController.fetchAnnualArchives);
-
-router.post(
-  "/archives",
-  param("year").isNumeric().withMessage(ErrorList["Year is required"]),
-  param("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  param("month").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  salesReturnController.fetchArchives
 );
 
 router.get(

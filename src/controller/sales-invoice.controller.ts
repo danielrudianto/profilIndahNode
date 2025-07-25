@@ -67,7 +67,6 @@ class SalesInvoiceController {
         discount: discount,
         delivery: delivery,
         service: service,
-        paymentTerm: paymentTerm,
         sales: sales,
         isPaid: isPaid,
         date: date,

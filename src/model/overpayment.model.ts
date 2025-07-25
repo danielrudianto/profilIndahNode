@@ -9,9 +9,12 @@ export interface IOverpaymentCode {
   sales_deposit_code_id: number | null;
   return_payment_method: string;
   return_payment_number: string | null;
-  return_date: Date;
+  return_payment_date: Date;
+  return_payment_bank: string | null;
+  return_payment_name: string;
   created_by: number;
   created_at: Date;
+  value: number;
 
   customer?: CustomerModel;
   sales_invoice?: SalesInvoiceModel;
@@ -26,9 +29,12 @@ export class OverpaymentCodeModel {
   sales_deposit_code_id: number | null;
   return_payment_method: string;
   return_payment_number: string | null;
-  return_date: Date;
+  return_payment_date: Date;
+  return_payment_bank: string | null;
+  return_payment_name: string;
   created_by: number;
   created_at: Date;
+  value: number;
 
   constructor(data: IOverpaymentCode) {
     this.id = data.id;
@@ -37,9 +43,12 @@ export class OverpaymentCodeModel {
     this.sales_deposit_code_id = data.sales_deposit_code_id;
     this.return_payment_method = data.return_payment_method;
     this.return_payment_number = data.return_payment_number;
-    this.return_date = data.return_date;
+    this.return_payment_date = data.return_payment_date;
+    this.return_payment_bank = data.return_payment_bank;
+    this.return_payment_name = data.return_payment_name;
     this.created_by = data.created_by;
     this.created_at = data.created_at;
+    this.value = data.value;
   }
 
   static fromMap(data: any): OverpaymentCodeModel {
@@ -49,22 +58,13 @@ export class OverpaymentCodeModel {
       date: new Date(data.date),
       sales_deposit_code_id: data.sales_deposit_code_id,
       return_payment_method: data.return_payment_method,
+      return_payment_date: new Date(data.return_payment_date),
+      return_payment_bank: data.return_payment_bank,
+      return_payment_name: data.return_payment_name,
       return_payment_number: data.return_payment_number,
-      return_date: new Date(data.return_date),
       created_by: data.created_by,
       created_at: new Date(data.created_at),
-      overpayment:
-        data.overpayment == undefined
-          ? undefined
-          : data.overpayment.map((x: any) => {
-              return new OverpaymentModel({
-                id: x.id,
-                value: Number(x.value),
-                payment_method_id: x.payment_method_id,
-                payment_method: PaymentMethodModel.fromMap(x.payment_method),
-                overpayment_code_id: x.overpayment_code_id,
-              });
-            }),
+      value: Number(data.value),
     });
   }
 }

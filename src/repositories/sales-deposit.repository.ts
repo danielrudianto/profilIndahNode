@@ -126,13 +126,13 @@ export class SalesDepositRepository {
     data: IFetchCommon
   ): Promise<IFetchCommonResult<SalesDepositModel>> {
     try {
-      const result = await this.prisma.sales_deposit.findMany({
+      const result = await this.prisma.sales_deposit_code.findMany({
         where: {
           is_delete: false,
         },
         include: {
           customer: true,
-          deposit: {
+          sales_deposit: {
             include: {
               product: true,
               product_unit: true,
@@ -346,16 +346,31 @@ export class SalesDepositRepository {
 
   async fetchByID(id: number) {
     try {
-      const result = await this.prisma.sales_deposit.findFirst({
+      const result = await this.prisma.sales_deposit_code.findFirst({
         where: {
           id: id,
           is_delete: false,
         },
         include: {
-          deposit: {
+          sales_deposit: {
             include: {
               product: true,
               product_unit: true,
+            },
+          },
+          sales_deposit_payment: {
+            include: {
+              payment_method: true,
+            },
+          },
+          user_bill_code_created_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
+          user_bill_code_confirmed_byTouser: {
+            include: {
+              user_avatar: true,
             },
           },
         },
