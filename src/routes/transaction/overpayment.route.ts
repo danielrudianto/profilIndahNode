@@ -22,11 +22,8 @@ router.post(
     })
     .withMessage(ErrorList["Amount must be numeric"]),
   body("customer_id")
-    .notEmpty()
+    .exists()
     .withMessage(ErrorList["Customer ID is required"]),
-  body("customer_id")
-    .isInt({ min: 0 })
-    .withMessage(ErrorList["CUstomer ID must be integer"]),
   body("return_payment_date")
     .notEmpty()
     .withMessage(ErrorList["Return date is required"]),

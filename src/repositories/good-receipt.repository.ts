@@ -161,6 +161,16 @@ export class GoodReceiptRepository {
               product_unit: true,
             },
           },
+          user_good_receipt_code_created_byTouser: {
+            include: {
+              user_avatar: true,
+            }
+          },
+          user_good_receipt_code_confirmed_byTouser: {
+            include: {
+              user_avatar: true,
+            }
+          }
         },
       });
 

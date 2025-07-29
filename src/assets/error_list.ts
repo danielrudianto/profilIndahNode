@@ -168,6 +168,10 @@ enum ErrorList {
   "Page must be numeric" = "Parameter halaman harus berupa angka",
   "Page size is required" = "Jumlah data tidak boleh kosong",
   "Page size must be numeric" = "Parameter jumlah data harus berupa angka",
+  "Sales deposit payment is greater than value" = "Nominal pembayaran lebih besar daripada nilai bon",
+  "Payment is required" = "Data pembayaran tidak boleh kosong",
+  "Payment must be an array" = "Data pembayaran harus berupa array",
+  "Payment date is required" = "Data tanggal pembayaran tidak boleh kosong",
 }
 
 export default ErrorList;

@@ -161,12 +161,12 @@ router.delete(
 router.delete(
   "/:id",
   administratorMiddleware,
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
   param("id")
     .isInt({
       min: 0,
     })
-    .withMessage(ErrorList["Parameter error"]),
+    .withMessage(ErrorList["ID must be numeric"]),
   ErrorHelper.intercept,
   salesInvoiceController.delete
   // SalesInvoiceController.deleteByID

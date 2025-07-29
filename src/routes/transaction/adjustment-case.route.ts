@@ -23,26 +23,33 @@ const adjustmentCaseController = new AdjustmentCaseController(
 
 router.get(
   "/archives",
-  query(["year", "month"]).custom((value, { req }) => {
-    const { year, month } = (req.query ?? {}) as {
-      year?: string;
-      month?: string;
-    };
+  ErrorHelper.intercept,
+  adjustmentCaseController.fetchAnnualArchives
+);
 
-    const allUndefined = year === undefined && month === undefined;
-    const allTyped =
-      (year === undefined || !isNaN(Number(year))) &&
-      (month === undefined || !isNaN(Number(month)));
-
-    if (!allUndefined && !(year && month && allTyped)) {
-      throw new Error(ErrorList["Archives parameter error"]);
-    }
-
-    return true;
-  }),
+router.post(
+  "/archives",
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({ min: 2000 })
+    .withMessage(ErrorList["Year must be numeric"]),
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({ min: 1, max: 12 })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("isActive").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
+  body("sortDirection")
+    .isIn(["asc", "desc"])
+    .withMessage(
+      ErrorList["Sort direction only supports ascending or descending"]
+    ),
   ErrorHelper.intercept,
   adjustmentCaseController.fetchArchives
 );
+
 router.post(
   "/approve/:id",
   superadministratorMiddleware,

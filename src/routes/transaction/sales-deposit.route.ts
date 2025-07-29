@@ -28,7 +28,35 @@ const salesDepositController = new SalesDepositController(
 router.get("/archives", salesDepositController.fetchAnnualArchives);
 router.post("/archives", salesDepositController.fetchArchives);
 
-router.post("/confirm");
+router.post(
+  "/confirm",
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["ID must be numeric"]),
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  body("sales_invoice_payment")
+    .notEmpty()
+    .withMessage(ErrorList["Payment is required"]),
+  body("sales_invoice_payment")
+    .isArray()
+    .withMessage(ErrorList["Payment must be an array"]),
+  body("sales_invoice_payment.*.payment_method_id")
+    .exists()
+    .withMessage(ErrorList["Payment method required"]),
+  body("sales_invoice_payment.*.value")
+    .isFloat({
+      min: 0,
+    })
+    .withMessage(ErrorList["Amount must be numeric"]),
+  body("sales_invoice_payment.*.date")
+    .notEmpty()
+    .withMessage(ErrorList["Payment date is required"]),
+  ErrorHelper.intercept,
+  salesDepositController.confirm
+);
 router.post("/delete");
 
 router.post(

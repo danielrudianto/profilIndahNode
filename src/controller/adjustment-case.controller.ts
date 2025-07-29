@@ -332,26 +332,23 @@ class AdjustmentCaseController {
     }
   };
 
-  fetchArchives = async (req: Request, res: Response) => {
-    const yearQuery = req.query.year;
-    const monthQuery = req.query.month;
-
-    if (!monthQuery && !yearQuery) {
-      try {
-        const result =
-          await this.adjustmentCaseRepository.fetchAnnualArchives();
-        return res.status(200).send(result);
-      } catch (error) {
-        console.error(`[error]: Error on fetching annual archives ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      }
+  fetchAnnualArchives = async (req: Request, res: Response) => {
+    try {
+      const result = await this.adjustmentCaseRepository.fetchAnnualArchives();
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching annual archives: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
+  };
+
+  fetchArchives = async (req: Request, res: Response) => {
+    const year = Number(req.body.year);
+    const month = req.body.month;
 
     const keyword = translateKeyword(req.body.keyword);
     const page = translatePage(req.body.page);
-    const pageSize = Number(process.env.LIMIT!);
-    const month = Number(monthQuery);
-    const year = Number(yearQuery);
+    const pageSize = req.body.pageSize;
 
     const startDate = req.query.startDate
       ? new Date(req.query.startDate.toString())

@@ -22,7 +22,7 @@ export class OverpaymentController {
     const value = req.body.value;
 
     try {
-      this.overpaymentRepository.create({
+      const result = await this.overpaymentRepository.create({
         date: date,
         customer_id: customer_id,
         sales_deposit_code_id: sales_deposit_code_id,
@@ -35,6 +35,8 @@ export class OverpaymentController {
         created_by: userID,
         value: value,
       });
+
+      return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on creating overpayment ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

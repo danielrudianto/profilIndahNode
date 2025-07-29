@@ -387,6 +387,23 @@ export class SalesDepositRepository {
     }
   }
 
+  async confirmByID(id: number, userID: number) {
+    try {
+      const result = await this.prisma.sales_deposit_code.update({
+        where: {
+          id: id,
+        },
+        data: {
+          is_delete: true,
+          deleted_at: new Date(),
+          deleted_by: userID,
+        },
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async delete(id: number, userID: number) {
     try {
       const result = await this.prisma.sales_deposit_code.update({

@@ -126,7 +126,7 @@ async function main() {
   app.use("/payment-method", authMiddleware, paymentMethodRoutes);
   app.use("/expense-type", authMiddleware, expenseTypeRoutes);
 
-  app.use("/adjustment-event", authMiddleware, adjustmentEventRoutes);
+  app.use("/adjustment-case", authMiddleware, adjustmentEventRoutes);
   app.use("/sales-return", authMiddleware, salesReturnRoutes);
 
   app.use("/good-receipt", authMiddleware, goodReceiptRoutes);

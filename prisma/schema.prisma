@@ -833,7 +833,7 @@ model notification {
 
 model overpayment {
   id                    Int      @id @default(autoincrement())
-  customer_id           Int
+  customer_id           Int?
   date                  DateTime
   payment_method_id     Int?
   sales_deposit_code_id Int?
@@ -847,7 +847,7 @@ model overpayment {
   is_resolved           Boolean  @default(false)
   value                 Decimal  @db.Decimal(12, 2)
 
-  customer                          customer            @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk1")
+  customer                          customer?           @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk1")
   sales_deposit_code                sales_deposit_code? @relation(fields: [sales_deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk3")
   user_overpayment_created_byTouser user                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk4")
 }

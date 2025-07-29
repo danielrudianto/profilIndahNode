@@ -173,6 +173,10 @@ export class SalesDepositController {
     const id = Number(req.body.id);
     const date = new Date(req.body.date);
     const userID = req.body.userId;
+    const sales_invoice_payment = req.body.sales_invoice_payment as any[];
+    const service = req.body.service;
+    const delivery = req.body.delivery;
+    const discount = req.body.discount;
 
     try {
       const deposit = await this.salesDepositRepository.fetchByID(id);
@@ -184,11 +188,28 @@ export class SalesDepositController {
         return res.status(400).send(ErrorList["Deposit already confirmed"]);
       }
 
+      const value =
+        (deposit.sales_deposit?.reduce((a, b) => {
+          return a + b.quantity * (b.price - b.discount);
+        }, 0) ?? 0) +
+        deposit.delivery +
+        deposit.service -
+        deposit.discount;
+
+      const payment = sales_invoice_payment.reduce((a: any, b: any) => {
+        return a + b.value;
+      }, 0);
+
+      if (payment > value) {
+        return res
+          .status(400)
+          .send(ErrorList["Sales deposit payment is greater than value"]);
+      }
       const customerID = deposit.customerID;
 
       const result = await this.salesInvoiceRepository.create({
         name: this.salesDepositRepository.generateName(date),
-        date: date,
+        date: new Date(date),
         customerID: customerID,
         sales: deposit.sales,
         createdAt: new Date(),
@@ -206,11 +227,11 @@ export class SalesDepositController {
             discount: x.discount,
           };
         }),
-        sales_invoice_payment: deposit.sales_deposit_payment!.map((x) => {
+        sales_invoice_payment: sales_invoice_payment!.map((x: any) => {
           return {
             payment_method_id: x.payment_method_id,
             value: x.value,
-            date: x.date,
+            date: new Date(x.date),
             sales_invoice_code_id: 0,
           };
         }),
@@ -221,18 +242,10 @@ export class SalesDepositController {
         confirmedBy: userID,
       });
 
+      await this.salesDepositRepository.confirmByID(id, userID);
+
       if (!deposit.isPaid) {
-        await this.receivableRepository.addReceivableValue(
-          result.delivery +
-            result.service -
-            result.discount +
-            result.sales_invoice!.reduce((a, b) => {
-              return a + (b.price - b.discount) * b.quantity;
-            }, 0) -
-            result.sales_invoice_payment!.reduce((a, b) => {
-              return a + b.value;
-            }, 0)
-        );
+        await this.receivableRepository.addReceivableValue(value - payment);
       }
 
       await this.stockOutRepository.create(

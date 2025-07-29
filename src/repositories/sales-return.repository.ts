@@ -87,6 +87,34 @@ export class SalesReturnRepository {
     }
   };
 
+  fetchBySalesInvoiceCodeID = async (id: number) => {
+    try {
+      const result = await this.prisma.sales_return_code.findFirst({
+        where: {
+          sales_invoice_code_id: id,
+          is_delete: false,
+          is_confirm: true,
+        },
+        include: {
+          sales_return: {
+            include: {
+              sales_invoice: {
+                include: {
+                  product: true,
+                  product_unit: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      return result ? SalesReturnCodeModel.fromMap(result) : null;
+    } catch (error) {
+      throw error;
+    }
+  };
+
   fetchByBillIDs = async (billIDs: number[]) => {
     const result = await this.prisma.sales_return.count({
       where: {

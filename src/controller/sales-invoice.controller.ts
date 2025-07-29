@@ -188,11 +188,8 @@ class SalesInvoiceController {
       return res.status(404).send(ErrorList["Not found"]);
     }
 
-    const salesReturn = await this.salesReturnRepository.fetchByBillIDs(
-      salesInvoice.sales_invoice!.map((x) => {
-        return x.id!;
-      })
-    );
+    const salesReturn =
+      await this.salesReturnRepository.fetchBySalesInvoiceCodeID(id);
 
     if (salesReturn) {
       return res.status(400).send(ErrorList["Sales return exists"]);
