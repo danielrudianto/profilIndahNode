@@ -39,7 +39,12 @@ router.post(
     .withMessage(ErrorList["Month must be numeric"]),
   body("isActive").isBoolean().withMessage(ErrorList["Parameter error"]),
   body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isLost")
+    .isBoolean()
+    .withMessage(ErrorList["Adjustment case lost type must be boolean"]),
+  body("isFound")
+    .isBoolean()
+    .withMessage(ErrorList["Adjustment case found type must be boolean"]),
   body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
   body("sortDirection")
     .isIn(["asc", "desc"])
@@ -77,19 +82,25 @@ router.get(
 
 router.post(
   "/",
-  body("date").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("type").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  body("type")
+    .isInt({ min: 0 })
+    .withMessage(ErrorList["Adjustment case type is required"]),
   body("adjustment_case").isArray().withMessage(ErrorList["Parameter error"]),
   body("adjustment_case.*.product_id")
     .notEmpty()
-    .withMessage(ErrorList["Parameter error"]),
+    .withMessage(ErrorList["Product ID is required"]),
   body("adjustment_case.*.quantity")
     .notEmpty()
-    .isNumeric()
-    .withMessage(ErrorList["Parameter error"]),
+    .withMessage(ErrorList["Quantity is required"]),
+  body("adjustment_case.*.quantity")
+    .isFloat({
+      min: 0,
+    })
+    .withMessage(ErrorList["Quantity must be numeric"]),
   body("adjustment_case.*.product_unit_id")
     .exists()
-    .withMessage(ErrorList["Parameter error"]),
+    .withMessage(ErrorList["Product unit ID is required"]),
   ErrorHelper.intercept,
   adjustmentCaseController.create
 );

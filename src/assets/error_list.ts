@@ -44,6 +44,8 @@ enum ErrorList {
   "Product type is required" = "Tipe produk tidak boleh kosong.",
   "Product unit is required" = "Satuan produk tidak boleh kosong.",
   "Product minimum stock is required" = "Stok minimum produk tidak boleh kosong.",
+  "Product ID is required" = "ID produk tidak boleh kosong.",
+  "Product unit ID is required" = "ID satuan produk tidak boleh kosong.",
 
   "Price is required" = "Harga tidak boleh kosong.",
   "Package name required" = "Nama paket tidak boleh kosong.",
@@ -81,6 +83,10 @@ enum ErrorList {
   "Purchase invoice name required" = "Nama invoice pembelian tidak boleh kosong.",
   "Adjustment case not found" = "Data kasus penyesuaian tidak ditemukan.",
   "Adjustment case has not been confirmed" = "Data kasus penyesuaian belum dikonfirmasi",
+  "Adjustment case type is required" = "Tipe kasus penyesuaian tidak boleh kosong.",
+  "Adjustment case company ID is required" = "ID perusahaan kasus penyesuaian tidak boleh kosong.",
+  "Adjustment case lost type must be boolean" = "Tipe kasus penyesuaian hilang harus berupa boolean.",
+  "Adjustment case found type must be boolean" = "Tipe kasus penyesuaian ditemukan harus berupa boolean.",
   "Delete bill sales return constraint" = "Tidak dapat menghapus faktur karena ada retur penjualan yang terkait.",
 
   "Expense type not found" = "Data jenis pengeluaran tidak ditemukan.",

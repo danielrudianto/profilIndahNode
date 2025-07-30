@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
-import { translateKeyword, translatePage } from "../helper/escape.helper";
+import {
+  translateDate,
+  translateKeyword,
+  translatePage,
+} from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
 import { AdjustmentCaseRepository } from "../repositories/adjustment-case.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
@@ -38,7 +42,9 @@ class AdjustmentCaseController {
     const adjustment_case = req.body.adjustment_case;
 
     if (type == 0 && companyID == null) {
-      return res.status(400).send(ErrorList["Parameter error"]);
+      return res
+        .status(400)
+        .send(ErrorList["Adjustment case company ID is required"]);
     }
 
     try {
@@ -66,12 +72,6 @@ class AdjustmentCaseController {
   };
 
   private generateName = (date: Date) => {
-    /**
-     * Generate adjustment case name
-     * Generating name of adjustment case code based on date
-     * @param date
-     * @returns string
-     */
     return `ADJ-${date.getFullYear()}-${Math.floor(
       Math.random() * 10
     )}${Math.floor(Math.random() * 10)}${Math.floor(
@@ -343,32 +343,37 @@ class AdjustmentCaseController {
   };
 
   fetchArchives = async (req: Request, res: Response) => {
-    const year = Number(req.body.year);
+    const year = req.body.year;
     const month = req.body.month;
 
     const keyword = translateKeyword(req.body.keyword);
     const page = translatePage(req.body.page);
     const pageSize = req.body.pageSize;
-
-    const startDate = req.query.startDate
-      ? new Date(req.query.startDate.toString())
-      : undefined;
-    const endDate = req.query.endDate
-      ? new Date(req.query.endDate.toString())
-      : undefined;
+    const startDate = translateDate(req.body.startDate);
+    const endDate = translateDate(req.body.endDate);
+    const isActive = req.body.isActive;
+    const isDelete = req.body.isDelete;
+    const isLost = req.body.isLost;
+    const isFound = req.body.isFound;
+    const sortBy = req.body.sortBy;
+    const sortDirection = req.body.sortDirection;
 
     try {
       const result = await this.adjustmentCaseRepository.fetchArchives({
         month: month,
         year: year,
         keyword: keyword,
-        limit: pageSize,
-        offset: (page - 1) * pageSize,
-        is_active: true,
-        is_delete: true,
+        page: page,
+        pageSize: pageSize,
+        startDate: startDate,
+        endDate: endDate,
+        isActive: isActive,
+        isDelete: isDelete,
+        isLost: isLost,
+        isFound: isFound,
+        sortBy: sortBy,
+        sortDirection: sortDirection,
       });
-
-      console.log(result);
 
       return res.status(200).send(result);
     } catch (error) {

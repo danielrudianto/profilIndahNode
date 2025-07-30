@@ -170,19 +170,103 @@ export class AdjustmentCaseRepository {
     }
   }
 
-  async fetchArchives(data: IFetchArchive) {
+  async fetchArchives(data: {
+    year: number;
+    month: number;
+    page: number;
+    pageSize: number;
+    keyword: string;
+    startDate: Date;
+    endDate: Date;
+    isActive: boolean;
+    isDelete: boolean;
+    isLost: boolean;
+    isFound: boolean;
+    sortBy: string;
+    sortDirection: "asc" | "desc";
+  }) {
+    let statusFilter: any = {};
+    if (
+      (!data.isActive && !data.isDelete) ||
+      (data.isActive && data.isDelete)
+    ) {
+      statusFilter = {
+        OR: [
+          {
+            is_delete: false,
+          },
+          {
+            is_delete: true,
+          },
+        ],
+      };
+    } else if (data.isActive) {
+      statusFilter = {
+        is_delete: false,
+      };
+    } else {
+      statusFilter = {
+        is_delete: true,
+      };
+    }
+
+    let typeFilter: any = {};
+    if ((!data.isLost && !data.isFound) || (data.isLost && data.isFound)) {
+      typeFilter = {
+        OR: [
+          {
+            company_id: null,
+          },
+          {
+            company_id: {
+              not: null,
+            },
+          },
+        ],
+      };
+    } else if (data.isLost) {
+      statusFilter = {
+        company_id: null,
+      };
+    } else {
+      statusFilter = {
+        company_id: {
+          not: null,
+        },
+      };
+    }
+
+    let orderBy;
+
+    if (data.sortBy == "date") {
+      orderBy = {
+        date: data.sortDirection,
+      };
+    } else if (data.sortBy == "name") {
+      orderBy = {
+        name: data.sortDirection,
+      };
+    } else if (data.sortBy == "type") {
+      orderBy = {
+        company: {
+          name: data.sortDirection,
+        },
+      };
+    }
+
+    console.log(statusFilter);
+    console.log(typeFilter);
+
     try {
       const [result, count] = await this.prisma.$transaction([
         this.prisma.adjustment_case_code.findMany({
           where: {
-            OR: [
+            AND: [
               {
                 name: {
                   contains: data.keyword,
                 },
               },
-            ],
-            AND: [
               {
                 date: {
                   gte: new Date(data.year, data.month - 1, 1),
@@ -193,19 +277,33 @@ export class AdjustmentCaseRepository {
                   lte: new Date(data.year, data.month, 0),
                 },
               },
+              statusFilter,
+              typeFilter,
             ],
           },
           include: {
             company: true,
           },
-          take: data.limit,
-          skip: data.offset,
-          orderBy: {
-            date: "desc",
-          },
+          take: data.pageSize,
+          skip: (data.page - 1) * data.pageSize,
+          orderBy: orderBy,
         }),
         this.prisma.adjustment_case_code.count({
           where: {
+            OR: [
+              {
+                name: {
+                  contains: data.keyword,
+                },
+              },
+              {
+                company: {
+                  name: {
+                    contains: data.keyword,
+                  },
+                },
+              },
+            ],
             AND: [
               {
                 date: {
