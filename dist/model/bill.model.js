@@ -1,15 +1,16 @@
-import { prisma } from "../helper/database.helper";
-
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_helper_1 = require("../helper/database.helper");
 class BillModel {
-  /**
-   * Fetch bill based on ID array
-   * To check if bill is already returned
-   * @param ids
-   * @returns
-   */
-  static fetchByIDs(ids: number[]) {
-    // Need to calculate previously returned quantity
-    return prisma.$queryRawUnsafe<any[]>(`
+    /**
+     * Fetch bill based on ID array
+     * To check if bill is already returned
+     * @param ids
+     * @returns
+     */
+    static fetchByIDs(ids) {
+        // Need to calculate previously returned quantity
+        return database_helper_1.prisma.$queryRawUnsafe(`
       SELECT bill.id, bill_code_id, bill.quantity, 
       COALESCE(salesReturn.return_quantity, 0) AS return_quantity
       FROM bill
@@ -24,7 +25,7 @@ class BillModel {
       ON bill.id = salesReturn.bill_id
       WHERE bill.id IN (${ids.join(",")})
     `);
-  }
+    }
 }
-
-export default BillModel;
+exports.default = BillModel;
+//# sourceMappingURL=bill.model.js.map

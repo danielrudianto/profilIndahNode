@@ -1,0 +1,30 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const report_controller_1 = __importDefault(require("../../controller/report.controller"));
+const database_helper_1 = require("../../helper/database.helper");
+const company_repository_1 = require("../../repositories/company.repository");
+const customer_repository_1 = require("../../repositories/customer.repository");
+const expense_type_repository_1 = require("../../repositories/expense-type.repository");
+const expense_repository_1 = require("../../repositories/expense.repository");
+const good_receipt_repository_1 = require("../../repositories/good-receipt.repository");
+const payment_method_repository_1 = require("../../repositories/payment-method.repository");
+const product_repository_1 = require("../../repositories/product.repository");
+const promotion_repository_1 = require("../../repositories/promotion.repository");
+const sales_deposit_payment_repository_1 = require("../../repositories/sales-deposit-payment.repository");
+const sales_invoice_payment_repository_1 = require("../../repositories/sales-invoice-payment.repository");
+const sales_invoice_repository_1 = require("../../repositories/sales-invoice.repository");
+const sales_return_repository_1 = require("../../repositories/sales-return.repository");
+const stock_in_repository_1 = require("../../repositories/stock-in.repository");
+const stock_out_repository_1 = require("../../repositories/stock-out.repository");
+const stock_repository_1 = require("../../repositories/stock.repository");
+const reportController = new report_controller_1.default(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new promotion_repository_1.PromotionRepository(database_helper_1.prisma), new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma), new customer_repository_1.CustomerRepository(database_helper_1.prisma), new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new sales_invoice_payment_repository_1.SalesInvoicePaymentRepository(database_helper_1.prisma), new sales_deposit_payment_repository_1.SalesDepositPaymentRepository(database_helper_1.prisma), new payment_method_repository_1.PaymentMethodRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma), new stock_repository_1.StockRepository(database_helper_1.prisma), new company_repository_1.CompanyRepository(database_helper_1.prisma), new expense_repository_1.ExpenseRepository(database_helper_1.prisma), new expense_type_repository_1.ExpenseTypeRepository(database_helper_1.prisma));
+const router = (0, express_1.Router)();
+router.post("/administrator", reportController.fetchAdministratorDashboard);
+router.post("/sales", reportController.fetchSalesDashboard);
+router.post("/purchasing", reportController.fetchPurchaseDashboard);
+exports.default = router;
+//# sourceMappingURL=dashboard.route.js.map
