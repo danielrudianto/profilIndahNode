@@ -91,9 +91,20 @@ async function insertStockCard() {
     const stockCardService = new stock_card_service_1.StockCardService(new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
     await stockCardService.startup();
 }
+async function createIndexes() {
+    await meili_helper_1.meili.createIndex("product", {
+        primaryKey: "id",
+    });
+    await meili_helper_1.meili.createIndex("package", {
+        primaryKey: "id",
+    });
+}
 async function runFunction(funcName) {
     await connect();
     switch (funcName) {
+        case "createIndex":
+            await createIndexes();
+            break;
         case "syncProduct":
             await syncProduct();
             break;

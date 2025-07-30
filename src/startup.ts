@@ -127,9 +127,22 @@ async function insertStockCard() {
   await stockCardService.startup();
 }
 
+async function createIndexes() {
+  await meili.createIndex("product", {
+    primaryKey: "id",
+  });
+  
+  await meili.createIndex("package", {
+    primaryKey: "id",
+  });
+}
+
 async function runFunction(funcName: string) {
   await connect();
   switch (funcName) {
+    case "createIndex":
+      await createIndexes();
+      break;
     case "syncProduct":
       await syncProduct();
       break;
