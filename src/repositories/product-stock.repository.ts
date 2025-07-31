@@ -179,7 +179,6 @@ export class ProductStockRepository {
     brands: number[];
     types: number[];
   }) {
-    console.log(data);
     try {
       const [result, count] = await this.prisma.$transaction([
         this.prisma.$queryRawUnsafe<any[]>(`

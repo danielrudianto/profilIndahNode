@@ -85,7 +85,7 @@ class AdjustmentCaseController {
 
   approve = async (req: Request, res: Response) => {
     const userID = req.body.userId;
-    const id = Number(req.params.id);
+    const id = req.body.id;
 
     try {
       const adjustmentCase = await this.adjustmentCaseRepository.fetchByID(id);
@@ -93,8 +93,16 @@ class AdjustmentCaseController {
         return res.status(404).send(ErrorList["Not found"]);
       }
 
-      if (adjustmentCase.is_confirm || adjustmentCase.is_delete) {
-        return res.status(404).send(ErrorList["Not found"]);
+      if (adjustmentCase.is_confirm) {
+        return res
+          .status(404)
+          .send(ErrorList["Adjustment case has been confirmed"]);
+      }
+
+      if (adjustmentCase.is_delete) {
+        return res
+          .status(404)
+          .send(ErrorList["Adjustment case has been deleted"]);
       }
 
       const result = await this.adjustmentCaseRepository.approve(id, userID);
@@ -205,10 +213,27 @@ class AdjustmentCaseController {
   }
 
   reject = async (req: Request, res: Response) => {
-    const id = Number(req.params.id);
+    const id = req.body.id;
     const userID = req.body.userId;
 
     try {
+      const adjustmentCase = await this.adjustmentCaseRepository.fetchByID(id);
+      if (!adjustmentCase) {
+        return res.status(404).send(ErrorList["Adjustment case not found"]);
+      }
+
+      if (adjustmentCase.is_confirm) {
+        return res
+          .status(404)
+          .send(ErrorList["Adjustment case has been confirmed"]);
+      }
+
+      if (adjustmentCase.is_delete) {
+        return res
+          .status(404)
+          .send(ErrorList["Adjustment case has been deleted"]);
+      }
+
       const result = await this.adjustmentCaseRepository.reject(id, userID);
       return res.status(201).send(result);
     } catch (error) {
@@ -227,7 +252,9 @@ class AdjustmentCaseController {
       }
 
       if (adjustmentCase.is_delete) {
-        return res.status(404).send(ErrorList["Not found"]);
+        return res
+          .status(404)
+          .send(ErrorList["Adjustment case has been deleted"]);
       }
 
       if (!adjustmentCase.is_confirm) {
@@ -239,7 +266,7 @@ class AdjustmentCaseController {
       const result = await this.adjustmentCaseRepository.delete(id, userID);
 
       await this.stockRepository.updateMany(
-        result.adjustment_case.map((x) => {
+        adjustmentCase.adjustment_case.map((x) => {
           return {
             productID: x.product_id,
             quantity:
@@ -250,12 +277,14 @@ class AdjustmentCaseController {
         })
       );
 
-      const type = this.checkType(result.adjustment_case);
+      const type = this.checkType(adjustmentCase.adjustment_case);
+
+      console.log(type);
 
       if (type == 0) {
         // found
         await this.stockInRepository.deleteMany(
-          result.adjustment_case!.map((x: any) => {
+          adjustmentCase.adjustment_case!.map((x: any) => {
             return {
               good_receipt_id: null,
               good_receipt_code_id: null,
@@ -268,7 +297,7 @@ class AdjustmentCaseController {
       } else if (type == 1) {
         // lost
         await this.stockOutRepository.deleteMany(
-          result.adjustment_case!.map((x: any) => {
+          adjustmentCase.adjustment_case!.map((x: any) => {
             return {
               sales_invoice_code_id: null,
               sales_invoice_id: null,
@@ -279,12 +308,12 @@ class AdjustmentCaseController {
         );
       }
 
-      for (let i = 0; i < result.adjustment_case!.length; i++) {
+      for (let i = 0; i < adjustmentCase.adjustment_case!.length; i++) {
         await queue.add("stock-card-deleted", {
           sales_invoice_code_id: null,
           sales_invoice_id: null,
           adjustment_case_code_id: id,
-          adjustment_case_id: result.adjustment_case![i].id,
+          adjustment_case_id: adjustmentCase.adjustment_case![i].id,
           sales_return_code_id: null,
           sales_return_id: null,
           good_receipt_code_id: null,
@@ -351,8 +380,9 @@ class AdjustmentCaseController {
     const pageSize = req.body.pageSize;
     const startDate = translateDate(req.body.startDate);
     const endDate = translateDate(req.body.endDate);
-    const isActive = req.body.isActive;
-    const isDelete = req.body.isDelete;
+    const isConfirm = req.body.isConfirm;
+    const isReject = req.body.isReject;
+    const isPending = req.body.isPending;
     const isLost = req.body.isLost;
     const isFound = req.body.isFound;
     const sortBy = req.body.sortBy;
@@ -367,8 +397,9 @@ class AdjustmentCaseController {
         pageSize: pageSize,
         startDate: startDate,
         endDate: endDate,
-        isActive: isActive,
-        isDelete: isDelete,
+        isConfirm: isConfirm,
+        isReject: isReject,
+        isPending: isPending,
         isLost: isLost,
         isFound: isFound,
         sortBy: sortBy,

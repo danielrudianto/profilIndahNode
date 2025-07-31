@@ -88,6 +88,8 @@ enum ErrorList {
   "Adjustment case lost type must be boolean" = "Tipe kasus penyesuaian hilang harus berupa boolean.",
   "Adjustment case found type must be boolean" = "Tipe kasus penyesuaian ditemukan harus berupa boolean.",
   "Delete bill sales return constraint" = "Tidak dapat menghapus faktur karena ada retur penjualan yang terkait.",
+  "Adjustment case has been confirmed" = "Data kasus penyesuaian sudah dikonfirmasi",
+  "Adjustment case has been deleted" = "Data kasus penyesuaian sudah dihapus",
 
   "Expense type not found" = "Data jenis pengeluaran tidak ditemukan.",
   "Expense type has child" = "Jenis pengeluaran memiliki sub jenis.",

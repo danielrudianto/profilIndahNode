@@ -152,17 +152,17 @@ async function main() {
 
   const server = http.createServer(app);
   server.listen(5000, () => {
-    console.log("[server]: Server is running on port 5000");
+    console.info("[server]: Server is running on port 5000");
   });
 
   const io = initIO(server);
 
   io.on("connection", () => {
-    console.log("New connection established");
+    console.info("New connection established");
   });
 
   connectRedis();
-  console.log("Redis client is connected");
+  console.info("Redis client is connected");
 }
 
 main();

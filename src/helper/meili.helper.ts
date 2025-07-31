@@ -17,7 +17,7 @@ export const initializeMeiliSearch = async () => {
     // Depending on your app's needs, you might want to throw an error here
     // if the API key is absolutely essential for startup.
   }
-  console.log("Starting MeiliSearch setup...");
+  console.info("Starting MeiliSearch setup...");
   try {
     const product = await meili.getIndex("product");
     if (product) {
@@ -38,7 +38,7 @@ export const initializeMeiliSearch = async () => {
         sortableAttributes: ["created_at", "reference", "description"],
       });
       await meili.waitForTask(productSettingTask.taskUid);
-      console.log("Product database initialized");
+      console.info("Product database initialized");
     }
 
     const productPackage = await meili.getIndex("package");
@@ -57,7 +57,7 @@ export const initializeMeiliSearch = async () => {
           sortableAttributes: ["name", "description"],
         });
       await meili.waitForTask(productPackageSettingTask.taskUid);
-      console.log("Package database initialized");
+      console.info("Package database initialized");
     }
   } catch (error) {
     console.error("Error during MeiliSearch initialization:", error);

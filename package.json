@@ -9,7 +9,9 @@
     "build": "tsc",
     "start:worker": "npx ts-node src/worker.ts",
     "start:setup": "npx ts-node src/setup/meilisearch.setup.ts",
-    "start:sync-product": "npx ts-node src/startup.ts syncProduct"
+    "start:setup-database": "npx ts-node src/startup.ts setupDatabase",
+    "start:sync-product": "npx ts-node src/startup.ts syncProduct",
+    "start:sync-package": "npx ts-node src/startup.ts syncProductPackage"
   },
   "author": "PT Terra Nusa Teknologi",
   "license": "ISC",

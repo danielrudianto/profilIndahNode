@@ -169,8 +169,6 @@ export class ProductRepository {
         },
       });
 
-      console.log(result);
-
       await queue.add("product-updated", {
         id: productID,
       });

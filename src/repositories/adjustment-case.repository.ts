@@ -23,6 +23,7 @@ export class AdjustmentCaseRepository {
           is_confirm: false,
           confirmed_at: null,
           confirmed_by: null,
+          company_id: data.company_id,
           adjustment_case: {
             createMany: {
               data: data.adjustment_case.map((x) => {
@@ -86,6 +87,7 @@ export class AdjustmentCaseRepository {
               product_unit: true,
             },
           },
+          company: true,
           user_adjustment_case_code_created_byTouser: {
             include: {
               user_avatar: true,
@@ -119,6 +121,14 @@ export class AdjustmentCaseRepository {
           },
           orderBy: {
             date: "asc",
+          },
+          include: {
+            user_adjustment_case_code_created_byTouser: {
+              include: {
+                user_avatar: true,
+              },
+            },
+            company: true,
           },
           skip: (data.page - 1) * data.pageSize,
           take: data.pageSize,
@@ -178,35 +188,101 @@ export class AdjustmentCaseRepository {
     keyword: string;
     startDate: Date;
     endDate: Date;
-    isActive: boolean;
-    isDelete: boolean;
+    isConfirm: boolean;
+    isReject: boolean;
+    isPending: boolean;
     isLost: boolean;
     isFound: boolean;
     sortBy: string;
     sortDirection: "asc" | "desc";
   }) {
-    let statusFilter: any = {};
+    let statusFilter;
+
     if (
-      (!data.isActive && !data.isDelete) ||
-      (data.isActive && data.isDelete)
+      (!data.isConfirm && !data.isReject && !data.isPending) ||
+      (data.isConfirm && data.isReject && data.isPending)
     ) {
+      // All selected or none selected
       statusFilter = {
         OR: [
           {
-            is_delete: false,
+            AND: [
+              {
+                is_confirm: true,
+              },
+              {
+                is_delete: false,
+              },
+            ],
           },
           {
-            is_delete: true,
+            AND: [
+              {
+                is_confirm: false,
+              },
+              {
+                is_delete: true,
+              },
+            ],
+          },
+          {
+            AND: [
+              {
+                is_confirm: false,
+              },
+              {
+                is_delete: false,
+              },
+            ],
           },
         ],
       };
-    } else if (data.isActive) {
-      statusFilter = {
-        is_delete: false,
-      };
     } else {
+      // At least one of the flags is selected
+      const filters = [];
+
+      if (data.isConfirm) {
+        filters.push({
+          AND: [
+            {
+              is_confirm: true,
+            },
+            {
+              is_delete: false,
+            },
+          ],
+        });
+      }
+
+      if (data.isPending) {
+        filters.push({
+          AND: [
+            {
+              is_confirm: false,
+            },
+            {
+              is_delete: false,
+            },
+          ],
+        });
+      }
+
+      if (data.isReject) {
+        filters.push({
+          AND: [
+            {
+              is_confirm: false,
+            },
+            {
+              is_delete: true,
+            },
+          ],
+        });
+      }
+
+      // Combine filters with OR
       statusFilter = {
-        is_delete: true,
+        OR: filters,
       };
     }
 
@@ -253,9 +329,6 @@ export class AdjustmentCaseRepository {
         },
       };
     }
-
-    console.log(statusFilter);
-    console.log(typeFilter);
 
     try {
       const [result, count] = await this.prisma.$transaction([

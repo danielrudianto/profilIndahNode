@@ -26,30 +26,63 @@ async function connect() {
   console.info("[info]: Connected with redis");
 }
 
+async function setupDatabase() {
+  try {
+    await meili.getIndex("product");
+    console.info("[info]: Product index already exists, skipping creation");
+  } catch (error: any) {
+    if (error.code === "index_not_found") {
+      console.info("[info]: Product index not found, creating index...");
+      const createProduct = await meili.createIndex("product", {
+        primaryKey: "id",
+      });
+
+      console.info("[info]: Product index created successfully");
+
+      await meili.waitForTask(createProduct.taskUid);
+      const productSettingTask = await meili.index("product").updateSettings({
+        filterableAttributes: [
+          "product_brand_id",
+          "product_type_id",
+          "is_active",
+          "is_delete",
+        ],
+        sortableAttributes: ["created_at", "reference", "description"],
+      });
+      await meili.waitForTask(productSettingTask.taskUid);
+      console.info("Product database initialized");
+    }
+  }
+
+  try {
+    await meili.getIndex("package");
+    console.info("[info]: Package index already exists, skipping creation");
+  } catch (error: any) {
+    if (error.code === "index_not_found") {
+      const createProductPackage = await meili.createIndex("package", {
+        primaryKey: "id",
+      });
+
+      await meili.waitForTask(createProductPackage.taskUid);
+      const productPackageSettingTask = await meili
+        .index("package")
+        .updateSettings({
+          filterableAttributes: ["is_delete"],
+          sortableAttributes: ["name", "description"],
+        });
+      await meili.waitForTask(productPackageSettingTask.taskUid);
+      console.linfoog("Package database initialized");
+    }
+  }
+}
+
 async function syncProduct() {
   const productService = new ProductService(
     new ProductRepository(prisma),
     new ProductUnitRepository(prisma)
   );
 
-  await meili.index("product").delete();
-
-  const createProduct = await meili.createIndex("product", {
-    primaryKey: "id",
-  });
-
-  await meili.waitForTask(createProduct.taskUid);
-  const productSettingTask = await meili.index("product").updateSettings({
-    filterableAttributes: [
-      "product_brand_id",
-      "product_type_id",
-      "is_active",
-      "is_delete",
-    ],
-    sortableAttributes: ["created_at", "reference", "description"],
-  });
-  await meili.waitForTask(productSettingTask.taskUid);
-  console.info(`[info]: Product database successfully initialized`);
+  await meili.index("product").deleteAllDocuments();
 
   const products = await productService.fetchAll();
   console.info(`[info]: Fetched ${products.length} products from database`);
@@ -65,23 +98,7 @@ async function syncProductPackage() {
     new ProductPackageRepository(prisma)
   );
 
-  await meili.index("package").delete();
-
-  const createProductPackage = await meili.createIndex("package", {
-    primaryKey: "id",
-  });
-
-  await meili.waitForTask(createProductPackage.taskUid);
-
-  const productPackageSettingTask = await meili
-    .index("package")
-    .updateSettings({
-      filterableAttributes: ["is_delete"],
-      sortableAttributes: ["name", "description"],
-    });
-
-  await meili.waitForTask(productPackageSettingTask.taskUid);
-  console.info(`[info]: Product package database successfully initialized`);
+  await meili.index("package").deleteAllDocuments();
 
   const productPackages = await packageService.fetchAll();
   console.info(
@@ -130,19 +147,24 @@ async function insertStockCard() {
 async function runFunction(funcName: string) {
   await connect();
   switch (funcName) {
+    case "setupDatabase":
+      await setupDatabase();
+      process.exit(0);
     case "syncProduct":
       await syncProduct();
-      break;
+      process.exit(0);
     case "syncProductPackage":
       await syncProductPackage();
-      break;
+      process.exit(0);
     case "insertStockInOut":
       await insertStockInOut();
-      break;
+      process.exit(0);
     case "insertStockCard":
       await insertStockCard();
+      process.exit(0);
     default:
       console.error("[error]: Function not found");
+      process.exit(0);
   }
 }
 

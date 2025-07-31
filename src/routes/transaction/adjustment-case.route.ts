@@ -37,8 +37,9 @@ router.post(
   body("month")
     .isInt({ min: 1, max: 12 })
     .withMessage(ErrorList["Month must be numeric"]),
-  body("isActive").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isConfirm").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isReject").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
   body("isLost")
     .isBoolean()
     .withMessage(ErrorList["Adjustment case lost type must be boolean"]),
@@ -56,18 +57,18 @@ router.post(
 );
 
 router.post(
-  "/approve/:id",
+  "/approve",
   superadministratorMiddleware,
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
   ErrorHelper.intercept,
   adjustmentCaseController.approve
 );
 router.post(
-  "/disapprove/:id",
+  "/reject",
   superadministratorMiddleware,
-  param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
   ErrorHelper.intercept,
   adjustmentCaseController.reject
 );
