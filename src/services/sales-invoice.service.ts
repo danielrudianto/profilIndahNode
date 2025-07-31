@@ -25,22 +25,15 @@ export class SalesInvoiceService {
     // first fetch the sales invoice data
     try {
       const salesInvoice = await this.salesInvoiceRepository.fetchByID(id);
+      if (!salesInvoice) {
+        console.error(`[error]: Sales invoice with ID ${id} not found.`);
+        return;
+      }
+
       if (salesInvoice.isDelete) {
         console.warn(`Sales invoice with ID ${id} is marked as deleted.`);
         return;
       }
-
-      // update the stock
-      //   this.stockRepository.updateMany(
-      //     salesInvoice.bill!.map((item) => {
-      //       return {
-      //         itemID: item.item_id,
-      //         quantity:
-      //           item.quantity *
-      //           (item.item_unit == null ? 1 : item.item_unit.conversion),
-      //       };
-      //     })
-      //   );
     } catch (error) {
       console.error(
         `[error]: Error on fetching sales invoice by ID ${id}: ${error}`

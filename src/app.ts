@@ -68,9 +68,8 @@ import { prisma } from "./helper/database.helper";
 
 const allowedOrigins = [
   "http://localhost:2100",
-  "https://app.profilindah.id",
   "https://stock.profilindah.id",
-  "https://v16.profilindah.id",
+  "https://v19.profilindah.id",
 ];
 
 const options: cors.CorsOptions = {

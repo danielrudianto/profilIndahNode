@@ -20,9 +20,11 @@ export const initializeMeiliSearch = async () => {
   console.info("Starting MeiliSearch setup...");
   try {
     const product = await meili.getIndex("product");
-    if (product) {
-      console.info("Product database already exists.");
-    } else {
+    console.info("Product database already exists.");
+  } catch (error: any) {
+    if (error.code === "index_not_found") {
+      console.info("Product index does not exist, creating it...");
+
       const createProduct = await meili.createIndex("product", {
         primaryKey: "id",
       });
@@ -38,13 +40,20 @@ export const initializeMeiliSearch = async () => {
         sortableAttributes: ["created_at", "reference", "description"],
       });
       await meili.waitForTask(productSettingTask.taskUid);
-      console.info("Product database initialized");
-    }
-
-    const productPackage = await meili.getIndex("package");
-    if (productPackage) {
-      console.info("Package database already exists.");
+      console.log("Product database initialized");
     } else {
+      console.error(`[error]: Error initializing product index: ${error}`);
+      throw error;
+    }
+  }
+
+  try {
+    const productPackage = await meili.getIndex("package");
+    console.info("Package database already exists.");
+  } catch (error: any) {
+    if (error.code === "index_not_found") {
+      console.info("Package index does not exist, creating it...");
+
       const createProductPackage = await meili.createIndex("package", {
         primaryKey: "id",
       });
@@ -57,11 +66,11 @@ export const initializeMeiliSearch = async () => {
           sortableAttributes: ["name", "description"],
         });
       await meili.waitForTask(productPackageSettingTask.taskUid);
-      console.info("Package database initialized");
+      console.log("Package database initialized");
+    } else {
+      console.error(`[error]: Error initializing package index: ${error}`);
+      throw error;
     }
-  } catch (error) {
-    console.error("Error during MeiliSearch initialization:", error);
-    throw error;
   }
 };
 
