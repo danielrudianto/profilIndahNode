@@ -59,7 +59,6 @@ const changelog_route_1 = __importDefault(require("./routes/report/changelog.rou
 /*
   Importing other
 */
-const mongoose_1 = __importDefault(require("mongoose"));
 const compression_1 = __importDefault(require("compression"));
 const helmet_1 = __importDefault(require("helmet"));
 const redis_helper_1 = require("./helper/redis.helper");
@@ -75,12 +74,6 @@ const options = {
 async function main() {
     await database_helper_1.prisma.$connect();
     console.info("[info]: Connected with database using Prisma");
-    const url = "mongodb://127.0.0.1:27017/ProfilIndah";
-    await mongoose_1.default.connect(url, {
-        dbName: "ProfilIndah",
-        autoCreate: true,
-    });
-    console.info("[info]: Connected with database");
     await redis_helper_1.redisClient.connect();
     console.info("[info]: Connected with redis");
     // Every day at midnight check for overflow

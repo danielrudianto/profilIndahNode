@@ -59,7 +59,6 @@ import changelogRoutes from "./routes/report/changelog.route";
 /*
   Importing other
 */
-import mongoose from "mongoose";
 import compression from "compression";
 import helmet from "helmet";
 
@@ -79,13 +78,6 @@ const options: cors.CorsOptions = {
 async function main() {
   await prisma.$connect();
   console.info("[info]: Connected with database using Prisma");
-
-  const url = "mongodb://127.0.0.1:27017/ProfilIndah";
-  await mongoose.connect(url, {
-    dbName: "ProfilIndah",
-    autoCreate: true,
-  });
-  console.info("[info]: Connected with database");
 
   await redisClient.connect();
   console.info("[info]: Connected with redis");
