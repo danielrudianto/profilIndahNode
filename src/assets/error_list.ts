@@ -46,7 +46,8 @@ enum ErrorList {
   "Product minimum stock is required" = "Stok minimum produk tidak boleh kosong.",
   "Product ID is required" = "ID produk tidak boleh kosong.",
   "Product unit ID is required" = "ID satuan produk tidak boleh kosong.",
-
+  "Product ID must be numeric" = "ID produk harus berupa angka.",
+  "Quantity required" = "Kuantitas tidak boleh kosong.",
   "Price is required" = "Harga tidak boleh kosong.",
   "Package name required" = "Nama paket tidak boleh kosong.",
   "Package description required" = "Deskripsi paket tidak boleh kosong.",
@@ -70,6 +71,9 @@ enum ErrorList {
   "Good receipt not found" = "Data penerimaan barang tidak ditemukan.",
   "Good receipt already confirmed" = "Penerimaan barang sudah dikonfirmasi.",
   "Good receipt already deleted" = "Penerimaan barang sudah dihapus.",
+  "Good receipt not confirmed" = "Penerimaan barang belum dikonfirmasi.",
+  "Good receipt requried" = "Penerimaan barang tidak boleh kosong.",
+
   "Date required" = "Tanggal tidak boleh kosong.",
   "Return date is required" = "Tanggal pengembalian tidak boleh kosong",
   "Return payment method must be either Cash or Transfer" = "Metode pengembalian kelebihan pembayaran harus berupa Cash atau Transfer bank",
@@ -155,6 +159,7 @@ enum ErrorList {
   "Invoice name required" = "Nama faktur tidak boleh kosong",
   "Tax invoice required" = "Faktur pajak tidak boleh kosong",
   "Good receipt ID required" = "ID penerimaan barang tidak boleh kosong",
+  "Good receipt required" = "Penerimaan barang tidak boleh kosong",
   "Good receipt must be array" = "Penerimaan barang harus berupa array",
 
   "Brand is required" = "Merek tidak boleh kosong",

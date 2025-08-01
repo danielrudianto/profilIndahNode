@@ -71,7 +71,7 @@ async function setupDatabase() {
           sortableAttributes: ["name", "description"],
         });
       await meili.waitForTask(productPackageSettingTask.taskUid);
-      console.linfoog("Package database initialized");
+      console.info("Package database initialized");
     }
   }
 }

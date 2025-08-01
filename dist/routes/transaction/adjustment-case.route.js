@@ -22,15 +22,15 @@ router.post("/archives", (0, express_validator_1.body)("year").notEmpty().withMe
     .isInt({ min: 2000 })
     .withMessage(error_list_1.default["Year must be numeric"]), (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({ min: 1, max: 12 })
-    .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("isActive").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isDelete").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isLost")
+    .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("isConfirm").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isReject").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isPending").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isLost")
     .isBoolean()
     .withMessage(error_list_1.default["Adjustment case lost type must be boolean"]), (0, express_validator_1.body)("isFound")
     .isBoolean()
     .withMessage(error_list_1.default["Adjustment case found type must be boolean"]), (0, express_validator_1.body)("sortBy").notEmpty().withMessage(error_list_1.default["Sort by required"]), (0, express_validator_1.body)("sortDirection")
     .isIn(["asc", "desc"])
     .withMessage(error_list_1.default["Sort direction only supports ascending or descending"]), error_helper_1.default.intercept, adjustmentCaseController.fetchArchives);
-router.post("/approve/:id", auth_helper_1.superadministratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, adjustmentCaseController.approve);
-router.post("/disapprove/:id", auth_helper_1.superadministratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, adjustmentCaseController.reject);
+router.post("/approve", auth_helper_1.superadministratorMiddleware, (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id").isInt({ min: 0 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, adjustmentCaseController.approve);
+router.post("/reject", auth_helper_1.superadministratorMiddleware, (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id").isInt({ min: 0 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, adjustmentCaseController.reject);
 router.get("/unconfirmed", adjustmentCaseController.fetchUnconfirmed);
 router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, adjustmentCaseController.fetchByID);
 router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Date required"]), (0, express_validator_1.body)("type")

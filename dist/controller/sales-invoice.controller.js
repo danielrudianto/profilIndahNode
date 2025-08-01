@@ -106,6 +106,7 @@ class SalesInvoiceController {
                         stock: null,
                         customer_id: billResult.customerID,
                         supplier_id: null,
+                        created_at: new Date(),
                     };
                 }));
                 stockCardResult.forEach(async (x) => {

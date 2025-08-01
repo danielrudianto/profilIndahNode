@@ -152,7 +152,6 @@ class ProductRepository {
                     is_active: !currentStatus,
                 },
             });
-            console.log(result);
             await queue_helper_1.queue.add("product-updated", {
                 id: productID,
             });

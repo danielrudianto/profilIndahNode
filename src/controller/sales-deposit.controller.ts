@@ -301,6 +301,7 @@ export class SalesDepositController {
             stock: null,
             customer_id: result.customerID,
             supplier_id: null,
+            created_at: new Date(),
           };
         })
       );

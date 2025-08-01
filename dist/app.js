@@ -131,14 +131,14 @@ async function main() {
     app.use("/development", development_routes_1.default);
     const server = http_1.default.createServer(app);
     server.listen(5000, () => {
-        console.log("[server]: Server is running on port 5000");
+        console.info("[server]: Server is running on port 5000");
     });
     const io = (0, io_1.initIO)(server);
     io.on("connection", () => {
-        console.log("New connection established");
+        console.info("New connection established");
     });
     (0, redis_helper_1.connectRedis)();
-    console.log("Redis client is connected");
+    console.info("Redis client is connected");
 }
 main();
 //# sourceMappingURL=app.js.map

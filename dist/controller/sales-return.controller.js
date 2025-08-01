@@ -76,6 +76,7 @@ class SalesReturnController {
                         good_receipt_id: null,
                         sales_invoice_id: x.sales_invoice_id,
                         sales_invoice_code_id: result.sales_invoice_code_id,
+                        created_at: new Date(),
                     };
                 }));
                 await this.stockOutRepository.decreaseMany(result.sales_return.map((x) => {

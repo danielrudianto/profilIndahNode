@@ -4,6 +4,7 @@ const database_helper_1 = require("../helper/database.helper");
 const user_model_1 = require("./user.model");
 const product_model_1 = require("./product.model");
 const product_unit_model_1 = require("./product-unit.model");
+const company_model_1 = require("./company.model");
 class AdjustmentCaseModel {
     constructor(data) {
         this.id = data.id;
@@ -11,14 +12,15 @@ class AdjustmentCaseModel {
         this.date = data.date;
         this.created_by = data.created_by;
         this.created_at = data.created_at;
-        this.is_confirm = false;
-        this.is_delete = false;
+        this.is_confirm = data.is_confirm;
+        this.is_delete = data.is_delete;
         this.confirmed_by = null;
         this.confirmed_at = new Date();
         this.company_id = data.company_id;
         this.adjustment_case = data.adjustment_case || [];
         this.user_adjustment_case_code_created_byTouser =
             data.user_adjustment_case_code_created_byTouser;
+        this.company = data.company;
     }
     static fromMap(data) {
         return new AdjustmentCaseModel({
@@ -32,27 +34,34 @@ class AdjustmentCaseModel {
             confirmed_by: data.confirmed_by,
             confirmed_at: data.confirmed_at,
             company_id: data.company_id,
-            adjustment_case: data.adjustment_case.map((ac) => ({
-                id: ac.id,
-                product_id: ac.product_id,
-                product_unit_id: ac.product_unit_id,
-                quantity: Number(ac.quantity),
-                product: new product_model_1.ProductModel({
-                    id: ac.product.id,
-                    reference: ac.product.reference,
-                    description: ac.product.description,
-                    unit: ac.product.unit,
-                    product_brand_id: ac.product.product_brand_id,
-                    product_type_id: ac.product.product_type_id,
-                }),
-                product_unit: ac.product_unit == null
+            company: data.company == undefined
+                ? undefined
+                : data.company == null
                     ? null
-                    : new product_unit_model_1.ProductUnitViewModel({
-                        product_id: ac.product_id,
-                        unit: ac.product_unit.unit,
-                        conversion: Number(ac.product_unit.conversion),
+                    : company_model_1.CompanyModel.fromMap(data.company),
+            adjustment_case: data.adjustment_case == undefined
+                ? undefined
+                : data.adjustment_case.map((ac) => ({
+                    id: ac.id,
+                    product_id: ac.product_id,
+                    product_unit_id: ac.product_unit_id,
+                    quantity: Number(ac.quantity),
+                    product: new product_model_1.ProductModel({
+                        id: ac.product.id,
+                        reference: ac.product.reference,
+                        description: ac.product.description,
+                        unit: ac.product.unit,
+                        product_brand_id: ac.product.product_brand_id,
+                        product_type_id: ac.product.product_type_id,
                     }),
-            })),
+                    product_unit: ac.product_unit == null
+                        ? null
+                        : new product_unit_model_1.ProductUnitViewModel({
+                            product_id: ac.product_id,
+                            unit: ac.product_unit.unit,
+                            conversion: Number(ac.product_unit.conversion),
+                        }),
+                })),
             user_adjustment_case_code_created_byTouser: data.user_adjustment_case_code_created_byTouser == null ||
                 data.user_adjustment_case_code_created_byTouser == undefined
                 ? undefined

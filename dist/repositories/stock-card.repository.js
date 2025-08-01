@@ -26,6 +26,7 @@ class StockCardRepository {
                 sales_return_id: data.sales_return_id,
                 sales_return_code_id: data.sales_return_code_id,
                 stock: null,
+                created_at: data.created_at,
             },
         });
     }
@@ -50,6 +51,7 @@ class StockCardRepository {
                     sales_return_id: x.sales_return_id,
                     sales_return_code_id: x.sales_return_code_id,
                     stock: null,
+                    created_at: x.created_at,
                 },
             });
         }));

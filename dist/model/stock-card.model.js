@@ -28,6 +28,7 @@ class StockCardModel {
         this.sales_return_code_id = data.sales_return_code_id;
         this.customer = data.customer;
         this.supplier = data.supplier;
+        this.created_at = data.created_at;
     }
     static fromMap(x) {
         return new StockCardModel({
@@ -59,6 +60,7 @@ class StockCardModel {
                 : x.supplier == null
                     ? null
                     : supplier_model_1.default.fromMap(x.supplier),
+            created_at: new Date(x.created_at),
         });
     }
 }

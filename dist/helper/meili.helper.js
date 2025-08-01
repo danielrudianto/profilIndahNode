@@ -18,13 +18,14 @@ const initializeMeiliSearch = async () => {
         // Depending on your app's needs, you might want to throw an error here
         // if the API key is absolutely essential for startup.
     }
-    console.log("Starting MeiliSearch setup...");
+    console.info("Starting MeiliSearch setup...");
     try {
         const product = await exports.meili.getIndex("product");
-        if (product) {
-            console.info("Product database already exists.");
-        }
-        else {
+        console.info("Product database already exists.");
+    }
+    catch (error) {
+        if (error.code === "index_not_found") {
+            console.info("Product index does not exist, creating it...");
             const createProduct = await exports.meili.createIndex("product", {
                 primaryKey: "id",
             });
@@ -41,11 +42,18 @@ const initializeMeiliSearch = async () => {
             await exports.meili.waitForTask(productSettingTask.taskUid);
             console.log("Product database initialized");
         }
-        const productPackage = await exports.meili.getIndex("package");
-        if (productPackage) {
-            console.info("Package database already exists.");
-        }
         else {
+            console.error(`[error]: Error initializing product index: ${error}`);
+            throw error;
+        }
+    }
+    try {
+        const productPackage = await exports.meili.getIndex("package");
+        console.info("Package database already exists.");
+    }
+    catch (error) {
+        if (error.code === "index_not_found") {
+            console.info("Package index does not exist, creating it...");
             const createProductPackage = await exports.meili.createIndex("package", {
                 primaryKey: "id",
             });
@@ -59,10 +67,10 @@ const initializeMeiliSearch = async () => {
             await exports.meili.waitForTask(productPackageSettingTask.taskUid);
             console.log("Package database initialized");
         }
-    }
-    catch (error) {
-        console.error("Error during MeiliSearch initialization:", error);
-        throw error;
+        else {
+            console.error(`[error]: Error initializing package index: ${error}`);
+            throw error;
+        }
     }
 };
 exports.initializeMeiliSearch = initializeMeiliSearch;

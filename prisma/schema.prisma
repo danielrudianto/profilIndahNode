@@ -818,6 +818,8 @@ model stock_card {
 
   product      product       @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   product_unit product_unit? @relation(fields: [product_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  created_at DateTime @db.DateTime(0)
 }
 
 model notification {

@@ -26,6 +26,8 @@ export interface IStockCard {
 
   customer?: CustomerModel | null;
   supplier?: SupplierModel | null;
+
+  created_at: Date;
 }
 
 export class StockCardModel {
@@ -52,6 +54,8 @@ export class StockCardModel {
   customer?: CustomerModel | null;
   supplier?: SupplierModel | null;
 
+  created_at: Date;
+
   constructor(data: IStockCard) {
     this.id = data.id;
     this.date = data.date;
@@ -74,6 +78,8 @@ export class StockCardModel {
 
     this.customer = data.customer;
     this.supplier = data.supplier;
+
+    this.created_at = data.created_at;
   }
 
   static fromMap(x: any): StockCardModel {
@@ -108,6 +114,7 @@ export class StockCardModel {
           : x.supplier == null
           ? null
           : SupplierModel.fromMap(x.supplier),
+      created_at: new Date(x.created_at),
     });
   }
 }

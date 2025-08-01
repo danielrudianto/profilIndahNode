@@ -54,7 +54,6 @@ class SalesInvoicePaymentRepository {
                     },
                 },
             });
-            console.log(result);
             return result.map((x) => {
                 return {
                     payment_method_id: x.payment_method_id,

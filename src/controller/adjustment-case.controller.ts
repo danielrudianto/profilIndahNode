@@ -180,6 +180,7 @@ class AdjustmentCaseController {
             stock: null,
             product_id: x.product_id,
             product_unit_id: x.product_unit_id,
+            created_at: new Date(),
           };
         })
       );

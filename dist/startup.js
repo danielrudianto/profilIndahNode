@@ -25,24 +25,56 @@ async function connect() {
     await redis_helper_1.redisClient.connect();
     console.info("[info]: Connected with redis");
 }
+async function setupDatabase() {
+    try {
+        await meili_helper_1.meili.getIndex("product");
+        console.info("[info]: Product index already exists, skipping creation");
+    }
+    catch (error) {
+        if (error.code === "index_not_found") {
+            console.info("[info]: Product index not found, creating index...");
+            const createProduct = await meili_helper_1.meili.createIndex("product", {
+                primaryKey: "id",
+            });
+            console.info("[info]: Product index created successfully");
+            await meili_helper_1.meili.waitForTask(createProduct.taskUid);
+            const productSettingTask = await meili_helper_1.meili.index("product").updateSettings({
+                filterableAttributes: [
+                    "product_brand_id",
+                    "product_type_id",
+                    "is_active",
+                    "is_delete",
+                ],
+                sortableAttributes: ["created_at", "reference", "description"],
+            });
+            await meili_helper_1.meili.waitForTask(productSettingTask.taskUid);
+            console.info("Product database initialized");
+        }
+    }
+    try {
+        await meili_helper_1.meili.getIndex("package");
+        console.info("[info]: Package index already exists, skipping creation");
+    }
+    catch (error) {
+        if (error.code === "index_not_found") {
+            const createProductPackage = await meili_helper_1.meili.createIndex("package", {
+                primaryKey: "id",
+            });
+            await meili_helper_1.meili.waitForTask(createProductPackage.taskUid);
+            const productPackageSettingTask = await meili_helper_1.meili
+                .index("package")
+                .updateSettings({
+                filterableAttributes: ["is_delete"],
+                sortableAttributes: ["name", "description"],
+            });
+            await meili_helper_1.meili.waitForTask(productPackageSettingTask.taskUid);
+            console.info("Package database initialized");
+        }
+    }
+}
 async function syncProduct() {
     const productService = new product_service_1.ProductService(new product_repository_1.ProductRepository(database_helper_1.prisma), new product_unit_repository_1.ProductUnitRepository(database_helper_1.prisma));
-    await meili_helper_1.meili.index("product").delete();
-    const createProduct = await meili_helper_1.meili.createIndex("product", {
-        primaryKey: "id",
-    });
-    await meili_helper_1.meili.waitForTask(createProduct.taskUid);
-    const productSettingTask = await meili_helper_1.meili.index("product").updateSettings({
-        filterableAttributes: [
-            "product_brand_id",
-            "product_type_id",
-            "is_active",
-            "is_delete",
-        ],
-        sortableAttributes: ["created_at", "reference", "description"],
-    });
-    await meili_helper_1.meili.waitForTask(productSettingTask.taskUid);
-    console.info(`[info]: Product database successfully initialized`);
+    await meili_helper_1.meili.index("product").deleteAllDocuments();
     const products = await productService.fetchAll();
     console.info(`[info]: Fetched ${products.length} products from database`);
     // add all products to meili
@@ -52,19 +84,7 @@ async function syncProduct() {
 }
 async function syncProductPackage() {
     const packageService = new package_service_1.ProductPackageService(new product_package_repository_1.ProductPackageRepository(database_helper_1.prisma));
-    await meili_helper_1.meili.index("package").delete();
-    const createProductPackage = await meili_helper_1.meili.createIndex("package", {
-        primaryKey: "id",
-    });
-    await meili_helper_1.meili.waitForTask(createProductPackage.taskUid);
-    const productPackageSettingTask = await meili_helper_1.meili
-        .index("package")
-        .updateSettings({
-        filterableAttributes: ["is_delete"],
-        sortableAttributes: ["name", "description"],
-    });
-    await meili_helper_1.meili.waitForTask(productPackageSettingTask.taskUid);
-    console.info(`[info]: Product package database successfully initialized`);
+    await meili_helper_1.meili.index("package").deleteAllDocuments();
     const productPackages = await packageService.fetchAll();
     console.info(`[info]: Fetched ${productPackages.length} product packages from database`);
     const productPackageInsertTask = await meili_helper_1.meili
@@ -102,22 +122,24 @@ async function createIndexes() {
 async function runFunction(funcName) {
     await connect();
     switch (funcName) {
-        case "createIndex":
-            await createIndexes();
-            break;
+        case "setupDatabase":
+            await setupDatabase();
+            process.exit(0);
         case "syncProduct":
             await syncProduct();
-            break;
+            process.exit(0);
         case "syncProductPackage":
             await syncProductPackage();
-            break;
+            process.exit(0);
         case "insertStockInOut":
             await insertStockInOut();
-            break;
+            process.exit(0);
         case "insertStockCard":
             await insertStockCard();
+            process.exit(0);
         default:
             console.error("[error]: Function not found");
+            process.exit(0);
     }
 }
 const args = process.argv.slice(2);

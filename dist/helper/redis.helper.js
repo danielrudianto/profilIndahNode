@@ -7,7 +7,7 @@ async function connectRedis() {
     if (!exports.redisClient.isOpen) {
         try {
             await exports.redisClient.connect();
-            console.log("Successfully connected to Redis.");
+            console.info("Successfully connected to Redis.");
         }
         catch (err) {
             console.error("Could not connect to Redis:", err);
