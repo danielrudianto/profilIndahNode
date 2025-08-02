@@ -326,4 +326,18 @@ export class StockCardRepository {
       throw error;
     }
   }
+
+  async checkExistingByProductID(productID: number) {
+    try {
+      const stock = await this.prisma.stock_card.count({
+        where: {
+          product_id: productID,
+        },
+      });
+
+      return stock > 0;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

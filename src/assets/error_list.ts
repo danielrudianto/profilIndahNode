@@ -47,6 +47,7 @@ enum ErrorList {
   "Product ID is required" = "ID produk tidak boleh kosong.",
   "Product unit ID is required" = "ID satuan produk tidak boleh kosong.",
   "Product ID must be numeric" = "ID produk harus berupa angka.",
+  "Product cannot be deleted" = "Produk tidak dapat dihapus karena sudah digunakan dalam transaksi.",
   "Quantity required" = "Kuantitas tidak boleh kosong.",
   "Price is required" = "Harga tidak boleh kosong.",
   "Package name required" = "Nama paket tidak boleh kosong.",

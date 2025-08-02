@@ -11,17 +11,21 @@ import {
   translatePageSize,
 } from "../helper/escape.helper";
 import { queue } from "../helper/queue.helper";
+import { StockCardRepository } from "../repositories/stock-card.repository";
 
 class ProductController {
   private productRepository: ProductRepository;
   private productUnitRepository: ProductUnitRepository;
+  private stockCardRepository: StockCardRepository;
 
   constructor(
     productRepository: ProductRepository,
-    productUnitRepository: ProductUnitRepository
+    productUnitRepository: ProductUnitRepository,
+    stockCardRepository: StockCardRepository
   ) {
     this.productRepository = productRepository;
     this.productUnitRepository = productUnitRepository;
+    this.stockCardRepository = stockCardRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -251,6 +255,31 @@ class ProductController {
     }
   };
 
+  fetchSelector = async (req: Request, res: Response) => {
+    const page = translatePage(req.query.page);
+    const keyword = translateKeyword(req.query.keyword);
+    // const pageSize = Number(process.env.LIMIT!);
+    const pageSize = translatePageSize(req.query.pageSize);
+
+    try {
+      const result = await meili.index("product").search(keyword, {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        filter: ["is_active = true", "is_delete = false"],
+      });
+
+      return res.status(200).send({
+        data: result.hits.map((x: any) => {
+          return ProductModel.fromMeilisearch(x);
+        }),
+        count: result.estimatedTotalHits,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching items ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetchAutocomplete = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     try {
@@ -266,9 +295,54 @@ class ProductController {
     const id = Number(req.params.id);
     try {
       const result = await this.productRepository.fetchByID(id);
+      if (!result) {
+        return res.status(404).send(ErrorList["Product not found"]);
+      }
+
+      const exists = await this.stockCardRepository.checkExistingByProductID(
+        id
+      );
+      result.can_delete = !exists;
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching item by id ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const userID = req.body.userId;
+    try {
+      const product = await this.productRepository.fetchByID(Number(id));
+      if (!product) {
+        return res.status(404).send(ErrorList["Product not found"]);
+      }
+
+      if (product.is_delete) {
+        return res.status(400).send(ErrorList["Product not found"]);
+      }
+
+      const exists = await this.stockCardRepository.checkExistingByProductID(
+        Number(id)
+      );
+
+      if (exists) {
+        return res.status(400).send(ErrorList["Product cannot be deleted"]);
+      }
+
+      const result = await this.productRepository.delete(id, userID);
+      if (!result) {
+        return res.status(404).send(ErrorList["Product not found"]);
+      }
+
+      await queue.add("product-updated", {
+        id: id,
+      });
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting item by id ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };

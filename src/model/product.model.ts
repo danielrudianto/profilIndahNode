@@ -35,6 +35,7 @@ export interface IProduct {
   product_unit?: ProductUnitModel[];
 
   product_stock?: ProductStockModel;
+  can_delete?: boolean;
 }
 
 export class ProductModel {
@@ -63,6 +64,7 @@ export class ProductModel {
   product_unit?: ProductUnitModel[] = [];
 
   product_stock?: ProductStockModel;
+  can_delete?: boolean;
 
   constructor(data: IProduct) {
     this.id = data.id;
@@ -88,6 +90,7 @@ export class ProductModel {
     this.product_unit = data.product_unit;
 
     this.product_stock = data.product_stock;
+    this.can_delete = data.can_delete;
   }
 
   static fromMap(data: any) {

@@ -7,12 +7,14 @@ import ErrorHelper from "../../helper/error.helper";
 import { ProductRepository } from "../../repositories/product.repository";
 import { prisma } from "../../helper/database.helper";
 import { ProductUnitRepository } from "../../repositories/product-unit.repository";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
 
 const router = Router();
 
 const productController = new ProductController(
   new ProductRepository(prisma),
-  new ProductUnitRepository(prisma)
+  new ProductUnitRepository(prisma),
+  new StockCardRepository(prisma)
 );
 
 router.post(
@@ -44,6 +46,8 @@ router.post(
 );
 
 router.get("/autocomplete", productController.fetchAutocomplete);
+
+router.get("/selector", productController.fetchSelector);
 router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
@@ -147,8 +151,8 @@ router.put(
   administratorMiddleware,
   param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept
-  // productController.delete
+  ErrorHelper.intercept,
+  productController.delete
 );
 
 export default router;
