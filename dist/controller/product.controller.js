@@ -9,7 +9,7 @@ const meili_helper_1 = require("../helper/meili.helper");
 const escape_helper_1 = require("../helper/escape.helper");
 const queue_helper_1 = require("../helper/queue.helper");
 class ProductController {
-    constructor(productRepository, productUnitRepository) {
+    constructor(productRepository, productUnitRepository, stockCardRepository) {
         this.create = async (req, res) => {
             const reference = req.body.reference;
             const description = req.body.description;
@@ -199,6 +199,29 @@ class ProductController {
                 return res.status(500).send(error_list_1.default["Internal server error"]);
             }
         };
+        this.fetchSelector = async (req, res) => {
+            const page = (0, escape_helper_1.translatePage)(req.query.page);
+            const keyword = (0, escape_helper_1.translateKeyword)(req.query.keyword);
+            // const pageSize = Number(process.env.LIMIT!);
+            const pageSize = (0, escape_helper_1.translatePageSize)(req.query.pageSize);
+            try {
+                const result = await meili_helper_1.meili.index("product").search(keyword, {
+                    limit: pageSize,
+                    offset: (page - 1) * pageSize,
+                    filter: ["is_active = true", "is_delete = false"],
+                });
+                return res.status(200).send({
+                    data: result.hits.map((x) => {
+                        return product_model_1.ProductModel.fromMeilisearch(x);
+                    }),
+                    count: result.estimatedTotalHits,
+                });
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching items ${error}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            }
+        };
         this.fetchAutocomplete = async (req, res) => {
             const keyword = (0, escape_helper_1.translateKeyword)(req.query.keyword);
             try {
@@ -214,6 +237,11 @@ class ProductController {
             const id = Number(req.params.id);
             try {
                 const result = await this.productRepository.fetchByID(id);
+                if (!result) {
+                    return res.status(404).send(error_list_1.default["Product not found"]);
+                }
+                const exists = await this.stockCardRepository.checkExistingByProductID(id);
+                result.can_delete = !exists;
                 return res.status(200).send(result);
             }
             catch (error) {
@@ -221,8 +249,38 @@ class ProductController {
                 return res.status(500).send(error_list_1.default["Internal server error"]);
             }
         };
+        this.delete = async (req, res) => {
+            const id = Number(req.params.id);
+            const userID = req.body.userId;
+            try {
+                const product = await this.productRepository.fetchByID(Number(id));
+                if (!product) {
+                    return res.status(404).send(error_list_1.default["Product not found"]);
+                }
+                if (product.is_delete) {
+                    return res.status(400).send(error_list_1.default["Product not found"]);
+                }
+                const exists = await this.stockCardRepository.checkExistingByProductID(Number(id));
+                if (exists) {
+                    return res.status(400).send(error_list_1.default["Product cannot be deleted"]);
+                }
+                const result = await this.productRepository.delete(id, userID);
+                if (!result) {
+                    return res.status(404).send(error_list_1.default["Product not found"]);
+                }
+                await queue_helper_1.queue.add("product-updated", {
+                    id: id,
+                });
+                return res.status(201).send(result);
+            }
+            catch (error) {
+                console.error(`[error]: Error on deleting item by id ${error}`);
+                return res.status(500).send(error_list_1.default["Internal server error"]);
+            }
+        };
         this.productRepository = productRepository;
         this.productUnitRepository = productUnitRepository;
+        this.stockCardRepository = stockCardRepository;
     }
 }
 exports.default = ProductController;

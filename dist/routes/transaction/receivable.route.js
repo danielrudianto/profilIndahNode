@@ -15,8 +15,9 @@ const router = (0, express_1.Router)();
 const receivableController = new receivable_controller_1.default(new receivable_repository_1.ReceivableRepository(redis_helper_1.redisClient, database_helper_1.prisma));
 router.get("/", receivableController.fetch);
 router.get("/history/:id", receivable_controller_1.default.fetchPaymentsHistory);
-router.get("/customer/v2/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, receivable_controller_1.default.fetchByCustomerIDV2);
-router.get("/customer/:id", (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, receivable_controller_1.default.fetchByCustomerID);
+router.get("/customer/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Customer ID is required"]), (0, express_validator_1.param)("id")
+    .isInt({ min: 0 })
+    .withMessage(error_list_1.default["CUstomer ID must be integer"]), error_helper_1.default.intercept, receivableController.fetchByCustomerID);
 router.get("/", receivable_controller_1.default.fetch);
 router.post("/payment", receivable_controller_1.default.createPayment);
 router.delete("/:id", receivable_controller_1.default.deletePayment);

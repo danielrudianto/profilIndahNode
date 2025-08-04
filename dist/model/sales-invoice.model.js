@@ -121,22 +121,24 @@ class SalesInvoiceItemModel {
         this.product_unit = data.product_unit;
     }
     static fromMap(data) {
-        return new SalesInvoiceItemModel({
+        const result = new SalesInvoiceItemModel({
             id: data.id,
             product_id: data.product_id,
             product_unit_id: data.product_unit_id,
-            quantity: data.quantity,
-            price: data.price,
-            discount: data.discount,
+            quantity: Number(data.quantity),
+            price: Number(data.price),
+            discount: Number(data.discount),
             product: data.product == undefined
                 ? undefined
                 : product_model_1.ProductModel.fromMap(data.product),
-            product_unit: data.product_unit == undefined
-                ? undefined
-                : data.product_unit == null
-                    ? null
+            product_unit: data.product_unit == null
+                ? null
+                : data.product_unit == undefined
+                    ? undefined
                     : product_unit_model_1.ProductUnitModel.fromMap(data.product_unit),
         });
+        console.log(result.product_unit);
+        return result;
     }
 }
 exports.SalesInvoiceItemModel = SalesInvoiceItemModel;

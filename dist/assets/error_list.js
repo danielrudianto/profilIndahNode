@@ -47,6 +47,7 @@ var ErrorList;
     ErrorList["Product ID is required"] = "ID produk tidak boleh kosong.";
     ErrorList["Product unit ID is required"] = "ID satuan produk tidak boleh kosong.";
     ErrorList["Product ID must be numeric"] = "ID produk harus berupa angka.";
+    ErrorList["Product cannot be deleted"] = "Produk tidak dapat dihapus karena sudah digunakan dalam transaksi.";
     ErrorList["Quantity required"] = "Kuantitas tidak boleh kosong.";
     ErrorList["Price is required"] = "Harga tidak boleh kosong.";
     ErrorList["Package name required"] = "Nama paket tidak boleh kosong.";

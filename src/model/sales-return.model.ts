@@ -3,6 +3,7 @@ import {
   SalesInvoiceItemModel,
   SalesInvoiceModel,
 } from "./sales-invoice.model";
+import { UserViewModel } from "./user.model";
 
 export interface ISalesReturnCode {
   id?: number;
@@ -19,6 +20,9 @@ export interface ISalesReturnCode {
 
   sales_return?: SalesReturnModel[];
   sales_invoice_code?: SalesInvoiceModel;
+
+  user_sales_return_code_created_byTouser?: UserViewModel;
+  payment_method?: PaymentMethodModel | null;
 }
 
 export interface ISalesReturn {
@@ -45,8 +49,10 @@ export class SalesReturnCodeModel {
   sales_invoice_code_id: number;
   sales_invoice_code?: SalesInvoiceModel;
 
-  payment_method?: PaymentMethodModel;
+  payment_method?: PaymentMethodModel | null;
   sales_return?: SalesReturnModel[];
+
+  user_sales_return_code_created_byTouser?: UserViewModel;
 
   constructor(data: ISalesReturnCode) {
     this.id = data.id;
@@ -63,9 +69,14 @@ export class SalesReturnCodeModel {
 
     this.sales_invoice_code = data.sales_invoice_code;
     this.sales_return = data.sales_return;
+
+    this.user_sales_return_code_created_byTouser =
+      data.user_sales_return_code_created_byTouser;
+    this.payment_method = data.payment_method;
   }
 
   static fromMap(data: any) {
+    console.log(JSON.stringify(data));
     return new SalesReturnCodeModel({
       id: data.id,
       name: data.name,
@@ -96,6 +107,16 @@ export class SalesReturnCodeModel {
                     : SalesInvoiceItemModel.fromMap(x.sales_invoice),
               };
             }),
+      user_sales_return_code_created_byTouser:
+        data.user_sales_return_code_created_byTouser == undefined
+          ? undefined
+          : UserViewModel.fromMap(data.user_sales_return_code_created_byTouser),
+      payment_method:
+        data.payment_method == null
+          ? null
+          : data.payment_method == undefined
+          ? undefined
+          : PaymentMethodModel.fromMap(data.payment_method),
     });
   }
   /**

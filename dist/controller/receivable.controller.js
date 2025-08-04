@@ -1,6 +1,7 @@
 "use strict";
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
+const escape_helper_1 = require("../helper/escape.helper");
 class ReceivableController {
     constructor(receivableRepository) {
         this.fetch = async (req, res) => {
@@ -10,6 +11,23 @@ class ReceivableController {
             }
             catch (error) {
                 console.error(`[error]: Error on fetching receivable ${error}`);
+                return res.status(500).send(error);
+            }
+        };
+        this.fetchByCustomerID = async (req, res) => {
+            const customerID = Number(req.params.id);
+            const page = (0, escape_helper_1.translatePage)(req.query.page);
+            const pageSize = (0, escape_helper_1.translatePageSize)(req.query.pageSize);
+            try {
+                const result = await this.receivableRepository.fetchByCustomerID({
+                    customerID: customerID == 0 ? null : customerID,
+                    page: page,
+                    pageSize: pageSize,
+                });
+                return res.status(200).send(result);
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching receivable by customerID ${error}`);
                 return res.status(500).send(error);
             }
         };

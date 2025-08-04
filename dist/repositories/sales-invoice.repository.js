@@ -48,6 +48,11 @@ class SalesInvoiceRepository {
                             product_unit: true,
                         },
                     },
+                    sales_invoice_payment: {
+                        include: {
+                            payment_method: true,
+                        },
+                    },
                 },
             });
             return sales_invoice_model_1.SalesInvoiceModel.fromMap(result);

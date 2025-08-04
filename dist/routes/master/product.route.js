@@ -12,8 +12,9 @@ const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const product_repository_1 = require("../../repositories/product.repository");
 const database_helper_1 = require("../../helper/database.helper");
 const product_unit_repository_1 = require("../../repositories/product-unit.repository");
+const stock_card_repository_1 = require("../../repositories/stock-card.repository");
 const router = (0, express_1.Router)();
-const productController = new product_controller_1.default(new product_repository_1.ProductRepository(database_helper_1.prisma), new product_unit_repository_1.ProductUnitRepository(database_helper_1.prisma));
+const productController = new product_controller_1.default(new product_repository_1.ProductRepository(database_helper_1.prisma), new product_unit_repository_1.ProductUnitRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
 router.post("/", (0, express_validator_1.body)("reference").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("reference").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("description").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("description").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("product_type_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("product_brand_id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("minimum_stock")
     .isFloat({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("unit").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("sales_price")
@@ -26,6 +27,7 @@ router.post("/", (0, express_validator_1.body)("reference").exists().withMessage
     .isFloat({ min: 0 })
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, productController.create);
 router.get("/autocomplete", productController.fetchAutocomplete);
+router.get("/selector", productController.fetchSelector);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, productController.fetchByID);
 router.get("/", productController.fetch);
 router.put("/active", (0, express_validator_1.body)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, productController.toggleActive);
@@ -71,8 +73,6 @@ router.put("/price-sales", (0, express_validator_1.body)("items").isArray().with
 //   body("item_id").notEmpty().withMessage(ErrorList["Parameter error"]),
 //   ItemPurchasePriceController.fetchByID
 // );
--router.delete("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept
-// productController.delete
-);
+-router.delete("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, productController.delete);
 exports.default = router;
 //# sourceMappingURL=product.route.js.map

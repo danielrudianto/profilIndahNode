@@ -31,6 +31,7 @@ class ProductModel {
         this.purchase_discount = data.purchase_discount;
         this.product_unit = data.product_unit;
         this.product_stock = data.product_stock;
+        this.can_delete = data.can_delete;
     }
     static fromMap(data) {
         return new ProductModel({

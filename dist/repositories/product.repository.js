@@ -527,6 +527,25 @@ class ProductRepository {
             throw error;
         }
     }
+    async delete(productID, userID) {
+        try {
+            const result = await this.prisma.product.update({
+                where: { id: productID },
+                data: { is_delete: true, deleted_at: new Date(), deleted_by: userID },
+                include: {
+                    product_brand: true,
+                    product_type: true,
+                },
+            });
+            if (!result) {
+                return null;
+            }
+            return product_model_1.ProductModel.fromMap(result);
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchAll() {
         try {
             const results = await this.prisma.product.findMany({

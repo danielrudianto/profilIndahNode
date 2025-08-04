@@ -151,7 +151,8 @@ class SalesReturnController {
   fetchByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     try {
-      const salesReturn = this.salesReturnRepository.fetchByID(id);
+      const result = await this.salesReturnRepository.fetchByID(id);
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error during fetching sales invoice ${error}`);
       return res.status(500).send(error);

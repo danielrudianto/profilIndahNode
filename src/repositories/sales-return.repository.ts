@@ -26,6 +26,7 @@ export class SalesReturnRepository {
           confirmed_at: new Date(),
           confirmed_by: data.confirmed_by,
           payment_method_id: data.payment_method_id,
+          sales_invoice_code_id: data.sales_invoice_code_id,
           sales_return: {
             createMany: {
               data: data.sales_return!.map((x) => {
@@ -36,7 +37,6 @@ export class SalesReturnRepository {
               }),
             },
           },
-          sales_invoice_code_id: data.sales_invoice_code_id,
         },
         include: {
           sales_return: {
@@ -80,8 +80,25 @@ export class SalesReturnRepository {
               },
             },
           },
+          payment_method: true,
+          user_sales_return_code_created_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
+          sales_invoice_code: {
+            include: {
+              customer: true,
+            },
+          },
         },
       });
+
+      if (!result) {
+        return null;
+      }
+
+      return SalesReturnCodeModel.fromMap(result);
     } catch (error) {
       throw error;
     }

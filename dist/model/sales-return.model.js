@@ -1,7 +1,9 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesReturnModel = exports.SalesReturnCodeModel = void 0;
+const payment_method_model_1 = require("./payment-method.model");
 const sales_invoice_model_1 = require("./sales-invoice.model");
+const user_model_1 = require("./user.model");
 class SalesReturnCodeModel {
     constructor(data) {
         this.id = data.id;
@@ -17,8 +19,12 @@ class SalesReturnCodeModel {
         this.sales_invoice_code_id = data.sales_invoice_code_id;
         this.sales_invoice_code = data.sales_invoice_code;
         this.sales_return = data.sales_return;
+        this.user_sales_return_code_created_byTouser =
+            data.user_sales_return_code_created_byTouser;
+        this.payment_method = data.payment_method;
     }
     static fromMap(data) {
+        console.log(JSON.stringify(data));
         return new SalesReturnCodeModel({
             id: data.id,
             name: data.name,
@@ -46,6 +52,14 @@ class SalesReturnCodeModel {
                             : sales_invoice_model_1.SalesInvoiceItemModel.fromMap(x.sales_invoice),
                     };
                 }),
+            user_sales_return_code_created_byTouser: data.user_sales_return_code_created_byTouser == undefined
+                ? undefined
+                : user_model_1.UserViewModel.fromMap(data.user_sales_return_code_created_byTouser),
+            payment_method: data.payment_method == null
+                ? null
+                : data.payment_method == undefined
+                    ? undefined
+                    : payment_method_model_1.PaymentMethodModel.fromMap(data.payment_method),
         });
     }
 }
