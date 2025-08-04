@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
 import ErrorList from "../assets/error_list";
 import { ReceivableRepository } from "../repositories/receivable.repository";
+import { translatePage, translatePageSize } from "../helper/escape.helper";
 
 class ReceivableController {
   private receivableRepository: ReceivableRepository;
@@ -16,6 +17,27 @@ class ReceivableController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching receivable ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchByCustomerID = async (req: Request, res: Response) => {
+    const customerID = Number(req.params.id);
+    const page = translatePage(req.query.page);
+    const pageSize = translatePageSize(req.query.pageSize);
+
+    try {
+      const result = await this.receivableRepository.fetchByCustomerID({
+        customerID: customerID == 0 ? null : customerID,
+        page: page,
+        pageSize: pageSize,
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching receivable by customerID ${error}`
+      );
       return res.status(500).send(error);
     }
   };

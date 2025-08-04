@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { SalesInvoiceModel } from "../model/sales-invoice.model";
 
 export class ReceivableRepository {
   redisClient: any;
@@ -88,5 +89,51 @@ export class ReceivableRepository {
     } catch (error) {
       throw error;
     }
+  }
+
+  async fetchByCustomerID(data: {
+    customerID: number | null;
+    page: number;
+    pageSize: number;
+  }) {
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.sales_invoice_code.findMany({
+        where: {
+          is_paid: false,
+          customer_id: data.customerID,
+        },
+        include: {
+          sales_invoice: {
+            include: {
+              product: true,
+              product_unit: true,
+            },
+          },
+          sales_invoice_payment: {
+            include: {
+              payment_method: true,
+            },
+          },
+        },
+        orderBy: {
+          date: "asc",
+        },
+        skip: (data.page - 1) * data.pageSize,
+        take: data.pageSize,
+      }),
+      this.prisma.sales_invoice_code.count({
+        where: {
+          is_paid: false,
+          customer_id: data.customerID,
+        },
+      }),
+    ]);
+
+    return {
+      data: result.map((x) => {
+        return SalesInvoiceModel.fromMap(x);
+      }),
+      count: count,
+    };
   }
 }

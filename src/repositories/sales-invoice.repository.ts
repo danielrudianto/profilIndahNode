@@ -61,6 +61,11 @@ export class SalesInvoiceRepository {
               product_unit: true,
             },
           },
+          sales_invoice_payment: {
+            include: {
+              payment_method: true,
+            },
+          },
         },
       });
 

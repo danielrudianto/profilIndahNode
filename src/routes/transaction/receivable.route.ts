@@ -16,17 +16,15 @@ const receivableController = new ReceivableController(
 router.get("/", receivableController.fetch);
 
 router.get("/history/:id", ReceivableController.fetchPaymentsHistory);
-router.get(
-  "/customer/v2/:id",
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  ReceivableController.fetchByCustomerIDV2
-);
+
 router.get(
   "/customer/:id",
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
+  param("id").notEmpty().withMessage(ErrorList["Customer ID is required"]),
+  param("id")
+    .isInt({ min: 0 })
+    .withMessage(ErrorList["CUstomer ID must be integer"]),
   ErrorHelper.intercept,
-  ReceivableController.fetchByCustomerID
+  receivableController.fetchByCustomerID
 );
 router.get("/", ReceivableController.fetch);
 

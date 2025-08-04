@@ -209,12 +209,13 @@ export class StockCardRepository {
 
   async startup() {
     const result = await this.prisma.$queryRaw`
-      INSERT INTO stock_card (product_id, product_unit_id, quantity, display_quantity, date, customer_id, supplier_id, document_name, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, sales_return_id, sales_return_code_id, stock)
+      INSERT INTO stock_card (product_id, product_unit_id, quantity, display_quantity, date, customer_id, supplier_id, document_name, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, sales_return_id, sales_return_code_id, stock, created_at)
       (
         SELECT * FROM (
         SELECT good_receipt.product_id, good_receipt.product_unit_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, good_receipt.quantity AS display_quantity,
         good_receipt_code.date, NULL as customer_id, good_receipt_code.supplier_id, good_receipt_code.name AS document_name, NULL AS sales_invoice_id, NULL AS sales_invoice_code_id,
-        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, good_receipt.id AS good_receipt_id, good_receipt_code.id AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock
+        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, good_receipt.id AS good_receipt_id, good_receipt_code.id AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock,
+        good_receipt_code.created_at
         FROM good_receipt
         JOIN product ON good_receipt.product_id = product.id
         LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
@@ -224,7 +225,8 @@ export class StockCardRepository {
         UNION ALL
         SELECT adjustment_case.product_id, adjustment_case.product_unit_id, adjustment_case.quantity * IF(adjustment_case.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, adjustment_case.quantity AS display_quantity,
         adjustment_case_code.date, NULL as customer_id, NULL AS supplier_id, adjustment_case_code.name AS document_name, NULL AS sales_invoice_id, NULL AS sales_invoice_code_id,
-        adjustment_case.id as adjustment_case_id, adjustment_case_code.id AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock
+        adjustment_case.id as adjustment_case_id, adjustment_case_code.id AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock,
+        adjustment_case_code.created_at
         FROM adjustment_case
         JOIN product ON adjustment_case.product_id = product.id
         LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
@@ -234,17 +236,18 @@ export class StockCardRepository {
         UNION ALL
         SELECT sales_invoice.product_id, sales_invoice.product_unit_id, -1 * sales_invoice.quantity * IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, sales_invoice.quantity * -1 AS display_quantity,
         sales_invoice_code.date, sales_invoice_code.customer_id as customer_id, NULL AS supplier_id, sales_invoice_code.name AS document_name, sales_invoice.id AS sales_invoice_id, sales_invoice.sales_invoice_code_id AS sales_invoice_code_id,
-        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock
+        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, NULL AS sales_return_id, NULL AS sales_return_code_id, NULL AS stock,
+        sales_invoice_code.created_at
         FROM sales_invoice
         JOIN product ON sales_invoice.product_id = product.id
         LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
         JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
-          WHERE sales_invoice_code.is_delete = 0
-          
+        WHERE sales_invoice_code.is_delete = 0
         UNION ALL
         SELECT sales_invoice.product_id, sales_invoice.product_unit_id, sales_return.quantity * IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion) AS quantity, sales_return.quantity AS display_quantity,
         sales_return_code.date, sales_invoice_code.customer_id as customer_id, NULL AS supplier_id, sales_return_code.name AS document_name, sales_invoice.id AS sales_invoice_id, sales_invoice_code.id AS sales_invoice_code_id,
-        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, sales_return.id AS sales_return_id, sales_return_code.id AS sales_return_code_id, NULL AS stock
+        NULL as adjustment_case_id, NULL AS adjustment_case_code_id, NULL AS good_receipt_id, NULL AS good_receipt_code_id, sales_return.id AS sales_return_id, sales_return_code.id AS sales_return_code_id, NULL AS stock,
+        sales_return_code.created_at
         FROM sales_return
         JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
         JOIN sales_invoice ON sales_return.sales_invoice_id = sales_invoice.id
