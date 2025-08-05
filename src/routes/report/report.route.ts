@@ -239,7 +239,42 @@ router.get(
   ReportController.fetchPLStats
 );
 
-router.post("/sales", ReportController.fetchSalesReport);
+router.post(
+  "/sales",
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("month")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  reportController.fetchSalesReport
+);
+router.post(
+  "/sales/download",
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("month")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  reportController.downloadSalesReport
+);
 
 router.post(
   "/product-stock-problem",

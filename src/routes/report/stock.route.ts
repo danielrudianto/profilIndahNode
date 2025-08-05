@@ -15,24 +15,39 @@ const productStockController = new ProductStockController(
 );
 
 router.get(
-  "/meta/:id",
-  param("id").exists().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  productStockController.fetchProductMetaDataByID
-);
-
-router.get(
   "/:id",
   param("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
   param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  query("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  query("page")
+    .isInt({
+      min: 1,
+    })
+    .withMessage(ErrorList["Page must be numeric"]),
+  query("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
+  query("pageSize")
+    .isInt({
+      min: 10,
+    })
+    .withMessage(ErrorList["Page size must be numeric"]),
   ErrorHelper.intercept,
   productStockController.fetchByID
 );
 
 router.get(
   "/",
-  query("mode").notEmpty().withMessage(ErrorList["Parameter error"]),
+  query("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  query("page")
+    .isInt({
+      min: 1,
+    })
+    .withMessage(ErrorList["Page must be numeric"]),
+  query("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
+  query("pageSize")
+    .isInt({
+      min: 10,
+    })
+    .withMessage(ErrorList["Page size must be numeric"]),
   ErrorHelper.intercept,
   productStockController.fetch
 );

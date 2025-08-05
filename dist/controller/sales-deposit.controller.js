@@ -254,7 +254,7 @@ class SalesDepositController {
                 console.error(`[error]: Error on confirming sales deposit ${error}`);
             }
         };
-        this.delete = async (req, res) => {
+        this.reject = async (req, res) => {
             const id = Number(req.body.id);
             const userID = req.body.userId;
             const date = new Date(req.body.date);

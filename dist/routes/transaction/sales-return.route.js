@@ -8,6 +8,7 @@ const express_validator_1 = require("express-validator");
 const database_helper_1 = require("../../helper/database.helper");
 const error_list_1 = __importDefault(require("../../assets/error_list"));
 const sales_return_controller_1 = __importDefault(require("../../controller/sales-return.controller"));
+const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const sales_invoice_repository_1 = require("../../repositories/sales-invoice.repository");
 const sales_return_repository_1 = require("../../repositories/sales-return.repository");
@@ -53,13 +54,6 @@ router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(e
 //   ErrorHelper.intercept,
 //   SalesReturnController.fetchCodeByID
 // );
-// router.delete(
-//   "/:id",
-//   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-//   param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-//   ErrorHelper.intercept,
-//   administratorMiddleware,
-//   SalesReturnController.deleteByID
-// );
+router.delete("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, auth_helper_1.administratorMiddleware, salesReturnController.deleteByID);
 exports.default = router;
 //# sourceMappingURL=sales-return.route.js.map

@@ -281,6 +281,19 @@ class SalesReturnRepository {
             throw new Error("Internal server error");
         }
     }
+    async delete(id, userID) {
+        this.prisma.sales_return_code.update({
+            where: {
+                id: id,
+            },
+            data: {
+                is_delete: true,
+                is_confirm: false,
+                confirmed_at: new Date(),
+                confirmed_by: userID,
+            },
+        });
+    }
 }
 exports.SalesReturnRepository = SalesReturnRepository;
 //# sourceMappingURL=sales-return.repository.js.map

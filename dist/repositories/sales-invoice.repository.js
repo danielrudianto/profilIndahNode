@@ -254,6 +254,7 @@ class SalesInvoiceRepository {
         const data = result[0];
         return data.sales;
     }
+    async fetchDownload(month, year) { }
     async searchByReturns(date, sales_invoice) {
         const where = [];
         for (let item of sales_invoice) {

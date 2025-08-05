@@ -20,9 +20,17 @@ class AuthController {
         return res.status(400).send(ErrorList["Auth error"]);
       }
 
+      console.info(`[info]: User found for username ${username}`);
+
       if (!user.is_active) {
         return res.status(400).send(ErrorList["User not active"]);
       }
+
+      console.info(`[info]: User ${username} is active`);
+
+      hash(password, 12).then((hashed) => {
+        console.log(hashed);
+      });
 
       const isPasswordValid = await compare(password, user.password!);
       if (!isPasswordValid) {

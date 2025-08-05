@@ -66,6 +66,7 @@ const database_helper_1 = require("./helper/database.helper");
 const allowedOrigins = [
     "http://localhost:2100",
     "https://stock.profilindah.id",
+    "https://v16.profilindah.id",
     "https://v19.profilindah.id",
 ];
 const options = {

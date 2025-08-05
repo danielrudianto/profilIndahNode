@@ -111,6 +111,7 @@ var ErrorList;
     ErrorList["Customer ID is required"] = "ID pelanggan tidak boleh kosong.";
     ErrorList["CUstomer ID must be integer"] = "Kesalahan pada ID pelanggan.";
     ErrorList["Sales return exists"] = "Retur penjualan sudah ada sebelumnya.";
+    ErrorList["Sales return already deleted"] = "Data retur penjualan sudah dihapus.";
     ErrorList["ID must be integer"] = "Kesalahan pada ID yang diberikan.";
     ErrorList["Expense type name is required"] = "Nama jenis pengeluaran tidak boleh kosong.";
     ErrorList["Expense type description is required"] = "Deskripsi jenis pengeluaran tidak boleh kosong.";

@@ -135,6 +135,14 @@ class ReportController {
                 type: type,
             });
         };
+        this.downloadSalesReport = async (req, res) => {
+            const month = Number(req.body.month);
+            const year = Number(req.body.year);
+            try {
+                const result = await this.salesInvoiceRepository.fetchDownload(month, year);
+            }
+            catch (error) { }
+        };
         this.fetchPurchaseReport = async (req, res) => {
             const month = Number(req.body.month);
             const year = Number(req.body.year);

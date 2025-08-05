@@ -38,7 +38,11 @@ router.post("/confirm", (0, express_validator_1.body)("id").notEmpty().withMessa
     .withMessage(error_list_1.default["Amount must be numeric"]), (0, express_validator_1.body)("sales_invoice_payment.*.date")
     .notEmpty()
     .withMessage(error_list_1.default["Payment date is required"]), error_helper_1.default.intercept, salesDepositController.confirm);
-router.post("/delete");
+router.post("/reject", (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id").isInt({ min: 0 }).withMessage(error_list_1.default["ID must be numeric"]), (0, express_validator_1.body)("payment_method")
+    .notEmpty()
+    .withMessage(error_list_1.default["Payment method required"]), (0, express_validator_1.body)("payment_method")
+    .isIn(["create", "delete"])
+    .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, salesDepositController.reject);
 router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("customer_id")
     .exists()
     .withMessage(error_list_1.default["Customer ID is required"]), (0, express_validator_1.body)("discount").notEmpty().withMessage(error_list_1.default["Discount required"]), (0, express_validator_1.body)("discount")
@@ -60,12 +64,5 @@ router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(er
     .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, salesDepositController.create);
 router.get("/:id", (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, salesDepositController.fetchByID);
 router.get("/", salesDepositController.fetch);
-// router.get("/v2", DepositController.fetchV2);
-// router.get("/:id", depositController.fetchByID);
-// router.get("/", depositController.fetch);
-// router.post("/", depositController.create);
-// // router.post("/confirm", DepositController.confirmByID);
-// router.post("/archives", DepositController.fetchArchive);
-// router.delete("/:id", DepositController.deleteByID);
 exports.default = router;
 //# sourceMappingURL=sales-deposit.route.js.map

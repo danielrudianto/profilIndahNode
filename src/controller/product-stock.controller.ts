@@ -72,48 +72,43 @@ class ProductStockController {
   };
 
   fetch = async (req: Request, res: Response) => {
-    const page = translatePage(req.query.page);
+    const page = Number(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
-    const mode = req.query.mode;
-    const limit = Number(process.env.LIMIT!);
+    const pageSize = Number(req.query.pageSize);
 
-    switch (mode) {
-      case "default":
-        try {
-          const result = await meili.index("product").search(keyword, {
-            limit: limit,
-            offset: (page - 1) * limit,
-            // filter: "is_active = true",
+    try {
+      const result = await meili.index("product").search(keyword, {
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+        // filter: "is_active = true",
+      });
+
+      const productStock = await this.productStockRepository.fetchStock(
+        result.hits.map((x) => {
+          return x.id;
+        })
+      );
+
+      return res.status(200).send({
+        data: result.hits.map((x) => {
+          const index = productStock.findIndex((y) => {
+            return y.id == x.id;
           });
 
-          const productStock = await this.productStockRepository.fetchStock(
-            result.hits.map((x) => {
-              return x.id;
-            })
-          );
-
-          return res.status(200).send({
-            data: result.hits.map((x) => {
-              const index = productStock.findIndex((y) => {
-                return y.id == x.id;
-              });
-
-              return {
-                ...x,
-                product_stock: {
-                  stock: index == -1 ? 0 : productStock[index].stock,
-                },
-              };
-            }),
-            count: result.estimatedTotalHits,
-          });
-        } catch (error) {
-          console.error(
-            `[error]: Error on fetching default product stock ${error}`
-          );
-          return res.status(500).send(error);
-        }
-        break;
+          return {
+            ...x,
+            product_stock: {
+              stock: index == -1 ? 0 : productStock[index].stock,
+            },
+          };
+        }),
+        count: result.estimatedTotalHits,
+      });
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching default product stock ${error}`
+      );
+      return res.status(500).send(error);
     }
     // switch (mode) {
     //   case "sales-alert":
@@ -561,7 +556,7 @@ class ProductStockController {
   fetchByID = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     const page = translatePage(req.query.page);
-    const pageSize = Number(process.env.LIMIT!);
+    const pageSize = Number(req.query.pageSize);
 
     try {
       const result = await this.productStockRepository.fetchByProductID({

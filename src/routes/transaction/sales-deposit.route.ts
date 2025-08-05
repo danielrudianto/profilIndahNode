@@ -57,7 +57,19 @@ router.post(
   ErrorHelper.intercept,
   salesDepositController.confirm
 );
-router.post("/delete");
+router.post(
+  "/reject",
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
+  body("payment_method")
+    .notEmpty()
+    .withMessage(ErrorList["Payment method required"]),
+  body("payment_method")
+    .isIn(["create", "delete"])
+    .withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  salesDepositController.reject
+);
 
 router.post(
   "/",
@@ -102,13 +114,5 @@ router.get(
 );
 
 router.get("/", salesDepositController.fetch);
-
-// router.get("/v2", DepositController.fetchV2);
-// router.get("/:id", depositController.fetchByID);
-// router.get("/", depositController.fetch);
-// router.post("/", depositController.create);
-// // router.post("/confirm", DepositController.confirmByID);
-// router.post("/archives", DepositController.fetchArchive);
-// router.delete("/:id", DepositController.deleteByID);
 
 export default router;

@@ -13,9 +13,24 @@ const product_stock_repository_1 = require("../../repositories/product-stock.rep
 const product_repository_1 = require("../../repositories/product.repository");
 const router = (0, express_1.Router)();
 const productStockController = new product_stock_controller_1.default(new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma));
-router.get("/meta/:id", (0, express_validator_1.param)("id").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, productStockController.fetchProductMetaDataByID);
-router.get("/:id", (0, express_validator_1.param)("id").exists().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, productStockController.fetchByID);
-router.get("/", (0, express_validator_1.query)("mode").notEmpty().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, productStockController.fetch);
+router.get("/:id", (0, express_validator_1.param)("id").exists().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.query)("page").notEmpty().withMessage(error_list_1.default["Page is required"]), (0, express_validator_1.query)("page")
+    .isInt({
+    min: 1,
+})
+    .withMessage(error_list_1.default["Page must be numeric"]), (0, express_validator_1.query)("pageSize").notEmpty().withMessage(error_list_1.default["Page size is required"]), (0, express_validator_1.query)("pageSize")
+    .isInt({
+    min: 10,
+})
+    .withMessage(error_list_1.default["Page size must be numeric"]), error_helper_1.default.intercept, productStockController.fetchByID);
+router.get("/", (0, express_validator_1.query)("page").notEmpty().withMessage(error_list_1.default["Page is required"]), (0, express_validator_1.query)("page")
+    .isInt({
+    min: 1,
+})
+    .withMessage(error_list_1.default["Page must be numeric"]), (0, express_validator_1.query)("pageSize").notEmpty().withMessage(error_list_1.default["Page size is required"]), (0, express_validator_1.query)("pageSize")
+    .isInt({
+    min: 10,
+})
+    .withMessage(error_list_1.default["Page size must be numeric"]), error_helper_1.default.intercept, productStockController.fetch);
 router.post("/problematic", (0, express_validator_1.body)("brands").exists().withMessage(error_list_1.default["Brand is required"]), (0, express_validator_1.body)("brands").isArray().withMessage(error_list_1.default["Brand must be an array"]), (0, express_validator_1.body)("brands").custom((value) => {
     if (!value.every((item) => Number.isInteger(item))) {
         throw new Error(error_list_1.default["Brand must be an integer"]);

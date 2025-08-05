@@ -309,6 +309,8 @@ export class SalesInvoiceRepository {
     return data.sales;
   }
 
+  async fetchDownload(month: number, year: number): Promise<any> {}
+
   async searchByReturns(
     date: Date,
     sales_invoice: {

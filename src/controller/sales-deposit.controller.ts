@@ -318,7 +318,7 @@ export class SalesDepositController {
     }
   };
 
-  delete = async (req: Request, res: Response) => {
+  reject = async (req: Request, res: Response) => {
     const id = Number(req.body.id);
     const userID = req.body.userId;
     const date = new Date(req.body.date);
