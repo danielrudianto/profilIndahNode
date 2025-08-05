@@ -96,13 +96,13 @@ router.get(
 //   SalesReturnController.fetchCodeByID
 // );
 
-// router.delete(
-//   "/:id",
-//   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-//   param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-//   ErrorHelper.intercept,
-//   administratorMiddleware,
-//   SalesReturnController.deleteByID
-// );
+router.delete(
+  "/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  administratorMiddleware,
+  salesReturnController.deleteByID
+);
 
 export default router;

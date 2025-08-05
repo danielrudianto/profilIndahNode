@@ -121,6 +121,7 @@ enum ErrorList {
   "CUstomer ID must be integer" = "Kesalahan pada ID pelanggan.",
 
   "Sales return exists" = "Retur penjualan sudah ada sebelumnya.",
+  "Sales return already deleted" = "Data retur penjualan sudah dihapus.",
   "ID must be integer" = "Kesalahan pada ID yang diberikan.",
   "Expense type name is required" = "Nama jenis pengeluaran tidak boleh kosong.",
   "Expense type description is required" = "Deskripsi jenis pengeluaran tidak boleh kosong.",
