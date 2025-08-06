@@ -167,6 +167,8 @@ export class PromotionRepository {
 
       if (!result) return null;
 
+      console.log(result);
+
       return PromotionModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error while fetching promotion by ID: ${error}`);

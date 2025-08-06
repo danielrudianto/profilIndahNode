@@ -74,7 +74,7 @@ router.post(
 
 router.post(
   "/money-receipt",
-  body("date").exists().withMessage(ErrorList["Parameter error"]),
+  body("date").exists().withMessage(ErrorList["Date required"]),
   ErrorHelper.intercept,
   reportController.fetchMoneyReceipt
 );

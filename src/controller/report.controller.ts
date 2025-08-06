@@ -315,10 +315,19 @@ class ReportController {
       const date = new Date(req.body.date);
 
       const paymentMethods = await this.paymentMethodRepository.fetchAll();
+
       const salesInvoicePayments =
         await this.salesInvoicePaymentRepository.fetchPaymentsByDate(date);
+
+      const salesInvoiceDORPayments =
+        await this.salesInvoicePaymentRepository.fetchDORPaymentsByDate(date);
+
       const salesDepositPayments =
         await this.salesDepositPaymentRepository.fetchPaymentsByDate(date);
+
+      const salesDepositDORPayments =
+        await this.salesDepositPaymentRepository.fetchDORPaymentsByDate(date);
+
       const salesReturnPayments =
         await this.salesReturnRepository.fetchPaymentsByDate(date);
 
@@ -377,6 +386,15 @@ class ReportController {
                 : salesReturnPayments[salesReturnIndex].value,
           };
         }),
+        {
+          id: 0,
+          name: "DOR",
+          salesInvoice: salesInvoiceDORPayments,
+          salesDeposit:
+            salesDepositPaymentIndex == -1
+              ? 0
+              : salesDepositPayments[salesDepositPaymentIndex].value,
+        },
       ]);
     } catch (error) {
       console.error(`[error]: Error on fetching money receipt ${error}`);
