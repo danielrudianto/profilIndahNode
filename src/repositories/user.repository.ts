@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { IUser, UserModel } from "../model/user.model";
 import { UserRoleModel } from "../model/user_role.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+import { ProductTypeViewModel } from "../model/product-type.model";
 
 export class UserRepository {
   private prisma: PrismaClient;
@@ -258,7 +259,7 @@ export class UserRepository {
         nik: true,
         role: true,
         user_sales: {
-          select: {
+          include: {
             product_type: true,
           },
         },
@@ -278,10 +279,10 @@ export class UserRepository {
       nik: result.nik,
       role: result.role,
       roleText: UserRoleModel.fromRoleID(result.role)!,
-      // user_sales: result.user_sales.map((x) => ({
-      //   item_type_id: x.item_type.id,
-      //   item_type_name: x.item_type.name,
-      // })),
+      user_sales: result.user_sales.map((x) => ({
+        product_type_id: x.product_type_id,
+        product_type: ProductTypeViewModel.fromMap(x.product_type),
+      })),
       is_active: result.is_active,
       created_at: result.created_at,
       created_by: result.created_by,

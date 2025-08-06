@@ -159,6 +159,9 @@ class PaymentMethodRepository {
             const result = await this.prisma.payment_method.findMany({
                 where: {
                     is_delete: false,
+                    id: {
+                        gt: 0,
+                    },
                 },
                 select: {
                     name: true,

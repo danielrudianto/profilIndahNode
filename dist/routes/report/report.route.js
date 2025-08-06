@@ -37,7 +37,7 @@ router.post("/purchase", (0, express_validator_1.body)("month").notEmpty().withM
     .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
     .isInt({ min: 2000 })
     .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.fetchPurchaseReport);
-router.post("/money-receipt", (0, express_validator_1.body)("date").exists().withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, reportController.fetchMoneyReceipt);
+router.post("/money-receipt", (0, express_validator_1.body)("date").exists().withMessage(error_list_1.default["Date required"]), error_helper_1.default.intercept, reportController.fetchMoneyReceipt);
 router.post("/output", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({ min: 1, max: 12 })
     .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")

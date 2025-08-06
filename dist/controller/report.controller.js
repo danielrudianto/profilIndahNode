@@ -165,7 +165,9 @@ class ReportController {
                 const date = new Date(req.body.date);
                 const paymentMethods = await this.paymentMethodRepository.fetchAll();
                 const salesInvoicePayments = await this.salesInvoicePaymentRepository.fetchPaymentsByDate(date);
+                const salesInvoiceDORPayments = await this.salesInvoicePaymentRepository.fetchDORPaymentsByDate(date);
                 const salesDepositPayments = await this.salesDepositPaymentRepository.fetchPaymentsByDate(date);
+                const salesDepositDORPayments = await this.salesDepositPaymentRepository.fetchDORPaymentsByDate(date);
                 const salesReturnPayments = await this.salesReturnRepository.fetchPaymentsByDate(date);
                 const salesInvoicePaymentIndex = salesInvoicePayments.findIndex((x) => x.payment_method_id == null);
                 const salesDepositPaymentIndex = salesDepositPayments.findIndex((x) => x.payment_method_id == null);
@@ -202,6 +204,14 @@ class ReportController {
                                 : salesReturnPayments[salesReturnIndex].value,
                         };
                     }),
+                    {
+                        id: 0,
+                        name: "DOR",
+                        salesInvoice: salesInvoiceDORPayments,
+                        salesDeposit: salesDepositPaymentIndex == -1
+                            ? 0
+                            : salesDepositPayments[salesDepositPaymentIndex].value,
+                    },
                 ]);
             }
             catch (error) {

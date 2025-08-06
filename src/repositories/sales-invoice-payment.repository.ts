@@ -56,9 +56,9 @@ export class SalesInvoicePaymentRepository {
           value: true,
         },
         where: {
+          date: date,
           sales_invoice_code: {
             is_delete: false,
-            date: date,
           },
         },
       });
@@ -69,6 +69,43 @@ export class SalesInvoicePaymentRepository {
           value: Number(x._sum.value),
         };
       });
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async fetchDORPaymentsByDate(date: Date) {
+    try {
+      const result = await this.prisma.sales_invoice_payment.findMany({
+        where: {
+          date: date,
+          sales_invoice_code: {
+            is_delete: false,
+          },
+          payment_method_id: 0,
+        },
+        select: {
+          value: true,
+          sales_invoice_code: {
+            select: {
+              sales: true,
+            },
+          },
+        },
+      });
+
+      const salesNames = Array.from(
+        new Set(result.map((x) => x.sales_invoice_code?.sales))
+      );
+
+      const salesSummary = salesNames.map((salesName) => ({
+        sales: salesName,
+        value: result
+          .filter((x) => x.sales_invoice_code?.sales === salesName)
+          .reduce((sum, x) => sum + Number(x.value), 0),
+      }));
+
+      return salesSummary;
     } catch (error) {
       throw error;
     }

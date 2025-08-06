@@ -60,6 +60,7 @@ export class UserModel {
     this.user_sales = data.user_sales;
     this.is_active = data.is_active;
     this.created_at = data.created_at;
+    this.user_sales = data.user_sales;
   }
 
   static fromMap(data: any): UserModel {

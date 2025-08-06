@@ -27,11 +27,7 @@ class AuthController {
       }
 
       console.info(`[info]: User ${username} is active`);
-
-      hash(password, 12).then((hashed) => {
-        console.log(hashed);
-      });
-
+      
       const isPasswordValid = await compare(password, user.password!);
       if (!isPasswordValid) {
         return res.status(400).send(ErrorList["Auth error"]);

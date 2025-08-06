@@ -65,7 +65,7 @@ class PromotionController {
             try {
                 const promotion = await this.promotionRepository.fetchByID(id);
                 if (!promotion) {
-                    return res.status(404).send("Not Found");
+                    return res.status(404).send(error_list_1.default["Promotion not found"]);
                 }
                 return res.status(200).send(promotion);
             }

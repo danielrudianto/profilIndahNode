@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UserRepository = void 0;
 const user_model_1 = require("../model/user.model");
 const user_role_model_1 = require("../model/user_role.model");
+const product_type_model_1 = require("../model/product-type.model");
 class UserRepository {
     constructor(prisma) {
         this.prisma = prisma;
@@ -236,7 +237,7 @@ class UserRepository {
                 nik: true,
                 role: true,
                 user_sales: {
-                    select: {
+                    include: {
                         product_type: true,
                     },
                 },
@@ -254,10 +255,10 @@ class UserRepository {
             nik: result.nik,
             role: result.role,
             roleText: user_role_model_1.UserRoleModel.fromRoleID(result.role),
-            // user_sales: result.user_sales.map((x) => ({
-            //   item_type_id: x.item_type.id,
-            //   item_type_name: x.item_type.name,
-            // })),
+            user_sales: result.user_sales.map((x) => ({
+                product_type_id: x.product_type_id,
+                product_type: product_type_model_1.ProductTypeViewModel.fromMap(x.product_type),
+            })),
             is_active: result.is_active,
             created_at: result.created_at,
             created_by: result.created_by,

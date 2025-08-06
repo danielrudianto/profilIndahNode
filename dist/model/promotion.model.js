@@ -67,7 +67,7 @@ class PromotionModel {
                 ? data.promotion_brand.map((brand) => ({
                     id: brand.id,
                     product_brand_id: brand.product_brand_id,
-                    brand: brand.brand
+                    product_brand: brand.product_brand
                         ? product_brand_model_1.ProductBrandModel.fromMap(brand.product_brand)
                         : undefined,
                     promotion_code_id: brand.promotion_code_id,
