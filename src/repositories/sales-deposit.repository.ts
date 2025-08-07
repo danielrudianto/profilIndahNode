@@ -173,7 +173,7 @@ export class SalesDepositRepository {
           COUNT(id) AS count
         FROM deposit_code
         GROUP BY month, year
-        ORDER BY date DESC;
+        ORDER BY year DESC, month DESC;
       `;
 
       return result.map((x) => {

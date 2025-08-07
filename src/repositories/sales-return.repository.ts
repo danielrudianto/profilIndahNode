@@ -188,7 +188,7 @@ export class SalesReturnRepository {
           COUNT(id) AS count
         FROM sales_return_code
         GROUP BY month, year
-        ORDER BY date DESC;
+        ORDER BY year DESC, month DESC;
       `;
 
       return result.map((x) => {

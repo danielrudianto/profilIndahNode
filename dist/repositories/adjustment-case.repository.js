@@ -148,7 +148,7 @@ class AdjustmentCaseRepository {
           COUNT(id) AS count
         FROM adjustment_case_code
         GROUP BY month, year
-        ORDER BY date DESC;
+        ORDER BY year DESC, month DESC;
       `;
             return result.map((x) => {
                 return {

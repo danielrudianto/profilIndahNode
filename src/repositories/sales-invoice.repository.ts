@@ -555,7 +555,7 @@ export class SalesInvoiceRepository {
           COUNT(id) AS count
         FROM sales_invoice_code
         GROUP BY month, year
-        ORDER BY date DESC;
+        ORDER BY year DESC, month DESC;
       `;
 
       return result.map((x) => {
