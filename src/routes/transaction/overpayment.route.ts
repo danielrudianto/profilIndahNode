@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import { OverpaymentController } from "../../controller/overpayment.controller";
 import { prisma } from "../../helper/database.helper";
@@ -24,6 +24,9 @@ router.post(
   body("customer_id")
     .exists()
     .withMessage(ErrorList["Customer ID is required"]),
+  body("payment_method_id")
+    .exists()
+    .withMessage(ErrorList["Payment method required"]),
   body("return_payment_date")
     .notEmpty()
     .withMessage(ErrorList["Return date is required"]),
@@ -44,5 +47,19 @@ router.post(
   ErrorHelper.intercept,
   overpaymentContorller.create
 );
+
+router.get(
+  "/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  overpaymentContorller.fetchByID
+);
+
+router.get("/", overpaymentContorller.fetch);
 
 export default router;

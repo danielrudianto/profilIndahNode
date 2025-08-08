@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
+import { queue } from "../helper/queue.helper";
 import { ProductRepository } from "../repositories/product.repository";
 
 export class ProductPurchasePriceController {
@@ -66,6 +67,10 @@ export class ProductPurchasePriceController {
           };
         }),
       ]);
+
+      await queue.add("product-updated", {
+        id: product_id,
+      });
 
       return res.status(200).send(product);
     } catch (error) {

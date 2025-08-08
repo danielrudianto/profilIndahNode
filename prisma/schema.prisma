@@ -24,6 +24,7 @@ model payment_method {
   sales_return_code                    sales_return_code[]
   sales_invoice_payment                sales_invoice_payment[]
   sales_deposit_payment                sales_deposit_payment[]
+  overpayment                          overpayment[]
 
   @@index([created_by], map: "payment_method_ibfk_1_idx")
   @@index([deleted_by], map: "payment_method_ibfk_2_idx")
@@ -849,6 +850,7 @@ model overpayment {
   is_resolved           Boolean  @default(false)
   value                 Decimal  @db.Decimal(12, 2)
 
+  payment_method                    payment_method?     @relation(fields: [payment_method_id], references: [id])
   customer                          customer?           @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk1")
   sales_deposit_code                sales_deposit_code? @relation(fields: [sales_deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk3")
   user_overpayment_created_byTouser user                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk4")

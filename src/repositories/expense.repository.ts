@@ -191,23 +191,32 @@ export class ExpenseRepository {
   }
 
   async fetchByID(id: number) {
-    const result = await this.prisma.expense.findUnique({
-      where: { id },
-    });
+    try {
+      const result = await this.prisma.expense.findUnique({
+        where: { id },
+        include: {
+          expense_type: true,
+          user_expense_created_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
+          user_expense_deleted_byTouser: {
+            include: {
+              user_avatar: true,
+            },
+          },
+          company: true,
+        },
+      });
 
-    if (!result) {
-      return null;
+      if (!result) {
+        return null;
+      }
+
+      return ExpenseModel.fromMap(result);
+    } catch (error) {
+      throw error;
     }
-
-    return new ExpenseModel({
-      id: result.id,
-      description: result.description,
-      date: result.date,
-      company_id: result.company_id,
-      value: Number(result.value),
-      created_by: result.created_by,
-      created_at: result.created_at,
-      expense_type_id: result.expense_type_id,
-    });
   }
 }

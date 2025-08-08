@@ -188,6 +188,7 @@ enum ErrorList {
   "Payment must be an array" = "Data pembayaran harus berupa array",
   "Payment date is required" = "Data tanggal pembayaran tidak boleh kosong",
   "Promotion not found" = "Promosi tidak ditemukan",
+  "Supplier has been used" = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.",
 }
 
 export default ErrorList;

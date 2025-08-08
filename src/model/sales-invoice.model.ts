@@ -83,8 +83,8 @@ export class SalesInvoiceModel {
     this.confirmedAt = data.confirmedAt;
     this.uuid = data.uuid;
     this.isPaid = data.isPaid;
-    this.sales = data.sales || null;
-    this.isDelete = false;
+    this.sales = data.sales;
+    this.isDelete = data.isDelete;
     this.sales_invoice = data.sales_invoice;
     this.sales_invoice_payment = data.sales_invoice_payment;
     this.customer = data.customer;

@@ -199,6 +199,8 @@ export class SupplierRepository {
         },
       });
 
+      console.log(supplier);
+
       if (!supplier) {
         return null;
       }
@@ -214,7 +216,7 @@ export class SupplierRepository {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching supplier by ID ${error}`);
-      throw new Error("Internal server error");
+      throw error;
     }
   }
 }

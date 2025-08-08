@@ -5,11 +5,13 @@ import SupplierController from "../../controller/supplier.controller";
 import ErrorHelper from "../../helper/error.helper";
 import { SupplierRepository } from "../../repositories/supplier.repository";
 import { prisma } from "../../helper/database.helper";
+import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 
 const router = Router();
 
 const supplierController = new SupplierController(
-  new SupplierRepository(prisma)
+  new SupplierRepository(prisma),
+  new GoodReceiptRepository(prisma)
 );
 
 router.get("/autocomplete", supplierController.fetchAutocomplete);

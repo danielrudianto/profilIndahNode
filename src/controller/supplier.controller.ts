@@ -7,13 +7,19 @@ import {
   translatePageSize,
 } from "../helper/escape.helper";
 import SocketHelper from "../helper/socket.helper";
+import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { SupplierRepository } from "../repositories/supplier.repository";
 
 class SupplierController {
   private supplierRepository: SupplierRepository;
+  private goodReceiptRepository: GoodReceiptRepository;
 
-  constructor(supplierRepository: SupplierRepository) {
+  constructor(
+    supplierRepository: SupplierRepository,
+    goodReceiptRepository: GoodReceiptRepository
+  ) {
     this.supplierRepository = supplierRepository;
+    this.goodReceiptRepository = goodReceiptRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -61,7 +67,7 @@ class SupplierController {
   };
 
   delete = async (req: Request, res: Response) => {
-    const id = Number(req.body.id);
+    const id = Number(req.params.id);
     const userID = req.body.userId;
     try {
       const supplier = await this.supplierRepository.fetchByID(id);
@@ -73,8 +79,10 @@ class SupplierController {
         return res.status(404).send(ErrorList["Not found"]);
       }
 
-      if (!supplier.can_delete) {
-        return res.status(403).send(ErrorList["Delete error"]);
+      const count = await this.goodReceiptRepository.countBySupplierID(id);
+
+      if (count > 0) {
+        return res.status(400).send(ErrorList["Supplier has been used"]);
       }
 
       const result = await this.supplierRepository.delete(id, userID);
@@ -130,6 +138,9 @@ class SupplierController {
       if (!result) {
         return res.status(404).send(ErrorList["Not found"]);
       }
+
+      const count = await this.goodReceiptRepository.countBySupplierID(id);
+      result.can_delete = count == 0;
 
       return res.status(200).send(result);
     } catch (error) {
