@@ -71,6 +71,7 @@ class SalesInvoiceRepository {
             },
             data: {
                 is_delete: true,
+                is_confirm: false,
             },
         });
         if (!result) {

@@ -7,7 +7,7 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 class SupplierController {
-    constructor(supplierRepository) {
+    constructor(supplierRepository, goodReceiptRepository) {
         this.create = async (req, res) => {
             const name = req.body.name;
             const address = req.body.address;
@@ -47,7 +47,7 @@ class SupplierController {
             }
         };
         this.delete = async (req, res) => {
-            const id = Number(req.body.id);
+            const id = Number(req.params.id);
             const userID = req.body.userId;
             try {
                 const supplier = await this.supplierRepository.fetchByID(id);
@@ -57,8 +57,9 @@ class SupplierController {
                 if (supplier.is_delete) {
                     return res.status(404).send(error_list_1.default["Not found"]);
                 }
-                if (!supplier.can_delete) {
-                    return res.status(403).send(error_list_1.default["Delete error"]);
+                const count = await this.goodReceiptRepository.countBySupplierID(id);
+                if (count > 0) {
+                    return res.status(400).send(error_list_1.default["Supplier has been used"]);
                 }
                 const result = await this.supplierRepository.delete(id, userID);
                 const socket = new socket_helper_1.default("deleteSupplier", result);
@@ -106,6 +107,8 @@ class SupplierController {
                 if (!result) {
                     return res.status(404).send(error_list_1.default["Not found"]);
                 }
+                const count = await this.goodReceiptRepository.countBySupplierID(id);
+                result.can_delete = count == 0;
                 return res.status(200).send(result);
             }
             catch (error) {
@@ -114,6 +117,7 @@ class SupplierController {
             }
         };
         this.supplierRepository = supplierRepository;
+        this.goodReceiptRepository = goodReceiptRepository;
     }
 }
 exports.default = SupplierController;

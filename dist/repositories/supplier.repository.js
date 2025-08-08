@@ -190,6 +190,7 @@ class SupplierRepository {
                     is_delete: true,
                 },
             });
+            console.log(supplier);
             if (!supplier) {
                 return null;
             }
@@ -205,7 +206,7 @@ class SupplierRepository {
         }
         catch (error) {
             console.error(`[error]: Error on fetching supplier by ID ${error}`);
-            throw new Error("Internal server error");
+            throw error;
         }
     }
 }

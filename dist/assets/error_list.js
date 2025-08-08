@@ -170,6 +170,7 @@ var ErrorList;
     ErrorList["Payment must be an array"] = "Data pembayaran harus berupa array";
     ErrorList["Payment date is required"] = "Data tanggal pembayaran tidak boleh kosong";
     ErrorList["Promotion not found"] = "Promosi tidak ditemukan";
+    ErrorList["Supplier has been used"] = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.";
 })(ErrorList || (ErrorList = {}));
 exports.default = ErrorList;
 //# sourceMappingURL=error_list.js.map

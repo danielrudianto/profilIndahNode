@@ -180,22 +180,32 @@ class ExpenseRepository {
         }
     }
     async fetchByID(id) {
-        const result = await this.prisma.expense.findUnique({
-            where: { id },
-        });
-        if (!result) {
-            return null;
+        try {
+            const result = await this.prisma.expense.findUnique({
+                where: { id },
+                include: {
+                    expense_type: true,
+                    user_expense_created_byTouser: {
+                        include: {
+                            user_avatar: true,
+                        },
+                    },
+                    user_expense_deleted_byTouser: {
+                        include: {
+                            user_avatar: true,
+                        },
+                    },
+                    company: true,
+                },
+            });
+            if (!result) {
+                return null;
+            }
+            return expense_model_1.ExpenseModel.fromMap(result);
         }
-        return new expense_model_1.ExpenseModel({
-            id: result.id,
-            description: result.description,
-            date: result.date,
-            company_id: result.company_id,
-            value: Number(result.value),
-            created_by: result.created_by,
-            created_at: result.created_at,
-            expense_type_id: result.expense_type_id,
-        });
+        catch (error) {
+            throw error;
+        }
     }
 }
 exports.ExpenseRepository = ExpenseRepository;

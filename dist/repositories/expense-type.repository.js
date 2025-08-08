@@ -71,6 +71,7 @@ class ExpenseTypeRepository {
                     id: id,
                 },
                 data: {
+                    is_delete: true,
                     deleted_at: new Date(),
                     deleted_by: userID,
                 },

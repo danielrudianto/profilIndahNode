@@ -18,7 +18,9 @@ router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage(er
 })
     .withMessage(error_list_1.default["Amount must be numeric"]), (0, express_validator_1.body)("customer_id")
     .exists()
-    .withMessage(error_list_1.default["Customer ID is required"]), (0, express_validator_1.body)("return_payment_date")
+    .withMessage(error_list_1.default["Customer ID is required"]), (0, express_validator_1.body)("payment_method_id")
+    .exists()
+    .withMessage(error_list_1.default["Payment method required"]), (0, express_validator_1.body)("return_payment_date")
     .notEmpty()
     .withMessage(error_list_1.default["Return date is required"]), (0, express_validator_1.body)("return_payment_method")
     .isIn(["Cash", "Bank transfer"])
@@ -29,5 +31,11 @@ router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage(er
     .withMessage(error_list_1.default["Return payment bank is required"]), (0, express_validator_1.body)("return_payment_number")
     .exists()
     .withMessage(error_list_1.default["Return payment number is required"]), error_helper_1.default.intercept, overpaymentContorller.create);
+router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id")
+    .isInt({
+    min: 0,
+})
+    .withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, overpaymentContorller.fetchByID);
+router.get("/", overpaymentContorller.fetch);
 exports.default = router;
 //# sourceMappingURL=overpayment.route.js.map

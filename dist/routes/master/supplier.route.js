@@ -10,8 +10,9 @@ const supplier_controller_1 = __importDefault(require("../../controller/supplier
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const supplier_repository_1 = require("../../repositories/supplier.repository");
 const database_helper_1 = require("../../helper/database.helper");
+const good_receipt_repository_1 = require("../../repositories/good-receipt.repository");
 const router = (0, express_1.Router)();
-const supplierController = new supplier_controller_1.default(new supplier_repository_1.SupplierRepository(database_helper_1.prisma));
+const supplierController = new supplier_controller_1.default(new supplier_repository_1.SupplierRepository(database_helper_1.prisma), new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma));
 router.get("/autocomplete", supplierController.fetchAutocomplete);
 router.get("/:id", (0, express_validator_1.param)("id")
     .isInt({

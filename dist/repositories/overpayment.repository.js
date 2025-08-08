@@ -57,6 +57,79 @@ class OverpaymentRepository {
             throw error;
         }
     }
+    async fetch(data) {
+        let orderBy = {};
+        switch (data.sortBy) {
+            case "date":
+                orderBy = {
+                    date: data.sortDirection,
+                };
+                break;
+            case "value":
+                orderBy = {
+                    value: data.sortDirection,
+                };
+                break;
+            case "return":
+                orderBy = {
+                    return_payment_date: data.sortDirection,
+                };
+                break;
+        }
+        try {
+            const [result, count] = await this.prisma.$transaction([
+                this.prisma.overpayment.findMany({
+                    include: {
+                        customer: true,
+                        user_overpayment_created_byTouser: {
+                            include: {
+                                user_avatar: true,
+                            },
+                        },
+                    },
+                    orderBy: orderBy,
+                    take: data.pageSize,
+                    skip: (data.page - 1) * data.pageSize,
+                }),
+                this.prisma.overpayment.count({}),
+            ]);
+            return {
+                data: result.map((x) => {
+                    return overpayment_model_1.OverpaymentCodeModel.fromMap(x);
+                }),
+                count: count,
+            };
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async fetchByID(id) {
+        try {
+            const result = await this.prisma.overpayment.findUnique({
+                where: {
+                    id: id,
+                },
+                include: {
+                    customer: true,
+                    user_overpayment_created_byTouser: {
+                        include: {
+                            user_avatar: true,
+                        },
+                    },
+                    payment_method: true,
+                },
+            });
+            if (!result) {
+                return null;
+            }
+            console.log(result);
+            return overpayment_model_1.OverpaymentCodeModel.fromMap(result);
+        }
+        catch (error) {
+            throw error;
+        }
+    }
 }
 exports.OverpaymentRepository = OverpaymentRepository;
 //# sourceMappingURL=overpayment.repository.js.map

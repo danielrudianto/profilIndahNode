@@ -277,6 +277,7 @@ class SalesDepositController {
                         date: x.date,
                         sales_deposit_code_id: id,
                         customer_id: salesDeposit.customerID,
+                        payment_method_id: x.payment_method_id,
                         return_payment_date: return_payment_date,
                         return_payment_bank: return_payment_bank,
                         return_payment_name: return_payment_name,

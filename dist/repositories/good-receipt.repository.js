@@ -152,13 +152,13 @@ class GoodReceiptRepository {
                     user_good_receipt_code_created_byTouser: {
                         include: {
                             user_avatar: true,
-                        }
+                        },
                     },
                     user_good_receipt_code_confirmed_byTouser: {
                         include: {
                             user_avatar: true,
-                        }
-                    }
+                        },
+                    },
                 },
             });
             if (!goodReceipt) {
@@ -506,6 +506,20 @@ class GoodReceiptRepository {
         }
         const data = result[0];
         return data.name;
+    }
+    async countBySupplierID(supplierID) {
+        try {
+            const result = await this.prisma.good_receipt_code.count({
+                where: {
+                    supplier_id: supplierID,
+                    is_delete: false,
+                },
+            });
+            return result;
+        }
+        catch (error) {
+            throw error;
+        }
     }
     async confirm(data) {
         try {

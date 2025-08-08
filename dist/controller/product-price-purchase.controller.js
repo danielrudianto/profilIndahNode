@@ -7,6 +7,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ProductPurchasePriceController = void 0;
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
+const queue_helper_1 = require("../helper/queue.helper");
 class ProductPurchasePriceController {
     constructor(productRepository) {
         this.fetch = async (req, res) => {
@@ -62,6 +63,9 @@ class ProductPurchasePriceController {
                         };
                     }),
                 ]);
+                await queue_helper_1.queue.add("product-updated", {
+                    id: product_id,
+                });
                 return res.status(200).send(product);
             }
             catch (error) {

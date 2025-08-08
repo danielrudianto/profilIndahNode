@@ -137,6 +137,7 @@ class SalesInvoiceController {
             }
             try {
                 const result = await this.salesInvoiceRepository.deleteByID(id, userID);
+                console.log(result);
                 await this.stockRepository.updateMany(salesInvoice.sales_invoice.map((x) => {
                     return {
                         productID: x.product_id,
