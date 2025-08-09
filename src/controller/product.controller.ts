@@ -241,6 +241,7 @@ class ProductController {
       const result = await meili.index("product").search(keyword, {
         limit: pageSize,
         offset: (page - 1) * pageSize,
+        filter: ["is_delete = false"]
       });
 
       return res.status(200).send({

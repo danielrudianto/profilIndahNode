@@ -123,7 +123,6 @@ class OverpaymentRepository {
             if (!result) {
                 return null;
             }
-            console.log(result);
             return overpayment_model_1.OverpaymentCodeModel.fromMap(result);
         }
         catch (error) {

@@ -146,10 +146,6 @@ class PaymentMethodController {
         return res.status(404).send(ErrorList["Not found"]);
       }
 
-      if (!paymentMethod.can_delete) {
-        return res.status(400).send(ErrorList["Delete error"]);
-      }
-
       const result = await this.paymentMethodRepository.delete(id, userID);
       return res.status(200).send(result);
     } catch (error) {

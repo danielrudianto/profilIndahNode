@@ -17,7 +17,6 @@ const customer_repository_1 = require("../../repositories/customer.repository");
 const router = (0, express_1.Router)();
 const userController = new user_controller_1.default(new user_repository_1.UserRepository(database_helper_1.prisma), new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new customer_repository_1.CustomerRepository(database_helper_1.prisma));
 const authController = new auth_controller_1.default(new user_repository_1.UserRepository(database_helper_1.prisma));
-// Common validation middleware
 const validateId = [
     (0, express_validator_1.param)("id").isInt({ min: 0 }).withMessage(error_list_1.default["Parameter error"]),
 ];
@@ -41,6 +40,6 @@ router.put("/", auth_helper_1.administratorMiddleware, [
     ...validateUserFields,
     error_helper_1.default.intercept,
 ], userController.update);
-router.delete("/:id", [...validateId, error_helper_1.default.intercept], userController.toggleActive);
+router.delete("/:id", [...validateId, error_helper_1.default.intercept], auth_helper_1.administratorMiddleware, userController.toggleActive);
 exports.default = router;
 //# sourceMappingURL=user.route.js.map

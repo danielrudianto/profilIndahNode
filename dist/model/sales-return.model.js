@@ -24,7 +24,6 @@ class SalesReturnCodeModel {
         this.payment_method = data.payment_method;
     }
     static fromMap(data) {
-        console.log(JSON.stringify(data));
         return new SalesReturnCodeModel({
             id: data.id,
             name: data.name,

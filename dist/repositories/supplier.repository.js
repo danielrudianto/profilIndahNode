@@ -190,7 +190,6 @@ class SupplierRepository {
                     is_delete: true,
                 },
             });
-            console.log(supplier);
             if (!supplier) {
                 return null;
             }

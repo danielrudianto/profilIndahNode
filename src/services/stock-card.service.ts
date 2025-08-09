@@ -52,7 +52,6 @@ export class StockCardService {
     sales_return_id: number | null;
     sales_return_code_id: number | null;
   }) {
-    console.log(data);
     const stockCard = await this.stockCardRepository.fetch(data);
     if (!stockCard) {
       throw new Error("Stock card not found");

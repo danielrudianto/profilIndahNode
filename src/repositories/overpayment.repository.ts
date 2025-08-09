@@ -140,8 +140,6 @@ export class OverpaymentRepository {
         return null;
       }
 
-      console.log(result);
-
       return OverpaymentCodeModel.fromMap(result);
     } catch (error) {
       throw error;

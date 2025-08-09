@@ -125,9 +125,6 @@ class PaymentMethodController {
                 if (paymentMethod.is_delete) {
                     return res.status(404).send(error_list_1.default["Not found"]);
                 }
-                if (!paymentMethod.can_delete) {
-                    return res.status(400).send(error_list_1.default["Delete error"]);
-                }
                 const result = await this.paymentMethodRepository.delete(id, userID);
                 return res.status(200).send(result);
             }

@@ -164,7 +164,6 @@ class PromotionRepository {
             });
             if (!result)
                 return null;
-            console.log(result);
             return promotion_model_1.default.fromMap(result);
         }
         catch (error) {

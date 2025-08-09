@@ -76,7 +76,6 @@ export class SalesReturnCodeModel {
   }
 
   static fromMap(data: any) {
-    console.log(JSON.stringify(data));
     return new SalesReturnCodeModel({
       id: data.id,
       name: data.name,

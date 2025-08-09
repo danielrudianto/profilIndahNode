@@ -39,7 +39,6 @@ class StockCardService {
         }
     }
     async delete(data) {
-        console.log(data);
         const stockCard = await this.stockCardRepository.fetch(data);
         if (!stockCard) {
             throw new Error("Stock card not found");

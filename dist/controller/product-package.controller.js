@@ -60,6 +60,9 @@ class ProductPackageController {
                     created_by: userID,
                     created_at: new Date(),
                 });
+                await queue_helper_1.queue.add("package-updated", {
+                    id: id,
+                });
                 return res.status(200).send(result);
             }
             catch (error) {

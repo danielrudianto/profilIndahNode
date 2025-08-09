@@ -185,8 +185,6 @@ class ReportController {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
 
-      console.log(yesterday);
-
       const lastMonth = new Date(
         date.getFullYear(),
         date.getMonth() - 1,

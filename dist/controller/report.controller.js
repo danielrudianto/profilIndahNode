@@ -87,7 +87,6 @@ class ReportController {
                 const date = new Date();
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                console.log(yesterday);
                 const lastMonth = new Date(date.getFullYear(), date.getMonth() - 1, 1, 0, 0, 0);
                 const thisMonth = new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0);
                 const endOfMonth = new Date(date.getFullYear(), date.getMonth() + 1, 0, 0, 0, 0);

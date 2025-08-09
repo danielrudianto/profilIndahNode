@@ -257,20 +257,17 @@ class SalesInvoiceRepository {
     }
     async fetchDownload(month, year) { }
     async searchByReturns(date, sales_invoice) {
-        const where = [];
-        for (let item of sales_invoice) {
-            where.push({
-                product_id: item.product_id,
-                product_unit_id: item.product_unit_id,
-                quantity: {
-                    gte: item.quantity,
-                },
-            });
-        }
+        const productConditions = sales_invoice.map((item) => ({
+            product_id: item.product_id,
+            product_unit_id: item.product_unit_id,
+            quantity: {
+                gte: item.quantity,
+            },
+        }));
         try {
             const result = await this.prisma.sales_invoice.findMany({
                 where: {
-                    AND: where,
+                    OR: productConditions,
                     sales_invoice_code: {
                         is_delete: false,
                         date: date,

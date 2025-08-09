@@ -19,7 +19,6 @@ const userController = new UserController(
 );
 const authController = new AuthController(new UserRepository(prisma));
 
-// Common validation middleware
 const validateId = [
   param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
 ];
@@ -72,6 +71,7 @@ router.put(
 router.delete(
   "/:id",
   [...validateId, ErrorHelper.intercept],
+  administratorMiddleware,
   userController.toggleActive
 );
 

@@ -69,6 +69,10 @@ class ProductPackageController {
         created_at: new Date(),
       });
 
+      await queue.add("package-updated", {
+        id: id,
+      });
+
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on updating product package: ${error}`);

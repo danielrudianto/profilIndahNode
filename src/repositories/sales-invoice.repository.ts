@@ -8,10 +8,7 @@ import {
   IFetchCommonResult,
 } from "../interface/fetch.interface";
 import { DateHelper, formatDate } from "../helper/date.helper";
-import {
-  IFetchArchive,
-  IFetchArchiveResult,
-} from "../interface/archive.interface";
+import { IFetchArchiveResult } from "../interface/archive.interface";
 
 export class SalesInvoiceRepository {
   private prisma: PrismaClient;
@@ -319,22 +316,19 @@ export class SalesInvoiceRepository {
       product_unit_id: number | null;
       quantity: number;
     }[]
-  ): Promise<SalesInvoiceModel[]> {
-    const where = [];
-    for (let item of sales_invoice) {
-      where.push({
-        product_id: item.product_id,
-        product_unit_id: item.product_unit_id,
-        quantity: {
-          gte: item.quantity,
-        },
-      });
-    }
+  ) {
+    const productConditions = sales_invoice.map((item) => ({
+      product_id: item.product_id,
+      product_unit_id: item.product_unit_id,
+      quantity: {
+        gte: item.quantity,
+      },
+    }));
 
     try {
       const result = await this.prisma.sales_invoice.findMany({
         where: {
-          AND: where,
+          OR: productConditions,
           sales_invoice_code: {
             is_delete: false,
             date: date,

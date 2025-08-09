@@ -1640,7 +1640,6 @@ export class SalesInvoiceItemModel {
           : ProductUnitModel.fromMap(data.product_unit),
     });
 
-    console.log(result.product_unit);
     return result;
   }
 }

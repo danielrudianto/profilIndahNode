@@ -47,8 +47,9 @@ router.put(
 
 router.delete(
   "/:id",
-  param("id").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
   administratorMiddleware,
   paymentMethodController.delete
 );

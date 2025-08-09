@@ -128,8 +128,7 @@ class SalesDepositRepository {
             };
         }
         catch (error) {
-            console.error(`[error]: Error on fetching deposits ${error}`);
-            throw new Error("Internal server error");
+            throw error;
         }
     }
     async fetchAnnualArchives() {

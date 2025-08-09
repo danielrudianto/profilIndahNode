@@ -40,7 +40,7 @@ export const initializeMeiliSearch = async () => {
         sortableAttributes: ["created_at", "reference", "description"],
       });
       await meili.waitForTask(productSettingTask.taskUid);
-      console.log("Product database initialized");
+      console.info("Product database initialized");
     } else {
       console.error(`[error]: Error initializing product index: ${error}`);
       throw error;
@@ -66,7 +66,7 @@ export const initializeMeiliSearch = async () => {
           sortableAttributes: ["name", "description"],
         });
       await meili.waitForTask(productPackageSettingTask.taskUid);
-      console.log("Package database initialized");
+      console.info("Package database initialized");
     } else {
       console.error(`[error]: Error initializing package index: ${error}`);
       throw error;

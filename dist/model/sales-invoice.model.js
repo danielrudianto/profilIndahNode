@@ -137,7 +137,6 @@ class SalesInvoiceItemModel {
                     ? undefined
                     : product_unit_model_1.ProductUnitModel.fromMap(data.product_unit),
         });
-        console.log(result.product_unit);
         return result;
     }
 }
