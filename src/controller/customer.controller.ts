@@ -36,6 +36,10 @@ class CustomerController {
         phone_number: phone_number,
         created_by: userID,
         created_at: new Date(),
+        can_delete: false,
+        is_delete: false,
+        deleted_at: null,
+        deleted_by: null,
       });
       return res.status(201).send(result);
     } catch (error) {
@@ -71,6 +75,10 @@ class CustomerController {
         phone_number: phone_number,
         created_by: req.body.userId,
         created_at: new Date(),
+        is_delete: false,
+        can_delete: false,
+        deleted_by: null,
+        deleted_at: null,
       });
 
       const socket = new SocketHelper("updateCustomer", result);
@@ -102,14 +110,11 @@ class CustomerController {
       }
 
       const customer = await this.customerRepository.delete(id, userID);
-      await meili.index("customer").deleteDocument(customer.id!);
-      const socket = new SocketHelper("deleteCustomer", customer);
-      socket.create();
 
       return res.status(200).send(customer);
     } catch (error) {
       console.error(`[error]: Error on deleting customer: ${error}`);
-      return res.status(500).send(ErrorList["Internal server error"]);
+      return res.status(500).send(error);
     }
   };
 

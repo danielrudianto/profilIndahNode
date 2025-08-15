@@ -132,7 +132,6 @@ class ProductPackageController {
   fetch = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     const page = translatePage(req.query.page);
-    const content = req.query.content;
     const pageSize = Number(process.env.LIMIT!);
 
     const result = await meili.index("package").search(keyword, {

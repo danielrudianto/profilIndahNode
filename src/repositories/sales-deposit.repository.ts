@@ -170,7 +170,7 @@ export class SalesDepositRepository {
           EXTRACT(YEAR FROM date) AS year,
           EXTRACT(MONTH FROM date) AS month,
           COUNT(id) AS count
-        FROM deposit_code
+        FROM sales_deposit_code
         GROUP BY month, year
         ORDER BY year DESC, month DESC;
       `;
@@ -208,7 +208,7 @@ export class SalesDepositRepository {
         statusFilter = {
           OR: [
             {
-              is_confirm: true,
+              is_delete: false,
             },
             {
               is_delete: true,
@@ -217,7 +217,7 @@ export class SalesDepositRepository {
         };
       } else if (data.isActive) {
         statusFilter = {
-          is_confirm: true,
+          is_delete: true,
         };
       } else {
         statusFilter = {

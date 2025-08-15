@@ -80,7 +80,7 @@ class ProductStockController {
       const result = await meili.index("product").search(keyword, {
         limit: pageSize,
         offset: (page - 1) * pageSize,
-        // filter: "is_active = true",
+        filter: ["is_active = true", "is_delete = false"],
       });
 
       const productStock = await this.productStockRepository.fetchStock(

@@ -24,7 +24,7 @@ export class ProductPackageService {
         throw Error("Package not found");
       }
 
-      meili.index("package").updateDocuments([productPackage]);
+      await meili.index("package").updateDocuments([productPackage]);
     } catch (error) {
       throw error;
     }

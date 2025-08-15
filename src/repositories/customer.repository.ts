@@ -33,17 +33,7 @@ export class CustomerRepository {
         },
       });
 
-      return new CustomerModel({
-        name: result.name,
-        address: result.address,
-        npwp: result.npwp,
-        pic: result.pic,
-        phone_number: result.phone_number,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        id: result.id,
-        user: UserViewModel.fromMap(result.user),
-      });
+      return CustomerModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error on creating customer: ${error}`);
       throw error;
@@ -76,17 +66,7 @@ export class CustomerRepository {
         },
       });
 
-      return new CustomerModel({
-        id: result.id,
-        name: result.name,
-        address: result.address,
-        npwp: result.npwp,
-        pic: result.pic,
-        phone_number: result.phone_number,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        user: UserViewModel.fromMap(result.user),
-      });
+      return CustomerModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error on updating customer: ${error}`);
       throw error;
@@ -125,6 +105,9 @@ export class CustomerRepository {
         created_by: result.created_by,
         created_at: result.created_at,
         user: UserViewModel.fromMap(result.user),
+        is_delete: result.is_delete,
+        deleted_at: result.deleted_at,
+        deleted_by: result.deleted_by,
       });
     } catch (error) {
       console.error(`[error]: Error on deleting customer: ${error}`);
@@ -134,39 +117,6 @@ export class CustomerRepository {
 
   async fetch(data: IFetchCommon): Promise<IFetchCommonResult<CustomerModel>> {
     const { keyword, pageSize, page } = data;
-
-    // SQL query for fetching customers
-    const customerQuery = `
-      SELECT
-          c.id,
-          c.name,
-          c.address,
-          c.pic,
-          c.npwp,
-          c.phone_number,
-          c.created_at,
-          c.is_delete,
-          c.created_by,
-          IF(COUNT(bc.id) = 0, "1", "0") AS can_delete
-      FROM
-          customer c
-      LEFT JOIN
-          sales_invoice_code bc ON c.id = bc.customer_id AND bc.is_delete = 0
-      WHERE
-          c.is_delete = 0
-          AND (
-              c.name LIKE '%${keyword}%'
-              OR c.address LIKE '%${keyword}%'
-              OR c.npwp LIKE '%${keyword}%'
-              OR c.pic LIKE '%${keyword}%'
-              OR c.phone_number LIKE '%${keyword}%'
-          )
-      GROUP BY c.id, c.name, c.address, c.pic, c.npwp, c.phone_number, c.created_at, c.is_delete, c.created_by  -- Group by all non-aggregated columns
-      ORDER BY
-          c.name ASC
-      LIMIT ${pageSize}
-      OFFSET ${(page - 1) * pageSize}
-    `;
 
     // Prisma count query
     const countQuery = {
@@ -185,7 +135,11 @@ export class CustomerRepository {
     // Execute queries in a transaction
     try {
       const [result, count] = await this.prisma.$transaction([
-        this.prisma.$queryRawUnsafe<any[]>(customerQuery),
+        this.prisma.customer.findMany({
+          ...countQuery,
+          take: pageSize,
+          skip: (page - 1) * pageSize,
+        }),
         this.prisma.customer.count(countQuery),
       ]);
 
@@ -200,7 +154,6 @@ export class CustomerRepository {
             phone_number: x.phone_number,
             created_at: x.created_at,
             is_delete: x.is_delete,
-            can_delete: x.can_delete,
             created_by: x.created_by,
           });
         }),
@@ -245,7 +198,8 @@ export class CustomerRepository {
         npwp: customerData.npwp,
         pic: customerData.pic,
         phone_number: customerData.phone_number,
-        can_delete: customerData.can_delete,
+        can_delete: customerData.can_delete == 1,
+        is_delete: customerData.is_delete,
       });
     } catch (error) {
       console.error(`[error]: Error on fetching customer by ID: ${error}`);
@@ -258,7 +212,8 @@ export class CustomerRepository {
 
     try {
       const result = await this.prisma.$queryRawUnsafe<any[]>(`
-        SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete
+        SELECT customer.id, IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete,
+        customer.name, customer.address, customer.npwp, customer.pic, customer.phone_number, customer.is_delete
         FROM customer
         LEFT JOIN (
           SELECT COUNT(sales_invoice_code.id) AS count, sales_invoice_code.customer_id
@@ -277,7 +232,8 @@ export class CustomerRepository {
           npwp: item.npwp,
           pic: item.pic,
           phone_number: item.phone_number,
-          can_delete: item.can_delete,
+          can_delete: item.can_delete == 1,
+          is_delete: item.is_delete == 1,
         });
       });
     } catch (error) {
