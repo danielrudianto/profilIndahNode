@@ -17,6 +17,9 @@ import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";
 import { StockCardService } from "./services/stock-card.service";
 import { StockCardRepository } from "./repositories/stock-card.repository";
+import { SalesInvoiceService } from "./services/sales-invoice.service";
+import { SalesInvoiceRepository } from "./repositories/sales-invoice.repository";
+import { StockRepository } from "./repositories/stock.repository";
 
 async function connect() {
   await prisma.$connect();
@@ -112,6 +115,17 @@ async function syncProductPackage() {
   console.info(`[info]: Product package database successfully inserted`);
 }
 
+async function syncSales() {
+  const salesInvoiceService = new SalesInvoiceService(
+    new SalesInvoiceRepository(prisma),
+    new StockRepository(prisma),
+    new StockCardRepository(prisma),
+    new StockOutRepository(prisma)
+  );
+
+  const sales = await salesInvoiceService.fetchSales();
+}
+
 async function insertStockInOut() {
   const stockInService = new StockInService(new StockInRepository(prisma));
   const stockOutService = new StockOutService(
@@ -148,7 +162,7 @@ async function createIndexes() {
   await meili.createIndex("product", {
     primaryKey: "id",
   });
-  
+
   await meili.createIndex("package", {
     primaryKey: "id",
   });
@@ -171,6 +185,9 @@ async function runFunction(funcName: string) {
       process.exit(0);
     case "insertStockCard":
       await insertStockCard();
+      process.exit(0);
+    case "syncSales":
+      await syncSales();
       process.exit(0);
     default:
       console.error("[error]: Function not found");

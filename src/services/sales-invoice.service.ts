@@ -1,3 +1,4 @@
+import { redisClient } from "../helper/redis.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
@@ -39,6 +40,26 @@ export class SalesInvoiceService {
         `[error]: Error on fetching sales invoice by ID ${id}: ${error}`
       );
       throw new Error("Internal server error");
+    }
+  }
+
+  async fetchSales() {
+    try {
+      const sales = await this.salesInvoiceRepository.fetchSales();
+      console.info(`[Info]: Found ${sales.length} salesman in sales invoices`);
+      await redisClient.del("salesmanList");
+      for (let i = 0; i < sales.length; i++) {
+        const salesName = sales[i];
+        console.info(
+          `[Info]: Completed inserting ${salesName} -- progress ${i + 1}/${
+            sales.length
+          }`
+        );
+        await redisClient.sAdd("salesmanList", salesName);
+      }
+    } catch (error) {
+      console.error(`[error]: Error on sync salesman ${error}`);
+      throw error;
     }
   }
 }

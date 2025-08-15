@@ -339,6 +339,9 @@ class ReportController {
         (x) => x.payment_method_id == null
       );
 
+      console.log(salesInvoiceDORPayments);
+      console.log(salesDepositDORPayments);
+
       return res.status(200).send([
         {
           id: null,
@@ -384,15 +387,6 @@ class ReportController {
                 : salesReturnPayments[salesReturnIndex].value,
           };
         }),
-        {
-          id: 0,
-          name: "DOR",
-          salesInvoice: salesInvoiceDORPayments,
-          salesDeposit:
-            salesDepositPaymentIndex == -1
-              ? 0
-              : salesDepositPayments[salesDepositPaymentIndex].value,
-        },
       ]);
     } catch (error) {
       console.error(`[error]: Error on fetching money receipt ${error}`);

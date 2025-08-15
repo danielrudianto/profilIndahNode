@@ -186,26 +186,30 @@ class SalesInvoiceController {
             const month = req.body.month;
             const keyword = (0, escape_helper_1.translateKeyword)(req.body.keyword);
             const page = (0, escape_helper_1.translatePage)(req.body.page);
-            const offset = req.body.pageSize;
+            const pageSize = req.body.pageSize;
             const isActive = req.body.isActive;
             const isDelete = req.body.isDelete;
             const isPaid = req.body.isPaid;
             const isUnpaid = req.body.isUnpaid;
             const sortBy = req.body.sortBy;
             const sortDirection = req.body.sortDirection;
+            const startDate = new Date(req.body.startDate);
+            const endDate = new Date(req.body.endDate);
             try {
                 const result = await this.salesInvoiceRepository.fetchArchives({
                     month: month,
                     year: year,
                     keyword: keyword,
-                    limit: offset,
-                    offset: (page - 1) * offset,
+                    limit: pageSize,
+                    offset: (page - 1) * pageSize,
                     isPaid: isPaid,
                     isActive: isActive,
                     isUnpaid: isUnpaid,
                     isDelete: isDelete,
                     sortBy: sortBy,
                     sortDirection: sortDirection,
+                    startDate: startDate,
+                    endDate: endDate,
                 });
                 return res.status(200).send(result);
             }
@@ -239,20 +243,6 @@ class SalesInvoiceController {
                 return res.status(500).send(error);
             }
         };
-        this.search = async (req, res) => {
-            const filterObject = req.body.filterObject;
-            const keyword = (0, escape_helper_1.translateKeyword)(req.body.keyword);
-            const page = (0, escape_helper_1.translatePage)(req.body.page);
-            const pageSize = Number(process.env.LIMIT);
-            try {
-                const result = await this.salesInvoiceRepository.search(this.validateSearch(filterObject), keyword, page, pageSize);
-                return res.status(200).send(result);
-            }
-            catch (error) {
-                console.error(`[error]: Error on searching sales invoice ${error}`);
-                return res.status(500).send(error_list_1.default["Internal server error"]);
-            }
-        };
         this.searchSalesReturn = async (req, res) => {
             const date = new Date(req.body.date);
             const sales_invoice = req.body.sales_invoice;
@@ -264,10 +254,6 @@ class SalesInvoiceController {
                 console.error(`[error]: Error on fetching sales return ${error}`);
                 return res.status(500).send(error);
             }
-        };
-        this.validateSearch = (filters) => {
-            const { dateStart = null, dateEnd = null, customers = [], status = 2, } = filters;
-            return { dateStart, dateEnd, customers, status };
         };
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.receivableRepository = receivableRepository;

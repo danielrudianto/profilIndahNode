@@ -9,6 +9,7 @@ import {
 } from "../interface/fetch.interface";
 import { DateHelper, formatDate } from "../helper/date.helper";
 import { IFetchArchiveResult } from "../interface/archive.interface";
+import ErrorList from "../assets/error_list";
 
 export class SalesInvoiceRepository {
   private prisma: PrismaClient;
@@ -85,21 +86,27 @@ export class SalesInvoiceRepository {
   }
 
   async deleteByID(id: number, userID: number): Promise<SalesInvoiceModel> {
-    const result = await this.prisma.sales_invoice_code.update({
-      where: {
-        id: id,
-      },
-      data: {
-        is_delete: true,
-        is_confirm: false,
-      },
-    });
+    try {
+      const result = await this.prisma.sales_invoice_code.update({
+        where: {
+          id: id,
+        },
+        data: {
+          is_delete: true,
+          is_confirm: false,
+          confirmed_at: new Date(),
+          confirmed_by: userID,
+        },
+      });
 
-    if (!result) {
-      throw new Error("Sales invoice not found or already deleted");
+      if (!result) {
+        throw new Error(ErrorList["Sales invoice not found"]);
+      }
+
+      return SalesInvoiceModel.fromMap(result);
+    } catch (error) {
+      throw error;
     }
-
-    return SalesInvoiceModel.fromMap(result);
   }
 
   async fetchByID(id: number): Promise<SalesInvoiceModel | null> {
@@ -370,109 +377,6 @@ export class SalesInvoiceRepository {
     }
   }
 
-  async search(
-    filterObject: any,
-    keyword: string,
-    page: number,
-    pageSize: number
-  ): Promise<IFetchCommonResult<SalesInvoiceModel>> {
-    // filterObject has several keys
-    // 1. dateStart: Date | null
-    // 2. dateEnd : Date | null
-    // 3. CustomerID: number[]
-    // 4. Status
-    // Fist, I need to filter if dateStart or dateEnd is not null
-    const where: any = {};
-
-    if (filterObject.dateStart) {
-      where.date = {
-        gte: filterObject.dateStart,
-      };
-    }
-
-    if (filterObject.dateEnd) {
-      where.date = {
-        ...where.date,
-        lte: filterObject.dateEnd,
-      };
-    }
-
-    if (filterObject.customerID.length > 0) {
-      where.customer_id = {
-        in: filterObject.customerID,
-      };
-    }
-
-    // if status == 0, then isDelete = 0
-    // if status == 1, then isDelete = 1
-    // if status == 2, then isDelete = 0 || isDelete = 1
-    if (filterObject.status === 0) {
-      where.is_delete = false;
-    } else if (filterObject.status === 1) {
-      where.is_delete = true;
-    }
-
-    // if keyword is not empty, then search by name or customer name
-    if (keyword) {
-      where.OR = [
-        {
-          name: {
-            contains: keyword,
-            mode: "insensitive",
-          },
-        },
-        {
-          customer: {
-            name: {
-              contains: keyword,
-              mode: "insensitive",
-            },
-          },
-        },
-        {
-          sales: {
-            name: {
-              contains: keyword,
-              mode: "insensitive",
-            },
-          },
-        },
-      ];
-    }
-
-    const [result, count] = await Promise.all([
-      this.prisma.sales_invoice_code.findMany({
-        where: {
-          ...where,
-        },
-        include: {
-          customer: true,
-        },
-        orderBy: {
-          date: "desc",
-        },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      }),
-
-      this.prisma.sales_invoice_code.count({
-        where: {
-          ...where,
-        },
-      }),
-      this.prisma.sales_invoice_code.count({
-        where: {
-          ...where,
-        },
-      }),
-    ]);
-
-    return {
-      data: result.map((x) => SalesInvoiceModel.fromMap(x)),
-      count: count,
-    };
-  }
-
   async checkSalesReturn(
     data: { quantity: number; bill_id: number }[]
   ): Promise<boolean> {
@@ -578,6 +482,8 @@ export class SalesInvoiceRepository {
     isDelete: boolean;
     sortBy: string;
     sortDirection: "asc" | "desc";
+    startDate: Date;
+    endDate: Date;
   }): Promise<IFetchArchiveResult<SalesInvoiceModel>> {
     try {
       let paymentFilter: any = {};
@@ -610,7 +516,7 @@ export class SalesInvoiceRepository {
         statusFilter = {
           OR: [
             {
-              is_confirm: true,
+              is_delete: false,
             },
             {
               is_delete: true,
@@ -619,7 +525,7 @@ export class SalesInvoiceRepository {
         };
       } else if (data.isActive) {
         statusFilter = {
-          is_confirm: true,
+          is_delete: false,
         };
       } else {
         statusFilter = {
@@ -661,6 +567,16 @@ export class SalesInvoiceRepository {
               {
                 date: {
                   lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                date: {
+                  gte: data.startDate,
+                },
+              },
+              {
+                date: {
+                  lte: data.endDate,
                 },
               },
               {
@@ -706,6 +622,16 @@ export class SalesInvoiceRepository {
               {
                 date: {
                   lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                date: {
+                  gte: data.startDate,
+                },
+              },
+              {
+                date: {
+                  lte: data.endDate,
                 },
               },
               {
@@ -778,5 +704,22 @@ export class SalesInvoiceRepository {
         return quantity < returned + returnQuantity;
       }).length == 0
     );
+  }
+
+  async fetchSales(): Promise<string[]> {
+    try {
+      const sales = await this.prisma.sales_invoice_code.groupBy({
+        by: ["sales"],
+        where: {
+          sales: {
+            not: null,
+          },
+        },
+      });
+
+      return sales.map((x) => x.sales).filter((x): x is string => x != null);
+    } catch (error) {
+      throw error;
+    }
   }
 }

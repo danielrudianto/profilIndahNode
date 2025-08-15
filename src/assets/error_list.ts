@@ -189,6 +189,7 @@ enum ErrorList {
   "Payment date is required" = "Data tanggal pembayaran tidak boleh kosong",
   "Promotion not found" = "Promosi tidak ditemukan",
   "Supplier has been used" = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.",
+  "Sales invoice not found" = "Data faktur penjualan tidak ditemukan",
 }
 
 export default ErrorList;

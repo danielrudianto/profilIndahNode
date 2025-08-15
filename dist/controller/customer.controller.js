@@ -3,7 +3,6 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const meili_helper_1 = require("../helper/meili.helper");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const socket_helper_1 = __importDefault(require("../helper/socket.helper"));
 const escape_helper_1 = require("../helper/escape.helper");
@@ -25,6 +24,10 @@ class CustomerController {
                     phone_number: phone_number,
                     created_by: userID,
                     created_at: new Date(),
+                    can_delete: false,
+                    is_delete: false,
+                    deleted_at: null,
+                    deleted_by: null,
                 });
                 return res.status(201).send(result);
             }
@@ -57,6 +60,10 @@ class CustomerController {
                     phone_number: phone_number,
                     created_by: req.body.userId,
                     created_at: new Date(),
+                    is_delete: false,
+                    can_delete: false,
+                    deleted_by: null,
+                    deleted_at: null,
                 });
                 const socket = new socket_helper_1.default("updateCustomer", result);
                 socket.create();
@@ -82,14 +89,11 @@ class CustomerController {
                     return res.status(400).send(error_list_1.default["Delete error"]);
                 }
                 const customer = await this.customerRepository.delete(id, userID);
-                await meili_helper_1.meili.index("customer").deleteDocument(customer.id);
-                const socket = new socket_helper_1.default("deleteCustomer", customer);
-                socket.create();
                 return res.status(200).send(customer);
             }
             catch (error) {
                 console.error(`[error]: Error on deleting customer: ${error}`);
-                return res.status(500).send(error_list_1.default["Internal server error"]);
+                return res.status(500).send(error);
             }
         };
         this.fetchByID = async (req, res) => {

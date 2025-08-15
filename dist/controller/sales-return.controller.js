@@ -145,58 +145,65 @@ class SalesReturnController {
         this.deleteByID = async (req, res) => {
             const id = Number(req.params.id);
             const userID = req.body.userId;
-            const salesReturn = await this.salesReturnRepository.fetchByID(id);
-            if (!salesReturn) {
-                return res.status(404).send(error_list_1.default["Not found"]);
+            try {
+                const salesReturn = await this.salesReturnRepository.fetchByID(id);
+                if (!salesReturn) {
+                    return res.status(404).send(error_list_1.default["Not found"]);
+                }
+                if (salesReturn.is_delete) {
+                    return res.status(400).send(error_list_1.default["Sales return already deleted"]);
+                }
+                const result = await this.salesReturnRepository.delete(id, userID);
+                console.log(result);
+                await this.stockCardRepository.deleteMany(salesReturn.sales_return.map((x) => {
+                    return {
+                        sales_invoice_code_id: salesReturn.sales_invoice_code_id,
+                        sales_invoice_id: x.sales_invoice_id,
+                        sales_return_code_id: salesReturn.id,
+                        sales_return_id: x.id,
+                        adjustment_case_code_id: null,
+                        adjustment_case_id: null,
+                        good_receipt_code_id: null,
+                        good_receipt_id: null,
+                    };
+                }));
+                await this.stockRepository.updateMany(salesReturn.sales_return.map((x) => {
+                    var _a;
+                    return {
+                        quantity: -1 *
+                            x.quantity *
+                            (((_a = x.sales_invoice) === null || _a === void 0 ? void 0 : _a.product_unit) == null
+                                ? 1
+                                : x.sales_invoice.product_unit.conversion),
+                        productID: x.sales_invoice.product_id,
+                    };
+                }));
+                await this.stockOutRepository.create(salesReturn.sales_return.map((x) => {
+                    var _a;
+                    return {
+                        sales_invoice_code_id: salesReturn.sales_invoice_code_id,
+                        sales_invoice_id: x.sales_invoice_id,
+                        date: salesReturn.sales_invoice_code.date,
+                        product_id: x.sales_invoice.product_id,
+                        quantity: x.quantity *
+                            (x.sales_invoice.product_unit == null
+                                ? 1
+                                : x.sales_invoice.product_unit.conversion),
+                        price: (x.sales_invoice.price - x.sales_invoice.discount) /
+                            (((_a = x.sales_invoice) === null || _a === void 0 ? void 0 : _a.product_unit) == null
+                                ? 1
+                                : x.sales_invoice.product_unit.conversion),
+                        stock_in_id: null,
+                        adjustment_case_code_id: null,
+                        adjustment_case_id: null,
+                    };
+                }));
+                return res.status(201).send(result);
             }
-            if (salesReturn.is_delete) {
-                return res.status(400).send(error_list_1.default["Sales return already deleted"]);
+            catch (error) {
+                console.error(`[error]: Error on deleting sales return ${error}`);
+                return res.status(500).send(error);
             }
-            const result = await this.salesReturnRepository.delete(id, userID);
-            await this.stockCardRepository.deleteMany(salesReturn.sales_return.map((x) => {
-                return {
-                    sales_invoice_code_id: salesReturn.sales_invoice_code_id,
-                    sales_invoice_id: x.sales_invoice_id,
-                    sales_return_code_id: salesReturn.id,
-                    sales_return_id: x.id,
-                    adjustment_case_code_id: null,
-                    adjustment_case_id: null,
-                    good_receipt_code_id: null,
-                    good_receipt_id: null,
-                };
-            }));
-            await this.stockRepository.updateMany(salesReturn.sales_return.map((x) => {
-                var _a;
-                return {
-                    quantity: -1 *
-                        x.quantity *
-                        (((_a = x.sales_invoice) === null || _a === void 0 ? void 0 : _a.product_unit) == null
-                            ? 1
-                            : x.sales_invoice.product_unit.conversion),
-                    productID: x.sales_invoice.product_id,
-                };
-            }));
-            await this.stockOutRepository.create(salesReturn.sales_return.map((x) => {
-                var _a;
-                return {
-                    sales_invoice_code_id: salesReturn.sales_invoice_code_id,
-                    sales_invoice_id: x.sales_invoice_id,
-                    date: salesReturn.sales_invoice_code.date,
-                    product_id: x.sales_invoice.product_id,
-                    quantity: x.quantity *
-                        (x.sales_invoice.product_unit == null
-                            ? 1
-                            : x.sales_invoice.product_unit.conversion),
-                    price: (x.sales_invoice.price - x.sales_invoice.discount) /
-                        (((_a = x.sales_invoice) === null || _a === void 0 ? void 0 : _a.product_unit) == null
-                            ? 1
-                            : x.sales_invoice.product_unit.conversion),
-                    stock_in_id: null,
-                    adjustment_case_code_id: null,
-                    adjustment_case_id: null,
-                };
-            }));
-            return res.status(201).send(result);
         };
         this.salesReturnRepository = salesReturnRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;

@@ -19,6 +19,9 @@ const stock_out_service_1 = require("./services/stock-out.service");
 const stock_out_repository_1 = require("./repositories/stock-out.repository");
 const stock_card_service_1 = require("./services/stock-card.service");
 const stock_card_repository_1 = require("./repositories/stock-card.repository");
+const sales_invoice_service_1 = require("./services/sales-invoice.service");
+const sales_invoice_repository_1 = require("./repositories/sales-invoice.repository");
+const stock_repository_1 = require("./repositories/stock.repository");
 async function connect() {
     await database_helper_1.prisma.$connect();
     console.info("[info]: Connected with database using Prisma");
@@ -93,6 +96,10 @@ async function syncProductPackage() {
     await meili_helper_1.meili.waitForTask(productPackageInsertTask.taskUid);
     console.info(`[info]: Product package database successfully inserted`);
 }
+async function syncSales() {
+    const salesInvoiceService = new sales_invoice_service_1.SalesInvoiceService(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new stock_repository_1.StockRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma));
+    const sales = await salesInvoiceService.fetchSales();
+}
 async function insertStockInOut() {
     const stockInService = new stock_in_service_1.StockInService(new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
     const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
@@ -136,6 +143,9 @@ async function runFunction(funcName) {
             process.exit(0);
         case "insertStockCard":
             await insertStockCard();
+            process.exit(0);
+        case "syncSales":
+            await syncSales();
             process.exit(0);
         default:
             console.error("[error]: Function not found");

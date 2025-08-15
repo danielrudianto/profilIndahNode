@@ -312,6 +312,16 @@ class AdjustmentCaseRepository {
                                     lte: new Date(data.year, data.month, 0),
                                 },
                             },
+                            {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
+                                },
+                            },
                             statusFilter,
                             typeFilter,
                         ],
@@ -348,6 +358,16 @@ class AdjustmentCaseRepository {
                             {
                                 date: {
                                     lte: new Date(data.year, data.month, 0),
+                                },
+                            },
+                            {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
                                 },
                             },
                         ],

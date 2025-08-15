@@ -171,6 +171,8 @@ class ReportController {
                 const salesInvoicePaymentIndex = salesInvoicePayments.findIndex((x) => x.payment_method_id == null);
                 const salesDepositPaymentIndex = salesDepositPayments.findIndex((x) => x.payment_method_id == null);
                 const salesReturnPaymentIndex = salesReturnPayments.findIndex((x) => x.payment_method_id == null);
+                console.log(salesInvoiceDORPayments);
+                console.log(salesDepositDORPayments);
                 return res.status(200).send([
                     {
                         id: null,
@@ -203,14 +205,6 @@ class ReportController {
                                 : salesReturnPayments[salesReturnIndex].value,
                         };
                     }),
-                    {
-                        id: 0,
-                        name: "DOR",
-                        salesInvoice: salesInvoiceDORPayments,
-                        salesDeposit: salesDepositPaymentIndex == -1
-                            ? 0
-                            : salesDepositPayments[salesDepositPaymentIndex].value,
-                    },
                 ]);
             }
             catch (error) {

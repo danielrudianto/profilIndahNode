@@ -171,6 +171,7 @@ var ErrorList;
     ErrorList["Payment date is required"] = "Data tanggal pembayaran tidak boleh kosong";
     ErrorList["Promotion not found"] = "Promosi tidak ditemukan";
     ErrorList["Supplier has been used"] = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.";
+    ErrorList["Sales invoice not found"] = "Data faktur penjualan tidak ditemukan";
 })(ErrorList || (ErrorList = {}));
 exports.default = ErrorList;
 //# sourceMappingURL=error_list.js.map

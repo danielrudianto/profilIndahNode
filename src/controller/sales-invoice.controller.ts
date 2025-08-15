@@ -256,7 +256,7 @@ class SalesInvoiceController {
     const month = req.body.month;
     const keyword = translateKeyword(req.body.keyword);
     const page = translatePage(req.body.page);
-    const offset = req.body.pageSize;
+    const pageSize = req.body.pageSize;
     const isActive = req.body.isActive as boolean;
     const isDelete = req.body.isDelete as boolean;
 
@@ -266,19 +266,24 @@ class SalesInvoiceController {
     const sortBy = req.body.sortBy;
     const sortDirection = req.body.sortDirection;
 
+    const startDate = new Date(req.body.startDate);
+    const endDate = new Date(req.body.endDate);
+
     try {
       const result = await this.salesInvoiceRepository.fetchArchives({
         month: month,
         year: year,
         keyword: keyword,
-        limit: offset,
-        offset: (page - 1) * offset,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         isPaid: isPaid,
         isActive: isActive,
         isUnpaid: isUnpaid,
         isDelete: isDelete,
         sortBy: sortBy,
         sortDirection: sortDirection,
+        startDate: startDate,
+        endDate: endDate,
       });
       return res.status(200).send(result);
     } catch (error) {
@@ -319,27 +324,6 @@ class SalesInvoiceController {
     }
   };
 
-  search = async (req: Request, res: Response) => {
-    const filterObject = req.body.filterObject;
-    const keyword = translateKeyword(req.body.keyword);
-    const page = translatePage(req.body.page);
-    const pageSize = Number(process.env.LIMIT);
-
-    try {
-      const result = await this.salesInvoiceRepository.search(
-        this.validateSearch(filterObject),
-        keyword,
-        page,
-        pageSize
-      );
-
-      return res.status(200).send(result);
-    } catch (error) {
-      console.error(`[error]: Error on searching sales invoice ${error}`);
-      return res.status(500).send(ErrorList["Internal server error"]);
-    }
-  };
-
   searchSalesReturn = async (req: Request, res: Response) => {
     const date = new Date(req.body.date);
     const sales_invoice = req.body.sales_invoice;
@@ -355,17 +339,6 @@ class SalesInvoiceController {
       console.error(`[error]: Error on fetching sales return ${error}`);
       return res.status(500).send(error);
     }
-  };
-
-  private validateSearch = (filters: any) => {
-    const {
-      dateStart = null,
-      dateEnd = null,
-      customers = [],
-      status = 2,
-    } = filters;
-
-    return { dateStart, dateEnd, customers, status };
   };
 
   /**

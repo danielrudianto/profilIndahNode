@@ -1,8 +1,12 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesInvoiceRepository = void 0;
 const sales_invoice_model_1 = require("../model/sales-invoice.model");
 const date_helper_1 = require("../helper/date.helper");
+const error_list_1 = __importDefault(require("../assets/error_list"));
 class SalesInvoiceRepository {
     constructor(prisma) {
         this.prisma = prisma;
@@ -65,19 +69,26 @@ class SalesInvoiceRepository {
         return `INV-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
     }
     async deleteByID(id, userID) {
-        const result = await this.prisma.sales_invoice_code.update({
-            where: {
-                id: id,
-            },
-            data: {
-                is_delete: true,
-                is_confirm: false,
-            },
-        });
-        if (!result) {
-            throw new Error("Sales invoice not found or already deleted");
+        try {
+            const result = await this.prisma.sales_invoice_code.update({
+                where: {
+                    id: id,
+                },
+                data: {
+                    is_delete: true,
+                    is_confirm: false,
+                    confirmed_at: new Date(),
+                    confirmed_by: userID,
+                },
+            });
+            if (!result) {
+                throw new Error(error_list_1.default["Sales invoice not found"]);
+            }
+            return sales_invoice_model_1.SalesInvoiceModel.fromMap(result);
         }
-        return sales_invoice_model_1.SalesInvoiceModel.fromMap(result);
+        catch (error) {
+            throw error;
+        }
     }
     async fetchByID(id) {
         try {
@@ -307,87 +318,6 @@ class SalesInvoiceRepository {
             throw error;
         }
     }
-    async search(filterObject, keyword, page, pageSize) {
-        // filterObject has several keys
-        // 1. dateStart: Date | null
-        // 2. dateEnd : Date | null
-        // 3. CustomerID: number[]
-        // 4. Status
-        // Fist, I need to filter if dateStart or dateEnd is not null
-        const where = {};
-        if (filterObject.dateStart) {
-            where.date = {
-                gte: filterObject.dateStart,
-            };
-        }
-        if (filterObject.dateEnd) {
-            where.date = Object.assign(Object.assign({}, where.date), { lte: filterObject.dateEnd });
-        }
-        if (filterObject.customerID.length > 0) {
-            where.customer_id = {
-                in: filterObject.customerID,
-            };
-        }
-        // if status == 0, then isDelete = 0
-        // if status == 1, then isDelete = 1
-        // if status == 2, then isDelete = 0 || isDelete = 1
-        if (filterObject.status === 0) {
-            where.is_delete = false;
-        }
-        else if (filterObject.status === 1) {
-            where.is_delete = true;
-        }
-        // if keyword is not empty, then search by name or customer name
-        if (keyword) {
-            where.OR = [
-                {
-                    name: {
-                        contains: keyword,
-                        mode: "insensitive",
-                    },
-                },
-                {
-                    customer: {
-                        name: {
-                            contains: keyword,
-                            mode: "insensitive",
-                        },
-                    },
-                },
-                {
-                    sales: {
-                        name: {
-                            contains: keyword,
-                            mode: "insensitive",
-                        },
-                    },
-                },
-            ];
-        }
-        const [result, count] = await Promise.all([
-            this.prisma.sales_invoice_code.findMany({
-                where: Object.assign({}, where),
-                include: {
-                    customer: true,
-                },
-                orderBy: {
-                    date: "desc",
-                },
-                skip: (page - 1) * pageSize,
-                take: pageSize,
-            }),
-            this.prisma.sales_invoice_code.count({
-                where: Object.assign({}, where),
-            }),
-            this.prisma.sales_invoice_code.count({
-                where: Object.assign({}, where),
-            }),
-        ]);
-        return {
-            data: result.map((x) => sales_invoice_model_1.SalesInvoiceModel.fromMap(x)),
-            count: count,
-        };
-    }
     async checkSalesReturn(data) {
         try {
             const result = await this.prisma.sales_invoice.findMany({
@@ -499,7 +429,7 @@ class SalesInvoiceRepository {
                 statusFilter = {
                     OR: [
                         {
-                            is_confirm: true,
+                            is_delete: false,
                         },
                         {
                             is_delete: true,
@@ -509,7 +439,7 @@ class SalesInvoiceRepository {
             }
             else if (data.isActive) {
                 statusFilter = {
-                    is_confirm: true,
+                    is_delete: false,
                 };
             }
             else {
@@ -555,6 +485,16 @@ class SalesInvoiceRepository {
                                 },
                             },
                             {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
+                                },
+                            },
+                            {
                                 OR: [
                                     {
                                         name: {
@@ -597,6 +537,16 @@ class SalesInvoiceRepository {
                             {
                                 date: {
                                     lte: new Date(data.year, data.month, 0),
+                                },
+                            },
+                            {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
                                 },
                             },
                             {
@@ -660,6 +610,22 @@ class SalesInvoiceRepository {
             const returnQuantity = returnIndex == -1 ? 0 : sales_return_items[returnIndex].quantity;
             return quantity < returned + returnQuantity;
         }).length == 0);
+    }
+    async fetchSales() {
+        try {
+            const sales = await this.prisma.sales_invoice_code.groupBy({
+                by: ["sales"],
+                where: {
+                    sales: {
+                        not: null,
+                    },
+                },
+            });
+            return sales.map((x) => x.sales).filter((x) => x != null);
+        }
+        catch (error) {
+            throw error;
+        }
     }
 }
 exports.SalesInvoiceRepository = SalesInvoiceRepository;

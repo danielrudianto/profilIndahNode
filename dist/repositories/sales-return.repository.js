@@ -282,17 +282,36 @@ class SalesReturnRepository {
         }
     }
     async delete(id, userID) {
-        this.prisma.sales_return_code.update({
-            where: {
-                id: id,
-            },
-            data: {
-                is_delete: true,
-                is_confirm: false,
-                confirmed_at: new Date(),
-                confirmed_by: userID,
-            },
-        });
+        try {
+            const result = await this.prisma.sales_return_code.update({
+                where: {
+                    id: id,
+                },
+                data: {
+                    is_delete: true,
+                    is_confirm: false,
+                    confirmed_at: new Date(),
+                    confirmed_by: userID,
+                },
+                include: {
+                    sales_return: {
+                        include: {
+                            sales_invoice: {
+                                include: {
+                                    product: true,
+                                    product_unit: true,
+                                },
+                            },
+                        },
+                    },
+                    sales_invoice_code: true,
+                },
+            });
+            return sales_return_model_1.SalesReturnCodeModel.fromMap(result);
+        }
+        catch (error) {
+            throw error;
+        }
     }
 }
 exports.SalesReturnRepository = SalesReturnRepository;

@@ -68,13 +68,6 @@ router.post(
 );
 
 router.post(
-  "/search",
-  body("customers").isArray().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  salesInvoiceController.search
-);
-
-router.post(
   "/sales-return",
   body("date").notEmpty().withMessage(ErrorList["Parameter error"]),
   body("sales_invoice")

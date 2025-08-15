@@ -21,7 +21,7 @@ class ProductPackageService {
             if (!productPackage) {
                 throw Error("Package not found");
             }
-            meili_helper_1.meili.index("package").updateDocuments([productPackage]);
+            await meili_helper_1.meili.index("package").updateDocuments([productPackage]);
         }
         catch (error) {
             throw error;

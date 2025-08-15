@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesInvoiceService = void 0;
+const redis_helper_1 = require("../helper/redis.helper");
 class SalesInvoiceService {
     constructor(salesInvoiceRepository, stockRepository, stockCardRepository, stockOutRepository) {
         this.salesInvoiceRepository = salesInvoiceRepository;
@@ -24,6 +25,22 @@ class SalesInvoiceService {
         catch (error) {
             console.error(`[error]: Error on fetching sales invoice by ID ${id}: ${error}`);
             throw new Error("Internal server error");
+        }
+    }
+    async fetchSales() {
+        try {
+            const sales = await this.salesInvoiceRepository.fetchSales();
+            console.info(`[Info]: Found ${sales.length} salesman in sales invoices`);
+            await redis_helper_1.redisClient.del("salesmanList");
+            for (let i = 0; i < sales.length; i++) {
+                const salesName = sales[i];
+                console.info(`[Info]: Completed inserting ${salesName} -- progress ${i + 1}/${sales.length}`);
+                await redis_helper_1.redisClient.sAdd("salesmanList", salesName);
+            }
+        }
+        catch (error) {
+            console.error(`[error]: Error on sync salesman ${error}`);
+            throw error;
         }
     }
 }
