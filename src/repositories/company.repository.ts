@@ -264,6 +264,7 @@ export class CompanyRepository {
       FROM good_receipt_code
       WHERE good_receipt_code.is_delete = 0
       AND good_receipt_code.company_id = ${id}
+      GROUP BY good_receipt_code.company_id
     ) companyCount
     ON company.id = companyCount.company_id
     WHERE company.id = ${id}`;

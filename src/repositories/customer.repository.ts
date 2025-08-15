@@ -177,6 +177,7 @@ export class CustomerRepository {
           FROM sales_invoice_code
           WHERE sales_invoice_code.is_delete = 0
           AND sales_invoice_code.customer_id = ${id}
+          GROUP BY sales_invoice_code.customer_id
         ) itemCount
         ON customer.id = itemCount.customer_id
         WHERE customer.id = ${id}
