@@ -52,6 +52,9 @@ class SalesInvoicePaymentRepository {
                     sales_invoice_code: {
                         is_delete: false,
                     },
+                    payment_method_id: {
+                        not: 0,
+                    },
                 },
             });
             return result.map((x) => {
@@ -85,7 +88,9 @@ class SalesInvoicePaymentRepository {
                 },
             });
             const salesNames = Array.from(new Set(result.map((x) => { var _a; return (_a = x.sales_invoice_code) === null || _a === void 0 ? void 0 : _a.sales; })));
-            const salesSummary = salesNames.map((salesName) => ({
+            const salesSummary = salesNames
+                .filter((x) => x != null)
+                .map((salesName) => ({
                 sales: salesName,
                 value: result
                     .filter((x) => { var _a; return ((_a = x.sales_invoice_code) === null || _a === void 0 ? void 0 : _a.sales) === salesName; })

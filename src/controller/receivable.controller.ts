@@ -3,12 +3,18 @@ import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
 import ErrorList from "../assets/error_list";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 import { translatePage, translatePageSize } from "../helper/escape.helper";
+import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 
 class ReceivableController {
   private receivableRepository: ReceivableRepository;
+  private salesInvoiceRepository: SalesInvoiceRepository;
 
-  constructor(receivableRepository: ReceivableRepository) {
+  constructor(
+    receivableRepository: ReceivableRepository,
+    salesInvoiceRepository: SalesInvoiceRepository
+  ) {
     this.receivableRepository = receivableRepository;
+    this.salesInvoiceRepository = salesInvoiceRepository;
   }
 
   fetch = async (req: Request, res: Response) => {
@@ -127,27 +133,82 @@ class ReceivableController {
     //   });
   };
 
-  static createPayment = async (req: Request, res: Response) => {
-    // Helper function to validate sales invoice
-    const validateSalesInvoice = (
-      salesInvoice: any,
-      res: Response
-    ): boolean => {
-      if (!salesInvoice) {
-        res.status(404).send({ message: "Sales invoice not found" });
-        return false;
-      }
-      if (salesInvoice.is_delete) {
-        res.status(400).send({ message: "Sales invoice is already deleted" });
-        return false;
-      }
-      if (salesInvoice.is_paid) {
-        res.status(400).send({ message: "Sales invoice is already paid" });
-        return false;
-      }
-      return true;
-    };
+  createPayment = async (req: Request, res: Response) => {
+    try {
+      const {
+        date,
+        amount,
+        payment_method_id,
+        full_payment,
+        sales_invoice_id,
+      } = req.body;
 
+      console.log(date);
+
+      const salesInvoice = await this.salesInvoiceRepository.fetchByID(
+        sales_invoice_id
+      );
+
+      if (!salesInvoice || salesInvoice.isDelete) {
+        return res.status(404).send(ErrorList["Sales invoice not found"]);
+      }
+
+      // Calculate the total value of the sales invoice
+      const totalValue =
+        salesInvoice.sales_invoice!.reduce(
+          (sum: number, item: any) =>
+            sum + item.quantity * (item.price - item.discount),
+          0
+        ) +
+        salesInvoice.delivery +
+        salesInvoice.service -
+        salesInvoice.discount;
+
+      // Calculate the total previous payments
+      const previousPayment = salesInvoice.sales_invoice_payment!.reduce(
+        (sum: number, payment: any) => sum + payment.value,
+        0
+      );
+
+      const maximumPaymentValue = totalValue - previousPayment;
+
+      // Handle full payment
+      if (full_payment) {
+        const result = await this.receivableRepository.create({
+          date: new Date(date),
+          payment_method_id,
+          sales_invoice_code_id: sales_invoice_id,
+          amount: maximumPaymentValue,
+          is_paid: true,
+        });
+        return res.status(201).send(result);
+      }
+
+      // Handle partial payment
+      if (amount > maximumPaymentValue) {
+        return res
+          .status(400)
+          .send(ErrorList["Receivable exceed sales invoice"]);
+      }
+
+      const result = await this.receivableRepository.create({
+        date: new Date(date),
+        payment_method_id,
+        sales_invoice_code_id: sales_invoice_id,
+        amount,
+        is_paid: amount === maximumPaymentValue,
+      });
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on creating sales invoice payment ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
+  static createPayment = async (req: Request, res: Response) => {
     // Helper function to calculate invoice values
     const calculateInvoiceValues = (salesInvoice: any) => {
       const totalInvoice = salesInvoice.bill.reduce((a: any, b: any) => {

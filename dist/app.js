@@ -63,6 +63,9 @@ const compression_1 = __importDefault(require("compression"));
 const helmet_1 = __importDefault(require("helmet"));
 const redis_helper_1 = require("./helper/redis.helper");
 const database_helper_1 = require("./helper/database.helper");
+const stock_out_service_1 = require("./services/stock-out.service");
+const stock_out_repository_1 = require("./repositories/stock-out.repository");
+const stock_in_repository_1 = require("./repositories/stock-in.repository");
 const allowedOrigins = [
     "http://localhost:2100",
     "https://stock.profilindah.id",
@@ -77,9 +80,11 @@ async function main() {
     console.info("[info]: Connected with database using Prisma");
     await redis_helper_1.redisClient.connect();
     console.info("[info]: Connected with redis");
-    // Every day at midnight check for overflow
-    node_cron_1.default.schedule("0 0 * * *", async () => {
-        // Assigning
+    const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
+    await stockOutService.calculateStockOut();
+    node_cron_1.default.schedule("0 0,12 * * *", async () => {
+        // Assigning stock out to stock in
+        await stockOutService.calculateStockOut();
     });
     const app = (0, express_1.default)();
     app.use((0, compression_1.default)());

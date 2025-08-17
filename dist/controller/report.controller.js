@@ -139,8 +139,12 @@ class ReportController {
             const year = Number(req.body.year);
             try {
                 const result = await this.salesInvoiceRepository.fetchDownload(month, year);
+                return res.status(200).send(result);
             }
-            catch (error) { }
+            catch (error) {
+                console.error(`[error]: Error on fetching sales report ${error}`);
+                return res.status(500).send(error);
+            }
         };
         this.fetchPurchaseReport = async (req, res) => {
             const month = Number(req.body.month);
@@ -159,6 +163,18 @@ class ReportController {
                 type: type,
             });
         };
+        this.downloadPurchaseReport = async (req, res) => {
+            try {
+                const month = Number(req.body.month);
+                const year = Number(req.body.year);
+                const result = await this.goodReceiptRepository.fetchDownload(month, year);
+                return res.status(200).send(result);
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching purchase invoice report ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         this.fetchMoneyReceipt = async (req, res) => {
             try {
                 const date = new Date(req.body.date);
@@ -171,8 +187,37 @@ class ReportController {
                 const salesInvoicePaymentIndex = salesInvoicePayments.findIndex((x) => x.payment_method_id == null);
                 const salesDepositPaymentIndex = salesDepositPayments.findIndex((x) => x.payment_method_id == null);
                 const salesReturnPaymentIndex = salesReturnPayments.findIndex((x) => x.payment_method_id == null);
-                console.log(salesInvoiceDORPayments);
-                console.log(salesDepositDORPayments);
+                const dorData = [];
+                for (let i = 0; i < salesDepositDORPayments.length; i++) {
+                    const check = checkExistingSales(salesDepositDORPayments[i].sales);
+                    if (check == -1) {
+                        dorData.push({
+                            sales: salesDepositDORPayments[i].sales,
+                            salesInvoice: 0,
+                            salesDeposit: salesDepositDORPayments[i].value,
+                        });
+                    }
+                    else {
+                        dorData[check].salesDeposit += salesDepositDORPayments[i].value;
+                    }
+                }
+                for (let i = 0; i < salesInvoiceDORPayments.length; i++) {
+                    const check = checkExistingSales(salesInvoiceDORPayments[i].sales);
+                    if (check == -1) {
+                        dorData.push({
+                            sales: salesInvoiceDORPayments[i].sales,
+                            salesInvoice: salesInvoiceDORPayments[i].value,
+                            salesDeposit: 0,
+                        });
+                    }
+                    else {
+                        dorData[check].salesInvoice += salesInvoiceDORPayments[i].value;
+                    }
+                }
+                function checkExistingSales(sales) {
+                    const index = dorData.findIndex((x) => x.sales == sales);
+                    return index;
+                }
                 return res.status(200).send([
                     {
                         id: null,
@@ -186,6 +231,11 @@ class ReportController {
                         salesReturn: salesReturnPaymentIndex == -1
                             ? 0
                             : salesReturnPayments[salesReturnPaymentIndex].value,
+                    },
+                    {
+                        id: 0,
+                        name: "DOR",
+                        data: dorData,
                     },
                     ...paymentMethods.map((x) => {
                         const salesInvoiceIndex = salesInvoicePayments.findIndex((y) => y.payment_method_id == x.id);

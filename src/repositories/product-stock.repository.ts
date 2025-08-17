@@ -93,6 +93,27 @@ export class ProductStockRepository {
     };
   }
 
+  async fetchStockByProductID(id: number[]) {
+    try {
+      const stock = await this.prisma.product_stock.findMany({
+        where: {
+          id: {
+            in: id,
+          },
+        },
+      });
+
+      return stock.map((x) => {
+        return {
+          product_id: x.id,
+          stock: Number(x.stock),
+        };
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchProblematicStock(data: {
     page: number;
     pageSize: number;

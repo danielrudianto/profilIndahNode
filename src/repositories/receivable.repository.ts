@@ -1,5 +1,6 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { SalesInvoiceModel } from "../model/sales-invoice.model";
+import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
 
 export class ReceivableRepository {
   redisClient: any;
@@ -24,6 +25,42 @@ export class ReceivableRepository {
       return 0; // Return 0 if no value is set
     } else {
       return Number(value);
+    }
+  }
+
+  async create(data: {
+    sales_invoice_code_id: number;
+    date: Date;
+    amount: number;
+    payment_method_id: number | null;
+    is_paid: boolean;
+  }) {
+    try {
+      const [result, _] = await this.prisma.$transaction([
+        this.prisma.sales_invoice_payment.create({
+          data: {
+            date: data.date,
+            payment_method_id: data.payment_method_id,
+            value: data.amount,
+            sales_invoice_code_id: data.sales_invoice_code_id,
+          },
+          include: {
+            payment_method: true,
+          },
+        }),
+        this.prisma.sales_invoice_code.update({
+          where: {
+            id: data.sales_invoice_code_id,
+          },
+          data: {
+            is_paid: data.is_paid,
+          },
+        }),
+      ]);
+
+      return SalesInvoicePaymentModel.fromMap(result);
+    } catch (error) {
+      throw error;
     }
   }
 

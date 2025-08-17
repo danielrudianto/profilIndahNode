@@ -10,7 +10,7 @@ const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
 const escape_helper_1 = require("../helper/escape.helper");
 class ProductStockController {
-    constructor(productStockRepository, productRepository) {
+    constructor(productStockRepository, productPackageRepository, productRepository) {
         this.fetchProblematic = async (req, res) => {
             const page = (0, escape_helper_1.translatePage)(req.body.page);
             const keyword = (0, escape_helper_1.translateKeyword)(req.body.keyword);
@@ -536,7 +536,46 @@ class ProductStockController {
                 return res.status(500).send(error);
             }
         };
+        this.fetchByProductID = async (req, res) => {
+            try {
+                const id = Number(req.params.id);
+                const stock = await this.productStockRepository.fetchStockByProductID([
+                    id,
+                ]);
+                return res.status(200).send(stock.length == 0 ? 0 : stock[0]);
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching product stock ${error}`);
+                return res.status(500).send(error);
+            }
+        };
+        this.fetchByPackageID = async (req, res) => {
+            try {
+                const id = Number(req.params.id);
+                const productPackage = await this.productPackageRepository.fetchByID(id);
+                if (!productPackage) {
+                    return res.status(404).send(error_list_1.default["Product package not found"]);
+                }
+                else {
+                    const stock = await this.productStockRepository.fetchStockByProductID(productPackage.package_content.map((x) => {
+                        return x.product_id;
+                    }));
+                    return res.status(200).send(productPackage.package_content.map((x) => {
+                        const index = stock.findIndex((y) => y.product_id == x.product_id);
+                        return {
+                            product_id: x.product_id,
+                            stock: index == -1 ? 0 : stock[index].stock,
+                        };
+                    }));
+                }
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching package stock ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         this.productStockRepository = productStockRepository;
+        this.productPackageRepository = productPackageRepository;
         this.productRepository = productRepository;
     }
 }

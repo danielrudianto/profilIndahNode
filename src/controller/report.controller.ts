@@ -278,7 +278,12 @@ class ReportController {
         month,
         year
       );
-    } catch (error) {}
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching sales report ${error}`);
+      return res.status(500).send(error);
+    }
   };
 
   fetchPurchaseReport = async (req: Request, res: Response) => {
@@ -308,10 +313,28 @@ class ReportController {
     });
   };
 
+  downloadPurchaseReport = async (req: Request, res: Response) => {
+    try {
+      const month = Number(req.body.month);
+      const year = Number(req.body.year);
+
+      const result = await this.goodReceiptRepository.fetchDownload(
+        month,
+        year
+      );
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching purchase invoice report ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
   fetchMoneyReceipt = async (req: Request, res: Response) => {
     try {
       const date = new Date(req.body.date);
-
       const paymentMethods = await this.paymentMethodRepository.fetchAll();
 
       const salesInvoicePayments =
@@ -339,8 +362,42 @@ class ReportController {
         (x) => x.payment_method_id == null
       );
 
-      console.log(salesInvoiceDORPayments);
-      console.log(salesDepositDORPayments);
+      const dorData: {
+        sales: string | null;
+        salesInvoice: number;
+        salesDeposit: number;
+      }[] = [];
+
+      for (let i = 0; i < salesDepositDORPayments.length; i++) {
+        const check = checkExistingSales(salesDepositDORPayments[i].sales);
+        if (check == -1) {
+          dorData.push({
+            sales: salesDepositDORPayments[i].sales,
+            salesInvoice: 0,
+            salesDeposit: salesDepositDORPayments[i].value,
+          });
+        } else {
+          dorData[check].salesDeposit += salesDepositDORPayments[i].value;
+        }
+      }
+
+      for (let i = 0; i < salesInvoiceDORPayments.length; i++) {
+        const check = checkExistingSales(salesInvoiceDORPayments[i].sales);
+        if (check == -1) {
+          dorData.push({
+            sales: salesInvoiceDORPayments[i].sales,
+            salesInvoice: salesInvoiceDORPayments[i].value,
+            salesDeposit: 0,
+          });
+        } else {
+          dorData[check].salesInvoice += salesInvoiceDORPayments[i].value;
+        }
+      }
+
+      function checkExistingSales(sales: string | null): number {
+        const index = dorData.findIndex((x) => x.sales == sales);
+        return index;
+      }
 
       return res.status(200).send([
         {
@@ -358,6 +415,11 @@ class ReportController {
             salesReturnPaymentIndex == -1
               ? 0
               : salesReturnPayments[salesReturnPaymentIndex].value,
+        },
+        {
+          id: 0,
+          name: "DOR",
+          data: dorData,
         },
         ...paymentMethods.map((x) => {
           const salesInvoiceIndex = salesInvoicePayments.findIndex(

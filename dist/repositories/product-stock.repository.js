@@ -83,6 +83,26 @@ class ProductStockRepository {
             count: count,
         };
     }
+    async fetchStockByProductID(id) {
+        try {
+            const stock = await this.prisma.product_stock.findMany({
+                where: {
+                    id: {
+                        in: id,
+                    },
+                },
+            });
+            return stock.map((x) => {
+                return {
+                    product_id: x.id,
+                    stock: Number(x.stock),
+                };
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchProblematicStock(data) {
         try {
             let where = {

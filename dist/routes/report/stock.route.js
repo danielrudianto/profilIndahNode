@@ -11,9 +11,12 @@ const database_helper_1 = require("../../helper/database.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const product_stock_repository_1 = require("../../repositories/product-stock.repository");
 const product_repository_1 = require("../../repositories/product.repository");
+const product_package_repository_1 = require("../../repositories/product-package.repository");
 const router = (0, express_1.Router)();
-const productStockController = new product_stock_controller_1.default(new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma));
-router.get("/:id", (0, express_validator_1.param)("id").exists().isNumeric().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.query)("page").notEmpty().withMessage(error_list_1.default["Page is required"]), (0, express_validator_1.query)("page")
+const productStockController = new product_stock_controller_1.default(new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new product_package_repository_1.ProductPackageRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma));
+router.get("/product/:id", (0, express_validator_1.param)("id").exists().isNumeric().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, productStockController.fetchByProductID);
+router.get("/package/:id", (0, express_validator_1.param)("id").exists().isNumeric().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, productStockController.fetchByPackageID);
+router.get("/:id", (0, express_validator_1.param)("id").exists().isNumeric().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["ID must be numeric"]), (0, express_validator_1.query)("page").notEmpty().withMessage(error_list_1.default["Page is required"]), (0, express_validator_1.query)("page")
     .isInt({
     min: 1,
 })

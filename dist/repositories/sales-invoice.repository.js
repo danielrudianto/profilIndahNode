@@ -266,7 +266,48 @@ class SalesInvoiceRepository {
         const data = result[0];
         return data.sales;
     }
-    async fetchDownload(month, year) { }
+    async fetchDownload(month, year) {
+        try {
+            const result = await this.prisma.sales_invoice_code.findMany({
+                where: {
+                    AND: [
+                        {
+                            date: {
+                                lte: new Date(year, month, 0),
+                            },
+                        },
+                        {
+                            date: {
+                                gte: new Date(year, month - 1, 1),
+                            },
+                        },
+                    ],
+                    is_delete: false,
+                },
+                include: {
+                    sales_invoice: true,
+                    customer: true,
+                },
+            });
+            return result.map((x) => {
+                return {
+                    date: x.date,
+                    sales: x.sales,
+                    customer_name: x.customer == null ? "Retail" : x.customer.name,
+                    name: x.name,
+                    delivery: Number(x.delivery),
+                    discount: Number(x.discount),
+                    service: Number(x.service),
+                    value: x.sales_invoice.reduce((a, b) => {
+                        return (a + Number(b.quantity) * (Number(b.price) - Number(b.discount)));
+                    }, 0),
+                };
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async searchByReturns(date, sales_invoice) {
         const productConditions = sales_invoice.map((item) => ({
             product_id: item.product_id,

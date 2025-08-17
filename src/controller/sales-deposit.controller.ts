@@ -121,6 +121,10 @@ export class SalesDepositController {
     try {
       const id = Number(req.params.id);
       const result = await this.salesDepositRepository.fetchByID(id);
+      if (!result) {
+        return res.status(404).send(ErrorList["Sales deposit not found"]);
+      }
+
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching sales deposit ${error}`);

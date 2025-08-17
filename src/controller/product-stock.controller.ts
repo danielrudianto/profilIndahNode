@@ -6,16 +6,20 @@ import { mongoStockCardModel } from "../mongo-model/mongo-stock-card.model";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { ProductRepository } from "../repositories/product.repository";
+import { ProductPackageRepository } from "../repositories/product-package.repository";
 
 class ProductStockController {
   productStockRepository: ProductStockRepository;
+  productPackageRepository: ProductPackageRepository;
   productRepository: ProductRepository;
 
   constructor(
     productStockRepository: ProductStockRepository,
+    productPackageRepository: ProductPackageRepository,
     productRepository: ProductRepository
   ) {
     this.productStockRepository = productStockRepository;
+    this.productPackageRepository = productPackageRepository;
     this.productRepository = productRepository;
   }
 
@@ -568,6 +572,49 @@ class ProductStockController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching product stock card ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchByProductID = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const stock = await this.productStockRepository.fetchStockByProductID([
+        id,
+      ]);
+
+      return res.status(200).send(stock.length == 0 ? 0 : stock[0]);
+    } catch (error) {
+      console.error(`[error]: Error on fetching product stock ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchByPackageID = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const productPackage = await this.productPackageRepository.fetchByID(id);
+      if (!productPackage) {
+        return res.status(404).send(ErrorList["Product package not found"]);
+      } else {
+        const stock = await this.productStockRepository.fetchStockByProductID(
+          productPackage.package_content!.map((x) => {
+            return x.product_id;
+          })
+        );
+
+        return res.status(200).send(
+          productPackage.package_content!.map((x) => {
+            const index = stock.findIndex((y) => y.product_id == x.product_id);
+            return {
+              product_id: x.product_id,
+              stock: index == -1 ? 0 : stock[index].stock,
+            };
+          })
+        );
+      }
+    } catch (error) {
+      console.error(`[error]: Error on fetching package stock ${error}`);
       return res.status(500).send(error);
     }
   };

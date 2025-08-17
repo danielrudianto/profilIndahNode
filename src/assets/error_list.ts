@@ -64,6 +64,7 @@ enum ErrorList {
   "Purchase invoice already confirmed" = "Invoice pembelian sudah dikonfirmasi.",
   "Purchase invoice already deleted" = "Invoice pembelian sudah dihapus.",
   "Payment method required" = "Metode pembayaran tidak boleh kosong.",
+  "Payment status required" = "Status pembayaran tidak boleh kosong",
   "Payment method must be numeric" = "Metode pembayaran harus berupa angka.",
   "Payment status is required" = "Status pembyaaran tidak boleh kosong.",
   "Delivery required" = "Pengiriman tidak boleh kosong.",
@@ -148,6 +149,7 @@ enum ErrorList {
   "Sales invoice creation failed" = "Gagal membentuk nota baru.",
   "Good receipt creation failed" = "Gagal membentuk penerimaan barang baru.",
   "Sales deposit creation failed" = "Gagal membentuk deposit baru.",
+  "Sales deposit not found" = "Deposit penjualan tidak ditemukan",
   "Sales return creation failed" = "Gagal membentuk retur penjualan baru.",
 
   "Archives parameter error" = "Terjadi kesalahan pada parameter arsip.",
@@ -190,6 +192,7 @@ enum ErrorList {
   "Promotion not found" = "Promosi tidak ditemukan",
   "Supplier has been used" = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.",
   "Sales invoice not found" = "Data faktur penjualan tidak ditemukan",
+  "Receivable exceed sales invoice" = "Nilai pembayaran melebihi nilai faktur penjualan",
 }
 
 export default ErrorList;

@@ -20,6 +20,9 @@ export class SalesDepositPaymentRepository {
           sales_deposit_code: {
             is_delete: false,
           },
+          payment_method_id: {
+            not: 0,
+          },
         },
       });
 
@@ -58,12 +61,14 @@ export class SalesDepositPaymentRepository {
         new Set(result.map((x) => x.sales_deposit_code?.sales))
       );
 
-      const salesSummary = salesNames.map((salesName) => ({
-        sales: salesName,
-        value: result
-          .filter((x) => x.sales_deposit_code?.sales === salesName)
-          .reduce((sum, x) => sum + Number(x.value), 0),
-      }));
+      const salesSummary = salesNames
+        .filter((x) => x != null)
+        .map((salesName) => ({
+          sales: salesName,
+          value: result
+            .filter((x) => x.sales_deposit_code?.sales === salesName)
+            .reduce((sum, x) => sum + Number(x.value), 0),
+        }));
 
       return salesSummary;
     } catch (error) {

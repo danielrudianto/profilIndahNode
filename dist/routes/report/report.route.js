@@ -100,7 +100,7 @@ router.post("/purchase/download", (0, express_validator_1.body)("month").notEmpt
     .isInt({
     min: 2000,
 })
-    .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, report_controller_1.default.downloadPurchaseReport);
+    .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.downloadPurchaseReport);
 router.post("/profitloss", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({
     min: 0,
@@ -136,7 +136,7 @@ router.post("/sales/download", (0, express_validator_1.body)("month").notEmpty()
     min: 0,
     max: 12,
 })
-    .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("month")
+    .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
     .isInt({
     min: 2000,
 })

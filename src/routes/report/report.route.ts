@@ -197,7 +197,7 @@ router.post(
     })
     .withMessage(ErrorList["Year must be numeric"]),
   ErrorHelper.intercept,
-  ReportController.downloadPurchaseReport
+  reportController.downloadPurchaseReport
 );
 
 router.post(
@@ -267,7 +267,7 @@ router.post(
     })
     .withMessage(ErrorList["Month must be numeric"]),
   body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("month")
+  body("year")
     .isInt({
       min: 2000,
     })

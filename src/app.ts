@@ -64,6 +64,9 @@ import helmet from "helmet";
 
 import { connectRedis, redisClient } from "./helper/redis.helper";
 import { prisma } from "./helper/database.helper";
+import { StockOutService } from "./services/stock-out.service";
+import { StockOutRepository } from "./repositories/stock-out.repository";
+import { StockInRepository } from "./repositories/stock-in.repository";
 
 const allowedOrigins = [
   "http://localhost:2100",
@@ -83,9 +86,15 @@ async function main() {
   await redisClient.connect();
   console.info("[info]: Connected with redis");
 
-  // Every day at midnight check for overflow
-  cron.schedule("0 0 * * *", async () => {
-    // Assigning
+  const stockOutService = new StockOutService(
+    new StockOutRepository(prisma),
+    new StockInRepository(prisma)
+  );
+  await stockOutService.calculateStockOut();
+
+  cron.schedule("0 0,12 * * *", async () => {
+    // Assigning stock out to stock in
+    await stockOutService.calculateStockOut();
   });
 
   const app = express();

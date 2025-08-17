@@ -304,7 +304,6 @@ class SalesDepositRepository {
             const result = await this.prisma.sales_deposit_code.findFirst({
                 where: {
                     id: id,
-                    is_delete: false,
                 },
                 include: {
                     sales_deposit: {

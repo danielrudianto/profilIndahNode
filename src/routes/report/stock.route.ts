@@ -6,18 +6,36 @@ import { prisma } from "../../helper/database.helper";
 import ErrorHelper from "../../helper/error.helper";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { ProductRepository } from "../../repositories/product.repository";
+import { ProductPackageRepository } from "../../repositories/product-package.repository";
 
 const router = Router();
 
 const productStockController = new ProductStockController(
   new ProductStockRepository(prisma),
+  new ProductPackageRepository(prisma),
   new ProductRepository(prisma)
 );
 
 router.get(
+  "/product/:id",
+  param("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  productStockController.fetchByProductID
+);
+
+router.get(
+  "/package/:id",
+  param("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  productStockController.fetchByPackageID
+);
+
+router.get(
   "/:id",
-  param("id").exists().isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  param("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
   query("page").notEmpty().withMessage(ErrorList["Page is required"]),
   query("page")
     .isInt({

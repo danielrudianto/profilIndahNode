@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ReceivableRepository = void 0;
 const client_1 = require("@prisma/client");
 const sales_invoice_model_1 = require("../model/sales-invoice.model");
+const sales_invoice_payment_model_1 = require("../model/sales-invoice-payment.model");
 class ReceivableRepository {
     constructor(redisClient, prisma) {
         this.redisClient = redisClient;
@@ -25,6 +26,35 @@ class ReceivableRepository {
         }
         else {
             return Number(value);
+        }
+    }
+    async create(data) {
+        try {
+            const [result, _] = await this.prisma.$transaction([
+                this.prisma.sales_invoice_payment.create({
+                    data: {
+                        date: data.date,
+                        payment_method_id: data.payment_method_id,
+                        value: data.amount,
+                        sales_invoice_code_id: data.sales_invoice_code_id,
+                    },
+                    include: {
+                        payment_method: true,
+                    },
+                }),
+                this.prisma.sales_invoice_code.update({
+                    where: {
+                        id: data.sales_invoice_code_id,
+                    },
+                    data: {
+                        is_paid: data.is_paid,
+                    },
+                }),
+            ]);
+            return sales_invoice_payment_model_1.SalesInvoicePaymentModel.fromMap(result);
+        }
+        catch (error) {
+            throw error;
         }
     }
     async fetch() {

@@ -566,6 +566,50 @@ export class GoodReceiptRepository {
     return data.name;
   }
 
+  async fetchDownload(month: number, year: number) {
+    try {
+      const result = await this.prisma.good_receipt_code.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(year, month - 1, 1),
+              },
+            },
+            {
+              date: {
+                lt: new Date(year, month, 0),
+              },
+            },
+          ],
+          is_delete: false,
+        },
+        include: {
+          good_receipt: true,
+          supplier: true,
+        },
+      });
+
+      return result.map((x) => {
+        return {
+          date: x.date,
+          name: x.name,
+          invoice_name: x.invoice_name,
+          faktur: x.faktur,
+          supplier_name: x.supplier.name,
+          value: x.good_receipt.reduce((a, b) => {
+            return (
+              a + Number(b.quantity) * (Number(b.price) - Number(b.discount))
+            );
+          }, 0),
+          discount: Number(x.discount),
+        };
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async countBySupplierID(supplierID: number) {
     try {
       const result = await this.prisma.good_receipt_code.count({
