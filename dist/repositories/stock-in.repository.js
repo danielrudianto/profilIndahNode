@@ -193,7 +193,7 @@ class StockInRepository {
       SELECT company.name, c.value
       FROM company
       LEFT JOIN (
-        SELECT SUM(stock_in.quantity * stock_in.residue) AS value, stock_in.company_id
+        SELECT SUM(stock_in.price * stock_in.residue) AS value, stock_in.company_id
         FROM stock_in
         GROUP BY stock_in.company_id
       ) AS c
