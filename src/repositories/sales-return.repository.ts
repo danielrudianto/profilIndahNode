@@ -212,6 +212,8 @@ export class SalesReturnRepository {
     pageSize: number;
     isActive: boolean;
     isDelete: boolean;
+    startDate: Date;
+    endDate: Date;
   }) {
     try {
       let formattedIsActive: boolean = data.isActive;
@@ -251,6 +253,16 @@ export class SalesReturnRepository {
                 },
               },
               {
+                date: {
+                  gte: data.startDate,
+                },
+              },
+              {
+                date: {
+                  lte: data.endDate,
+                },
+              },
+              {
                 OR: [
                   {
                     name: {
@@ -268,6 +280,11 @@ export class SalesReturnRepository {
             user_sales_return_code_created_byTouser: {
               include: {
                 user_avatar: true,
+              },
+            },
+            sales_invoice_code: {
+              include: {
+                customer: true,
               },
             },
           },
@@ -288,6 +305,16 @@ export class SalesReturnRepository {
               {
                 date: {
                   lt: new Date(data.year, data.month, 1),
+                },
+              },
+              {
+                date: {
+                  gte: data.startDate,
+                },
+              },
+              {
+                date: {
+                  lte: data.endDate,
                 },
               },
               {

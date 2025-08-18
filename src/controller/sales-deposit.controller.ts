@@ -14,13 +14,13 @@ import { SalesDepositRepository } from "../repositories/sales-deposit.repository
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
-import { StockRepository } from "../repositories/stock.repository";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
 
 export class SalesDepositController {
   salesDepositRepository: SalesDepositRepository;
   salesInvoiceRepository: SalesInvoiceRepository;
   stockCardRepository: StockCardRepository;
-  stockRepository: StockRepository;
+  productStockRepository: ProductStockRepository;
   stockOutRepository: StockOutRepository;
   receivableRepository: ReceivableRepository;
   overpaymentRepository: OverpaymentRepository;
@@ -29,7 +29,7 @@ export class SalesDepositController {
     salesDepositRepository: SalesDepositRepository,
     salesInvoiceRepository: SalesInvoiceRepository,
     stockCardRepository: StockCardRepository,
-    stockRepository: StockRepository,
+    productStockRepository: ProductStockRepository,
     stockOutRepository: StockOutRepository,
     receivableRepository: ReceivableRepository,
     overpaymentRepository: OverpaymentRepository
@@ -37,7 +37,7 @@ export class SalesDepositController {
     this.salesDepositRepository = salesDepositRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.stockCardRepository = stockCardRepository;
-    this.stockRepository = stockRepository;
+    this.productStockRepository = productStockRepository;
     this.stockOutRepository = stockOutRepository;
     this.receivableRepository = receivableRepository;
     this.overpaymentRepository = overpaymentRepository;
@@ -148,8 +148,10 @@ export class SalesDepositController {
     const keyword = translateKeyword(req.query.keyword);
     const page = translatePage(req.query.page);
     const offset = Number(process.env.LIMIT!);
-    const isActive = req.body.isActive as boolean;
+    const isPending = req.body.isPending as boolean;
     const isDelete = req.body.isDelete as boolean;
+    const startDate = req.body.startDate;
+    const endDate = req.body.endDate;
 
     const sortBy = req.body.sortBy;
     const sortDirection = req.body.sortDirection;
@@ -161,10 +163,12 @@ export class SalesDepositController {
         keyword: keyword,
         limit: offset,
         offset: (page - 1) * offset,
-        isActive: isActive,
+        isPending: isPending,
         isDelete: isDelete,
         sortBy: sortBy,
         sortDirection: sortDirection,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
       });
       return res.status(200).send(result);
     } catch (error) {
@@ -270,7 +274,7 @@ export class SalesDepositController {
         })
       );
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         result.sales_invoice!.map((x) => {
           const conversion =
             x.product_unit == null ? 1 : x.product_unit.conversion;

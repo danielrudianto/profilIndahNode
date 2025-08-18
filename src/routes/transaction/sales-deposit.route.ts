@@ -11,7 +11,7 @@ import { SalesDepositRepository } from "../../repositories/sales-deposit.reposit
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
-import { StockRepository } from "../../repositories/stock.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const router = Router();
 
@@ -19,14 +19,45 @@ const salesDepositController = new SalesDepositController(
   new SalesDepositRepository(prisma),
   new SalesInvoiceRepository(prisma),
   new StockCardRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new StockOutRepository(prisma),
   new ReceivableRepository(redisClient, prisma),
   new OverpaymentRepository(prisma)
 );
 
 router.get("/archives", salesDepositController.fetchAnnualArchives);
-router.post("/archives", salesDepositController.fetchArchives);
+router.post(
+  "/archives",
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({ min: 2000 })
+    .withMessage(ErrorList["Year must be numeric"]),
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({ min: 1, max: 12 })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  body("page").isInt({ min: 1 }).withMessage(ErrorList["Page must be numeric"]),
+  body("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
+  body("pageSize")
+    .isInt({
+      min: 10,
+      max: 50,
+    })
+    .withMessage(ErrorList["Page size must be numeric"]),
+  body("isPending").exists().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").exists().withMessage(ErrorList["Parameter error"]),
+  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
+  body("sortDirection")
+    .isIn(["asc", "desc"])
+    .withMessage(
+      ErrorList["Sort direction only supports ascending or descending"]
+    ),
+  ErrorHelper.intercept,
+  salesDepositController.fetchArchives
+);
 
 router.post(
   "/confirm",

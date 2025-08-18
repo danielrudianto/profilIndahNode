@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, param } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import { SalesInvoicePaymentController } from "../../controller/sales-invoice-payment.controller";
 import { prisma } from "../../helper/database.helper";
@@ -37,6 +37,18 @@ router.post(
   body("date").notEmpty().withMessage(ErrorList["Date required"]),
   ErrorHelper.intercept,
   salesInvoicePaymentController.create
+);
+
+router.delete(
+  "/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  salesInvoicePaymentController.delete
 );
 
 export default router;

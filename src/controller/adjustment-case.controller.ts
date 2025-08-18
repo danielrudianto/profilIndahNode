@@ -10,24 +10,24 @@ import { AdjustmentCaseRepository } from "../repositories/adjustment-case.reposi
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
-import { StockRepository } from "../repositories/stock.repository";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
 
 class AdjustmentCaseController {
   private adjustmentCaseRepository: AdjustmentCaseRepository;
-  private stockRepository: StockRepository;
+  private productStockRepository: ProductStockRepository;
   private stockInRepository: StockInRepository;
   private stockOutRepository: StockOutRepository;
   private stockCardRepository: StockCardRepository;
 
   constructor(
     adjustmentCaseRepository: AdjustmentCaseRepository,
-    stockRepository: StockRepository,
+    productStockRepository: ProductStockRepository,
     stockInRepository: StockInRepository,
     stockOutRepository: StockOutRepository,
     stockCardRepository: StockCardRepository
   ) {
     this.adjustmentCaseRepository = adjustmentCaseRepository;
-    this.stockRepository = stockRepository;
+    this.productStockRepository = productStockRepository;
     this.stockInRepository = stockInRepository;
     this.stockOutRepository = stockOutRepository;
     this.stockCardRepository = stockCardRepository;
@@ -107,7 +107,7 @@ class AdjustmentCaseController {
 
       const result = await this.adjustmentCaseRepository.approve(id, userID);
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         result.adjustment_case.map((x) => {
           return {
             productID: x.product_id,
@@ -266,7 +266,7 @@ class AdjustmentCaseController {
 
       const result = await this.adjustmentCaseRepository.delete(id, userID);
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         adjustmentCase.adjustment_case.map((x) => {
           return {
             productID: x.product_id,
@@ -412,186 +412,6 @@ class AdjustmentCaseController {
       console.error(`[error]: Error on fetching archives ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
-  };
-
-  // static fetchArchivesV2 = (req: Request, res: Response) => {
-  //   const year = req.body.year;
-  //   const month = req.body.month;
-
-  //   if (year == null && month == null) {
-  //     AdjustmentCaseModel.fetchArchiveYearsV2()!
-  //       .then((result) => {
-  //         return res.status(200).send(
-  //           result.map((x) => {
-  //             return {
-  //               year: x.year,
-  //               month: x.month,
-  //               count: Number(x.count.toString().replace("n", "")),
-  //             };
-  //           })
-  //         );
-  //       })
-  //       .catch((error) => {
-  //         console.error(`[error]: Error on fetching adjustment case: ${error}`);
-  //         return res.status(500).send(ErrorList["Internal server error"]);
-  //       });
-  //   } else {
-  //     const keyword = translateKeyword(req.body.keyword);
-  //     const page = translatePage(req.body.page);
-  //     const limit = Number(process.env.LIMIT!);
-
-  //     AdjustmentCaseModel.fetchArchiveV2({
-  //       year: Number(year),
-  //       month: Number(month),
-  //       limit: limit,
-  //       offset: (page - 1) * limit,
-  //       keyword: keyword,
-  //     })!
-  //       .then(([result, count]) => {
-  //         return res.status(200).send({
-  //           data: result.map((x) => {
-  //             return {
-  //               id: x.id,
-  //               name: x.name,
-  //               date: x.date,
-  //               is_delete: x.is_delete == 1,
-  //               is_confirm: x.is_confirm == 1,
-  //               company_name: x.company_name,
-  //               type: x.type.toString().replace("n", ""),
-  //             };
-  //           }),
-  //           count:
-  //             count == null || count.length == 0
-  //               ? 0
-  //               : parseInt(count[0].count.toString().replace("n", "")),
-  //         });
-  //       })
-  //       .catch((error) => {
-  //         console.error(
-  //           `[error]: Error on fetching adjustment archive ${error}`
-  //         );
-  //         return res.status(500).send(ErrorList["Internal server error"]);
-  //       });
-  //   }
-  // };
-
-  static deleteByID = (req: Request, res: Response) => {
-    // const id = parseInt(req.params.id);
-    // AdjustmentCaseModel.fetchByID(id).then((adjustmentCase) => {
-    //   if (!adjustmentCase) {
-    //     return res.status(404).send(ErrorList["Not found"]);
-    //   }
-    //   AdjustmentCaseModel.deleteByID(id)
-    //     .then(async (result) => {
-    //       const socket = new SocketHelper("deleteAdjustmentCase", result);
-    //       socket.create();
-    //       // If all the item quantity > 0
-    //       if (
-    //         adjustmentCase.adjustment_case.every((x) => Number(x.quantity) >= 0)
-    //       ) {
-    //         // Get the stockIn IDs
-    //         StockInModel.fetch(
-    //           IStockInFetchMethod.BY_ADJUSTMENT_CASE_CODE_ID,
-    //           id
-    //         )
-    //           .then(async (stockIns) => {
-    //             await StockOutModel.delete(
-    //               IStockOutDelete.BY_STOCK_IN_IDS,
-    //               stockIns.map((x) => x.id)
-    //             );
-    //             await StockInModel.deleteMany(stockIns.map((x) => x.id));
-    //             return res.status(200).send(result);
-    //           })
-    //           .catch((error) => {
-    //             console.error(
-    //               `[error]: Error on fetching stock in by good receipt code ID: ${error}`
-    //             );
-    //             return res.status(500).send(ErrorList["Internal server error"]);
-    //           });
-    //       } else if (
-    //         adjustmentCase.adjustment_case.every((x) => Number(x.quantity) < 0)
-    //       ) {
-    //         // only delete the stock out
-    //         const stockOuts = await StockOutModel.fetch(
-    //           IStockOutFetch.BY_REFERENCE,
-    //           adjustmentCase.adjustment_case.map((x) => {
-    //             return {
-    //               adjustment_case_code_id: adjustmentCase.id,
-    //               adjustment_case_id: x.id,
-    //               bill_id: null,
-    //               bill_code_id: null,
-    //             };
-    //           })
-    //         );
-    //         await StockInModel.rollBack(
-    //           stockOuts
-    //             .filter((x) => x.stock_in_id != null)
-    //             .map((x) => {
-    //               return {
-    //                 id: x.stock_in_id!,
-    //                 quantity: Number(x.quantity),
-    //               };
-    //             })
-    //         );
-    //         await StockOutModel.delete(
-    //           IStockOutDelete.BY_REFERENCE_IDS,
-    //           adjustmentCase.adjustment_case.map((x) => {
-    //             return {
-    //               adjustment_case_code_id: adjustmentCase.id,
-    //               adjustment_case_id: x.id,
-    //               bill_id: null,
-    //               bill_code_id: null,
-    //             };
-    //           })
-    //         );
-    //         return res.status(200).send(result);
-    //       }
-    //       StockInModel.deleteByReferenceIDs(
-    //         adjustmentCase.adjustment_case.map((x) => {
-    //           return {
-    //             adjustment_event_code_id: adjustmentCase.id!,
-    //             adjustment_event_id: x.id!,
-    //             good_receipt_code_id: null,
-    //             good_receipt_id: null,
-    //           };
-    //         })
-    //       ).then(() => {});
-    //       for (let i = 0; i < adjustmentCase.adjustment_case.length; i++) {
-    //         const quantity = Number(adjustmentCase.adjustment_case[i].quantity);
-    //         if (quantity > 0) {
-    //           await queue.add("delete-stock-in", {
-    //             itemID: adjustmentCase.adjustment_case[i]?.item?.id,
-    //             goodReceiptID: null,
-    //             adjustmentCaseID: adjustmentCase.adjustment_case[i].id,
-    //             quantity:
-    //               Number(adjustmentCase.adjustment_case[i].quantity) *
-    //               (adjustmentCase.adjustment_case[i].item_unit == null
-    //                 ? 1
-    //                 : Number(
-    //                     adjustmentCase.adjustment_case[i].item_unit!.conversion
-    //                   )),
-    //           });
-    //         } else if (quantity < 0) {
-    //           await queue.add("delete-stock-out", {
-    //             itemID: adjustmentCase.adjustment_case[i]?.item?.id,
-    //             billID: null,
-    //             adjustmentCaseID: adjustmentCase.adjustment_case[i].id,
-    //             quantity:
-    //               Number(adjustmentCase.adjustment_case[i].quantity) *
-    //               (adjustmentCase.adjustment_case[i].item_unit == null
-    //                 ? 1
-    //                 : Number(
-    //                     adjustmentCase.adjustment_case[i].item_unit!.conversion
-    //                   )),
-    //           });
-    //         }
-    //       }
-    //     })
-    //     .catch((error) => {
-    //       console.error(`[error]: Error on deleting adjustment case: ${error}`);
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // });
   };
 }
 

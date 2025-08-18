@@ -3,9 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesInvoiceService = void 0;
 const redis_helper_1 = require("../helper/redis.helper");
 class SalesInvoiceService {
-    constructor(salesInvoiceRepository, stockRepository, stockCardRepository, stockOutRepository) {
+    constructor(salesInvoiceRepository, productStockRepository, stockCardRepository, stockOutRepository) {
         this.salesInvoiceRepository = salesInvoiceRepository;
-        this.stockRepository = stockRepository;
+        this.productStockRepository = productStockRepository;
         this.stockCardRepository = stockCardRepository;
         this.stockOutRepository = stockOutRepository;
     }

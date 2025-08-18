@@ -14,16 +14,16 @@ import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { queue } from "../helper/queue.helper";
 import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
 import { StockOutRepository } from "../repositories/stock-out.repository";
-import { StockRepository } from "../repositories/stock.repository";
 import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-payment.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
 
 class SalesInvoiceController {
   salesInvoiceRepository: SalesInvoiceRepository;
   receivableRepository: ReceivableRepository;
   salesReturnRepository: SalesReturnRepository;
   stockOutRepository: StockOutRepository;
-  stockRepository: StockRepository;
+  productStockRepository: ProductStockRepository;
   salesInvoicePaymentRepository: SalesInvoicePaymentRepository;
   stockCardRepository: StockCardRepository;
 
@@ -32,7 +32,7 @@ class SalesInvoiceController {
     receivableRepository: ReceivableRepository,
     salesReturnRepository: SalesReturnRepository,
     stockOutRepository: StockOutRepository,
-    stockRepository: StockRepository,
+    productStockRepository: ProductStockRepository,
     salesInvoicePaymentRepository: SalesInvoicePaymentRepository,
     stockCardRepository: StockCardRepository
   ) {
@@ -40,7 +40,7 @@ class SalesInvoiceController {
     this.receivableRepository = receivableRepository;
     this.salesReturnRepository = salesReturnRepository;
     this.stockOutRepository = stockOutRepository;
-    this.stockRepository = stockRepository;
+    this.productStockRepository = productStockRepository;
     this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
     this.stockCardRepository = stockCardRepository;
   }
@@ -123,7 +123,7 @@ class SalesInvoiceController {
         })
       );
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         billResult.sales_invoice!.map((x) => {
           const conversion =
             x.product_unit == null ? 1 : x.product_unit.conversion;
@@ -199,7 +199,7 @@ class SalesInvoiceController {
     try {
       const result = await this.salesInvoiceRepository.deleteByID(id, userID);
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         salesInvoice.sales_invoice!.map((x) => {
           return {
             productID: x.product_id,
@@ -341,208 +341,6 @@ class SalesInvoiceController {
     }
   };
 
-  /**
-   * Search sales invoice data archive
-   * @param req
-   * @param res
-   */
-  static fetchArchive = (req: Request, res: Response) => {
-    // const year = req.body.year;
-    // const month = req.body.month;
-    // if (year == null && month == null) {
-    //   BillCodeModel.fetchArchiveYears()!
-    //     .then((result) => {
-    //       return res.status(200).send(
-    //         result
-    //           .map((x) => {
-    //             return {
-    //               year: x.year,
-    //               count: parseInt(x.count.toString().replace("n", "")),
-    //             };
-    //           })
-    //           .sort((a, b) => {
-    //             return a.year - b.year;
-    //           })
-    //       );
-    //     })
-    //     .catch((error) => {
-    //       console.error(
-    //         `[error]: Error on fetching sales invoice archive ${error}`
-    //       );
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // } else if (year != null && month == null) {
-    //   const year = req.body.year;
-    //   BillCodeModel.fetchArchiveMonths(year)
-    //     .then((result) => {
-    //       const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    //       result.forEach((x) => {
-    //         response[x.month - 1] = parseInt(
-    //           x.count.toString().replace("n", "")
-    //         );
-    //       });
-    //       return res.status(200).send(response);
-    //     })
-    //     .catch((error) => {
-    //       console.error(
-    //         `[error]: Error on fetching sales invoice archive ${error}`
-    //       );
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // } else {
-    //   const mode = req.body.mode;
-    //   const page = req.body.limit.page;
-    //   const keyword = req.body.search.keyword;
-    //   BillCodeModel.fetchArchive({
-    //     year: year,
-    //     month: month,
-    //     mode: mode,
-    //     limit: 10,
-    //     offset: (page - 1) * 10,
-    //     keyword: mysql_real_escape_string(keyword),
-    //   })!
-    //     .then((result) => {
-    //       return res.status(200).send({
-    //         data: result[0].map((x) => {
-    //           return {
-    //             id: x.id,
-    //             name: x.name,
-    //             date: x.date,
-    //             is_delete: x.is_delete == 1,
-    //             is_confirm: x.is_confirm == 1,
-    //             customer_name: x.customer_name,
-    //             sales: x.sales,
-    //           };
-    //         }),
-    //         count:
-    //           result[1] == null || result[1].length == 0
-    //             ? 0
-    //             : parseInt(result[1][0].count.toString().replace("n", "")),
-    //       });
-    //     })
-    //     .catch((error) => {
-    //       console.error(
-    //         `[error]: Error on fetching sales invoice archive ${error}`
-    //       );
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // }
-  };
-
-  static fetchArchiveV2 = (req: Request, res: Response) => {
-    // const year = req.body.year;
-    // const month = req.body.month;
-    // if (year == null && month == null) {
-    //   BillCodeModel.fetchArchiveYearsV2()!
-    //     .then((result) => {
-    //       return res.status(200).send(
-    //         result.map((x) => {
-    //           return {
-    //             year: x.year,
-    //             month: x.month,
-    //             count: Number(x.count.toString().replace("n", "")),
-    //           };
-    //         })
-    //       );
-    //     })
-    //     .catch((error) => {
-    //       console.error(
-    //         `[error]: Error on fetching sales invoice archive ${error}`
-    //       );
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // } else {
-    //   const keyword = req.body.keyword;
-    //   const page = req.body.page ?? 1;
-    //   const status = req.body.status;
-    //   const paymentStatus = req.body.paymentStatus;
-    //   const startDate = req.body.startDate;
-    //   const endDate = req.body.endDate;
-    //   BillCodeModel.fetchArchiveV2({
-    //     year: Number(year),
-    //     month: Number(month),
-    //     mode: status,
-    //     status: status,
-    //     paymentStatus: paymentStatus,
-    //     limit: 20,
-    //     offset: (page - 1) * 20,
-    //     keyword: mysql_real_escape_string(keyword ?? ""),
-    //     startDate: startDate,
-    //     endDate: endDate,
-    //   })!
-    //     .then((result) => {
-    //       return res.status(200).send({
-    //         data: result[0].map((x) => {
-    //           return {
-    //             id: x.id,
-    //             name: x.name,
-    //             date: x.date,
-    //             is_delete: x.is_delete == 1,
-    //             is_confirm: x.is_confirm == 1,
-    //             customer_name: x.customer_name,
-    //             sales: x.sales,
-    //             is_paid: x.is_paid == 1,
-    //           };
-    //         }),
-    //         count:
-    //           result[1] == null || result[1].length == 0
-    //             ? 0
-    //             : parseInt(result[1][0].count.toString().replace("n", "")),
-    //       });
-    //     })
-    //     .catch((error) => {
-    //       console.error(
-    //         `[error]: Error on fetching sales invoice archive ${error}`
-    //       );
-    //       return res.status(500).send(ErrorList["Internal server error"]);
-    //     });
-    // }
-  };
-
-  /**
-   * Fetch bill by ID
-   * @param req
-   * @param res
-   */
-  static fetchByID = (req: Request, res: Response) => {
-    // const id = parseInt(req.params.id);
-    // BillCodeModel.fetchByID(id)
-    //   .then((result) => {
-    //     if (!result) {
-    //       return res.status(404).send(ErrorList["Not found"]);
-    //     }
-    //     let subTotal = 0;
-    //     for (let item of result.bill) {
-    //       subTotal += Number(item.price) * Number(item.quantity);
-    //     }
-    //     return res.status(200).send({
-    //       ...result,
-    //       subTotal: subTotal,
-    //       discount: Number(result.discount),
-    //       delivery: Number(result.delivery),
-    //       service: Number(result.service),
-    //     });
-    //   })
-    //   .catch((error) => {
-    //     console.error(
-    //       `[error]: Error on fetching sales invoice by ID ${error}`
-    //     );
-    //     return res.status(500).send(ErrorList["Internal server error"]);
-    //   });
-  };
-
-  static fetchPaymentsByID = (req: Request, res: Response) => {
-    // const id = parseInt(req.params.id);
-    // BillCodeModel.fetchPaymentsByID(id)
-    //   .then((result) => {
-    //     return res.status(200).send(result);
-    //   })
-    //   .catch((error) => {
-    //     console.error(`[error]: Error on fetching payments by ID ${error}`);
-    //     return res.status(500).send(error);
-    //   });
-  };
-
   static fetchByOTC = (req: Request, res: Response) => {
     const otc = req.params.otc;
     const date = moment().format("YYYY-MM-DD");
@@ -561,48 +359,6 @@ class SalesInvoiceController {
         console.error(`[error]: Error on fetching bill by OTC ${error}`);
         return res.status(500).send(ErrorList["Internal server error"]);
       });
-  };
-
-  static deletePaymentByID = (req: Request, res: Response) => {
-    // const id = parseInt(req.params.id);
-    // BillCodeModel.deletePaymentByID(id)
-    //   .then((result) => {
-    //     if (!result) {
-    //       return res.status(404).send(ErrorList["Not found"]);
-    //     }
-    //     BillCodeModel.evaluateBill(result.bill_code_id)
-    //       .then(() => {
-    //         return res.status(201).send(result);
-    //       })
-    //       .catch((error) => {
-    //         console.error(`[error]: Error on evaluating bill value ${error}`);
-    //         return res.status(500).send(ErrorList["Internal server error"]);
-    //       });
-    //   })
-    //   .catch((error) => {
-    //     console.error(`[error]: Error on deleting payment by ID ${error}`);
-    //     return res.status(500).send(error);
-    //   });
-  };
-
-  /**
-   * Fetch bill code by ID
-   * @param req
-   * @param res
-   */
-  static fetchCodeByID = (req: Request, res: Response) => {
-    // const id = parseInt(req.params.id.toString());
-    // BillModel.fetchByID(id)
-    //   .then((result) => {
-    //     if (!result) {
-    //       return res.status(404).send(ErrorList["Not found"]);
-    //     }
-    //     return res.status(200).send(result);
-    //   })
-    //   .catch((error) => {
-    //     console.error(`[error]: Error on fetching bill code ${error}`);
-    //     return res.status(500).send(ErrorList["Internal server error"]);
-    //   });
   };
 }
 

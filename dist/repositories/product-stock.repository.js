@@ -4,9 +4,51 @@ exports.ProductStockRepository = void 0;
 const product_brand_model_1 = require("../model/product-brand.model");
 const product_type_model_1 = require("../model/product-type.model");
 const product_model_1 = require("../model/product.model");
-const stock_card_model_1 = require("../model/stock-card.model");
 class ProductStockRepository {
     constructor(prisma) {
+        this.updateMany = async (items) => {
+            try {
+                const updateData = [];
+                for (let item of items) {
+                    updateData.push(this.prisma.product_stock.upsert({
+                        where: {
+                            id: item.productID,
+                        },
+                        create: {
+                            id: item.productID,
+                            stock: item.quantity,
+                        },
+                        update: {
+                            stock: {
+                                increment: item.quantity,
+                            },
+                        },
+                    }));
+                }
+                return this.prisma.$transaction(updateData);
+            }
+            catch (error) {
+                throw error;
+            }
+        };
+        this.fetchOutputReport = async (data) => {
+            const result = await this.prisma.stock_card.findMany({
+                where: {
+                    product_id: {
+                        in: data.product_id,
+                    },
+                    date: {
+                        lte: new Date(data.year, data.month, 0),
+                    },
+                },
+            });
+            return result.map((x) => {
+                return {
+                    product_id: x.product_id,
+                    stock: Number(x.stock),
+                };
+            });
+        };
         this.prisma = prisma;
     }
     async incrementStock(productID, quantity) {
@@ -52,36 +94,6 @@ class ProductStockRepository {
             console.error(`[error]: Error on fetching stock: ${error}`);
             throw new Error("Internal server error");
         }
-    }
-    async fetchByProductID(data) {
-        const [result, count] = await this.prisma.$transaction([
-            this.prisma.stock_card.findMany({
-                where: {
-                    product_id: data.productID,
-                },
-                orderBy: [
-                    {
-                        date: "desc",
-                    },
-                    {
-                        id: "desc",
-                    },
-                ],
-                take: data.pageSize,
-                skip: (data.page - 1) * data.pageSize,
-            }),
-            this.prisma.stock_card.count({
-                where: {
-                    product_id: data.productID,
-                },
-            }),
-        ]);
-        return {
-            data: result.map((x) => {
-                return stock_card_model_1.StockCardModel.fromMap(x);
-            }),
-            count: count,
-        };
     }
     async fetchStockByProductID(id) {
         try {

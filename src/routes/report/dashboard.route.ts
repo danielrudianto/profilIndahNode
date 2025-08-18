@@ -16,7 +16,7 @@ import { SalesInvoiceRepository } from "../../repositories/sales-invoice.reposit
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
-import { StockRepository } from "../../repositories/stock.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const reportController = new ReportController(
   new SalesInvoiceRepository(prisma),
@@ -30,7 +30,7 @@ const reportController = new ReportController(
   new StockInRepository(prisma),
   new StockOutRepository(prisma),
   new ProductRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
   new ExpenseTypeRepository(prisma)

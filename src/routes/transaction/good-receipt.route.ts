@@ -10,15 +10,15 @@ import {
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 import { prisma } from "../../helper/database.helper";
 import { StockInRepository } from "../../repositories/stock-in.repository";
-import { StockRepository } from "../../repositories/stock.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const router = Router();
 
 const goodReceiptController = new GoodReceiptController(
   new GoodReceiptRepository(prisma),
   new StockInRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new StockCardRepository(prisma)
 );
 

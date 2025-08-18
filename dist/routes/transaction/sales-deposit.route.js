@@ -16,11 +16,22 @@ const sales_deposit_repository_1 = require("../../repositories/sales-deposit.rep
 const sales_invoice_repository_1 = require("../../repositories/sales-invoice.repository");
 const stock_card_repository_1 = require("../../repositories/stock-card.repository");
 const stock_out_repository_1 = require("../../repositories/stock-out.repository");
-const stock_repository_1 = require("../../repositories/stock.repository");
+const product_stock_repository_1 = require("../../repositories/product-stock.repository");
 const router = (0, express_1.Router)();
-const salesDepositController = new sales_deposit_controller_1.SalesDepositController(new sales_deposit_repository_1.SalesDepositRepository(database_helper_1.prisma), new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma), new stock_repository_1.StockRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new receivable_repository_1.ReceivableRepository(redis_helper_1.redisClient, database_helper_1.prisma), new overpayment_repository_1.OverpaymentRepository(database_helper_1.prisma));
+const salesDepositController = new sales_deposit_controller_1.SalesDepositController(new sales_deposit_repository_1.SalesDepositRepository(database_helper_1.prisma), new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new receivable_repository_1.ReceivableRepository(redis_helper_1.redisClient, database_helper_1.prisma), new overpayment_repository_1.OverpaymentRepository(database_helper_1.prisma));
 router.get("/archives", salesDepositController.fetchAnnualArchives);
-router.post("/archives", salesDepositController.fetchArchives);
+router.post("/archives", (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
+    .isInt({ min: 2000 })
+    .withMessage(error_list_1.default["Year must be numeric"]), (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
+    .isInt({ min: 1, max: 12 })
+    .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("page").notEmpty().withMessage(error_list_1.default["Page is required"]), (0, express_validator_1.body)("page").isInt({ min: 1 }).withMessage(error_list_1.default["Page must be numeric"]), (0, express_validator_1.body)("pageSize").notEmpty().withMessage(error_list_1.default["Page size is required"]), (0, express_validator_1.body)("pageSize")
+    .isInt({
+    min: 10,
+    max: 50,
+})
+    .withMessage(error_list_1.default["Page size must be numeric"]), (0, express_validator_1.body)("isPending").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isDelete").exists().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isPending").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("isDelete").isBoolean().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("sortBy").notEmpty().withMessage(error_list_1.default["Sort by required"]), (0, express_validator_1.body)("sortDirection")
+    .isIn(["asc", "desc"])
+    .withMessage(error_list_1.default["Sort direction only supports ascending or descending"]), error_helper_1.default.intercept, salesDepositController.fetchArchives);
 router.post("/confirm", (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id")
     .isInt({
     min: 0,

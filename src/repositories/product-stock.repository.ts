@@ -57,42 +57,6 @@ export class ProductStockRepository {
     }
   }
 
-  async fetchByProductID(data: {
-    productID: number;
-    page: number;
-    pageSize: number;
-  }) {
-    const [result, count] = await this.prisma.$transaction([
-      this.prisma.stock_card.findMany({
-        where: {
-          product_id: data.productID,
-        },
-        orderBy: [
-          {
-            date: "desc",
-          },
-          {
-            id: "desc",
-          },
-        ],
-        take: data.pageSize,
-        skip: (data.page - 1) * data.pageSize,
-      }),
-      this.prisma.stock_card.count({
-        where: {
-          product_id: data.productID,
-        },
-      }),
-    ]);
-
-    return {
-      data: result.map((x) => {
-        return StockCardModel.fromMap(x);
-      }),
-      count: count,
-    };
-  }
-
   async fetchStockByProductID(id: number[]) {
     try {
       const stock = await this.prisma.product_stock.findMany({
@@ -270,4 +234,56 @@ export class ProductStockRepository {
       throw error;
     }
   }
+
+  updateMany = async (items: { productID: number; quantity: number }[]) => {
+    try {
+      const updateData = [];
+      for (let item of items) {
+        updateData.push(
+          this.prisma.product_stock.upsert({
+            where: {
+              id: item.productID,
+            },
+            create: {
+              id: item.productID,
+              stock: item.quantity,
+            },
+            update: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          })
+        );
+      }
+
+      return this.prisma.$transaction(updateData);
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  fetchOutputReport = async (data: {
+    product_id: number[];
+    month: number;
+    year: number;
+  }) => {
+    const result = await this.prisma.stock_card.findMany({
+      where: {
+        product_id: {
+          in: data.product_id,
+        },
+        date: {
+          lte: new Date(data.year, data.month, 0),
+        },
+      },
+    });
+
+    return result.map((x) => {
+      return {
+        product_id: x.product_id,
+        stock: Number(x.stock),
+      };
+    });
+  };
 }

@@ -14,13 +14,13 @@ const receivable_repository_1 = require("../../repositories/receivable.repositor
 const sales_invoice_repository_1 = require("../../repositories/sales-invoice.repository");
 const redis_helper_1 = require("../../helper/redis.helper");
 const sales_controller_1 = require("../../controller/sales.controller");
-const stock_repository_1 = require("../../repositories/stock.repository");
 const stock_out_repository_1 = require("../../repositories/stock-out.repository");
 const sales_invoice_payment_repository_1 = require("../../repositories/sales-invoice-payment.repository");
 const sales_return_repository_1 = require("../../repositories/sales-return.repository");
 const stock_card_repository_1 = require("../../repositories/stock-card.repository");
+const product_stock_repository_1 = require("../../repositories/product-stock.repository");
 const router = (0, express_1.Router)();
-const salesInvoiceController = new sales_invoice_controller_1.default(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new receivable_repository_1.ReceivableRepository(redis_helper_1.redisClient, database_helper_1.prisma), new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_repository_1.StockRepository(database_helper_1.prisma), new sales_invoice_payment_repository_1.SalesInvoicePaymentRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
+const salesInvoiceController = new sales_invoice_controller_1.default(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new receivable_repository_1.ReceivableRepository(redis_helper_1.redisClient, database_helper_1.prisma), new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new sales_invoice_payment_repository_1.SalesInvoicePaymentRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
 const salesmanController = new sales_controller_1.SalesmanController(redis_helper_1.redisClient);
 router.get("/archives", salesInvoiceController.fetchAnnualArchives);
 router.post("/archives", (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
@@ -73,7 +73,6 @@ router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(e
     min: 0,
 })
     .withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, salesInvoiceController.fetchByID);
-router.delete("/payment/:id", auth_helper_1.administratorMiddleware, sales_invoice_controller_1.default.deletePaymentByID);
 router.delete("/:id", auth_helper_1.administratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id")
     .isInt({
     min: 0,

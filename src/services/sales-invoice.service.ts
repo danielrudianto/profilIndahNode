@@ -1,23 +1,23 @@
 import { redisClient } from "../helper/redis.helper";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
-import { StockRepository } from "../repositories/stock.repository";
 
 export class SalesInvoiceService {
   salesInvoiceRepository: SalesInvoiceRepository;
-  stockRepository: StockRepository;
+  productStockRepository: ProductStockRepository;
   stockCardRepository: StockCardRepository;
   stockOutRepository: StockOutRepository;
 
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
-    stockRepository: StockRepository,
+    productStockRepository: ProductStockRepository,
     stockCardRepository: StockCardRepository,
     stockOutRepository: StockOutRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
-    this.stockRepository = stockRepository;
+    this.productStockRepository = productStockRepository;
     this.stockCardRepository = stockCardRepository;
     this.stockOutRepository = stockOutRepository;
   }

@@ -103,16 +103,16 @@ export class StockCardModel {
       sales_return_id: x.sales_return_id,
       sales_return_code_id: x.sales_return_code_id,
       customer:
-        x.customer == undefined
-          ? undefined
-          : x.customer == null
+        x.customer == null
           ? null
+          : x.customer == undefined
+          ? undefined
           : CustomerModel.fromMap(x.customer),
       supplier:
-        x.supplier == undefined
-          ? undefined
-          : x.supplier == null
+        x.supplier == null
           ? null
+          : x.supplier == undefined
+          ? undefined
           : SupplierModel.fromMap(x.supplier),
       created_at: new Date(x.created_at),
     });

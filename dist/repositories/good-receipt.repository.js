@@ -305,6 +305,16 @@ class GoodReceiptRepository {
                                 },
                             },
                             {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
+                                },
+                            },
+                            {
                                 OR: [
                                     {
                                         name: {
@@ -349,6 +359,16 @@ class GoodReceiptRepository {
                             {
                                 date: {
                                     lt: new Date(data.year, data.month, 1),
+                                },
+                            },
+                            {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
                                 },
                             },
                             {

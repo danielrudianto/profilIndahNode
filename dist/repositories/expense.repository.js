@@ -76,20 +76,12 @@ class ExpenseRepository {
             const result = await this.prisma.expense.update({
                 where: { id },
                 data: {
+                    is_delete: true,
                     deleted_by: userID,
                     deleted_at: new Date(),
                 },
             });
-            return new expense_model_1.ExpenseModel({
-                id: result.id,
-                description: result.description,
-                date: result.date,
-                company_id: result.company_id,
-                value: Number(result.value),
-                created_by: result.created_by,
-                created_at: result.created_at,
-                expense_type_id: result.expense_type_id,
-            });
+            return expense_model_1.ExpenseModel.fromMap(result);
         }
         catch (error) {
             console.error(`[error]: Error on deleting expense ${error}`);
@@ -103,6 +95,7 @@ class ExpenseRepository {
                     gte: new Date(data.year, data.month - 1, 1, 0, 0, 0),
                     lt: new Date(data.year, data.month, 1, 0, 0, 0),
                 },
+                is_delete: false,
             };
             const [result, count] = await Promise.all([
                 this.prisma.expense.findMany({

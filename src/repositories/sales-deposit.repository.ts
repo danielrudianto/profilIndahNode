@@ -194,16 +194,18 @@ export class SalesDepositRepository {
     keyword: string;
     limit: number;
     offset: number;
-    isActive: boolean;
+    isPending: boolean;
     isDelete: boolean;
     sortBy: string;
     sortDirection: "asc" | "desc";
+    startDate: Date;
+    endDate: Date;
   }) {
     try {
       let statusFilter: any = {};
       if (
-        (!data.isActive && !data.isDelete) ||
-        (data.isActive && data.isDelete)
+        (!data.isPending && !data.isDelete) ||
+        (data.isPending && data.isDelete)
       ) {
         statusFilter = {
           OR: [
@@ -215,9 +217,9 @@ export class SalesDepositRepository {
             },
           ],
         };
-      } else if (data.isActive) {
+      } else if (data.isPending) {
         statusFilter = {
-          is_delete: true,
+          is_delete: false,
         };
       } else {
         statusFilter = {
@@ -262,6 +264,16 @@ export class SalesDepositRepository {
                 },
               },
               {
+                date: {
+                  gte: data.startDate,
+                },
+              },
+              {
+                date: {
+                  lte: data.endDate,
+                },
+              },
+              {
                 OR: [
                   {
                     name: {
@@ -303,6 +315,16 @@ export class SalesDepositRepository {
               {
                 date: {
                   lte: new Date(data.year, data.month, 0),
+                },
+              },
+              {
+                date: {
+                  gte: data.startDate,
+                },
+              },
+              {
+                date: {
+                  lte: data.endDate,
                 },
               },
               {

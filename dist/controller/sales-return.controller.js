@@ -5,8 +5,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
+const queue_helper_1 = require("../helper/queue.helper");
 class SalesReturnController {
-    constructor(salesReturnRepository, salesInvoiceRepository, stockRepository, stockOutRepository, stockCardRepository) {
+    constructor(salesReturnRepository, salesInvoiceRepository, productStockRepository, stockOutRepository, stockCardRepository) {
         this.create = async (req, res) => {
             try {
                 const date = new Date(req.body.date);
@@ -43,7 +44,7 @@ class SalesReturnController {
                 if (!result) {
                     return res.status(400).send(error_list_1.default["Sales return creation failed"]);
                 }
-                await this.stockRepository.updateMany(result.sales_return.map((x) => {
+                await this.productStockRepository.updateMany(result.sales_return.map((x) => {
                     var _a;
                     return {
                         quantity: x.quantity *
@@ -53,7 +54,7 @@ class SalesReturnController {
                         productID: x.sales_invoice.product_id,
                     };
                 }));
-                await this.stockCardRepository.createMany(result.sales_return.map((x) => {
+                const stockCardResult = await this.stockCardRepository.createMany(result.sales_return.map((x) => {
                     var _a;
                     return {
                         date: result.date,
@@ -89,6 +90,11 @@ class SalesReturnController {
                                 : x.sales_invoice.product_unit.conversion),
                     };
                 }));
+                stockCardResult.forEach(async (x) => {
+                    await queue_helper_1.queue.add("stock-card-inserted", {
+                        id: x.id,
+                    });
+                });
                 return res.status(200).send(result);
             }
             catch (error) {
@@ -125,6 +131,8 @@ class SalesReturnController {
             const keyword = (0, escape_helper_1.translateKeyword)(req.body.keyword);
             const isDelete = req.body.isDelete;
             const isActive = req.body.isActive;
+            const startDate = req.body.startDate;
+            const endDate = req.body.endDate;
             try {
                 const result = await this.salesReturnRepository.fetchArchives({
                     month: month,
@@ -134,6 +142,8 @@ class SalesReturnController {
                     keyword: keyword,
                     isDelete: isDelete,
                     isActive: isActive,
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
                 });
                 return res.status(200).send(result);
             }
@@ -167,7 +177,7 @@ class SalesReturnController {
                         good_receipt_id: null,
                     };
                 }));
-                await this.stockRepository.updateMany(salesReturn.sales_return.map((x) => {
+                await this.productStockRepository.updateMany(salesReturn.sales_return.map((x) => {
                     var _a;
                     return {
                         quantity: -1 *
@@ -207,7 +217,7 @@ class SalesReturnController {
         };
         this.salesReturnRepository = salesReturnRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
-        this.stockRepository = stockRepository;
+        this.productStockRepository = productStockRepository;
         this.stockOutRepository = stockOutRepository;
         this.stockCardRepository = stockCardRepository;
     }

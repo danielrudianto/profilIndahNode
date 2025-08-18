@@ -179,6 +179,8 @@ enum ErrorList {
   "Amount is required" = "Nominal tidak boleh kosong",
   "Amount must be numeric" = "Nominal harus berupa angka",
   "Sales invoice payment is greater than value" = "Nilai pembayaran lebih besar daripada nilai nota",
+  "Sales invoice payment not found" = "Pembayaran faktur penjualan tidak ditemukan",
+
   "Deposit already confirmed" = "Deposit sudah dikonfirmasi atau dihapus sebelumnya",
 
   "Page is required" = "Halaman tidak boleh kosong",
@@ -193,6 +195,10 @@ enum ErrorList {
   "Supplier has been used" = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.",
   "Sales invoice not found" = "Data faktur penjualan tidak ditemukan",
   "Receivable exceed sales invoice" = "Nilai pembayaran melebihi nilai faktur penjualan",
+
+  "View by mutation required" = "Nilai filter tidak boleh kosong",
+  "View by mutation must be either document date or creation date" = "Filter harus merupakan tanggal dokumen atau tanggal pembuatan dokumen",
+  "Expense not found" = "Pengeluaran tidak ditemukan",
 }
 
 export default ErrorList;

@@ -19,7 +19,7 @@ import { StockCardService } from "./services/stock-card.service";
 import { StockCardRepository } from "./repositories/stock-card.repository";
 import { SalesInvoiceService } from "./services/sales-invoice.service";
 import { SalesInvoiceRepository } from "./repositories/sales-invoice.repository";
-import { StockRepository } from "./repositories/stock.repository";
+import { ProductStockRepository } from "./repositories/product-stock.repository";
 
 async function connect() {
   await prisma.$connect();
@@ -118,7 +118,7 @@ async function syncProductPackage() {
 async function syncSales() {
   const salesInvoiceService = new SalesInvoiceService(
     new SalesInvoiceRepository(prisma),
-    new StockRepository(prisma),
+    new ProductStockRepository(prisma),
     new StockCardRepository(prisma),
     new StockOutRepository(prisma)
   );

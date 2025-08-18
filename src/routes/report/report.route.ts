@@ -22,7 +22,7 @@ import { SalesInvoiceRepository } from "../../repositories/sales-invoice.reposit
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
-import { StockRepository } from "../../repositories/stock.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const router = Router();
 
@@ -38,7 +38,7 @@ const reportController = new ReportController(
   new StockInRepository(prisma),
   new StockOutRepository(prisma),
   new ProductRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
   new ExpenseTypeRepository(prisma)
@@ -179,8 +179,9 @@ router.post(
     })
     .withMessage(ErrorList["Year must be numeric"]),
   ErrorHelper.intercept,
-  ReportController.fetchPurchaseReport
+  reportController.fetchPurchaseReport
 );
+
 router.post(
   "/purchase/download",
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
@@ -282,15 +283,5 @@ router.post(
 );
 
 router.get("/inventory/download", ReportController.downloadInventoryReport);
-
-router.get("/expense/:month/:year", ReportController.fetchExpenseReport);
-
-router.get("/dashboard/sales", ReportController.fetchSalesDashboard);
-router.post("/dashboard/sales", ReportController.fetchSalesDashboardV2);
-
-router.post(
-  "/output-company/download",
-  ReportController.fetchOutputReportCompany
-);
 
 export default router;

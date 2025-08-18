@@ -8,7 +8,7 @@ const router = Router();
 // router.post("/refresh-token", authMiddleware, AuthController.refreshToken);
 // router.post("/product", authMiddleware, ProductController.fetch);
 
-router.get("/sales", authMiddleware, ReportController.fetchSalesDashboard);
+// router.get("/sales", authMiddleware, ReportController.fetchSalesDashboard);
 router.get(
   "/purchase",
   authMiddleware

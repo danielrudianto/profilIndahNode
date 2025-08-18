@@ -69,4 +69,31 @@ export class SalesInvoicePaymentController {
       return res.status(500).send(error);
     }
   };
+
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    try {
+      const salesInvoicePayment =
+        await this.salesInvoicePaymentRepository.fetchByID(id);
+      if (!salesInvoicePayment) {
+        return res
+          .status(404)
+          .send(ErrorList["Sales invoice payment not found"]);
+      }
+
+      const result = await this.salesInvoicePaymentRepository.delete(
+        id,
+        salesInvoicePayment.sales_invoice_code_id
+      );
+
+      // add to receivable
+      await this.receivableRepository.addReceivableValue(
+        salesInvoicePayment.value
+      );
+
+      return res.status(200).send(salesInvoicePayment);
+    } catch (error) {
+      throw error;
+    }
+  };
 }

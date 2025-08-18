@@ -6,16 +6,16 @@ import ErrorHelper from "../../helper/error.helper";
 import { superadministratorMiddleware } from "../../helper/auth.helper";
 import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
 import { prisma } from "../../helper/database.helper";
-import { StockRepository } from "../../repositories/stock.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const router = Router();
 
 const adjustmentCaseController = new AdjustmentCaseController(
   new AdjustmentCaseRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new StockInRepository(prisma),
   new StockOutRepository(prisma),
   new StockCardRepository(prisma)

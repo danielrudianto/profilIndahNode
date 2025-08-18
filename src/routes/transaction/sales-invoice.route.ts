@@ -9,11 +9,11 @@ import { ReceivableRepository } from "../../repositories/receivable.repository";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { redisClient } from "../../helper/redis.helper";
 import { SalesmanController } from "../../controller/sales.controller";
-import { StockRepository } from "../../repositories/stock.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { SalesInvoicePaymentRepository } from "../../repositories/sales-invoice-payment.repository";
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const router = Router();
 
@@ -22,7 +22,7 @@ const salesInvoiceController = new SalesInvoiceController(
   new ReceivableRepository(redisClient, prisma),
   new SalesReturnRepository(prisma),
   new StockOutRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new SalesInvoicePaymentRepository(prisma),
   new StockCardRepository(prisma)
 );
@@ -143,12 +143,6 @@ router.get(
     .withMessage(ErrorList["ID must be numeric"]),
   ErrorHelper.intercept,
   salesInvoiceController.fetchByID
-);
-
-router.delete(
-  "/payment/:id",
-  administratorMiddleware,
-  SalesInvoiceController.deletePaymentByID
 );
 
 router.delete(

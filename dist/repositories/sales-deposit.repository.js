@@ -158,8 +158,8 @@ class SalesDepositRepository {
     async fetchArchives(data) {
         try {
             let statusFilter = {};
-            if ((!data.isActive && !data.isDelete) ||
-                (data.isActive && data.isDelete)) {
+            if ((!data.isPending && !data.isDelete) ||
+                (data.isPending && data.isDelete)) {
                 statusFilter = {
                     OR: [
                         {
@@ -171,9 +171,9 @@ class SalesDepositRepository {
                     ],
                 };
             }
-            else if (data.isActive) {
+            else if (data.isPending) {
                 statusFilter = {
-                    is_delete: true,
+                    is_delete: false,
                 };
             }
             else {
@@ -219,6 +219,16 @@ class SalesDepositRepository {
                                 },
                             },
                             {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
+                                },
+                            },
+                            {
                                 OR: [
                                     {
                                         name: {
@@ -260,6 +270,16 @@ class SalesDepositRepository {
                             {
                                 date: {
                                     lte: new Date(data.year, data.month, 0),
+                                },
+                            },
+                            {
+                                date: {
+                                    gte: data.startDate,
+                                },
+                            },
+                            {
+                                date: {
+                                    lte: data.endDate,
                                 },
                             },
                             {

@@ -7,16 +7,16 @@ import { administratorMiddleware } from "../../helper/auth.helper";
 import ErrorHelper from "../../helper/error.helper";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
-import { StockRepository } from "../../repositories/stock.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 
 const router = Router();
 
 const salesReturnController = new SalesReturnController(
   new SalesReturnRepository(prisma),
   new SalesInvoiceRepository(prisma),
-  new StockRepository(prisma),
+  new ProductStockRepository(prisma),
   new StockOutRepository(prisma),
   new StockCardRepository(prisma)
 );

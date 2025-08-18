@@ -9,7 +9,7 @@ const escape_helper_1 = require("../helper/escape.helper");
 const queue_helper_1 = require("../helper/queue.helper");
 const sales_deposit_payment_model_1 = require("../model/sales-deposit-payment.model");
 class SalesDepositController {
-    constructor(salesDepositRepository, salesInvoiceRepository, stockCardRepository, stockRepository, stockOutRepository, receivableRepository, overpaymentRepository) {
+    constructor(salesDepositRepository, salesInvoiceRepository, stockCardRepository, productStockRepository, stockOutRepository, receivableRepository, overpaymentRepository) {
         this.create = async (req, res) => {
             const userID = req.body.userId;
             const customerID = req.body.customer_id;
@@ -109,8 +109,10 @@ class SalesDepositController {
             const keyword = (0, escape_helper_1.translateKeyword)(req.query.keyword);
             const page = (0, escape_helper_1.translatePage)(req.query.page);
             const offset = Number(process.env.LIMIT);
-            const isActive = req.body.isActive;
+            const isPending = req.body.isPending;
             const isDelete = req.body.isDelete;
+            const startDate = req.body.startDate;
+            const endDate = req.body.endDate;
             const sortBy = req.body.sortBy;
             const sortDirection = req.body.sortDirection;
             try {
@@ -120,10 +122,12 @@ class SalesDepositController {
                     keyword: keyword,
                     limit: offset,
                     offset: (page - 1) * offset,
-                    isActive: isActive,
+                    isPending: isPending,
                     isDelete: isDelete,
                     sortBy: sortBy,
                     sortDirection: sortDirection,
+                    startDate: new Date(startDate),
+                    endDate: new Date(endDate),
                 });
                 return res.status(200).send(result);
             }
@@ -216,7 +220,7 @@ class SalesDepositController {
                         sales_invoice_code_id: result.id,
                     };
                 }));
-                await this.stockRepository.updateMany(result.sales_invoice.map((x) => {
+                await this.productStockRepository.updateMany(result.sales_invoice.map((x) => {
                     const conversion = x.product_unit == null ? 1 : x.product_unit.conversion;
                     return {
                         productID: x.product_id,
@@ -300,7 +304,7 @@ class SalesDepositController {
         this.salesDepositRepository = salesDepositRepository;
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.stockCardRepository = stockCardRepository;
-        this.stockRepository = stockRepository;
+        this.productStockRepository = productStockRepository;
         this.stockOutRepository = stockOutRepository;
         this.receivableRepository = receivableRepository;
         this.overpaymentRepository = overpaymentRepository;

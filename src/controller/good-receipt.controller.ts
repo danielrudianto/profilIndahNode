@@ -10,23 +10,23 @@ import { queue } from "../helper/queue.helper";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { StockInRepository } from "../repositories/stock-in.repository";
-import { StockRepository } from "../repositories/stock.repository";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
 
 class GoodReceiptController {
   private goodReceiptRepository: GoodReceiptRepository;
   private stockInRepository: StockInRepository;
-  private stockRepository: StockRepository;
+  private productStockRepository: ProductStockRepository;
   private stockCardRepository: StockCardRepository;
 
   constructor(
     goodReceiptRepository: GoodReceiptRepository,
     stockInRepository: StockInRepository,
-    stockRepository: StockRepository,
+    productStockRepository: ProductStockRepository,
     stockCardRepository: StockCardRepository
   ) {
     this.goodReceiptRepository = goodReceiptRepository;
     this.stockInRepository = stockInRepository;
-    this.stockRepository = stockRepository;
+    this.productStockRepository = productStockRepository;
     this.stockCardRepository = stockCardRepository;
   }
 
@@ -92,7 +92,7 @@ class GoodReceiptController {
         })
       );
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         result.good_receipt!.map((x) => {
           return {
             productID: x.product_id,
@@ -208,7 +208,7 @@ class GoodReceiptController {
           })
         );
 
-        await this.stockRepository.updateMany(
+        await this.productStockRepository.updateMany(
           data.good_receipt!.map((x) => {
             return {
               productID: x.product_id,
@@ -251,7 +251,7 @@ class GoodReceiptController {
           })
         );
 
-        await this.stockRepository.updateMany(
+        await this.productStockRepository.updateMany(
           result.good_receipt!.map((x) => {
             return {
               productID: x.product_id,
@@ -511,7 +511,7 @@ class GoodReceiptController {
         })
       );
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         data.good_receipt!.map((x) => {
           return {
             productID: x.product_id,

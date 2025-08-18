@@ -77,6 +77,130 @@ export class StockCardRepository {
     return StockCardModel.fromMap(result);
   }
 
+  async fetchMutation(data: {
+    productID: number;
+    date: Date;
+    viewBy: "date" | "created";
+  }) {
+    try {
+      if (data.viewBy === "date") {
+        const previous = await this.prisma.stock_card.findFirst({
+          where: {
+            date: {
+              lt: data.date,
+            },
+          },
+          orderBy: [
+            {
+              date: "desc",
+            },
+            {
+              id: "desc",
+            },
+          ],
+          include: {
+            customer: true,
+            supplier: true,
+          },
+        });
+
+        const current = await this.prisma.stock_card.findMany({
+          where: {
+            date: data.date,
+          },
+          orderBy: [
+            {
+              id: "desc",
+            },
+          ],
+        });
+
+        return {
+          data: current.map((x) => {
+            return StockCardModel.fromMap(x);
+          }),
+          previous: previous == null ? 0 : previous.stock,
+        };
+      } else if (data.viewBy === "created") {
+        const previous = await this.prisma.stock_card.findFirst({
+          where: {
+            AND: [
+              {
+                created_at: {
+                  lt: new Date(
+                    data.date.getFullYear(),
+                    data.date.getMonth(),
+                    data.date.getDate() + 1
+                  ),
+                },
+              },
+              {
+                created_at: {
+                  gte: new Date(
+                    data.date.getFullYear(),
+                    data.date.getMonth(),
+                    data.date.getDate()
+                  ),
+                },
+              },
+            ],
+          },
+          orderBy: [
+            {
+              created_at: "desc",
+            },
+            {
+              id: "desc",
+            },
+          ],
+          include: {
+            customer: true,
+            supplier: true,
+          },
+        });
+
+        const current = await this.prisma.stock_card.findMany({
+          where: {
+            AND: [
+              {
+                created_at: {
+                  lt: new Date(
+                    data.date.getFullYear(),
+                    data.date.getMonth(),
+                    data.date.getDate() + 1
+                  ),
+                },
+              },
+              {
+                created_at: {
+                  gte: new Date(
+                    data.date.getFullYear(),
+                    data.date.getMonth(),
+                    data.date.getDate()
+                  ),
+                },
+              },
+            ],
+          },
+          orderBy: [
+            {
+              id: "desc",
+            },
+          ],
+        });
+
+        return {
+          data: current.map((x) => {
+            return StockCardModel.fromMap(x);
+          }),
+          previous: previous == null ? 0 : previous.stock,
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchPrevious(data: { product_id: number; date: Date; id: number }) {
     const result = await this.prisma.stock_card.findFirst({
       where: {
@@ -121,6 +245,42 @@ export class StockCardRepository {
     }
 
     return StockCardModel.fromMap(entry);
+  }
+
+  async fetchByProductID(data: {
+    productID: number;
+    page: number;
+    pageSize: number;
+  }) {
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.stock_card.findMany({
+        where: {
+          product_id: data.productID,
+        },
+        orderBy: [
+          {
+            date: "desc",
+          },
+          {
+            id: "desc",
+          },
+        ],
+        take: data.pageSize,
+        skip: (data.page - 1) * data.pageSize,
+      }),
+      this.prisma.stock_card.count({
+        where: {
+          product_id: data.productID,
+        },
+      }),
+    ]);
+
+    return {
+      data: result.map((x) => {
+        return StockCardModel.fromMap(x);
+      }),
+      count: count,
+    };
   }
 
   async reorderSince(data: {

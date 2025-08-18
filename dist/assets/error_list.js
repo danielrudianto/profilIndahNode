@@ -162,6 +162,7 @@ var ErrorList;
     ErrorList["Amount is required"] = "Nominal tidak boleh kosong";
     ErrorList["Amount must be numeric"] = "Nominal harus berupa angka";
     ErrorList["Sales invoice payment is greater than value"] = "Nilai pembayaran lebih besar daripada nilai nota";
+    ErrorList["Sales invoice payment not found"] = "Pembayaran faktur penjualan tidak ditemukan";
     ErrorList["Deposit already confirmed"] = "Deposit sudah dikonfirmasi atau dihapus sebelumnya";
     ErrorList["Page is required"] = "Halaman tidak boleh kosong";
     ErrorList["Page must be numeric"] = "Parameter halaman harus berupa angka";
@@ -175,6 +176,9 @@ var ErrorList;
     ErrorList["Supplier has been used"] = "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali.";
     ErrorList["Sales invoice not found"] = "Data faktur penjualan tidak ditemukan";
     ErrorList["Receivable exceed sales invoice"] = "Nilai pembayaran melebihi nilai faktur penjualan";
+    ErrorList["View by mutation required"] = "Nilai filter tidak boleh kosong";
+    ErrorList["View by mutation must be either document date or creation date"] = "Filter harus merupakan tanggal dokumen atau tanggal pembuatan dokumen";
+    ErrorList["Expense not found"] = "Pengeluaran tidak ditemukan";
 })(ErrorList || (ErrorList = {}));
 exports.default = ErrorList;
 //# sourceMappingURL=error_list.js.map

@@ -557,25 +557,6 @@ class ProductStockController {
     }
   };
 
-  fetchByID = async (req: Request, res: Response) => {
-    const id = Number(req.params.id);
-    const page = translatePage(req.query.page);
-    const pageSize = Number(req.query.pageSize);
-
-    try {
-      const result = await this.productStockRepository.fetchByProductID({
-        page: page,
-        pageSize: pageSize,
-        productID: id,
-      });
-
-      return res.status(200).send(result);
-    } catch (error) {
-      console.error(`[error]: Error on fetching product stock card ${error}`);
-      return res.status(500).send(error);
-    }
-  };
-
   fetchByProductID = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);

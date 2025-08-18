@@ -27,6 +27,27 @@ export class SalesInvoicePaymentRepository {
     }
   }
 
+  async fetchByID(id: number) {
+    try {
+      const result = await this.prisma.sales_invoice_payment.findUnique({
+        where: {
+          id: id,
+        },
+        include: {
+          payment_method: true,
+        },
+      });
+
+      if (!result) {
+        return null;
+      }
+
+      return SalesInvoicePaymentModel.fromMap(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchPaymentsBySalesInvoiceCodeID(id: number) {
     try {
       const result = await this.prisma.sales_invoice_payment.findMany({
@@ -111,6 +132,30 @@ export class SalesInvoicePaymentRepository {
         }));
 
       return salesSummary;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async delete(id: number, salesInvoiceCodeID: number) {
+    try {
+      const [result, _] = await this.prisma.$transaction([
+        this.prisma.sales_invoice_payment.delete({
+          where: {
+            id: id,
+          },
+        }),
+        this.prisma.sales_invoice_code.update({
+          where: {
+            id: salesInvoiceCodeID,
+          },
+          data: {
+            is_paid: false,
+          },
+        }),
+      ]);
+
+      return result;
     } catch (error) {
       throw error;
     }

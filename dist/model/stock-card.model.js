@@ -50,15 +50,15 @@ class StockCardModel {
             good_receipt_code_id: x.good_receipt_code_id,
             sales_return_id: x.sales_return_id,
             sales_return_code_id: x.sales_return_code_id,
-            customer: x.customer == undefined
-                ? undefined
-                : x.customer == null
-                    ? null
+            customer: x.customer == null
+                ? null
+                : x.customer == undefined
+                    ? undefined
                     : customer_model_1.CustomerModel.fromMap(x.customer),
-            supplier: x.supplier == undefined
-                ? undefined
-                : x.supplier == null
-                    ? null
+            supplier: x.supplier == null
+                ? null
+                : x.supplier == undefined
+                    ? undefined
                     : supplier_model_1.default.fromMap(x.supplier),
             created_at: new Date(x.created_at),
         });

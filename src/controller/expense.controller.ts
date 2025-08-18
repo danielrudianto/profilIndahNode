@@ -87,9 +87,16 @@ class ExpenseController {
     const userID = req.body.userId;
 
     try {
+      const expense = await this.expenseRepository.fetchByID(id);
+      if (!expense) {
+        return res.status(404).send(ErrorList["Expense not found"]);
+      }
+
+      if (expense.is_delete) {
+        return res.status(404).send(ErrorList["Expense not found"]);
+      }
+
       const result = await this.expenseRepository.delete(id, userID);
-      const socket = new SocketHelper("deleteExpense", result);
-      socket.create();
 
       return res.status(200).send(result);
     } catch (error) {

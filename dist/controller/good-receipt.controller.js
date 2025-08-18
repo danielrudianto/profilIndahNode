@@ -7,7 +7,7 @@ const error_list_1 = __importDefault(require("../assets/error_list"));
 const escape_helper_1 = require("../helper/escape.helper");
 const queue_helper_1 = require("../helper/queue.helper");
 class GoodReceiptController {
-    constructor(goodReceiptRepository, stockInRepository, stockRepository, stockCardRepository) {
+    constructor(goodReceiptRepository, stockInRepository, productStockRepository, stockCardRepository) {
         this.create = async (req, res) => {
             const date = new Date(req.body.date);
             const name = req.body.name;
@@ -60,7 +60,7 @@ class GoodReceiptController {
                         date: result.date,
                     };
                 }));
-                await this.stockRepository.updateMany(result.good_receipt.map((x) => {
+                await this.productStockRepository.updateMany(result.good_receipt.map((x) => {
                     return {
                         productID: x.product_id,
                         quantity: x.quantity *
@@ -159,7 +159,7 @@ class GoodReceiptController {
                             price: 0,
                         };
                     }));
-                    await this.stockRepository.updateMany(data.good_receipt.map((x) => {
+                    await this.productStockRepository.updateMany(data.good_receipt.map((x) => {
                         return {
                             productID: x.product_id,
                             quantity: -1 *
@@ -193,7 +193,7 @@ class GoodReceiptController {
                             date: result.date,
                         };
                     }));
-                    await this.stockRepository.updateMany(result.good_receipt.map((x) => {
+                    await this.productStockRepository.updateMany(result.good_receipt.map((x) => {
                         return {
                             productID: x.product_id,
                             quantity: x.quantity *
@@ -417,7 +417,7 @@ class GoodReceiptController {
                         price: 0,
                     };
                 }));
-                await this.stockRepository.updateMany(data.good_receipt.map((x) => {
+                await this.productStockRepository.updateMany(data.good_receipt.map((x) => {
                     return {
                         productID: x.product_id,
                         quantity: -1 *
@@ -446,7 +446,7 @@ class GoodReceiptController {
         };
         this.goodReceiptRepository = goodReceiptRepository;
         this.stockInRepository = stockInRepository;
-        this.stockRepository = stockRepository;
+        this.productStockRepository = productStockRepository;
         this.stockCardRepository = stockCardRepository;
     }
 }

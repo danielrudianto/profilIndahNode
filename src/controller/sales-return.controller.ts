@@ -2,28 +2,29 @@ import { Request, Response } from "express";
 import ErrorList from "../assets/error_list";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
-import { StockRepository } from "../repositories/stock.repository";
 import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
+import { queue } from "../helper/queue.helper";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
 
 class SalesReturnController {
   salesReturnRepository: SalesReturnRepository;
   salesInvoiceRepository: SalesInvoiceRepository;
-  stockRepository: StockRepository;
+  productStockRepository: ProductStockRepository;
   stockOutRepository: StockOutRepository;
   stockCardRepository: StockCardRepository;
 
   constructor(
     salesReturnRepository: SalesReturnRepository,
     salesInvoiceRepository: SalesInvoiceRepository,
-    stockRepository: StockRepository,
+    productStockRepository: ProductStockRepository,
     stockOutRepository: StockOutRepository,
     stockCardRepository: StockCardRepository
   ) {
     this.salesReturnRepository = salesReturnRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
-    this.stockRepository = stockRepository;
+    this.productStockRepository = productStockRepository;
     this.stockOutRepository = stockOutRepository;
     this.stockCardRepository = stockCardRepository;
   }
@@ -72,7 +73,7 @@ class SalesReturnController {
         return res.status(400).send(ErrorList["Sales return creation failed"]);
       }
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         result.sales_return!.map((x) => {
           return {
             quantity:
@@ -85,7 +86,7 @@ class SalesReturnController {
         })
       );
 
-      await this.stockCardRepository.createMany(
+      const stockCardResult = await this.stockCardRepository.createMany(
         result.sales_return!.map((x) => {
           return {
             date: result.date,
@@ -126,6 +127,12 @@ class SalesReturnController {
           };
         })
       );
+
+      stockCardResult.forEach(async (x) => {
+        await queue.add("stock-card-inserted", {
+          id: x.id,
+        });
+      });
 
       return res.status(200).send(result);
     } catch (error) {
@@ -179,6 +186,8 @@ class SalesReturnController {
     const keyword = translateKeyword(req.body.keyword);
     const isDelete = req.body.isDelete;
     const isActive = req.body.isActive;
+    const startDate = req.body.startDate;
+    const endDate = req.body.endDate;
 
     try {
       const result = await this.salesReturnRepository.fetchArchives({
@@ -189,6 +198,8 @@ class SalesReturnController {
         keyword: keyword,
         isDelete: isDelete,
         isActive: isActive,
+        startDate: new Date(startDate),
+        endDate: new Date(endDate),
       });
 
       return res.status(200).send(result);
@@ -233,7 +244,7 @@ class SalesReturnController {
         })
       );
 
-      await this.stockRepository.updateMany(
+      await this.productStockRepository.updateMany(
         salesReturn.sales_return!.map((x) => {
           return {
             quantity:

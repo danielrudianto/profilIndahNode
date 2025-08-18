@@ -12,11 +12,11 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const sales_invoice_repository_1 = require("../../repositories/sales-invoice.repository");
 const sales_return_repository_1 = require("../../repositories/sales-return.repository");
-const stock_repository_1 = require("../../repositories/stock.repository");
 const stock_out_repository_1 = require("../../repositories/stock-out.repository");
 const stock_card_repository_1 = require("../../repositories/stock-card.repository");
+const product_stock_repository_1 = require("../../repositories/product-stock.repository");
 const router = (0, express_1.Router)();
-const salesReturnController = new sales_return_controller_1.default(new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new stock_repository_1.StockRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
+const salesReturnController = new sales_return_controller_1.default(new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
 router.get("/archives", salesReturnController.fetchAnnualArchives);
 router.post("/archives", (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
     .isInt({ min: 2000 })

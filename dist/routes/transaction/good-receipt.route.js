@@ -12,10 +12,10 @@ const auth_helper_1 = require("../../helper/auth.helper");
 const good_receipt_repository_1 = require("../../repositories/good-receipt.repository");
 const database_helper_1 = require("../../helper/database.helper");
 const stock_in_repository_1 = require("../../repositories/stock-in.repository");
-const stock_repository_1 = require("../../repositories/stock.repository");
 const stock_card_repository_1 = require("../../repositories/stock-card.repository");
+const product_stock_repository_1 = require("../../repositories/product-stock.repository");
 const router = (0, express_1.Router)();
-const goodReceiptController = new good_receipt_controller_1.default(new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma), new stock_repository_1.StockRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
+const goodReceiptController = new good_receipt_controller_1.default(new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
 router.get("/archives", goodReceiptController.fetchAnnualArchives);
 router.post("/archives", (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
     .isInt({ min: 2000 })

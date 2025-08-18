@@ -7,6 +7,8 @@ import ErrorHelper from "../../helper/error.helper";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { ProductRepository } from "../../repositories/product.repository";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
+import { ProductStockCardController } from "../../controller/product-stock-card.controller";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
 
 const router = Router();
 
@@ -14,6 +16,11 @@ const productStockController = new ProductStockController(
   new ProductStockRepository(prisma),
   new ProductPackageRepository(prisma),
   new ProductRepository(prisma)
+);
+
+const stockCardController = new ProductStockCardController(
+  new ProductRepository(prisma),
+  new StockCardRepository(prisma)
 );
 
 router.get(
@@ -49,7 +56,7 @@ router.get(
     })
     .withMessage(ErrorList["Page size must be numeric"]),
   ErrorHelper.intercept,
-  productStockController.fetchByID
+  stockCardController.fetchByID
 );
 
 router.get(
@@ -112,6 +119,21 @@ router.post(
   }),
   ErrorHelper.intercept,
   productStockController.fetchInadequate
+);
+
+router.post(
+  "/mutation",
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  body("viewBy").notEmpty().withMessage(ErrorList["View by mutation required"]),
+  body("viewBy")
+    .isIn(["date", "created"])
+    .withMessage(
+      ErrorList[
+        "View by mutation must be either document date or creation date"
+      ]
+    ),
+  ErrorHelper.intercept,
+  stockCardController.fetchMutation
 );
 
 router.post(

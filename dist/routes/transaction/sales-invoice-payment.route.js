@@ -26,5 +26,10 @@ router.post("/", (0, express_validator_1.body)("sales_invoice_code_id")
     min: 0,
 })
     .withMessage(error_list_1.default["Amount must be numeric"]), (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Date required"]), error_helper_1.default.intercept, salesInvoicePaymentController.create);
+router.delete("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id")
+    .isInt({
+    min: 0,
+})
+    .withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, salesInvoicePaymentController.delete);
 exports.default = router;
 //# sourceMappingURL=sales-invoice-payment.route.js.map
