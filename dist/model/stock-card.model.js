@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StockCardModel = void 0;
 const customer_model_1 = require("./customer.model");
+const product_unit_model_1 = require("./product-unit.model");
 const supplier_model_1 = __importDefault(require("./supplier.model"));
 class StockCardModel {
     constructor(data) {
@@ -29,6 +30,7 @@ class StockCardModel {
         this.customer = data.customer;
         this.supplier = data.supplier;
         this.created_at = data.created_at;
+        this.product_unit = data.product_unit;
     }
     static fromMap(x) {
         return new StockCardModel({
@@ -61,6 +63,11 @@ class StockCardModel {
                     ? undefined
                     : supplier_model_1.default.fromMap(x.supplier),
             created_at: new Date(x.created_at),
+            product_unit: x.product_unit == null
+                ? null
+                : x.product_unit == undefined
+                    ? undefined
+                    : product_unit_model_1.ProductUnitModel.fromMap(x.product_unit),
         });
     }
 }

@@ -84,10 +84,6 @@ class StockCardRepository {
                             id: "desc",
                         },
                     ],
-                    include: {
-                        customer: true,
-                        supplier: true,
-                    },
                 });
                 const current = await this.prisma.stock_card.findMany({
                     where: {
@@ -98,6 +94,11 @@ class StockCardRepository {
                             id: "desc",
                         },
                     ],
+                    include: {
+                        customer: true,
+                        supplier: true,
+                        product_unit: true,
+                    },
                 });
                 return {
                     data: current.map((x) => {
@@ -130,10 +131,6 @@ class StockCardRepository {
                             id: "desc",
                         },
                     ],
-                    include: {
-                        customer: true,
-                        supplier: true,
-                    },
                 });
                 const current = await this.prisma.stock_card.findMany({
                     where: {
@@ -155,6 +152,11 @@ class StockCardRepository {
                             id: "desc",
                         },
                     ],
+                    include: {
+                        customer: true,
+                        supplier: true,
+                        product_unit: true,
+                    },
                 });
                 return {
                     data: current.map((x) => {

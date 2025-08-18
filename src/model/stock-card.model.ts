@@ -1,4 +1,5 @@
 import { CustomerModel } from "./customer.model";
+import { ProductUnitModel } from "./product-unit.model";
 import SupplierModel from "./supplier.model";
 
 export interface IStockCard {
@@ -28,6 +29,7 @@ export interface IStockCard {
   supplier?: SupplierModel | null;
 
   created_at: Date;
+  product_unit?: ProductUnitModel | null;
 }
 
 export class StockCardModel {
@@ -55,6 +57,7 @@ export class StockCardModel {
   supplier?: SupplierModel | null;
 
   created_at: Date;
+  product_unit?: ProductUnitModel | null;
 
   constructor(data: IStockCard) {
     this.id = data.id;
@@ -80,6 +83,7 @@ export class StockCardModel {
     this.supplier = data.supplier;
 
     this.created_at = data.created_at;
+    this.product_unit = data.product_unit;
   }
 
   static fromMap(x: any): StockCardModel {
@@ -115,6 +119,12 @@ export class StockCardModel {
           ? undefined
           : SupplierModel.fromMap(x.supplier),
       created_at: new Date(x.created_at),
+      product_unit:
+        x.product_unit == null
+          ? null
+          : x.product_unit == undefined
+          ? undefined
+          : ProductUnitModel.fromMap(x.product_unit),
     });
   }
 }
