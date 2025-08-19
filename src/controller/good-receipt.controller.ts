@@ -81,7 +81,9 @@ class GoodReceiptController {
             good_receipt_id: x.id!,
             adjustment_case_code_id: null,
             adjustment_case_id: null,
-            price: x.price - x.discount,
+            price:
+              (x.price - x.discount) /
+              (x.product_unit == null ? 1 : x.product_unit.conversion),
             product_id: x.product_id,
             quantity:
               x.quantity *
