@@ -187,6 +187,7 @@ class GoodReceiptController {
         confirmed_by: userID,
         good_receipt: good_receipt.map((x: any) => {
           return {
+            quantity: x.quantity,
             product_id: x.product_id,
             product_unit_id: x.product_unit_id,
             price: x.price,
@@ -197,7 +198,6 @@ class GoodReceiptController {
       });
 
       if (result) {
-        // First delete the existing stock in records
         await this.stockInRepository.deleteMany(
           data.good_receipt!.map((x) => {
             return {
@@ -233,6 +233,8 @@ class GoodReceiptController {
             good_receipt_code_id: id,
             good_receipt_id: data.good_receipt![i].id,
           });
+
+          await queue.add("good-receipt-deleted", data.good_receipt![i].id);
         }
 
         await this.stockInRepository.createMany(
@@ -296,6 +298,59 @@ class GoodReceiptController {
     } catch (error) {
       console.error(`[error]: Error on updating good receipt ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  delete = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+    const userID = req.body.userId;
+    try {
+      const goodReceipt = await this.goodReceiptRepository.fetchByID(id);
+      if (!goodReceipt) {
+        return res.status(404).send(ErrorList["Good receipt not found"]);
+      }
+
+      if (!goodReceipt.is_confirm) {
+        return res.status(400).send(ErrorList["Good receipt not confirmed"]);
+      }
+
+      if (goodReceipt.is_delete) {
+        return res.status(400).send(ErrorList["Good receipt already deleted"]);
+      }
+
+      const result = await this.goodReceiptRepository.delete(id, userID);
+      // delete the stock in
+      await this.stockCardRepository.deleteMany(
+        goodReceipt.good_receipt!.map((x) => {
+          return {
+            sales_invoice_code_id: null,
+            sales_invoice_id: null,
+            sales_return_code_id: null,
+            sales_return_id: null,
+            adjustment_case_code_id: null,
+            adjustment_case_id: null,
+            good_receipt_code_id: id,
+            good_receipt_id: x.id!,
+          };
+        })
+      );
+
+      await this.stockInRepository.deleteMany(
+        goodReceipt.good_receipt!.map((x) => {
+          return {
+            good_receipt_code_id: id,
+            good_receipt_id: x.id!,
+            adjustment_case_code_id: null,
+            adjustment_case_id: null,
+            price: 0,
+          };
+        })
+      );
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on deleting good receipt ${error}`);
+      return res.status(500).send(error);
     }
   };
 
@@ -418,7 +473,7 @@ class GoodReceiptController {
         return res.status(400).send(ErrorList["Good receipt already deleted"]);
       }
 
-      const result = await this.goodReceiptRepository.confirm({
+      const goodReceipt = await this.goodReceiptRepository.confirm({
         uuid: data.uuid,
         id: id,
         name: name,
@@ -442,18 +497,20 @@ class GoodReceiptController {
       });
 
       await this.stockInRepository.updateMany(
-        good_receipt.map((x: any) => {
+        goodReceipt.good_receipt!.map((x) => {
           return {
-            good_receipt_id: x.id,
+            good_receipt_id: x.id!,
             good_receipt_code_id: id,
             adjustment_case_id: null,
             adjustment_case_code_id: null,
-            price: x.price - x.discount,
+            price:
+              (x.price - x.discount) /
+              (x.product_unit == null ? 1 : x.product_unit.conversion),
           };
         })
       );
 
-      return res.status(200).send(result);
+      return res.status(200).send(goodReceipt);
     } catch (error) {
       console.error(`[error]: Error on confirming purchase invoice ${error}`);
       return res.status(500).send(error);

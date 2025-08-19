@@ -192,4 +192,61 @@ router.put(
   goodReceiptController.reject
 );
 
+router.put(
+  "/",
+  superadministratorMiddleware,
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  body("name").notEmpty().withMessage(ErrorList["Invoice name required"]),
+  body("faktur").exists().withMessage(ErrorList["Tax invoice required"]),
+  body("invoice_name").notEmpty().withMessage(ErrorList["Name required"]),
+  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
+  body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
+  body("good_receipt")
+    .notEmpty()
+    .withMessage(ErrorList["Good receipt required"]),
+  body("good_receipt")
+    .isArray()
+    .withMessage(ErrorList["Good receipt must be array"]),
+  body("good_receipt.*.product_id")
+    .notEmpty()
+    .withMessage(ErrorList["Product ID is required"]),
+  body("good_receipt.*.product_id")
+    .isInt({ min: 1 })
+    .withMessage(ErrorList["Product ID must be numeric"]),
+  body("good_receipt.*.price")
+    .notEmpty()
+    .withMessage(ErrorList["Price is required"]),
+  body("good_receipt.*.price")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Price must be numeric"]),
+  body("good_receipt.*.discount")
+    .notEmpty()
+    .withMessage(ErrorList["Discount required"]),
+  body("good_receipt.*.discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Discount must be numeric"]),
+  body("good_receipt.*.quantity")
+    .notEmpty()
+    .withMessage(ErrorList["Quantity required"]),
+  body("good_receipt.*.quantity")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Quantity must be numeric"]),
+  body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
+  body("discount")
+    .isFloat({ min: 0 })
+    .withMessage(ErrorList["Discount must be numeric"]),
+  ErrorHelper.intercept,
+  goodReceiptController.update
+);
+
+router.delete(
+  "/:id",
+  superadministratorMiddleware,
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  goodReceiptController.delete
+);
+
 export default router;

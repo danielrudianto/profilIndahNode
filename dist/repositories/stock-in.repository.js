@@ -42,12 +42,30 @@ class StockInRepository {
     async deleteMany(data) {
         try {
             const stockIns = await this.prisma.$transaction(data.map((x) => {
-                return this.prisma.stock_in.findFirst({
+                return this.prisma.stock_in.findMany({
                     where: {
-                        good_receipt_id: x.good_receipt_id,
-                        good_receipt_code_id: x.good_receipt_code_id,
-                        adjustment_case_id: x.adjustment_case_id,
-                        adjustment_case_code_id: x.adjustment_case_code_id,
+                        OR: [
+                            {
+                                AND: [
+                                    {
+                                        adjustment_case_id: x.adjustment_case_id,
+                                    },
+                                    {
+                                        adjustment_case_code_id: x.adjustment_case_code_id,
+                                    },
+                                ],
+                            },
+                            {
+                                AND: [
+                                    {
+                                        good_receipt_id: x.good_receipt_id,
+                                    },
+                                    {
+                                        good_receipt_code_id: x.good_receipt_code_id,
+                                    },
+                                ],
+                            },
+                        ],
                     },
                     include: {
                         stock_out: {
@@ -58,35 +76,30 @@ class StockInRepository {
                     },
                 });
             }));
-            if (stockIns == undefined) {
+            const stockInFlat = stockIns.flat();
+            if (stockInFlat.length == 0) {
                 return;
             }
-            if (stockIns.length == 0) {
-                return;
-            }
-            const updateQuery = [];
-            //Unassigned to stockOuts
-            for (let i = 0; i < stockIns.length; i++) {
-                if (stockIns[i] == undefined || stockIns[i] == null) {
-                    return;
-                }
-                for (let j = 0; j < stockIns[i].stock_out.length; j++) {
-                    updateQuery.push(this.prisma.stock_out.update({
+            const updateQuery = stockInFlat.flatMap((x) => {
+                return x.stock_out.map((z) => {
+                    return this.prisma.stock_out.update({
                         where: {
-                            id: stockIns[i].stock_out[j].id,
+                            id: z.id,
                         },
                         data: {
                             stock_in_id: null,
                         },
-                    }));
-                }
-                updateQuery.push(this.prisma.stock_in.delete({
+                    });
+                });
+            });
+            const deleteQuery = stockInFlat.map((x) => {
+                return this.prisma.stock_in.delete({
                     where: {
-                        id: stockIns[i].id,
+                        id: x.id,
                     },
-                }));
-            }
-            await this.prisma.$transaction(updateQuery);
+                });
+            });
+            await this.prisma.$transaction([...updateQuery, ...deleteQuery]);
         }
         catch (error) {
             throw error;

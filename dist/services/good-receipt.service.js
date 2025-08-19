@@ -36,6 +36,15 @@ class GoodReceiptService {
             throw new Error("Failed to create good receipt");
         }
     }
+    async deleteByID(id) {
+        try {
+            await this.goodReceiptRepository.deleteGoodReceiptByID(id);
+        }
+        catch (error) {
+            console.error(`[error]: Error on deleting good receipt data ${error}`);
+            throw new Error("Failed to delete good receipt");
+        }
+    }
 }
 exports.GoodReceiptService = GoodReceiptService;
 //# sourceMappingURL=good-receipt.service.js.map

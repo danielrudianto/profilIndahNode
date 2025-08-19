@@ -87,5 +87,29 @@ router.put("/confirm", (0, express_validator_1.body)("id").notEmpty().withMessag
     .isFloat({ min: 0 })
     .withMessage(error_list_1.default["Discount must be numeric"]), error_helper_1.default.intercept, goodReceiptController.confirm);
 router.put("/reject", (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id").isInt({ min: 1 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, goodReceiptController.reject);
+router.put("/", auth_helper_1.superadministratorMiddleware, (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Date required"]), (0, express_validator_1.body)("name").notEmpty().withMessage(error_list_1.default["Invoice name required"]), (0, express_validator_1.body)("faktur").exists().withMessage(error_list_1.default["Tax invoice required"]), (0, express_validator_1.body)("invoice_name").notEmpty().withMessage(error_list_1.default["Name required"]), (0, express_validator_1.body)("company_id").notEmpty().withMessage(error_list_1.default["Company ID required"]), (0, express_validator_1.body)("supplier_id").notEmpty().withMessage(error_list_1.default["Supplier ID required"]), (0, express_validator_1.body)("good_receipt")
+    .notEmpty()
+    .withMessage(error_list_1.default["Good receipt required"]), (0, express_validator_1.body)("good_receipt")
+    .isArray()
+    .withMessage(error_list_1.default["Good receipt must be array"]), (0, express_validator_1.body)("good_receipt.*.product_id")
+    .notEmpty()
+    .withMessage(error_list_1.default["Product ID is required"]), (0, express_validator_1.body)("good_receipt.*.product_id")
+    .isInt({ min: 1 })
+    .withMessage(error_list_1.default["Product ID must be numeric"]), (0, express_validator_1.body)("good_receipt.*.price")
+    .notEmpty()
+    .withMessage(error_list_1.default["Price is required"]), (0, express_validator_1.body)("good_receipt.*.price")
+    .isFloat({ min: 0 })
+    .withMessage(error_list_1.default["Price must be numeric"]), (0, express_validator_1.body)("good_receipt.*.discount")
+    .notEmpty()
+    .withMessage(error_list_1.default["Discount required"]), (0, express_validator_1.body)("good_receipt.*.discount")
+    .isFloat({ min: 0 })
+    .withMessage(error_list_1.default["Discount must be numeric"]), (0, express_validator_1.body)("good_receipt.*.quantity")
+    .notEmpty()
+    .withMessage(error_list_1.default["Quantity required"]), (0, express_validator_1.body)("good_receipt.*.quantity")
+    .isFloat({ min: 0 })
+    .withMessage(error_list_1.default["Quantity must be numeric"]), (0, express_validator_1.body)("discount").notEmpty().withMessage(error_list_1.default["Discount required"]), (0, express_validator_1.body)("discount")
+    .isFloat({ min: 0 })
+    .withMessage(error_list_1.default["Discount must be numeric"]), error_helper_1.default.intercept, goodReceiptController.update);
+router.delete("/:id", auth_helper_1.superadministratorMiddleware, (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isInt({ min: 1 }).withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, goodReceiptController.delete);
 exports.default = router;
 //# sourceMappingURL=good-receipt.route.js.map

@@ -357,6 +357,7 @@ model good_receipt {
   price                Decimal @db.Decimal(12, 2)
   discount             Decimal @db.Decimal(12, 2)
   product_unit_id      Int?
+  is_delete            Boolean @default(false)
 
   good_receipt_code good_receipt_code @relation(fields: [good_receipt_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_1")
   product           product           @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "good_receipt_ibfk_2")

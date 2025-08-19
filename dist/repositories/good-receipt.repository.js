@@ -29,6 +29,7 @@ class GoodReceiptRepository {
                     created_at: data.created_at,
                     confirmed_at: data.confirmed_at,
                     confirmed_by: data.confirmed_by,
+                    is_confirm: data.is_confirm,
                     date: data.date,
                     supplier_id: data.supplier_id,
                     company_id: data.company_id,
@@ -54,6 +55,9 @@ class GoodReceiptRepository {
                             product: true,
                             product_unit: true,
                         },
+                        where: {
+                            is_delete: false,
+                        },
                     },
                 },
             });
@@ -73,11 +77,20 @@ class GoodReceiptRepository {
                 where: { id: data.id },
                 data: {
                     name: data.name,
+                    invoice_name: data.invoice_name,
+                    faktur: data.faktur,
                     date: data.date,
                     supplier_id: data.supplier_id,
                     company_id: data.company_id,
                     good_receipt: {
-                        deleteMany: {},
+                        updateMany: {
+                            data: {
+                                is_delete: true,
+                            },
+                            where: {
+                                good_receipt_code_id: data.id,
+                            },
+                        },
                         createMany: {
                             data: data.good_receipt.map((item) => {
                                 return {
@@ -88,6 +101,17 @@ class GoodReceiptRepository {
                                     product_unit_id: item.product_unit_id,
                                 };
                             }),
+                        },
+                    },
+                },
+                include: {
+                    good_receipt: {
+                        where: {
+                            is_delete: false,
+                        },
+                        include: {
+                            product: true,
+                            product_unit: true,
                         },
                     },
                 },
@@ -105,6 +129,7 @@ class GoodReceiptRepository {
                     id: id,
                 },
                 data: {
+                    is_confirm: false,
                     is_delete: true,
                     confirmed_by: userID,
                     confirmed_at: new Date(),
@@ -115,6 +140,18 @@ class GoodReceiptRepository {
         catch (error) {
             console.error("Error deleting good receipt:", error);
             throw new Error("Failed to delete good receipt");
+        }
+    }
+    async deleteGoodReceiptByID(id) {
+        try {
+            await this.prisma.good_receipt.delete({
+                where: {
+                    id: id,
+                },
+            });
+        }
+        catch (error) {
+            throw error;
         }
     }
     async fetchByName(name) {
@@ -147,6 +184,9 @@ class GoodReceiptRepository {
                         include: {
                             product: true,
                             product_unit: true,
+                        },
+                        where: {
+                            is_delete: false,
                         },
                     },
                     user_good_receipt_code_created_byTouser: {
@@ -546,7 +586,11 @@ class GoodReceiptRepository {
                     is_delete: false,
                 },
                 include: {
-                    good_receipt: true,
+                    good_receipt: {
+                        where: {
+                            is_delete: false,
+                        },
+                    },
                     supplier: true,
                 },
             });
@@ -605,6 +649,9 @@ class GoodReceiptRepository {
                                 product: true,
                                 product_unit: true,
                             },
+                            where: {
+                                is_delete: false,
+                            },
                         },
                         user_good_receipt_code_created_byTouser: {
                             include: {
@@ -653,6 +700,9 @@ class GoodReceiptRepository {
                         include: {
                             product: true,
                             product_unit: true,
+                        },
+                        where: {
+                            is_delete: false,
                         },
                     },
                     user_good_receipt_code_created_byTouser: {

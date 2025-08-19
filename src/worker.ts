@@ -78,6 +78,9 @@ const workerHandler = async (job: Job<any>) => {
       break;
     case "stock-card-deleted":
       await stockCardService.delete(job.data);
+      break;
+    case "good-receipt-deleted":
+      await goodReceiptService.deleteByID(job.data);
     // console.log("product created!!");
     // case "updateItem":
     //   const item = job.data;
