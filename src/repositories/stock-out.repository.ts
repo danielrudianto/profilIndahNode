@@ -93,7 +93,7 @@ export class StockOutRepository {
   ) {
     try {
       for (let i = 0; i < data.length; i++) {
-        let quantity = 0;
+        let quantity = data[i].quantity;
         while (quantity > 0) {
           if (quantity == 0) {
             break;
@@ -102,6 +102,9 @@ export class StockOutRepository {
           const stockOut = await this.prisma.stock_out.findFirst({
             where: {
               sales_invoice_id: data[i].sales_invoice_id,
+            },
+            orderBy: {
+              stock_in_id: "desc",
             },
           });
 
