@@ -8,8 +8,15 @@ import { OverpaymentRepository } from "../../repositories/overpayment.repository
 
 const router = Router();
 
-const overpaymentContorller = new OverpaymentController(
+const overpaymentController = new OverpaymentController(
   new OverpaymentRepository(prisma)
+);
+
+router.post(
+  "/return",
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  ErrorHelper.intercept,
+  overpaymentController.fetchReport
 );
 
 router.post(
@@ -45,7 +52,7 @@ router.post(
     .exists()
     .withMessage(ErrorList["Return payment number is required"]),
   ErrorHelper.intercept,
-  overpaymentContorller.create
+  overpaymentController.create
 );
 
 router.get(
@@ -57,9 +64,9 @@ router.get(
     })
     .withMessage(ErrorList["ID must be numeric"]),
   ErrorHelper.intercept,
-  overpaymentContorller.fetchByID
+  overpaymentController.fetchByID
 );
 
-router.get("/", overpaymentContorller.fetch);
+router.get("/", overpaymentController.fetch);
 
 export default router;

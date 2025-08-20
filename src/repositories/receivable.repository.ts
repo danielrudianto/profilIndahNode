@@ -137,6 +137,7 @@ export class ReceivableRepository {
       this.prisma.sales_invoice_code.findMany({
         where: {
           is_paid: false,
+          is_delete: false,
           customer_id: data.customerID,
         },
         include: {
@@ -161,6 +162,7 @@ export class ReceivableRepository {
       this.prisma.sales_invoice_code.count({
         where: {
           is_paid: false,
+          is_delete: false,
           customer_id: data.customerID,
         },
       }),

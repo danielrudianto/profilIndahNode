@@ -23,6 +23,7 @@ import { SalesReturnRepository } from "../../repositories/sales-return.repositor
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
+import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 
 const router = Router();
 
@@ -41,7 +42,8 @@ const reportController = new ReportController(
   new ProductStockRepository(prisma),
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
-  new ExpenseTypeRepository(prisma)
+  new ExpenseTypeRepository(prisma),
+  new OverpaymentRepository(prisma)
 );
 
 router.post(
@@ -281,7 +283,5 @@ router.post(
   "/product-stock-problem",
   ReportController.fetchProductStockProblem
 );
-
-router.get("/inventory/download", ReportController.downloadInventoryReport);
 
 export default router;

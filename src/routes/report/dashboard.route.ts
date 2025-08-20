@@ -17,6 +17,7 @@ import { SalesReturnRepository } from "../../repositories/sales-return.repositor
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
+import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 
 const reportController = new ReportController(
   new SalesInvoiceRepository(prisma),
@@ -33,7 +34,8 @@ const reportController = new ReportController(
   new ProductStockRepository(prisma),
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
-  new ExpenseTypeRepository(prisma)
+  new ExpenseTypeRepository(prisma),
+  new OverpaymentRepository(prisma)
 );
 
 const router = Router();

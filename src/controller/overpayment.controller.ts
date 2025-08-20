@@ -77,4 +77,18 @@ export class OverpaymentController {
       return res.status(500).send(error);
     }
   };
+
+  fetchReport = async (req: Request, res: Response) => {
+    const date = new Date(req.body.date);
+
+    try {
+      const result = await this.overpaymentRepository.fetchReportByDate(date);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching overpayment return data ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
 }

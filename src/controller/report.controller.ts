@@ -25,6 +25,7 @@ import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseRepository } from "../repositories/expense.repository";
 import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
+import { OverpaymentRepository } from "../repositories/overpayment.repository";
 
 interface AdministratorDashboard {
   title: string;
@@ -55,6 +56,7 @@ class ReportController {
   companyRepository: CompanyRepository;
   expenseRepository: ExpenseRepository;
   expenseTypeRepository: ExpenseTypeRepository;
+  overpaymentRepository: OverpaymentRepository;
 
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
@@ -76,7 +78,9 @@ class ReportController {
     companyRepository: CompanyRepository,
 
     expenseRepository: ExpenseRepository,
-    expenseTypeRepository: ExpenseTypeRepository
+    expenseTypeRepository: ExpenseTypeRepository,
+
+    overpaymentRepository: OverpaymentRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.promotionRepository = promotionRepository;
@@ -98,6 +102,8 @@ class ReportController {
 
     this.expenseRepository = expenseRepository;
     this.expenseTypeRepository = expenseTypeRepository;
+
+    this.overpaymentRepository = overpaymentRepository;
   }
 
   fetchAdministratorDashboard = (req: Request, res: Response) => {
@@ -352,6 +358,9 @@ class ReportController {
       const salesReturnPayments =
         await this.salesReturnRepository.fetchPaymentsByDate(date);
 
+      const overpayment =
+        await this.overpaymentRepository.fetchReportByReceiveDate(date);
+
       const salesInvoicePaymentIndex = salesInvoicePayments.findIndex(
         (x) => x.payment_method_id == null
       );
@@ -359,6 +368,10 @@ class ReportController {
         (x) => x.payment_method_id == null
       );
       const salesReturnPaymentIndex = salesReturnPayments.findIndex(
+        (x) => x.payment_method_id == null
+      );
+
+      const overpaymentIndex = overpayment.findIndex(
         (x) => x.payment_method_id == null
       );
 
@@ -415,6 +428,8 @@ class ReportController {
             salesReturnPaymentIndex == -1
               ? 0
               : salesReturnPayments[salesReturnPaymentIndex].value,
+          overpayment:
+            overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value,
         },
         {
           id: 0,
@@ -429,6 +444,10 @@ class ReportController {
             (y) => y.payment_method_id == x.id
           );
           const salesReturnIndex = salesReturnPayments.findIndex(
+            (y) => y.payment_method_id == x.id
+          );
+
+          const overpaymentIndex = overpayment.findIndex(
             (y) => y.payment_method_id == x.id
           );
 
@@ -447,6 +466,8 @@ class ReportController {
               salesReturnIndex == -1
                 ? 0
                 : salesReturnPayments[salesReturnIndex].value,
+            overpayment:
+              overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value,
           };
         }),
       ]);
