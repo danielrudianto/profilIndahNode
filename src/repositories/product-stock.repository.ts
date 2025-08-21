@@ -268,21 +268,24 @@ export class ProductStockRepository {
     month: number;
     year: number;
   }) => {
-    const result = await this.prisma.stock_card.findMany({
-      where: {
-        product_id: {
-          in: data.product_id,
-        },
-        date: {
-          lte: new Date(data.year, data.month, 0),
-        },
-      },
-    });
+    const result = await this.prisma.$transaction(
+      data.product_id.map((x) => {
+        return this.prisma.stock_card.findFirst({
+          where: {
+            product_id: x,
+            date: {
+              lte: new Date(data.year, data.month - 1, 0),
+            },
+          },
+        });
+      })
+    );
 
-    return result.map((x) => {
+    return data.product_id.map((x) => {
+      const stockIndex = result.findIndex((y) => y?.product_id == x);
       return {
-        product_id: x.product_id,
-        stock: Number(x.stock),
+        product_id: x,
+        stock: stockIndex == -1 ? 0 : Number(result[stockIndex]?.stock),
       };
     });
   };
