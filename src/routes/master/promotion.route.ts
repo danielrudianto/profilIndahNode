@@ -14,9 +14,6 @@ const promotionController = new PromotionController(
   new ProductRepository(prisma)
 );
 
-// router.get("/result/:id", PromotionController.fetchResultByID);
-// router.get("/active", PromotionController.fetchActive);
-// router.get("/:id", PromotionController.fetchByID);
 router.post(
   "/",
   body("name").notEmpty().withMessage(ErrorList["Promotion name required"]),
@@ -72,6 +69,42 @@ router.get(
 
 // router.post("/download", PromotionController.downloadResultByID);
 
-// router.put("/", PromotionController.update);
+router.put(
+  "/",
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["ID must be numeric"]),
+  body("name").notEmpty().withMessage(ErrorList["Promotion name required"]),
+  body("description")
+    .notEmpty()
+    .withMessage(ErrorList["Promotion description required"]),
+  body("start_date")
+    .notEmpty()
+    .withMessage(ErrorList["Promotion start date required"]),
+  body("end_date")
+    .exists()
+    .withMessage(ErrorList["Promotion end date required"]),
+  body("target").notEmpty().withMessage(ErrorList["Promotion target required"]),
+  body("target")
+    .isNumeric()
+    .withMessage(ErrorList["Promotion target must be numeric"]),
+  body("supplier_id")
+    .notEmpty()
+    .withMessage(ErrorList["Supplier ID is required"]),
+  body("supplier_id")
+    .isNumeric()
+    .withMessage(ErrorList["Supplier ID must be numeric"]),
+  body("promotion_brand")
+    .notEmpty()
+    .withMessage(ErrorList["Promotion brand is required"]),
+  body("promotion_brand")
+    .isArray()
+    .withMessage(ErrorList["Promotion brand must be an array"]),
+  ErrorHelper.intercept,
+  promotionController.update
+);
 
 export default router;

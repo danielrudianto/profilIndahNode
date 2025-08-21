@@ -204,7 +204,7 @@ router.post(
 );
 
 router.post(
-  "/profitloss",
+  "/profit-loss",
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({

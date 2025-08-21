@@ -485,9 +485,12 @@ export class GoodReceiptRepository {
   }
 
   async fetchByDateRange(minimumDate: Date, maximumDate: Date) {
+    console.log(minimumDate);
+    console.log(maximumDate);
     const result = await this.prisma.$queryRaw<any[]>`
       SELECT SUM(gr.value - good_receipt_code.discount) AS value,
-      COUNT(good_receipt_code.id) AS count
+      COUNT(good_receipt_code.id) AS count,
+      good_receipt_code.company_id
       FROM good_receipt_code
       JOIN (
         SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, 
@@ -508,19 +511,24 @@ export class GoodReceiptRepository {
         formatDate.YYYYMMDD
       )} 
       AND ${DateHelper.convertDate(maximumDate, formatDate.YYYYMMDD)}
+      GROUP BY good_receipt_code.company_id
     `;
 
     if (!result || result.length == 0) {
-      return {
-        total: 0,
-        goodReceiptCount: 0,
-      };
+      return [] as {
+        total: number;
+        goodReceiptCount: number;
+        company_id: number;
+      }[];
     }
 
-    return {
-      total: Number(result[0].value),
-      goodReceiptCount: Number(result[0].count),
-    };
+    return result.map((x) => {
+      return {
+        total: Number(x.value),
+        goodReceiptCount: Number(x.count.toString()),
+        company_id: Number(x.company_id),
+      };
+    });
   }
 
   async fetchChart(month: number, year: number) {

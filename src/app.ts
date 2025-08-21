@@ -92,7 +92,7 @@ async function main() {
   );
   await stockOutService.calculateStockOut();
 
-  cron.schedule("0 0,12 * * *", async () => {
+  cron.schedule("0 0 * * *", async () => {
     // Assigning stock out to stock in
     await stockOutService.calculateStockOut();
   });

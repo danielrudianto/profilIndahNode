@@ -82,7 +82,7 @@ async function main() {
     console.info("[info]: Connected with redis");
     const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
     await stockOutService.calculateStockOut();
-    node_cron_1.default.schedule("0 0,12 * * *", async () => {
+    node_cron_1.default.schedule("0 0 * * *", async () => {
         // Assigning stock out to stock in
         await stockOutService.calculateStockOut();
     });

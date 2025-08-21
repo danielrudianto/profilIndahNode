@@ -74,6 +74,43 @@ class PromotionController {
                 return res.status(500).send("Internal Server Error");
             }
         };
+        this.update = async (req, res) => {
+            const id = req.body.id;
+            const name = req.body.name;
+            const description = req.body.description;
+            const startDate = (0, moment_1.default)(req.body.start_date, "DD-MM-YYYY").toDate();
+            const endDate = req.body.endDate == null
+                ? null
+                : (0, moment_1.default)(req.body.end_date, "DD-MM-YYYY").toDate();
+            const target = req.body.target;
+            const supplierID = req.body.supplier_id;
+            const userID = req.body.userId;
+            const promotion_brand = req.body.promotion_brand;
+            const promotion_rules = req.body.promotion_rules;
+            try {
+                const result = await this.promotionRepository.update({
+                    id: id,
+                    name: name,
+                    description: description,
+                    startDate: startDate,
+                    endDate: endDate,
+                    target: target,
+                    created_by: userID,
+                    created_at: new Date(),
+                    promotion_rules: promotion_rules,
+                    promotion_brand: promotion_brand,
+                    supplier_id: supplierID,
+                    is_delete: false,
+                    deleted_by: null,
+                    deleted_at: null,
+                });
+                return res.status(201).send(result);
+            }
+            catch (error) {
+                console.error(`[error]: Error on updating promotion data ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         // static create = (req: Request, res: Response) => {
         //   // convert startDate from the format "dd-MM-YYYY" to Date object
         //   const name = req.body.name;

@@ -25,8 +25,9 @@ const sales_return_repository_1 = require("../../repositories/sales-return.repos
 const stock_in_repository_1 = require("../../repositories/stock-in.repository");
 const stock_out_repository_1 = require("../../repositories/stock-out.repository");
 const product_stock_repository_1 = require("../../repositories/product-stock.repository");
+const overpayment_repository_1 = require("../../repositories/overpayment.repository");
 const router = (0, express_1.Router)();
-const reportController = new report_controller_1.default(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new promotion_repository_1.PromotionRepository(database_helper_1.prisma), new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma), new customer_repository_1.CustomerRepository(database_helper_1.prisma), new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new sales_invoice_payment_repository_1.SalesInvoicePaymentRepository(database_helper_1.prisma), new sales_deposit_payment_repository_1.SalesDepositPaymentRepository(database_helper_1.prisma), new payment_method_repository_1.PaymentMethodRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new company_repository_1.CompanyRepository(database_helper_1.prisma), new expense_repository_1.ExpenseRepository(database_helper_1.prisma), new expense_type_repository_1.ExpenseTypeRepository(database_helper_1.prisma));
+const reportController = new report_controller_1.default(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new promotion_repository_1.PromotionRepository(database_helper_1.prisma), new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma), new customer_repository_1.CustomerRepository(database_helper_1.prisma), new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new sales_invoice_payment_repository_1.SalesInvoicePaymentRepository(database_helper_1.prisma), new sales_deposit_payment_repository_1.SalesDepositPaymentRepository(database_helper_1.prisma), new payment_method_repository_1.PaymentMethodRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new company_repository_1.CompanyRepository(database_helper_1.prisma), new expense_repository_1.ExpenseRepository(database_helper_1.prisma), new expense_type_repository_1.ExpenseTypeRepository(database_helper_1.prisma), new overpayment_repository_1.OverpaymentRepository(database_helper_1.prisma));
 router.post("/sales", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({ min: 1, max: 12 })
     .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.body)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.body)("year")
@@ -101,7 +102,7 @@ router.post("/purchase/download", (0, express_validator_1.body)("month").notEmpt
     min: 2000,
 })
     .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.downloadPurchaseReport);
-router.post("/profitloss", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
+router.post("/profit-loss", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({
     min: 0,
     max: 12,
@@ -142,6 +143,5 @@ router.post("/sales/download", (0, express_validator_1.body)("month").notEmpty()
 })
     .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.downloadSalesReport);
 router.post("/product-stock-problem", report_controller_1.default.fetchProductStockProblem);
-router.get("/inventory/download", report_controller_1.default.downloadInventoryReport);
 exports.default = router;
 //# sourceMappingURL=report.route.js.map

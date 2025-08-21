@@ -9,7 +9,7 @@ const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 class ReportController {
-    constructor(salesInvoiceRepository, promotionRepository, goodReceiptRepository, customerRepository, salesReturnRepository, salesInvoicePaymentRepository, salesDepositPaymentRepository, paymentMethodRepository, stockInRepository, stockOutRepository, productRepository, productStockRepository, companyRepository, expenseRepository, expenseTypeRepository) {
+    constructor(salesInvoiceRepository, promotionRepository, goodReceiptRepository, customerRepository, salesReturnRepository, salesInvoicePaymentRepository, salesDepositPaymentRepository, paymentMethodRepository, stockInRepository, stockOutRepository, productRepository, productStockRepository, companyRepository, expenseRepository, expenseTypeRepository, overpaymentRepository) {
         this.fetchAdministratorDashboard = (req, res) => {
             return res.status(200).send({
                 sales: {
@@ -74,12 +74,20 @@ class ReportController {
                 ]);
                 return res.status(200).send({
                     purchase: {
-                        current: currentPurchase.total,
-                        previous: previousPurchase.total,
+                        current: currentPurchase.reduce((a, b) => {
+                            return a + b.total;
+                        }, 0),
+                        previous: previousPurchase.reduce((a, b) => {
+                            return a + b.total;
+                        }, 0),
                     },
                     purchase_month: {
-                        current: currentMonth.total,
-                        previous: previousMonth.total,
+                        current: currentMonth.reduce((a, b) => {
+                            return a + b.total;
+                        }, 0),
+                        previous: previousMonth.reduce((a, b) => {
+                            return a + b.total;
+                        }, 0),
                     },
                     promotion: activePromotion,
                 });
@@ -130,8 +138,12 @@ class ReportController {
             const type = await this.goodReceiptRepository.fetchBestType(month, year);
             const supplier = await this.goodReceiptRepository.fetchBestSupplier(month, year);
             return res.status(200).send({
-                total: result.total,
-                goodReceiptCount: result.goodReceiptCount,
+                total: result.reduce((a, b) => {
+                    return a + b.total;
+                }, 0),
+                goodReceiptCount: result.reduce((a, b) => {
+                    return a + b.goodReceiptCount;
+                }, 0),
                 chart: chart,
                 brand: brand,
                 supplier: supplier,
@@ -159,9 +171,11 @@ class ReportController {
                 const salesDepositPayments = await this.salesDepositPaymentRepository.fetchPaymentsByDate(date);
                 const salesDepositDORPayments = await this.salesDepositPaymentRepository.fetchDORPaymentsByDate(date);
                 const salesReturnPayments = await this.salesReturnRepository.fetchPaymentsByDate(date);
+                const overpayment = await this.overpaymentRepository.fetchReportByReceiveDate(date);
                 const salesInvoicePaymentIndex = salesInvoicePayments.findIndex((x) => x.payment_method_id == null);
                 const salesDepositPaymentIndex = salesDepositPayments.findIndex((x) => x.payment_method_id == null);
                 const salesReturnPaymentIndex = salesReturnPayments.findIndex((x) => x.payment_method_id == null);
+                const overpaymentIndex = overpayment.findIndex((x) => x.payment_method_id == null);
                 const dorData = [];
                 for (let i = 0; i < salesDepositDORPayments.length; i++) {
                     const check = checkExistingSales(salesDepositDORPayments[i].sales);
@@ -206,6 +220,7 @@ class ReportController {
                         salesReturn: salesReturnPaymentIndex == -1
                             ? 0
                             : salesReturnPayments[salesReturnPaymentIndex].value,
+                        overpayment: overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value,
                     },
                     {
                         id: 0,
@@ -216,6 +231,7 @@ class ReportController {
                         const salesInvoiceIndex = salesInvoicePayments.findIndex((y) => y.payment_method_id == x.id);
                         const salesDepositIndex = salesDepositPayments.findIndex((y) => y.payment_method_id == x.id);
                         const salesReturnIndex = salesReturnPayments.findIndex((y) => y.payment_method_id == x.id);
+                        const overpaymentIndex = overpayment.findIndex((y) => y.payment_method_id == x.id);
                         return {
                             id: x.id,
                             name: x.name,
@@ -228,6 +244,7 @@ class ReportController {
                             salesReturn: salesReturnIndex == -1
                                 ? 0
                                 : salesReturnPayments[salesReturnIndex].value,
+                            overpayment: overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value,
                         };
                     }),
                 ]);
@@ -286,13 +303,26 @@ class ReportController {
             const year = parseInt(req.body.year);
             const month = parseInt(req.body.month);
             const report = parseInt(req.body.report);
-            const [sales, purchase, company, expense] = await Promise.all([
-                this.salesInvoiceRepository.fetchByDateRange(new Date(year, month, 1), new Date(year, month + 1, 0)),
-                this.goodReceiptRepository.fetchByDateRange(new Date(year, month, 1), new Date(year, month + 1, 0)),
-                this.companyRepository.fetchAll(),
-                this.expenseRepository.fetchReport(month, year),
-                this.stockOutRepository.calculate(month, year),
-            ]);
+            try {
+                const [sales, purchase, company, expense, stockOut] = await Promise.all([
+                    this.salesInvoiceRepository.fetchByDateRange(month == 0 ? new Date(year, 0, 1) : new Date(year, month - 1, 1), month == 0 ? new Date(year + 1, 0, 0) : new Date(year, month, 0)),
+                    this.goodReceiptRepository.fetchByDateRange(month == 0 ? new Date(year, 0, 1) : new Date(year, month - 1, 1), month == 0 ? new Date(year + 1, 0, 0) : new Date(year, month, 0)),
+                    this.companyRepository.fetchAll(),
+                    this.expenseRepository.fetchReport(month, year),
+                    this.stockOutRepository.calculate(month, year),
+                ]);
+                return res.status(200).send({
+                    sales: sales,
+                    purchase: purchase,
+                    company: company,
+                    expense: expense,
+                    stockOut: stockOut,
+                });
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching profit loss report ${error}`);
+                return res.status(500).send(error);
+            }
         };
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.promotionRepository = promotionRepository;
@@ -309,6 +339,7 @@ class ReportController {
         this.companyRepository = companyRepository;
         this.expenseRepository = expenseRepository;
         this.expenseTypeRepository = expenseTypeRepository;
+        this.overpaymentRepository = overpaymentRepository;
     }
 }
 _a = ReportController;

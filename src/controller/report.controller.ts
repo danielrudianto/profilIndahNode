@@ -233,12 +233,20 @@ class ReportController {
 
       return res.status(200).send({
         purchase: {
-          current: currentPurchase.total,
-          previous: previousPurchase.total,
+          current: currentPurchase.reduce((a, b) => {
+            return a + b.total;
+          }, 0),
+          previous: previousPurchase.reduce((a, b) => {
+            return a + b.total;
+          }, 0),
         },
         purchase_month: {
-          current: currentMonth.total,
-          previous: previousMonth.total,
+          current: currentMonth.reduce((a, b) => {
+            return a + b.total;
+          }, 0),
+          previous: previousMonth.reduce((a, b) => {
+            return a + b.total;
+          }, 0),
         },
         promotion: activePromotion,
       });
@@ -310,8 +318,12 @@ class ReportController {
     );
 
     return res.status(200).send({
-      total: result.total,
-      goodReceiptCount: result.goodReceiptCount,
+      total: result.reduce((a, b) => {
+        return a + b.total;
+      }, 0),
+      goodReceiptCount: result.reduce((a, b) => {
+        return a + b.goodReceiptCount;
+      }, 0),
       chart: chart,
       brand: brand,
       supplier: supplier,
@@ -1198,19 +1210,32 @@ class ReportController {
     const month = parseInt(req.body.month);
     const report = parseInt(req.body.report);
 
-    const [sales, purchase, company, expense] = await Promise.all([
-      this.salesInvoiceRepository.fetchByDateRange(
-        new Date(year, month, 1),
-        new Date(year, month + 1, 0)
-      ),
-      this.goodReceiptRepository.fetchByDateRange(
-        new Date(year, month, 1),
-        new Date(year, month + 1, 0)
-      ),
-      this.companyRepository.fetchAll(),
-      this.expenseRepository.fetchReport(month, year),
-      this.stockOutRepository.calculate(month, year),
-    ]);
+    try {
+      const [sales, purchase, company, expense, stockOut] = await Promise.all([
+        this.salesInvoiceRepository.fetchByDateRange(
+          month == 0 ? new Date(year, 0, 1) : new Date(year, month - 1, 1),
+          month == 0 ? new Date(year + 1, 0, 0) : new Date(year, month, 0)
+        ),
+        this.goodReceiptRepository.fetchByDateRange(
+          month == 0 ? new Date(year, 0, 1) : new Date(year, month - 1, 1),
+          month == 0 ? new Date(year + 1, 0, 0) : new Date(year, month, 0)
+        ),
+        this.companyRepository.fetchAll(),
+        this.expenseRepository.fetchReport(month, year),
+        this.stockOutRepository.calculate(month, year),
+      ]);
+
+      return res.status(200).send({
+        sales: sales,
+        purchase: purchase,
+        company: company,
+        expense: expense,
+        stockOut: stockOut,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching profit loss report ${error}`);
+      return res.status(500).send(error);
+    }
   };
 
   /**

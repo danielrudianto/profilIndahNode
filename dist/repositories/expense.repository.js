@@ -153,19 +153,36 @@ class ExpenseRepository {
     }
     async fetchReport(month, year) {
         try {
-            const result = await this.prisma.expense.findMany({
-                where: {
-                    date: {
-                        gte: new Date(year, month - 1, 1, 0, 0, 0),
-                        lt: new Date(year, month, 1, 0, 0, 0),
+            if (month == 0) {
+                const result = await this.prisma.expense.findMany({
+                    where: {
+                        date: {
+                            gte: new Date(year, 0, 1, 0, 0, 0),
+                            lt: new Date(year + 1, 0, 0, 0, 0, 0),
+                        },
+                        is_delete: false,
                     },
-                    is_delete: false,
-                },
-                orderBy: { date: "desc" },
-            });
-            return result.map((x) => {
-                return expense_model_1.ExpenseModel.fromMap(x);
-            });
+                    orderBy: { date: "desc" },
+                });
+                return result.map((x) => {
+                    return expense_model_1.ExpenseModel.fromMap(x);
+                });
+            }
+            else {
+                const result = await this.prisma.expense.findMany({
+                    where: {
+                        date: {
+                            gte: new Date(year, month - 1, 1, 0, 0, 0),
+                            lt: new Date(year, month, 1, 0, 0, 0),
+                        },
+                        is_delete: false,
+                    },
+                    orderBy: { date: "desc" },
+                });
+                return result.map((x) => {
+                    return expense_model_1.ExpenseModel.fromMap(x);
+                });
+            }
         }
         catch (error) {
             console.error(`[error]: Error on fetching expense report ${error}`);

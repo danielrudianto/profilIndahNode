@@ -11,7 +11,8 @@ const database_helper_1 = require("../../helper/database.helper");
 const error_helper_1 = __importDefault(require("../../helper/error.helper"));
 const overpayment_repository_1 = require("../../repositories/overpayment.repository");
 const router = (0, express_1.Router)();
-const overpaymentContorller = new overpayment_controller_1.OverpaymentController(new overpayment_repository_1.OverpaymentRepository(database_helper_1.prisma));
+const overpaymentController = new overpayment_controller_1.OverpaymentController(new overpayment_repository_1.OverpaymentRepository(database_helper_1.prisma));
+router.post("/return", (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Date required"]), error_helper_1.default.intercept, overpaymentController.fetchReport);
 router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Date required"]), (0, express_validator_1.body)("value").notEmpty().withMessage(error_list_1.default["Amount is required"]), (0, express_validator_1.body)("value")
     .isFloat({
     min: 0.1,
@@ -30,12 +31,12 @@ router.post("/", (0, express_validator_1.body)("date").notEmpty().withMessage(er
     .exists()
     .withMessage(error_list_1.default["Return payment bank is required"]), (0, express_validator_1.body)("return_payment_number")
     .exists()
-    .withMessage(error_list_1.default["Return payment number is required"]), error_helper_1.default.intercept, overpaymentContorller.create);
+    .withMessage(error_list_1.default["Return payment number is required"]), error_helper_1.default.intercept, overpaymentController.create);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id")
     .isInt({
     min: 0,
 })
-    .withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, overpaymentContorller.fetchByID);
-router.get("/", overpaymentContorller.fetch);
+    .withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, overpaymentController.fetchByID);
+router.get("/", overpaymentController.fetch);
 exports.default = router;
 //# sourceMappingURL=overpayment.route.js.map

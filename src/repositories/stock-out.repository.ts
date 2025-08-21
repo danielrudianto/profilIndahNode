@@ -192,8 +192,10 @@ export class StockOutRepository {
   }
 
   async calculate(month: number, year: number) {
-    const [assigned, unassigned] = await this.prisma.$transaction([
-      this.prisma.$queryRaw`
+    try {
+      if (month > 0) {
+        const [[assigned], [unassigned]] = await this.prisma.$transaction([
+          this.prisma.$queryRaw`
         SELECT
         (stock_in.price * stock_out.quantity) AS hpp,
         stock_out.price * stock_out.quantity AS sales,
@@ -204,20 +206,85 @@ export class StockOutRepository {
         AND YEAR(stock_out.date) = ${year}
         GROUP BY stock_in.company_id
       `,
-      this.prisma.$queryRaw`
+          this.prisma.$queryRaw`
         SELECT
         0 AS hpp,
-        stock_out.price * stock_out.quantity AS sales
+        SUM(stock_out.price * stock_out.quantity) AS sales
         FROM stock_out
         WHERE MONTH(stock_out.date) = ${month}
         AND YEAR(stock_out.date) = ${year}
       `,
-    ]);
+        ]);
 
-    return {
-      assigned: assigned,
-      unassigned: unassigned,
-    };
+        return {
+          assigned:
+            assigned == null
+              ? {
+                  hpp: 0,
+                  sales: 0,
+                }
+              : {
+                  hpp: Number(assigned.hpp),
+                  sales: Number(assigned.sales),
+                },
+          unassigned:
+            unassigned == null
+              ? {
+                  hpp: 0,
+                  sales: 0,
+                }
+              : {
+                  hpp: Number(unassigned.hpp),
+                  sales: Number(unassigned.sales),
+                },
+        };
+      } else {
+        const [[assigned], [unassigned]] = await this.prisma.$transaction([
+          this.prisma.$queryRaw`
+        SELECT
+        (stock_in.price * stock_out.quantity) AS hpp,
+        stock_out.price * stock_out.quantity AS sales,
+        stock_in.company_id
+        FROM stock_out
+        JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+        WHERE YEAR(stock_out.date) = ${year}
+        GROUP BY stock_in.company_id
+      `,
+          this.prisma.$queryRaw`
+        SELECT
+        0 AS hpp,
+        SUM(stock_out.price * stock_out.quantity) AS sales
+        FROM stock_out
+        WHERE YEAR(stock_out.date) = ${year}
+      `,
+        ]);
+
+        return {
+          assigned:
+            assigned == null
+              ? {
+                  hpp: 0,
+                  sales: 0,
+                }
+              : {
+                  hpp: Number(assigned.hpp),
+                  sales: Number(assigned.sales),
+                },
+          unassigned:
+            unassigned == null
+              ? {
+                  hpp: 0,
+                  sales: 0,
+                }
+              : {
+                  hpp: Number(unassigned.hpp),
+                  sales: Number(unassigned.sales),
+                },
+        };
+      }
+    } catch (error) {
+      throw error;
+    }
   }
 
   async insertFromSalesInvoices() {
