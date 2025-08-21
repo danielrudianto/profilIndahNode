@@ -40,6 +40,10 @@ class ProductStockRepository {
                             lte: new Date(data.year, data.month - 1, 0),
                         },
                     },
+                    orderBy: {
+                        date: "desc",
+                        id: "desc",
+                    },
                 });
             }));
             return data.product_id.map((x) => {
