@@ -194,93 +194,54 @@ export class StockOutRepository {
   async calculate(month: number, year: number) {
     try {
       if (month > 0) {
-        const [[assigned], [unassigned]] = await this.prisma.$transaction([
-          this.prisma.$queryRaw`
-        SELECT
-        (stock_in.price * stock_out.quantity) AS hpp,
-        stock_out.price * stock_out.quantity AS sales,
-        stock_in.company_id
-        FROM stock_out
-        JOIN stock_in ON stock_out.stock_in_id = stock_in.id
-        WHERE MONTH(stock_out.date) = ${month}
-        AND YEAR(stock_out.date) = ${year}
-        GROUP BY stock_in.company_id
-      `,
-          this.prisma.$queryRaw`
-        SELECT
-        0 AS hpp,
-        SUM(stock_out.price * stock_out.quantity) AS sales
-        FROM stock_out
-        WHERE MONTH(stock_out.date) = ${month}
-        AND YEAR(stock_out.date) = ${year}
-      `,
-        ]);
+        const result = await this.prisma.$queryRaw<any[]>`
+            SELECT
+              (stock_in.price * stock_out.quantity) AS hpp,
+              (stock_out.price * stock_out.quantity) AS sales,
+              SUM(CASE 
+                    WHEN stock_out.stock_in_id IS NULL THEN stock_out.price * stock_out.quantity 
+                    ELSE 0 
+                  END) AS unallocated_sales,
+              stock_in.company_id
+            FROM stock_out
+            JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+            WHERE YEAR(stock_out.date) = ${year}
+            AND MONTH(stock_out.date) = ${month}
+            GROUP BY stock_in.company_id
+          `;
 
-        return {
-          assigned:
-            assigned == null
-              ? {
-                  hpp: 0,
-                  sales: 0,
-                }
-              : {
-                  hpp: Number(assigned.hpp),
-                  sales: Number(assigned.sales),
-                },
-          unassigned:
-            unassigned == null
-              ? {
-                  hpp: 0,
-                  sales: 0,
-                }
-              : {
-                  hpp: Number(unassigned.hpp),
-                  sales: Number(unassigned.sales),
-                },
-        };
+        return result.map((x) => {
+          return {
+            hpp: Number(x.hpp),
+            sales: Number(x.sales),
+            unallocated: Number(x.unallocated_sales),
+            company_id: x.company_id,
+          };
+        });
       } else {
-        const [[assigned], [unassigned]] = await this.prisma.$transaction([
-          this.prisma.$queryRaw`
-        SELECT
-        (stock_in.price * stock_out.quantity) AS hpp,
-        stock_out.price * stock_out.quantity AS sales,
-        stock_in.company_id
-        FROM stock_out
-        JOIN stock_in ON stock_out.stock_in_id = stock_in.id
-        WHERE YEAR(stock_out.date) = ${year}
-        GROUP BY stock_in.company_id
-      `,
-          this.prisma.$queryRaw`
-        SELECT
-        0 AS hpp,
-        SUM(stock_out.price * stock_out.quantity) AS sales
-        FROM stock_out
-        WHERE YEAR(stock_out.date) = ${year}
-      `,
-        ]);
+        const result = await this.prisma.$queryRaw<any[]>`
+            SELECT
+              (stock_in.price * stock_out.quantity) AS hpp,
+              (stock_out.price * stock_out.quantity) AS sales,
+              SUM(CASE 
+                    WHEN stock_out.stock_in_id IS NULL THEN stock_out.price * stock_out.quantity 
+                    ELSE 0 
+                  END) AS unallocated_sales,
+              stock_in.company_id
+            FROM stock_out
+            JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+            WHERE YEAR(stock_out.date) = ${year}
+            GROUP BY stock_in.company_id
+          `;
 
-        return {
-          assigned:
-            assigned == null
-              ? {
-                  hpp: 0,
-                  sales: 0,
-                }
-              : {
-                  hpp: Number(assigned.hpp),
-                  sales: Number(assigned.sales),
-                },
-          unassigned:
-            unassigned == null
-              ? {
-                  hpp: 0,
-                  sales: 0,
-                }
-              : {
-                  hpp: Number(unassigned.hpp),
-                  sales: Number(unassigned.sales),
-                },
-        };
+        return result.map((x) => {
+          return {
+            hpp: Number(x.hpp),
+            sales: Number(x.sales),
+            unallocated: Number(x.unallocated_sales),
+            company_id: x.company_id,
+          };
+        });
       }
     } catch (error) {
       throw error;

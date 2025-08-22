@@ -181,6 +181,27 @@ class ProductRepository {
             throw error;
         }
     }
+    async fetchByIDs(productIDs) {
+        try {
+            const result = await this.prisma.product.findMany({
+                where: {
+                    id: {
+                        in: productIDs,
+                    },
+                },
+                include: {
+                    product_brand: true,
+                    product_type: true,
+                },
+            });
+            return result.map((x) => {
+                return product_model_1.ProductModel.fromMap(x);
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchAutocomplete(keyword) {
         try {
             const result = await this.prisma.product.findMany({
@@ -498,6 +519,7 @@ class ProductRepository {
                         id: x.id,
                         reference: x.reference,
                         description: x.description,
+                        unit: x.unit,
                         product_brand: {
                             id: x.product_brand_id,
                             name: x.product_brand_name,

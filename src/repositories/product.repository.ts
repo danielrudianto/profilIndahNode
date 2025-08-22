@@ -202,6 +202,28 @@ export class ProductRepository {
     }
   }
 
+  async fetchByIDs(productIDs: number[]): Promise<ProductModel[]> {
+    try {
+      const result = await this.prisma.product.findMany({
+        where: {
+          id: {
+            in: productIDs,
+          },
+        },
+        include: {
+          product_brand: true,
+          product_type: true,
+        },
+      });
+
+      return result.map((x) => {
+        return ProductModel.fromMap(x);
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchAutocomplete(keyword: string) {
     try {
       const result = await this.prisma.product.findMany({
@@ -545,6 +567,7 @@ export class ProductRepository {
             id: x.id,
             reference: x.reference,
             description: x.description,
+            unit: x.unit,
             product_brand: {
               id: x.product_brand_id,
               name: x.product_brand_name,

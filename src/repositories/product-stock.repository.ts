@@ -277,10 +277,14 @@ export class ProductStockRepository {
               lte: new Date(data.year, data.month - 1, 0),
             },
           },
-          orderBy: {
-            date: "desc",
-            id: "desc",
-          },
+          orderBy: [
+            {
+              date: "desc",
+            },
+            {
+              id: "desc",
+            },
+          ],
         });
       })
     );

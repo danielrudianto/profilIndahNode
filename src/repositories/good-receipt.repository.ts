@@ -485,8 +485,6 @@ export class GoodReceiptRepository {
   }
 
   async fetchByDateRange(minimumDate: Date, maximumDate: Date) {
-    console.log(minimumDate);
-    console.log(maximumDate);
     const result = await this.prisma.$queryRaw<any[]>`
       SELECT SUM(gr.value - good_receipt_code.discount) AS value,
       COUNT(good_receipt_code.id) AS count,

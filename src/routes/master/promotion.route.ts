@@ -47,6 +47,14 @@ router.post(
 );
 
 router.get(
+  "/result/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  promotionController.fetchResult
+);
+
+router.get(
   "/:id",
   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
   param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),

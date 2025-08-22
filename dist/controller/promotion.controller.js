@@ -268,10 +268,12 @@ class PromotionController {
                     return x.value;
                 }),
             });
+            const products = await this.productRepository.fetchByIDs(productID);
             const result = await this.promotionRepository.fetchResult(productID, promotion.supplier_id, promotion.startDate, promotion.endDate);
             return res.status(200).send({
                 promotion: promotion,
                 result: result,
+                products: products,
             });
         };
         this.promotionRepository = promotionRepository;
