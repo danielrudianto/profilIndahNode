@@ -1,15 +1,7 @@
 import { Request, Response } from "express";
-import PurchaseInvoiceModel, {
-  CalculatePurchaseMode,
-} from "../model/purchase-invoice.model";
-import {
-  mongoStockInModel,
-  mongoStockOutModel,
-} from "../mongo-model/mongo-stock-in.model";
+import PurchaseInvoiceModel from "../model/purchase-invoice.model";
 import ErrorList from "../assets/error_list";
-import moment from "moment";
 import { mongoProductModel } from "../mongo-model/mongo-product.model";
-import AdjustmentCaseModel from "../model/adjustment-case.model";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
@@ -26,6 +18,8 @@ import { ExpenseRepository } from "../repositories/expense.repository";
 import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { OverpaymentRepository } from "../repositories/overpayment.repository";
+import { AdjustmentCaseRepository } from "../repositories/adjustment-case.repository";
+import { StockCardRepository } from "../repositories/stock-card.repository";
 
 interface AdministratorDashboard {
   title: string;
@@ -39,6 +33,7 @@ class ReportController {
   salesInvoiceRepository: SalesInvoiceRepository;
   promotionRepository: PromotionRepository;
   goodReceiptRepository: GoodReceiptRepository;
+  adjustmentCaseRepository: AdjustmentCaseRepository;
   customerRepository: CustomerRepository;
   salesReturnRepository: SalesReturnRepository;
 
@@ -58,10 +53,13 @@ class ReportController {
   expenseTypeRepository: ExpenseTypeRepository;
   overpaymentRepository: OverpaymentRepository;
 
+  stockCardRepository: StockCardRepository;
+
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
     promotionRepository: PromotionRepository,
     goodReceiptRepository: GoodReceiptRepository,
+    adjustmentCaseRepository: AdjustmentCaseRepository,
     customerRepository: CustomerRepository,
     salesReturnRepository: SalesReturnRepository,
 
@@ -80,11 +78,13 @@ class ReportController {
     expenseRepository: ExpenseRepository,
     expenseTypeRepository: ExpenseTypeRepository,
 
-    overpaymentRepository: OverpaymentRepository
+    overpaymentRepository: OverpaymentRepository,
+    stockCardRepository: StockCardRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.promotionRepository = promotionRepository;
     this.goodReceiptRepository = goodReceiptRepository;
+    this.adjustmentCaseRepository = adjustmentCaseRepository;
     this.customerRepository = customerRepository;
     this.salesReturnRepository = salesReturnRepository;
 
@@ -104,6 +104,7 @@ class ReportController {
     this.expenseTypeRepository = expenseTypeRepository;
 
     this.overpaymentRepository = overpaymentRepository;
+    this.stockCardRepository = stockCardRepository;
   }
 
   fetchAdministratorDashboard = (req: Request, res: Response) => {
@@ -234,18 +235,18 @@ class ReportController {
       return res.status(200).send({
         purchase: {
           current: currentPurchase.reduce((a, b) => {
-            return a + b.total;
+            return a + b.value - b.discount;
           }, 0),
           previous: previousPurchase.reduce((a, b) => {
-            return a + b.total;
+            return a + b.value - b.discount;
           }, 0),
         },
         purchase_month: {
           current: currentMonth.reduce((a, b) => {
-            return a + b.total;
+            return a + b.value - b.discount;
           }, 0),
           previous: previousMonth.reduce((a, b) => {
-            return a + b.total;
+            return a + b.value - b.discount;
           }, 0),
         },
         promotion: activePromotion,
@@ -318,8 +319,11 @@ class ReportController {
     );
 
     return res.status(200).send({
-      total: result.reduce((a, b) => {
-        return a + b.total;
+      value: result.reduce((a, b) => {
+        return a + b.value;
+      }, 0),
+      discount: result.reduce((a, b) => {
+        return a + b.discount;
       }, 0),
       goodReceiptCount: result.reduce((a, b) => {
         return a + b.goodReceiptCount;
@@ -536,6 +540,39 @@ class ReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching output report ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchCompanyOutputReport = async (req: Request, res: Response) => {
+    try {
+      const date = new Date(req.body.date);
+      const company_id = req.body.company_id;
+
+      const result = await this.stockOutRepository.fetchCompanyOutputReport({
+        date: date,
+        companyID: company_id,
+      });
+
+      const goodReceipt = await this.goodReceiptRepository.fetchCompanyReport({
+        date: date,
+        companyID: company_id,
+      });
+
+      const adjustmentCase =
+        await this.adjustmentCaseRepository.fetchCompanyReport({
+          date: date,
+          companyID: company_id,
+        });
+
+      return res.status(200).send({
+        output: result,
+        input: [...goodReceipt, ...adjustmentCase],
+      });
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching company output report ${error}`
+      );
       return res.status(500).send(error);
     }
   };
@@ -871,43 +908,43 @@ class ReportController {
    * @param req
    * @param res
    */
-  static fetchInventoryReport = (req: Request, res: Response) => {
-    mongoStockInModel
-      .aggregate([
-        {
-          $group: {
-            _id: "$companyID",
-            value: {
-              $sum: {
-                $multiply: ["$price", "$residue"],
-              },
-            },
-          },
-        },
-      ])
-      .then(async (result) => {
-        // const companies = await CompanyModel.fetchAll();
-        const companies: any[] = [];
-        return res.status(200).send({
-          value: result.reduce((a, b) => {
-            return a + b.value;
-          }, 0),
-          company: companies.map((x) => {
-            const index = result.findIndex((y) => {
-              return y._id == x.id;
-            });
-            return {
-              name: x.name,
-              value: index == -1 ? 0 : result[index].value,
-            };
-          }),
-        });
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching inventory report. ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
+  // static fetchInventoryReport = (req: Request, res: Response) => {
+  //   mongoStockInModel
+  //     .aggregate([
+  //       {
+  //         $group: {
+  //           _id: "$companyID",
+  //           value: {
+  //             $sum: {
+  //               $multiply: ["$price", "$residue"],
+  //             },
+  //           },
+  //         },
+  //       },
+  //     ])
+  //     .then(async (result) => {
+  //       // const companies = await CompanyModel.fetchAll();
+  //       const companies: any[] = [];
+  //       return res.status(200).send({
+  //         value: result.reduce((a, b) => {
+  //           return a + b.value;
+  //         }, 0),
+  //         company: companies.map((x) => {
+  //           const index = result.findIndex((y) => {
+  //             return y._id == x.id;
+  //           });
+  //           return {
+  //             name: x.name,
+  //             value: index == -1 ? 0 : result[index].value,
+  //           };
+  //         }),
+  //       });
+  //     })
+  //     .catch((error) => {
+  //       console.error(`[error]: Error on fetching inventory report. ${error}`);
+  //       return res.status(500).send(ErrorList["Internal server error"]);
+  //     });
+  // };
 
   /**
    * Download list of items
@@ -915,66 +952,66 @@ class ReportController {
    * @param req
    * @param res
    */
-  static downloadInventoryReport = (req: Request, res: Response) => {
-    mongoStockInModel
-      .aggregate([
-        // Match where residue > 0
-        {
-          $match: {
-            $expr: {
-              $gt: ["$residue", 0],
-            },
-          },
-        },
-        {
-          $group: {
-            _id: "$itemID",
-            value: {
-              $sum: {
-                $multiply: ["$price", "$residue"],
-              },
-            },
-            quantity: {
-              $sum: "$residue",
-            },
-          },
-        },
-      ])
-      .then(async (result) => {
-        // const items = await ItemModel.fetchByIDs(
-        //   result.map((x) => {
-        //     return x._id;
-        //   })
-        // );
-        // return res.status(200).send(
-        //   result
-        //     .map((x) => {
-        //       const itemIndex = items.findIndex((y) => y.id == x._id);
-        //       if (itemIndex != -1) {
-        //         return {
-        //           reference: items[itemIndex].reference,
-        //           description: items[itemIndex].description,
-        //           quantity: x.quantity,
-        //           unit: items[itemIndex].unit,
-        //           value: x.quantity == 0 ? 0 : x.value / x.quantity,
-        //           brand: items[itemIndex].item_brand_name,
-        //           type: items[itemIndex].item_type_name,
-        //         };
-        //       }
-        //     })
-        //     .filter((x) => x != undefined)
-        //     .sort((a, b) => {
-        //       return a!.reference.localeCompare(b!.reference);
-        //     })
-        // );
-      })
-      .catch((error) => {
-        console.error(
-          `[error]: Error on downloading inventory report ${error}`
-        );
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
-  };
+  // static downloadInventoryReport = (req: Request, res: Response) => {
+  //   mongoStockInModel
+  //     .aggregate([
+  //       // Match where residue > 0
+  //       {
+  //         $match: {
+  //           $expr: {
+  //             $gt: ["$residue", 0],
+  //           },
+  //         },
+  //       },
+  //       {
+  //         $group: {
+  //           _id: "$itemID",
+  //           value: {
+  //             $sum: {
+  //               $multiply: ["$price", "$residue"],
+  //             },
+  //           },
+  //           quantity: {
+  //             $sum: "$residue",
+  //           },
+  //         },
+  //       },
+  //     ])
+  //     .then(async (result) => {
+  //       // const items = await ItemModel.fetchByIDs(
+  //       //   result.map((x) => {
+  //       //     return x._id;
+  //       //   })
+  //       // );
+  //       // return res.status(200).send(
+  //       //   result
+  //       //     .map((x) => {
+  //       //       const itemIndex = items.findIndex((y) => y.id == x._id);
+  //       //       if (itemIndex != -1) {
+  //       //         return {
+  //       //           reference: items[itemIndex].reference,
+  //       //           description: items[itemIndex].description,
+  //       //           quantity: x.quantity,
+  //       //           unit: items[itemIndex].unit,
+  //       //           value: x.quantity == 0 ? 0 : x.value / x.quantity,
+  //       //           brand: items[itemIndex].item_brand_name,
+  //       //           type: items[itemIndex].item_type_name,
+  //       //         };
+  //       //       }
+  //       //     })
+  //       //     .filter((x) => x != undefined)
+  //       //     .sort((a, b) => {
+  //       //       return a!.reference.localeCompare(b!.reference);
+  //       //     })
+  //       // );
+  //     })
+  //     .catch((error) => {
+  //       console.error(
+  //         `[error]: Error on downloading inventory report ${error}`
+  //       );
+  //       return res.status(500).send(ErrorList["Internal server error"]);
+  //     });
+  // };
 
   /**
    * Fetch profit and loss report data
@@ -1354,14 +1391,30 @@ class ReportController {
     // );
   };
 
+  fetchDailySalesReport = async (req: Request, res: Response) => {
+    const day = req.body.day;
+    const month = req.body.month;
+    const year = req.body.year;
+    const type = req.body.type as number[];
+
+    try {
+      const result = await this.stockOutRepository.fetchDailySalesReport({
+        date: new Date(year, month - 1, day),
+        type: type,
+      });
+
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching daily sales report ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   static fetchSalesItemDailyReport = (req: Request, res: Response) => {
     const day = req.body.day;
     const month = req.body.month;
     const year = req.body.year;
-
     const type = req.body.type as number[];
-
-    const group = req.body.group;
 
     // ItemModel.fetchValueByBrandTypeDaily(type, day, month, year).then(
     //   async ([result, types]) => {

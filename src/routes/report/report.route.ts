@@ -24,6 +24,8 @@ import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
+import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
 
 const router = Router();
 
@@ -31,6 +33,7 @@ const reportController = new ReportController(
   new SalesInvoiceRepository(prisma),
   new PromotionRepository(prisma),
   new GoodReceiptRepository(prisma),
+  new AdjustmentCaseRepository(prisma),
   new CustomerRepository(prisma),
   new SalesReturnRepository(prisma),
   new SalesInvoicePaymentRepository(prisma),
@@ -43,7 +46,8 @@ const reportController = new ReportController(
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
   new ExpenseTypeRepository(prisma),
-  new OverpaymentRepository(prisma)
+  new OverpaymentRepository(prisma),
+  new StockCardRepository(prisma)
 );
 
 router.post(
@@ -112,6 +116,14 @@ router.post(
   reportController.fetchOutputReport
 );
 
+router.post(
+  "/output-company",
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
+  ErrorHelper.intercept,
+  reportController.fetchCompanyOutputReport
+);
+
 router.get(
   "/inventory",
   superadministratorMiddleware,
@@ -139,7 +151,7 @@ router.post(
 );
 
 router.post(
-  "/sales-item-daily",
+  "/daily-sales",
   body("day").notEmpty().withMessage(ErrorList["Day is required"]),
   body("day")
     .isInt({
@@ -162,26 +174,7 @@ router.post(
     .withMessage(ErrorList["Year must be numeric"]),
   body("group").notEmpty().withMessage(ErrorList["Parameter error"]),
   ErrorHelper.intercept,
-  ReportController.fetchSalesItemDailyReport
-);
-
-router.post(
-  "/purchase",
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
-  reportController.fetchPurchaseReport
+  reportController.fetchDailySalesReport
 );
 
 router.post(

@@ -18,11 +18,14 @@ import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
+import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
 
 const reportController = new ReportController(
   new SalesInvoiceRepository(prisma),
   new PromotionRepository(prisma),
   new GoodReceiptRepository(prisma),
+  new AdjustmentCaseRepository(prisma),
   new CustomerRepository(prisma),
   new SalesReturnRepository(prisma),
   new SalesInvoicePaymentRepository(prisma),
@@ -35,7 +38,8 @@ const reportController = new ReportController(
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
   new ExpenseTypeRepository(prisma),
-  new OverpaymentRepository(prisma)
+  new OverpaymentRepository(prisma),
+  new StockCardRepository(prisma)
 );
 
 const router = Router();

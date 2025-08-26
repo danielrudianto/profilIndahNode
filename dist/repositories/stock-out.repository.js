@@ -170,15 +170,15 @@ class StockOutRepository {
             if (month > 0) {
                 const result = await this.prisma.$queryRaw `
             SELECT
-              (stock_in.price * stock_out.quantity) AS hpp,
-              (stock_out.price * stock_out.quantity) AS sales,
+              SUM(stock_in.price * stock_out.quantity) AS hpp,
+              SUM(stock_out.price * stock_out.quantity) AS sales,
               SUM(CASE 
                     WHEN stock_out.stock_in_id IS NULL THEN stock_out.price * stock_out.quantity 
                     ELSE 0 
                   END) AS unallocated_sales,
               stock_in.company_id
             FROM stock_out
-            JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+            LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
             WHERE YEAR(stock_out.date) = ${year}
             AND MONTH(stock_out.date) = ${month}
             GROUP BY stock_in.company_id
@@ -195,15 +195,15 @@ class StockOutRepository {
             else {
                 const result = await this.prisma.$queryRaw `
             SELECT
-              (stock_in.price * stock_out.quantity) AS hpp,
-              (stock_out.price * stock_out.quantity) AS sales,
+              SUM(stock_in.price * stock_out.quantity) AS hpp,
+              SUM(stock_out.price * stock_out.quantity) AS sales,
               SUM(CASE 
                     WHEN stock_out.stock_in_id IS NULL THEN stock_out.price * stock_out.quantity 
                     ELSE 0 
                   END) AS unallocated_sales,
               stock_in.company_id
             FROM stock_out
-            JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+            LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
             WHERE YEAR(stock_out.date) = ${year}
             GROUP BY stock_in.company_id
           `;

@@ -7,6 +7,7 @@ import { translateKeyword, translatePage } from "../helper/escape.helper";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { ProductRepository } from "../repositories/product.repository";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
+import { ProductModel } from "../model/product.model";
 
 class ProductStockController {
   productStockRepository: ProductStockRepository;
@@ -544,6 +545,48 @@ class ProductStockController {
     //       });
     //     break;
     // }
+  };
+
+  fetchWarehouse = async (req: Request, res: Response) => {
+    const keyword = req.body.keyword;
+    const page = req.body.page;
+    const pageSize = req.body.pageSize;
+
+    try {
+      const result = await meili.index("product").search(keyword, {
+        filter: ["is_delete = false"],
+        offset: (page - 1) * pageSize,
+        limit: pageSize,
+      });
+
+      const productStocks =
+        await this.productStockRepository.fetchStockByProductID(
+          result.hits.map((x) => {
+            return x.id;
+          })
+        );
+
+      return res.status(200).send({
+        data: result.hits.map((x) => {
+          const index = productStocks.findIndex(
+            (stock) => stock.product_id == x.id
+          );
+          const product = ProductModel.fromMeilisearch(x);
+          return {
+            ...product,
+            product_stock: {
+              stock: index == -1 ? 0 : productStocks[index].stock,
+            },
+          };
+        }),
+        count: result.estimatedTotalHits,
+      });
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching product stock warehouse ${error}`
+      );
+      return res.status(500).send(error);
+    }
   };
 
   fetchProductMetaDataByID = async (req: Request, res: Response) => {

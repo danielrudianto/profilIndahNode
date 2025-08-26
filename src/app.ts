@@ -51,7 +51,6 @@ import SalesmanRoutes from "./routes/master/salesman.route";
   Administrator Routes
 */
 import administratorRoutes from "./routes/distinct/administrator.route";
-import developmentRoutes from "./routes/development/development.routes";
 import warehouseRoutes from "./routes/distinct/warehouse.route";
 import osRoutes from "./routes/distinct/os.route";
 import changelogRoutes from "./routes/report/changelog.route";
@@ -70,6 +69,7 @@ import { StockInRepository } from "./repositories/stock-in.repository";
 
 const allowedOrigins = [
   "http://localhost:2100",
+  "http://localhost:5173",
   "https://stock.profilindah.id",
   "https://v16.profilindah.id",
   "https://v19.profilindah.id",
@@ -149,7 +149,6 @@ async function main() {
   app.use("/warehouse", warehouseRoutes);
   app.use("/os", osRoutes);
   app.use("/changelog", changelogRoutes);
-  app.use("/development", developmentRoutes);
 
   const server = http.createServer(app);
   server.listen(5000, () => {

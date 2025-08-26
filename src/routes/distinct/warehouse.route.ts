@@ -1,19 +1,32 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
+import { body } from "express-validator";
 import ErrorHelper from "../../helper/error.helper";
-import SalesInvoiceController from "../../controller/sales-invoice.controller";
 import ErrorList from "../../assets/error_list";
+import ProductStockController from "../../controller/product-stock.controller";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
+import { prisma } from "../../helper/database.helper";
+import { ProductPackageRepository } from "../../repositories/product-package.repository";
+import { ProductRepository } from "../../repositories/product.repository";
 
 const router = Router();
 
-// router.get("/product-type", ProductTypeController.fetchAll);
+const productStockController = new ProductStockController(
+  new ProductStockRepository(prisma),
+  new ProductPackageRepository(prisma),
+  new ProductRepository(prisma)
+);
 
 router.post(
-  "/",
-  body("last_fetched").notEmpty().withMessage(ErrorList["Parameter error"]),
-  body("last_fetched").isInt().withMessage(ErrorList["Parameter error"]),
+  "/product-stock",
+  body("keyword").exists().withMessage(ErrorList["Keyword is required"]),
+  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  body("page")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["Page must be numeric"]),
   ErrorHelper.intercept,
-  // SalesInvoiceController.fetchSince
+  productStockController.fetchWarehouse
 );
 
 export default router;

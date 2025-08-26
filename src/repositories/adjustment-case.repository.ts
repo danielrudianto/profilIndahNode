@@ -109,6 +109,42 @@ export class AdjustmentCaseRepository {
     }
   }
 
+  async fetchCompanyReport(data: { date: Date; companyID: number }) {
+    try {
+      const result = await this.prisma.adjustment_case.findMany({
+        where: {
+          adjustment_case_code: {
+            is_delete: false,
+            company_id: data.companyID,
+            date: data.date,
+          },
+        },
+        include: {
+          product: true,
+          product_unit: true,
+          adjustment_case_code: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      return result.map((x) => {
+        return {
+          reference: x.product.reference,
+          description: x.product.description,
+          quantity: Number(x.quantity),
+          unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
+          document: x.adjustment_case_code.name,
+          opponent: "Internal",
+        };
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async fetchUnconfirmed(
     data: IFetchCommon
   ): Promise<IFetchCommonResult<AdjustmentCaseModel>> {
