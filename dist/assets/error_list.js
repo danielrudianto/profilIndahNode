@@ -179,6 +179,7 @@ var ErrorList;
     ErrorList["View by mutation required"] = "Nilai filter tidak boleh kosong";
     ErrorList["View by mutation must be either document date or creation date"] = "Filter harus merupakan tanggal dokumen atau tanggal pembuatan dokumen";
     ErrorList["Expense not found"] = "Pengeluaran tidak ditemukan";
+    ErrorList["Keyword is required"] = "Kata kunci pencarian tidak boleh kosong";
 })(ErrorList || (ErrorList = {}));
 exports.default = ErrorList;
 //# sourceMappingURL=error_list.js.map

@@ -43,7 +43,7 @@ export class SalesInvoiceService {
     }
   }
 
-  async fetchSales() {
+  async syncSales() {
     try {
       const sales = await this.salesInvoiceRepository.fetchSales();
       console.info(`[Info]: Found ${sales.length} salesman in sales invoices`);

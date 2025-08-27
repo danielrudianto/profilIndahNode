@@ -5,11 +5,10 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 var _a;
 Object.defineProperty(exports, "__esModule", { value: true });
 const purchase_invoice_model_1 = __importDefault(require("../model/purchase-invoice.model"));
-const mongo_stock_in_model_1 = require("../mongo-model/mongo-stock-in.model");
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 class ReportController {
-    constructor(salesInvoiceRepository, promotionRepository, goodReceiptRepository, customerRepository, salesReturnRepository, salesInvoicePaymentRepository, salesDepositPaymentRepository, paymentMethodRepository, stockInRepository, stockOutRepository, productRepository, productStockRepository, companyRepository, expenseRepository, expenseTypeRepository, overpaymentRepository) {
+    constructor(salesInvoiceRepository, promotionRepository, goodReceiptRepository, adjustmentCaseRepository, customerRepository, salesReturnRepository, salesInvoicePaymentRepository, salesDepositPaymentRepository, paymentMethodRepository, stockInRepository, stockOutRepository, productRepository, productStockRepository, companyRepository, expenseRepository, expenseTypeRepository, overpaymentRepository, stockCardRepository) {
         this.fetchAdministratorDashboard = (req, res) => {
             return res.status(200).send({
                 sales: {
@@ -75,18 +74,18 @@ class ReportController {
                 return res.status(200).send({
                     purchase: {
                         current: currentPurchase.reduce((a, b) => {
-                            return a + b.total;
+                            return a + b.value - b.discount;
                         }, 0),
                         previous: previousPurchase.reduce((a, b) => {
-                            return a + b.total;
+                            return a + b.value - b.discount;
                         }, 0),
                     },
                     purchase_month: {
                         current: currentMonth.reduce((a, b) => {
-                            return a + b.total;
+                            return a + b.value - b.discount;
                         }, 0),
                         previous: previousMonth.reduce((a, b) => {
-                            return a + b.total;
+                            return a + b.value - b.discount;
                         }, 0),
                     },
                     promotion: activePromotion,
@@ -138,8 +137,11 @@ class ReportController {
             const type = await this.goodReceiptRepository.fetchBestType(month, year);
             const supplier = await this.goodReceiptRepository.fetchBestSupplier(month, year);
             return res.status(200).send({
-                total: result.reduce((a, b) => {
-                    return a + b.total;
+                value: result.reduce((a, b) => {
+                    return a + b.value;
+                }, 0),
+                discount: result.reduce((a, b) => {
+                    return a + b.discount;
                 }, 0),
                 goodReceiptCount: result.reduce((a, b) => {
                     return a + b.goodReceiptCount;
@@ -299,6 +301,32 @@ class ReportController {
                 return res.status(500).send(error);
             }
         };
+        this.fetchCompanyOutputReport = async (req, res) => {
+            try {
+                const date = new Date(req.body.date);
+                const company_id = req.body.company_id;
+                const result = await this.stockOutRepository.fetchCompanyOutputReport({
+                    date: date,
+                    companyID: company_id,
+                });
+                const goodReceipt = await this.goodReceiptRepository.fetchCompanyReport({
+                    date: date,
+                    companyID: company_id,
+                });
+                const adjustmentCase = await this.adjustmentCaseRepository.fetchCompanyReport({
+                    date: date,
+                    companyID: company_id,
+                });
+                return res.status(200).send({
+                    output: result,
+                    input: [...goodReceipt, ...adjustmentCase],
+                });
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching company output report ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         this.fetchProfitLoss = async (req, res) => {
             const year = parseInt(req.body.year);
             const month = parseInt(req.body.month);
@@ -324,9 +352,27 @@ class ReportController {
                 return res.status(500).send(error);
             }
         };
+        this.fetchDailySalesReport = async (req, res) => {
+            const day = req.body.day;
+            const month = req.body.month;
+            const year = req.body.year;
+            const type = req.body.type;
+            try {
+                const result = await this.stockOutRepository.fetchDailySalesReport({
+                    date: new Date(year, month - 1, day),
+                    type: type,
+                });
+                return res.status(200).send(result);
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching daily sales report ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         this.salesInvoiceRepository = salesInvoiceRepository;
         this.promotionRepository = promotionRepository;
         this.goodReceiptRepository = goodReceiptRepository;
+        this.adjustmentCaseRepository = adjustmentCaseRepository;
         this.customerRepository = customerRepository;
         this.salesReturnRepository = salesReturnRepository;
         this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
@@ -340,6 +386,7 @@ class ReportController {
         this.expenseRepository = expenseRepository;
         this.expenseTypeRepository = expenseTypeRepository;
         this.overpaymentRepository = overpaymentRepository;
+        this.stockCardRepository = stockCardRepository;
     }
 }
 _a = ReportController;
@@ -653,107 +700,109 @@ ReportController.fetchSalesReport = (req, res) => {
  * @param req
  * @param res
  */
-ReportController.fetchInventoryReport = (req, res) => {
-    mongo_stock_in_model_1.mongoStockInModel
-        .aggregate([
-        {
-            $group: {
-                _id: "$companyID",
-                value: {
-                    $sum: {
-                        $multiply: ["$price", "$residue"],
-                    },
-                },
-            },
-        },
-    ])
-        .then(async (result) => {
-        // const companies = await CompanyModel.fetchAll();
-        const companies = [];
-        return res.status(200).send({
-            value: result.reduce((a, b) => {
-                return a + b.value;
-            }, 0),
-            company: companies.map((x) => {
-                const index = result.findIndex((y) => {
-                    return y._id == x.id;
-                });
-                return {
-                    name: x.name,
-                    value: index == -1 ? 0 : result[index].value,
-                };
-            }),
-        });
-    })
-        .catch((error) => {
-        console.error(`[error]: Error on fetching inventory report. ${error}`);
-        return res.status(500).send(error_list_1.default["Internal server error"]);
-    });
-};
+// static fetchInventoryReport = (req: Request, res: Response) => {
+//   mongoStockInModel
+//     .aggregate([
+//       {
+//         $group: {
+//           _id: "$companyID",
+//           value: {
+//             $sum: {
+//               $multiply: ["$price", "$residue"],
+//             },
+//           },
+//         },
+//       },
+//     ])
+//     .then(async (result) => {
+//       // const companies = await CompanyModel.fetchAll();
+//       const companies: any[] = [];
+//       return res.status(200).send({
+//         value: result.reduce((a, b) => {
+//           return a + b.value;
+//         }, 0),
+//         company: companies.map((x) => {
+//           const index = result.findIndex((y) => {
+//             return y._id == x.id;
+//           });
+//           return {
+//             name: x.name,
+//             value: index == -1 ? 0 : result[index].value,
+//           };
+//         }),
+//       });
+//     })
+//     .catch((error) => {
+//       console.error(`[error]: Error on fetching inventory report. ${error}`);
+//       return res.status(500).send(ErrorList["Internal server error"]);
+//     });
+// };
 /**
  * Download list of items
  * In inventory report to acknowledge more about the items
  * @param req
  * @param res
  */
-ReportController.downloadInventoryReport = (req, res) => {
-    mongo_stock_in_model_1.mongoStockInModel
-        .aggregate([
-        // Match where residue > 0
-        {
-            $match: {
-                $expr: {
-                    $gt: ["$residue", 0],
-                },
-            },
-        },
-        {
-            $group: {
-                _id: "$itemID",
-                value: {
-                    $sum: {
-                        $multiply: ["$price", "$residue"],
-                    },
-                },
-                quantity: {
-                    $sum: "$residue",
-                },
-            },
-        },
-    ])
-        .then(async (result) => {
-        // const items = await ItemModel.fetchByIDs(
-        //   result.map((x) => {
-        //     return x._id;
-        //   })
-        // );
-        // return res.status(200).send(
-        //   result
-        //     .map((x) => {
-        //       const itemIndex = items.findIndex((y) => y.id == x._id);
-        //       if (itemIndex != -1) {
-        //         return {
-        //           reference: items[itemIndex].reference,
-        //           description: items[itemIndex].description,
-        //           quantity: x.quantity,
-        //           unit: items[itemIndex].unit,
-        //           value: x.quantity == 0 ? 0 : x.value / x.quantity,
-        //           brand: items[itemIndex].item_brand_name,
-        //           type: items[itemIndex].item_type_name,
-        //         };
-        //       }
-        //     })
-        //     .filter((x) => x != undefined)
-        //     .sort((a, b) => {
-        //       return a!.reference.localeCompare(b!.reference);
-        //     })
-        // );
-    })
-        .catch((error) => {
-        console.error(`[error]: Error on downloading inventory report ${error}`);
-        return res.status(500).send(error_list_1.default["Internal server error"]);
-    });
-};
+// static downloadInventoryReport = (req: Request, res: Response) => {
+//   mongoStockInModel
+//     .aggregate([
+//       // Match where residue > 0
+//       {
+//         $match: {
+//           $expr: {
+//             $gt: ["$residue", 0],
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: "$itemID",
+//           value: {
+//             $sum: {
+//               $multiply: ["$price", "$residue"],
+//             },
+//           },
+//           quantity: {
+//             $sum: "$residue",
+//           },
+//         },
+//       },
+//     ])
+//     .then(async (result) => {
+//       // const items = await ItemModel.fetchByIDs(
+//       //   result.map((x) => {
+//       //     return x._id;
+//       //   })
+//       // );
+//       // return res.status(200).send(
+//       //   result
+//       //     .map((x) => {
+//       //       const itemIndex = items.findIndex((y) => y.id == x._id);
+//       //       if (itemIndex != -1) {
+//       //         return {
+//       //           reference: items[itemIndex].reference,
+//       //           description: items[itemIndex].description,
+//       //           quantity: x.quantity,
+//       //           unit: items[itemIndex].unit,
+//       //           value: x.quantity == 0 ? 0 : x.value / x.quantity,
+//       //           brand: items[itemIndex].item_brand_name,
+//       //           type: items[itemIndex].item_type_name,
+//       //         };
+//       //       }
+//       //     })
+//       //     .filter((x) => x != undefined)
+//       //     .sort((a, b) => {
+//       //       return a!.reference.localeCompare(b!.reference);
+//       //     })
+//       // );
+//     })
+//     .catch((error) => {
+//       console.error(
+//         `[error]: Error on downloading inventory report ${error}`
+//       );
+//       return res.status(500).send(ErrorList["Internal server error"]);
+//     });
+// };
 /**
  * Fetch profit and loss report data
  * @param req
@@ -1096,7 +1145,6 @@ ReportController.fetchSalesItemDailyReport = (req, res) => {
     const month = req.body.month;
     const year = req.body.year;
     const type = req.body.type;
-    const group = req.body.group;
     // ItemModel.fetchValueByBrandTypeDaily(type, day, month, year).then(
     //   async ([result, types]) => {
     //     mongoStockCardModel

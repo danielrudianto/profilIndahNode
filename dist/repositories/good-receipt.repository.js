@@ -210,6 +210,42 @@ class GoodReceiptRepository {
             throw error;
         }
     }
+    async fetchCompanyReport(data) {
+        try {
+            const result = await this.prisma.good_receipt.findMany({
+                where: {
+                    good_receipt_code: {
+                        company_id: data.companyID,
+                        is_delete: false,
+                        date: data.date,
+                    },
+                },
+                include: {
+                    product: true,
+                    product_unit: true,
+                    good_receipt_code: {
+                        select: {
+                            name: true,
+                            supplier: true,
+                        },
+                    },
+                },
+            });
+            return result.map((x) => {
+                return {
+                    reference: x.product.reference,
+                    description: x.product.description,
+                    quantity: Number(x.quantity),
+                    unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
+                    document: x.good_receipt_code.name,
+                    opponent: x.good_receipt_code.supplier.name,
+                };
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchUnconfirmed(data) {
         try {
             const [result, count] = await Promise.all([
@@ -446,7 +482,8 @@ class GoodReceiptRepository {
     }
     async fetchByDateRange(minimumDate, maximumDate) {
         const result = await this.prisma.$queryRaw `
-      SELECT SUM(gr.value - good_receipt_code.discount) AS value,
+      SELECT SUM(gr.value) AS value,
+      good_receipt_code.discount,
       COUNT(good_receipt_code.id) AS count,
       good_receipt_code.company_id
       FROM good_receipt_code
@@ -470,7 +507,8 @@ class GoodReceiptRepository {
         }
         return result.map((x) => {
             return {
-                total: Number(x.value),
+                value: Number(x.value),
+                discount: Number(x.discount),
                 goodReceiptCount: Number(x.count.toString()),
                 company_id: Number(x.company_id),
             };

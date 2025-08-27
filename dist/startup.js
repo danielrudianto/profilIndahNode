@@ -81,8 +81,13 @@ async function syncProduct() {
     const products = await productService.fetchAll();
     console.info(`[info]: Fetched ${products.length} products from database`);
     // add all products to meili
-    const productInsertTask = await meili_helper_1.meili.index("product").addDocuments(products);
-    await meili_helper_1.meili.waitForTask(productInsertTask.taskUid);
+    const chunkSize = 1000; // Define your chunk size
+    for (let i = 0; i < products.length; i += chunkSize) {
+        const chunk = products.slice(i, i + chunkSize);
+        const productInsertTask = await meili_helper_1.meili.index("product").addDocuments(chunk);
+        await meili_helper_1.meili.waitForTask(productInsertTask.taskUid);
+        console.info(`[info]: Inserted chunk ${Math.floor(i / chunkSize) + 1}`);
+    }
     console.info(`[info]: Product database successfully inserted`);
 }
 async function syncProductPackage() {
@@ -92,13 +97,14 @@ async function syncProductPackage() {
     console.info(`[info]: Fetched ${productPackages.length} product packages from database`);
     const productPackageInsertTask = await meili_helper_1.meili
         .index("package")
-        .addDocuments(productPackages);
+        .addDocuments([productPackages]);
     await meili_helper_1.meili.waitForTask(productPackageInsertTask.taskUid);
     console.info(`[info]: Product package database successfully inserted`);
 }
 async function syncSales() {
     const salesInvoiceService = new sales_invoice_service_1.SalesInvoiceService(new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new stock_card_repository_1.StockCardRepository(database_helper_1.prisma), new stock_out_repository_1.StockOutRepository(database_helper_1.prisma));
-    const sales = await salesInvoiceService.fetchSales();
+    await salesInvoiceService.syncSales();
+    console.info(`[info]: Sales successfully synced`);
 }
 async function insertStockInOut() {
     const stockInService = new stock_in_service_1.StockInService(new stock_in_repository_1.StockInRepository(database_helper_1.prisma));

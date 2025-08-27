@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.StockOutRepository = void 0;
+const date_helper_1 = require("../helper/date.helper");
 class StockOutRepository {
     constructor(prisma) {
         this.prisma = prisma;
@@ -168,53 +169,91 @@ class StockOutRepository {
     async calculate(month, year) {
         try {
             if (month > 0) {
-                const result = await this.prisma.$queryRaw `
+                const [result, unallocated] = await this.prisma.$transaction([
+                    this.prisma.$queryRaw `
             SELECT
               SUM(stock_in.price * stock_out.quantity) AS hpp,
               SUM(stock_out.price * stock_out.quantity) AS sales,
-              SUM(CASE 
-                    WHEN stock_out.stock_in_id IS NULL THEN stock_out.price * stock_out.quantity 
-                    ELSE 0 
-                  END) AS unallocated_sales,
               stock_in.company_id
             FROM stock_out
             LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
             WHERE YEAR(stock_out.date) = ${year}
             AND MONTH(stock_out.date) = ${month}
             GROUP BY stock_in.company_id
-          `;
-                return result.map((x) => {
-                    return {
-                        hpp: Number(x.hpp),
-                        sales: Number(x.sales),
-                        unallocated: Number(x.unallocated_sales),
-                        company_id: x.company_id,
-                    };
-                });
+          `,
+                    this.prisma.stock_out.findMany({
+                        where: {
+                            stock_in_id: null,
+                            AND: [
+                                {
+                                    date: {
+                                        gte: new Date(year, month - 1, 1),
+                                    },
+                                },
+                                {
+                                    date: {
+                                        lt: new Date(year, month, 0),
+                                    },
+                                },
+                            ],
+                        },
+                    }),
+                ]);
+                return {
+                    data: result.map((x) => {
+                        return {
+                            hpp: Number(x.hpp),
+                            sales: Number(x.sales),
+                            company_id: x.company_id,
+                        };
+                    }),
+                    unallocated: unallocated.reduce((a, b) => {
+                        return a + Number(b.quantity) * Number(b.price);
+                    }, 0),
+                };
             }
             else {
-                const result = await this.prisma.$queryRaw `
+                const [result, unallocated] = await this.prisma.$transaction([
+                    this.prisma.$queryRaw `
             SELECT
               SUM(stock_in.price * stock_out.quantity) AS hpp,
               SUM(stock_out.price * stock_out.quantity) AS sales,
-              SUM(CASE 
-                    WHEN stock_out.stock_in_id IS NULL THEN stock_out.price * stock_out.quantity 
-                    ELSE 0 
-                  END) AS unallocated_sales,
               stock_in.company_id
             FROM stock_out
             LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
             WHERE YEAR(stock_out.date) = ${year}
             GROUP BY stock_in.company_id
-          `;
-                return result.map((x) => {
-                    return {
-                        hpp: Number(x.hpp),
-                        sales: Number(x.sales),
-                        unallocated: Number(x.unallocated_sales),
-                        company_id: x.company_id,
-                    };
-                });
+          `,
+                    this.prisma.stock_out.findMany({
+                        where: {
+                            stock_in_id: null,
+                            AND: [
+                                {
+                                    date: {
+                                        gte: new Date(year, 0, 1),
+                                    },
+                                },
+                                {
+                                    date: {
+                                        lt: new Date(year, 12, 0),
+                                    },
+                                },
+                            ],
+                        },
+                    }),
+                ]);
+                return {
+                    data: result.map((x) => {
+                        return {
+                            hpp: Number(x.hpp),
+                            sales: Number(x.sales),
+                            company_id: x.company_id,
+                        };
+                    }),
+                    unallocated: unallocated.reduce((a, b) => {
+                        return a + Number(b.quantity) * Number(b.price);
+                    }, 0),
+                };
             }
         }
         catch (error) {
@@ -256,6 +295,145 @@ class StockOutRepository {
         AND adjustment_case.quantity < 0
         ORDER BY adjustment_case_code.date ASC, adjustment_case.id ASC
       `);
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async fetchCompanyOutputReport(data) {
+        try {
+            const result = await this.prisma.stock_out.findMany({
+                where: {
+                    stock_in: {
+                        company_id: data.companyID,
+                    },
+                    date: data.date,
+                },
+                include: {
+                    adjustment_case_code: {
+                        select: {
+                            name: true,
+                        },
+                    },
+                    sales_invoice_code: {
+                        select: {
+                            name: true,
+                            customer: true,
+                        },
+                    },
+                    product: true,
+                },
+            });
+            return result.map((x) => {
+                return {
+                    reference: x.product.reference,
+                    description: x.product.description,
+                    quantity: Number(x.quantity) * -1,
+                    document: x.sales_invoice_code != null
+                        ? x.sales_invoice_code.name
+                        : x.adjustment_case_code.name,
+                    opponent: x.sales_invoice_code != null
+                        ? x.sales_invoice_code.customer == null
+                            ? "Retail"
+                            : x.sales_invoice_code.customer.name
+                        : "Internal",
+                };
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
+    async fetchDailySalesReport(data) {
+        try {
+            const result = await this.prisma.$queryRawUnsafe(`
+          SELECT product.id, product.reference, product.description, product_brand.name AS brand_name,
+          product_type.name AS type_name, product.unit, product.product_brand_id, product.product_type_id,
+          COALESCE(goodReceiptCount.quantity, 0) AS goodReceipt,
+          COALESCE(adjustmentCountPlus.quantity, 0) AS adjustmentCaseFound,
+          COALESCE(adjustmentCountMinus.quantity, 0) AS adjustmentCaseLost,
+          COALESCE(billCount.quantity, 0) AS salesInvoice,
+          COALESCE(salesReturnCount.quantity, 0) AS salesReturn
+          FROM product
+          JOIN product_brand ON product.product_brand_id = product_brand.id
+          JOIN product_type ON product.product_type_id = product_type.id
+          LEFT JOIN (
+            SELECT SUM(sales_invoice.quantity * COALESCE(product_unit.conversion, 1)) * -1 AS quantity, sales_invoice.product_id
+            FROM sales_invoice
+            LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
+            JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+            WHERE sales_invoice_code.is_delete = 0
+            AND sales_invoice_code.date = ${date_helper_1.DateHelper.convertDate(data.date, date_helper_1.formatDate.YYYYMMDD)}
+            GROUP BY sales_invoice.product_id
+          ) AS billCount
+          ON product.id = billCount.product_id
+          LEFT JOIN (
+            SELECT SUM(adjustment_case.quantity * COALESCE(product_unit.conversion, 1)) AS quantity, adjustment_case.product_id
+            FROM adjustment_case
+            JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+            LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
+            WHERE adjustment_case_code.is_delete = 0
+            AND adjustment_case_code.date = ${date_helper_1.DateHelper.convertDate(data.date, date_helper_1.formatDate.YYYYMMDD)}
+            AND adjustment_case.quantity > 0
+            GROUP BY adjustment_case.product_id
+          ) AS adjustmentCountPlus
+          ON product.id = adjustmentCountPlus.product_id
+          LEFT JOIN (
+            SELECT SUM(adjustment_case.quantity * COALESCE(product_unit.conversion, 1)) AS quantity, adjustment_case.product_id
+            FROM adjustment_case
+            JOIN adjustment_case_code ON adjustment_case_code_id = adjustment_case_code.id
+            LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
+            WHERE adjustment_case_code.is_delete = 0
+            AND adjustment_case_code.date = ${date_helper_1.DateHelper.convertDate(data.date, date_helper_1.formatDate.YYYYMMDD)}
+            AND adjustment_case.quantity < 0
+            GROUP BY adjustment_case.product_id
+          ) AS adjustmentCountMinus
+          ON product.id = adjustmentCountMinus.product_id
+          LEFT JOIN (
+            SELECT SUM(good_receipt.quantity * COALESCE(product_unit.conversion, 1)) AS quantity, good_receipt.product_id
+            FROM good_receipt
+            JOIN good_receipt_code ON good_receipt_code_id = good_receipt_code.id
+            LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
+            WHERE good_receipt_code.is_delete = 0
+            AND good_receipt_code.date = ${date_helper_1.DateHelper.convertDate(data.date, date_helper_1.formatDate.YYYYMMDD)}
+            GROUP BY good_receipt.product_id
+          ) AS goodReceiptCount
+          ON product.id = goodReceiptCount.product_id
+          LEFT JOIN (
+            SELECT SUM(sales_return.quantity * COALESCE(product_unit.conversion, 1)) AS quantity, sales_invoice.product_id
+            FROM sales_return
+            JOIN sales_return_code ON sales_return_code_id = sales_return_code.id
+            JOIN sales_invoice ON sales_return.sales_invoice_id = sales_invoice.id
+            LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
+            WHERE sales_return_code.is_delete = 0
+            AND sales_return_code.date = ${date_helper_1.DateHelper.convertDate(data.date, date_helper_1.formatDate.YYYYMMDD)}
+            GROUP BY sales_invoice.product_id
+          ) AS salesReturnCount
+          ON product.id = salesReturnCount.product_id
+          WHERE product_type.id IN (${data.type.join(",")})
+          AND product.is_delete = 0
+        `);
+            return result.map((x) => {
+                return {
+                    reference: x.reference,
+                    description: x.description,
+                    product_brand: {
+                        id: x.product_brand_id,
+                        name: x.brand_name,
+                    },
+                    product_type: {
+                        id: x.product_type_id,
+                        name: x.type_name,
+                    },
+                    goodReceipt: Number(x.goodReceipt),
+                    salesInvoice: Number(x.salesinvoice),
+                    salesReturn: Number(x.salesReturn),
+                    adjustmentCase: {
+                        found: Number(x.adjustmentCaseFound),
+                        lost: Number(x.adjustmentCaseLost),
+                    },
+                };
+            });
         }
         catch (error) {
             throw error;

@@ -185,7 +185,7 @@ model sales_invoice_payment {
   id                    Int      @id @default(autoincrement())
   payment_method_id     Int?
   sales_invoice_code_id Int
-  value                 Decimal  @default(0.0000) @db.Decimal(12, 4)
+  value                 Decimal  @default(0.0000) @db.Decimal(15, 4)
   date                  DateTime @db.Date
 
   sales_invoice_code sales_invoice_code @relation(fields: [sales_invoice_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "bill_payment_ibfk_2")
@@ -499,6 +499,7 @@ model adjustment_case {
   quantity                Decimal              @db.Decimal(50, 2)
   adjustment_case_code_id Int
   product_unit_id         Int?
+  price                   Decimal              @default(0.00) @db.Decimal(12, 2)
   adjustment_case_code    adjustment_case_code @relation(fields: [adjustment_case_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_1")
   product                 product              @relation(fields: [product_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_2")
   product_unit            product_unit?        @relation(fields: [product_unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "adjustment_case_ibfk_3")

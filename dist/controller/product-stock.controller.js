@@ -9,6 +9,7 @@ const meili_helper_1 = require("../helper/meili.helper");
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model");
 const escape_helper_1 = require("../helper/escape.helper");
+const product_model_1 = require("../model/product.model");
 class ProductStockController {
     constructor(productStockRepository, productPackageRepository, productRepository) {
         this.fetchProblematic = async (req, res) => {
@@ -507,6 +508,35 @@ class ProductStockController {
             //       });
             //     break;
             // }
+        };
+        this.fetchWarehouse = async (req, res) => {
+            const keyword = req.body.keyword;
+            const page = req.body.page;
+            const pageSize = req.body.pageSize;
+            try {
+                const result = await meili_helper_1.meili.index("product").search(keyword, {
+                    filter: ["is_delete = false"],
+                    offset: (page - 1) * pageSize,
+                    limit: pageSize,
+                });
+                const productStocks = await this.productStockRepository.fetchStockByProductID(result.hits.map((x) => {
+                    return x.id;
+                }));
+                return res.status(200).send({
+                    data: result.hits.map((x) => {
+                        const index = productStocks.findIndex((stock) => stock.product_id == x.id);
+                        const product = product_model_1.ProductModel.fromMeilisearch(x);
+                        return Object.assign(Object.assign({}, product), { product_stock: {
+                                stock: index == -1 ? 0 : productStocks[index].stock,
+                            } });
+                    }),
+                    count: result.estimatedTotalHits,
+                });
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching product stock warehouse ${error}`);
+                return res.status(500).send(error);
+            }
         };
         this.fetchProductMetaDataByID = async (req, res) => {
             const id = Number(req.params.id);

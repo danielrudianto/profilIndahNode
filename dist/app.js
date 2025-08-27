@@ -52,7 +52,6 @@ const salesman_route_1 = __importDefault(require("./routes/master/salesman.route
   Administrator Routes
 */
 const administrator_route_1 = __importDefault(require("./routes/distinct/administrator.route"));
-const development_routes_1 = __importDefault(require("./routes/development/development.routes"));
 const warehouse_route_1 = __importDefault(require("./routes/distinct/warehouse.route"));
 const os_route_1 = __importDefault(require("./routes/distinct/os.route"));
 const changelog_route_1 = __importDefault(require("./routes/report/changelog.route"));
@@ -68,6 +67,7 @@ const stock_out_repository_1 = require("./repositories/stock-out.repository");
 const stock_in_repository_1 = require("./repositories/stock-in.repository");
 const allowedOrigins = [
     "http://localhost:2100",
+    "http://localhost:5173",
     "https://stock.profilindah.id",
     "https://v16.profilindah.id",
     "https://v19.profilindah.id",
@@ -127,7 +127,6 @@ async function main() {
     app.use("/warehouse", warehouse_route_1.default);
     app.use("/os", os_route_1.default);
     app.use("/changelog", changelog_route_1.default);
-    app.use("/development", development_routes_1.default);
     const server = http_1.default.createServer(app);
     server.listen(5000, () => {
         console.info("[server]: Server is running on port 5000");

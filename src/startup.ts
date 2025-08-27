@@ -91,8 +91,14 @@ async function syncProduct() {
   console.info(`[info]: Fetched ${products.length} products from database`);
 
   // add all products to meili
-  const productInsertTask = await meili.index("product").addDocuments(products);
-  await meili.waitForTask(productInsertTask.taskUid);
+  const chunkSize = 1000; // Define your chunk size
+  for (let i = 0; i < products.length; i += chunkSize) {
+    const chunk = products.slice(i, i + chunkSize);
+    const productInsertTask = await meili.index("product").addDocuments(chunk);
+    await meili.waitForTask(productInsertTask.taskUid);
+    console.info(`[info]: Inserted chunk ${Math.floor(i / chunkSize) + 1}`);
+  }
+
   console.info(`[info]: Product database successfully inserted`);
 }
 
@@ -110,7 +116,7 @@ async function syncProductPackage() {
 
   const productPackageInsertTask = await meili
     .index("package")
-    .addDocuments(productPackages);
+    .addDocuments([productPackages]);
   await meili.waitForTask(productPackageInsertTask.taskUid);
   console.info(`[info]: Product package database successfully inserted`);
 }
@@ -123,7 +129,9 @@ async function syncSales() {
     new StockOutRepository(prisma)
   );
 
-  const sales = await salesInvoiceService.fetchSales();
+  await salesInvoiceService.syncSales();
+
+  console.info(`[info]: Sales successfully synced`);
 }
 
 async function insertStockInOut() {

@@ -12,7 +12,9 @@
     "start:setup-database": "npx ts-node src/startup.ts setupDatabase",
     "start:sync-product": "npx ts-node src/startup.ts syncProduct",
     "start:sync-package": "npx ts-node src/startup.ts syncProductPackage",
-    "start:sync-sales": "npx ts-node src/startup.ts syncSales"
+    "start:sync-sales": "npx ts-node src/startup.ts syncSales",
+    "start:calculate-hpp": "npx ts-node src/startup.ts insertStockInOut",
+    "start:calculate-card": "npx ts-node src/startup.ts insertStockCard"
   },
   "author": "PT Terra Nusa Teknologi",
   "license": "ISC",
