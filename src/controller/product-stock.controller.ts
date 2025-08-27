@@ -607,7 +607,9 @@ class ProductStockController {
         id,
       ]);
 
-      return res.status(200).send(stock.length == 0 ? 0 : stock[0]);
+      return res.status(200).send({
+        stock: stock.length == 0 ? 0 : stock[0],
+      });
     } catch (error) {
       console.error(`[error]: Error on fetching product stock ${error}`);
       return res.status(500).send(error);

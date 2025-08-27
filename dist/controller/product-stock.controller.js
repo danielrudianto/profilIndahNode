@@ -555,7 +555,9 @@ class ProductStockController {
                 const stock = await this.productStockRepository.fetchStockByProductID([
                     id,
                 ]);
-                return res.status(200).send(stock.length == 0 ? 0 : stock[0]);
+                return res.status(200).send({
+                    stock: stock.length == 0 ? 0 : stock[0],
+                });
             }
             catch (error) {
                 console.error(`[error]: Error on fetching product stock ${error}`);
