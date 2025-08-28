@@ -132,13 +132,14 @@ export class StockInRepository {
     try {
       await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_in (product_id, quantity, price, residue, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, company_id, date)
-        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), (good_receipt.price - good_receipt.discount) / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), 
+        (good_receipt.price - good_receipt.discount) / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
         NULL, NULL, good_receipt.id, good_receipt.good_receipt_code_id, good_receipt_code.company_id, good_receipt_code.date
         FROM good_receipt
         LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
         JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
         WHERE good_receipt_code.is_delete = 0
-        ORDER BY good_receipt_code.date ASC, good_receipt.id ASC
+        ORDER BY good_receipt_code.date ASC, good_receipt_code.id ASC
       `);
     } catch (error) {
       throw error;
@@ -158,7 +159,7 @@ export class StockInRepository {
         JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
         WHERE adjustment_case_code.is_delete = 0
         AND adjustment_case.quantity > 0
-        ORDER BY adjustment_case_code.date ASC, good_receipt.id ASC
+        ORDER BY adjustment_case_code.date ASC, adjustment_case_code.id ASC
       `);
     } catch (error) {
       throw error;

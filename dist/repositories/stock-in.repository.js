@@ -118,7 +118,7 @@ class StockInRepository {
         LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
         JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
         WHERE good_receipt_code.is_delete = 0
-        ORDER BY good_receipt_code.date ASC, good_receipt.id ASC
+        ORDER BY good_receipt_code.date ASC, good_receipt_code.id ASC
       `);
         }
         catch (error) {
@@ -138,7 +138,7 @@ class StockInRepository {
         JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
         WHERE adjustment_case_code.is_delete = 0
         AND adjustment_case.quantity > 0
-        ORDER BY adjustment_case_code.date ASC, good_receipt.id ASC
+        ORDER BY adjustment_case_code.date ASC, adjustment_case_code.id ASC
       `);
         }
         catch (error) {
