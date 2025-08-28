@@ -135,6 +135,43 @@ class SalesReturnRepository {
         };
         this.prisma = prisma;
     }
+    async updateProductStock() {
+        const result = await this.prisma.sales_return.findMany({
+            where: {
+                sales_return_code: {
+                    is_delete: false,
+                },
+            },
+            include: {
+                sales_invoice: {
+                    include: {
+                        product_unit: true,
+                    },
+                },
+            },
+        });
+        const response = [];
+        result.forEach((x) => {
+            const index = response.findIndex((r) => r.product_id === x.sales_invoice.product_id);
+            if (index < 0) {
+                response.push({
+                    product_id: x.sales_invoice.product_id,
+                    quantity: Number(x.quantity) *
+                        (x.sales_invoice.product_unit == null
+                            ? 1
+                            : Number(x.sales_invoice.product_unit.conversion)),
+                });
+            }
+            else {
+                response[index].quantity +=
+                    Number(x.quantity) *
+                        (x.sales_invoice.product_unit == null
+                            ? 1
+                            : Number(x.sales_invoice.product_unit.conversion));
+            }
+        });
+        return response;
+    }
     async fetchPaymentsByDate(date) {
         try {
             const result = await this.prisma.$queryRaw `

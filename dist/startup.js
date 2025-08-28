@@ -15,6 +15,7 @@ const package_service_1 = require("./services/package.service");
 const product_package_repository_1 = require("./repositories/product-package.repository");
 const stock_in_service_1 = require("./services/stock-in.service");
 const stock_in_repository_1 = require("./repositories/stock-in.repository");
+const good_receipt_repository_1 = require("./repositories/good-receipt.repository");
 const stock_out_service_1 = require("./services/stock-out.service");
 const stock_out_repository_1 = require("./repositories/stock-out.repository");
 const stock_card_service_1 = require("./services/stock-card.service");
@@ -22,6 +23,9 @@ const stock_card_repository_1 = require("./repositories/stock-card.repository");
 const sales_invoice_service_1 = require("./services/sales-invoice.service");
 const sales_invoice_repository_1 = require("./repositories/sales-invoice.repository");
 const product_stock_repository_1 = require("./repositories/product-stock.repository");
+const product_stock_service_1 = require("./services/product.stock.service");
+const adjustment_case_repository_1 = require("./repositories/adjustment-case.repository");
+const sales_return_repository_1 = require("./repositories/sales-return.repository");
 async function connect() {
     await database_helper_1.prisma.$connect();
     console.info("[info]: Connected with database using Prisma");
@@ -106,6 +110,12 @@ async function syncSales() {
     await salesInvoiceService.syncSales();
     console.info(`[info]: Sales successfully synced`);
 }
+async function updateProductStock() {
+    console.info(`Commencing product stock update`);
+    const productStockService = new product_stock_service_1.ProductStockService(new product_stock_repository_1.ProductStockRepository(database_helper_1.prisma), new good_receipt_repository_1.GoodReceiptRepository(database_helper_1.prisma), new adjustment_case_repository_1.AdjustmentCaseRepository(database_helper_1.prisma), new sales_invoice_repository_1.SalesInvoiceRepository(database_helper_1.prisma), new sales_return_repository_1.SalesReturnRepository(database_helper_1.prisma), new product_repository_1.ProductRepository(database_helper_1.prisma));
+    console.info(`Product stock service initialized`);
+    await productStockService.updateProductStock();
+}
 async function insertStockInOut() {
     const stockInService = new stock_in_service_1.StockInService(new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
     const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
@@ -143,6 +153,9 @@ async function runFunction(funcName) {
             process.exit(0);
         case "syncProductPackage":
             await syncProductPackage();
+            process.exit(0);
+        case "updateProductStock":
+            await updateProductStock();
             process.exit(0);
         case "insertStockInOut":
             await insertStockInOut();

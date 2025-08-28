@@ -20,6 +20,9 @@ import { StockCardRepository } from "./repositories/stock-card.repository";
 import { SalesInvoiceService } from "./services/sales-invoice.service";
 import { SalesInvoiceRepository } from "./repositories/sales-invoice.repository";
 import { ProductStockRepository } from "./repositories/product-stock.repository";
+import { ProductStockService } from "./services/product.stock.service";
+import { AdjustmentCaseRepository } from "./repositories/adjustment-case.repository";
+import { SalesReturnRepository } from "./repositories/sales-return.repository";
 
 async function connect() {
   await prisma.$connect();
@@ -134,6 +137,21 @@ async function syncSales() {
   console.info(`[info]: Sales successfully synced`);
 }
 
+async function updateProductStock() {
+  console.info(`Commencing product stock update`);
+  const productStockService = new ProductStockService(
+    new ProductStockRepository(prisma),
+    new GoodReceiptRepository(prisma),
+    new AdjustmentCaseRepository(prisma),
+    new SalesInvoiceRepository(prisma),
+    new SalesReturnRepository(prisma),
+    new ProductRepository(prisma)
+  );
+  console.info(`Product stock service initialized`);
+
+  await productStockService.updateProductStock();
+}
+
 async function insertStockInOut() {
   const stockInService = new StockInService(new StockInRepository(prisma));
   const stockOutService = new StockOutService(
@@ -187,6 +205,9 @@ async function runFunction(funcName: string) {
       process.exit(0);
     case "syncProductPackage":
       await syncProductPackage();
+      process.exit(0);
+    case "updateProductStock":
+      await updateProductStock();
       process.exit(0);
     case "insertStockInOut":
       await insertStockInOut();

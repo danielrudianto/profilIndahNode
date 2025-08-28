@@ -101,6 +101,42 @@ class SalesDepositRepository {
             const result = await this.prisma.sales_deposit_code.findMany({
                 where: {
                     is_delete: false,
+                    OR: [
+                        {
+                            name: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
+                            customer: {
+                                name: {
+                                    contains: data.keyword,
+                                },
+                            },
+                        },
+                        {
+                            sales_deposit: {
+                                some: {
+                                    product: {
+                                        reference: {
+                                            contains: data.keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            sales_deposit: {
+                                some: {
+                                    product: {
+                                        description: {
+                                            contains: data.keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
                 },
                 include: {
                     customer: true,
@@ -117,9 +153,45 @@ class SalesDepositRepository {
                     id: "desc",
                 },
             });
-            const totalCount = await this.prisma.sales_deposit.count({
+            const totalCount = await this.prisma.sales_deposit_code.count({
                 where: {
                     is_delete: false,
+                    OR: [
+                        {
+                            name: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
+                            customer: {
+                                name: {
+                                    contains: data.keyword,
+                                },
+                            },
+                        },
+                        {
+                            sales_deposit: {
+                                some: {
+                                    product: {
+                                        reference: {
+                                            contains: data.keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            sales_deposit: {
+                                some: {
+                                    product: {
+                                        description: {
+                                            contains: data.keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
                 },
             });
             return {

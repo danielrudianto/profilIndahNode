@@ -122,6 +122,35 @@ class GoodReceiptRepository {
             throw error;
         }
     }
+    async updateProductStock() {
+        const result = await this.prisma.good_receipt.findMany({
+            where: {
+                good_receipt_code: {
+                    is_delete: false,
+                },
+            },
+            include: {
+                product_unit: true,
+            },
+        });
+        const response = [];
+        result.forEach((x) => {
+            const index = response.findIndex((r) => r.product_id === x.product_id);
+            if (index < 0) {
+                response.push({
+                    product_id: x.product_id,
+                    quantity: Number(x.quantity) *
+                        (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
+                });
+            }
+            else {
+                response[index].quantity +=
+                    Number(x.quantity) *
+                        (x.product_unit == null ? 1 : Number(x.product_unit.conversion));
+            }
+        });
+        return response;
+    }
     async delete(id, userID) {
         try {
             const result = await this.prisma.good_receipt_code.update({
@@ -482,25 +511,27 @@ class GoodReceiptRepository {
     }
     async fetchByDateRange(minimumDate, maximumDate) {
         const result = await this.prisma.$queryRaw `
-      SELECT SUM(gr.value) AS value,
-      good_receipt_code.discount,
-      COUNT(good_receipt_code.id) AS count,
-      good_receipt_code.company_id
-      FROM good_receipt_code
-      JOIN (
-        SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, 
-        good_receipt.good_receipt_code_id
-        FROM good_receipt
-        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-        WHERE good_receipt.good_receipt_code_id IS NOT NULL
+      SELECT SUM(value) AS value, SUM(discount) AS discount, COUNT(id) AS count (
+        SELECT SUM(gr.value) AS value,
+        good_receipt_code.discount,
+        good_receipt_code.company_id,
+        good_receipt_code.id
+        FROM good_receipt_code
+        JOIN (
+          SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value,
+          good_receipt.good_receipt_code_id
+          FROM good_receipt
+          JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+          WHERE good_receipt.good_receipt_code_id IS NOT NULL
+          AND good_receipt_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(minimumDate, date_helper_1.formatDate.YYYYMMDD)} 
+          AND ${date_helper_1.DateHelper.convertDate(maximumDate, date_helper_1.formatDate.YYYYMMDD)}
+          GROUP BY good_receipt.good_receipt_code_id
+        ) AS gr ON good_receipt_code.id = gr.good_receipt_code_id
+        WHERE good_receipt_code.is_delete = 0
         AND good_receipt_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(minimumDate, date_helper_1.formatDate.YYYYMMDD)} 
         AND ${date_helper_1.DateHelper.convertDate(maximumDate, date_helper_1.formatDate.YYYYMMDD)}
-        GROUP BY good_receipt.good_receipt_code_id
-      ) AS gr ON good_receipt_code.id = gr.good_receipt_code_id
-      WHERE good_receipt_code.is_delete = 0
-      AND good_receipt_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(minimumDate, date_helper_1.formatDate.YYYYMMDD)} 
-      AND ${date_helper_1.DateHelper.convertDate(maximumDate, date_helper_1.formatDate.YYYYMMDD)}
-      GROUP BY good_receipt_code.company_id
+      ) AS b
+      GROUP BY b.company_id
     `;
         if (!result || result.length == 0) {
             return [];

@@ -65,6 +65,35 @@ class SalesInvoiceRepository {
             throw error;
         }
     }
+    async updateProductStock() {
+        const result = await this.prisma.sales_invoice.findMany({
+            where: {
+                sales_invoice_code: {
+                    is_delete: false,
+                },
+            },
+            include: {
+                product_unit: true,
+            },
+        });
+        const response = [];
+        result.forEach((x) => {
+            const index = response.findIndex((r) => r.product_id === x.product_id);
+            if (index < 0) {
+                response.push({
+                    product_id: x.product_id,
+                    quantity: Number(x.quantity) *
+                        (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
+                });
+            }
+            else {
+                response[index].quantity +=
+                    Number(x.quantity) *
+                        (x.product_unit == null ? 1 : Number(x.product_unit.conversion));
+            }
+        });
+        return response;
+    }
     generateName(date) {
         return `INV-${date.getFullYear()}-${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}${Math.floor(Math.random() * 10)}`;
     }

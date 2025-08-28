@@ -49,6 +49,36 @@ class AdjustmentCaseRepository {
             throw new Error("Internal server error");
         }
     }
+    async updateProductStock() {
+        const result = await this.prisma.adjustment_case.findMany({
+            where: {
+                adjustment_case_code: {
+                    is_confirm: true,
+                    is_delete: false,
+                },
+            },
+            include: {
+                product_unit: true,
+            },
+        });
+        const response = [];
+        result.forEach((x) => {
+            const index = response.findIndex((r) => r.product_id === x.product_id);
+            if (index < 0) {
+                response.push({
+                    product_id: x.product_id,
+                    quantity: Number(x.quantity) *
+                        (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
+                });
+            }
+            else {
+                response[index].quantity +=
+                    Number(x.quantity) *
+                        (x.product_unit == null ? 1 : Number(x.product_unit.conversion));
+            }
+        });
+        return response;
+    }
     async delete(id, userID) {
         try {
             const result = await this.prisma.adjustment_case_code.update({

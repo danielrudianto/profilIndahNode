@@ -63,6 +63,48 @@ export class SalesReturnRepository {
     }
   };
 
+  async updateProductStock() {
+    const result = await this.prisma.sales_return.findMany({
+      where: {
+        sales_return_code: {
+          is_delete: false,
+        },
+      },
+      include: {
+        sales_invoice: {
+          include: {
+            product_unit: true,
+          },
+        },
+      },
+    });
+
+    const response: any[] = [];
+    result.forEach((x) => {
+      const index = response.findIndex(
+        (r) => r.product_id === x.sales_invoice.product_id
+      );
+      if (index < 0) {
+        response.push({
+          product_id: x.sales_invoice.product_id,
+          quantity:
+            Number(x.quantity) *
+            (x.sales_invoice.product_unit == null
+              ? 1
+              : Number(x.sales_invoice.product_unit.conversion)),
+        });
+      } else {
+        response[index].quantity +=
+          Number(x.quantity) *
+          (x.sales_invoice.product_unit == null
+            ? 1
+            : Number(x.sales_invoice.product_unit.conversion));
+      }
+    });
+
+    return response;
+  }
+
   fetchByID = async (id: number) => {
     try {
       const result = await this.prisma.sales_return_code.findUnique({

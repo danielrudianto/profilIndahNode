@@ -167,13 +167,13 @@ export class ProductStockRepository {
     try {
       const [result, count] = await this.prisma.$transaction([
         this.prisma.$queryRawUnsafe<any[]>(`
-          SELECT product.*, product_stock.stock, product_brand.name AS brand_name, product_type.name AS type_name,
+          SELECT product.*, COALESCE(product_stock.stock, 0) AS stock, product_brand.name AS brand_name, product_type.name AS type_name,
           product_brand.created_by AS brand_created_by, product_type.created_by AS type_created_by
           FROM product
           LEFT JOIN product_stock ON product_stock.id = product.id
           JOIN product_brand ON product.product_brand_id = product_brand.id
           JOIN product_type ON product.product_type_id = product_type.id
-          WHERE product_stock.stock < product.minimum_stock
+          WHERE COALESCE(product_stock.stock,0) < product.minimum_stock
           AND (
             product.reference LIKE '%${data.keyword}%'
             OR product.description LIKE '%${data.keyword}%'
