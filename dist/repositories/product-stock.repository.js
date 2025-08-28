@@ -194,6 +194,39 @@ class ProductStockRepository {
             throw error;
         }
     }
+    async fetchInadequateWarehouse(data) {
+        const [result, count] = await this.prisma.$transaction([
+            this.prisma.$queryRaw `
+        SELECT product.id, COALESCE(product_stock.stock) AS stock 
+        FROM product
+        LEFT JOIN product_stock ON product.id = product_stock.id
+        WHERE COALESCE(product_stock.stock, 0) < product.minimum_stock
+        AND COALESCE(product_stock.stock, 0) >= 0
+        LIMIT ${data.pageSize}
+        OFFSET ${(data.page - 1) * data.pageSize}
+      `,
+            this.prisma.$queryRaw `
+        SELECT COUNT(product.id) AS count 
+        FROM product
+        LEFT JOIN product_stock ON product.id = product_stock.id
+        WHERE COALESCE(product_stock.stock, 0) < product.minimum_stock
+        AND COALESCE(product_stock.stock, 0) >= 0
+        LIMIT ${data.pageSize}
+        OFFSET ${(data.page - 1) * data.pageSize}
+      `,
+        ]);
+        return {
+            data: result.map((x) => {
+                return {
+                    id: x.id,
+                    product_stock: {
+                        stock: Number(x.stock),
+                    },
+                };
+            }),
+            count: count.length == 0 ? 0 : count[0] == null ? 0 : Number(count[0].count),
+        };
+    }
     async fetchInadequateStock(data) {
         try {
             const [result, count] = await this.prisma.$transaction([
@@ -205,6 +238,7 @@ class ProductStockRepository {
           JOIN product_brand ON product.product_brand_id = product_brand.id
           JOIN product_type ON product.product_type_id = product_type.id
           WHERE COALESCE(product_stock.stock,0) < product.minimum_stock
+          AND COALESCE(product_stock.stock, 0) >= 0
           AND (
             product.reference LIKE '%${data.keyword}%'
             OR product.description LIKE '%${data.keyword}%'
@@ -218,6 +252,7 @@ class ProductStockRepository {
           FROM product
           JOIN product_stock ON product_stock.id = product.id
           WHERE product_stock.stock < product.minimum_stock
+          AND COALESCE(product_stock.stock, 0) >= 0
           AND (
             product.reference LIKE '%${data.keyword}%'
             OR product.description LIKE '%${data.keyword}%'

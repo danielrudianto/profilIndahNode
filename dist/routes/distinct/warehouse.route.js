@@ -20,5 +20,10 @@ router.post("/product-stock", auth_helper_1.authMiddleware, (0, express_validato
     min: 0,
 })
     .withMessage(error_list_1.default["Page must be numeric"]), error_helper_1.default.intercept, productStockController.fetchWarehouse);
+router.post("/product-stock/inadequate", auth_helper_1.authMiddleware, (0, express_validator_1.body)("keyword").exists().withMessage(error_list_1.default["Keyword is required"]), (0, express_validator_1.body)("page").notEmpty().withMessage(error_list_1.default["Page is required"]), (0, express_validator_1.body)("page")
+    .isInt({
+    min: 0,
+})
+    .withMessage(error_list_1.default["Page must be numeric"]), error_helper_1.default.intercept, productStockController.fetchInadequateWarehouse);
 exports.default = router;
 //# sourceMappingURL=warehouse.route.js.map

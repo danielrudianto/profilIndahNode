@@ -538,6 +538,36 @@ class ProductStockController {
                 return res.status(500).send(error);
             }
         };
+        this.fetchInadequateWarehouse = async (req, res) => {
+            const keyword = req.body.keyword;
+            const page = req.body.page;
+            const pageSize = req.body.pageSize;
+            try {
+                const result = await this.productStockRepository.fetchInadequateWarehouse({
+                    page: page,
+                    keyword: keyword,
+                    pageSize: pageSize,
+                });
+                const products = await this.productRepository.fetchByIDs(result.data.map((x) => {
+                    return x.id;
+                }));
+                return {
+                    data: result.data.map((x) => {
+                        const productIndex = products.findIndex((product) => product.id == x.id);
+                        if (productIndex != -1) {
+                            return Object.assign(Object.assign({}, products[productIndex]), { product_stock: {
+                                    stock: x.product_stock.stock,
+                                } });
+                        }
+                    }),
+                };
+                return res.status(200).send(result);
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching product stock warehouse ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         this.fetchProductMetaDataByID = async (req, res) => {
             const id = Number(req.params.id);
             try {

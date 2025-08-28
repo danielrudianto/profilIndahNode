@@ -31,4 +31,18 @@ router.post(
   productStockController.fetchWarehouse
 );
 
+router.post(
+  "/product-stock/inadequate",
+  authMiddleware,
+  body("keyword").exists().withMessage(ErrorList["Keyword is required"]),
+  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  body("page")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["Page must be numeric"]),
+  ErrorHelper.intercept,
+  productStockController.fetchInadequateWarehouse
+);
+
 export default router;
