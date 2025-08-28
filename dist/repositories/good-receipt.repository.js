@@ -511,11 +511,12 @@ class GoodReceiptRepository {
     }
     async fetchByDateRange(minimumDate, maximumDate) {
         const result = await this.prisma.$queryRaw `
-      SELECT SUM(value) AS value, SUM(discount) AS discount, COUNT(id) AS count (
+      SELECT SUM(value) AS value, SUM(discount) AS discount, COUNT(id) AS count 
+      FROM (
         SELECT SUM(gr.value) AS value,
-        good_receipt_code.discount,
-        good_receipt_code.company_id,
-        good_receipt_code.id
+          good_receipt_code.discount,
+          good_receipt_code.company_id,
+          good_receipt_code.id
         FROM good_receipt_code
         JOIN (
           SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value,
@@ -523,13 +524,12 @@ class GoodReceiptRepository {
           FROM good_receipt
           JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
           WHERE good_receipt.good_receipt_code_id IS NOT NULL
-          AND good_receipt_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(minimumDate, date_helper_1.formatDate.YYYYMMDD)} 
-          AND ${date_helper_1.DateHelper.convertDate(maximumDate, date_helper_1.formatDate.YYYYMMDD)}
           GROUP BY good_receipt.good_receipt_code_id
         ) AS gr ON good_receipt_code.id = gr.good_receipt_code_id
         WHERE good_receipt_code.is_delete = 0
         AND good_receipt_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(minimumDate, date_helper_1.formatDate.YYYYMMDD)} 
         AND ${date_helper_1.DateHelper.convertDate(maximumDate, date_helper_1.formatDate.YYYYMMDD)}
+        GROUP BY good_receipt_code.id
       ) AS b
       GROUP BY b.company_id
     `;
