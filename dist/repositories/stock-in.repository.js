@@ -112,7 +112,8 @@ class StockInRepository {
         try {
             await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_in (product_id, quantity, price, residue, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, company_id, date)
-        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), (good_receipt.price - good_receipt.discount) / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), 
+        (good_receipt.price - good_receipt.discount) / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
         NULL, NULL, good_receipt.id, good_receipt.good_receipt_code_id, good_receipt_code.company_id, good_receipt_code.date
         FROM good_receipt
         LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id

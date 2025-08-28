@@ -14,6 +14,9 @@ export class StockOutRepository {
       where: {
         stock_in_id: null,
       },
+      orderBy: {
+        date: "asc",
+      },
     });
   }
 
@@ -290,7 +293,7 @@ export class StockOutRepository {
   async insertFromSalesInvoices() {
     await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_out (product_id, quantity, date, stock_in_id, price, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id)
-        SELECT sales_invoice.product_id, (sales_invoice.quantity - COALESCE(sr.quantity))* IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion), sales_invoice_code.date,
+        SELECT sales_invoice.product_id, (sales_invoice.quantity - COALESCE(sr.quantity, 0))* IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion), sales_invoice_code.date,
         NULL, (sales_invoice.price - sales_invoice.discount) / IF(sales_invoice.product_unit_id IS NULL, 1, product_unit.conversion),
         sales_invoice.id, sales_invoice.sales_invoice_code_id, NULL, NULL
         FROM sales_invoice

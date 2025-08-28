@@ -128,7 +128,15 @@ async function insertStockInOut() {
     await stockOutService.insertFromDocuments();
     console.info(`[info]: Stock out successfully inserted`);
     console.info(`[info]: Start calculating stock out`);
-    await stockOutService.calculateStockOut();
+}
+async function calculateStockOut() {
+    const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
+    try {
+        await stockOutService.calculateStockOut();
+    }
+    catch (error) {
+        console.error(`[error]: Error on calculating HPP ${error}`);
+    }
 }
 async function insertStockCard() {
     const stockCardService = new stock_card_service_1.StockCardService(new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
@@ -159,6 +167,9 @@ async function runFunction(funcName) {
             process.exit(0);
         case "insertStockInOut":
             await insertStockInOut();
+            process.exit(0);
+        case "calculateStockOut":
+            await calculateStockOut();
             process.exit(0);
         case "insertStockCard":
             await insertStockCard();
