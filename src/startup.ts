@@ -172,8 +172,6 @@ async function insertStockInOut() {
   await stockOutService.insertFromDocuments();
 
   console.info(`[info]: Stock out successfully inserted`);
-
-  console.info(`[info]: Start calculating stock out`);
 }
 
 async function calculateStockOut() {
