@@ -5,7 +5,6 @@ class StockInRepository {
     constructor(prisma) {
         this.prisma = prisma;
     }
-    create(data) { }
     createMany(data) {
         return this.prisma.stock_in.createMany({
             data: data.map((x) => {
@@ -38,6 +37,49 @@ class StockInRepository {
                 },
             });
         }));
+    }
+    async bulkUpdate(bulkUpdates) {
+        const operations = [];
+        for (const update of bulkUpdates) {
+            if (update.type === "update") {
+                operations.push(this.prisma.stock_in.update({
+                    where: { id: update.stockInID },
+                    data: {
+                        residue: update.residue,
+                    },
+                }));
+                operations.push(this.prisma.stock_out.update({
+                    where: {
+                        id: update.stockOutID,
+                    },
+                    data: {
+                        stock_in_id: update.stockInID,
+                    },
+                }));
+            }
+            if (update.type === "updateAndCreate") {
+                operations.push(this.prisma.stock_in.update({
+                    where: { id: update.stockInID },
+                    data: {
+                        residue: 0,
+                    },
+                }));
+                operations.push(this.prisma.stock_out.update({
+                    where: {
+                        id: update.stockOutID,
+                    },
+                    data: {
+                        quantity: update.quantity,
+                        stock_in_id: update.stockInID,
+                    },
+                }));
+                operations.push(this.prisma.stock_out.create({
+                    data: update.stockOut,
+                }));
+            }
+        }
+        // 🔥 Execute all operations in parallel
+        await this.prisma.$transaction(operations);
     }
     async deleteMany(data) {
         try {
@@ -202,6 +244,29 @@ class StockInRepository {
             },
         });
         return stockIn;
+    }
+    async fetchManyUnfilled(productIDs) {
+        const stockIn = await this.prisma.stock_in.findMany({
+            where: {
+                residue: {
+                    gt: 0,
+                },
+                product_id: {
+                    in: productIDs,
+                },
+            },
+            orderBy: {
+                date: "asc",
+            },
+        });
+        return stockIn.map((x) => {
+            return {
+                id: x.id,
+                quantity: Number(x.quantity),
+                residue: Number(x.residue),
+                product_id: x.product_id,
+            };
+        });
     }
     async calculate() {
         try {

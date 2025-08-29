@@ -21,49 +21,61 @@ class StockOutService {
     async calculateStockOut() {
         console.info(`[info]: Calculating stock out value, assigning to stock in`);
         const stockOuts = await this.stockOutRepository.fetchUnassigned();
-        for (let stockOut of stockOuts) {
-            const productID = stockOut.product_id;
-            let quantity = Number(stockOut.quantity);
+        console.info(`[info]: Found ${stockOuts.length} data to be assigned`);
+        const stockIns = await this.stockInRepository.fetchManyUnfilled([
+            ...new Set(stockOuts.map((s) => s.product_id)),
+        ]);
+        const bulkUpdate = [];
+        for (let i = 0; i < stockOuts.length; i++) {
+            console.info(`[info]: Commencing stock out calculationi ${i + 1} out of ${stockOuts.length} (${Math.round(((i + 1) * 100) / stockOuts.length)}%)`);
+            const productID = stockOuts[i].product_id;
+            let quantity = Number(stockOuts[i].quantity);
             while (quantity > 0) {
                 if (quantity == 0) {
                     break;
                 }
-                const stockIn = await this.stockInRepository.fetchUnfilled(productID);
-                if (!stockIn) {
+                const stockInIndex = stockIns.findIndex((x) => x.product_id == stockOuts[i].product_id);
+                if (stockInIndex == -1) {
                     quantity = 0;
                     break;
                 }
-                const stockInQuantity = Number(stockIn.residue);
-                if (stockInQuantity >= quantity) {
-                    await this.stockInRepository.update({
-                        stockInID: stockIn.id,
-                        stockOutID: stockOut.id,
-                        residue: stockInQuantity - quantity,
+                const stockIn = stockIns[stockInIndex];
+                if (stockIn.residue >= quantity) {
+                    bulkUpdate.push({
+                        type: "update",
+                        stockInID: stockIns[stockInIndex].id,
+                        stockOutID: stockOuts[i].id,
+                        residue: stockIn.residue - quantity,
                     });
+                    stockIns[stockInIndex].residue -= quantity;
                     quantity = 0;
                     break;
                 }
                 else {
-                    await this.stockInRepository.updateAndCreate({
-                        stockInID: stockIn.id,
-                        stockOutID: stockOut.id,
-                        residue: quantity - stockInQuantity,
+                    bulkUpdate.push({
+                        type: "updateAndCreate",
+                        stockInID: stockIns[stockInIndex].id,
+                        stockOutID: stockIns[stockInIndex].id,
+                        residue: 0,
+                        quantity: stockIn.residue,
                         stockOut: {
-                            adjustment_case_id: stockOut.adjustment_case_id,
-                            adjustment_case_code_id: stockOut.adjustment_case_code_id,
-                            sales_invoice_id: stockOut.sales_invoice_id,
-                            sales_invoice_code_id: stockOut.sales_invoice_code_id,
-                            date: stockOut.date,
-                            price: stockOut.price,
-                            quantity: stockInQuantity,
-                            stock_in_id: stockIn.id,
-                            product_id: stockOut.product_id,
+                            adjustment_case_id: stockOuts[i].adjustment_case_id,
+                            adjustment_case_code_id: stockOuts[i].adjustment_case_code_id,
+                            sales_invoice_id: stockOuts[i].sales_invoice_id,
+                            sales_invoice_code_id: stockOuts[i].sales_invoice_code_id,
+                            date: stockOuts[i].date,
+                            price: stockOuts[i].price,
+                            quantity: quantity - stockIn.residue,
+                            stock_in_id: stockOuts[i].id,
+                            product_id: stockOuts[i].product_id,
                         },
                     });
-                    quantity -= stockInQuantity;
+                    quantity -= stockIn.residue;
+                    stockIns.splice(stockInIndex, 1);
                 }
             }
         }
+        await this.stockInRepository.bulkUpdate(bulkUpdate);
     }
 }
 exports.StockOutService = StockOutService;

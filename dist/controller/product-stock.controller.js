@@ -513,6 +513,7 @@ class ProductStockController {
             const keyword = req.body.keyword;
             const page = req.body.page;
             const pageSize = req.body.pageSize;
+            const userID = req.body.userId;
             try {
                 const result = await meili_helper_1.meili.index("product").search(keyword, {
                     filter: ["is_delete = false"],
@@ -542,6 +543,7 @@ class ProductStockController {
             const keyword = req.body.keyword;
             const page = req.body.page;
             const pageSize = req.body.pageSize;
+            const userID = req.body.userId;
             try {
                 const result = await this.productStockRepository.fetchInadequateWarehouse({
                     page: page,
@@ -551,7 +553,7 @@ class ProductStockController {
                 const products = await this.productRepository.fetchByIDs(result.data.map((x) => {
                     return x.id;
                 }));
-                return {
+                return res.status(200).send({
                     data: result.data.map((x) => {
                         const productIndex = products.findIndex((product) => product.id == x.id);
                         if (productIndex != -1) {
@@ -560,8 +562,8 @@ class ProductStockController {
                                 } });
                         }
                     }),
-                };
-                return res.status(200).send(result);
+                    count: result.count,
+                });
             }
             catch (error) {
                 console.error(`[error]: Error on fetching product stock warehouse ${error}`);

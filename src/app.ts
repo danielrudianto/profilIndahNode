@@ -90,7 +90,8 @@ async function main() {
     new StockOutRepository(prisma),
     new StockInRepository(prisma)
   );
-  await stockOutService.calculateStockOut();
+
+  // await stockOutService.calculateStockOut();
 
   cron.schedule("0 0 * * *", async () => {
     // Assigning stock out to stock in
