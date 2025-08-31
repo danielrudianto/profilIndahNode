@@ -243,7 +243,9 @@ class StockInRepository {
                 date: "asc",
             },
         });
-        return stockIn;
+        return stockIn == null
+            ? null
+            : Object.assign(Object.assign({}, stockIn), { residue: Number(stockIn.residue), quantity: Number(stockIn.quantity) });
     }
     async fetchManyUnfilled(productIDs) {
         const stockIn = await this.prisma.stock_in.findMany({

@@ -172,8 +172,19 @@ async function insertStockInOut() {
   await stockOutService.insertFromDocuments();
 
   console.info(`[info]: Stock out successfully inserted`);
+}
 
-  console.info(`[info]: Start calculating stock out`);
+async function insertStockOut() {
+  const stockOutService = new StockOutService(
+    new StockOutRepository(prisma),
+    new StockInRepository(prisma)
+  );
+  console.info(`[info]: Start inserting stock out data`);
+
+  await stockOutService.delete();
+  await stockOutService.insertFromDocuments();
+
+  console.info(`[info]: Stock out successfully inserted`);
 }
 
 async function calculateStockOut() {
@@ -193,6 +204,13 @@ async function insertStockCard() {
     new StockCardRepository(prisma)
   );
   await stockCardService.startup();
+}
+
+async function orderStockCard() {
+  const stockCardService = new StockCardService(
+    new StockCardRepository(prisma)
+  );
+  await stockCardService.reorder();
 }
 
 async function createIndexes() {
@@ -223,11 +241,17 @@ async function runFunction(funcName: string) {
     case "insertStockInOut":
       await insertStockInOut();
       process.exit(0);
+    case "insertStockOut":
+      await insertStockOut();
+      process.exit(0);
     case "calculateStockOut":
       await calculateStockOut();
       process.exit(0);
     case "insertStockCard":
       await insertStockCard();
+      process.exit(0);
+    case "orderStockCard":
+      await orderStockCard();
       process.exit(0);
     case "syncSales":
       await syncSales();

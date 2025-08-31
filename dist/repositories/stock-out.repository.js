@@ -57,6 +57,43 @@ class StockOutRepository {
             throw error;
         }
     }
+    async update(data) {
+        return this.prisma.$transaction([
+            this.prisma.stock_in.update({
+                where: {
+                    id: data.stock_in_id,
+                },
+                data: {
+                    residue: {
+                        increment: data.assignedQuantity * -1,
+                    },
+                },
+            }),
+            data.stockOut.id == 0
+                ? this.prisma.stock_out.create({
+                    data: {
+                        product_id: data.stockOut.product_id,
+                        price: data.stockOut.price,
+                        quantity: data.assignedQuantity,
+                        sales_invoice_id: data.stockOut.sales_invoice_id,
+                        sales_invoice_code_id: data.stockOut.sales_invoice_code_id,
+                        adjustment_case_id: data.stockOut.adjustment_case_id,
+                        adjustment_case_code_id: data.stockOut.adjustment_case_code_id,
+                        date: data.stockOut.date,
+                        stock_in_id: data.stock_in_id,
+                    },
+                })
+                : this.prisma.stock_out.update({
+                    where: {
+                        id: data.stockOut.id,
+                    },
+                    data: {
+                        stock_in_id: data.stock_in_id,
+                        quantity: data.assignedQuantity,
+                    },
+                }),
+        ]);
+    }
     async create(data) {
         return this.prisma.stock_out.createMany({
             data: data.map((x) => {

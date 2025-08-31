@@ -20,8 +20,18 @@ export class StockOutService {
 
   async insertFromDocuments() {
     try {
-      this.stockOutRepository.insertFromSalesInvoices();
-      this.stockOutRepository.insertFromAdjustmentCases();
+      const salesInvoice =
+        await this.stockOutRepository.insertFromSalesInvoices();
+
+      console.info(
+        `[info]: Successfully inserted sales invoice to stock out data`
+      );
+      const adjustmentCase =
+        await this.stockOutRepository.insertFromAdjustmentCases();
+
+      console.info(
+        `[info]: Successfully inserted sales invoice to stock in data`
+      );
     } catch (error) {
       throw error;
     }
@@ -32,19 +42,10 @@ export class StockOutService {
     const stockOuts = await this.stockOutRepository.fetchUnassigned();
     console.info(`[info]: Found ${stockOuts.length} data to be assigned`);
 
-    const stockIns = await this.stockInRepository.fetchManyUnfilled([
-      ...new Set(stockOuts.map((s) => s.product_id)),
-    ]);
-
-    const bulkUpdate: any[] = [];
-
     for (let i = 0; i < stockOuts.length; i++) {
       console.info(
-        `[info]: Commencing stock out calculationi ${i + 1} out of ${
-          stockOuts.length
-        } (${Math.round(((i + 1) * 100) / stockOuts.length)}%)`
+        `[info]: Commencing product stock calculation ${i} / ${stockOuts.length}`
       );
-      const productID = stockOuts[i].product_id;
       let quantity = Number(stockOuts[i].quantity);
 
       while (quantity > 0) {
@@ -52,52 +53,38 @@ export class StockOutService {
           break;
         }
 
-        const stockInIndex = stockIns.findIndex(
-          (x) => x.product_id == stockOuts[i].product_id
+        const stockIn = await this.stockInRepository.fetchUnfilled(
+          stockOuts[i].product_id
         );
 
-        if (stockInIndex == -1) {
+        if (!stockIn) {
           quantity = 0;
           break;
         }
 
-        const stockIn = stockIns[stockInIndex];
-
         if (stockIn.residue >= quantity) {
-          bulkUpdate.push({
-            type: "update",
-            stockInID: stockIns[stockInIndex].id,
-            stockOutID: stockOuts[i].id,
-            residue: stockIn.residue - quantity,
+          await this.stockOutRepository.update({
+            stock_in_id: stockIn.id,
+            assignedQuantity: quantity,
+            stockOut: stockOuts[i],
           });
-          stockIns[stockInIndex].residue -= quantity;
           quantity = 0;
           break;
         } else {
-          bulkUpdate.push({
-            type: "updateAndCreate",
-            stockInID: stockIns[stockInIndex].id,
-            stockOutID: stockIns[stockInIndex].id,
-            residue: 0,
-            quantity: stockIn.residue,
-            stockOut: {
-              adjustment_case_id: stockOuts[i].adjustment_case_id,
-              adjustment_case_code_id: stockOuts[i].adjustment_case_code_id,
-              sales_invoice_id: stockOuts[i].sales_invoice_id,
-              sales_invoice_code_id: stockOuts[i].sales_invoice_code_id,
-              date: stockOuts[i].date,
-              price: stockOuts[i].price,
-              quantity: quantity - stockIn.residue,
-              stock_in_id: stockOuts[i].id,
-              product_id: stockOuts[i].product_id,
-            },
+          await this.stockOutRepository.update({
+            stock_in_id: stockIn.id,
+            assignedQuantity: stockIn.residue,
+            stockOut: stockOuts[i],
           });
+
+          stockOuts[i].id = 0;
           quantity -= stockIn.residue;
-          stockIns.splice(stockInIndex, 1);
         }
       }
-    }
 
-    await this.stockInRepository.bulkUpdate(bulkUpdate);
+      console.info(
+        `[info]: Completed product stock calculation ${i} / ${stockOuts.length}`
+      );
+    }
   }
 }

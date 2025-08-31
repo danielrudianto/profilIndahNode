@@ -291,7 +291,13 @@ export class StockInRepository {
       },
     });
 
-    return stockIn;
+    return stockIn == null
+      ? null
+      : {
+          ...stockIn,
+          residue: Number(stockIn.residue),
+          quantity: Number(stockIn.quantity),
+        };
   }
 
   async fetchManyUnfilled(productIDs: number[]) {

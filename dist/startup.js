@@ -127,7 +127,13 @@ async function insertStockInOut() {
     await stockOutService.delete();
     await stockOutService.insertFromDocuments();
     console.info(`[info]: Stock out successfully inserted`);
-    console.info(`[info]: Start calculating stock out`);
+}
+async function insertStockOut() {
+    const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
+    console.info(`[info]: Start inserting stock out data`);
+    await stockOutService.delete();
+    await stockOutService.insertFromDocuments();
+    console.info(`[info]: Stock out successfully inserted`);
 }
 async function calculateStockOut() {
     const stockOutService = new stock_out_service_1.StockOutService(new stock_out_repository_1.StockOutRepository(database_helper_1.prisma), new stock_in_repository_1.StockInRepository(database_helper_1.prisma));
@@ -141,6 +147,10 @@ async function calculateStockOut() {
 async function insertStockCard() {
     const stockCardService = new stock_card_service_1.StockCardService(new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
     await stockCardService.startup();
+}
+async function orderStockCard() {
+    const stockCardService = new stock_card_service_1.StockCardService(new stock_card_repository_1.StockCardRepository(database_helper_1.prisma));
+    await stockCardService.reorder();
 }
 async function createIndexes() {
     await meili_helper_1.meili.createIndex("product", {
@@ -168,11 +178,17 @@ async function runFunction(funcName) {
         case "insertStockInOut":
             await insertStockInOut();
             process.exit(0);
+        case "insertStockOut":
+            await insertStockOut();
+            process.exit(0);
         case "calculateStockOut":
             await calculateStockOut();
             process.exit(0);
         case "insertStockCard":
             await insertStockCard();
+            process.exit(0);
+        case "orderStockCard":
+            await orderStockCard();
             process.exit(0);
         case "syncSales":
             await syncSales();

@@ -96,4 +96,11 @@ export class StockCardService {
     await this.stockCardRepository.reorder();
     console.info(`[info]: Reordering stock card completed`);
   }
+
+  async reorder() {
+    console.info(`[info]: Starting reordering stock card`);
+
+    await this.stockCardRepository.reorder();
+    console.info(`[info]: Reordering stock card completed`);
+  }
 }
