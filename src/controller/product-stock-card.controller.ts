@@ -45,6 +45,7 @@ export class ProductStockCardController {
         productID: productID,
         viewBy: viewBy,
       });
+
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fething product stock ${error}`);
