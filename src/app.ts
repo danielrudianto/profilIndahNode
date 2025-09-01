@@ -72,6 +72,7 @@ const allowedOrigins = [
   "https://v16.profilindah.id",
   "https://v19.profilindah.id",
   "https://warehouse.profilindah.id",
+  "http://localhost:2100",
 ];
 
 const options: cors.CorsOptions = {

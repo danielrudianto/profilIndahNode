@@ -89,6 +89,7 @@ export class StockCardRepository {
             date: {
               lt: data.date,
             },
+            product_id: data.productID,
           },
           orderBy: [
             {
@@ -103,6 +104,7 @@ export class StockCardRepository {
         const current = await this.prisma.stock_card.findMany({
           where: {
             date: data.date,
+            product_id: data.productID,
           },
           orderBy: [
             {
