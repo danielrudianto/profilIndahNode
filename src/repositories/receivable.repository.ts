@@ -74,10 +74,10 @@ export class ReceivableRepository {
         select: {
           id: true,
         },
-      });   
+      });
 
       const result = await this.prisma.$queryRaw<any[]>`
-      SELECT SUM(sub.value) AS value, sub.payment, sub.id, sub.name 
+      SELECT SUM(sub.value) AS value, SUM(sub.payment) AS payment, sub.id, sub.name 
       FROM (
         SELECT 
           (si.value + sales_invoice_code.delivery + sales_invoice_code.service - sales_invoice_code.discount) AS value, 
