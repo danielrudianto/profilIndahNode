@@ -161,6 +161,7 @@ export class StockCardRepository {
 
         const current = await this.prisma.stock_card.findMany({
           where: {
+            product_id: data.productID,
             AND: [
               {
                 created_at: {
