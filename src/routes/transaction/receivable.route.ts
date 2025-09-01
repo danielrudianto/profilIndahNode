@@ -28,7 +28,6 @@ router.get(
   ErrorHelper.intercept,
   receivableController.fetchByCustomerID
 );
-router.get("/", ReceivableController.fetch);
 
 router.post(
   "/payment",

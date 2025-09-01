@@ -10,6 +10,7 @@ class ReceivableController {
     constructor(receivableRepository, salesInvoiceRepository) {
         this.fetch = async (req, res) => {
             try {
+                console.log("start fetching");
                 const result = await this.receivableRepository.fetch();
                 return res.status(200).send(result);
             }

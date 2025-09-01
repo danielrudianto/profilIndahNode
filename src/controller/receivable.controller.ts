@@ -19,6 +19,7 @@ class ReceivableController {
 
   fetch = async (req: Request, res: Response) => {
     try {
+      console.log("start fetching");
       const result = await this.receivableRepository.fetch();
       return res.status(200).send(result);
     } catch (error) {

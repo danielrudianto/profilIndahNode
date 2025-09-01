@@ -76,40 +76,96 @@ export class ReceivableRepository {
         },
       });
 
-      const result = await this.prisma.$queryRaw<any[]>`
-      SELECT (si.value + sales_invoice_code.delivery + sales_invoice_code.service - sales_invoice_code.discount) AS value, COALESCE(sip.value, 0) AS payment, customer.id, customer.name
-      FROM sales_invoice_code
-      JOIN (
-        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
-              sales_invoice.sales_invoice_code_id
-        FROM sales_invoice
-        WHERE sales_invoice.sales_invoice_code_id IN (${Prisma.join(
+      const query = `
+        SELECT SUM(sub.value) AS value, sub.payment, sub.id, sub.name 
+      FROM (
+        SELECT 
+          (si.value + sales_invoice_code.delivery + sales_invoice_code.service - sales_invoice_code.discount) AS value, 
+          COALESCE(sip.value, 0) AS payment, 
+          customer.id, 
+          customer.name
+        FROM sales_invoice_code
+        JOIN (
+          SELECT 
+            SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
+            sales_invoice.sales_invoice_code_id
+          FROM sales_invoice
+          WHERE sales_invoice.sales_invoice_code_id IN (${Prisma.join(
+            invoiceCodeIds.map((x) => {
+              return x.id;
+            })
+          )})
+          GROUP BY sales_invoice.sales_invoice_code_id
+        ) AS si 
+        ON sales_invoice_code.id = si.sales_invoice_code_id
+        LEFT JOIN (
+          SELECT 
+            SUM(sales_invoice_payment.value) AS value, 
+            sales_invoice_payment.sales_invoice_code_id
+          FROM sales_invoice_payment
+          WHERE sales_invoice_payment.sales_invoice_code_id IN (${Prisma.join(
+            invoiceCodeIds.map((x) => {
+              return x.id;
+            })
+          )})
+          GROUP BY sales_invoice_payment.sales_invoice_code_id
+        ) AS sip 
+        ON sales_invoice_code.id = sip.sales_invoice_code_id
+        LEFT JOIN customer ON sales_invoice_code.customer_id = customer.id
+        WHERE sales_invoice_code.id IN (${Prisma.join(
           invoiceCodeIds.map((x) => {
             return x.id;
           })
         )})
-        GROUP BY sales_invoice.sales_invoice_code_id
-      ) si
-      ON sales_invoice_code.id = si.sales_invoice_code_id
-      LEFT JOIN (
-        SELECT SUM(sales_invoice_payment.value) AS value, 
-              sales_invoice_payment.sales_invoice_code_id
-        FROM sales_invoice_payment
-        WHERE sales_invoice_payment.sales_invoice_code_id IN (${Prisma.join(
+      ) AS sub
+      GROUP BY sub.id
+      `;
+
+      const result = await this.prisma.$queryRaw<any[]>` 
+      SELECT SUM(sub.value) AS value, sub.payment, sub.id, sub.name 
+      FROM (
+        SELECT 
+          (si.value + sales_invoice_code.delivery + sales_invoice_code.service - sales_invoice_code.discount) AS value, 
+          COALESCE(sip.value, 0) AS payment, 
+          customer.id, 
+          customer.name
+        FROM sales_invoice_code
+        JOIN (
+          SELECT 
+            SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
+            sales_invoice.sales_invoice_code_id
+          FROM sales_invoice
+          WHERE sales_invoice.sales_invoice_code_id IN (${Prisma.join(
+            invoiceCodeIds.map((x) => {
+              return x.id;
+            })
+          )})
+          GROUP BY sales_invoice.sales_invoice_code_id
+        ) AS si 
+        ON sales_invoice_code.id = si.sales_invoice_code_id
+        LEFT JOIN (
+          SELECT 
+            SUM(sales_invoice_payment.value) AS value, 
+            sales_invoice_payment.sales_invoice_code_id
+          FROM sales_invoice_payment
+          WHERE sales_invoice_payment.sales_invoice_code_id IN (${Prisma.join(
+            invoiceCodeIds.map((x) => {
+              return x.id;
+            })
+          )})
+          GROUP BY sales_invoice_payment.sales_invoice_code_id
+        ) AS sip 
+        ON sales_invoice_code.id = sip.sales_invoice_code_id
+        LEFT JOIN customer ON sales_invoice_code.customer_id = customer.id
+        WHERE sales_invoice_code.id IN (${Prisma.join(
           invoiceCodeIds.map((x) => {
             return x.id;
           })
         )})
-        GROUP BY sales_invoice_payment.sales_invoice_code_id
-      ) sip
-      ON sales_invoice_code.id = sip.sales_invoice_code_id
-      LEFT JOIN customer ON sales_invoice_code.customer_id = customer.id
-      WHERE sales_invoice_code.id IN (${Prisma.join(
-        invoiceCodeIds.map((x) => {
-          return x.id;
-        })
-      )})
-      GROUP BY sales_invoice_code.customer_id 
+      ) AS sub
+      GROUP BY sub.id
+      HAVING (value - payment) > 0
+      ORDER BY sub.value DESC
     `;
 
       return result
@@ -121,9 +177,10 @@ export class ReceivableRepository {
           };
         })
         .sort((a, b) => {
-          return a.value - b.value;
+          return b.value - a.value;
         });
     } catch (error) {
+      console.error(`[error]: Error on fetching receivable data ${error}`);
       throw error;
     }
   }

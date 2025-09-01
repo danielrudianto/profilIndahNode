@@ -19,7 +19,6 @@ router.get("/history/:id", receivable_controller_1.default.fetchPaymentsHistory)
 router.get("/customer/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["Customer ID is required"]), (0, express_validator_1.param)("id")
     .isInt({ min: 0 })
     .withMessage(error_list_1.default["CUstomer ID must be integer"]), error_helper_1.default.intercept, receivableController.fetchByCustomerID);
-router.get("/", receivable_controller_1.default.fetch);
 router.post("/payment", (0, express_validator_1.body)("date").notEmpty().withMessage(error_list_1.default["Date required"]), (0, express_validator_1.body)("amount").notEmpty().withMessage(error_list_1.default["Amount is required"]), (0, express_validator_1.body)("amount")
     .isFloat({
     min: 0,

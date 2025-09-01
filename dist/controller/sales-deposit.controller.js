@@ -142,9 +142,6 @@ class SalesDepositController {
             const date = new Date(req.body.date);
             const userID = req.body.userId;
             const sales_invoice_payment = req.body.sales_invoice_payment;
-            const service = req.body.service;
-            const delivery = req.body.delivery;
-            const discount = req.body.discount;
             try {
                 const deposit = await this.salesDepositRepository.fetchByID(id);
                 if (!deposit) {
