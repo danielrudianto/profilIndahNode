@@ -19,6 +19,7 @@ class SalesDepositRepository {
                     deleted_at: null,
                     deleted_by: null,
                     type: data.type,
+                    sales: data.sales,
                     sales_deposit: {
                         createMany: {
                             data: data.sales_deposit.map((x) => {
@@ -398,6 +399,7 @@ class SalesDepositRepository {
                     id: id,
                 },
                 include: {
+                    customer: true,
                     sales_deposit: {
                         include: {
                             product: true,

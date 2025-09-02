@@ -285,6 +285,7 @@ class SalesInvoiceController {
         startDate: startDate,
         endDate: endDate,
       });
+
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching archive ${error}`);

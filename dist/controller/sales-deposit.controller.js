@@ -111,8 +111,8 @@ class SalesDepositController {
             const offset = Number(process.env.LIMIT);
             const isPending = req.body.isPending;
             const isDelete = req.body.isDelete;
-            const startDate = req.body.startDate;
-            const endDate = req.body.endDate;
+            const startDate = new Date(`${req.body.startDate}T00:00:00+08:00`);
+            const endDate = new Date(`${req.body.endDate}T23:59:59+08:00`);
             const sortBy = req.body.sortBy;
             const sortDirection = req.body.sortDirection;
             try {
@@ -126,8 +126,8 @@ class SalesDepositController {
                     isDelete: isDelete,
                     sortBy: sortBy,
                     sortDirection: sortDirection,
-                    startDate: new Date(startDate),
-                    endDate: new Date(endDate),
+                    startDate: startDate,
+                    endDate: endDate,
                 });
                 return res.status(200).send(result);
             }
