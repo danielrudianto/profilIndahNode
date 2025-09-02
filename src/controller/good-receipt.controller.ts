@@ -318,8 +318,13 @@ class GoodReceiptController {
         return res.status(400).send(ErrorList["Good receipt already deleted"]);
       }
 
+      console.info(`[info]: Preparing deletation for good receipt ${id}`);
+
       const result = await this.goodReceiptRepository.delete(id, userID);
-      // delete the stock in
+
+      console.info(
+        `[info]: Commencing deletation for stock card for good receipt ID ${id}`
+      );
       await this.stockCardRepository.deleteMany(
         goodReceipt.good_receipt!.map((x) => {
           return {
@@ -335,6 +340,14 @@ class GoodReceiptController {
         })
       );
 
+      console.info(
+        `[info]: Completed deletation for stock card for good receipt ID ${id}`
+      );
+
+      console.info(
+        `[info]: Commencing deletation for stock in for good receipt ID ${id}`
+      );
+
       await this.stockInRepository.deleteMany(
         goodReceipt.good_receipt!.map((x) => {
           return {
@@ -345,6 +358,9 @@ class GoodReceiptController {
             price: 0,
           };
         })
+      );
+      console.info(
+        `[info]: Completed deletation for stock in for good receipt ID ${id}`
       );
 
       return res.status(201).send(result);
