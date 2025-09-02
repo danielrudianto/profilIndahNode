@@ -20,6 +20,7 @@ class SalesDepositRepository {
                     deleted_by: null,
                     type: data.type,
                     sales: data.sales,
+                    customer_id: data.customerID,
                     sales_deposit: {
                         createMany: {
                             data: data.sales_deposit.map((x) => {
