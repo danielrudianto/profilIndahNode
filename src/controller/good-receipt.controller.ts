@@ -325,20 +325,19 @@ class GoodReceiptController {
       console.info(
         `[info]: Commencing deletation for stock card for good receipt ID ${id}`
       );
-      await this.stockCardRepository.deleteMany(
-        goodReceipt.good_receipt!.map((x) => {
-          return {
-            sales_invoice_code_id: null,
-            sales_invoice_id: null,
-            sales_return_code_id: null,
-            sales_return_id: null,
-            adjustment_case_code_id: null,
-            adjustment_case_id: null,
-            good_receipt_code_id: id,
-            good_receipt_id: x.id!,
-          };
-        })
-      );
+
+      goodReceipt.good_receipt?.forEach(async (x) => {
+        await queue.add("stock-card-deleted", {
+          sales_invoice_code_id: null,
+          sales_invoice_id: null,
+          sales_return_code_id: null,
+          sales_return_id: null,
+          adjustment_case_code_id: null,
+          adjustment_case_id: null,
+          good_receipt_code_id: id,
+          good_receipt_id: x.id!,
+        });
+      });
 
       console.info(
         `[info]: Completed deletation for stock card for good receipt ID ${id}`

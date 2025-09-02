@@ -234,6 +234,7 @@ class GoodReceiptController {
             }
         };
         this.delete = async (req, res) => {
+            var _a;
             const id = Number(req.params.id);
             const userID = req.body.userId;
             try {
@@ -250,8 +251,8 @@ class GoodReceiptController {
                 console.info(`[info]: Preparing deletation for good receipt ${id}`);
                 const result = await this.goodReceiptRepository.delete(id, userID);
                 console.info(`[info]: Commencing deletation for stock card for good receipt ID ${id}`);
-                await this.stockCardRepository.deleteMany(goodReceipt.good_receipt.map((x) => {
-                    return {
+                (_a = goodReceipt.good_receipt) === null || _a === void 0 ? void 0 : _a.forEach(async (x) => {
+                    await queue_helper_1.queue.add("stock-card-deleted", {
                         sales_invoice_code_id: null,
                         sales_invoice_id: null,
                         sales_return_code_id: null,
@@ -260,8 +261,8 @@ class GoodReceiptController {
                         adjustment_case_id: null,
                         good_receipt_code_id: id,
                         good_receipt_id: x.id,
-                    };
-                }));
+                    });
+                });
                 console.info(`[info]: Completed deletation for stock card for good receipt ID ${id}`);
                 console.info(`[info]: Commencing deletation for stock in for good receipt ID ${id}`);
                 await this.stockInRepository.deleteMany(goodReceipt.good_receipt.map((x) => {

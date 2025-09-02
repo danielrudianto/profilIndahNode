@@ -229,20 +229,18 @@ class SalesReturnController {
       const result = await this.salesReturnRepository.delete(id, userID);
       console.log(result);
 
-      await this.stockCardRepository.deleteMany(
-        salesReturn.sales_return!.map((x) => {
-          return {
-            sales_invoice_code_id: salesReturn.sales_invoice_code_id,
-            sales_invoice_id: x.sales_invoice_id,
-            sales_return_code_id: salesReturn.id!,
-            sales_return_id: x.id!,
-            adjustment_case_code_id: null,
-            adjustment_case_id: null,
-            good_receipt_code_id: null,
-            good_receipt_id: null,
-          };
-        })
-      );
+      salesReturn.sales_return?.forEach(async (x) => {
+        await queue.add("stock-card-deleted", {
+          sales_invoice_code_id: salesReturn.sales_invoice_code_id,
+          sales_invoice_id: x.sales_invoice_id,
+          sales_return_code_id: salesReturn.id!,
+          sales_return_id: x.id!,
+          adjustment_case_code_id: null,
+          adjustment_case_id: null,
+          good_receipt_code_id: null,
+          good_receipt_id: null,
+        });
+      });
 
       await this.productStockRepository.updateMany(
         salesReturn.sales_return!.map((x) => {
