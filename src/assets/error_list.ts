@@ -200,6 +200,9 @@ enum ErrorList {
   "View by mutation must be either document date or creation date" = "Filter harus merupakan tanggal dokumen atau tanggal pembuatan dokumen",
   "Expense not found" = "Pengeluaran tidak ditemukan",
   "Keyword is required" = "Kata kunci pencarian tidak boleh kosong",
+
+  "Return payment method is required" = "Metode pengembalian uang tidak boleh kosong",
+  "Return payment name is required" = "Nama penerima pengembalian uang tidak boleh kosong",
 }
 
 export default ErrorList;

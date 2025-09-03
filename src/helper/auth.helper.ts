@@ -54,6 +54,65 @@ export const authMiddleware = (
   });
 };
 
+export const authMiddlewareRole = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  let tokenHeader = req.headers["authorization"]?.toString();
+  if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
+    return res.status(401).json({
+      auth: false,
+      message: "Incorrect token format",
+    });
+  }
+
+  let token = tokenHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).json({
+      auth: false,
+      message: "No token provided",
+    });
+  }
+
+  verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
+    if (!error) {
+      const decodedData = decoded as any;
+      prisma.user
+        .findFirst({
+          where: {
+            id: decodedData.id,
+            is_active: true,
+          },
+          include: {
+            user_sales: true,
+          },
+        })
+        .then((user) => {
+          if (user == null || !user.is_active) {
+            return res.status(401).send("User not authorized");
+          }
+
+          req.body.userId = decodedData.id;
+          req.body.role = user.role;
+          req.body.user_sales = user.user_sales.map((x) => {
+            return {
+              product_type_id: x.product_type_id,
+            };
+          });
+
+          next();
+        })
+        .catch(() => {
+          return res.status(401).send("User not authorized");
+        });
+    } else {
+      return res.status(401).send("User not authorized");
+    }
+  });
+};
+
 export const administratorMiddleware = (
   req: Request,
   res: Response,

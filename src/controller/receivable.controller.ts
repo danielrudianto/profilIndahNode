@@ -144,8 +144,6 @@ class ReceivableController {
         sales_invoice_id,
       } = req.body;
 
-      console.log(date);
-
       const salesInvoice = await this.salesInvoiceRepository.fetchByID(
         sales_invoice_id
       );

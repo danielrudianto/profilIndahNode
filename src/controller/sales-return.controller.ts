@@ -227,7 +227,6 @@ class SalesReturnController {
       }
 
       const result = await this.salesReturnRepository.delete(id, userID);
-      console.log(result);
 
       salesReturn.sales_return?.forEach(async (x) => {
         await queue.add("stock-card-deleted", {

@@ -7,7 +7,7 @@ import { ProductStockRepository } from "../../repositories/product-stock.reposit
 import { prisma } from "../../helper/database.helper";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
 import { ProductRepository } from "../../repositories/product.repository";
-import { authMiddleware } from "../../helper/auth.helper";
+import { authMiddleware, authMiddlewareRole } from "../../helper/auth.helper";
 
 const router = Router();
 
@@ -19,7 +19,7 @@ const productStockController = new ProductStockController(
 
 router.post(
   "/product-stock",
-  authMiddleware,
+  authMiddlewareRole,
   body("keyword").exists().withMessage(ErrorList["Keyword is required"]),
   body("page").notEmpty().withMessage(ErrorList["Page is required"]),
   body("page")

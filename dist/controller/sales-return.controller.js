@@ -165,7 +165,6 @@ class SalesReturnController {
                     return res.status(400).send(error_list_1.default["Sales return already deleted"]);
                 }
                 const result = await this.salesReturnRepository.delete(id, userID);
-                console.log(result);
                 (_a = salesReturn.sales_return) === null || _a === void 0 ? void 0 : _a.forEach(async (x) => {
                     await queue_helper_1.queue.add("stock-card-deleted", {
                         sales_invoice_code_id: salesReturn.sales_invoice_code_id,
