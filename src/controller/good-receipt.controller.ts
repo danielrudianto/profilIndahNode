@@ -358,6 +358,18 @@ class GoodReceiptController {
           };
         })
       );
+
+      await this.productStockRepository.updateMany(
+        goodReceipt.good_receipt!.map((x) => {
+          return {
+            productID: x.product_id,
+            quantity:
+              x.quantity *
+              (x.product_unit == null ? 1 : x.product_unit.conversion),
+          };
+        })
+      );
+
       console.info(
         `[info]: Completed deletation for stock in for good receipt ID ${id}`
       );
