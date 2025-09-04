@@ -40,41 +40,40 @@ export class ProductSalesPriceController {
   };
 
   update = async (req: Request, res: Response) => {
+    const data: {
+      product_unit_id: number | null;
+      price: number;
+      discount: number;
+    }[] = req.body.data;
     const product_id = req.body.product_id;
-    const sales_price = req.body.sales_price;
-    const sales_discount = req.body.sales_discount;
-    const product_unit = req.body.product_unit;
 
     try {
       const product = await this.productRepository.fetchByID(product_id);
-      if (!product || product.is_delete!) {
-        return res.status(404).send(ErrorList["Product not found"]);
+      if (!product || product.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
       }
 
-      await this.productRepository.updateSalesPrice([
-        {
-          product_id: product_id,
-          product_unit_id: null,
-          price: sales_price,
-          discount: sales_discount,
-        },
-        ...product_unit.map((x: any) => {
+      const result = await this.productRepository.updateSalesPrice(
+        data.map((x) => {
           return {
-            product_id: x.product_id,
+            product_id: product_id,
             product_unit_id: x.product_unit_id,
-            price: x.sales_price,
-            discount: x.sales_discount,
+            price: x.price,
+            discount: x.discount,
           };
-        }),
-      ]);
+        })
+      );
 
       await queue.add("product-updated", {
         id: product_id,
       });
 
-      return res.status(200).send(product);
+      return res.status(201).send(result);
     } catch (error) {
-      return res.status(500).send(ErrorList["Internal server error"]);
+      console.error(
+        `[error]: Error on updating product purchase price ${error}`
+      );
+      return res.status(500).send(error);
     }
   };
 

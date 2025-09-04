@@ -28,17 +28,6 @@ export class ProductPurchasePriceController {
     }
   };
 
-  fetchByID = async (req: Request, res: Response) => {
-    try {
-      const id = Number(req.params.id);
-      const product = await this.productRepository.fetchSalesPriceByID(id);
-      return res.status(200).send(product);
-    } catch (error) {
-      console.error(`[error]: Error on fetching sales price by ID ${error}`);
-      return res.status(500).send(error);
-    }
-  };
-
   update = async (req: Request, res: Response) => {
     const product_id = req.body.product_id;
     const sales_price = req.body.sales_price;
@@ -75,6 +64,44 @@ export class ProductPurchasePriceController {
       return res.status(200).send(product);
     } catch (error) {
       return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  updateByProductID = async (req: Request, res: Response) => {
+    const data: {
+      product_unit_id: number | null;
+      price: number;
+      discount: number;
+    }[] = req.body.data;
+    const product_id = req.body.product_id;
+
+    try {
+      const product = await this.productRepository.fetchByID(product_id);
+      if (!product || product.is_delete) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const result = await this.productRepository.updatePurchasePrice(
+        data.map((x) => {
+          return {
+            product_id: product_id,
+            product_unit_id: x.product_unit_id,
+            price: x.price,
+            discount: x.discount,
+          };
+        })
+      );
+
+      await queue.add("product-updated", {
+        id: product_id,
+      });
+
+      return res.status(201).send(result);
+    } catch (error) {
+      console.error(
+        `[error]: Error on updating product purchase price ${error}`
+      );
+      return res.status(500).send(error);
     }
   };
 

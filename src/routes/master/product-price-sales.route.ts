@@ -22,36 +22,43 @@ router.get(
 router.get("/", productSalesPriceController.fetch);
 router.put(
   "/",
-  body("product_id").notEmpty().withMessage(ErrorList["ID is required"]),
   body("product_id")
-    .isInt({ min: 1 })
-    .withMessage(ErrorList["ID must be numeric"]),
-  body("sales_price").notEmpty().withMessage(ErrorList["Price required"]),
-  body("sales_discount").notEmpty().withMessage(ErrorList["Discount required"]),
-  body("sales_price")
-    .isNumeric()
+    .notEmpty()
+    .withMessage(ErrorList["Product ID is required"]),
+  body("product_id")
+    .isInt({ min: 0 })
+    .withMessage(ErrorList["Product ID must be numeric"]),
+  body("data.*.product_unit_id")
+    .exists()
+    .withMessage(ErrorList["Product unit ID is required"]),
+  body("data.*.price").notEmpty().withMessage(ErrorList["Price is required"]),
+  body("data.*.price")
+    .isFloat({
+      min: 0,
+    })
     .withMessage(ErrorList["Price must be numeric"]),
-  body("sales_discount")
-    .isNumeric()
+  body("data.*.discount").exists().withMessage(ErrorList["Discount required"]),
+  body("data.*.discount")
+    .isFloat({
+      min: 0,
+    })
     .withMessage(ErrorList["Discount must be numeric"]),
-  body("product_unit")
-    .isArray()
-    .withMessage(ErrorList["Product unit must be an array"]),
-  body("product_unit.*.sales_price")
-    .notEmpty()
-    .withMessage(ErrorList["Price required"]),
-  body("product_unit.*.sales_discount")
-    .notEmpty()
-    .withMessage(ErrorList["Discount required"]),
-  body("product_unit.*.sales_price")
-    .isNumeric()
-    .withMessage(ErrorList["Price must be numeric"]),
-  body("product_unit.*.sales_discount")
-    .isNumeric()
-    .withMessage(ErrorList["Discount must be numeric"]),
-  body("product_unit.*.product_unit_id")
-    .notEmpty()
-    .withMessage("Product unit ID is required"),
+  body("data").custom((dataArray) => {
+    if (!Array.isArray(dataArray)) {
+      throw new Error("Data must be an array");
+    }
+    for (const item of dataArray) {
+      if (typeof item.price !== "number" || typeof item.discount !== "number") {
+        throw new Error("Price and discount must be numbers");
+      }
+      if (item.discount > item.price) {
+        throw new Error(
+          `Discount (${item.discount}) must be less than price (${item.price}) for product_id ${item.product_id}`
+        );
+      }
+    }
+    return true; // validation passed
+  }),
   ErrorHelper.intercept,
   productSalesPriceController.update
 );
