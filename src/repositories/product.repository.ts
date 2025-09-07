@@ -191,6 +191,7 @@ export class ProductRepository {
         include: {
           product_brand: true,
           product_type: true,
+          product_unit: true,
         },
       });
 

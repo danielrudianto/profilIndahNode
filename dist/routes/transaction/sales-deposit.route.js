@@ -49,11 +49,18 @@ router.post("/confirm", (0, express_validator_1.body)("id").notEmpty().withMessa
     .withMessage(error_list_1.default["Amount must be numeric"]), (0, express_validator_1.body)("sales_invoice_payment.*.date")
     .notEmpty()
     .withMessage(error_list_1.default["Payment date is required"]), error_helper_1.default.intercept, salesDepositController.confirm);
-router.post("/reject", (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id").isInt({ min: 0 }).withMessage(error_list_1.default["ID must be numeric"]), (0, express_validator_1.body)("payment_method")
-    .notEmpty()
-    .withMessage(error_list_1.default["Payment method required"]), (0, express_validator_1.body)("payment_method")
+router.post("/reject", (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id").isInt({ min: 0 }).withMessage(error_list_1.default["ID must be numeric"]), (0, express_validator_1.body)("method")
     .isIn(["create", "delete"])
-    .withMessage(error_list_1.default["Parameter error"]), error_helper_1.default.intercept, salesDepositController.reject);
+    .withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("return_payment_date")
+    .if((0, express_validator_1.body)("method").equals("create"))
+    .notEmpty()
+    .withMessage(error_list_1.default["Date required"]), (0, express_validator_1.body)("return_payment_method")
+    .if((0, express_validator_1.body)("method").equals("create"))
+    .notEmpty()
+    .withMessage(error_list_1.default["Return payment method is required"]), (0, express_validator_1.body)("return_payment_name")
+    .if((0, express_validator_1.body)("method").equals("create"))
+    .notEmpty()
+    .withMessage(error_list_1.default["Return payment name is required"]), error_helper_1.default.intercept, salesDepositController.reject);
 router.post("/", (0, express_validator_1.body)("uuid").notEmpty().withMessage(error_list_1.default["Parameter error"]), (0, express_validator_1.body)("customer_id")
     .exists()
     .withMessage(error_list_1.default["Customer ID is required"]), (0, express_validator_1.body)("discount").notEmpty().withMessage(error_list_1.default["Discount required"]), (0, express_validator_1.body)("discount")

@@ -234,6 +234,7 @@ class GoodReceiptController {
             }
         };
         this.delete = async (req, res) => {
+            var _a;
             const id = Number(req.params.id);
             const userID = req.body.userId;
             try {
@@ -247,10 +248,11 @@ class GoodReceiptController {
                 if (goodReceipt.is_delete) {
                     return res.status(400).send(error_list_1.default["Good receipt already deleted"]);
                 }
+                console.info(`[info]: Preparing deletation for good receipt ${id}`);
                 const result = await this.goodReceiptRepository.delete(id, userID);
-                // delete the stock in
-                await this.stockCardRepository.deleteMany(goodReceipt.good_receipt.map((x) => {
-                    return {
+                console.info(`[info]: Commencing deletation for stock card for good receipt ID ${id}`);
+                (_a = goodReceipt.good_receipt) === null || _a === void 0 ? void 0 : _a.forEach(async (x) => {
+                    await queue_helper_1.queue.add("stock-card-deleted", {
                         sales_invoice_code_id: null,
                         sales_invoice_id: null,
                         sales_return_code_id: null,
@@ -259,8 +261,10 @@ class GoodReceiptController {
                         adjustment_case_id: null,
                         good_receipt_code_id: id,
                         good_receipt_id: x.id,
-                    };
-                }));
+                    });
+                });
+                console.info(`[info]: Completed deletation for stock card for good receipt ID ${id}`);
+                console.info(`[info]: Commencing deletation for stock in for good receipt ID ${id}`);
                 await this.stockInRepository.deleteMany(goodReceipt.good_receipt.map((x) => {
                     return {
                         good_receipt_code_id: id,
@@ -270,6 +274,14 @@ class GoodReceiptController {
                         price: 0,
                     };
                 }));
+                await this.productStockRepository.updateMany(goodReceipt.good_receipt.map((x) => {
+                    return {
+                        productID: x.product_id,
+                        quantity: x.quantity *
+                            (x.product_unit == null ? 1 : x.product_unit.conversion),
+                    };
+                }));
+                console.info(`[info]: Completed deletation for stock in for good receipt ID ${id}`);
                 return res.status(201).send(result);
             }
             catch (error) {

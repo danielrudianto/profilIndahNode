@@ -66,11 +66,12 @@ const stock_out_service_1 = require("./services/stock-out.service");
 const stock_out_repository_1 = require("./repositories/stock-out.repository");
 const stock_in_repository_1 = require("./repositories/stock-in.repository");
 const allowedOrigins = [
-    "http://localhost:2100",
     "http://localhost:5173",
     "https://stock.profilindah.id",
     "https://v16.profilindah.id",
     "https://v19.profilindah.id",
+    "https://warehouse.profilindah.id",
+    "http://localhost:2100",
 ];
 const options = {
     origin: allowedOrigins,

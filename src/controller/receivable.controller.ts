@@ -19,6 +19,7 @@ class ReceivableController {
 
   fetch = async (req: Request, res: Response) => {
     try {
+      console.log("start fetching");
       const result = await this.receivableRepository.fetch();
       return res.status(200).send(result);
     } catch (error) {
@@ -142,8 +143,6 @@ class ReceivableController {
         full_payment,
         sales_invoice_id,
       } = req.body;
-
-      console.log(date);
 
       const salesInvoice = await this.salesInvoiceRepository.fetchByID(
         sales_invoice_id

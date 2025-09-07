@@ -111,72 +111,56 @@ export class StockInRepository {
 
   async deleteMany(data: IStockInUpdate[]) {
     try {
-      const stockIns = await this.prisma.$transaction(
-        data.map((x) => {
-          return this.prisma.stock_in.findMany({
-            where: {
-              OR: [
-                {
-                  AND: [
-                    {
-                      adjustment_case_id: x.adjustment_case_id,
-                    },
-                    {
-                      adjustment_case_code_id: x.adjustment_case_code_id,
-                    },
-                  ],
-                },
-                {
-                  AND: [
-                    {
-                      good_receipt_id: x.good_receipt_id,
-                    },
-                    {
-                      good_receipt_code_id: x.good_receipt_code_id,
-                    },
-                  ],
-                },
-              ],
-            },
-            include: {
-              stock_out: {
-                select: {
-                  id: true,
-                },
-              },
-            },
-          });
-        })
-      );
-
-      const stockInFlat = stockIns.flat();
-
-      if (stockInFlat.length == 0) {
-        return;
+      const where = [];
+      for (let i = 0; i < data.length; i++) {
+        where.push({
+          adjustment_case_id: data[i].adjustment_case_id,
+          adjustment_case_code_id: data[i].adjustment_case_code_id,
+          good_receipt_id: data[i].good_receipt_id,
+          good_receipt_code_id: data[i].good_receipt_code_id,
+        });
       }
 
-      const updateQuery = stockInFlat.flatMap((x) => {
-        return x.stock_out.map((z) => {
-          return this.prisma.stock_out.update({
-            where: {
-              id: z.id,
+      const stockIns = await this.prisma.stock_in.findMany({
+        where: {
+          OR: where,
+        },
+        include: {
+          stock_out: {
+            select: {
+              id: true,
             },
-            data: {
-              stock_in_id: null,
-            },
-          });
-        });
-      });
-
-      const deleteQuery = stockInFlat.map((x) => {
-        return this.prisma.stock_in.delete({
-          where: {
-            id: x.id,
           },
+        },
+      });
+
+      const deleteQuery: any[] = [];
+      const updateQuery: any[] = [];
+      stockIns.forEach((stockIn) => {
+        deleteQuery.push(
+          this.prisma.stock_in.delete({
+            where: {
+              id: stockIn.id,
+            },
+          })
+        );
+
+        stockIn.stock_out.forEach((stockOut) => {
+          updateQuery.push(
+            this.prisma.stock_out.update({
+              where: {
+                id: stockOut.id,
+              },
+              data: {
+                stock_in_id: null,
+              },
+            })
+          );
         });
       });
 
-      await this.prisma.$transaction([...updateQuery, ...deleteQuery]);
+      await this.prisma.$transaction(updateQuery);
+      await this.prisma.$transaction(deleteQuery);
     } catch (error) {
       throw error;
     }
@@ -291,7 +275,13 @@ export class StockInRepository {
       },
     });
 
-    return stockIn;
+    return stockIn == null
+      ? null
+      : {
+          ...stockIn,
+          residue: Number(stockIn.residue),
+          quantity: Number(stockIn.quantity),
+        };
   }
 
   async fetchManyUnfilled(productIDs: number[]) {

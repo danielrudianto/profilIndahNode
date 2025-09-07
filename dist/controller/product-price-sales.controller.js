@@ -38,38 +38,29 @@ class ProductSalesPriceController {
             }
         };
         this.update = async (req, res) => {
+            const data = req.body.data;
             const product_id = req.body.product_id;
-            const sales_price = req.body.sales_price;
-            const sales_discount = req.body.sales_discount;
-            const product_unit = req.body.product_unit;
             try {
                 const product = await this.productRepository.fetchByID(product_id);
                 if (!product || product.is_delete) {
-                    return res.status(404).send(error_list_1.default["Product not found"]);
+                    return res.status(404).send(error_list_1.default["Not found"]);
                 }
-                await this.productRepository.updateSalesPrice([
-                    {
+                const result = await this.productRepository.updateSalesPrice(data.map((x) => {
+                    return {
                         product_id: product_id,
-                        product_unit_id: null,
-                        price: sales_price,
-                        discount: sales_discount,
-                    },
-                    ...product_unit.map((x) => {
-                        return {
-                            product_id: x.product_id,
-                            product_unit_id: x.product_unit_id,
-                            price: x.sales_price,
-                            discount: x.sales_discount,
-                        };
-                    }),
-                ]);
+                        product_unit_id: x.product_unit_id,
+                        price: x.price,
+                        discount: x.discount,
+                    };
+                }));
                 await queue_helper_1.queue.add("product-updated", {
                     id: product_id,
                 });
-                return res.status(200).send(product);
+                return res.status(201).send(result);
             }
             catch (error) {
-                return res.status(500).send(error_list_1.default["Internal server error"]);
+                console.error(`[error]: Error on updating product purchase price ${error}`);
+                return res.status(500).send(error);
             }
         };
         this.productRepository = productRepository;

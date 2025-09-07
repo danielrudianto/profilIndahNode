@@ -553,36 +553,74 @@ class ProductStockController {
     const pageSize = req.body.pageSize;
 
     const userID = req.body.userId;
+    const role = req.body.role;
 
     try {
-      const result = await meili.index("product").search(keyword, {
-        filter: ["is_delete = false"],
-        offset: (page - 1) * pageSize,
-        limit: pageSize,
-      });
-
-      const productStocks =
-        await this.productStockRepository.fetchStockByProductID(
-          result.hits.map((x) => {
-            return x.id;
+      if (role === 6) {
+        const user_sales = req.body.user_sales as { product_type_id: number }[];
+        const typeFilter = user_sales
+          .map((x) => {
+            return `product_type_id = ${x.product_type_id}`;
           })
-        );
+          .join(" OR ");
+        const result = await meili.index("product").search(keyword, {
+          filter: ["is_delete = false", "is_active = true", typeFilter],
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+        });
 
-      return res.status(200).send({
-        data: result.hits.map((x) => {
-          const index = productStocks.findIndex(
-            (stock) => stock.product_id == x.id
+        const productStocks =
+          await this.productStockRepository.fetchStockByProductID(
+            result.hits.map((x) => {
+              return x.id;
+            })
           );
-          const product = ProductModel.fromMeilisearch(x);
-          return {
-            ...product,
-            product_stock: {
-              stock: index == -1 ? 0 : productStocks[index].stock,
-            },
-          };
-        }),
-        count: result.estimatedTotalHits,
-      });
+
+        return res.status(200).send({
+          data: result.hits.map((x) => {
+            const index = productStocks.findIndex(
+              (stock) => stock.product_id == x.id
+            );
+            const product = ProductModel.fromMeilisearch(x);
+            return {
+              ...product,
+              product_stock: {
+                stock: index == -1 ? 0 : productStocks[index].stock,
+              },
+            };
+          }),
+          count: result.estimatedTotalHits,
+        });
+      } else {
+        const result = await meili.index("product").search(keyword, {
+          filter: ["is_delete = false", "is_active = true"],
+          offset: (page - 1) * pageSize,
+          limit: pageSize,
+        });
+
+        const productStocks =
+          await this.productStockRepository.fetchStockByProductID(
+            result.hits.map((x) => {
+              return x.id;
+            })
+          );
+
+        return res.status(200).send({
+          data: result.hits.map((x) => {
+            const index = productStocks.findIndex(
+              (stock) => stock.product_id == x.id
+            );
+            const product = ProductModel.fromMeilisearch(x);
+            return {
+              ...product,
+              product_stock: {
+                stock: index == -1 ? 0 : productStocks[index].stock,
+              },
+            };
+          }),
+          count: result.estimatedTotalHits,
+        });
+      }
     } catch (error) {
       console.error(
         `[error]: Error on fetching product stock warehouse ${error}`

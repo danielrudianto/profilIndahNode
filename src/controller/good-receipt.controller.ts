@@ -318,21 +318,33 @@ class GoodReceiptController {
         return res.status(400).send(ErrorList["Good receipt already deleted"]);
       }
 
+      console.info(`[info]: Preparing deletation for good receipt ${id}`);
+
       const result = await this.goodReceiptRepository.delete(id, userID);
-      // delete the stock in
-      await this.stockCardRepository.deleteMany(
-        goodReceipt.good_receipt!.map((x) => {
-          return {
-            sales_invoice_code_id: null,
-            sales_invoice_id: null,
-            sales_return_code_id: null,
-            sales_return_id: null,
-            adjustment_case_code_id: null,
-            adjustment_case_id: null,
-            good_receipt_code_id: id,
-            good_receipt_id: x.id!,
-          };
-        })
+
+      console.info(
+        `[info]: Commencing deletation for stock card for good receipt ID ${id}`
+      );
+
+      goodReceipt.good_receipt?.forEach(async (x) => {
+        await queue.add("stock-card-deleted", {
+          sales_invoice_code_id: null,
+          sales_invoice_id: null,
+          sales_return_code_id: null,
+          sales_return_id: null,
+          adjustment_case_code_id: null,
+          adjustment_case_id: null,
+          good_receipt_code_id: id,
+          good_receipt_id: x.id!,
+        });
+      });
+
+      console.info(
+        `[info]: Completed deletation for stock card for good receipt ID ${id}`
+      );
+
+      console.info(
+        `[info]: Commencing deletation for stock in for good receipt ID ${id}`
       );
 
       await this.stockInRepository.deleteMany(
@@ -345,6 +357,21 @@ class GoodReceiptController {
             price: 0,
           };
         })
+      );
+
+      await this.productStockRepository.updateMany(
+        goodReceipt.good_receipt!.map((x) => {
+          return {
+            productID: x.product_id,
+            quantity:
+              x.quantity *
+              (x.product_unit == null ? 1 : x.product_unit.conversion),
+          };
+        })
+      );
+
+      console.info(
+        `[info]: Completed deletation for stock in for good receipt ID ${id}`
       );
 
       return res.status(201).send(result);

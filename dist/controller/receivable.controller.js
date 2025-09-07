@@ -10,6 +10,7 @@ class ReceivableController {
     constructor(receivableRepository, salesInvoiceRepository) {
         this.fetch = async (req, res) => {
             try {
+                console.log("start fetching");
                 const result = await this.receivableRepository.fetch();
                 return res.status(200).send(result);
             }
@@ -38,7 +39,6 @@ class ReceivableController {
         this.createPayment = async (req, res) => {
             try {
                 const { date, amount, payment_method_id, full_payment, sales_invoice_id, } = req.body;
-                console.log(date);
                 const salesInvoice = await this.salesInvoiceRepository.fetchByID(sales_invoice_id);
                 if (!salesInvoice || salesInvoice.isDelete) {
                     return res.status(404).send(error_list_1.default["Sales invoice not found"]);

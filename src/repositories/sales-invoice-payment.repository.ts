@@ -81,9 +81,6 @@ export class SalesInvoicePaymentRepository {
           sales_invoice_code: {
             is_delete: false,
           },
-          payment_method_id: {
-            not: 0,
-          },
         },
       });
 

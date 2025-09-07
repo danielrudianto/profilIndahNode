@@ -46,7 +46,6 @@ router.post(
 );
 
 router.get("/autocomplete", productController.fetchAutocomplete);
-
 router.get("/selector", productController.fetchSelector);
 router.get(
   "/:id",

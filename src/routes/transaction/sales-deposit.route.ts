@@ -92,12 +92,21 @@ router.post(
   "/reject",
   body("id").notEmpty().withMessage(ErrorList["ID is required"]),
   body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
-  body("payment_method")
-    .notEmpty()
-    .withMessage(ErrorList["Payment method required"]),
-  body("payment_method")
+  body("method")
     .isIn(["create", "delete"])
     .withMessage(ErrorList["Parameter error"]),
+  body("return_payment_date")
+    .if(body("method").equals("create"))
+    .notEmpty()
+    .withMessage(ErrorList["Date required"]),
+  body("return_payment_method")
+    .if(body("method").equals("create"))
+    .notEmpty()
+    .withMessage(ErrorList["Return payment method is required"]),
+  body("return_payment_name")
+    .if(body("method").equals("create"))
+    .notEmpty()
+    .withMessage(ErrorList["Return payment name is required"]),
   ErrorHelper.intercept,
   salesDepositController.reject
 );

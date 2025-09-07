@@ -68,11 +68,12 @@ import { StockOutRepository } from "./repositories/stock-out.repository";
 import { StockInRepository } from "./repositories/stock-in.repository";
 
 const allowedOrigins = [
-  "http://localhost:2100",
   "http://localhost:5173",
   "https://stock.profilindah.id",
   "https://v16.profilindah.id",
   "https://v19.profilindah.id",
+  "https://warehouse.profilindah.id",
+  "http://localhost:2100",
 ];
 
 const options: cors.CorsOptions = {

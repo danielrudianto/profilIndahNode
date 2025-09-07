@@ -75,6 +75,7 @@ class StockCardRepository {
                         date: {
                             lt: data.date,
                         },
+                        product_id: data.productID,
                     },
                     orderBy: [
                         {
@@ -88,6 +89,7 @@ class StockCardRepository {
                 const current = await this.prisma.stock_card.findMany({
                     where: {
                         date: data.date,
+                        product_id: data.productID,
                     },
                     orderBy: [
                         {
@@ -104,12 +106,13 @@ class StockCardRepository {
                     data: current.map((x) => {
                         return stock_card_model_1.StockCardModel.fromMap(x);
                     }),
-                    previous: previous == null ? 0 : previous.stock,
+                    previous: previous == null ? 0 : Number(previous.stock),
                 };
             }
             else if (data.viewBy === "created") {
                 const previous = await this.prisma.stock_card.findFirst({
                     where: {
+                        product_id: data.productID,
                         AND: [
                             {
                                 created_at: {
@@ -134,6 +137,7 @@ class StockCardRepository {
                 });
                 const current = await this.prisma.stock_card.findMany({
                     where: {
+                        product_id: data.productID,
                         AND: [
                             {
                                 created_at: {
@@ -162,7 +166,7 @@ class StockCardRepository {
                     data: current.map((x) => {
                         return stock_card_model_1.StockCardModel.fromMap(x);
                     }),
-                    previous: previous == null ? 0 : previous.stock,
+                    previous: previous == null ? 0 : Number(previous.stock),
                 };
             }
         }

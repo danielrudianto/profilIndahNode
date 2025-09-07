@@ -280,8 +280,6 @@ class AdjustmentCaseController {
 
       const type = this.checkType(adjustmentCase.adjustment_case);
 
-      console.log(type);
-
       if (type == 0) {
         // found
         await this.stockInRepository.deleteMany(

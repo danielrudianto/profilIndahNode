@@ -150,8 +150,8 @@ export class SalesDepositController {
     const offset = Number(process.env.LIMIT!);
     const isPending = req.body.isPending as boolean;
     const isDelete = req.body.isDelete as boolean;
-    const startDate = req.body.startDate;
-    const endDate = req.body.endDate;
+    const startDate = new Date(`${req.body.startDate}T00:00:00+08:00`);
+    const endDate = new Date(`${req.body.endDate}T23:59:59+08:00`);
 
     const sortBy = req.body.sortBy;
     const sortDirection = req.body.sortDirection;
@@ -167,8 +167,8 @@ export class SalesDepositController {
         isDelete: isDelete,
         sortBy: sortBy,
         sortDirection: sortDirection,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+        startDate: startDate,
+        endDate: endDate,
       });
       return res.status(200).send(result);
     } catch (error) {
@@ -182,9 +182,6 @@ export class SalesDepositController {
     const date = new Date(req.body.date);
     const userID = req.body.userId;
     const sales_invoice_payment = req.body.sales_invoice_payment as any[];
-    const service = req.body.service;
-    const delivery = req.body.delivery;
-    const discount = req.body.discount;
 
     try {
       const deposit = await this.salesDepositRepository.fetchByID(id);
@@ -329,13 +326,7 @@ export class SalesDepositController {
   reject = async (req: Request, res: Response) => {
     const id = Number(req.body.id);
     const userID = req.body.userId;
-    const date = new Date(req.body.date);
-
-    const return_payment_date = new Date(req.body.return_payment_date);
-    const return_payment_method = req.body.return_payment_method;
-    const return_payment_number = req.body.return_payment_number;
-    const return_payment_bank = req.body.return_payment_bank;
-    const return_payment_name = req.body.return_payment_name;
+    const method = req.body.method;
 
     try {
       const salesDeposit = await this.salesDepositRepository.fetchByID(id);
@@ -349,28 +340,37 @@ export class SalesDepositController {
 
       const result = await this.salesDepositRepository.delete(id, userID);
 
-      await this.overpaymentRepository.createMany(
-        salesDeposit.sales_deposit_payment!.map((x) => {
-          return {
-            date: x.date,
-            sales_deposit_code_id: id,
-            customer_id: salesDeposit.customerID!,
-            payment_method_id: x.payment_method_id,
-            return_payment_date: return_payment_date,
-            return_payment_bank: return_payment_bank,
-            return_payment_name: return_payment_name,
-            return_payment_method: return_payment_method,
-            return_payment_number: return_payment_number,
-            created_by: userID,
-            created_at: new Date(),
-            value: Number(x.value),
-          };
-        })
-      );
+      if (method == "create") {
+        const return_payment_date = translateDate(req.body.return_payment_date);
+        const return_payment_method = req.body.return_payment_method;
+        const return_payment_number = req.body.return_payment_number;
+        const return_payment_bank = req.body.return_payment_bank;
+        const return_payment_name = req.body.return_payment_name;
 
-      return res.status(200).send(result);
+        const deposit_payment = await this.overpaymentRepository.createMany(
+          salesDeposit.sales_deposit_payment!.map((x) => {
+            return {
+              date: x.date,
+              sales_deposit_code_id: id,
+              customer_id: salesDeposit.customerID!,
+              payment_method_id: x.payment_method_id,
+              return_payment_date: return_payment_date,
+              return_payment_bank: return_payment_bank,
+              return_payment_name: return_payment_name,
+              return_payment_method: return_payment_method ?? null,
+              return_payment_number: return_payment_number ?? null,
+              created_by: userID,
+              created_at: new Date(),
+              value: Number(x.value),
+            };
+          })
+        );
+      }
+
+      return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on deleting sales deposit ${error}`);
+      return res.status(500).send(error);
     }
   };
 }
