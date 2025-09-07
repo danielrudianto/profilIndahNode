@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.SalesDepositRepository = void 0;
+const client_1 = require("@prisma/client");
 const sales_deposit_model_1 = require("../model/sales-deposit.model");
 class SalesDepositRepository {
     constructor(prisma) {
@@ -433,6 +434,25 @@ class SalesDepositRepository {
             console.error(`[error]: Error on fetching deposit by ID ${error}`);
             throw new Error("Internal server error");
         }
+    }
+    async calculatePendingStock(product_id) {
+        const result = await this.prisma.$queryRaw `
+      SELECT SUM(sales_deposit.quantity * COALESCE(product_unit.conversion, 1)) AS quantity, 
+      sales_deposit.product_id
+      FROM sales_deposit
+      JOIN sales_deposit_code ON sales_deposit.sales_deposit_code_id = sales_deposit_code.id
+      JOIN product ON sales_deposit.product_id = product.id
+      LEFT JOIN product_unit ON product.id = product_unit.product_id
+      WHERE sales_deposit_code.is_delete = 0
+      AND sales_deposit.product_id IN (${client_1.Prisma.join(product_id)})
+      GROUP BY sales_deposit.product_id
+    `;
+        return result.map((x) => {
+            return {
+                quantity: Number(x.quantity),
+                product_id: Number(x.product_id),
+            };
+        });
     }
     async confirmByID(id, userID) {
         try {

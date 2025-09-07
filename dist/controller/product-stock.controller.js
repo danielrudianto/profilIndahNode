@@ -11,7 +11,7 @@ const mongo_stock_card_model_1 = require("../mongo-model/mongo-stock-card.model"
 const escape_helper_1 = require("../helper/escape.helper");
 const product_model_1 = require("../model/product.model");
 class ProductStockController {
-    constructor(productStockRepository, productPackageRepository, productRepository) {
+    constructor(productStockRepository, productPackageRepository, productRepository, salesDepositRepository) {
         this.fetchProblematic = async (req, res) => {
             const page = (0, escape_helper_1.translatePage)(req.body.page);
             const keyword = (0, escape_helper_1.translateKeyword)(req.body.keyword);
@@ -513,7 +513,6 @@ class ProductStockController {
             const keyword = req.body.keyword;
             const page = req.body.page;
             const pageSize = req.body.pageSize;
-            const userID = req.body.userId;
             const role = req.body.role;
             try {
                 if (role === 6) {
@@ -531,12 +530,20 @@ class ProductStockController {
                     const productStocks = await this.productStockRepository.fetchStockByProductID(result.hits.map((x) => {
                         return x.id;
                     }));
+                    const depositProductStock = await this.salesDepositRepository.calculatePendingStock(result.hits.map((x) => {
+                        return x.id;
+                    }));
                     return res.status(200).send({
                         data: result.hits.map((x) => {
                             const index = productStocks.findIndex((stock) => stock.product_id == x.id);
+                            const depositIndex = depositProductStock.findIndex((deposit) => deposit.product_id == x.id);
+                            const stock = index == -1 ? 0 : productStocks[index].stock;
+                            const deposit = depositIndex == -1
+                                ? 0
+                                : depositProductStock[depositIndex].quantity;
                             const product = product_model_1.ProductModel.fromMeilisearch(x);
                             return Object.assign(Object.assign({}, product), { product_stock: {
-                                    stock: index == -1 ? 0 : productStocks[index].stock,
+                                    stock: stock - deposit,
                                 } });
                         }),
                         count: result.estimatedTotalHits,
@@ -653,6 +660,7 @@ class ProductStockController {
         this.productStockRepository = productStockRepository;
         this.productPackageRepository = productPackageRepository;
         this.productRepository = productRepository;
+        this.salesDepositRepository = salesDepositRepository;
     }
 }
 _a = ProductStockController;

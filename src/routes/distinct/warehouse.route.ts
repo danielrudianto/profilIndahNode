@@ -8,13 +8,15 @@ import { prisma } from "../../helper/database.helper";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
 import { ProductRepository } from "../../repositories/product.repository";
 import { authMiddleware, authMiddlewareRole } from "../../helper/auth.helper";
+import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 
 const router = Router();
 
 const productStockController = new ProductStockController(
   new ProductStockRepository(prisma),
   new ProductPackageRepository(prisma),
-  new ProductRepository(prisma)
+  new ProductRepository(prisma),
+  new SalesDepositRepository(prisma)
 );
 
 router.post(

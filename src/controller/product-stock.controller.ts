@@ -8,20 +8,24 @@ import { ProductStockRepository } from "../repositories/product-stock.repository
 import { ProductRepository } from "../repositories/product.repository";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
 import { ProductModel } from "../model/product.model";
+import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
 
 class ProductStockController {
   productStockRepository: ProductStockRepository;
   productPackageRepository: ProductPackageRepository;
   productRepository: ProductRepository;
+  salesDepositRepository: SalesDepositRepository;
 
   constructor(
     productStockRepository: ProductStockRepository,
     productPackageRepository: ProductPackageRepository,
-    productRepository: ProductRepository
+    productRepository: ProductRepository,
+    salesDepositRepository: SalesDepositRepository
   ) {
     this.productStockRepository = productStockRepository;
     this.productPackageRepository = productPackageRepository;
     this.productRepository = productRepository;
+    this.salesDepositRepository = salesDepositRepository;
   }
 
   fetchProblematic = async (req: Request, res: Response) => {
@@ -551,8 +555,6 @@ class ProductStockController {
     const keyword = req.body.keyword;
     const page = req.body.page;
     const pageSize = req.body.pageSize;
-
-    const userID = req.body.userId;
     const role = req.body.role;
 
     try {
@@ -576,16 +578,34 @@ class ProductStockController {
             })
           );
 
+        const depositProductStock =
+          await this.salesDepositRepository.calculatePendingStock(
+            result.hits.map((x) => {
+              return x.id;
+            })
+          );
+
         return res.status(200).send({
           data: result.hits.map((x) => {
             const index = productStocks.findIndex(
               (stock) => stock.product_id == x.id
             );
+
+            const depositIndex = depositProductStock.findIndex(
+              (deposit) => deposit.product_id == x.id
+            );
+
+            const stock = index == -1 ? 0 : productStocks[index].stock;
+            const deposit =
+              depositIndex == -1
+                ? 0
+                : depositProductStock[depositIndex].quantity;
+
             const product = ProductModel.fromMeilisearch(x);
             return {
               ...product,
               product_stock: {
-                stock: index == -1 ? 0 : productStocks[index].stock,
+                stock: stock - deposit,
               },
             };
           }),

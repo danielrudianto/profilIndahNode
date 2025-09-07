@@ -9,13 +9,15 @@ import { ProductRepository } from "../../repositories/product.repository";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
 import { ProductStockCardController } from "../../controller/product-stock-card.controller";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 
 const router = Router();
 
 const productStockController = new ProductStockController(
   new ProductStockRepository(prisma),
   new ProductPackageRepository(prisma),
-  new ProductRepository(prisma)
+  new ProductRepository(prisma),
+  new SalesDepositRepository(prisma)
 );
 
 const stockCardController = new ProductStockCardController(
