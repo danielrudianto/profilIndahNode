@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { body } from "express-validator";
+import { body, query } from "express-validator";
 import ErrorList from "../../assets/error_list";
 import ReportController from "../../controller/report.controller";
 import {
@@ -131,26 +131,6 @@ router.get(
 );
 
 router.post(
-  "/sales-item",
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  body("group").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  ReportController.fetchOutputReport
-);
-
-router.post(
   "/daily-sales",
   body("day").notEmpty().withMessage(ErrorList["Day is required"]),
   body("day")
@@ -215,26 +195,6 @@ router.post(
   reportController.fetchProfitLoss
 );
 
-router.get(
-  "/profitloss/:month/:year/:report",
-  superadministratorMiddleware,
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
-  ReportController.fetchPLStats
-);
-
 router.post(
   "/sales",
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
@@ -253,6 +213,45 @@ router.post(
   ErrorHelper.intercept,
   reportController.fetchSalesReport
 );
+
+router.get(
+  "/sales/brand",
+  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  query("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  query("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  reportController.fetchBrandSalesReport
+);
+
+router.get(
+  "/sales/type",
+  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  query("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  query("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  reportController.fetchTypeSalesreport
+);
+
 router.post(
   "/sales/download",
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),

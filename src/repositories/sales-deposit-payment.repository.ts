@@ -20,9 +20,6 @@ export class SalesDepositPaymentRepository {
           sales_deposit_code: {
             is_delete: false,
           },
-          payment_method_id: {
-            not: 0,
-          },
         },
       });
 

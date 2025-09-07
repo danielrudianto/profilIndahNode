@@ -253,6 +253,36 @@ class SalesInvoiceRepository {
         const data = result[0];
         return data.name;
     }
+    async fetchBrandSales(data) {
+        try {
+            const result = await this.prisma.$queryRaw `
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+        product_brand.name, product.product_brand_id
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        JOIN product ON sales_invoice.product_id = product.id
+        JOIN product_brand ON product.product_brand_id = product_brand.id
+        WHERE MONTH(sales_invoice_code.date) = ${data.month + 1}
+        AND YEAR(sales_invoice_code.date) = ${data.year}
+        AND sales_invoice_code.is_delete = 0
+        GROUP BY product.product_brand_id
+      `;
+            return result
+                .map((x) => {
+                return {
+                    name: x.name,
+                    id: Number(x.product_brand_id),
+                    value: Number(x.value),
+                };
+            })
+                .sort((a, b) => {
+                return b.value - a.value;
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchBestType(month, year) {
         const result = await this.prisma.$queryRaw `
       SELECT product_type.id AS id,
@@ -274,6 +304,36 @@ class SalesInvoiceRepository {
         }
         const data = result[0];
         return data.name;
+    }
+    async fetchTypeSales(data) {
+        try {
+            const result = await this.prisma.$queryRaw `
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+        product_type.name, product.product_type_id
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        JOIN product ON sales_invoice.product_id = product.id
+        JOIN product_type ON product.product_type_id = product_type.id
+        WHERE MONTH(sales_invoice_code.date) = ${data.month + 1}
+        AND YEAR(sales_invoice_code.date) = ${data.year}
+        AND sales_invoice_code.is_delete = 0
+        GROUP BY product.product_type_id
+      `;
+            return result
+                .map((x) => {
+                return {
+                    name: x.name,
+                    id: Number(x.product_brand_id),
+                    value: Number(x.value),
+                };
+            })
+                .sort((a, b) => {
+                return b.value - a.value;
+            });
+        }
+        catch (error) {
+            throw error;
+        }
     }
     async fetchBestSales(month, year) {
         const result = await this.prisma.$queryRaw `
