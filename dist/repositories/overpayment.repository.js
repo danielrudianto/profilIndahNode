@@ -141,6 +141,28 @@ class OverpaymentRepository {
             throw error;
         }
     }
+    async fetchReportByReturnDate(date) {
+        try {
+            const result = await this.prisma.overpayment.groupBy({
+                by: ["payment_method_id"],
+                _sum: {
+                    value: true,
+                },
+                where: {
+                    return_payment_date: date,
+                },
+            });
+            return result.map((x) => {
+                return {
+                    payment_method_id: x.payment_method_id,
+                    value: Number(x._sum.value),
+                };
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchByID(id) {
         try {
             const result = await this.prisma.overpayment.findUnique({

@@ -30,6 +30,51 @@ class SalesDepositPaymentRepository {
             throw error;
         }
     }
+    async fetchDORPaymentsByDateRange(startDate, endDate) {
+        try {
+            const result = await this.prisma.sales_deposit_payment.findMany({
+                where: {
+                    sales_deposit_code: {
+                        is_delete: false,
+                    },
+                    payment_method_id: 0,
+                    AND: [
+                        {
+                            date: {
+                                gte: startDate,
+                            },
+                        },
+                        {
+                            date: {
+                                lte: endDate,
+                            },
+                        },
+                    ],
+                },
+                select: {
+                    value: true,
+                    sales_deposit_code: {
+                        select: {
+                            sales: true,
+                        },
+                    },
+                },
+            });
+            const salesNames = Array.from(new Set(result.map((x) => { var _a; return (_a = x.sales_deposit_code) === null || _a === void 0 ? void 0 : _a.sales; })));
+            const salesSummary = salesNames
+                .filter((x) => x != null)
+                .map((salesName) => ({
+                sales: salesName,
+                value: result
+                    .filter((x) => { var _a; return ((_a = x.sales_deposit_code) === null || _a === void 0 ? void 0 : _a.sales) === salesName; })
+                    .reduce((sum, x) => sum + Number(x.value), 0),
+            }));
+            return salesSummary;
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchDORPaymentsByDate(date) {
         try {
             const result = await this.prisma.sales_deposit_payment.findMany({

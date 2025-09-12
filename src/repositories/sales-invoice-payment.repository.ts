@@ -134,6 +134,56 @@ export class SalesInvoicePaymentRepository {
     }
   }
 
+  async fetchDORPaymentsByDateRange(startDate: Date, endDate: Date) {
+    try {
+      const result = await this.prisma.sales_invoice_payment.findMany({
+        where: {
+          sales_invoice_code: {
+            is_delete: false,
+          },
+          payment_method_id: 0,
+          AND: [
+            {
+              date: {
+                gte: startDate,
+              },
+            },
+            {
+              date: {
+                lte: endDate,
+              },
+            },
+          ],
+        },
+        select: {
+          value: true,
+          sales_invoice_code: {
+            select: {
+              sales: true,
+            },
+          },
+        },
+      });
+
+      const salesNames = Array.from(
+        new Set(result.map((x) => x.sales_invoice_code?.sales))
+      );
+
+      const salesSummary = salesNames
+        .filter((x) => x != null)
+        .map((salesName) => ({
+          sales: salesName,
+          value: result
+            .filter((x) => x.sales_invoice_code?.sales === salesName)
+            .reduce((sum, x) => sum + Number(x.value), 0),
+        }));
+
+      return salesSummary;
+    } catch (error) {
+      throw error;
+    }
+  }
+
   async delete(id: number, salesInvoiceCodeID: number) {
     try {
       const [result, _] = await this.prisma.$transaction([

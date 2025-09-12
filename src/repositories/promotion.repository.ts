@@ -183,25 +183,25 @@ export class PromotionRepository {
     let salesDateFilter = "";
     let purchaseDateFilter = "";
     if (endDate == null) {
-      salesDateFilter = `AND sales_invoice_code.date >= ${DateHelper.convertDate(
+      salesDateFilter = `AND sales_invoice_code.date >= "${DateHelper.convertDate(
         startDate,
         formatDate.YYYYMMDD
-      )}`;
+      )}"`;
 
-      purchaseDateFilter = `AND good_receipt_code.date >= ${DateHelper.convertDate(
+      purchaseDateFilter = `AND good_receipt_code.date >= "${DateHelper.convertDate(
         startDate,
         formatDate.YYYYMMDD
-      )}`;
+      )}"`;
     } else {
-      salesDateFilter = `AND sales_invoice_code.date BETWEEN ${DateHelper.convertDate(
+      salesDateFilter = `AND sales_invoice_code.date BETWEEN "${DateHelper.convertDate(
         startDate,
         formatDate.YYYYMMDD
-      )} AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)}`;
+      )}" AND "${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)}"`;
 
-      purchaseDateFilter = `AND good_receipt_code.date BETWEEN ${DateHelper.convertDate(
+      purchaseDateFilter = `AND good_receipt_code.date BETWEEN "${DateHelper.convertDate(
         startDate,
         formatDate.YYYYMMDD
-      )} AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)}`;
+      )}" AND "${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)}"`;
     }
 
     const [sales, purchase] = await this.prisma.$transaction([

@@ -6,21 +6,41 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const error_list_1 = __importDefault(require("../assets/error_list"));
 const mongo_product_model_1 = require("../mongo-model/mongo-product.model");
 class ReportController {
-    constructor(salesInvoiceRepository, promotionRepository, goodReceiptRepository, adjustmentCaseRepository, customerRepository, salesReturnRepository, salesInvoicePaymentRepository, salesDepositPaymentRepository, paymentMethodRepository, stockInRepository, stockOutRepository, productRepository, productStockRepository, companyRepository, expenseRepository, expenseTypeRepository, overpaymentRepository, stockCardRepository) {
-        this.fetchAdministratorDashboard = (req, res) => {
-            return res.status(200).send({
-                sales: {
-                    current: 0,
-                    previous: 0,
-                },
-                purchase: {
-                    current: 0,
-                    previous: 0,
-                },
-                deposit: 0,
-                promotion: 0,
-                receivable: 0,
-            });
+    constructor(salesInvoiceRepository, salesDepositRepository, promotionRepository, goodReceiptRepository, adjustmentCaseRepository, customerRepository, salesReturnRepository, salesInvoicePaymentRepository, salesDepositPaymentRepository, paymentMethodRepository, stockInRepository, stockOutRepository, productRepository, productStockRepository, companyRepository, expenseRepository, expenseTypeRepository, overpaymentRepository, stockCardRepository) {
+        this.fetchAdministratorDashboard = async (req, res) => {
+            try {
+                const date = new Date();
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const [currentSales, previousSales, currentPurchase, previousPurchase, activePromotion, deposit,] = await Promise.all([
+                    this.salesInvoiceRepository.fetchByDateRange(date, date),
+                    this.salesInvoiceRepository.fetchByDateRange(yesterday, yesterday),
+                    this.goodReceiptRepository.fetchByDateRange(date, date),
+                    this.goodReceiptRepository.fetchByDateRange(yesterday, yesterday),
+                    this.promotionRepository.countActive(),
+                    this.salesDepositRepository.countPending(),
+                ]);
+                return res.status(200).send({
+                    sales: {
+                        current: currentSales.value,
+                        previous: previousSales.value,
+                    },
+                    purchase: {
+                        current: currentPurchase.reduce((a, b) => {
+                            return a + b.value - b.discount;
+                        }, 0),
+                        previous: previousPurchase.reduce((a, b) => {
+                            return a + b.value - b.discount;
+                        }, 0),
+                    },
+                    deposit: deposit,
+                    promotion: activePromotion,
+                });
+            }
+            catch (error) {
+                console.error(`[error]: Error on fetching sales dashboard ${error}`);
+                return res.status(500).send(error);
+            }
         };
         this.fetchSalesDashboard = async (req, res) => {
             try {
@@ -206,10 +226,12 @@ class ReportController {
                 const salesDepositDORPayments = await this.salesDepositPaymentRepository.fetchDORPaymentsByDate(date);
                 const salesReturnPayments = await this.salesReturnRepository.fetchPaymentsByDate(date);
                 const overpayment = await this.overpaymentRepository.fetchReportByReceiveDate(date);
+                const overpaymentReturn = await this.overpaymentRepository.fetchReportByReturnDate(date);
                 const salesInvoicePaymentIndex = salesInvoicePayments.findIndex((x) => x.payment_method_id == null);
                 const salesDepositPaymentIndex = salesDepositPayments.findIndex((x) => x.payment_method_id == null);
                 const salesReturnPaymentIndex = salesReturnPayments.findIndex((x) => x.payment_method_id == null);
                 const overpaymentIndex = overpayment.findIndex((x) => x.payment_method_id == null);
+                const overpaymentReturnIndex = overpaymentReturn.findIndex((x) => x.payment_method_id == null);
                 const dorData = [];
                 for (let i = 0; i < salesDepositDORPayments.length; i++) {
                     const check = checkExistingSales(salesDepositDORPayments[i].sales);
@@ -254,7 +276,10 @@ class ReportController {
                         salesReturn: salesReturnPaymentIndex == -1
                             ? 0
                             : salesReturnPayments[salesReturnPaymentIndex].value,
-                        overpayment: overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value,
+                        overpayment: (overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value) -
+                            (overpaymentReturnIndex == -1
+                                ? 0
+                                : overpaymentReturn[overpaymentReturnIndex].value),
                     },
                     {
                         id: 0,
@@ -266,6 +291,7 @@ class ReportController {
                         const salesDepositIndex = salesDepositPayments.findIndex((y) => y.payment_method_id == x.id);
                         const salesReturnIndex = salesReturnPayments.findIndex((y) => y.payment_method_id == x.id);
                         const overpaymentIndex = overpayment.findIndex((y) => y.payment_method_id == x.id);
+                        const overpaymentReturnIndex = overpaymentReturn.findIndex((y) => y.payment_method_id == x.id);
                         return {
                             id: x.id,
                             name: x.name,
@@ -278,7 +304,12 @@ class ReportController {
                             salesReturn: salesReturnIndex == -1
                                 ? 0
                                 : salesReturnPayments[salesReturnIndex].value,
-                            overpayment: overpaymentIndex == -1 ? 0 : overpayment[overpaymentIndex].value,
+                            overpayment: (overpaymentIndex == -1
+                                ? 0
+                                : overpayment[overpaymentIndex].value) -
+                                (overpaymentReturnIndex == -1
+                                    ? 0
+                                    : overpaymentReturn[overpaymentReturnIndex].value),
                         };
                     }),
                 ]);
@@ -287,6 +318,48 @@ class ReportController {
                 console.error(`[error]: Error on fetching money receipt ${error}`);
                 return res.status(500).send(error);
             }
+        };
+        this.fetchDorMoneyReceipt = async (req, res) => {
+            const startDate = new Date(req.body.startDate);
+            const endDate = new Date(req.body.endDate);
+            const salesInvoiceDORPayments = await this.salesInvoicePaymentRepository.fetchDORPaymentsByDateRange(startDate, endDate);
+            const salesDepositDORPayments = await this.salesDepositPaymentRepository.fetchDORPaymentsByDateRange(startDate, endDate);
+            const dorData = [];
+            for (let i = 0; i < salesDepositDORPayments.length; i++) {
+                const check = checkExistingSales(salesDepositDORPayments[i].sales);
+                if (check == -1) {
+                    dorData.push({
+                        sales: salesDepositDORPayments[i].sales,
+                        salesInvoice: 0,
+                        salesDeposit: salesDepositDORPayments[i].value,
+                    });
+                }
+                else {
+                    dorData[check].salesDeposit += salesDepositDORPayments[i].value;
+                }
+            }
+            for (let i = 0; i < salesInvoiceDORPayments.length; i++) {
+                const check = checkExistingSales(salesInvoiceDORPayments[i].sales);
+                if (check == -1) {
+                    dorData.push({
+                        sales: salesInvoiceDORPayments[i].sales,
+                        salesInvoice: salesInvoiceDORPayments[i].value,
+                        salesDeposit: 0,
+                    });
+                }
+                else {
+                    dorData[check].salesInvoice += salesInvoiceDORPayments[i].value;
+                }
+            }
+            function checkExistingSales(sales) {
+                const index = dorData.findIndex((x) => x.sales == sales);
+                return index;
+            }
+            return res.status(200).send({
+                id: 0,
+                name: "DOR",
+                data: dorData,
+            });
         };
         this.fetchInventoryReport = async (req, res) => {
             try {
@@ -402,6 +475,7 @@ class ReportController {
             }
         };
         this.salesInvoiceRepository = salesInvoiceRepository;
+        this.salesDepositRepository = salesDepositRepository;
         this.promotionRepository = promotionRepository;
         this.goodReceiptRepository = goodReceiptRepository;
         this.adjustmentCaseRepository = adjustmentCaseRepository;

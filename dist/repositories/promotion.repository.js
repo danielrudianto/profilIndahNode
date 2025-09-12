@@ -175,12 +175,12 @@ class PromotionRepository {
         let salesDateFilter = "";
         let purchaseDateFilter = "";
         if (endDate == null) {
-            salesDateFilter = `AND sales_invoice_code.date >= ${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)}`;
-            purchaseDateFilter = `AND good_receipt_code.date >= ${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)}`;
+            salesDateFilter = `AND sales_invoice_code.date >= "${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)}"`;
+            purchaseDateFilter = `AND good_receipt_code.date >= "${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)}"`;
         }
         else {
-            salesDateFilter = `AND sales_invoice_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)} AND ${date_helper_1.DateHelper.convertDate(endDate, date_helper_1.formatDate.YYYYMMDD)}`;
-            purchaseDateFilter = `AND good_receipt_code.date BETWEEN ${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)} AND ${date_helper_1.DateHelper.convertDate(endDate, date_helper_1.formatDate.YYYYMMDD)}`;
+            salesDateFilter = `AND sales_invoice_code.date BETWEEN "${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)}" AND "${date_helper_1.DateHelper.convertDate(endDate, date_helper_1.formatDate.YYYYMMDD)}"`;
+            purchaseDateFilter = `AND good_receipt_code.date BETWEEN "${date_helper_1.DateHelper.convertDate(startDate, date_helper_1.formatDate.YYYYMMDD)}" AND "${date_helper_1.DateHelper.convertDate(endDate, date_helper_1.formatDate.YYYYMMDD)}"`;
         }
         const [sales, purchase] = await this.prisma.$transaction([
             this.prisma.$queryRawUnsafe(`

@@ -454,6 +454,14 @@ class SalesDepositRepository {
             };
         });
     }
+    async countPending() {
+        const result = await this.prisma.sales_deposit.count({
+            where: {
+                is_delete: false,
+            },
+        });
+        return result;
+    }
     async confirmByID(id, userID) {
         try {
             const result = await this.prisma.sales_deposit_code.update({

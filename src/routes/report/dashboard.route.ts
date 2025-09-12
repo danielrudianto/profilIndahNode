@@ -20,9 +20,11 @@ import { ProductStockRepository } from "../../repositories/product-stock.reposit
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 
 const reportController = new ReportController(
   new SalesInvoiceRepository(prisma),
+  new SalesDepositRepository(prisma),
   new PromotionRepository(prisma),
   new GoodReceiptRepository(prisma),
   new AdjustmentCaseRepository(prisma),

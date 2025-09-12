@@ -26,11 +26,13 @@ import { ProductStockRepository } from "../../repositories/product-stock.reposit
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
+import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 
 const router = Router();
 
 const reportController = new ReportController(
   new SalesInvoiceRepository(prisma),
+  new SalesDepositRepository(prisma),
   new PromotionRepository(prisma),
   new GoodReceiptRepository(prisma),
   new AdjustmentCaseRepository(prisma),
@@ -83,6 +85,14 @@ router.post(
   body("date").exists().withMessage(ErrorList["Date required"]),
   ErrorHelper.intercept,
   reportController.fetchMoneyReceipt
+);
+
+router.post(
+  "/money-receipt/dor",
+  body("startDate").exists().withMessage(ErrorList["Date required"]),
+  body("endDate").exists().withMessage(ErrorList["Date required"]),
+  ErrorHelper.intercept,
+  reportController.fetchDorMoneyReceipt
 );
 
 router.post(
