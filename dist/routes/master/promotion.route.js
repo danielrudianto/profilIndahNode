@@ -30,6 +30,8 @@ router.post("/", (0, express_validator_1.body)("name").notEmpty().withMessage(er
     .withMessage(error_list_1.default["Promotion brand is required"]), (0, express_validator_1.body)("promotion_brand")
     .isArray()
     .withMessage(error_list_1.default["Promotion brand must be an array"]), error_helper_1.default.intercept, promotionController.create);
+router.get("/result/sales/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, promotionController.downloadSalesResultByID);
+router.get("/result/purchase/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, promotionController.downloadPurchaseResultByID);
 router.get("/result/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, promotionController.fetchResult);
 router.get("/:id", (0, express_validator_1.param)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.param)("id").isNumeric().withMessage(error_list_1.default["ID must be numeric"]), error_helper_1.default.intercept, promotionController.fetchByID);
 router.get("/", promotionController.fetch);
@@ -38,7 +40,6 @@ router.get("/result/:id", (0, express_validator_1.param)("id").notEmpty().withMe
     min: 0,
 })
     .withMessage(error_list_1.default["ID must be integer"]), error_helper_1.default.intercept, promotionController.fetchResult);
-// router.post("/download", PromotionController.downloadResultByID);
 router.put("/", (0, express_validator_1.body)("id").notEmpty().withMessage(error_list_1.default["ID is required"]), (0, express_validator_1.body)("id")
     .isInt({
     min: 0,

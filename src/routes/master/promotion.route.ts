@@ -47,6 +47,22 @@ router.post(
 );
 
 router.get(
+  "/result/sales/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  promotionController.downloadSalesResultByID
+);
+
+router.get(
+  "/result/purchase/:id",
+  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
+  ErrorHelper.intercept,
+  promotionController.downloadPurchaseResultByID
+);
+
+router.get(
   "/result/:id",
   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
   param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
@@ -74,8 +90,6 @@ router.get(
   ErrorHelper.intercept,
   promotionController.fetchResult
 );
-
-// router.post("/download", PromotionController.downloadResultByID);
 
 router.put(
   "/",

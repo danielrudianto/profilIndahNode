@@ -235,6 +235,175 @@ export class PromotionRepository {
     };
   }
 
+  async fetchSalesResult(
+    productID: number[],
+    startDate: Date,
+    endDate: Date | null
+  ) {
+    const result = await this.prisma.sales_invoice.findMany({
+      where: {
+        product_id: {
+          in: productID,
+        },
+        AND: [
+          {
+            sales_invoice_code: {
+              date: {
+                gte: startDate,
+              },
+            },
+          },
+          {
+            sales_invoice_code: {
+              date: {
+                lte: endDate == null ? new Date() : endDate,
+              },
+            },
+          },
+          {
+            sales_invoice_code: {
+              is_delete: false,
+            },
+          },
+        ],
+      },
+      include: {
+        sales_invoice_code: {
+          select: {
+            name: true,
+            date: true,
+            customer: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        product_unit: {
+          select: {
+            conversion: true,
+          },
+        },
+        product: {
+          select: {
+            reference: true,
+            unit: true,
+          },
+        },
+      },
+      orderBy: {
+        sales_invoice_code: {
+          date: "asc",
+        },
+      },
+    });
+
+    return result.map((x) => {
+      return {
+        id: x.id,
+        date: x.sales_invoice_code.date,
+        name: x.sales_invoice_code.name,
+        customer:
+          x.sales_invoice_code.customer == null
+            ? "Retail"
+            : x.sales_invoice_code.customer.name,
+        reference: x.product!.reference,
+        quantity:
+          Number(x.quantity) *
+          (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
+        price: x.price,
+        discount: x.discount,
+        unit: x.product!.unit,
+      };
+    });
+  }
+
+  async fetchPurchaseReport(
+    productID: number[],
+    supplierID: number,
+    startDate: Date,
+    endDate: Date | null
+  ) {
+    const result = await this.prisma.good_receipt.findMany({
+      where: {
+        product_id: {
+          in: productID,
+        },
+        AND: [
+          {
+            good_receipt_code: {
+              date: {
+                gte: startDate,
+              },
+            },
+          },
+          {
+            good_receipt_code: {
+              date: {
+                lte: endDate == null ? new Date() : endDate,
+              },
+            },
+          },
+          {
+            good_receipt_code: {
+              is_delete: false,
+            },
+          },
+          {
+            good_receipt_code: {
+              supplier_id: supplierID,
+            },
+          },
+        ],
+      },
+      include: {
+        good_receipt_code: {
+          select: {
+            name: true,
+            date: true,
+            supplier: {
+              select: {
+                name: true,
+              },
+            },
+          },
+        },
+        product_unit: {
+          select: {
+            conversion: true,
+          },
+        },
+        product: {
+          select: {
+            reference: true,
+            unit: true,
+          },
+        },
+      },
+      orderBy: {
+        good_receipt_code: {
+          date: "asc",
+        },
+      },
+    });
+
+    return result.map((x) => {
+      return {
+        id: x.id,
+        date: x.good_receipt_code.date,
+        name: x.good_receipt_code.name,
+        supplier: x.good_receipt_code.supplier.name,
+        reference: x.product!.reference,
+        quantity:
+          Number(x.quantity) *
+          (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
+        price: x.price,
+        discount: x.discount,
+        unit: x.product!.unit,
+      };
+    });
+  }
+
   async countActive(): Promise<number> {
     try {
       const result = await this.prisma.promotion_code.count({
