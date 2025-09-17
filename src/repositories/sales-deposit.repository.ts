@@ -31,6 +31,9 @@ export class SalesDepositRepository {
           type: data.type,
           sales: data.sales,
           customer_id: data.customerID,
+          discount: data.discount,
+          delivery: data.delivery,
+          service: data.service,
           sales_deposit: {
             createMany: {
               data: data.sales_deposit.map((x) => {
