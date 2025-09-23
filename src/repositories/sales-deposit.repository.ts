@@ -131,8 +131,56 @@ export class SalesDepositRepository {
     data: IFetchCommon
   ): Promise<IFetchCommonResult<SalesDepositModel>> {
     try {
-      const result = await this.prisma.sales_deposit_code.findMany({
-        where: {
+      const keyword = data.keyword;
+      const pattern = /^[retail]{1,6}$/i;
+
+      let where = {};
+
+      if (pattern.test(keyword) || keyword == "") {
+        where = {
+          is_delete: false,
+          OR: [
+            {
+              name: {
+                contains: data.keyword,
+              },
+            },
+            {
+              customer: {
+                name: {
+                  contains: data.keyword,
+                },
+              },
+            },
+            {
+              customer: null,
+            },
+            {
+              sales_deposit: {
+                some: {
+                  product: {
+                    reference: {
+                      contains: data.keyword,
+                    },
+                  },
+                },
+              },
+            },
+            {
+              sales_deposit: {
+                some: {
+                  product: {
+                    description: {
+                      contains: data.keyword,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        };
+      } else {
+        where = {
           is_delete: false,
           OR: [
             {
@@ -170,7 +218,11 @@ export class SalesDepositRepository {
               },
             },
           ],
-        },
+        };
+      }
+
+      const result = await this.prisma.sales_deposit_code.findMany({
+        where: where,
         include: {
           customer: true,
           sales_deposit: {
@@ -188,45 +240,7 @@ export class SalesDepositRepository {
       });
 
       const totalCount = await this.prisma.sales_deposit_code.count({
-        where: {
-          is_delete: false,
-          OR: [
-            {
-              name: {
-                contains: data.keyword,
-              },
-            },
-            {
-              customer: {
-                name: {
-                  contains: data.keyword,
-                },
-              },
-            },
-            {
-              sales_deposit: {
-                some: {
-                  product: {
-                    reference: {
-                      contains: data.keyword,
-                    },
-                  },
-                },
-              },
-            },
-            {
-              sales_deposit: {
-                some: {
-                  product: {
-                    description: {
-                      contains: data.keyword,
-                    },
-                  },
-                },
-              },
-            },
-          ],
-        },
+        where: where,
       });
 
       return {
