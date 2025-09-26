@@ -22,6 +22,9 @@ class SalesDepositRepository {
                     type: data.type,
                     sales: data.sales,
                     customer_id: data.customerID,
+                    discount: data.discount,
+                    delivery: data.delivery,
+                    service: data.service,
                     sales_deposit: {
                         createMany: {
                             data: data.sales_deposit.map((x) => {
@@ -101,12 +104,72 @@ class SalesDepositRepository {
     }
     async fetch(data) {
         try {
-            const result = await this.prisma.sales_deposit_code.findMany({
-                where: {
+            const keyword = data.keyword;
+            const pattern = /^[retail]{1,6}$/i;
+            let where = {};
+            if (pattern.test(keyword) || keyword == "") {
+                where = {
                     is_delete: false,
                     OR: [
                         {
                             name: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
+                            customer: null,
+                        },
+                        {
+                            sales: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
+                            customer: {
+                                name: {
+                                    contains: data.keyword,
+                                },
+                            },
+                        },
+                        {
+                            customer: null,
+                        },
+                        {
+                            sales_deposit: {
+                                some: {
+                                    product: {
+                                        reference: {
+                                            contains: data.keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                        {
+                            sales_deposit: {
+                                some: {
+                                    product: {
+                                        description: {
+                                            contains: data.keyword,
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                };
+            }
+            else {
+                where = {
+                    is_delete: false,
+                    OR: [
+                        {
+                            name: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
+                            sales: {
                                 contains: data.keyword,
                             },
                         },
@@ -140,7 +203,10 @@ class SalesDepositRepository {
                             },
                         },
                     ],
-                },
+                };
+            }
+            const result = await this.prisma.sales_deposit_code.findMany({
+                where: where,
                 include: {
                     customer: true,
                     sales_deposit: {
@@ -157,45 +223,7 @@ class SalesDepositRepository {
                 },
             });
             const totalCount = await this.prisma.sales_deposit_code.count({
-                where: {
-                    is_delete: false,
-                    OR: [
-                        {
-                            name: {
-                                contains: data.keyword,
-                            },
-                        },
-                        {
-                            customer: {
-                                name: {
-                                    contains: data.keyword,
-                                },
-                            },
-                        },
-                        {
-                            sales_deposit: {
-                                some: {
-                                    product: {
-                                        reference: {
-                                            contains: data.keyword,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                        {
-                            sales_deposit: {
-                                some: {
-                                    product: {
-                                        description: {
-                                            contains: data.keyword,
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    ],
-                },
+                where: where,
             });
             return {
                 data: result.map((x) => sales_deposit_model_1.SalesDepositModel.fromMap(x)),
