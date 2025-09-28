@@ -88,6 +88,13 @@ router.post(
 );
 
 router.post(
+  "/money-receipt/download",
+  body("date").exists().withMessage(ErrorList["Date required"]),
+  ErrorHelper.intercept,
+  reportController.downloadMoneyReceipt
+);
+
+router.post(
   "/money-receipt/dor",
   body("startDate").exists().withMessage(ErrorList["Date required"]),
   body("endDate").exists().withMessage(ErrorList["Date required"]),

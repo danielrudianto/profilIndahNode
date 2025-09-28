@@ -42,6 +42,7 @@ router.post("/purchase", (0, express_validator_1.body)("month").notEmpty().withM
     .isInt({ min: 2000 })
     .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.fetchPurchaseReport);
 router.post("/money-receipt", (0, express_validator_1.body)("date").exists().withMessage(error_list_1.default["Date required"]), error_helper_1.default.intercept, reportController.fetchMoneyReceipt);
+router.post("/money-receipt/download", (0, express_validator_1.body)("date").exists().withMessage(error_list_1.default["Date required"]), error_helper_1.default.intercept, reportController.downloadMoneyReceipt);
 router.post("/money-receipt/dor", (0, express_validator_1.body)("startDate").exists().withMessage(error_list_1.default["Date required"]), (0, express_validator_1.body)("endDate").exists().withMessage(error_list_1.default["Date required"]), error_helper_1.default.intercept, reportController.fetchDorMoneyReceipt);
 router.post("/output", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({ min: 1, max: 12 })
