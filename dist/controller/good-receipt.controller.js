@@ -278,6 +278,7 @@ class GoodReceiptController {
                     return {
                         productID: x.product_id,
                         quantity: x.quantity *
+                            -1 *
                             (x.product_unit == null ? 1 : x.product_unit.conversion),
                     };
                 }));
