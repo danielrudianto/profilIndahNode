@@ -269,6 +269,25 @@ router.get(
   reportController.fetchTypeSalesreport
 );
 
+router.get(
+  "/sales/sales",
+  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  query("month")
+    .isInt({
+      min: 0,
+      max: 12,
+    })
+    .withMessage(ErrorList["Month must be numeric"]),
+  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  query("year")
+    .isInt({
+      min: 2000,
+    })
+    .withMessage(ErrorList["Year must be numeric"]),
+  ErrorHelper.intercept,
+  reportController.fetchSalesSalesReport
+);
+
 router.post(
   "/sales/download",
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),

@@ -128,6 +128,16 @@ router.get("/sales/type", (0, express_validator_1.query)("month").notEmpty().wit
     min: 2000,
 })
     .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.fetchTypeSalesreport);
+router.get("/sales/sales", (0, express_validator_1.query)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.query)("month")
+    .isInt({
+    min: 0,
+    max: 12,
+})
+    .withMessage(error_list_1.default["Month must be numeric"]), (0, express_validator_1.query)("year").notEmpty().withMessage(error_list_1.default["Year is required"]), (0, express_validator_1.query)("year")
+    .isInt({
+    min: 2000,
+})
+    .withMessage(error_list_1.default["Year must be numeric"]), error_helper_1.default.intercept, reportController.fetchSalesSalesReport);
 router.post("/sales/download", (0, express_validator_1.body)("month").notEmpty().withMessage(error_list_1.default["Month is required"]), (0, express_validator_1.body)("month")
     .isInt({
     min: 0,

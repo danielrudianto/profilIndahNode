@@ -352,6 +352,24 @@ class ReportController {
     }
   };
 
+  fetchSalesSalesReport = async (req: Request, res: Response) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    try {
+      const result = await this.salesInvoiceRepository.fetchSalesSales({
+        month: month,
+        year: year,
+      });
+
+      return res.status(200).send({
+        data: result,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching type report ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   downloadSalesReport = async (req: Request, res: Response) => {
     const month = Number(req.body.month);
     const year = Number(req.body.year);

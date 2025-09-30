@@ -335,6 +335,33 @@ class SalesInvoiceRepository {
             throw error;
         }
     }
+    async fetchSalesSales(data) {
+        try {
+            const result = await this.prisma.$queryRaw `
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+        sales_invoice_code.sales
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        WHERE MONTH(sales_invoice_code.date) = ${data.month + 1}
+        AND YEAR(sales_invoice_code.date) = ${data.year}
+        AND sales_invoice_code.is_delete = 0
+        GROUP BY sales_invoice_code.sales
+      `;
+            return result
+                .map((x) => {
+                return {
+                    sales: x.sales,
+                    value: Number(x.value),
+                };
+            })
+                .sort((a, b) => {
+                return b.value - a.value;
+            });
+        }
+        catch (error) {
+            throw error;
+        }
+    }
     async fetchBestSales(month, year) {
         const result = await this.prisma.$queryRaw `
       SELECT sales_invoice_code.sales,
