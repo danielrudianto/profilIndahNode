@@ -79,7 +79,7 @@ class PromotionController {
             const name = req.body.name;
             const description = req.body.description;
             const startDate = (0, moment_1.default)(req.body.start_date, "DD-MM-YYYY").toDate();
-            const endDate = req.body.endDate == null
+            const endDate = req.body.end_date == null
                 ? null
                 : (0, moment_1.default)(req.body.end_date, "DD-MM-YYYY").toDate();
             const target = req.body.target;
