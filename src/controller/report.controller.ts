@@ -580,6 +580,23 @@ class ReportController {
     }
   };
 
+  downloadMoneyReceipt = async (req: Request, res: Response) => {
+    try {
+      const date = new Date(req.body.date);
+      const payments = await this.salesInvoicePaymentRepository.downloadReport(
+        date
+      );
+      return res.status(200).send({
+        data: payments,
+      });
+    } catch (error) {
+      console.error(
+        `[error]: Error on downloading money receipt data ${error}`
+      );
+      return res.status(500).send(error);
+    }
+  };
+
   fetchDorMoneyReceipt = async (req: Request, res: Response) => {
     const startDate = new Date(req.body.startDate);
     const endDate = new Date(req.body.endDate);
@@ -637,7 +654,7 @@ class ReportController {
       id: 0,
       name: "DOR",
       data: dorData,
-    }); 
+    });
   };
 
   fetchInventoryReport = async (req: Request, res: Response) => {

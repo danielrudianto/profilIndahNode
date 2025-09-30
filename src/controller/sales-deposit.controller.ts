@@ -101,7 +101,7 @@ export class SalesDepositController {
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
-    const pageSize = Number(process.env.LIMIT!);
+    const pageSize = Number(req.query.pageSize);
 
     try {
       const result = await this.salesDepositRepository.fetch({

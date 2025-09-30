@@ -319,6 +319,19 @@ class ReportController {
                 return res.status(500).send(error);
             }
         };
+        this.downloadMoneyReceipt = async (req, res) => {
+            try {
+                const date = new Date(req.body.date);
+                const payments = await this.salesInvoicePaymentRepository.downloadReport(date);
+                return res.status(200).send({
+                    data: payments,
+                });
+            }
+            catch (error) {
+                console.error(`[error]: Error on downloading money receipt data ${error}`);
+                return res.status(500).send(error);
+            }
+        };
         this.fetchDorMoneyReceipt = async (req, res) => {
             const startDate = new Date(req.body.startDate);
             const endDate = new Date(req.body.endDate);

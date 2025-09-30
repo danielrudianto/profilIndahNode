@@ -184,6 +184,49 @@ export class SalesInvoicePaymentRepository {
     }
   }
 
+  async downloadReport(date: Date) {
+    try {
+      const result = await this.prisma.$queryRawUnsafe<any[]>(`
+      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer, a.value AS value, 
+      SUM(sales_invoice_payment.value) AS payment, COALESCE(payment_method.name, "Cash") AS paymentMethod
+      FROM sales_invoice_payment
+      JOIN sales_invoice_code ON sales_invoice_payment.sales_invoice_code_id = sales_invoice_code.id
+      JOIN (
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, sales_invoice.sales_invoice_code_id
+          FROM sales_invoice
+          GROUP BY sales_invoice_code_id
+      ) AS a
+      ON sales_invoice_code.id = a.sales_invoice_code_id
+      LEFT JOIN customer ON sales_invoice_code.customer_id = customer.id
+      LEFT JOIN payment_method ON sales_invoice_payment.payment_method_id = payment_method.id
+      WHERE sales_invoice_code.date = '${date.getFullYear()}-${(
+        date.getMonth() + 1
+      )
+        .toString()
+        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+      AND sales_invoice_code.is_delete = 0
+      GROUP BY sales_invoice_payment.payment_method_id, 
+      sales_invoice_payment.sales_invoice_code_id
+    `);
+
+      return result.map((x) => {
+        return {
+          date: new Date(x.date),
+          invoiceName: x.invoiceName,
+          customer: x.customer,
+          value: Number(x.value),
+          payment: Number(x.payment),
+          paymentMethod: x.paymentMethod,
+        };
+      });
+    } catch (error) {
+      console.error(
+        `[error]: Error on fetching sales invoice payment ${error}`
+      );
+      throw error;
+    }
+  }
+
   async delete(id: number, salesInvoiceCodeID: number) {
     try {
       const [result, _] = await this.prisma.$transaction([

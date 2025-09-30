@@ -65,7 +65,7 @@ class SalesDepositController {
         this.fetch = async (req, res) => {
             const page = (0, escape_helper_1.translatePage)(req.query.page);
             const keyword = (0, escape_helper_1.translateKeyword)(req.query.keyword);
-            const pageSize = Number(process.env.LIMIT);
+            const pageSize = Number(req.query.pageSize);
             try {
                 const result = await this.salesDepositRepository.fetch({
                     page: page,

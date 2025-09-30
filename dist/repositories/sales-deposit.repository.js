@@ -117,6 +117,14 @@ class SalesDepositRepository {
                             },
                         },
                         {
+                            customer: null,
+                        },
+                        {
+                            sales: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
                             customer: {
                                 name: {
                                     contains: data.keyword,
@@ -157,6 +165,11 @@ class SalesDepositRepository {
                     OR: [
                         {
                             name: {
+                                contains: data.keyword,
+                            },
+                        },
+                        {
+                            sales: {
                                 contains: data.keyword,
                             },
                         },
