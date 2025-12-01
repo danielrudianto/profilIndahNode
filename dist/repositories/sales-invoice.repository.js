@@ -688,7 +688,7 @@ class SalesInvoiceRepository {
                         AND: [
                             {
                                 date: {
-                                    gt: new Date(data.year, data.month - 1, 1),
+                                    gte: new Date(data.year, data.month - 1, 1),
                                 },
                             },
                             {
