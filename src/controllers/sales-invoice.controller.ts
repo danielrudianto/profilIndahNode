@@ -312,8 +312,14 @@ class SalesInvoiceController {
   fetchPayments = async (req: Request, res: Response) => {
     const id = Number(req.params.id);
     try {
+      // `await` sebelumnya tidak ada, sehingga yang dikirim adalah objek
+      // Promise-nya, bukan isinya. Express menyerialkannya menjadi `{}`, jadi
+      // GET /sales-invoice/payment/:id SELALU membalas 200 dengan riwayat
+      // pembayaran kosong — kasir menyimpulkan pelanggan belum membayar
+      // padahal pembayarannya tercatat. Blok catch juga tidak pernah aktif
+      // karena kegagalannya terjadi setelah balasan terkirim.
       const payments =
-        this.salesInvoicePaymentRepository.fetchPaymentsBySalesInvoiceCodeID(
+        await this.salesInvoicePaymentRepository.fetchPaymentsBySalesInvoiceCodeID(
           id
         );
       return res.status(200).send(payments);

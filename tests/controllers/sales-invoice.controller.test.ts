@@ -731,7 +731,7 @@ describe("GET /payment/:id — riwayat pembayaran faktur", () => {
    * tidak ditunggu, jadi penolakan repository lolos sebagai unhandled
    * rejection dan bisa menghentikan proses.
    */
-  it("CACAT: selalu membalas 200 dengan badan kosong, bukan daftar pembayaran", async () => {
+  it("membalas 200 dengan daftar pembayaran yang sebenarnya", async () => {
     const r = repositoriTiruan();
     r.salesInvoicePayment.fetchPaymentsBySalesInvoiceCodeID.mockResolvedValue([
       { id: 1, value: 50000 },
@@ -741,13 +741,30 @@ describe("GET /payment/:id — riwayat pembayaran faktur", () => {
     const res = await request(app(r)).get("/payment/77");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({});
-    expect(res.text).toBe("{}");
-    // Repository tetap dipanggil dengan id yang benar — datanya memang diambil,
-    // hanya tidak pernah sampai ke pengguna.
+    // Sebelum `await` dipasang, yang terkirim adalah objek Promise-nya dan
+    // Express menyerialkannya menjadi "{}" — riwayat pembayaran selalu tampak
+    // kosong meskipun repository mengembalikan dua baris seperti di atas.
+    expect(res.body).toEqual([
+      { id: 1, value: 50000 },
+      { id: 2, value: 120000 },
+    ]);
     expect(
       r.salesInvoicePayment.fetchPaymentsBySalesInvoiceCodeID
     ).toHaveBeenCalledWith(77);
+  });
+
+  it("membalas 500 ketika pengambilan pembayaran gagal", async () => {
+    const r = repositoriTiruan();
+    r.salesInvoicePayment.fetchPaymentsBySalesInvoiceCodeID.mockRejectedValue(
+      new Error("koneksi putus")
+    );
+
+    const res = await request(app(r)).get("/payment/77");
+
+    // Blok catch-nya dulu tidak pernah aktif: penolakan Promise terjadi setelah
+    // balasan 200 telanjur terkirim, jadi kegagalan basis data pun tetap
+    // terbaca sebagai "belum ada pembayaran".
+    expect(res.status).toBe(500);
   });
 });
 

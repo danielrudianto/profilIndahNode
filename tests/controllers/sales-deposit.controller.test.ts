@@ -587,7 +587,7 @@ describe("POST /confirm — setoran menjadi faktur", () => {
    * menggantung sampai tes kehabisan waktu, persis seperti yang dialami
    * pemanggil sungguhan.
    */
-  it("CACAT: confirm tidak membalas apa pun bila ada galat di tengah jalan", async () => {
+  it("membalas 500 bila ada galat di tengah jalan", async () => {
     const r = repositoriTiruan();
     r.salesDeposit.fetchByID.mockResolvedValue(setoran());
     r.salesInvoice.create.mockRejectedValue(new Error("koneksi putus"));
@@ -598,15 +598,16 @@ describe("POST /confirm — setoran menjadi faktur", () => {
       send: jest.fn().mockReturnThis(),
     };
 
-    const hasil = await c.confirm(
+    await c.confirm(
       { body: { ...badanKonfirmasi, userId: 99 } } as never,
       res as never
     );
 
-    // Handler selesai dengan tenang tanpa nilai balik dan tanpa balasan.
-    expect(hasil).toBeUndefined();
-    expect(res.status).not.toHaveBeenCalled();
-    expect(res.send).not.toHaveBeenCalled();
+    // Dulu blok catch-nya hanya mencatat ke log tanpa menyentuh `res`, sehingga
+    // permintaannya menggantung sampai klien timeout — dan kasir yang tidak
+    // menerima balasan wajar menekan tombol konfirmasi sekali lagi.
+    expect(res.status).toHaveBeenCalledWith(500);
+    expect(res.send).toHaveBeenCalled();
   });
 
   /**
@@ -635,7 +636,11 @@ describe("POST /confirm — setoran menjadi faktur", () => {
     );
 
     expect(r.salesInvoice.create).toHaveBeenCalledTimes(1);
-    expect(res.status).not.toHaveBeenCalled();
+    // Kegagalannya kini muncul ke permukaan sebagai 500, jadi percobaan ulang
+    // yang tidak disengaja berhenti. Yang BELUM tertutup adalah celah di
+    // bawah: rangkaiannya tidak transaksional, jadi konfirmasi ulang yang
+    // dilakukan dengan sengaja tetap menerbitkan faktur kedua.
+    expect(res.status).toHaveBeenCalledWith(500);
 
     // Percobaan kedua — setoran masih belum terkonfirmasi, jadi lolos lagi.
     r.salesDeposit.confirmByID.mockResolvedValue(undefined);

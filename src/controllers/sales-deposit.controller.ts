@@ -319,7 +319,26 @@ export class SalesDepositController {
 
       return res.status(201).send(result);
     } catch (error) {
+      /*
+        Blok ini sebelumnya hanya mencatat ke log dan tidak pernah menyentuh
+        `res`, sehingga permintaannya menggantung sampai klien timeout. Kasir
+        yang tidak menerima balasan apa pun wajar mengira konfirmasinya belum
+        masuk, lalu menekan tombolnya lagi — dan justru percobaan ulang itulah
+        yang berbahaya.
+
+        Rangkaian di atas TIDAK dibungkus transaksi: fakturnya dibuat lebih
+        dulu, penandaan depositnya lewat confirmByID() menyusul setelahnya.
+        Bila kegagalan jatuh di antara keduanya, deposit belum tertandai
+        sehingga penjaga `isDelete || isConfirm` di awal belum menutup pintu,
+        dan percobaan ulang menerbitkan faktur KEDUA untuk deposit yang sama.
+
+        Membalas 500 tidak menutup celah transaksinya — itu perlu $transaction
+        yang mencakup faktur sampai kartu stok — tetapi menghentikan percobaan
+        ulang yang tidak disengaja, dan memunculkan kegagalannya alih-alih
+        membiarkan operasi selesai separuh jalan tanpa ada yang tahu.
+      */
       console.error(`[error]: Error on confirming sales deposit ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
