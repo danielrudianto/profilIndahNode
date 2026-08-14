@@ -1,10 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { DateHelper, formatDate } from "../utils/date.helper";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
-import {
-  ISalesReturnCode,
-  SalesReturnCodeModel,
-} from "../models/sales-return.model";
+import { SalesReturnCodeModel } from "../models/sales-return.model";
+import { ISalesReturnCode } from "../interfaces/sales-return.interface";
 
 export class SalesReturnRepository {
   private prisma: PrismaClient;

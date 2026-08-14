@@ -1,45 +1,13 @@
+import {
+  ISalesInvoiceCode,
+  ISalesInvoice,
+} from "../interfaces/sales-invoice.interface";
 import { ProductModel } from "./product.model";
 import { CustomerModel } from "./customer.model";
 import { SalesInvoicePaymentModel } from "./sales-invoice-payment.model";
 import { ProductUnitModel } from "./product-unit.model";
 import { UserViewModel } from "./user.model";
 import { PaymentMethodViewModel } from "./payment-method.model";
-
-export interface ISalesInvoiceCode {
-  id?: number;
-  name: string;
-  customerID: number | null;
-  createdBy: number;
-  createdAt: Date;
-  discount: number;
-  delivery: number;
-  service: number;
-  date: Date;
-  uuid: string;
-  sales_invoice: ISalesInvoice[];
-  sales_invoice_payment: SalesInvoicePaymentModel[];
-  isPaid: boolean;
-  isConfirm: boolean;
-  isDelete: boolean;
-  sales: string | null;
-  confirmedBy?: number | null;
-  confirmedAt?: Date | null;
-
-  customer?: CustomerModel | null;
-  user_bill_code_created_byTouser?: UserViewModel;
-  user_bill_code_confirmed_byTouser?: UserViewModel | null;
-}
-
-export interface ISalesInvoice {
-  id?: number;
-  product_id: number;
-  product_unit_id: number | null;
-  quantity: number;
-  price: number;
-  discount: number;
-  product?: ProductModel;
-  product_unit?: ProductUnitModel | null;
-}
 
 export class SalesInvoiceModel {
   id?: number;

@@ -1,5 +1,6 @@
+import { ISupplier } from "../interfaces/supplier.interface";
 import { PrismaClient } from "@prisma/client";
-import SupplierModel, { ISupplier } from "../models/supplier.model";
+import SupplierModel from "../models/supplier.model";
 import {
   IFetchCommon,
   IFetchCommonResult,

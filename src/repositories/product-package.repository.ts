@@ -1,9 +1,9 @@
 import { PrismaClient } from "@prisma/client";
+import { PackageCodeModel } from "../models/product-package.model";
 import {
   IPackageCode,
   IPackagePrice,
-  PackageCodeModel,
-} from "../models/product-package.model";
+} from "../interfaces/product-package.interface";
 
 export class ProductPackageRepository {
   private prisma: PrismaClient;

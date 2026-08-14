@@ -5,7 +5,7 @@ import {
   ICreateDraftBill,
   IConfirmDraftBill,
   IFetchDraftBillOTC,
-} from "../models/draft-bill.model";
+} from "../interfaces/draft-bill.interface";
 
 /**
  * Akses data draft bill.

@@ -1,3 +1,4 @@
+import { allowedOrigins } from "./constants/asal-diizinkan";
 import dotenv from "dotenv"; // If you load .env here for testing this file directly
 dotenv.config(); // If you load .env here
 
@@ -64,15 +65,6 @@ import { prisma } from "./utils/database.helper";
 import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";
 import { StockInRepository } from "./repositories/stock-in.repository";
-
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://stock.profilindah.id",
-  "https://v16.profilindah.id",
-  "https://v19.profilindah.id",
-  "https://warehouse.profilindah.id",
-  "http://localhost:2100",
-];
 
 const options: cors.CorsOptions = {
   origin: allowedOrigins,

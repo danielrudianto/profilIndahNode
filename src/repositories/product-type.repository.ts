@@ -4,7 +4,8 @@ import {
   IFetchCommon,
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
-import { IProductType, ProductTypeModel } from "../models/product-type.model";
+import { ProductTypeModel } from "../models/product-type.model";
+import { IProductType } from "../interfaces/product-type.interface";
 import { toPositiveInt } from "../utils/sql.helper";
 
 export class ProductTypeRepository {

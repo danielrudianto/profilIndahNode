@@ -1,14 +1,7 @@
-export interface IPaymentMethod {
-  id?: number;
-  name: string;
-  description: string;
-  created_by?: number;
-  created_at?: Date;
-  is_delete?: boolean;
-  deleted_by?: number | null;
-  deleted_at?: Date | null;
-  can_delete?: boolean;
-}
+import {
+  IPaymentMethod,
+  IPaymentMethodView,
+} from "../interfaces/payment-method.interface";
 
 export class PaymentMethodModel {
   id?: number;
@@ -46,12 +39,6 @@ export class PaymentMethodModel {
       can_delete: data.can_delete ?? false,
     });
   }
-}
-
-interface IPaymentMethodView {
-  id: number | null;
-  name: string;
-  description: string;
 }
 
 export class PaymentMethodViewModel {

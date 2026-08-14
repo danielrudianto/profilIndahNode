@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { IPriceProduct, IProduct, ProductModel } from "../models/product.model";
+import { ProductModel } from "../models/product.model";
+import { IPriceProduct, IProduct } from "../interfaces/product.interface";
 import { ProductBrandViewModel } from "../models/product-brand.model";
 import { ProductTypeViewModel } from "../models/product-type.model";
 import {

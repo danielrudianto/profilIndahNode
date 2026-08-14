@@ -48,9 +48,8 @@ Redis, Meilisearch.
 - `src/schemas/` — Zod validation schemas (see "Validation" below).
 - `src/utils/` — cross-cutting utilities: database, auth, redis, meili,
   search, queue, socket, sql, escape, date, error, validate.
-- `src/interfaces/` — shared TypeScript interfaces.
-- `src/constants/` — `error_list.ts` (the message catalog) and `changelog.ts`.
-- `src/assets/` — binary assets only (pdfmake fonts).
+- `src/interfaces/` — **every** TypeScript interface, one file per domain.
+- `src/constants/` — **every** constant and enum, one file per group.
 
 **Entry point:** `src/app.ts` — builds the Express app, wires global middleware
 (`compression`, `helmet`, `cors`, body parsers), then mounts every router.
@@ -157,6 +156,15 @@ any renamed copy), the Meilisearch `data.ms/` index, and `.env` all contain real
 business and user data.
 
 ## Conventions
+
+**Interfaces live in `src/interfaces/`, constants in `src/constants/` — always.**
+An interface or a constant must never be declared inside a model, controller,
+repository, or helper, even when only that one file uses it. One file per
+domain, named `<domain>.interface.ts` and `<domain>.ts` respectively. A model
+file holds a class and nothing else — `achivement` is the worked example:
+`constants/achivement.ts` (the threshold table), `interfaces/achivement.interface.ts`
+(`IAchivement`), `models/achivement.model.ts` (the class). Express-validator
+chains are middleware, not constants; leave those beside their routes.
 
 - TypeScript throughout; formatted with Prettier (`npm run pretty`) — 2-space
   indent, double quotes, semicolons, trailing commas.

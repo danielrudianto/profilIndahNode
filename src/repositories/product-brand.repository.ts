@@ -1,8 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  IProductBrand,
-  ProductBrandModel,
-} from "../models/product-brand.model";
+import { ProductBrandModel } from "../models/product-brand.model";
+import { IProductBrand } from "../interfaces/product-brand.interface";
 import { UserViewModel } from "../models/user.model";
 import {
   IFetchCommon,

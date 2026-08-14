@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { IUser, UserModel } from "../models/user.model";
+import { UserModel } from "../models/user.model";
+import { IUser } from "../interfaces/user.interface";
 import { UserRoleModel } from "../models/user_role.model";
 import {
   IFetchCommon,

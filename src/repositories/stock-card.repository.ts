@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { IStockCard, StockCardModel } from "../models/stock-card.model";
+import { StockCardModel } from "../models/stock-card.model";
+import { IStockCard } from "../interfaces/stock-card.interface";
 
 export class StockCardRepository {
   private prisma: PrismaClient;

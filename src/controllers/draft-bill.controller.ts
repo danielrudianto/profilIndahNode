@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import moment from "moment";
 import ErrorList from "../constants/error_list";
 import SocketHelper from "../utils/socket.helper";
-import { IConfirmDraftBillItems } from "../models/draft-bill.model";
+import { IConfirmDraftBillItems } from "../interfaces/draft-bill.interface";
 import { DraftBillRepository } from "../repositories/draft-bill.repository";
 
 class DraftBillController {

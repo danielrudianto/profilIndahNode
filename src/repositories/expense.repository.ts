@@ -1,7 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { IFetchPagination } from "../interfaces/fetch.interface";
 import { CompanyModel } from "../models/company.model";
-import { IExpense, ExpenseModel } from "../models/expense.model";
+import { ExpenseModel } from "../models/expense.model";
+import { IExpense } from "../interfaces/expense.interface";
 import ExpenseTypeModel from "../models/expense.type.model";
 
 export class ExpenseRepository {

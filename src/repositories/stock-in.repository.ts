@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { IStockIn, IStockInUpdate } from "../models/stock-in.model";
+import { IStockIn, IStockInUpdate } from "../interfaces/stock-in.interface";
 
 export class StockInRepository {
   private prisma: PrismaClient;

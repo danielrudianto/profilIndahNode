@@ -3,7 +3,8 @@ import {
   IFetchCommon,
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
-import { CompanyModel, ICompany } from "../models/company.model";
+import { CompanyModel } from "../models/company.model";
+import { ICompany } from "../interfaces/company.interface";
 import { UserViewModel } from "../models/user.model";
 import { toPositiveInt } from "../utils/sql.helper";
 

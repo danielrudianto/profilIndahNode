@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { IUserAvatar } from "../models/user-avatar.model";
+import { IUserAvatar } from "../interfaces/user-avatar.interface";
 
 export class UserAvatarRepository {
   private prisma: PrismaClient;

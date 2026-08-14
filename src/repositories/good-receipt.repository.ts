@@ -1,5 +1,6 @@
+import { IGoodReceipt } from "../interfaces/good-receipt.interface";
 import { PrismaClient } from "@prisma/client";
-import GoodReceiptModel, { IGoodReceipt } from "../models/good-receipt.model";
+import GoodReceiptModel from "../models/good-receipt.model";
 import {
   IFetchAnnualArchives,
   IFetchCommon,

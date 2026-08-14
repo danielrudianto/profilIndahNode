@@ -1,10 +1,5 @@
+import { IUserSales } from "../interfaces/user-sales.interface";
 import { ProductTypeModel } from "./product-type.model";
-
-interface IUserSales {
-  id?: number;
-  product_type_id: number;
-  product_type: ProductTypeModel;
-}
 
 export class UserSalesModel {
   id?: number;

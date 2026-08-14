@@ -1,25 +1,7 @@
+import { IExpense } from "../interfaces/expense.interface";
 import { CompanyModel } from "./company.model";
 import ExpenseTypeModel from "./expense.type.model";
 import { UserViewModel } from "./user.model";
-
-export interface IExpense {
-  id?: number;
-  date: Date;
-  value: number;
-  created_at?: Date;
-  created_by: number;
-  description: string;
-  expense_type_id: number;
-  company_id: number;
-  is_delete?: boolean;
-  deleted_by?: number;
-  deleted_at?: Date;
-  expense_type?: ExpenseTypeModel;
-  company?: CompanyModel;
-
-  user_expense_created_byTouser?: UserViewModel;
-  user_expense_deleted_byTouser?: UserViewModel | null;
-}
 
 export class ExpenseModel {
   id?: number;
@@ -132,5 +114,3 @@ export class ExpenseModel {
   //   `);
   // }
 }
-
-export class ExpenseReportModel {}

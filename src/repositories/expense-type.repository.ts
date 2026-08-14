@@ -1,5 +1,6 @@
+import { IExpenseType } from "../interfaces/expense.type.interface";
 import { PrismaClient } from "@prisma/client";
-import ExpenseTypeModel, { IExpenseType } from "../models/expense.type.model";
+import ExpenseTypeModel from "../models/expense.type.model";
 
 export class ExpenseTypeRepository {
   private prisma: PrismaClient;

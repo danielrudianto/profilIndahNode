@@ -1,3 +1,4 @@
+import { RentangTanggal } from "../interfaces/tanggal.interface";
 /**
  * Rentang tanggal untuk penyaringan periode.
  *
@@ -19,14 +20,6 @@
  * Kalau helper ini diganti kembali menjadi perbandingan pada hasil fungsi,
  * kedua masalah itu kembali sekaligus.
  */
-
-/** Nilai batas periode, siap disisipkan sebagai parameter query. */
-export interface RentangTanggal {
-  /** Awal periode, ikut terhitung. */
-  mulai: Date;
-  /** Batas atas, TIDAK ikut terhitung. */
-  sebelum: Date;
-}
 
 /**
  * Rentang satu bulan penuh.

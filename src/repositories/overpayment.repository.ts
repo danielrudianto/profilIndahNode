@@ -1,8 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  IOverpaymentCode,
-  OverpaymentCodeModel,
-} from "../models/overpayment.model";
+import { OverpaymentCodeModel } from "../models/overpayment.model";
+import { IOverpaymentCode } from "../interfaces/overpayment.interface";
 
 export class OverpaymentRepository {
   private prisma: PrismaClient;

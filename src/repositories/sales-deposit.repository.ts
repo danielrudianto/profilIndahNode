@@ -4,10 +4,8 @@ import {
   IFetchCommon,
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
-import {
-  ISalesDepositCode,
-  SalesDepositModel,
-} from "../models/sales-deposit.model";
+import { SalesDepositModel } from "../models/sales-deposit.model";
+import { ISalesDepositCode } from "../interfaces/sales-deposit.interface";
 
 export class SalesDepositRepository {
   private prisma: PrismaClient;

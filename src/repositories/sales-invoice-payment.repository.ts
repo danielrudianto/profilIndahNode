@@ -1,8 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  ISalesInvoicePayment,
-  SalesInvoicePaymentModel,
-} from "../models/sales-invoice-payment.model";
+import { SalesInvoicePaymentModel } from "../models/sales-invoice-payment.model";
+import { ISalesInvoicePayment } from "../interfaces/sales-invoice-payment.interface";
 
 export class SalesInvoicePaymentRepository {
   private prisma: PrismaClient;

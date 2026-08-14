@@ -1,8 +1,4 @@
-export interface IUserRole {
-  id?: number;
-  name: string;
-  available: boolean;
-}
+import { IUserRole } from "../interfaces/user_role.interface";
 
 export class UserRoleModel {
   id?: number;

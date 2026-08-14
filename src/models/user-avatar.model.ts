@@ -1,19 +1,5 @@
+import { IUserAvatar } from "../interfaces/user-avatar.interface";
 import { UserViewModel } from "./user.model";
-
-export interface IUserAvatar {
-  id?: number;
-  user_id?: number;
-  top: number;
-  accessories: number;
-  clothes: number;
-  eyes: number;
-  eyebrows: number;
-  mouth: number;
-  color: string;
-  circle: boolean;
-
-  user?: UserViewModel;
-}
 
 class UserAvatarModel {
   id?: number;

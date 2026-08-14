@@ -1,7 +1,5 @@
-export enum formatDate {
-  DDMMYYYY,
-  YYYYMMDD,
-}
+import { formatDate } from "../constants/format-tanggal";
+export { formatDate };
 
 export class DateHelper {
   // convert from Date object to DD-MM-YYYY

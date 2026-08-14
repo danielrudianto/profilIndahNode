@@ -1,8 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  IPaymentMethod,
-  PaymentMethodModel,
-} from "../models/payment-method.model";
+import { PaymentMethodModel } from "../models/payment-method.model";
+import { IPaymentMethod } from "../interfaces/payment-method.interface";
 import {
   IFetchCommon,
   IFetchCommonResult,

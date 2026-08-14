@@ -3,14 +3,6 @@ import { meili } from "./meili.helper";
 import { prisma } from "./database.helper";
 import { ProductRepository } from "../repositories/product.repository";
 
-export enum syncMode {
-  Product,
-  Customer,
-  Package,
-  ProductNoSQL,
-  ProductMinimumStock,
-}
-
 class SearchHelper {
   private productRepository: ProductRepository;
   constructor(productRepository: ProductRepository) {
@@ -98,7 +90,6 @@ class SearchHelper {
    * @param res
    */
   static syncMasterData = async (req: Request, res: Response) => {
-    const mode = req.body.mode as syncMode;
     // switch (mode) {
     //   case syncMode.Product:
     //     // await meili.createIndex("item");
@@ -190,7 +181,6 @@ class SearchHelper {
     //             };
     //           })
     //         );
-
     //             console.log("[info]: Sync product NoSQL completed.");
     //             return res.status(200).send({
     //               message: "Sync product NoSQL success",
@@ -205,7 +195,6 @@ class SearchHelper {
     //         console.error(`[error]: Error on deleting product NoSQL. ${error}`);
     //         return res.status(500).send(error);
     //       });
-
     //         console.log("[info]: Sync product NoSQL completed.");
     //         return res.status(200).send({
     //           message: "Sync product NoSQL success",

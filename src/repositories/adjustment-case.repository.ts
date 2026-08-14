@@ -1,7 +1,6 @@
+import { IAdjustmentCaseCode } from "../interfaces/adjustment-case.interface";
 import { PrismaClient } from "@prisma/client";
-import AdjustmentCaseModel, {
-  IAdjustmentCaseCode,
-} from "../models/adjustment-case.model";
+import AdjustmentCaseModel from "../models/adjustment-case.model";
 import {
   IFetchCommon,
   IFetchCommonResult,

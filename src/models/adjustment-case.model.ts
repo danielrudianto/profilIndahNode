@@ -1,36 +1,12 @@
+import {
+  IAdjustmentCaseCode,
+  IAdjustmentCase,
+} from "../interfaces/adjustment-case.interface";
 import { prisma } from "../utils/database.helper";
 import { UserViewModel } from "./user.model";
 import { ProductModel } from "./product.model";
 import { ProductUnitViewModel } from "./product-unit.model";
 import { CompanyModel } from "./company.model";
-
-export interface IAdjustmentCaseCode {
-  id?: number;
-  name: string;
-  date: Date;
-  created_by?: number;
-  created_at?: Date;
-  is_confirm?: boolean;
-  is_delete?: boolean;
-  confirmed_by?: number | null;
-  confirmed_at?: Date | null;
-
-  company_id: number | null;
-  adjustment_case: IAdjustmentCase[];
-  user_adjustment_case_code_created_byTouser?: UserViewModel;
-
-  company?: CompanyModel | null;
-}
-
-interface IAdjustmentCase {
-  id?: number;
-  product_id: number;
-  product_unit_id: number | null;
-  quantity: number;
-
-  product?: ProductModel;
-  product_unit?: ProductUnitViewModel | null;
-}
 
 class AdjustmentCaseModel {
   id?: number;

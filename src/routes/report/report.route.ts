@@ -1,3 +1,9 @@
+import {
+  PERAN_PEMBELIAN,
+  PERAN_PENJUALAN,
+  PERAN_SUPERADMIN,
+  PERAN_UMUM,
+} from "../../constants/peran";
 import { Router } from "express";
 import FinancialReportController from "../../controllers/financial-report.controller";
 import MoneyReceiptController from "../../controllers/money-receipt.controller";
@@ -69,18 +75,6 @@ const financialReportController = new FinancialReportController(
   new ExpenseRepository(prisma),
   new StockOutRepository(prisma)
 );
-
-/*
-  Matriks peran diturunkan dari app-routing.module.ts pada frontend:
-    Purchasing [1,3,5,7]  Sales [2,3,5,7]  General [3,5,7]  Administrator [5,7]
-
-  Peran 6 (Gudang) sengaja tidak disertakan: ia tidak muncul pada guard laporan
-  mana pun di frontend dan hanya memakai rute /warehouse.
-*/
-const PERAN_PENJUALAN = [2, 3, 5, 7];
-const PERAN_PEMBELIAN = [1, 3, 5, 7];
-const PERAN_UMUM = [3, 5, 7];
-const PERAN_SUPERADMIN = [7];
 
 router.post(
   "/sales",

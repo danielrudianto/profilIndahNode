@@ -1,23 +1,6 @@
+import { RedisListClient } from "../interfaces/notification.interface";
 import { PrismaClient } from "@prisma/client";
 import { NotificationModel } from "../models/notification.model";
-
-/**
- * Bentuk klien minimal yang dipakai berkas ini.
- *
- * Sebelumnya memakai tipe RedisClient dari bullmq, yang berbentuk ioredis.
- * Sejak bullmq v6 tipe itu tidak lagi memuat perintah daftar, sehingga berkas
- * ini menghentikan `npm run build` walaupun tidak pernah dipakai.
- *
- * Catatan: nama perintah di sini bergaya ioredis (huruf kecil semua),
- * sedangkan klien redis yang dipakai proyek ini memakai lPush/lTrim/lRange.
- * Jadi berkas ini akan gagal saat dijalankan kalau diberi redisClient dari
- * helper/redis.helper. Modul notifikasi memang belum tersambung ke mana pun.
- */
-interface RedisListClient {
-  lpush(key: string, value: string): Promise<number>;
-  ltrim(key: string, start: number, stop: number): Promise<unknown>;
-  lrange(key: string, start: number, stop: number): Promise<string[]>;
-}
 
 class NotificationRepository {
   private redis: RedisListClient;

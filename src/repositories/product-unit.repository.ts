@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { IProductUnit, ProductUnitModel } from "../models/product-unit.model";
+import { ProductUnitModel } from "../models/product-unit.model";
+import { IProductUnit } from "../interfaces/product-unit.interface";
 
 export class ProductUnitRepository {
   private prisma: PrismaClient;

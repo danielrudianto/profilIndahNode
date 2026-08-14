@@ -1,10 +1,11 @@
+import { IPromotion } from "../interfaces/promotion.interface";
 import { PrismaClient } from "@prisma/client";
 import { DateHelper, formatDate } from "../utils/date.helper";
 import {
   IFetchCommon,
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
-import PromotionModel, { IPromotion } from "../models/promotion.model";
+import PromotionModel from "../models/promotion.model";
 
 export class PromotionRepository {
   private prisma: PrismaClient;

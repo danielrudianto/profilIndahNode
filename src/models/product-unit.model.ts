@@ -1,22 +1,7 @@
-export enum ItemUnitMode {
-  Sales,
-  Plain,
-}
-
-export interface IProductUnit {
-  id?: number;
-  product_id: number;
-  unit: string;
-  conversion: number;
-  is_delete?: boolean;
-  created_by?: number;
-  created_at?: Date;
-  sales_price: number;
-  sales_discount: number;
-  purchase_price: number;
-  purchase_discount: number;
-}
-
+import {
+  IProductUnit,
+  IProductUnitView,
+} from "../interfaces/product-unit.interface";
 export class ProductUnitModel {
   id?: number;
   product_id?: number;
@@ -59,17 +44,6 @@ export class ProductUnitModel {
       purchase_discount: Number(data.purchase_discount),
     });
   }
-}
-
-interface IProductUnitView {
-  id?: number;
-  product_id: number;
-  unit: string;
-  conversion: number;
-  sales_price?: number;
-  sales_discount?: number;
-  purchase_price?: number;
-  purchase_discount?: number;
 }
 
 export class ProductUnitViewModel {

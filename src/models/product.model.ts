@@ -1,42 +1,9 @@
-import {
-  IProductBrandView,
-  ProductBrandViewModel,
-} from "./product-brand.model";
-import {
-  IProductTypeView,
-  ProductTypeViewModel,
-  ProductTypeModel,
-} from "./product-type.model";
+import { IProductBrandView } from "../interfaces/product-brand.interface";
+import { IProduct, IProductStock } from "../interfaces/product.interface";
+
+import { ProductBrandViewModel } from "./product-brand.model";
+import { ProductTypeViewModel, ProductTypeModel } from "./product-type.model";
 import { ProductUnitModel, ProductUnitViewModel } from "./product-unit.model";
-
-export interface IProduct {
-  id?: number;
-  reference: string;
-  description: string;
-  product_brand_id: number;
-  product_type_id: number;
-  created_by?: number;
-  created_at?: Date;
-  updated_by?: number | null;
-  updated_at?: Date | null;
-  deleted_by?: number | null;
-  deleted_at?: Date | null;
-  minimum_stock?: number;
-  unit: string;
-  sales_price?: number;
-  sales_discount?: number;
-  purchase_price?: number;
-  purchase_discount?: number;
-  is_active?: boolean;
-  is_delete?: boolean;
-
-  product_type?: IProductTypeView;
-  product_brand?: IProductBrandView;
-  product_unit?: ProductUnitModel[];
-
-  product_stock?: ProductStockModel;
-  can_delete?: boolean;
-}
 
 export class ProductModel {
   id?: number;
@@ -1648,21 +1615,6 @@ export class ProductModel {
   //     },
   //   });
   // }
-}
-
-export interface IPriceProduct {
-  product_id: number;
-  product_unit_id: number | null;
-  price: number;
-  discount: number;
-}
-
-export class ItemUnitModel {}
-
-export interface IProductStock {
-  id?: number;
-  product_id: number;
-  stock: number;
 }
 
 export class ProductStockModel {

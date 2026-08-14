@@ -1,14 +1,5 @@
+import { INotification } from "../interfaces/notification.interface";
 import { UserViewModel } from "./user.model";
-
-interface INotification {
-  id?: number;
-  title: string;
-  message: string;
-  created_at?: Date;
-  created_by?: number;
-
-  user?: UserViewModel;
-}
 
 export class NotificationModel {
   id?: number;

@@ -1,6 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { DateHelper, formatDate } from "../utils/date.helper";
-import { IStockoutModel } from "../models/stock-out.model";
+import { IStockoutModel } from "../interfaces/stock-out.interface";
 import { Decimal } from "@prisma/client/runtime";
 import { rentangBulan, rentangTahun } from "../utils/tanggal.helper";
 

@@ -1,8 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  ISalesInvoiceCode,
-  SalesInvoiceModel,
-} from "../models/sales-invoice.model";
+import { SalesInvoiceModel } from "../models/sales-invoice.model";
+import { ISalesInvoiceCode } from "../interfaces/sales-invoice.interface";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 
 import { DateHelper, formatDate } from "../utils/date.helper";
