@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intWajib } from "./common.schema";
+import { requiredInt } from "./common.schema";
 
 /**
  * Kontrak API untuk layar kasir.
@@ -13,7 +13,7 @@ import { intWajib } from "./common.schema";
  *
  * URUTAN BIDANG PENTING. Pesan yang sampai ke pengguna adalah pesan pertama
  * yang gagal. Di sini tiap skema hanya punya satu bidang, jadi urutannya
- * belum menjadi persoalan — tetapi bila kelak `konfirmasiTagihanSchema`
+ * belum menjadi persoalan — tetapi bila kelak `confirmBillSchema`
  * ditambah `items` dan `payment_methods`, bidang `id` harus tetap berada di
  * urutan pertama agar pesan pada badan kosong tidak berubah. Untuk itu pakai
  * `...tagihanBase.shape`, bukan `.extend()`, yang selalu menempelkan kunci
@@ -26,7 +26,7 @@ import { intWajib } from "./common.schema";
  * `otc` adalah kode teks (kolom draft_bill_code.otc bertipe VarChar(6)), bukan
  * angka — jadi tidak ada pemaksaan ke bilangan di sini.
  *
- * Sengaja TIDAK memakai teksWajib dari common.schema. teksWajib menolak nilai
+ * Sengaja TIDAK memakai requiredText dari common.schema. requiredText menolak nilai
  * yang hanya berisi spasi, sedangkan notEmpty() milik rantai lama menghitung
  * spasi sebagai isi, sehingga "/bill/%20%20" selama ini diteruskan ke
  * controller. Menolaknya sekarang akan mengubah status balasan untuk
@@ -42,7 +42,7 @@ import { intWajib } from "./common.schema";
  * sebelum validasi berjalan. Aturannya dipertahankan agar perilakunya tetap
  * sama seandainya pola rute kelak diubah.
  */
-export const ambilTagihanOtcSchema = z.object({
+export const getBillByOtcSchema = z.object({
   otc: z
     .string({ error: ErrorList["Parameter error"] })
     .min(1, ErrorList["Parameter error"]),
@@ -75,17 +75,17 @@ export const ambilTagihanOtcSchema = z.object({
  * berakhir 500. Lubang ini yang paling mudah dipicu tanpa sengaja oleh
  * frontend yang mengirim isi keranjang apa adanya.
  *
- * Kedua pesan pada intWajib sengaja sama. Rantai lama memasang notEmpty() dan
+ * Kedua pesan pada requiredInt sengaja sama. Rantai lama memasang notEmpty() dan
  * isInt() dengan pesan yang identik, jadi pengguna tidak pernah bisa
  * membedakan "tidak dikirim" dari "salah bentuk", dan menambah pesan baru di
  * sini berarti mengubah kalimat yang dilihat pengguna.
  */
 const tagihanBase = z.object({
-  id: intWajib(ErrorList["ID is required"], ErrorList["ID is required"], 1),
+  id: requiredInt(ErrorList["ID is required"], ErrorList["ID is required"], 1),
 });
 
 /** POST /cashier/bill/delete */
-export const hapusTagihanSchema = tagihanBase;
+export const deleteBillSchema = tagihanBase;
 
 /**
  * POST /cashier/bill/confirm
@@ -106,10 +106,10 @@ export const hapusTagihanSchema = tagihanBase;
  * Bidang `userId` juga tidak divalidasi. Nilainya ditulis authMiddleware ke
  * req.body, bukan dikirim klien.
  */
-export const konfirmasiTagihanSchema = z.object({
+export const confirmBillSchema = z.object({
   ...tagihanBase.shape,
 });
 
-export type AmbilTagihanOtc = z.infer<typeof ambilTagihanOtcSchema>;
-export type HapusTagihan = z.infer<typeof hapusTagihanSchema>;
-export type KonfirmasiTagihan = z.infer<typeof konfirmasiTagihanSchema>;
+export type GetBillByOtc = z.infer<typeof getBillByOtcSchema>;
+export type DeleteBill = z.infer<typeof deleteBillSchema>;
+export type ConfirmBill = z.infer<typeof confirmBillSchema>;

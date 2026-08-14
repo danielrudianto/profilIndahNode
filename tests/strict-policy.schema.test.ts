@@ -4,10 +4,10 @@ import request from "supertest";
 import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
-import { periodeWajibBulanSchema } from "../src/schemas/report.schema";
-import { buatSupplierSchema } from "../src/schemas/supplier.schema";
-import { buatPelangganSchema } from "../src/schemas/master.schema";
-import { buatMerekSchema } from "../src/schemas/master-lain.schema";
+import { requiredMonthPeriodSchema } from "../src/schemas/report.schema";
+import { createSupplierSchema } from "../src/schemas/supplier.schema";
+import { createCustomerSchema } from "../src/schemas/customer.schema";
+import { createBrandSchema } from "../src/schemas/product-brand.schema";
 
 /**
  * Penjaga kebijakan ketat pada req.body.
@@ -49,7 +49,7 @@ periodeLama.post(
 
 const periodeBaru = express();
 periodeBaru.use(express.json());
-periodeBaru.post("/x", validate(periodeWajibBulanSchema), balas);
+periodeBaru.post("/x", validate(requiredMonthPeriodSchema), balas);
 
 /** Rantai lama untuk bidang teks. */
 const teksLama = express();
@@ -64,7 +64,7 @@ teksLama.post(
 
 const teksBaru = express();
 teksBaru.use(express.json());
-teksBaru.post("/x", validate(buatSupplierSchema), balas);
+teksBaru.post("/x", validate(createSupplierSchema), balas);
 
 describe("Angka yang dikirim sebagai teks ditolak pada req.body", () => {
   const kasus: Array<[string, Record<string, unknown>]> = [
@@ -131,7 +131,7 @@ describe("Nilai bukan teks ditolak pada bidang teks", () => {
  */
 describe("Kebijakan berlaku seragam di seluruh domain", () => {
   it("pelanggan menolak nama berupa angka", () => {
-    const hasil = buatPelangganSchema.safeParse({
+    const hasil = createCustomerSchema.safeParse({
       name: 123,
       pic: "Budi",
       phone_number: "0811",
@@ -142,12 +142,12 @@ describe("Kebijakan berlaku seragam di seluruh domain", () => {
   });
 
   it("merek menolak nama berupa angka", () => {
-    const hasil = buatMerekSchema.safeParse({ name: 123 });
+    const hasil = createBrandSchema.safeParse({ name: 123 });
     expect(hasil.success).toBe(false);
   });
 
   it("supplier menolak nama berupa angka", () => {
-    const hasil = buatSupplierSchema.safeParse({
+    const hasil = createSupplierSchema.safeParse({
       name: 123,
       address: "Jl. Melati",
     });

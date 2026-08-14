@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { harusAda, intWajib, wajibAda } from "./common.schema";
+import { present, requiredInt, required } from "./common.schema";
 
 /**
  * Kontrak API untuk domain draft bill.
@@ -29,7 +29,7 @@ import { harusAda, intWajib, wajibAda } from "./common.schema";
  *
  * Pengecualiannya adalah `exists()`, yang bukan pemeriksaan bawaan melainkan
  * custom validator. Custom validator menerima nilai aslinya utuh, jadi array
- * kosong pun tetap diperiksa di sana — lihat buatDraftBillSchema.
+ * kosong pun tetap diperiksa di sana — lihat createDraftBillSchema.
  */
 
 /**
@@ -53,7 +53,7 @@ import { harusAda, intWajib, wajibAda } from "./common.schema";
  *
  * KETIGA: array ditolak. Lihat catatan lubang array di atas berkas ini.
  *
- * Kedua pesan pada intWajib sengaja SAMA. Rantai lama hanya punya satu pesan
+ * Kedua pesan pada requiredInt sengaja SAMA. Rantai lama hanya punya satu pesan
  * untuk bidang ini, jadi pengguna tidak pernah bisa membedakan "tidak dikirim"
  * dari "salah bentuk"; menambah pesan baru di sini berarti mengubah kalimat
  * yang dilihat pengguna.
@@ -66,11 +66,11 @@ import { harusAda, intWajib, wajibAda } from "./common.schema";
  * pada rute milik layar lain. Penyatuannya keputusan terpisah.
  */
 const draftBillIdBase = z.object({
-  id: intWajib(ErrorList["ID is required"], ErrorList["ID is required"], 1),
+  id: requiredInt(ErrorList["ID is required"], ErrorList["ID is required"], 1),
 });
 
 /** POST /draft-bill/delete */
-export const hapusDraftBillSchema = draftBillIdBase;
+export const deleteDraftBillSchema = draftBillIdBase;
 
 /**
  * POST /draft-bill/confirm
@@ -80,10 +80,10 @@ export const hapusDraftBillSchema = draftBillIdBase;
  * tidak pernah terlihat pengguna, dan di sini cukup satu skema array.
  *
  *   z.array(...)  menggantikan isArray()
- *   wajibAda      menggantikan notEmpty() yang dijalankan per ANGGOTA array
+ *   required      menggantikan notEmpty() yang dijalankan per ANGGOTA array
  *   .min(1, ...)  menutup lubang array kosong
  *
- * Anggota array sengaja diperiksa dengan wajibAda dan bukan dengan z.object({...}).
+ * Anggota array sengaja diperiksa dengan required dan bukan dengan z.object({...}).
  * Rantai lama tidak pernah menyentuh isi tiap metode pembayaran — tidak ada
  * `body("payment_methods.*.id")` — jadi mendefinisikan bentuknya di sini berarti
  * memunculkan pesan galat baru yang belum pernah dilihat frontend. Bentuk
@@ -97,7 +97,7 @@ export const hapusDraftBillSchema = draftBillIdBase;
  * memasang notEmpty(), yang meloloskan "1500" dan bahkan {} ("[object Object]"
  * bukan teks kosong). Ketiganya nominal uang yang diteruskan ke kolom desimal,
  * jadi nilai bukan angka tidak pernah bisa berakhir baik. Sengaja TIDAK dipakai
- * intWajib: pecahan seperti 1500.5 sah untuk nominal, dan nilai negatif selama
+ * requiredInt: pecahan seperti 1500.5 sah untuk nominal, dan nilai negatif selama
  * ini diterima — mengetatkan keduanya adalah aturan baru, bukan pemindahan
  * aturan lama.
  *
@@ -109,9 +109,9 @@ export const hapusDraftBillSchema = draftBillIdBase;
  * `userId` juga tidak divalidasi — nilainya ditulis authMiddleware ke req.body,
  * bukan dikirim klien.
  */
-export const konfirmasiDraftBillSchema = z.object({
+export const confirmDraftBillSchema = z.object({
   payment_methods: z
-    .array(wajibAda(ErrorList["Payment method required"]), {
+    .array(required(ErrorList["Payment method required"]), {
       error: ErrorList["Payment method required"],
     })
     .min(1, ErrorList["Payment method required"]),
@@ -151,7 +151,7 @@ const PESAN_BUAT = {
 /**
  * POST /draft-bill
  *
- * Kelima bidang memakai harusAda, yang meniru `exists()` apa adanya: cukup
+ * Kelima bidang memakai present, yang meniru `exists()` apa adanya: cukup
  * dikirim, tanpa peduli tipe maupun isinya. null, teks kosong, dan array kosong
  * semuanya lolos — persis seperti sebelumnya.
  *
@@ -170,14 +170,14 @@ const PESAN_BUAT = {
  *
  * `otc` dibaca controller tetapi tidak pernah divalidasi, dulu maupun sekarang.
  */
-export const buatDraftBillSchema = z.object({
-  customer_id: harusAda(PESAN_BUAT.customer_id),
-  note: harusAda(PESAN_BUAT.note),
-  items: harusAda(PESAN_BUAT.items),
-  service: harusAda(PESAN_BUAT.service),
-  delivery: harusAda(PESAN_BUAT.delivery),
+export const createDraftBillSchema = z.object({
+  customer_id: present(PESAN_BUAT.customer_id),
+  note: present(PESAN_BUAT.note),
+  items: present(PESAN_BUAT.items),
+  service: present(PESAN_BUAT.service),
+  delivery: present(PESAN_BUAT.delivery),
 });
 
-export type HapusDraftBill = z.infer<typeof hapusDraftBillSchema>;
-export type KonfirmasiDraftBill = z.infer<typeof konfirmasiDraftBillSchema>;
-export type BuatDraftBill = z.infer<typeof buatDraftBillSchema>;
+export type DeleteDraftBill = z.infer<typeof deleteDraftBillSchema>;
+export type ConfirmDraftBill = z.infer<typeof confirmDraftBillSchema>;
+export type CreateDraftBill = z.infer<typeof createDraftBillSchema>;

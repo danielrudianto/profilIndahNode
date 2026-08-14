@@ -3,7 +3,7 @@ import { ProductPurchasePriceController } from "../controllers/product-price-pur
 import { prisma } from "../utils/database.helper";
 import { ProductRepository } from "../repositories/product.repository";
 import { validate } from "../utils/validate.helper";
-import { ubahHargaSatuanSchema } from "../schemas/produk-pengeluaran.schema";
+import { updateUnitPriceSchema } from "../schemas/product-price.schema";
 
 const router = Router();
 
@@ -14,14 +14,14 @@ const productPurchasePriceController = new ProductPurchasePriceController(
 router.get("/", productPurchasePriceController.fetch);
 
 /*
-  Aturan validasinya pindah ke ubahHargaSatuanSchema. Rantai lama di sini
+  Aturan validasinya pindah ke updateUnitPriceSchema. Rantai lama di sini
   identik dengan yang ada di product-price-sales.route.ts, jadi keduanya kini
   memakai skema yang sama; alasan dan seluk-beluk urutannya ditulis di berkas
   skema.
 */
 router.put(
   "/",
-  validate(ubahHargaSatuanSchema),
+  validate(updateUnitPriceSchema),
   productPurchasePriceController.updateByProductID
 );
 

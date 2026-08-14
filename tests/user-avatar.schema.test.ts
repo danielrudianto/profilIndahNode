@@ -4,7 +4,7 @@ import { body } from "express-validator";
 import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
-import { ubahAvatarSchema } from "../src/schemas/user-avatar.schema";
+import { updateAvatarSchema } from "../src/schemas/user-avatar.schema";
 
 /**
  * Perbandingan perilaku: rantai express-validator lama versus skema Zod baru.
@@ -48,7 +48,7 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/a", validate(ubahAvatarSchema), balas);
+  app.post("/a", validate(updateAvatarSchema), balas);
   return app;
 }
 
@@ -271,7 +271,7 @@ describe("Urutan bidang disalin dari rantai lama", () => {
     rantai lama tetap lurus bila kelak salah satu pesannya dibedakan.
   */
   it("urutan kunci skema sama dengan urutan rantai lama", () => {
-    expect(Object.keys(ubahAvatarSchema.shape)).toEqual([
+    expect(Object.keys(updateAvatarSchema.shape)).toEqual([
       "accessories",
       "top",
       "clothes",

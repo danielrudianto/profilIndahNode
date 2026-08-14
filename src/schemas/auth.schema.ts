@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { teksWajib } from "./common.schema";
+import { requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk domain autentikasi.
@@ -18,9 +18,9 @@ import { teksWajib } from "./common.schema";
  */
 
 /** POST /auth/login */
-export const masukSchema = z.object({
-  username: teksWajib(ErrorList["Username is required"]),
-  password: teksWajib(ErrorList["Password is required"]),
+export const loginSchema = z.object({
+  username: requiredText(ErrorList["Username is required"]),
+  password: requiredText(ErrorList["Password is required"]),
 });
 
 /**
@@ -41,9 +41,9 @@ export const masukSchema = z.object({
  * req.body, bukan dikirim klien; memvalidasinya berarti memperlakukan
  * identitas pemanggil seolah masukan pengguna.
  */
-export const ubahSandiSchema = z.object({
-  password: teksWajib(ErrorList["Password is required"]),
+export const updatePasswordSchema = z.object({
+  password: requiredText(ErrorList["Password is required"]),
 });
 
-export type Masuk = z.infer<typeof masukSchema>;
-export type UbahSandi = z.infer<typeof ubahSandiSchema>;
+export type Login = z.infer<typeof loginSchema>;
+export type UpdatePassword = z.infer<typeof updatePasswordSchema>;

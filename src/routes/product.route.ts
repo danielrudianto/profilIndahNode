@@ -7,13 +7,15 @@ import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  aktifkanProdukSchema,
-  ambilProdukSchema,
-  buatProdukSchema,
-  hapusProdukSchema,
-  ubahHargaSchema,
-  ubahProdukSchema,
-} from "../schemas/produk-pengeluaran.schema";
+  activateProductSchema,
+  createProductSchema,
+  updateProductPriceSchema,
+  updateProductSchema,
+} from "../schemas/product.schema";
+import {
+  getProductSchema,
+  deleteProductSchema,
+} from "../schemas/product-price.schema";
 
 const router = Router();
 
@@ -23,33 +25,33 @@ const productController = new ProductController(
   new StockCardRepository(prisma)
 );
 
-router.post("/", validate(buatProdukSchema), productController.create);
+router.post("/", validate(createProductSchema), productController.create);
 
 router.get("/autocomplete", productController.fetchAutocomplete);
 router.get("/selector", productController.fetchSelector);
 router.get(
   "/:id",
-  validate(ambilProdukSchema, "params"),
+  validate(getProductSchema, "params"),
   productController.fetchByID
 );
 
 router.get("/", productController.fetch);
 router.put(
   "/active",
-  validate(aktifkanProdukSchema),
+  validate(activateProductSchema),
   productController.toggleActive
 );
-router.put("/", validate(ubahProdukSchema), productController.update);
+router.put("/", validate(updateProductSchema), productController.update);
 
 router.put(
   "/price-purchase",
-  validate(ubahHargaSchema),
+  validate(updateProductPriceSchema),
   productController.updatePurchasePrice
 );
 
 router.put(
   "/price-sales",
-  validate(ubahHargaSchema),
+  validate(updateProductPriceSchema),
   productController.updateSalesPrice
 );
 
@@ -59,7 +61,7 @@ router.put(
 router.delete(
   "/:id",
   administratorMiddleware,
-  validate(hapusProdukSchema, "params"),
+  validate(deleteProductSchema, "params"),
   productController.delete
 );
 

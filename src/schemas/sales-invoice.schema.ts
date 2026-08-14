@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { harusAda, intWajib, wajibAda } from "./common.schema";
+import { present, requiredInt, required } from "./common.schema";
 
 /**
  * Kontrak API untuk domain faktur penjualan.
@@ -37,24 +37,24 @@ const desimalTakNegatif = (pesanKosong: string, pesanSalah: string) =>
  * "Parameter error" yang identik, sehingga gelombang mana pun yang gagal
  * lebih dulu menghasilkan kalimat yang sama.
  */
-export const arsipFakturSchema = z.object({
-  year: intWajib(
+export const invoiceArchiveSchema = z.object({
+  year: requiredInt(
     ErrorList["Year is required"],
     ErrorList["Year must be numeric"],
     2000
   ),
-  month: intWajib(
+  month: requiredInt(
     ErrorList["Month is required"],
     ErrorList["Month must be numeric"],
     1,
     12
   ),
-  page: intWajib(
+  page: requiredInt(
     ErrorList["Page is required"],
     ErrorList["Page must be numeric"],
     1
   ),
-  pageSize: intWajib(
+  pageSize: requiredInt(
     ErrorList["Page size is required"],
     ErrorList["Page size must be numeric"],
     10,
@@ -64,7 +64,7 @@ export const arsipFakturSchema = z.object({
   isUnpaid: z.boolean({ error: ErrorList["Parameter error"] }),
   isActive: z.boolean({ error: ErrorList["Parameter error"] }),
   isDelete: z.boolean({ error: ErrorList["Parameter error"] }),
-  sortBy: wajibAda(ErrorList["Sort by required"]),
+  sortBy: required(ErrorList["Sort by required"]),
   sortDirection: z.enum(["asc", "desc"], {
     error: ErrorList["Sort direction only supports ascending or descending"],
   }),
@@ -81,11 +81,11 @@ export const arsipFakturSchema = z.object({
  * diperiksa sama sekali dan lolos. Perilaku itu dipertahankan — z.array()
  * tanpa .min() juga menerima larik kosong.
  */
-export const cariReturPenjualanSchema = z.object({
-  date: wajibAda(ErrorList["Parameter error"]),
+export const searchSalesReturnSchema = z.object({
+  date: required(ErrorList["Parameter error"]),
   sales_invoice: z.array(
     z.object({
-      product_id: intWajib(
+      product_id: requiredInt(
         ErrorList["Item ID required"],
         ErrorList["Item ID must be numeric"],
         1
@@ -126,9 +126,9 @@ export const cariReturPenjualanSchema = z.object({
  *
  * Statusnya tetap 400; hanya key-nya yang berubah.
  */
-export const buatFakturSchema = z.object({
-  uuid: wajibAda(ErrorList["Parameter error"]),
-  customer_id: harusAda(ErrorList["Customer ID is required"]),
+export const createInvoiceSchema = z.object({
+  uuid: required(ErrorList["Parameter error"]),
+  customer_id: present(ErrorList["Customer ID is required"]),
   discount: desimalTakNegatif(
     ErrorList["Discount required"],
     ErrorList["Discount must be numeric"]
@@ -151,7 +151,7 @@ export const buatFakturSchema = z.object({
  * Nilai pada req.params selalu teks, sehingga dipakai varian yang menerima
  * teks — kebijakan ketat hanya berlaku pada req.body.
  */
-export const paramFakturSchema = z.object({
+export const paramInvoiceSchema = z.object({
   id: z
     .any()
     .superRefine((nilai, ctx) => {
@@ -170,6 +170,6 @@ export const paramFakturSchema = z.object({
     .transform((nilai) => Number(nilai)),
 });
 
-export type ArsipFaktur = z.infer<typeof arsipFakturSchema>;
-export type BuatFaktur = z.infer<typeof buatFakturSchema>;
-export type CariReturPenjualan = z.infer<typeof cariReturPenjualanSchema>;
+export type InvoiceArchive = z.infer<typeof invoiceArchiveSchema>;
+export type CreateInvoice = z.infer<typeof createInvoiceSchema>;
+export type SearchSalesReturn = z.infer<typeof searchSalesReturnSchema>;

@@ -13,10 +13,10 @@ import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import {
-  arsipFakturSchema,
-  buatFakturSchema,
-  cariReturPenjualanSchema,
-  paramFakturSchema,
+  invoiceArchiveSchema,
+  createInvoiceSchema,
+  searchSalesReturnSchema,
+  paramInvoiceSchema,
 } from "../schemas/sales-invoice.schema";
 
 const router = Router();
@@ -37,13 +37,13 @@ router.get("/archives", salesInvoiceController.fetchAnnualArchives);
 
 router.post(
   "/archives",
-  validate(arsipFakturSchema),
+  validate(invoiceArchiveSchema),
   salesInvoiceController.fetchArchives
 );
 
 router.post(
   "/sales-return",
-  validate(cariReturPenjualanSchema),
+  validate(searchSalesReturnSchema),
   salesInvoiceController.searchSalesReturn
 );
 
@@ -54,27 +54,27 @@ router.post(
 */
 router.post(
   "/",
-  validate(buatFakturSchema),
+  validate(createInvoiceSchema),
   salesmanController.createSalesman,
   salesInvoiceController.create
 );
 
 router.get(
   "/payment/:id",
-  validate(paramFakturSchema, "params"),
+  validate(paramInvoiceSchema, "params"),
   salesInvoiceController.fetchPayments
 );
 
 router.get(
   "/:id",
-  validate(paramFakturSchema, "params"),
+  validate(paramInvoiceSchema, "params"),
   salesInvoiceController.fetchByID
 );
 
 router.delete(
   "/:id",
   administratorMiddleware,
-  validate(paramFakturSchema, "params"),
+  validate(paramInvoiceSchema, "params"),
   salesInvoiceController.delete
 );
 

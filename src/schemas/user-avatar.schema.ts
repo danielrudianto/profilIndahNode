@@ -55,7 +55,7 @@ const POLA_HEKS = /^#?([0-9A-F]{3}|[0-9A-F]{4}|[0-9A-F]{6}|[0-9A-F]{8})$/i;
  * `userId` tidak ikut divalidasi: nilainya ditulis authMiddleware ke req.body,
  * bukan dikirim klien.
  */
-export const ubahAvatarSchema = z.object({
+export const updateAvatarSchema = z.object({
   accessories: int(ErrorList["Parameter error"]),
   top: int(ErrorList["Parameter error"]),
   clothes: int(ErrorList["Parameter error"]),
@@ -68,4 +68,4 @@ export const ubahAvatarSchema = z.object({
   circle: z.boolean({ error: ErrorList["Parameter error"] }),
 });
 
-export type UbahAvatar = z.infer<typeof ubahAvatarSchema>;
+export type UpdateAvatar = z.infer<typeof updateAvatarSchema>;

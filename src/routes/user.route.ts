@@ -8,10 +8,10 @@ import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository
 import { CustomerRepository } from "../repositories/customer.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatPenggunaSchema,
-  paramPenggunaSchema,
-  ubahPenggunaSchema,
-  ubahSandiPenggunaSchema,
+  createUserSchema,
+  paramUserSchema,
+  updateUserSchema,
+  updateUserPasswordSchema,
 } from "../schemas/user.schema";
 
 const router = Router();
@@ -28,7 +28,7 @@ router.get("/profile", authController.fetchProfile);
 
 router.get(
   "/:id",
-  validate(paramPenggunaSchema, "params"),
+  validate(paramUserSchema, "params"),
   userController.fetchByID
 );
 
@@ -36,21 +36,21 @@ router.get("/", userController.fetch);
 
 router.post(
   "/changePassword",
-  validate(ubahSandiPenggunaSchema),
+  validate(updateUserPasswordSchema),
   userController.updatePassword
 );
 
 router.post(
   "/",
   administratorMiddleware,
-  validate(buatPenggunaSchema),
+  validate(createUserSchema),
   userController.create
 );
 
 router.put(
   "/",
   administratorMiddleware,
-  validate(ubahPenggunaSchema),
+  validate(updateUserSchema),
   userController.update
 );
 
@@ -62,7 +62,7 @@ router.put(
 */
 router.delete(
   "/:id",
-  validate(paramPenggunaSchema, "params"),
+  validate(paramUserSchema, "params"),
   administratorMiddleware,
   userController.toggleActive
 );

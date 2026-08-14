@@ -5,10 +5,10 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatPenggunaSchema,
-  paramPenggunaSchema,
-  ubahPenggunaSchema,
-  ubahSandiPenggunaSchema,
+  createUserSchema,
+  paramUserSchema,
+  updateUserSchema,
+  updateUserPasswordSchema,
 } from "../src/schemas/user.schema";
 
 /**
@@ -82,11 +82,11 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.get("/u/:id", validate(paramPenggunaSchema, "params"), balas);
-  app.post("/changePassword", validate(ubahSandiPenggunaSchema), balas);
-  app.post("/u", validate(buatPenggunaSchema), balas);
-  app.put("/u", validate(ubahPenggunaSchema), balas);
-  app.delete("/u/:id", validate(paramPenggunaSchema, "params"), balas);
+  app.get("/u/:id", validate(paramUserSchema, "params"), balas);
+  app.post("/changePassword", validate(updateUserPasswordSchema), balas);
+  app.post("/u", validate(createUserSchema), balas);
+  app.put("/u", validate(updateUserSchema), balas);
+  app.delete("/u/:id", validate(paramUserSchema, "params"), balas);
   return app;
 }
 
@@ -199,7 +199,7 @@ describe("Parameter :id — perilaku harus identik", () => {
 describe("Urutan bidang menentukan pesan yang muncul", () => {
   /*
     Penjaga terhadap .extend(), yang menempatkan kunci baru di BELAKANG kunci
-    yang sudah ada. Kalau ubahPenggunaSchema dirakit dengan .extend(), `id`
+    yang sudah ada. Kalau updateUserSchema dirakit dengan .extend(), `id`
     pindah ke urutan terakhir dan pesan pada badan kosong berubah.
   */
   it("badan kosong pada PUT mengeluh soal id lebih dulu", async () => {
@@ -366,7 +366,7 @@ describe("Perbedaan disengaja: nilai bukan teks ditolak pada bidang teks", () =>
  * PERBEDAAN YANG DISENGAJA #3 — teks yang hanya berisi spasi.
  *
  * notEmpty() hanya memeriksa panjang, sehingga "   " lolos dan tersimpan
- * sebagai nama atau nik yang tampak kosong di layar. teksWajib memangkas spasi
+ * sebagai nama atau nik yang tampak kosong di layar. requiredText memangkas spasi
  * lebih dulu. Perilaku ini sama dengan yang sudah berlaku pada domain auth.
  */
 describe("Perbedaan disengaja: teks berisi spasi saja ditolak", () => {
@@ -402,11 +402,11 @@ describe("Perbedaan disengaja: teks berisi spasi saja ditolak", () => {
  * PERBEDAAN YANG DISENGAJA #4 — bentuk angka eksotis pada req.params.
  *
  * isInt() lama menuntut hanya digit dengan tanda opsional, sedangkan
- * intDariTeks memakai z.coerce.number() yang menerima apa pun yang bisa
+ * intFromText memakai z.coerce.number() yang menerima apa pun yang bisa
  * dijadikan angka oleh JavaScript. Akibatnya beberapa bentuk yang dulu ditolak
  * kini lolos.
  *
- * Kelonggaran ini DITERIMA dengan sadar, bukan luput: intDariTeks adalah helper
+ * Kelonggaran ini DITERIMA dengan sadar, bukan luput: intFromText adalah helper
  * bersama yang sudah dipakai sepuluh domain lain, dan membuat satu berkas ini
  * memakai aturan sendiri justru menciptakan ketidakseragaman yang lebih mahal
  * daripada bentuk masukan yang tak pernah dikirim klien mana pun. Nilai yang

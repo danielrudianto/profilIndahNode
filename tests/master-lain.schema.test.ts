@@ -7,14 +7,16 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatMerekSchema,
-  buatTipePengeluaranSchema,
-  paramMerekSchema,
-  paramTipePengeluaranSchema,
-  paramTipeProdukSchema,
-  ubahMerekSchema,
-  ubahTipePengeluaranSchema,
-} from "../src/schemas/master-lain.schema";
+  createBrandSchema,
+  paramBrandSchema,
+  updateBrandSchema,
+} from "../src/schemas/product-brand.schema";
+import {
+  createExpenseTypeSchema,
+  paramExpenseTypeSchema,
+  updateExpenseTypeSchema,
+} from "../src/schemas/expense-type.schema";
+import { paramProductTypeSchema } from "../src/schemas/product-type.schema";
 
 /**
  * Perbandingan perilaku untuk merek produk, tipe produk, dan tipe pengeluaran.
@@ -107,17 +109,17 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.get("/merek/:id", validate(paramMerekSchema, "params"), balas);
-  app.post("/merek", validate(buatMerekSchema), balas);
-  app.put("/merek", validate(ubahMerekSchema), balas);
-  app.get("/tipe-produk/:id", validate(paramTipeProdukSchema, "params"), balas);
+  app.get("/merek/:id", validate(paramBrandSchema, "params"), balas);
+  app.post("/merek", validate(createBrandSchema), balas);
+  app.put("/merek", validate(updateBrandSchema), balas);
   app.get(
-    "/tipe-biaya/:id",
-    validate(paramTipePengeluaranSchema, "params"),
+    "/tipe-produk/:id",
+    validate(paramProductTypeSchema, "params"),
     balas
   );
-  app.post("/tipe-biaya", validate(buatTipePengeluaranSchema), balas);
-  app.put("/tipe-biaya", validate(ubahTipePengeluaranSchema), balas);
+  app.get("/tipe-biaya/:id", validate(paramExpenseTypeSchema, "params"), balas);
+  app.post("/tipe-biaya", validate(createExpenseTypeSchema), balas);
+  app.put("/tipe-biaya", validate(updateExpenseTypeSchema), balas);
   return app;
 }
 

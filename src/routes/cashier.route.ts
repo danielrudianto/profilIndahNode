@@ -8,9 +8,9 @@ import { CustomerRepository } from "../repositories/customer.repository";
 import { prisma } from "../utils/database.helper";
 import { validate } from "../utils/validate.helper";
 import {
-  ambilTagihanOtcSchema,
-  hapusTagihanSchema,
-  konfirmasiTagihanSchema,
+  getBillByOtcSchema,
+  deleteBillSchema,
+  confirmBillSchema,
 } from "../schemas/cashier.schema";
 
 const router = Router();
@@ -35,13 +35,13 @@ router.get("/", userController.fetchStatistics);
 */
 router.get(
   "/bill/:otc",
-  validate(ambilTagihanOtcSchema, "params"),
+  validate(getBillByOtcSchema, "params"),
   draftBillController.fetchByOTC
 );
 
 router.post(
   "/bill/delete",
-  validate(hapusTagihanSchema),
+  validate(deleteBillSchema),
   draftBillController.deleteByID
 );
 
@@ -52,7 +52,7 @@ router.post(
 */
 router.post(
   "/bill/confirm",
-  validate(konfirmasiTagihanSchema),
+  validate(confirmBillSchema),
   draftBillController.confirmByID
 );
 

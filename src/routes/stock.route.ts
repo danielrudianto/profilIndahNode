@@ -1,15 +1,20 @@
 import { Router } from "express";
-import { body, param, query } from "express-validator";
-import ErrorList from "../constants/error_list";
 import ProductStockController from "../controllers/product-stock.controller";
 import { prisma } from "../utils/database.helper";
-import ErrorHelper from "../utils/error.helper";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { ProductRepository } from "../repositories/product.repository";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
 import { ProductStockCardController } from "../controllers/product-stock-card.controller";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
+import { validate } from "../utils/validate.helper";
+import {
+  inadequateStockSchema,
+  paramStockSchema,
+  problematicStockSchema,
+  stockListQuerySchema,
+  stockMutationSchema,
+} from "../schemas/stock.schema";
 
 const router = Router();
 
@@ -27,114 +32,50 @@ const stockCardController = new ProductStockCardController(
 
 router.get(
   "/product/:id",
-  param("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramStockSchema, "params"),
   productStockController.fetchByProductID
 );
 
 router.get(
   "/package/:id",
-  param("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramStockSchema, "params"),
   productStockController.fetchByPackageID
 );
 
+/*
+  Dua sumber diperiksa terpisah karena validate() menerima satu sumber saja.
+  Urutannya harus params lebih dulu: rantai lama juga memasang aturan parameter
+  sebelum aturan kueri, dan pesan yang dikirim ke pengguna adalah pesan pertama
+  yang gagal.
+*/
 router.get(
   "/:id",
-  param("id").exists().isNumeric().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  query("page").notEmpty().withMessage(ErrorList["Page is required"]),
-  query("page")
-    .isInt({
-      min: 1,
-    })
-    .withMessage(ErrorList["Page must be numeric"]),
-  query("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
-  query("pageSize")
-    .isInt({
-      min: 10,
-    })
-    .withMessage(ErrorList["Page size must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramStockSchema, "params"),
+  validate(stockListQuerySchema, "query"),
   stockCardController.fetchByID
 );
 
 router.get(
   "/",
-  query("page").notEmpty().withMessage(ErrorList["Page is required"]),
-  query("page")
-    .isInt({
-      min: 1,
-    })
-    .withMessage(ErrorList["Page must be numeric"]),
-  query("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
-  query("pageSize")
-    .isInt({
-      min: 10,
-    })
-    .withMessage(ErrorList["Page size must be numeric"]),
-  ErrorHelper.intercept,
+  validate(stockListQuerySchema, "query"),
   productStockController.fetch
 );
 
 router.post(
   "/problematic",
-  body("brands").exists().withMessage(ErrorList["Brand is required"]),
-  body("brands").isArray().withMessage(ErrorList["Brand must be an array"]),
-  body("brands").custom((value) => {
-    if (!value.every((item: any) => Number.isInteger(item))) {
-      throw new Error(ErrorList["Brand must be an integer"]);
-    }
-    return true;
-  }),
-  body("types").exists().withMessage(ErrorList["Type is required"]),
-  body("types").isArray().withMessage(ErrorList["Type must be an array"]),
-  body("types").custom((value) => {
-    if (!value.every((item: any) => Number.isInteger(item))) {
-      throw new Error(ErrorList["Type must be an integer"]);
-    }
-    return true;
-  }),
-  ErrorHelper.intercept,
+  validate(problematicStockSchema),
   productStockController.fetchProblematic
 );
 
 router.post(
   "/inadequate",
-  body("brands").exists().withMessage(ErrorList["Brand is required"]),
-  body("brands").isArray().withMessage(ErrorList["Brand must be an array"]),
-  body("brands").custom((value) => {
-    if (!value.every((item: any) => Number.isInteger(item))) {
-      throw new Error(ErrorList["Brand must be an integer"]);
-    }
-    return true;
-  }),
-  body("types").exists().withMessage(ErrorList["Type is required"]),
-  body("types").isArray().withMessage(ErrorList["Type must be an array"]),
-  body("types").custom((value) => {
-    if (!value.every((item: any) => Number.isInteger(item))) {
-      throw new Error(ErrorList["Type must be an integer"]);
-    }
-    return true;
-  }),
-  ErrorHelper.intercept,
+  validate(inadequateStockSchema),
   productStockController.fetchInadequate
 );
 
 router.post(
   "/mutation",
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("viewBy").notEmpty().withMessage(ErrorList["View by mutation required"]),
-  body("viewBy")
-    .isIn(["date", "created"])
-    .withMessage(
-      ErrorList[
-        "View by mutation must be either document date or creation date"
-      ]
-    ),
-  ErrorHelper.intercept,
+  validate(stockMutationSchema),
   stockCardController.fetchMutation
 );
 

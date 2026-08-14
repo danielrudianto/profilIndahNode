@@ -1,4 +1,4 @@
-import { IExpenseType } from "../interfaces/expense.type.interface";
+import { IExpenseType } from "../interfaces/expense-type.interface";
 import { prisma } from "../utils/database.helper";
 
 export class ExpenseTypeModel {

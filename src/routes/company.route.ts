@@ -5,10 +5,10 @@ import { CompanyRepository } from "../repositories/company.repository";
 import { prisma } from "../utils/database.helper";
 import { validate } from "../utils/validate.helper";
 import {
-  buatPerusahaanSchema,
-  paramPerusahaanSchema,
-  ubahPerusahaanSchema,
-} from "../schemas/master.schema";
+  createCompanySchema,
+  paramCompanySchema,
+  updateCompanySchema,
+} from "../schemas/company.schema";
 
 const router = Router();
 
@@ -25,7 +25,7 @@ const companyController = new CompanyController(new CompanyRepository(prisma));
 router.post(
   "/",
   administratorMiddleware,
-  validate(buatPerusahaanSchema),
+  validate(createCompanySchema),
   companyController.create
 );
 
@@ -47,7 +47,7 @@ router.get("/autocomplete", companyController.fetchAutocomplete);
 router.get(
   "/:id",
   administratorMiddleware,
-  validate(paramPerusahaanSchema, "params"),
+  validate(paramCompanySchema, "params"),
   companyController.fetchByID
 );
 
@@ -66,7 +66,7 @@ router.get("/", companyController.fetch);
 // - 400 Bad Request: Validation error
 router.delete(
   "/:id",
-  validate(paramPerusahaanSchema, "params"),
+  validate(paramCompanySchema, "params"),
   companyController.delete
 );
 
@@ -78,6 +78,6 @@ router.delete(
 // Response:
 // - 200 OK: Company successfully updated
 // - 400 Bad Request: Validation error
-router.put("/", validate(ubahPerusahaanSchema), companyController.update);
+router.put("/", validate(updateCompanySchema), companyController.update);
 
 export default router;

@@ -1,9 +1,13 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
 import AdjustmentCaseController from "../controllers/adjustment-case.controller";
-import ErrorHelper from "../utils/error.helper";
 import { superadministratorMiddleware } from "../utils/auth.helper";
+import { validate } from "../utils/validate.helper";
+import {
+  archiveAdjustmentCaseSchema,
+  bodyIdAdjustmentCaseSchema,
+  createAdjustmentCaseSchema,
+  paramAdjustmentCaseSchema,
+} from "../schemas/adjustment-case.schema";
 import { AdjustmentCaseRepository } from "../repositories/adjustment-case.repository";
 import { prisma } from "../utils/database.helper";
 import { StockInRepository } from "../repositories/stock-in.repository";
@@ -21,95 +25,53 @@ const adjustmentCaseController = new AdjustmentCaseController(
   new StockCardRepository(prisma)
 );
 
-router.get(
-  "/archives",
-  ErrorHelper.intercept,
-  adjustmentCaseController.fetchAnnualArchives
-);
+/*
+  Rute ini dulu memasang ErrorHelper.intercept tanpa satu pun validator di
+  depannya, sehingga tidak pernah ada galat untuk ditangkap. Middleware kosong
+  itu dilepas; perilakunya tidak berubah.
+*/
+router.get("/archives", adjustmentCaseController.fetchAnnualArchives);
 
 router.post(
   "/archives",
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("isConfirm").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isReject").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isLost")
-    .isBoolean()
-    .withMessage(ErrorList["Adjustment case lost type must be boolean"]),
-  body("isFound")
-    .isBoolean()
-    .withMessage(ErrorList["Adjustment case found type must be boolean"]),
-  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
-  body("sortDirection")
-    .isIn(["asc", "desc"])
-    .withMessage(
-      ErrorList["Sort direction only supports ascending or descending"]
-    ),
-  ErrorHelper.intercept,
+  validate(archiveAdjustmentCaseSchema),
   adjustmentCaseController.fetchArchives
 );
 
+/*
+  superadministratorMiddleware tetap berjalan sebelum validasi, persis seperti
+  rantai lama: permintaan tanpa wewenang ditolak lebih dulu, sehingga bentuk
+  badan permintaan tidak pernah bocor ke pemanggil yang tidak berhak.
+*/
 router.post(
   "/approve",
   superadministratorMiddleware,
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(bodyIdAdjustmentCaseSchema),
   adjustmentCaseController.approve
 );
 router.post(
   "/reject",
   superadministratorMiddleware,
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(bodyIdAdjustmentCaseSchema),
   adjustmentCaseController.reject
 );
 
 router.get("/unconfirmed", adjustmentCaseController.fetchUnconfirmed);
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(paramAdjustmentCaseSchema, "params"),
   adjustmentCaseController.fetchByID
 );
 
 router.post(
   "/",
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("type")
-    .isInt({ min: 0 })
-    .withMessage(ErrorList["Adjustment case type is required"]),
-  body("adjustment_case").isArray().withMessage(ErrorList["Parameter error"]),
-  body("adjustment_case.*.product_id")
-    .notEmpty()
-    .withMessage(ErrorList["Product ID is required"]),
-  body("adjustment_case.*.quantity")
-    .notEmpty()
-    .withMessage(ErrorList["Quantity is required"]),
-  body("adjustment_case.*.quantity")
-    .isFloat({
-      min: 0,
-    })
-    .withMessage(ErrorList["Quantity must be numeric"]),
-  body("adjustment_case.*.product_unit_id")
-    .exists()
-    .withMessage(ErrorList["Product unit ID is required"]),
-  ErrorHelper.intercept,
+  validate(createAdjustmentCaseSchema),
   adjustmentCaseController.create
 );
 
 router.delete(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(paramAdjustmentCaseSchema, "params"),
   adjustmentCaseController.delete
 );
 

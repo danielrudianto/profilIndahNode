@@ -5,9 +5,9 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  ambilKelebihanBayarSchema,
-  buatKelebihanBayarSchema,
-  laporanPengembalianSchema,
+  getOverpaymentSchema,
+  createOverpaymentSchema,
+  refundReportSchema,
 } from "../src/schemas/overpayment.schema";
 
 /**
@@ -94,9 +94,9 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/return", validate(laporanPengembalianSchema), balas);
-  app.post("/", validate(buatKelebihanBayarSchema), balas);
-  app.get("/:id", validate(ambilKelebihanBayarSchema, "params"), balas);
+  app.post("/return", validate(refundReportSchema), balas);
+  app.post("/", validate(createOverpaymentSchema), balas);
+  app.get("/:id", validate(getOverpaymentSchema, "params"), balas);
   return app;
 }
 
@@ -412,7 +412,7 @@ describe("Kebijakan ketat: nilai yang dulu diterima kini ditolak", () => {
 
   /*
     notEmpty() hanya mengukur panjang teks, jadi teks berisi spasi saja lolos.
-    teksWajib memangkasnya lebih dulu. Perbedaan ini sudah berlaku di domain
+    requiredText memangkasnya lebih dulu. Perbedaan ini sudah berlaku di domain
     lain (lihat tests/auth.schema.test.ts) dan dipertahankan agar seragam.
   */
   it("tanggal berisi spasi saja: dulu diterima, sekarang ditolak", async () => {
@@ -434,12 +434,12 @@ describe("Kebijakan ketat: nilai yang dulu diterima kini ditolak", () => {
  * PERUBAHAN PERILAKU YANG DISENGAJA — penulisan angka pada req.params.
  *
  * Arahnya berlawanan dengan kebijakan ketat di atas: di sini skema baru justru
- * lebih longgar. intWajibDariTeks memakai Number(), sedangkan isInt() bekerja
+ * lebih longgar. requiredIntFromText memakai Number(), sedangkan isInt() bekerja
  * pada bentuk teksnya dan hanya menerima deretan digit.
  *
  * Yang lolos tetap bilangan bulat >= 0 saat sampai ke controller, jadi tidak
  * ada nilai baru yang bisa mencapai basis data — yang berubah hanya penulisan
- * yang diampuni. Perlakuan ini sama dengan paramPiutangPelangganSchema di
+ * yang diampuni. Perlakuan ini sama dengan paramCustomerReceivableSchema di
  * receivable.schema.ts, supaya penulisan id tidak berbeda antar rute.
  */
 describe("Perbedaan yang disengaja: penulisan id pada params", () => {

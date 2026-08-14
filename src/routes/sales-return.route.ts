@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
 import { prisma } from "../utils/database.helper";
-import ErrorList from "../constants/error_list";
 import SalesReturnController from "../controllers/sales-return.controller";
 import { administratorMiddleware } from "../utils/auth.helper";
-import ErrorHelper from "../utils/error.helper";
+import { validate } from "../utils/validate.helper";
+import {
+  archiveSalesReturnSchema,
+  createSalesReturnSchema,
+  paramSalesReturnSchema,
+} from "../schemas/sales-return.schema";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
@@ -24,83 +27,36 @@ const salesReturnController = new SalesReturnController(
 router.get("/archives", salesReturnController.fetchAnnualArchives);
 router.post(
   "/archives",
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("isActive").exists().withMessage(ErrorList["Parameter error"]),
-  body("isDelete").exists().withMessage(ErrorList["Parameter error"]),
-  body("isActive").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
-  body("sortDirection")
-    .isIn(["asc", "desc"])
-    .withMessage(
-      ErrorList["Sort direction only supports ascending or descending"]
-    ),
-  ErrorHelper.intercept,
+  validate(archiveSalesReturnSchema),
   salesReturnController.fetchArchives
 );
 
 router.post(
   "/",
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("payment_method_id")
-    .notEmpty()
-    .withMessage(ErrorList["Payment method required"]),
-  body("payment_method_id")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["Payment method must be numeric"]),
-  body("sales_return")
-    .isArray()
-    .withMessage(ErrorList["Sales return items required"]),
-  body("sales_return.*.sales_invoice_id")
-    .notEmpty()
-    .withMessage(ErrorList["Sales invoice ID is required"]),
-  body("sales_return.*.sales_invoice_id")
-    .isInt({
-      min: 1,
-    })
-    .withMessage(ErrorList["Sales invoice ID must be numeric"]),
-  body("sales_return.*.quantity")
-    .notEmpty()
-    .withMessage(ErrorList["Quantity is required"]),
-  body("sales_return.*.quantity")
-    .isFloat({
-      min: 0.01,
-    })
-    .withMessage(ErrorList["Quantity must be numeric"]),
-  ErrorHelper.intercept,
+  validate(createSalesReturnSchema),
   salesReturnController.create
 );
 
 router.get(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramSalesReturnSchema, "params"),
   salesReturnController.fetchByID
 );
 
 // router.get(
 //   "/code/:id",
-//   param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-//   param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-//   ErrorHelper.intercept,
+//   validate(paramSalesReturnSchema, "params"),
 //   SalesReturnController.fetchCodeByID
 // );
 
+/*
+  Urutan middleware dipertahankan apa adanya: pemeriksaan parameter berjalan
+  lebih dulu, baru administratorMiddleware. Menukarnya akan mengubah balasan
+  untuk permintaan yang sekaligus cacat dan tidak berwenang.
+*/
 router.delete(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramSalesReturnSchema, "params"),
   administratorMiddleware,
   salesReturnController.deleteByID
 );

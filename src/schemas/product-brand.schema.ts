@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intDariTeks, teksWajib } from "./common.schema";
+import { intFromText, requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk merek produk, tipe produk, dan tipe pengeluaran.
@@ -37,14 +37,14 @@ const PANJANG = {
 /* ------------------------------------------------------------------ */
 
 const merekBase = z.object({
-  name: teksWajib(ErrorList["Parameter error"]).max(
+  name: requiredText(ErrorList["Parameter error"]).max(
     PANJANG.merek,
     ErrorList["Brand name too long"]
   ),
 });
 
 /** POST /product-brand — hanya memeriksa name. */
-export const buatMerekSchema = merekBase;
+export const createBrandSchema = merekBase;
 
 /**
  * PUT /product-brand
@@ -56,7 +56,7 @@ export const buatMerekSchema = merekBase;
  * Urutan itu ditiru dengan superRefine agar pemeriksaannya berjalan pada
  * saat yang sama.
  */
-export const ubahMerekSchema = z
+export const updateBrandSchema = z
   .object({
     // .optional() diperlukan: di Zod, kunci objek tetap wajib ada walaupun
     // tipenya z.any(). Tanpa ini pemeriksaan gagal di lapisan objek dengan
@@ -91,71 +91,6 @@ export const ubahMerekSchema = z
     }
   });
 
-export const paramMerekSchema = z.object({
-  id: intDariTeks(ErrorList["Parameter error"], 1),
-});
-
-/* ------------------------------------------------------------------ */
-/* Tipe produk                                                         */
-/* ------------------------------------------------------------------ */
-
-/**
- * POST dan PUT /product-type sama sekali tidak divalidasi pada rantai lama.
- * Skema di bawah disediakan tetapi BELUM dipasang ke route, karena memasangnya
- * berarti menolak permintaan yang selama ini diterima. Pemasangannya perlu
- * diputuskan terpisah.
- */
-export const buatTipeProdukSchema = z.object({
-  name: teksWajib(ErrorList["Parameter error"]).max(
-    PANJANG.tipeProduk,
-    ErrorList["Product type name too long"]
-  ),
-});
-
-export const paramTipeProdukSchema = z.object({
-  id: intDariTeks(ErrorList["Parameter error"], 1),
-});
-
-/* ------------------------------------------------------------------ */
-/* Tipe pengeluaran                                                    */
-/* ------------------------------------------------------------------ */
-
-const tipePengeluaranBase = z.object({
-  name: teksWajib(ErrorList["Expense type name is required"]).max(
-    PANJANG.tipePengeluaran,
-    ErrorList["Expense type name too long"]
-  ),
-  description: teksWajib(ErrorList["Expense type description is required"]),
-});
-
-/** POST /expense-type */
-export const buatTipePengeluaranSchema = tipePengeluaranBase;
-
-/** PUT /expense-type — urutan lama: name, description, lalu id. */
-export const ubahTipePengeluaranSchema = z.object({
-  ...tipePengeluaranBase.shape,
-  id: z
-    .any()
-    .refine((nilai) => nilai !== undefined && !isNaN(Number(nilai)), {
-      message: ErrorList["ID is required"],
-    })
-    .refine((nilai) => Number.isInteger(Number(nilai)) && Number(nilai) >= 1, {
-      message: ErrorList["ID must be integer"],
-    }),
-});
-
-/**
- * Parameter jalur pada expense-type memakai pesan yang berbeda dari domain
- * lain: "ID is required" untuk nilai yang bukan angka, lalu "ID must be
- * integer" untuk pecahan atau nilai di bawah 1.
- */
-export const paramTipePengeluaranSchema = z.object({
-  id: z
-    .any()
-    .refine((nilai) => nilai !== undefined && !isNaN(Number(nilai)), {
-      message: ErrorList["ID is required"],
-    })
-    .refine((nilai) => Number.isInteger(Number(nilai)) && Number(nilai) >= 1, {
-      message: ErrorList["ID must be integer"],
-    }),
+export const paramBrandSchema = z.object({
+  id: intFromText(ErrorList["Parameter error"], 1),
 });

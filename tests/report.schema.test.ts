@@ -6,10 +6,10 @@ import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
   outputSchema,
-  penjualanHarianSchema,
-  periodeBolehTahunanSchema,
-  periodeKueriSchema,
-  periodeWajibBulanSchema,
+  dailySalesSchema,
+  optionalMonthPeriodSchema,
+  queryPeriodSchema,
+  requiredMonthPeriodSchema,
 } from "../src/schemas/report.schema";
 
 /**
@@ -80,9 +80,9 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/wajib", validate(periodeWajibBulanSchema), balas);
-  app.post("/tahunan", validate(periodeBolehTahunanSchema), balas);
-  app.get("/kueri", validate(periodeKueriSchema, "query"), balas);
+  app.post("/wajib", validate(requiredMonthPeriodSchema), balas);
+  app.post("/tahunan", validate(optionalMonthPeriodSchema), balas);
+  app.get("/kueri", validate(queryPeriodSchema, "query"), balas);
   return app;
 }
 
@@ -219,7 +219,7 @@ describe("Skema lain pada domain laporan", () => {
   });
 
   it("penjualan harian menerima day 0 sebagai penanda seluruh bulan", () => {
-    const hasil = penjualanHarianSchema.safeParse({
+    const hasil = dailySalesSchema.safeParse({
       day: 0,
       month: 5,
       year: 2026,
@@ -229,7 +229,7 @@ describe("Skema lain pada domain laporan", () => {
   });
 
   it("penjualan harian menolak day 32", () => {
-    const hasil = penjualanHarianSchema.safeParse({
+    const hasil = dailySalesSchema.safeParse({
       day: 32,
       month: 5,
       year: 2026,

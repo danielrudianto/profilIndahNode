@@ -1,4 +1,4 @@
-import { rentangBulan, rentangTahun } from "../src/utils/tanggal.helper";
+import { rentangBulan, rentangTahun } from "../src/utils/date.helper";
 
 /** Bentuk tanggal lokal sebagai YYYY-MM-DD supaya mudah dibaca saat gagal. */
 const ymd = (d: Date) =>

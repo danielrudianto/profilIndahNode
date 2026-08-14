@@ -39,7 +39,7 @@ import ErrorList from "../constants/error_list";
  *
  * Yang TIDAK terkena kebijakan ini adalah req.params dan req.query — di sana
  * nilai memang selalu teks dan tidak ada tipe asli yang bisa dipertahankan.
- * Gunakan varian *DariTeks untuk keduanya.
+ * Gunakan varian *FromText untuk keduanya.
  */
 
 /**
@@ -51,7 +51,7 @@ import ErrorList from "../constants/error_list";
  * tipe aslinya, dan menerima "5" sebagai angka akan menyembunyikan kesalahan
  * di sisi pemanggil.
  */
-export const intDariTeks = (pesan: string, min = 0) =>
+export const intFromText = (pesan: string, min = 0) =>
   z.coerce.number({ error: pesan }).int(pesan).min(min, pesan);
 
 /** Bilangan bulat dari badan JSON, tanpa pemaksaan tipe. */
@@ -67,7 +67,7 @@ export const int = (pesan: string, min = 0) =>
  * Skema dengan satu pesan saja akan mengubah kalimat yang dilihat pengguna
  * ketika bidangnya tidak dikirim.
  */
-export const intWajib = (
+export const requiredInt = (
   pesanKosong: string,
   pesanSalah: string,
   min: number,
@@ -87,7 +87,7 @@ export const intWajib = (
 };
 
 /**
- * Sama seperti intWajib, untuk nilai yang datang sebagai teks (req.query).
+ * Sama seperti requiredInt, untuk nilai yang datang sebagai teks (req.query).
  *
  * Tidak memakai z.coerce. Pemaksaan tipe dijalankan SEBELUM validasi, sehingga
  * nilai yang tidak dikirim berubah menjadi NaN lebih dulu dan tidak lagi bisa
@@ -96,7 +96,7 @@ export const intWajib = (
  *
  * Karena itu nilai mentahnya diperiksa sendiri di sini, baru diubah ke angka.
  */
-export const intWajibDariTeks = (
+export const requiredIntFromText = (
   pesanKosong: string,
   pesanSalah: string,
   min: number,
@@ -123,7 +123,7 @@ export const intWajibDariTeks = (
     .transform((nilai) => Number(nilai));
 
 /** Teks yang tidak boleh kosong maupun hanya berisi spasi. */
-export const teksWajib = (pesan: string) =>
+export const requiredText = (pesan: string) =>
   z
     .string({ error: pesan })
     .refine((nilai) => nilai.trim().length > 0, { message: pesan });
@@ -134,9 +134,9 @@ export const teksWajib = (pesan: string) =>
  *
  * Dipakai pada bidang yang rantai lamanya memang hanya memeriksa keberadaan
  * dan belum bisa diketatkan tanpa membahasnya dengan sisi klien lebih dulu.
- * Untuk bidang teks yang jelas harus berupa teks, pakai teksWajib.
+ * Untuk bidang teks yang jelas harus berupa teks, pakai requiredText.
  */
-export const wajibAda = (pesan: string) =>
+export const required = (pesan: string) =>
   z
     .any()
     .refine(
@@ -145,12 +145,12 @@ export const wajibAda = (pesan: string) =>
     );
 
 /** Nilai yang harus ada — meniru exists(); teks kosong tetap lolos. */
-export const harusAda = (pesan: string) =>
+export const present = (pesan: string) =>
   z.any().refine((nilai) => nilai !== undefined, { message: pesan });
 
 /** Parameter jalur `:id`. */
 export const paramId = z.object({
-  id: intDariTeks(ErrorList["Parameter error"]),
+  id: intFromText(ErrorList["Parameter error"]),
 });
 
 /**
@@ -159,7 +159,7 @@ export const paramId = z.object({
  * Ketiganya opsional: bila tidak dikirim, controller memakai nilai bawaan
  * lewat translatePage/translatePageSize/translateKeyword.
  */
-export const kueriDaftar = z.object({
+export const listQuery = z.object({
   page: z.coerce.number().int().min(1).optional(),
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   keyword: z.string().optional(),
@@ -172,7 +172,7 @@ export const kueriDaftar = z.object({
  * 0-11 lalu menambahkan 1 sebelum memanggil; yang sampai ke sini harus sudah
  * dalam 1-12.
  */
-export const periodeBulan = z.object({
+export const monthPeriod = z.object({
   month: int(ErrorList["Month must be numeric"], 1).max(
     12,
     ErrorList["Month must be numeric"]

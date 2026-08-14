@@ -1,4 +1,4 @@
-import { ExpenseTypeModel } from "../models/expense.type.model";
+import { ExpenseTypeModel } from "../models/expense-type.model";
 
 export interface IExpenseType {
   id?: number;

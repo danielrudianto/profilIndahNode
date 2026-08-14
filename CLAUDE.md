@@ -83,9 +83,9 @@ accepted `"5"` and `notEmpty()` accepted `123` and even objects (stored as
 `"[object Object]"`). On `req.body` the schemas use `z.number()`/`z.string()`
 and reject both. This is a real behavior change and must ship with the
 frontend. `req.params`/`req.query` are exempt — values there are always text,
-so use the `*DariTeks` helpers. The policy is documented in
+so use the `*FromText` helpers. The policy is documented in
 `src/schemas/common.schema.ts` and locked by
-`tests/kebijakan-ketat.schema.test.ts`; that guard exists because the change
+`tests/strict-policy.schema.test.ts`; that guard exists because the change
 first slipped in untested, every migration case having happened to use the
 already-correct type.
 

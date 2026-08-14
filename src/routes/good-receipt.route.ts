@@ -1,17 +1,25 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
 import GoodReceiptController from "../controllers/good-receipt.controller";
-import ErrorHelper from "../utils/error.helper";
 import {
   putriForbiddenMiddleware,
   superadministratorMiddleware,
 } from "../utils/auth.helper";
+import { validate } from "../utils/validate.helper";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { prisma } from "../utils/database.helper";
 import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
+import {
+  archiveGoodReceiptSchema,
+  checkGoodReceiptSchema,
+  confirmGoodReceiptSchema,
+  createGoodReceiptSchema,
+  deleteGoodReceiptSchema,
+  paramGoodReceiptSchema,
+  rejectGoodReceiptSchema,
+  updateGoodReceiptSchema,
+} from "../schemas/good-receipt.schema";
 
 const router = Router();
 
@@ -23,122 +31,39 @@ const goodReceiptController = new GoodReceiptController(
 );
 
 router.get("/archives", goodReceiptController.fetchAnnualArchives);
+
 router.post(
   "/archives",
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("isActive").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
-  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
-  body("sortDirection")
-    .isIn(["asc", "desc"])
-    .withMessage(
-      ErrorList["Sort direction only supports ascending or descending"]
-    ),
-  ErrorHelper.intercept,
+  validate(archiveGoodReceiptSchema),
   goodReceiptController.fetchArchives
 );
 
 router.post(
   "/check",
-  body("name").exists().withMessage(ErrorList["Name required"]),
-  ErrorHelper.intercept,
+  validate(checkGoodReceiptSchema),
   goodReceiptController.check
 );
 
 router.post(
   "/",
   putriForbiddenMiddleware,
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
-  body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
-  body("good_receipt")
-    .notEmpty()
-    .withMessage(ErrorList["Good receipt required"]),
-  body("good_receipt")
-    .isArray()
-    .withMessage(ErrorList["Good receipt must be array"]),
-  body("good_receipt.*.product_id")
-    .notEmpty()
-    .withMessage(ErrorList["Product ID is required"]),
-  body("good_receipt.*.product_id")
-    .isInt({ min: 1 })
-    .withMessage(ErrorList["Product ID must be numeric"]),
-  body("good_receipt.*.price")
-    .notEmpty()
-    .withMessage(ErrorList["Price is required"]),
-  body("good_receipt.*.price")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Price must be numeric"]),
-  body("good_receipt.*.discount")
-    .notEmpty()
-    .withMessage(ErrorList["Discount required"]),
-  body("good_receipt.*.discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Discount must be numeric"]),
-  body("good_receipt.*.quantity")
-    .notEmpty()
-    .withMessage(ErrorList["Quantity required"]),
-  body("good_receipt.*.quantity")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Quantity must be numeric"]),
-  ErrorHelper.intercept,
+  validate(createGoodReceiptSchema),
   goodReceiptController.create
 );
 
+/*
+  CACAT KODE LAMA YANG SENGAJA DIPERTAHANKAN: rute POST "/" berikut tidak
+  pernah berjalan. Express memilih rute pertama yang cocok, dan
+  putriForbiddenMiddleware di atas memanggil next() biasa — bukan
+  next("route") — sehingga rantai POST "/" yang pertama selalu berakhir di
+  goodReceiptController.create. Definisi kedua ini duplikat dari PUT "/" di
+  bawah, sampai ke pesan galatnya. Dibiarkan apa adanya karena menghapus rute
+  adalah perubahan permukaan API, bukan bagian dari migrasi validasi.
+*/
 router.post(
   "/",
   superadministratorMiddleware,
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("name").notEmpty().withMessage(ErrorList["Invoice name required"]),
-  body("faktur").exists().withMessage(ErrorList["Tax invoice required"]),
-  body("invoice_name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
-  body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
-  body("good_receipt")
-    .notEmpty()
-    .withMessage(ErrorList["Good receipt required"]),
-  body("good_receipt")
-    .isArray()
-    .withMessage(ErrorList["Good receipt must be array"]),
-  body("good_receipt.*.product_id")
-    .notEmpty()
-    .withMessage(ErrorList["Product ID is required"]),
-  body("good_receipt.*.product_id")
-    .isInt({ min: 1 })
-    .withMessage(ErrorList["Product ID must be numeric"]),
-  body("good_receipt.*.price")
-    .notEmpty()
-    .withMessage(ErrorList["Price is required"]),
-  body("good_receipt.*.price")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Price must be numeric"]),
-  body("good_receipt.*.discount")
-    .notEmpty()
-    .withMessage(ErrorList["Discount required"]),
-  body("good_receipt.*.discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Discount must be numeric"]),
-  body("good_receipt.*.quantity")
-    .notEmpty()
-    .withMessage(ErrorList["Quantity required"]),
-  body("good_receipt.*.quantity")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Quantity must be numeric"]),
-  body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
-  body("discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Discount must be numeric"]),
-  ErrorHelper.intercept,
+  validate(updateGoodReceiptSchema),
   goodReceiptController.update
 );
 
@@ -146,106 +71,33 @@ router.get("/unconfirmed", goodReceiptController.fetchUnconfirmed);
 
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(paramGoodReceiptSchema, "params"),
   goodReceiptController.fetchByID
 );
 
 router.put(
   "/confirm",
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  body("name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("invoice_name")
-    .notEmpty()
-    .withMessage(ErrorList["Invoice name required"]),
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("faktur").exists().withMessage(ErrorList["Tax invoice required"]),
-  body("good_receipt")
-    .isArray()
-    .withMessage(ErrorList["Good receipt must be array"]),
-  body("good_receipt.*.id")
-    .notEmpty()
-    .withMessage(ErrorList["Good receipt ID required"]),
-  body("good_receipt.*.price")
-    .notEmpty()
-    .withMessage(ErrorList["Price is required"]),
-  body("good_receipt.*.price")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Price must be numeric"]),
-  body("good_receipt.*.discount")
-    .notEmpty()
-    .withMessage(ErrorList["Discount required"]),
-  body("good_receipt.*.discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Discount must be numeric"]),
-  ErrorHelper.intercept,
+  validate(confirmGoodReceiptSchema),
   goodReceiptController.confirm
 );
 
 router.put(
   "/reject",
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(rejectGoodReceiptSchema),
   goodReceiptController.reject
 );
 
 router.put(
   "/",
   superadministratorMiddleware,
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("name").notEmpty().withMessage(ErrorList["Invoice name required"]),
-  body("faktur").exists().withMessage(ErrorList["Tax invoice required"]),
-  body("invoice_name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
-  body("supplier_id").notEmpty().withMessage(ErrorList["Supplier ID required"]),
-  body("good_receipt")
-    .notEmpty()
-    .withMessage(ErrorList["Good receipt required"]),
-  body("good_receipt")
-    .isArray()
-    .withMessage(ErrorList["Good receipt must be array"]),
-  body("good_receipt.*.product_id")
-    .notEmpty()
-    .withMessage(ErrorList["Product ID is required"]),
-  body("good_receipt.*.product_id")
-    .isInt({ min: 1 })
-    .withMessage(ErrorList["Product ID must be numeric"]),
-  body("good_receipt.*.price")
-    .notEmpty()
-    .withMessage(ErrorList["Price is required"]),
-  body("good_receipt.*.price")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Price must be numeric"]),
-  body("good_receipt.*.discount")
-    .notEmpty()
-    .withMessage(ErrorList["Discount required"]),
-  body("good_receipt.*.discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Discount must be numeric"]),
-  body("good_receipt.*.quantity")
-    .notEmpty()
-    .withMessage(ErrorList["Quantity required"]),
-  body("good_receipt.*.quantity")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Quantity must be numeric"]),
-  body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
-  body("discount")
-    .isFloat({ min: 0 })
-    .withMessage(ErrorList["Discount must be numeric"]),
-  ErrorHelper.intercept,
+  validate(updateGoodReceiptSchema),
   goodReceiptController.update
 );
 
 router.delete(
   "/:id",
   superadministratorMiddleware,
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(deleteGoodReceiptSchema, "params"),
   goodReceiptController.delete
 );
 

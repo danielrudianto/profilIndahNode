@@ -5,8 +5,8 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  daftarStokGudangKurangSchema,
-  daftarStokGudangSchema,
+  listInadequateWarehouseStockSchema,
+  listWarehouseStockSchema,
 } from "../src/schemas/warehouse.schema";
 
 /**
@@ -63,10 +63,10 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/product-stock", validate(daftarStokGudangSchema), balas);
+  app.post("/product-stock", validate(listWarehouseStockSchema), balas);
   app.post(
     "/product-stock/inadequate",
-    validate(daftarStokGudangKurangSchema),
+    validate(listInadequateWarehouseStockSchema),
     balas
   );
   return app;

@@ -3,8 +3,8 @@ import { SalesmanController } from "../controllers/sales.controller";
 import { redisClient } from "../utils/redis.helper";
 import { validate } from "../utils/validate.helper";
 import {
-  buatSalesmanSchema,
-  hapusSalesmanSchema,
+  createSalesmanSchema,
+  deleteSalesmanSchema,
 } from "../schemas/salesman.schema";
 
 const router = Router();
@@ -13,12 +13,12 @@ const salesmanController = new SalesmanController(redisClient);
 
 router.post(
   "/",
-  validate(buatSalesmanSchema),
+  validate(createSalesmanSchema),
   salesmanController.createSalesman
 );
 router.post(
   "/delete",
-  validate(hapusSalesmanSchema),
+  validate(deleteSalesmanSchema),
   salesmanController.deleteSalesman
 );
 

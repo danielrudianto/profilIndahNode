@@ -8,8 +8,8 @@ import { authMiddleware, authMiddlewareRole } from "../utils/auth.helper";
 import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  daftarStokGudangKurangSchema,
-  daftarStokGudangSchema,
+  listInadequateWarehouseStockSchema,
+  listWarehouseStockSchema,
 } from "../schemas/warehouse.schema";
 
 const router = Router();
@@ -30,14 +30,14 @@ const productStockController = new ProductStockController(
 router.post(
   "/product-stock",
   authMiddlewareRole,
-  validate(daftarStokGudangSchema),
+  validate(listWarehouseStockSchema),
   productStockController.fetchWarehouse
 );
 
 router.post(
   "/product-stock/inadequate",
   authMiddleware,
-  validate(daftarStokGudangKurangSchema),
+  validate(listInadequateWarehouseStockSchema),
   productStockController.fetchInadequateWarehouse
 );
 

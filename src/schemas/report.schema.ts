@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intWajib, intWajibDariTeks } from "./common.schema";
+import { requiredInt, requiredIntFromText } from "./common.schema";
 
 /**
  * Kontrak API untuk domain laporan.
@@ -34,31 +34,31 @@ const tahunKosong = ErrorList["Year is required"];
 const tahunSalah = ErrorList["Year must be numeric"];
 
 /** Bulan 1-12. Tidak menerima penanda tahunan. */
-const bulanWajib = intWajib(bulanKosong, bulanSalah, 1, 12);
+const bulanWajib = requiredInt(bulanKosong, bulanSalah, 1, 12);
 
 /** Bulan 0-12, dengan 0 berarti seluruh tahun. */
-const bulanAtauTahun = intWajib(bulanKosong, bulanSalah, 0, 12);
+const bulanAtauTahun = requiredInt(bulanKosong, bulanSalah, 0, 12);
 
-const tahun = intWajib(tahunKosong, tahunSalah, 2000);
+const tahun = requiredInt(tahunKosong, tahunSalah, 2000);
 
 /** Versi untuk req.query, yang nilainya selalu teks. */
-const bulanAtauTahunKueri = intWajibDariTeks(bulanKosong, bulanSalah, 0, 12);
-const tahunKueri = intWajibDariTeks(tahunKosong, tahunSalah, 2000);
+const bulanAtauTahunKueri = requiredIntFromText(bulanKosong, bulanSalah, 0, 12);
+const tahunKueri = requiredIntFromText(tahunKosong, tahunSalah, 2000);
 
 /** POST /report/sales, /report/purchase — bulan wajib 1-12. */
-export const periodeWajibBulanSchema = z.object({
+export const requiredMonthPeriodSchema = z.object({
   month: bulanWajib,
   year: tahun,
 });
 
 /** POST /report/profit-loss, /purchase/download, /sales/download. */
-export const periodeBolehTahunanSchema = z.object({
+export const optionalMonthPeriodSchema = z.object({
   month: bulanAtauTahun,
   year: tahun,
 });
 
 /** GET /report/sales/brand, /sales/type, /sales/sales. */
-export const periodeKueriSchema = z.object({
+export const queryPeriodSchema = z.object({
   month: bulanAtauTahunKueri,
   year: tahunKueri,
 });
@@ -70,14 +70,14 @@ export const periodeKueriSchema = z.object({
  * sama sekali. Perilaku itu dipertahankan supaya pesan yang dilihat pengguna
  * tidak berubah; pengetatan bentuk tanggal dibahas terpisah.
  */
-export const tanggalSchema = z.object({
+export const dateSchema = z.object({
   date: z.any().refine((nilai) => nilai !== undefined, {
     message: ErrorList["Date required"],
   }),
 });
 
 /** POST /report/money-receipt/dor */
-export const rentangTanggalSchema = z.object({
+export const dateRangeSchema = z.object({
   startDate: z.any().refine((nilai) => nilai !== undefined, {
     message: ErrorList["Date required"],
   }),
@@ -87,7 +87,7 @@ export const rentangTanggalSchema = z.object({
 });
 
 /** POST /report/output-company */
-export const outputPerusahaanSchema = z.object({
+export const companyOutputSchema = z.object({
   date: z.any().refine((nilai) => nilai !== undefined && String(nilai) !== "", {
     message: ErrorList["Date required"],
   }),
@@ -123,8 +123,8 @@ export const outputSchema = z.object({
  * Urutan bidang mengikuti rantai lama: day, month, year, group.
  * `day` menerima 0-31; nilai 0 dipakai sebagai penanda seluruh bulan.
  */
-export const penjualanHarianSchema = z.object({
-  day: intWajib(
+export const dailySalesSchema = z.object({
+  day: requiredInt(
     ErrorList["Day is required"],
     ErrorList["Day must be numeric"],
     0,

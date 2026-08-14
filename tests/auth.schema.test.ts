@@ -4,7 +4,7 @@ import { body } from "express-validator";
 import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
-import { masukSchema, ubahSandiSchema } from "../src/schemas/auth.schema";
+import { loginSchema, updatePasswordSchema } from "../src/schemas/auth.schema";
 
 /**
  * Perbandingan perilaku: express-validator lama versus skema Zod baru.
@@ -52,8 +52,8 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/login", validate(masukSchema), balas);
-  app.put("/password", validate(ubahSandiSchema), balas);
+  app.post("/login", validate(loginSchema), balas);
+  app.put("/password", validate(updatePasswordSchema), balas);
   return app;
 }
 

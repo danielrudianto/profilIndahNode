@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { harusAda, intWajibDariTeks, teksWajib } from "./common.schema";
+import { present, requiredIntFromText, requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk domain kelebihan bayar (overpayment).
@@ -28,10 +28,10 @@ import { harusAda, intWajibDariTeks, teksWajib } from "./common.schema";
 /**
  * Nominal uang wajib, tanpa pemaksaan tipe.
  *
- * common.schema.ts hanya menyediakan `intWajib`, dan bidang ini bukan bilangan
+ * common.schema.ts hanya menyediakan `requiredInt`, dan bidang ini bukan bilangan
  * bulat — kolomnya Decimal(12, 2), jadi 1500.50 harus tetap diterima. Karena
  * common.schema.ts tidak boleh diubah dalam perubahan ini, bentuk pecahannya
- * ditulis lokal di sini dengan pola dua-pesan yang sama seperti `intWajib`:
+ * ditulis lokal di sini dengan pola dua-pesan yang sama seperti `requiredInt`:
  * satu pesan untuk nilai yang tidak dikirim, satu untuk nilai yang dikirim
  * tetapi tidak sah. Rantai lama juga memasang dua aturan berurutan pada bidang
  * yang sama — notEmpty() lalu isFloat() — masing-masing dengan pesannya
@@ -59,11 +59,11 @@ const NOMINAL_MINIMUM = 0.1;
  *
  * Tiga tingkat ketegasan dipakai di sini, dan bedanya disengaja:
  *
- *   teksWajib   bidang yang jelas berupa teks dan rantai lamanya notEmpty()
+ *   requiredText   bidang yang jelas berupa teks dan rantai lamanya notEmpty()
  *   z.enum      bidang yang rantai lamanya isIn() dengan daftar tertutup
- *   harusAda    bidang yang rantai lamanya hanya exists()
+ *   present    bidang yang rantai lamanya hanya exists()
  *
- * `harusAda` sengaja TIDAK diganti z.number() atau z.string() walaupun
+ * `present` sengaja TIDAK diganti z.number() atau z.string() walaupun
  * kebijakan ketat di common.schema.ts mengarah ke sana. exists() meloloskan
  * null dan teks kosong, dan keempat kolomnya memang nullable di basis data
  * (customer_id Int?, payment_method_id Int?, return_payment_bank String?,
@@ -80,15 +80,15 @@ const kelebihanBayarBase = z.object({
     ditolak. JSON sudah membawa tipe aslinya, jadi menerima angka di bidang
     tanggal hanya menyembunyikan cacat di sisi pemanggil.
   */
-  date: teksWajib(ErrorList["Date required"]),
+  date: requiredText(ErrorList["Date required"]),
   value: uangWajib(
     ErrorList["Amount is required"],
     ErrorList["Amount must be numeric"],
     NOMINAL_MINIMUM
   ),
-  customer_id: harusAda(ErrorList["Customer ID is required"]),
-  payment_method_id: harusAda(ErrorList["Payment method required"]),
-  return_payment_date: teksWajib(ErrorList["Return date is required"]),
+  customer_id: present(ErrorList["Customer ID is required"]),
+  payment_method_id: present(ErrorList["Payment method required"]),
+  return_payment_date: requiredText(ErrorList["Return date is required"]),
   /*
     isIn(["Cash", "Bank transfer"]) bekerja pada bentuk teks nilainya, sehingga
     daftar tertutupnya sudah menolak semua nilai bukan teks dengan sendirinya.
@@ -99,9 +99,9 @@ const kelebihanBayarBase = z.object({
   return_payment_method: z.enum(["Cash", "Bank transfer"], {
     error: ErrorList["Return payment method must be either Cash or Transfer"],
   }),
-  return_payment_name: teksWajib(ErrorList["Return name is required"]),
-  return_payment_bank: harusAda(ErrorList["Return payment bank is required"]),
-  return_payment_number: harusAda(
+  return_payment_name: requiredText(ErrorList["Return name is required"]),
+  return_payment_bank: present(ErrorList["Return payment bank is required"]),
+  return_payment_number: present(
     ErrorList["Return payment number is required"]
   ),
 });
@@ -119,7 +119,7 @@ const kelebihanBayarBase = z.object({
  * bukan dikirim klien; memvalidasinya berarti memperlakukan identitas pemanggil
  * seolah masukan pengguna.
  */
-export const buatKelebihanBayarSchema = kelebihanBayarBase;
+export const createOverpaymentSchema = kelebihanBayarBase;
 
 /**
  * POST /overpayment/return
@@ -129,8 +129,8 @@ export const buatKelebihanBayarSchema = kelebihanBayarBase;
  * yang punya sembilan bidang lalu membuang delapan di antaranya justru
  * menyembunyikan bahwa rute ini memang hanya butuh satu bidang.
  */
-export const laporanPengembalianSchema = z.object({
-  date: teksWajib(ErrorList["Date required"]),
+export const refundReportSchema = z.object({
+  date: requiredText(ErrorList["Date required"]),
 });
 
 /**
@@ -144,17 +144,17 @@ export const laporanPengembalianSchema = z.object({
  * GET `/` — jadi `id` selalu terisi. Pesan itu tetap dipasang supaya rutenya
  * tidak bergantung pada detail perutean yang bisa berubah.
  *
- * PERUBAHAN PERILAKU YANG DISENGAJA. intWajibDariTeks mengubah teks menjadi
+ * PERUBAHAN PERILAKU YANG DISENGAJA. requiredIntFromText mengubah teks menjadi
  * angka dengan Number(), sedangkan isInt() bekerja pada bentuk teksnya.
  * Akibatnya beberapa penulisan yang dulu ditolak sekarang diterima: "1e2"
  * (100), "0x10" (16), dan " 5 ". Angkanya sendiri tetap bilangan bulat >= 0
  * saat sampai ke controller, jadi tidak ada nilai baru yang bisa lolos ke basis
  * data — yang berubah hanya penulisan yang diampuni. Perlakuan ini sama dengan
- * paramPiutangPelangganSchema di receivable.schema.ts, supaya penulisan id
+ * paramCustomerReceivableSchema di receivable.schema.ts, supaya penulisan id
  * tidak berbeda-beda antar rute.
  */
-export const ambilKelebihanBayarSchema = z.object({
-  id: intWajibDariTeks(
+export const getOverpaymentSchema = z.object({
+  id: requiredIntFromText(
     ErrorList["ID is required"],
     ErrorList["ID must be numeric"],
     0
@@ -165,7 +165,7 @@ export const ambilKelebihanBayarSchema = z.object({
  * Bentuk balasan.
  *
  * Belum dipakai untuk memvalidasi keluaran — controller masih mengirim objek
- * apa adanya. Nilainya sekarang ada pada tipe `KelebihanBayar` di bawah, yang
+ * apa adanya. Nilainya sekarang ada pada tipe `Overpayment` di bawah, yang
  * bisa dipakai controller sebagai ganti `any`.
  *
  * Bidangnya ditulis ulang, tidak menyebar kelebihanBayarBase, karena tipenya
@@ -174,7 +174,7 @@ export const ambilKelebihanBayarSchema = z.object({
  * `value` keluar sebagai number setelah Decimal Prisma dilewatkan Number().
  * Memaksakan satu bentuk untuk keduanya akan membuat salah satu sisi keliru.
  */
-export const kelebihanBayarResponseSchema = z.object({
+export const overpaymentResponseSchema = z.object({
   id: z.number().int().min(1).optional(),
   customer_id: z.number().int().nullable(),
   date: z.date(),
@@ -190,7 +190,7 @@ export const kelebihanBayarResponseSchema = z.object({
   value: z.number(),
 });
 
-export type BuatKelebihanBayar = z.infer<typeof buatKelebihanBayarSchema>;
-export type LaporanPengembalian = z.infer<typeof laporanPengembalianSchema>;
-export type AmbilKelebihanBayar = z.infer<typeof ambilKelebihanBayarSchema>;
-export type KelebihanBayar = z.infer<typeof kelebihanBayarResponseSchema>;
+export type CreateOverpayment = z.infer<typeof createOverpaymentSchema>;
+export type RefundReport = z.infer<typeof refundReportSchema>;
+export type GetOverpayment = z.infer<typeof getOverpaymentSchema>;
+export type Overpayment = z.infer<typeof overpaymentResponseSchema>;

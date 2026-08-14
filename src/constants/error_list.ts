@@ -77,6 +77,16 @@ enum ErrorList {
   "Expense type name too long" = "validation.expenseType.nameTooLong",
   "Product reference too long" = "validation.product.referenceTooLong",
   "Product description too long" = "validation.product.descriptionTooLong",
+  // Ditambahkan setelah migrasi Zod menemukan domain yang belum punya pesan
+  // batas panjang, sehingga nilai terlalu panjang dilaporkan memakai pesan
+  // "wajib diisi" milik bidang yang sama. Lebarnya mengikuti prisma/schema.prisma.
+  "Good receipt name too long" = "validation.goodReceipt.nameTooLong",
+  "Invoice name too long" = "validation.invoice.nameTooLong",
+  "Package name too long" = "validation.package.nameTooLong",
+  "Package description too long" = "validation.package.descriptionTooLong",
+  "User name too long" = "validation.user.nameTooLong",
+  "User NIK too long" = "validation.user.nikTooLong",
+  "Username too long" = "validation.username.tooLong",
 
   "User not active" = "user.notActive",
   "User not found" = "user.notFound",

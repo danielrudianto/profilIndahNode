@@ -4,12 +4,12 @@ import AuthController from "../controllers/auth.controller";
 import { UserRepository } from "../repositories/user.repository";
 import { prisma } from "../utils/database.helper";
 import { validate } from "../utils/validate.helper";
-import { masukSchema, ubahSandiSchema } from "../schemas/auth.schema";
+import { loginSchema, updatePasswordSchema } from "../schemas/auth.schema";
 
 const router = Router();
 const authController = new AuthController(new UserRepository(prisma));
 
-router.post("/login", validate(masukSchema), authController.login);
+router.post("/login", validate(loginSchema), authController.login);
 
 router.post("/refresh-token", authController.refreshToken);
 
@@ -21,7 +21,7 @@ router.post("/refresh-token", authController.refreshToken);
 router.put(
   "/password",
   authMiddleware,
-  validate(ubahSandiSchema),
+  validate(updatePasswordSchema),
   authController.updatePassword
 );
 

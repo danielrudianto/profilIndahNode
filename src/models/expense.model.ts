@@ -1,6 +1,6 @@
 import { IExpense } from "../interfaces/expense.interface";
 import { CompanyModel } from "./company.model";
-import ExpenseTypeModel from "./expense.type.model";
+import ExpenseTypeModel from "./expense-type.model";
 import { UserViewModel } from "./user.model";
 
 export class ExpenseModel {

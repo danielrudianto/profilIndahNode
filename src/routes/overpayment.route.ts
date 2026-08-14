@@ -4,9 +4,9 @@ import { prisma } from "../utils/database.helper";
 import { OverpaymentRepository } from "../repositories/overpayment.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  ambilKelebihanBayarSchema,
-  buatKelebihanBayarSchema,
-  laporanPengembalianSchema,
+  getOverpaymentSchema,
+  createOverpaymentSchema,
+  refundReportSchema,
 } from "../schemas/overpayment.schema";
 
 const router = Router();
@@ -17,19 +17,19 @@ const overpaymentController = new OverpaymentController(
 
 router.post(
   "/return",
-  validate(laporanPengembalianSchema),
+  validate(refundReportSchema),
   overpaymentController.fetchReport
 );
 
 router.post(
   "/",
-  validate(buatKelebihanBayarSchema),
+  validate(createOverpaymentSchema),
   overpaymentController.create
 );
 
 router.get(
   "/:id",
-  validate(ambilKelebihanBayarSchema, "params"),
+  validate(getOverpaymentSchema, "params"),
   overpaymentController.fetchByID
 );
 

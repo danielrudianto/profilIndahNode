@@ -5,10 +5,10 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  arsipFakturSchema,
-  buatFakturSchema,
-  cariReturPenjualanSchema,
-  paramFakturSchema,
+  invoiceArchiveSchema,
+  createInvoiceSchema,
+  searchSalesReturnSchema,
+  paramInvoiceSchema,
 } from "../src/schemas/sales-invoice.schema";
 
 /**
@@ -103,9 +103,9 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/archives", validate(arsipFakturSchema), balas);
-  app.post("/buat", validate(buatFakturSchema), balas);
-  app.get("/faktur/:id", validate(paramFakturSchema, "params"), balas);
+  app.post("/archives", validate(invoiceArchiveSchema), balas);
+  app.post("/buat", validate(createInvoiceSchema), balas);
+  app.get("/faktur/:id", validate(paramInvoiceSchema, "params"), balas);
   return app;
 }
 
@@ -175,11 +175,11 @@ describe("POST /sales-return — larik bersarang", () => {
   };
 
   it("permintaan sah diterima", () => {
-    expect(cariReturPenjualanSchema.safeParse(sah).success).toBe(true);
+    expect(searchSalesReturnSchema.safeParse(sah).success).toBe(true);
   });
 
   it("larik kosong tetap lolos, sama seperti rantai lama", () => {
-    const hasil = cariReturPenjualanSchema.safeParse({
+    const hasil = searchSalesReturnSchema.safeParse({
       date: "2026-05-01",
       sales_invoice: [],
     });
@@ -187,7 +187,7 @@ describe("POST /sales-return — larik bersarang", () => {
   });
 
   it("product_id nol ditolak", () => {
-    const hasil = cariReturPenjualanSchema.safeParse({
+    const hasil = searchSalesReturnSchema.safeParse({
       ...sah,
       sales_invoice: [{ product_id: 0, quantity: 2 }],
     });
@@ -195,7 +195,7 @@ describe("POST /sales-return — larik bersarang", () => {
   });
 
   it("kuantitas di bawah 0.01 ditolak", () => {
-    const hasil = cariReturPenjualanSchema.safeParse({
+    const hasil = searchSalesReturnSchema.safeParse({
       ...sah,
       sales_invoice: [{ product_id: 1, quantity: 0 }],
     });
@@ -203,7 +203,7 @@ describe("POST /sales-return — larik bersarang", () => {
   });
 
   it("kuantitas pecahan diterima", () => {
-    const hasil = cariReturPenjualanSchema.safeParse({
+    const hasil = searchSalesReturnSchema.safeParse({
       ...sah,
       sales_invoice: [{ product_id: 1, quantity: 1.5 }],
     });
@@ -211,7 +211,7 @@ describe("POST /sales-return — larik bersarang", () => {
   });
 
   it("sales_invoice bukan larik ditolak", () => {
-    const hasil = cariReturPenjualanSchema.safeParse({
+    const hasil = searchSalesReturnSchema.safeParse({
       date: "2026-05-01",
       sales_invoice: "bukan larik",
     });

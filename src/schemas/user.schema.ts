@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intDariTeks, teksWajib } from "./common.schema";
+import { intFromText, requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk domain pengguna.
@@ -42,20 +42,20 @@ import { intDariTeks, teksWajib } from "./common.schema";
  * migrasi. Yang berubah hanyalah penolakan terhadap ANGKA BERUPA TEKS, sesuai
  * kebijakan ketat di common.schema.ts.
  *
- * `nik` memakai teksWajib walaupun rantai lama hanya notEmpty(). Kolomnya
+ * `nik` memakai requiredText walaupun rantai lama hanya notEmpty(). Kolomnya
  * bertipe String di prisma/schema.prisma, jadi nik berupa angka bukan sekadar
  * bentuk yang longgar — nilainya diteruskan apa adanya ke repository dan
  * ditolak Prisma jauh di belakang lapisan validasi.
  */
 const penggunaBase = z.object({
   role: z.number({ error: ErrorList["User role required"] }),
-  name: teksWajib(ErrorList["Name required"]),
-  username: teksWajib(ErrorList["Username is required"]),
-  nik: teksWajib(ErrorList["Parameter error"]),
+  name: requiredText(ErrorList["Name required"]),
+  username: requiredText(ErrorList["Username is required"]),
+  nik: requiredText(ErrorList["Parameter error"]),
 });
 
 /** POST /user */
-export const buatPenggunaSchema = penggunaBase;
+export const createUserSchema = penggunaBase;
 
 /**
  * PUT /user
@@ -66,7 +66,7 @@ export const buatPenggunaSchema = penggunaBase;
  * dari pesan id menjadi pesan role. Urutan harus tetap id, role, name,
  * username, nik seperti rantai yang digantikan.
  */
-export const ubahPenggunaSchema = z.object({
+export const updateUserSchema = z.object({
   id: z.number({ error: ErrorList["ID is required"] }),
   ...penggunaBase.shape,
 });
@@ -74,18 +74,18 @@ export const ubahPenggunaSchema = z.object({
 /**
  * Parameter jalur `:id` pada GET /user/:id dan DELETE /user/:id.
  *
- * Memakai intDariTeks karena nilai pada req.params selalu berupa teks; di sana
+ * Memakai intFromText karena nilai pada req.params selalu berupa teks; di sana
  * tidak ada tipe asli yang bisa dipertahankan, jadi kebijakan ketat req.body
  * tidak berlaku. Batas bawah 0 mengikuti isInt({ min: 0 }) pada rantai lama.
  */
-export const paramPenggunaSchema = z.object({
-  id: intDariTeks(ErrorList["Parameter error"]),
+export const paramUserSchema = z.object({
+  id: intFromText(ErrorList["Parameter error"]),
 });
 
 /**
  * POST /user/changePassword
  *
- * Sengaja tidak memakai ubahSandiSchema milik domain auth. Keduanya kebetulan
+ * Sengaja tidak memakai updatePasswordSchema milik domain auth. Keduanya kebetulan
  * berbentuk sama sekarang, tetapi berasal dari rantai yang berbeda — yang di
  * sini sudah memasang .withMessage() sejak awal, yang di auth tidak — dan
  * menyatukannya membuat perubahan aturan pada satu endpoint diam-diam ikut
@@ -94,9 +94,9 @@ export const paramPenggunaSchema = z.object({
  * `userId` tidak ikut divalidasi: nilainya ditulis authMiddleware ke req.body,
  * bukan dikirim klien.
  */
-export const ubahSandiPenggunaSchema = z.object({
-  password: teksWajib(ErrorList["Password is required"]),
+export const updateUserPasswordSchema = z.object({
+  password: requiredText(ErrorList["Password is required"]),
 });
 
-export type BuatPengguna = z.infer<typeof buatPenggunaSchema>;
-export type UbahPengguna = z.infer<typeof ubahPenggunaSchema>;
+export type CreateUser = z.infer<typeof createUserSchema>;
+export type UpdateUser = z.infer<typeof updateUserSchema>;

@@ -7,14 +7,16 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatMetodeSchema,
-  buatPelangganSchema,
-  buatPerusahaanSchema,
-  hapusMetodeSchema,
-  paramPelangganSchema,
-  ubahMetodeSchema,
-  ubahPelangganSchema,
-} from "../src/schemas/master.schema";
+  createPaymentMethodSchema,
+  deletePaymentMethodSchema,
+  updatePaymentMethodSchema,
+} from "../src/schemas/payment-method.schema";
+import {
+  createCustomerSchema,
+  paramCustomerSchema,
+  updateCustomerSchema,
+} from "../src/schemas/customer.schema";
+import { createCompanySchema } from "../src/schemas/company.schema";
 
 /**
  * Perbandingan perilaku untuk data master.
@@ -115,13 +117,17 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/pelanggan", validate(buatPelangganSchema), balas);
-  app.put("/pelanggan", validate(ubahPelangganSchema), balas);
-  app.get("/pelanggan/:id", validate(paramPelangganSchema, "params"), balas);
-  app.post("/perusahaan", validate(buatPerusahaanSchema), balas);
-  app.post("/metode", validate(buatMetodeSchema), balas);
-  app.put("/metode", validate(ubahMetodeSchema), balas);
-  app.delete("/metode/:id", validate(hapusMetodeSchema, "params"), balas);
+  app.post("/pelanggan", validate(createCustomerSchema), balas);
+  app.put("/pelanggan", validate(updateCustomerSchema), balas);
+  app.get("/pelanggan/:id", validate(paramCustomerSchema, "params"), balas);
+  app.post("/perusahaan", validate(createCompanySchema), balas);
+  app.post("/metode", validate(createPaymentMethodSchema), balas);
+  app.put("/metode", validate(updatePaymentMethodSchema), balas);
+  app.delete(
+    "/metode/:id",
+    validate(deletePaymentMethodSchema, "params"),
+    balas
+  );
   return app;
 }
 

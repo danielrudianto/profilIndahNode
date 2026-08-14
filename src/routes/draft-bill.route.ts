@@ -4,9 +4,9 @@ import { prisma } from "../utils/database.helper";
 import { DraftBillRepository } from "../repositories/draft-bill.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatDraftBillSchema,
-  hapusDraftBillSchema,
-  konfirmasiDraftBillSchema,
+  createDraftBillSchema,
+  deleteDraftBillSchema,
+  confirmDraftBillSchema,
 } from "../schemas/draft-bill.schema";
 
 const router = Router();
@@ -22,17 +22,17 @@ const draftBillController = new DraftBillController(
 */
 router.post(
   "/confirm",
-  validate(konfirmasiDraftBillSchema),
+  validate(confirmDraftBillSchema),
   draftBillController.confirmByID
 );
 
 router.post(
   "/delete",
-  validate(hapusDraftBillSchema),
+  validate(deleteDraftBillSchema),
   draftBillController.deleteByID
 );
 
-router.post("/", validate(buatDraftBillSchema), draftBillController.create);
+router.post("/", validate(createDraftBillSchema), draftBillController.create);
 
 router.get("/archives", draftBillController.fetchArchives);
 // router.get(

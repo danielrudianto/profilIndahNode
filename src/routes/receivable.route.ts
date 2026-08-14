@@ -6,8 +6,8 @@ import { prisma } from "../utils/database.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatPembayaranSchema,
-  paramPiutangPelangganSchema,
+  createReceivablePaymentSchema,
+  paramCustomerReceivableSchema,
 } from "../schemas/receivable.schema";
 
 const router = Router();
@@ -26,13 +26,13 @@ router.get("/", receivableController.fetch);
 
 router.get(
   "/customer/:id",
-  validate(paramPiutangPelangganSchema, "params"),
+  validate(paramCustomerReceivableSchema, "params"),
   receivableController.fetchByCustomerID
 );
 
 router.post(
   "/payment",
-  validate(buatPembayaranSchema),
+  validate(createReceivablePaymentSchema),
   receivableController.createPayment
 );
 /*

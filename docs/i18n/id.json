@@ -87,7 +87,9 @@
       "idNumeric": "ID paket harus berupa angka.",
       "nameRequired": "Nama paket tidak boleh kosong.",
       "descriptionRequired": "Deskripsi paket tidak boleh kosong.",
-      "itemsRequired": "Item paket tidak boleh kosong."
+      "itemsRequired": "Item paket tidak boleh kosong.",
+      "nameTooLong": "Nama paket maksimal 45 karakter.",
+      "descriptionTooLong": "Deskripsi paket maksimal 200 karakter."
     },
     "salesReturn": {
       "itemsRequired": "Item retur penjualan tidak boleh kosong."
@@ -127,7 +129,8 @@
     "goodReceipt": {
       "required": "Penerimaan barang tidak boleh kosong.",
       "idRequired": "ID penerimaan barang tidak boleh kosong",
-      "array": "Penerimaan barang harus berupa array"
+      "array": "Penerimaan barang harus berupa array",
+      "nameTooLong": "Nama penerimaan barang maksimal 100 karakter."
     },
     "date": {
       "required": "Tanggal tidak boleh kosong."
@@ -160,7 +163,8 @@
       "required": "Role pengguna tidak boleh kosong."
     },
     "username": {
-      "required": "Username tidak boleh kosong."
+      "required": "Username tidak boleh kosong.",
+      "tooLong": "Username maksimal 45 karakter."
     },
     "day": {
       "required": "Tanggal tidak boleh kosong",
@@ -194,7 +198,8 @@
     },
     "invoice": {
       "nameRequired": "Nama faktur tidak boleh kosong",
-      "taxRequired": "Faktur pajak tidak boleh kosong"
+      "taxRequired": "Faktur pajak tidak boleh kosong",
+      "nameTooLong": "Nama faktur maksimal 191 karakter."
     },
     "type": {
       "required": "Tipe tidak boleh kosong",
@@ -230,6 +235,10 @@
     },
     "keyword": {
       "required": "Kata kunci pencarian tidak boleh kosong"
+    },
+    "user": {
+      "nameTooLong": "Nama pengguna maksimal 45 karakter.",
+      "nikTooLong": "NIK maksimal 45 karakter."
     }
   },
   "user": {

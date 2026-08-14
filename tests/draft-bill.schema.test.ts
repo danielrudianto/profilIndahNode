@@ -5,9 +5,9 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatDraftBillSchema,
-  hapusDraftBillSchema,
-  konfirmasiDraftBillSchema,
+  createDraftBillSchema,
+  deleteDraftBillSchema,
+  confirmDraftBillSchema,
 } from "../src/schemas/draft-bill.schema";
 
 /**
@@ -73,9 +73,9 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/confirm", validate(konfirmasiDraftBillSchema), balas);
-  app.post("/delete", validate(hapusDraftBillSchema), balas);
-  app.post("/", validate(buatDraftBillSchema), balas);
+  app.post("/confirm", validate(confirmDraftBillSchema), balas);
+  app.post("/delete", validate(deleteDraftBillSchema), balas);
+  app.post("/", validate(createDraftBillSchema), balas);
   return app;
 }
 
@@ -161,7 +161,7 @@ describe("POST /confirm — perilaku harus identik", () => {
 
   it("menolak payment_methods dengan anggota kosong", async () => {
     // notEmpty() lama dijalankan per anggota array, jadi "" di dalam daftar
-    // sudah ditolak sejak dulu. wajibAda pada anggota menirunya.
+    // sudah ditolak sejak dulu. required pada anggota menirunya.
     const h = await keduanya("/confirm", konfirmasi({ payment_methods: [""] }));
     expect(h.baru).toEqual(h.lama);
     expect(h.baru.status).toBe(400);
@@ -333,7 +333,7 @@ describe("POST / — perilaku harus identik", () => {
 
   /**
    * exists() hanya memeriksa `nilai !== undefined`. Semua kasus di bawah ini
-   * lolos dulu dan HARUS tetap lolos sekarang — harusAda meniru persis.
+   * lolos dulu dan HARUS tetap lolos sekarang — present meniru persis.
    */
   const lolos: Array<[string, Record<string, unknown>]> = [
     ["note bernilai null", buat({ note: null })],

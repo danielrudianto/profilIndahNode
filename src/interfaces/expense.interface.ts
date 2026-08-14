@@ -1,5 +1,5 @@
 import { CompanyModel } from "../models/company.model";
-import ExpenseTypeModel from "../models/expense.type.model";
+import ExpenseTypeModel from "../models/expense-type.model";
 import { UserViewModel } from "../models/user.model";
 
 export interface IExpense {

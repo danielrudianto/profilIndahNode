@@ -5,9 +5,9 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatSupplierSchema,
-  ubahSupplierSchema,
-  hapusSupplierSchema,
+  createSupplierSchema,
+  updateSupplierSchema,
+  deleteSupplierSchema,
 } from "../src/schemas/supplier.schema";
 
 /**
@@ -63,9 +63,9 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/create", validate(buatSupplierSchema), balas);
-  app.put("/update", validate(ubahSupplierSchema), balas);
-  app.delete("/hapus/:id", validate(hapusSupplierSchema, "params"), balas);
+  app.post("/create", validate(createSupplierSchema), balas);
+  app.put("/update", validate(updateSupplierSchema), balas);
+  app.delete("/hapus/:id", validate(deleteSupplierSchema, "params"), balas);
   return app;
 }
 

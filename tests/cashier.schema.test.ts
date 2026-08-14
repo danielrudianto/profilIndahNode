@@ -5,9 +5,9 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  ambilTagihanOtcSchema,
-  hapusTagihanSchema,
-  konfirmasiTagihanSchema,
+  getBillByOtcSchema,
+  deleteBillSchema,
+  confirmBillSchema,
 } from "../src/schemas/cashier.schema";
 
 /**
@@ -59,9 +59,9 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.get("/bill/:otc", validate(ambilTagihanOtcSchema, "params"), balas);
-  app.post("/bill/delete", validate(hapusTagihanSchema), balas);
-  app.post("/bill/confirm", validate(konfirmasiTagihanSchema), balas);
+  app.get("/bill/:otc", validate(getBillByOtcSchema, "params"), balas);
+  app.post("/bill/delete", validate(deleteBillSchema), balas);
+  app.post("/bill/confirm", validate(confirmBillSchema), balas);
   return app;
 }
 
@@ -95,7 +95,7 @@ describe("GET /bill/:otc — perilaku harus identik", () => {
     ["kode OTC biasa", "/bill/ABC123"],
     ["kode berupa angka", "/bill/123456"],
     // Penjaga: notEmpty() menghitung spasi sebagai isi. Kalau skema kelak
-    // diganti teksWajib (yang memangkas spasi), harapan ini gagal.
+    // diganti requiredText (yang memangkas spasi), harapan ini gagal.
     ["kode yang hanya berisi spasi", "/bill/%20%20"],
     ["kode lebih panjang dari kolomnya", "/bill/ABCDEFGHIJ"],
     // Express tidak mencocokkan jalur tanpa segmen terakhir, jadi keduanya

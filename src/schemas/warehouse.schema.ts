@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intWajib } from "./common.schema";
+import { requiredInt } from "./common.schema";
 
 /**
  * Kontrak API untuk gudang (warehouse).
@@ -29,7 +29,7 @@ import { intWajib } from "./common.schema";
  * `exists()` tanpa opsi di express-validator hanya menolak nilai `undefined`.
  * String kosong justru merupakan pemakaian yang wajar di sini — itulah cara
  * klien meminta daftar tanpa penyaring — sehingga aturannya tidak boleh
- * dinaikkan menjadi teksWajib(). Nilai `null` pun lolos pada rantai lama, dan
+ * dinaikkan menjadi requiredText(). Nilai `null` pun lolos pada rantai lama, dan
  * itu ditiru apa adanya supaya klien yang selama ini mengirim null tidak
  * mendadak ditolak.
  */
@@ -57,7 +57,7 @@ const kataKunci = z.any().refine((nilai) => nilai !== undefined, {
  * Menaikkannya menjadi 1 akan menolak permintaan yang selama ini diterima;
  * perbaikannya perlu diputuskan bersama sisi klien, terpisah dari migrasi ini.
  */
-const halaman = intWajib(
+const halaman = requiredInt(
   ErrorList["Page is required"],
   ErrorList["Page must be numeric"],
   0
@@ -76,9 +76,9 @@ const stokGudangBase = z.object({
 });
 
 /** POST /warehouse/product-stock */
-export const daftarStokGudangSchema = stokGudangBase;
+export const listWarehouseStockSchema = stokGudangBase;
 
 /** POST /warehouse/product-stock/inadequate */
-export const daftarStokGudangKurangSchema = stokGudangBase;
+export const listInadequateWarehouseStockSchema = stokGudangBase;
 
-export type DaftarStokGudang = z.infer<typeof daftarStokGudangSchema>;
+export type WarehouseStockList = z.infer<typeof listWarehouseStockSchema>;

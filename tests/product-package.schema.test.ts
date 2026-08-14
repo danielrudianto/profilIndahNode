@@ -7,10 +7,10 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatPaketSchema,
-  paramPaketSchema,
-  ubahHargaPaketSchema,
-  ubahPaketSchema,
+  createPackageSchema,
+  paramPackageSchema,
+  updatePackagePriceSchema,
+  updatePackageSchema,
 } from "../src/schemas/product-package.schema";
 
 /**
@@ -112,11 +112,11 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/", validate(buatPaketSchema), balas);
-  app.put("/", validate(ubahPaketSchema), balas);
-  app.put("/price-sales", validate(ubahHargaPaketSchema), balas);
-  app.get("/:id", validate(paramPaketSchema, "params"), balas);
-  app.delete("/:id", validate(paramPaketSchema, "params"), balas);
+  app.post("/", validate(createPackageSchema), balas);
+  app.put("/", validate(updatePackageSchema), balas);
+  app.put("/price-sales", validate(updatePackagePriceSchema), balas);
+  app.get("/:id", validate(paramPackageSchema, "params"), balas);
+  app.delete("/:id", validate(paramPackageSchema, "params"), balas);
   return app;
 }
 
@@ -531,7 +531,7 @@ describe("Kebijakan ketat: nilai bukan teks ditolak pada bidang teks", () => {
     ErrorList["Package description required"]
   );
 
-  // teksWajib menolak teks yang hanya berisi spasi; notEmpty() menghitung spasi
+  // requiredText menolak teks yang hanya berisi spasi; notEmpty() menghitung spasi
   // sebagai isi, sehingga nama "   " selama ini tersimpan apa adanya.
   pasangan(
     "name hanya berisi spasi",
@@ -644,7 +644,7 @@ describe("Batas panjang mengikuti lebar kolom package_code", () => {
     });
     expect(h.lama.status).toBe(200);
     expect(h.baru.status).toBe(400);
-    expect(h.baru.teks).toBe(ErrorList["Package name required"]);
+    expect(h.baru.teks).toBe(ErrorList["Package name too long"]);
   });
 
   it("name 45 karakter diterima", async () => {
@@ -663,7 +663,7 @@ describe("Batas panjang mengikuti lebar kolom package_code", () => {
     });
     expect(h.lama.status).toBe(200);
     expect(h.baru.status).toBe(400);
-    expect(h.baru.teks).toBe(ErrorList["Package description required"]);
+    expect(h.baru.teks).toBe(ErrorList["Package description too long"]);
   });
 
   it("batas yang sama berlaku lewat PUT", async () => {

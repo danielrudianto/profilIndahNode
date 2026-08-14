@@ -1,11 +1,15 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
 import PromotionController from "../controllers/promotion.controller";
 import { prisma } from "../utils/database.helper";
-import ErrorHelper from "../utils/error.helper";
 import { ProductRepository } from "../repositories/product.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
+import { validate } from "../utils/validate.helper";
+import {
+  createPromotionSchema,
+  paramPromotionResultSchema,
+  paramPromotionSchema,
+  updatePromotionSchema,
+} from "../schemas/promotion.schema";
 
 const router = Router();
 
@@ -14,119 +18,51 @@ const promotionController = new PromotionController(
   new ProductRepository(prisma)
 );
 
-router.post(
-  "/",
-  body("name").notEmpty().withMessage(ErrorList["Promotion name required"]),
-  body("description")
-    .notEmpty()
-    .withMessage(ErrorList["Promotion description required"]),
-  body("start_date")
-    .notEmpty()
-    .withMessage(ErrorList["Promotion start date required"]),
-  body("end_date")
-    .exists()
-    .withMessage(ErrorList["Promotion end date required"]),
-  body("target").notEmpty().withMessage(ErrorList["Promotion target required"]),
-  body("target")
-    .isNumeric()
-    .withMessage(ErrorList["Promotion target must be numeric"]),
-  body("supplier_id")
-    .notEmpty()
-    .withMessage(ErrorList["Supplier ID is required"]),
-  body("supplier_id")
-    .isNumeric()
-    .withMessage(ErrorList["Supplier ID must be numeric"]),
-  body("promotion_brand")
-    .notEmpty()
-    .withMessage(ErrorList["Promotion brand is required"]),
-  body("promotion_brand")
-    .isArray()
-    .withMessage(ErrorList["Promotion brand must be an array"]),
-  ErrorHelper.intercept,
-  promotionController.create
-);
+router.post("/", validate(createPromotionSchema), promotionController.create);
 
+/*
+  Sumber "params" harus disebut secara eksplisit: bawaan validate() adalah
+  "body", dan skema parameter yang dijalankan terhadap badan permintaan akan
+  meloloskan segalanya.
+*/
 router.get(
   "/result/sales/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramPromotionSchema, "params"),
   promotionController.downloadSalesResultByID
 );
 
 router.get(
   "/result/purchase/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramPromotionSchema, "params"),
   promotionController.downloadPurchaseResultByID
 );
 
 router.get(
   "/result/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramPromotionSchema, "params"),
   promotionController.fetchResult
 );
 
 router.get(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isNumeric().withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(paramPromotionSchema, "params"),
   promotionController.fetchByID
 );
 
 router.get("/", promotionController.fetch);
+
+/*
+  Jalur ini sudah didaftarkan di atas dengan validasi yang berbeda, sehingga
+  pendaftaran kedua ini tidak pernah tercapai — Express memakai penangan
+  pertama yang cocok. Dibiarkan apa adanya supaya migrasi ini hanya mengganti
+  lapisan validasi; menghapus jalur ganda adalah perubahan tersendiri.
+*/
 router.get(
   "/result/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["ID must be integer"]),
-  ErrorHelper.intercept,
+  validate(paramPromotionResultSchema, "params"),
   promotionController.fetchResult
 );
 
-router.put(
-  "/",
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["ID must be numeric"]),
-  body("name").notEmpty().withMessage(ErrorList["Promotion name required"]),
-  body("description")
-    .notEmpty()
-    .withMessage(ErrorList["Promotion description required"]),
-  body("start_date")
-    .notEmpty()
-    .withMessage(ErrorList["Promotion start date required"]),
-  body("end_date")
-    .exists()
-    .withMessage(ErrorList["Promotion end date required"]),
-  body("target").notEmpty().withMessage(ErrorList["Promotion target required"]),
-  body("target")
-    .isNumeric()
-    .withMessage(ErrorList["Promotion target must be numeric"]),
-  body("supplier_id")
-    .notEmpty()
-    .withMessage(ErrorList["Supplier ID is required"]),
-  body("supplier_id")
-    .isNumeric()
-    .withMessage(ErrorList["Supplier ID must be numeric"]),
-  body("promotion_brand")
-    .notEmpty()
-    .withMessage(ErrorList["Promotion brand is required"]),
-  body("promotion_brand")
-    .isArray()
-    .withMessage(ErrorList["Promotion brand must be an array"]),
-  ErrorHelper.intercept,
-  promotionController.update
-);
+router.put("/", validate(updatePromotionSchema), promotionController.update);
 
 export default router;

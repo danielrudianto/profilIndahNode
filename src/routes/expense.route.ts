@@ -6,12 +6,12 @@ import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatPengeluaranSchema,
-  kueriMutasiPengeluaranSchema,
-  kueriPengeluaranSchema,
-  paramPengeluaranSchema,
-  ubahPengeluaranSchema,
-} from "../schemas/produk-pengeluaran.schema";
+  createExpenseSchema,
+  queryExpenseMutationSchema,
+  queryExpenseSchema,
+  paramExpenseSchema,
+  updateExpenseSchema,
+} from "../schemas/expense.schema";
 
 const router = Router();
 const expenseController = new ExpenseController(
@@ -23,29 +23,29 @@ const expenseController = new ExpenseController(
 // Routes
 router.get(
   "/",
-  validate(kueriPengeluaranSchema, "query"),
+  validate(queryExpenseSchema, "query"),
   expenseController.fetchReport
 );
 
 router.get(
   "/mutation",
-  validate(kueriMutasiPengeluaranSchema, "query"),
+  validate(queryExpenseMutationSchema, "query"),
   expenseController.fetch
 );
 
 router.get(
   "/:id",
-  validate(paramPengeluaranSchema, "params"),
+  validate(paramExpenseSchema, "params"),
   expenseController.fetchByID
 );
 
-router.post("/", validate(buatPengeluaranSchema), expenseController.create);
+router.post("/", validate(createExpenseSchema), expenseController.create);
 
-router.put("/", validate(ubahPengeluaranSchema), expenseController.update);
+router.put("/", validate(updateExpenseSchema), expenseController.update);
 
 router.delete(
   "/:id",
-  validate(paramPengeluaranSchema, "params"),
+  validate(paramExpenseSchema, "params"),
   expenseController.delete
 );
 

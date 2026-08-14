@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intDariTeks, teksWajib } from "./common.schema";
+import { intFromText, requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk domain supplier.
@@ -44,15 +44,15 @@ const PANJANG = {
 
 /** Bidang yang dimiliki bersama oleh permintaan dan balasan. */
 const supplierBase = z.object({
-  name: teksWajib(ErrorList["Name required"]).max(
+  name: requiredText(ErrorList["Name required"]).max(
     PANJANG.name,
     ErrorList["Supplier name too long"]
   ),
-  address: teksWajib(ErrorList["Address required"]),
+  address: requiredText(ErrorList["Address required"]),
 });
 
 /** POST /supplier */
-export const buatSupplierSchema = supplierBase;
+export const createSupplierSchema = supplierBase;
 
 /**
  * PUT /supplier
@@ -61,7 +61,7 @@ export const buatSupplierSchema = supplierBase;
  * rantai lama yang memakai .not().isEmpty() saja. Mengetatkannya akan mengubah
  * pesan yang dilihat pengguna, jadi dibiarkan dan dibahas terpisah.
  */
-export const ubahSupplierSchema = z.object({
+export const updateSupplierSchema = z.object({
   // Bentuk objek dirakit dengan menyebar `shape`, bukan dengan .extend().
   // .extend() menambahkan kunci baru di BELAKANG kunci yang sudah ada,
   // sehingga `id` berpindah ke urutan ketiga dan pesan pertama yang muncul
@@ -82,8 +82,8 @@ export const ubahSupplierSchema = z.object({
 });
 
 /** GET /supplier/:id */
-export const ambilSupplierSchema = z.object({
-  id: intDariTeks(ErrorList["Parameter error"]),
+export const getSupplierSchema = z.object({
+  id: intFromText(ErrorList["Parameter error"]),
 });
 
 /**
@@ -96,8 +96,8 @@ export const ambilSupplierSchema = z.object({
  * ketat. Id negatif tidak pernah cocok dengan baris mana pun karena kolom id
  * memakai autoincrement mulai dari 1.
  */
-export const hapusSupplierSchema = z.object({
-  id: intDariTeks(ErrorList["Parameter error"]),
+export const deleteSupplierSchema = z.object({
+  id: intFromText(ErrorList["Parameter error"]),
 });
 
 /**
@@ -116,6 +116,6 @@ export const supplierResponseSchema = supplierBase.extend({
   updated_at: z.date().nullable().optional(),
 });
 
-export type BuatSupplier = z.infer<typeof buatSupplierSchema>;
-export type UbahSupplier = z.infer<typeof ubahSupplierSchema>;
+export type CreateSupplier = z.infer<typeof createSupplierSchema>;
+export type UpdateSupplier = z.infer<typeof updateSupplierSchema>;
 export type Supplier = z.infer<typeof supplierResponseSchema>;

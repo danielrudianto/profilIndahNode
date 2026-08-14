@@ -5,11 +5,11 @@ import { prisma } from "../utils/database.helper";
 import { PaymentMethodRepository } from "../repositories/payment-method.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatMetodeSchema,
-  hapusMetodeSchema,
-  paramMetodeSchema,
-  ubahMetodeSchema,
-} from "../schemas/master.schema";
+  createPaymentMethodSchema,
+  deletePaymentMethodSchema,
+  paramPaymentMethodSchema,
+  updatePaymentMethodSchema,
+} from "../schemas/payment-method.schema";
 
 const router = Router();
 
@@ -23,19 +23,27 @@ router.get("/all", paymentMethodController.fetchAll);
 
 router.get(
   "/:id",
-  validate(paramMetodeSchema, "params"),
+  validate(paramPaymentMethodSchema, "params"),
   paymentMethodController.fetchByID
 );
 
 router.get("/", paymentMethodController.fetch);
 
-router.post("/", validate(buatMetodeSchema), paymentMethodController.create);
+router.post(
+  "/",
+  validate(createPaymentMethodSchema),
+  paymentMethodController.create
+);
 
-router.put("/", validate(ubahMetodeSchema), paymentMethodController.update);
+router.put(
+  "/",
+  validate(updatePaymentMethodSchema),
+  paymentMethodController.update
+);
 
 router.delete(
   "/:id",
-  validate(hapusMetodeSchema, "params"),
+  validate(deletePaymentMethodSchema, "params"),
   administratorMiddleware,
   paymentMethodController.delete
 );

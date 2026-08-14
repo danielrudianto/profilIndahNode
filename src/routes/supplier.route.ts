@@ -5,10 +5,10 @@ import { validate } from "../utils/validate.helper";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { SupplierRepository } from "../repositories/supplier.repository";
 import {
-  ambilSupplierSchema,
-  buatSupplierSchema,
-  hapusSupplierSchema,
-  ubahSupplierSchema,
+  getSupplierSchema,
+  createSupplierSchema,
+  deleteSupplierSchema,
+  updateSupplierSchema,
 } from "../schemas/supplier.schema";
 
 const router = Router();
@@ -22,19 +22,19 @@ router.get("/autocomplete", supplierController.fetchAutocomplete);
 
 router.get(
   "/:id",
-  validate(ambilSupplierSchema, "params"),
+  validate(getSupplierSchema, "params"),
   supplierController.fetchByID
 );
 
 router.get("/", supplierController.fetch);
 
-router.post("/", validate(buatSupplierSchema), supplierController.create);
+router.post("/", validate(createSupplierSchema), supplierController.create);
 
-router.put("/", validate(ubahSupplierSchema), supplierController.update);
+router.put("/", validate(updateSupplierSchema), supplierController.update);
 
 router.delete(
   "/:id",
-  validate(hapusSupplierSchema, "params"),
+  validate(deleteSupplierSchema, "params"),
   supplierController.delete
 );
 

@@ -3,7 +3,7 @@ import { IFetchPagination } from "../interfaces/fetch.interface";
 import { CompanyModel } from "../models/company.model";
 import { ExpenseModel } from "../models/expense.model";
 import { IExpense } from "../interfaces/expense.interface";
-import ExpenseTypeModel from "../models/expense.type.model";
+import ExpenseTypeModel from "../models/expense-type.model";
 
 export class ExpenseRepository {
   private prisma: PrismaClient;

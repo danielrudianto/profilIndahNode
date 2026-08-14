@@ -5,8 +5,8 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatSalesmanSchema,
-  hapusSalesmanSchema,
+  createSalesmanSchema,
+  deleteSalesmanSchema,
 } from "../src/schemas/salesman.schema";
 
 /**
@@ -50,8 +50,8 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/", validate(buatSalesmanSchema), balas);
-  app.post("/delete", validate(hapusSalesmanSchema), balas);
+  app.post("/", validate(createSalesmanSchema), balas);
+  app.post("/delete", validate(deleteSalesmanSchema), balas);
   return app;
 }
 

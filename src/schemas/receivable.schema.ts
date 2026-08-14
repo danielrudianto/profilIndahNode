@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intWajibDariTeks } from "./common.schema";
+import { requiredIntFromText } from "./common.schema";
 
 /**
  * Kontrak API untuk domain piutang (receivable).
@@ -58,13 +58,13 @@ const BOOLEAN_TEKS = ["true", "false", "0", "1"];
 /**
  * Meniru notEmpty(): nilai harus ada dan bentuk teksnya tidak kosong.
  *
- * Sengaja TIDAK memakai `wajibAda` dari common.schema. Yang di sana memakai
+ * Sengaja TIDAK memakai `required` dari common.schema. Yang di sana memakai
  * String(nilai) langsung, sedangkan di sini lewat keTeks() yang memetakan
  * undefined dan null menjadi teks kosong — persis seperti express-validator.
  * Bedanya terlihat pada nilai seperti null: String(null) menghasilkan "null"
  * yang dianggap terisi, sementara keTeks(null) menghasilkan "" yang ditolak.
  */
-const wajibAda = (pesan: string) =>
+const required = (pesan: string) =>
   z.any().refine((nilai) => keTeks(nilai) !== "", { message: pesan });
 
 /**
@@ -72,7 +72,7 @@ const wajibAda = (pesan: string) =>
  *
  * PERUBAHAN PERILAKU YANG DISENGAJA.
  *
- * intWajibDariTeks mengubah teks menjadi angka dengan Number(), sedangkan
+ * requiredIntFromText mengubah teks menjadi angka dengan Number(), sedangkan
  * rantai lama memakai isInt() yang bekerja pada bentuk teksnya. Akibatnya
  * beberapa penulisan yang dulu ditolak sekarang diterima: "1e2" (100), "0x10"
  * (16), " 5 ", dan segmen yang hanya berisi spasi (menjadi 0). Angkanya
@@ -87,8 +87,8 @@ const wajibAda = (pesan: string) =>
  * Express tidak mencocokkan `/customer/` tanpa segmen, jadi `id` selalu terisi.
  * Pesan itu tetap dipasang supaya rutenya tidak mengandalkan detail perutean.
  */
-export const paramPiutangPelangganSchema = z.object({
-  id: intWajibDariTeks(
+export const paramCustomerReceivableSchema = z.object({
+  id: requiredIntFromText(
     ErrorList["Customer ID is required"],
     ErrorList["CUstomer ID must be integer"],
     0
@@ -108,11 +108,11 @@ export const paramPiutangPelangganSchema = z.object({
  * dulu, tetapi nilai yang tidak dikirim tetap tertolak karena bentuk teksnya
  * kosong. Efeknya bidang ini wajib, dengan pesan "Payment status required".
  */
-export const buatPembayaranSchema = z.object({
-  date: wajibAda(ErrorList["Date required"]),
+export const createReceivablePaymentSchema = z.object({
+  date: required(ErrorList["Date required"]),
   // Dua aturan pada satu bidang: yang pertama menjelaskan nilai yang tidak
   // dikirim, yang kedua nilai yang dikirim tetapi bukan bilangan >= 0.
-  amount: wajibAda(ErrorList["Amount is required"]).refine(desimalTakNegatif, {
+  amount: required(ErrorList["Amount is required"]).refine(desimalTakNegatif, {
     message: ErrorList["Amount must be numeric"],
   }),
   full_payment: z
@@ -127,5 +127,9 @@ export const buatPembayaranSchema = z.object({
   }),
 });
 
-export type ParamPiutangPelanggan = z.infer<typeof paramPiutangPelangganSchema>;
-export type BuatPembayaran = z.infer<typeof buatPembayaranSchema>;
+export type ParamCustomerReceivable = z.infer<
+  typeof paramCustomerReceivableSchema
+>;
+export type CreateReceivablePayment = z.infer<
+  typeof createReceivablePaymentSchema
+>;

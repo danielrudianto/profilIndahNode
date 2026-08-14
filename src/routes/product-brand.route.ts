@@ -4,10 +4,10 @@ import { prisma } from "../utils/database.helper";
 import { ProductBrandRepository } from "../repositories/product-brand.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatMerekSchema,
-  paramMerekSchema,
-  ubahMerekSchema,
-} from "../schemas/master-lain.schema";
+  createBrandSchema,
+  paramBrandSchema,
+  updateBrandSchema,
+} from "../schemas/product-brand.schema";
 
 const router = Router();
 const productBrandController = new ProductBrandController(
@@ -21,19 +21,19 @@ router.get("/autocomplete", productBrandController.fetchAutocomplete);
 
 router.get(
   "/:id",
-  validate(paramMerekSchema, "params"),
+  validate(paramBrandSchema, "params"),
   productBrandController.fetchByID
 );
 
 router.get("/", productBrandController.fetch);
 
-router.put("/", validate(ubahMerekSchema), productBrandController.update);
+router.put("/", validate(updateBrandSchema), productBrandController.update);
 
-router.post("/", validate(buatMerekSchema), productBrandController.create);
+router.post("/", validate(createBrandSchema), productBrandController.create);
 
 router.delete(
   "/:id",
-  validate(paramMerekSchema, "params"),
+  validate(paramBrandSchema, "params"),
   productBrandController.delete
 );
 

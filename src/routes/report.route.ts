@@ -31,14 +31,14 @@ import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import {
-  outputPerusahaanSchema,
+  companyOutputSchema,
   outputSchema,
-  penjualanHarianSchema,
-  periodeBolehTahunanSchema,
-  periodeKueriSchema,
-  periodeWajibBulanSchema,
-  rentangTanggalSchema,
-  tanggalSchema,
+  dailySalesSchema,
+  optionalMonthPeriodSchema,
+  queryPeriodSchema,
+  requiredMonthPeriodSchema,
+  dateRangeSchema,
+  dateSchema,
 } from "../schemas/report.schema";
 
 const router = Router();
@@ -79,35 +79,35 @@ const financialReportController = new FinancialReportController(
 router.post(
   "/sales",
   requireRole(PERAN_PENJUALAN),
-  validate(periodeWajibBulanSchema),
+  validate(requiredMonthPeriodSchema),
   salesReportController.fetchSalesReport
 );
 
 router.post(
   "/purchase",
   requireRole(PERAN_PEMBELIAN),
-  validate(periodeWajibBulanSchema),
+  validate(requiredMonthPeriodSchema),
   purchaseReportController.fetchPurchaseReport
 );
 
 router.post(
   "/money-receipt",
   requireRole(PERAN_UMUM),
-  validate(tanggalSchema),
+  validate(dateSchema),
   moneyReceiptController.fetchMoneyReceipt
 );
 
 router.post(
   "/money-receipt/download",
   requireRole(PERAN_UMUM),
-  validate(tanggalSchema),
+  validate(dateSchema),
   moneyReceiptController.downloadMoneyReceipt
 );
 
 router.post(
   "/money-receipt/dor",
   requireRole(PERAN_UMUM),
-  validate(rentangTanggalSchema),
+  validate(dateRangeSchema),
   moneyReceiptController.fetchDorMoneyReceipt
 );
 
@@ -121,7 +121,7 @@ router.post(
 router.post(
   "/output-company",
   requireRole(PERAN_PENJUALAN),
-  validate(outputPerusahaanSchema),
+  validate(companyOutputSchema),
   stockReportController.fetchCompanyOutputReport
 );
 
@@ -134,49 +134,49 @@ router.get(
 router.post(
   "/daily-sales",
   requireRole(PERAN_UMUM),
-  validate(penjualanHarianSchema),
+  validate(dailySalesSchema),
   financialReportController.fetchDailySalesReport
 );
 
 router.post(
   "/purchase/download",
   requireRole(PERAN_PEMBELIAN),
-  validate(periodeBolehTahunanSchema),
+  validate(optionalMonthPeriodSchema),
   purchaseReportController.downloadPurchaseReport
 );
 
 router.post(
   "/profit-loss",
   requireRole(PERAN_SUPERADMIN),
-  validate(periodeBolehTahunanSchema),
+  validate(optionalMonthPeriodSchema),
   financialReportController.fetchProfitLoss
 );
 
 router.get(
   "/sales/brand",
   requireRole(PERAN_PENJUALAN),
-  validate(periodeKueriSchema, "query"),
+  validate(queryPeriodSchema, "query"),
   salesReportController.fetchBrandSalesReport
 );
 
 router.get(
   "/sales/type",
   requireRole(PERAN_PENJUALAN),
-  validate(periodeKueriSchema, "query"),
+  validate(queryPeriodSchema, "query"),
   salesReportController.fetchTypeSalesreport
 );
 
 router.get(
   "/sales/sales",
   requireRole(PERAN_PENJUALAN),
-  validate(periodeKueriSchema, "query"),
+  validate(queryPeriodSchema, "query"),
   salesReportController.fetchSalesSalesReport
 );
 
 router.post(
   "/sales/download",
   requireRole(PERAN_PENJUALAN),
-  validate(periodeBolehTahunanSchema),
+  validate(optionalMonthPeriodSchema),
   salesReportController.downloadSalesReport
 );
 

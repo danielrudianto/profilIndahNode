@@ -3,7 +3,7 @@ import { prisma } from "../utils/database.helper";
 import { ProductTypeController } from "../controllers/product-type.controller";
 import { ProductTypeRepository } from "../repositories/product-type.repository";
 import { validate } from "../utils/validate.helper";
-import { paramTipeProdukSchema } from "../schemas/master-lain.schema";
+import { paramProductTypeSchema } from "../schemas/product-type.schema";
 
 const router = Router();
 
@@ -14,7 +14,7 @@ const productTypeController = new ProductTypeController(
 router.get("/autocomplete", productTypeController.fetchAutocomplete);
 router.get(
   "/:id",
-  validate(paramTipeProdukSchema, "params"),
+  validate(paramProductTypeSchema, "params"),
   productTypeController.fetchByID
 );
 router.get("/", productTypeController.fetch);
@@ -23,7 +23,7 @@ router.put("/", productTypeController.update);
 
 router.delete(
   "/:id",
-  validate(paramTipeProdukSchema, "params"),
+  validate(paramProductTypeSchema, "params"),
   productTypeController.delete
 );
 

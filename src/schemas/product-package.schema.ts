@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { intDariTeks, teksWajib } from "./common.schema";
+import { intFromText, requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk paket produk (package_code + package_content).
@@ -89,19 +89,13 @@ const hargaPaket = z.number({ error: ErrorList["Price is required"] });
 /** Bidang yang dipakai bersama oleh POST / dan PUT /. */
 const paketBase = z.object({
   price: hargaPaket,
-  name: teksWajib(ErrorList["Package name required"]).max(
+  name: requiredText(ErrorList["Package name required"]).max(
     PANJANG.name,
-    // ErrorList belum punya key "Package name too long". Menambahkannya berarti
-    // menyentuh src/constants/error_list.ts, yang berada di luar cakupan
-    // migrasi ini, jadi key "wajib diisi" dipakai ulang agar pesan tetap
-    // menunjuk bidang yang benar. Susulannya: tambahkan
-    // validation.package.nameTooLong dan pakai di sini.
-    ErrorList["Package name required"]
+    ErrorList["Package name too long"]
   ),
-  description: teksWajib(ErrorList["Package description required"]).max(
+  description: requiredText(ErrorList["Package description required"]).max(
     PANJANG.description,
-    // Alasan yang sama seperti pada `name` di atas.
-    ErrorList["Package description required"]
+    ErrorList["Package description too long"]
   ),
 });
 
@@ -160,7 +154,7 @@ const isiPaket = z.object({
  * melempar apa pun; paket tanpa isi memang tersimpan. Menolaknya adalah aturan
  * baru, bukan penutupan lubang, jadi tidak dilakukan di sini.
  */
-export const buatPaketSchema = z.object({
+export const createPackageSchema = z.object({
   ...paketBase.shape,
   package_content: z.array(isiPaket, {
     error: ErrorList["Package items required"],
@@ -184,7 +178,7 @@ export const buatPaketSchema = z.object({
  * Yang berubah hanya tipenya: `{"id": "1"}` dan `{"id": []}` dulu lolos
  * isNumeric() dan sekarang ditolak, mengikuti kebijakan ketat.
  */
-export const ubahPaketSchema = z.object({
+export const updatePackageSchema = z.object({
   id: z.number({ error: ErrorList["Parameter error"] }),
   ...paketBase.shape,
 });
@@ -237,7 +231,7 @@ const barisHarga = z.object({
  * memunculkan pesan kedua sekarang berarti menampilkan kalimat baru yang belum
  * pernah dilihat frontend.
  */
-export const ubahHargaPaketSchema = z.object({
+export const updatePackagePriceSchema = z.object({
   items: z.array(barisHarga, { error: ErrorList["Parameter error"] }),
 });
 
@@ -248,7 +242,7 @@ export const ubahHargaPaketSchema = z.object({
 /**
  * Parameter jalur `:id` untuk GET dan DELETE.
  *
- * Dipakai intDariTeks, bukan z.number(): nilai pada req.params selalu berupa
+ * Dipakai intFromText, bukan z.number(): nilai pada req.params selalu berupa
  * teks dan tidak ada tipe asli yang bisa dipertahankan, jadi kebijakan ketat
  * tidak berlaku di sini.
  *
@@ -262,10 +256,10 @@ export const ubahHargaPaketSchema = z.object({
  * sampai ke controller — jadi kelonggaran ini dibiarkan demi memakai helper
  * yang sama dengan seluruh repo, dan dicatat di berkas tes.
  */
-export const paramPaketSchema = z.object({
-  id: intDariTeks(ErrorList["Parameter error"], 1),
+export const paramPackageSchema = z.object({
+  id: intFromText(ErrorList["Parameter error"], 1),
 });
 
-export type BuatPaket = z.infer<typeof buatPaketSchema>;
-export type UbahPaket = z.infer<typeof ubahPaketSchema>;
-export type UbahHargaPaket = z.infer<typeof ubahHargaPaketSchema>;
+export type CreatePackage = z.infer<typeof createPackageSchema>;
+export type UpdatePackage = z.infer<typeof updatePackageSchema>;
+export type UpdatePackagePrice = z.infer<typeof updatePackagePriceSchema>;

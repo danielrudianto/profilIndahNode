@@ -5,8 +5,8 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  buatPembayaranSchema,
-  paramPiutangPelangganSchema,
+  createReceivablePaymentSchema,
+  paramCustomerReceivableSchema,
 } from "../src/schemas/receivable.schema";
 
 /**
@@ -65,10 +65,10 @@ function appBaru() {
 
   app.get(
     "/customer/:id",
-    validate(paramPiutangPelangganSchema, "params"),
+    validate(paramCustomerReceivableSchema, "params"),
     balas
   );
-  app.post("/payment", validate(buatPembayaranSchema), balas);
+  app.post("/payment", validate(createReceivablePaymentSchema), balas);
 
   return app;
 }

@@ -4,10 +4,10 @@ import ExpenseTypeController from "../controllers/expense-type.controller";
 import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  buatTipePengeluaranSchema,
-  paramTipePengeluaranSchema,
-  ubahTipePengeluaranSchema,
-} from "../schemas/master-lain.schema";
+  createExpenseTypeSchema,
+  paramExpenseTypeSchema,
+  updateExpenseTypeSchema,
+} from "../schemas/expense-type.schema";
 
 const router = Router();
 
@@ -18,26 +18,26 @@ const expenseTypeController = new ExpenseTypeController(
 router.get("/autocomplete", expenseTypeController.fetchAutocomplete);
 router.get(
   "/:id",
-  validate(paramTipePengeluaranSchema, "params"),
+  validate(paramExpenseTypeSchema, "params"),
   expenseTypeController.fetchByID
 );
 router.get("/", expenseTypeController.fetch);
 
 router.post(
   "/",
-  validate(buatTipePengeluaranSchema),
+  validate(createExpenseTypeSchema),
   expenseTypeController.create
 );
 
 router.delete(
   "/:id",
-  validate(paramTipePengeluaranSchema, "params"),
+  validate(paramExpenseTypeSchema, "params"),
   expenseTypeController.delete
 );
 
 router.put(
   "/",
-  validate(ubahTipePengeluaranSchema),
+  validate(updateExpenseTypeSchema),
   expenseTypeController.update
 );
 

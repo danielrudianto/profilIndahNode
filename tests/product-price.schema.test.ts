@@ -7,9 +7,9 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  ambilHargaJualSchema,
-  ubahHargaSatuanSchema,
-} from "../src/schemas/produk-pengeluaran.schema";
+  getSalesPriceSchema,
+  updateUnitPriceSchema,
+} from "../src/schemas/product-price.schema";
 
 /**
  * Perbandingan perilaku untuk harga beli dan harga jual per satuan produk.
@@ -101,8 +101,8 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.get("/harga/:id", validate(ambilHargaJualSchema, "params"), balas);
-  app.put("/harga", validate(ubahHargaSatuanSchema), balas);
+  app.get("/harga/:id", validate(getSalesPriceSchema, "params"), balas);
+  app.put("/harga", validate(updateUnitPriceSchema), balas);
   return app;
 }
 

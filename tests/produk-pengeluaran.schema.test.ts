@@ -7,17 +7,21 @@ import ErrorHelper from "../src/utils/error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {
-  aktifkanProdukSchema,
-  ambilProdukSchema,
-  buatPengeluaranSchema,
-  buatProdukSchema,
-  hapusProdukSchema,
-  kueriMutasiPengeluaranSchema,
-  kueriPengeluaranSchema,
-  ubahHargaSchema,
-  ubahPengeluaranSchema,
-  ubahProdukSchema,
-} from "../src/schemas/produk-pengeluaran.schema";
+  activateProductSchema,
+  createProductSchema,
+  updateProductPriceSchema,
+  updateProductSchema,
+} from "../src/schemas/product.schema";
+import {
+  getProductSchema,
+  deleteProductSchema,
+} from "../src/schemas/product-price.schema";
+import {
+  createExpenseSchema,
+  queryExpenseMutationSchema,
+  queryExpenseSchema,
+  updateExpenseSchema,
+} from "../src/schemas/expense.schema";
 
 /**
  * Perbandingan perilaku untuk produk dan pengeluaran.
@@ -162,17 +166,17 @@ function appLama() {
 function appBaru() {
   const app = express();
   app.use(express.json());
-  app.post("/produk", validate(buatProdukSchema), balas);
-  app.put("/produk", validate(ubahProdukSchema), balas);
-  app.put("/produk/active", validate(aktifkanProdukSchema), balas);
-  app.get("/produk/:id", validate(ambilProdukSchema, "params"), balas);
-  app.delete("/produk/:id", validate(hapusProdukSchema, "params"), balas);
-  app.post("/biaya", validate(buatPengeluaranSchema), balas);
-  app.put("/biaya", validate(ubahPengeluaranSchema), balas);
-  app.get("/biaya", validate(kueriPengeluaranSchema, "query"), balas);
+  app.post("/produk", validate(createProductSchema), balas);
+  app.put("/produk", validate(updateProductSchema), balas);
+  app.put("/produk/active", validate(activateProductSchema), balas);
+  app.get("/produk/:id", validate(getProductSchema, "params"), balas);
+  app.delete("/produk/:id", validate(deleteProductSchema, "params"), balas);
+  app.post("/biaya", validate(createExpenseSchema), balas);
+  app.put("/biaya", validate(updateExpenseSchema), balas);
+  app.get("/biaya", validate(queryExpenseSchema, "query"), balas);
   app.get(
     "/biaya/mutation",
-    validate(kueriMutasiPengeluaranSchema, "query"),
+    validate(queryExpenseMutationSchema, "query"),
     balas
   );
   return app;
@@ -399,38 +403,38 @@ describe("Perubahan harga massal", () => {
   };
 
   it("larik sah diterima", () => {
-    expect(ubahHargaSchema.safeParse(sah).success).toBe(true);
+    expect(updateProductPriceSchema.safeParse(sah).success).toBe(true);
   });
 
   it("items bukan larik ditolak", () => {
-    expect(ubahHargaSchema.safeParse({ items: "bukan larik" }).success).toBe(
-      false
-    );
+    expect(
+      updateProductPriceSchema.safeParse({ items: "bukan larik" }).success
+    ).toBe(false);
   });
 
   it("baris tanpa price ditolak", () => {
-    const hasil = ubahHargaSchema.safeParse({
+    const hasil = updateProductPriceSchema.safeParse({
       items: [{ product_id: 1, discount: 0 }],
     });
     expect(hasil.success).toBe(false);
   });
 
   it("harga negatif ditolak — rantai lama memakai isFloat({ min: 0 })", () => {
-    const hasil = ubahHargaSchema.safeParse({
+    const hasil = updateProductPriceSchema.safeParse({
       items: [{ product_id: 1, price: -100, discount: 0 }],
     });
     expect(hasil.success).toBe(false);
   });
 
   it("diskon negatif ditolak", () => {
-    const hasil = ubahHargaSchema.safeParse({
+    const hasil = updateProductPriceSchema.safeParse({
       items: [{ product_id: 1, price: 100, discount: -1 }],
     });
     expect(hasil.success).toBe(false);
   });
 
   it("price berupa teks angka diterima", () => {
-    const hasil = ubahHargaSchema.safeParse({
+    const hasil = updateProductPriceSchema.safeParse({
       items: [{ product_id: "1", price: "1000", discount: "0" }],
     });
     expect(hasil.success).toBe(true);

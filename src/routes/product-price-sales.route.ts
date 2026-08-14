@@ -4,9 +4,9 @@ import { prisma } from "../utils/database.helper";
 import { ProductRepository } from "../repositories/product.repository";
 import { validate } from "../utils/validate.helper";
 import {
-  ambilHargaJualSchema,
-  ubahHargaSatuanSchema,
-} from "../schemas/produk-pengeluaran.schema";
+  getSalesPriceSchema,
+  updateUnitPriceSchema,
+} from "../schemas/product-price.schema";
 
 const router = Router();
 
@@ -16,7 +16,7 @@ const productSalesPriceController = new ProductSalesPriceController(
 
 router.get(
   "/:id",
-  validate(ambilHargaJualSchema, "params"),
+  validate(getSalesPriceSchema, "params"),
   productSalesPriceController.fetchByID
 );
 
@@ -24,12 +24,12 @@ router.get("/", productSalesPriceController.fetch);
 
 /*
   Rantai lama pada endpoint ini identik baris demi baris dengan yang ada di
-  product-price-purchase.route.ts, jadi keduanya memakai ubahHargaSatuanSchema
+  product-price-purchase.route.ts, jadi keduanya memakai updateUnitPriceSchema
   yang sama. Seluk-beluk urutan pesannya ditulis di berkas skema.
 */
 router.put(
   "/",
-  validate(ubahHargaSatuanSchema),
+  validate(updateUnitPriceSchema),
   productSalesPriceController.update
 );
 
