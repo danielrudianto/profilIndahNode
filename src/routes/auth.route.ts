@@ -1,36 +1,27 @@
 import { Router } from "express";
 import { authMiddleware } from "../utils/auth.helper";
-import { body } from "express-validator";
 import AuthController from "../controllers/auth.controller";
-import ErrorHelper from "../utils/error.helper";
 import { UserRepository } from "../repositories/user.repository";
 import { prisma } from "../utils/database.helper";
-import ErrorList from "../constants/error_list";
+import { validate } from "../utils/validate.helper";
+import { masukSchema, ubahSandiSchema } from "../schemas/auth.schema";
 
 const router = Router();
 const authController = new AuthController(new UserRepository(prisma));
 
-router.post(
-  "/login",
-  body("username")
-    .not()
-    .isEmpty()
-    .withMessage(ErrorList["Username is required"]),
-  body("password")
-    .not()
-    .isEmpty()
-    .withMessage(ErrorList["Password is required"]),
-  ErrorHelper.intercept,
-  authController.login
-);
+router.post("/login", validate(masukSchema), authController.login);
 
 router.post("/refresh-token", authController.refreshToken);
 
+/*
+  authMiddleware harus tetap berjalan SEBELUM validate(): ia menulis userId ke
+  req.body, dan controller memakainya untuk menentukan sandi siapa yang
+  diubah.
+*/
 router.put(
   "/password",
   authMiddleware,
-  body("password").not().isEmpty(),
-  ErrorHelper.intercept,
+  validate(ubahSandiSchema),
   authController.updatePassword
 );
 
