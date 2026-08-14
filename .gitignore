@@ -1,4 +1,21 @@
+# Dependencies
 node_modules
-# Keep environment variables out of version control
+
+# Environment & rahasia
 .env
+.env.*
+!.env.example
+
+# Hasil build — dibangun ulang saat deploy, tidak perlu ikut versi
+dist
+
+# Data runtime — ini state server, bukan kode.
+# data.ms = index Meilisearch, dump.rdb = snapshot Redis.
+# Keduanya berisi data usaha & data user yang sebenarnya.
+data.ms
+dump.rdb
+
+# Log & keluaran sementara
+log.txt
 src/log.csv
+*.log
