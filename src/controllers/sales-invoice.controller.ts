@@ -6,7 +6,6 @@ import {
   translatePage,
   translateSalesName,
 } from "../utils/escape.helper";
-import moment from "moment";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";

@@ -1,5 +1,9 @@
 import { Router } from "express";
-import ReportController from "../../controllers/report.controller";
+import FinancialReportController from "../../controllers/financial-report.controller";
+import MoneyReceiptController from "../../controllers/money-receipt.controller";
+import PurchaseReportController from "../../controllers/purchase-report.controller";
+import SalesReportController from "../../controllers/sales-report.controller";
+import StockReportController from "../../controllers/stock-report.controller";
 import {
   requireRole,
   superadministratorMiddleware,
@@ -8,21 +12,16 @@ import { prisma } from "../../utils/database.helper";
 import { validate } from "../../utils/validate.helper";
 import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
 import { CompanyRepository } from "../../repositories/company.repository";
-import { CustomerRepository } from "../../repositories/customer.repository";
-import { ExpenseTypeRepository } from "../../repositories/expense-type.repository";
 import { ExpenseRepository } from "../../repositories/expense.repository";
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 import { PaymentMethodRepository } from "../../repositories/payment-method.repository";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { ProductRepository } from "../../repositories/product.repository";
-import { PromotionRepository } from "../../repositories/promotion.repository";
 import { SalesDepositPaymentRepository } from "../../repositories/sales-deposit-payment.repository";
-import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 import { SalesInvoicePaymentRepository } from "../../repositories/sales-invoice-payment.repository";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
-import { StockCardRepository } from "../../repositories/stock-card.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import {
@@ -38,26 +37,37 @@ import {
 
 const router = Router();
 
-const reportController = new ReportController(
-  new SalesInvoiceRepository(prisma),
-  new SalesDepositRepository(prisma),
-  new PromotionRepository(prisma),
-  new GoodReceiptRepository(prisma),
-  new AdjustmentCaseRepository(prisma),
-  new CustomerRepository(prisma),
-  new SalesReturnRepository(prisma),
+const salesReportController = new SalesReportController(
+  new SalesInvoiceRepository(prisma)
+);
+
+const purchaseReportController = new PurchaseReportController(
+  new GoodReceiptRepository(prisma)
+);
+
+const moneyReceiptController = new MoneyReceiptController(
+  new PaymentMethodRepository(prisma),
   new SalesInvoicePaymentRepository(prisma),
   new SalesDepositPaymentRepository(prisma),
-  new PaymentMethodRepository(prisma),
+  new SalesReturnRepository(prisma),
+  new OverpaymentRepository(prisma)
+);
+
+const stockReportController = new StockReportController(
   new StockInRepository(prisma),
-  new StockOutRepository(prisma),
   new ProductRepository(prisma),
   new ProductStockRepository(prisma),
+  new StockOutRepository(prisma),
+  new GoodReceiptRepository(prisma),
+  new AdjustmentCaseRepository(prisma)
+);
+
+const financialReportController = new FinancialReportController(
+  new SalesInvoiceRepository(prisma),
+  new GoodReceiptRepository(prisma),
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
-  new ExpenseTypeRepository(prisma),
-  new OverpaymentRepository(prisma),
-  new StockCardRepository(prisma)
+  new StockOutRepository(prisma)
 );
 
 /*
@@ -76,104 +86,104 @@ router.post(
   "/sales",
   requireRole(PERAN_PENJUALAN),
   validate(periodeWajibBulanSchema),
-  reportController.fetchSalesReport
+  salesReportController.fetchSalesReport
 );
 
 router.post(
   "/purchase",
   requireRole(PERAN_PEMBELIAN),
   validate(periodeWajibBulanSchema),
-  reportController.fetchPurchaseReport
+  purchaseReportController.fetchPurchaseReport
 );
 
 router.post(
   "/money-receipt",
   requireRole(PERAN_UMUM),
   validate(tanggalSchema),
-  reportController.fetchMoneyReceipt
+  moneyReceiptController.fetchMoneyReceipt
 );
 
 router.post(
   "/money-receipt/download",
   requireRole(PERAN_UMUM),
   validate(tanggalSchema),
-  reportController.downloadMoneyReceipt
+  moneyReceiptController.downloadMoneyReceipt
 );
 
 router.post(
   "/money-receipt/dor",
   requireRole(PERAN_UMUM),
   validate(rentangTanggalSchema),
-  reportController.fetchDorMoneyReceipt
+  moneyReceiptController.fetchDorMoneyReceipt
 );
 
 router.post(
   "/output",
   requireRole(PERAN_PENJUALAN),
   validate(outputSchema),
-  reportController.fetchOutputReport
+  stockReportController.fetchOutputReport
 );
 
 router.post(
   "/output-company",
   requireRole(PERAN_PENJUALAN),
   validate(outputPerusahaanSchema),
-  reportController.fetchCompanyOutputReport
+  stockReportController.fetchCompanyOutputReport
 );
 
 router.get(
   "/inventory",
   superadministratorMiddleware,
-  reportController.fetchInventoryReport
+  stockReportController.fetchInventoryReport
 );
 
 router.post(
   "/daily-sales",
   requireRole(PERAN_UMUM),
   validate(penjualanHarianSchema),
-  reportController.fetchDailySalesReport
+  financialReportController.fetchDailySalesReport
 );
 
 router.post(
   "/purchase/download",
   requireRole(PERAN_PEMBELIAN),
   validate(periodeBolehTahunanSchema),
-  reportController.downloadPurchaseReport
+  purchaseReportController.downloadPurchaseReport
 );
 
 router.post(
   "/profit-loss",
   requireRole(PERAN_SUPERADMIN),
   validate(periodeBolehTahunanSchema),
-  reportController.fetchProfitLoss
+  financialReportController.fetchProfitLoss
 );
 
 router.get(
   "/sales/brand",
   requireRole(PERAN_PENJUALAN),
   validate(periodeKueriSchema, "query"),
-  reportController.fetchBrandSalesReport
+  salesReportController.fetchBrandSalesReport
 );
 
 router.get(
   "/sales/type",
   requireRole(PERAN_PENJUALAN),
   validate(periodeKueriSchema, "query"),
-  reportController.fetchTypeSalesreport
+  salesReportController.fetchTypeSalesreport
 );
 
 router.get(
   "/sales/sales",
   requireRole(PERAN_PENJUALAN),
   validate(periodeKueriSchema, "query"),
-  reportController.fetchSalesSalesReport
+  salesReportController.fetchSalesSalesReport
 );
 
 router.post(
   "/sales/download",
   requireRole(PERAN_PENJUALAN),
   validate(periodeBolehTahunanSchema),
-  reportController.downloadSalesReport
+  salesReportController.downloadSalesReport
 );
 
 /*

@@ -1,9 +1,5 @@
 import { prisma } from "../utils/database.helper";
-import {
-  AnnualArchive,
-  MonthlyArchive,
-  PurchaseInvoiceArchiveV2,
-} from "../interfaces/archive.interface";
+import { AnnualArchive, MonthlyArchive } from "../interfaces/archive.interface";
 
 import GoodReceiptModel from "./good-receipt.model";
 

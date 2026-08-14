@@ -1,6 +1,5 @@
 import { Router } from "express";
 import UserController from "../../controllers/user.controller";
-import SalesInvoiceController from "../../controllers/sales-invoice.controller";
 import { body, param } from "express-validator";
 import ErrorList from "../../constants/error_list";
 import ErrorHelper from "../../utils/error.helper";
