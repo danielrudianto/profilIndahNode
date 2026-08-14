@@ -1,14 +1,18 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
 import AuthController from "../controllers/auth.controller";
 import UserController from "../controllers/user.controller";
 import { administratorMiddleware } from "../utils/auth.helper";
-import ErrorHelper from "../utils/error.helper";
 import { UserRepository } from "../repositories/user.repository";
 import { prisma } from "../utils/database.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { CustomerRepository } from "../repositories/customer.repository";
+import { validate } from "../utils/validate.helper";
+import {
+  buatPenggunaSchema,
+  paramPenggunaSchema,
+  ubahPenggunaSchema,
+  ubahSandiPenggunaSchema,
+} from "../schemas/user.schema";
 
 const router = Router();
 
@@ -19,26 +23,12 @@ const userController = new UserController(
 );
 const authController = new AuthController(new UserRepository(prisma));
 
-const validateId = [
-  param("id").isInt({ min: 0 }).withMessage(ErrorList["Parameter error"]),
-];
-
-const validateUserFields = [
-  body("role")
-    .notEmpty()
-    .isNumeric()
-    .withMessage(ErrorList["User role required"]),
-  body("name").notEmpty().withMessage(ErrorList["Name required"]),
-  body("username").notEmpty().withMessage(ErrorList["Username is required"]),
-  body("nik").notEmpty().withMessage(ErrorList["Parameter error"]),
-];
-
 // Routes
 router.get("/profile", authController.fetchProfile);
 
 router.get(
   "/:id",
-  [...validateId, ErrorHelper.intercept],
+  validate(paramPenggunaSchema, "params"),
   userController.fetchByID
 );
 
@@ -46,31 +36,33 @@ router.get("/", userController.fetch);
 
 router.post(
   "/changePassword",
-  body("password").notEmpty().withMessage(ErrorList["Password is required"]),
-  ErrorHelper.intercept,
+  validate(ubahSandiPenggunaSchema),
   userController.updatePassword
 );
+
 router.post(
   "/",
   administratorMiddleware,
-  [...validateUserFields, ErrorHelper.intercept],
+  validate(buatPenggunaSchema),
   userController.create
 );
 
 router.put(
   "/",
   administratorMiddleware,
-  [
-    body("id").notEmpty().isNumeric().withMessage(ErrorList["ID is required"]),
-    ...validateUserFields,
-    ErrorHelper.intercept,
-  ],
+  validate(ubahPenggunaSchema),
   userController.update
 );
 
+/*
+  Urutan middleware disalin apa adanya: validasi parameter berjalan SEBELUM
+  administratorMiddleware. Akibatnya id yang tidak sah dibalas 400 walaupun
+  pemanggilnya bukan administrator, sedangkan id yang sah baru dibalas 403.
+  Menukar urutannya akan mengubah status yang diterima klien, jadi dibiarkan.
+*/
 router.delete(
   "/:id",
-  [...validateId, ErrorHelper.intercept],
+  validate(paramPenggunaSchema, "params"),
   administratorMiddleware,
   userController.toggleActive
 );

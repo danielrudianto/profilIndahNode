@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { body } from "express-validator";
-import ErrorList from "../constants/error_list";
 import DraftBillController from "../controllers/draft-bill.controller";
 import { prisma } from "../utils/database.helper";
 import { DraftBillRepository } from "../repositories/draft-bill.repository";
-import ErrorHelper from "../utils/error.helper";
+import { validate } from "../utils/validate.helper";
+import {
+  buatDraftBillSchema,
+  hapusDraftBillSchema,
+  konfirmasiDraftBillSchema,
+} from "../schemas/draft-bill.schema";
 
 const router = Router();
 
@@ -12,39 +15,24 @@ const draftBillController = new DraftBillController(
   new DraftBillRepository(prisma)
 );
 
+/*
+  authMiddleware pada app.use("/draft-bill", ...) berjalan lebih dulu dan
+  menulis userId ke req.body. validate() sengaja tidak mengganti isi req.body
+  dengan hasil parse, jadi nilai itu tetap sampai ke controller.
+*/
 router.post(
   "/confirm",
-  body("payment_methods")
-    .notEmpty()
-    .withMessage(ErrorList["Payment method required"]),
-  body("payment_methods")
-    .isArray()
-    .withMessage(ErrorList["Payment method required"]),
-  body("service").notEmpty().withMessage(ErrorList["Service required"]),
-  body("delivery").notEmpty().withMessage(ErrorList["Delivery required"]),
-  body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  ErrorHelper.intercept,
+  validate(konfirmasiDraftBillSchema),
   draftBillController.confirmByID
 );
 
 router.post(
   "/delete",
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  ErrorHelper.intercept,
+  validate(hapusDraftBillSchema),
   draftBillController.deleteByID
 );
 
-router.post(
-  "/",
-  body("customer_id").exists().withMessage("Please fill in customer ID"),
-  body("note").exists().withMessage("Please fill in note"),
-  body("items").exists().withMessage("Please fill in items"),
-  body("service").exists().withMessage("Please fill in the service value"),
-  body("delivery").exists().withMessage("Please fill in the delivery value"),
-  ErrorHelper.intercept,
-  draftBillController.create
-);
+router.post("/", validate(buatDraftBillSchema), draftBillController.create);
 
 router.get("/archives", draftBillController.fetchArchives);
 // router.get(

@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
 import { OverpaymentController } from "../controllers/overpayment.controller";
 import { prisma } from "../utils/database.helper";
-import ErrorHelper from "../utils/error.helper";
 import { OverpaymentRepository } from "../repositories/overpayment.repository";
+import { validate } from "../utils/validate.helper";
+import {
+  ambilKelebihanBayarSchema,
+  buatKelebihanBayarSchema,
+  laporanPengembalianSchema,
+} from "../schemas/overpayment.schema";
 
 const router = Router();
 
@@ -14,59 +17,29 @@ const overpaymentController = new OverpaymentController(
 
 router.post(
   "/return",
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  ErrorHelper.intercept,
+  validate(laporanPengembalianSchema),
   overpaymentController.fetchReport
 );
 
 router.post(
   "/",
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("value").notEmpty().withMessage(ErrorList["Amount is required"]),
-  body("value")
-    .isFloat({
-      min: 0.1,
-    })
-    .withMessage(ErrorList["Amount must be numeric"]),
-  body("customer_id")
-    .exists()
-    .withMessage(ErrorList["Customer ID is required"]),
-  body("payment_method_id")
-    .exists()
-    .withMessage(ErrorList["Payment method required"]),
-  body("return_payment_date")
-    .notEmpty()
-    .withMessage(ErrorList["Return date is required"]),
-  body("return_payment_method")
-    .isIn(["Cash", "Bank transfer"])
-    .withMessage(
-      ErrorList["Return payment method must be either Cash or Transfer"]
-    ),
-  body("return_payment_name")
-    .notEmpty()
-    .withMessage(ErrorList["Return name is required"]),
-  body("return_payment_bank")
-    .exists()
-    .withMessage(ErrorList["Return payment bank is required"]),
-  body("return_payment_number")
-    .exists()
-    .withMessage(ErrorList["Return payment number is required"]),
-  ErrorHelper.intercept,
+  validate(buatKelebihanBayarSchema),
   overpaymentController.create
 );
 
 router.get(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(ambilKelebihanBayarSchema, "params"),
   overpaymentController.fetchByID
 );
 
+/*
+  Tanpa validasi, sama seperti sebelumnya. page dan pageSize diterjemahkan
+  controller lewat translatePage/translatePageSize yang sudah punya nilai
+  bawaan, dan sortBy/sortDirection tidak pernah diperiksa rantai lama.
+  Memasang skema di sini akan menolak permintaan yang selama ini diterima,
+  jadi pengetatannya dibahas terpisah.
+*/
 router.get("/", overpaymentController.fetch);
 
 export default router;

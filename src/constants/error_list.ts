@@ -161,7 +161,9 @@ enum ErrorList {
   "Payment must be an array" = "validation.payment.array",
   "Payment date is required" = "validation.payment.dateRequired",
   "Delivery required" = "validation.delivery.required",
+  "Delivery must be numeric" = "validation.delivery.numeric",
   "Service required" = "validation.service.required",
+  "Service must be numeric" = "validation.service.numeric",
 
   "Good receipt not found" = "goodReceipt.notFound",
   "Good receipt already confirmed" = "goodReceipt.alreadyConfirmed",

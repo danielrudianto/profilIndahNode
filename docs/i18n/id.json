@@ -117,10 +117,12 @@
       "required": "Status pembayaran tidak boleh kosong."
     },
     "delivery": {
-      "required": "Pengiriman tidak boleh kosong."
+      "required": "Pengiriman tidak boleh kosong.",
+      "numeric": "Pengiriman harus berupa angka."
     },
     "service": {
-      "required": "Biaya layanan tidak boleh kosong."
+      "required": "Biaya layanan tidak boleh kosong.",
+      "numeric": "Biaya layanan harus berupa angka."
     },
     "goodReceipt": {
       "required": "Penerimaan barang tidak boleh kosong.",
