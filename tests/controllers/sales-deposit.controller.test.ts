@@ -74,8 +74,24 @@ function repositoriTiruan() {
     overpayment: {
       createMany: jest.fn(),
     },
+    /*
+      $transaction tiruan MENJALANKAN fungsi yang dioper, bukan melewatinya.
+      Kalau ia hanya mengembalikan nilai kosong, seluruh isi transaksi tidak
+      pernah dijalankan dan tesnya akan hijau tanpa menguji apa pun — persis
+      cara tes bisa membuktikan hal yang salah.
+
+      Klien yang diberikan ke fungsi itu sengaja berupa penanda: repository di
+      sini semuanya tiruan dan tidak menyentuh Prisma, jadi yang perlu diperiksa
+      hanyalah bahwa penanda inilah yang diteruskan ke tiap repository.
+    */
+    prisma: {
+      $transaction: jest.fn(async (fn: any) => fn(TANDA_TX)),
+    },
   };
 }
+
+/** Penanda klien transaksi; dipakai untuk memastikan tiap repository menerimanya. */
+const TANDA_TX = { __tx: true } as never;
 
 type Repos = ReturnType<typeof repositoriTiruan>;
 
@@ -87,7 +103,8 @@ function controller(r: Repos) {
     r.productStock as never,
     r.stockOut as never,
     r.receivable as never,
-    r.overpayment as never
+    r.overpayment as never,
+    r.prisma as never
   );
 }
 
@@ -507,18 +524,22 @@ describe("POST /confirm — setoran menjadi faktur", () => {
     await request(app(r)).post("/confirm").send(badanKonfirmasi);
 
     // 2 dus x 12 pcs = 24 pcs; harga per pcs 120.000 / 12 = 10.000.
-    expect(r.stockOut.create).toHaveBeenCalledWith([
-      expect.objectContaining({
-        product_id: 10,
-        quantity: 24,
-        price: 10000,
-        sales_invoice_id: 501,
-        sales_invoice_code_id: 77,
-      }),
-    ]);
-    expect(r.productStock.updateMany).toHaveBeenCalledWith([
-      { productID: 10, quantity: -24 },
-    ]);
+    expect(r.stockOut.create).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({
+          product_id: 10,
+          quantity: 24,
+          price: 10000,
+          sales_invoice_id: 501,
+          sales_invoice_code_id: 77,
+        }),
+      ],
+      TANDA_TX
+    );
+    expect(r.productStock.updateMany).toHaveBeenCalledWith(
+      [{ productID: 10, quantity: -24 }],
+      TANDA_TX
+    );
     const kartu = r.stockCard.createMany.mock.calls[0][0][0];
     expect(kartu.quantity).toBe(-24);
     expect(kartu.display_quantity).toBe(-2);
@@ -555,19 +576,32 @@ describe("POST /confirm — setoran menjadi faktur", () => {
 
     await request(app(r)).post("/confirm").send(badanKonfirmasi);
 
+    /*
+      Piutang berada PALING AKHIR, sesudah kelima tulisan basis data.
+
+      addReceivableValue menaikkan penghitung di Redis, dan Redis tidak ikut
+      dibatalkan ketika transaksi gagal. Menaikkannya di tengah rangkaian —
+      seperti sebelumnya — membuat total piutang membesar untuk konfirmasi yang
+      pada akhirnya tidak jadi tersimpan. Urutan ini yang menjaganya.
+    */
     expect(urutan).toEqual([
       "faktur",
       "tandai-setoran",
-      "piutang",
       "barang-keluar",
       "stok",
       "kartu-stok",
+      "piutang",
     ]);
     // Argumen ketiga adalah id faktur yang baru dibuat: sejak migrasi
     // 20260814010000 kaitan setoran ke fakturnya disimpan di kolom
     // sales_deposit_code.sales_invoice_code_id, bukan lagi tersirat lewat
     // awalan nomor DPS-.
-    expect(r.salesDeposit.confirmByID).toHaveBeenCalledWith(21, 99, 77);
+    expect(r.salesDeposit.confirmByID).toHaveBeenCalledWith(
+      21,
+      99,
+      77,
+      TANDA_TX
+    );
   });
 
   /**

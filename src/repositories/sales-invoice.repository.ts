@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { SalesInvoiceModel } from "../models/sales-invoice.model";
 import { ISalesInvoiceCode } from "../interfaces/sales-invoice.interface";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
@@ -14,8 +14,17 @@ export class SalesInvoiceRepository {
     this.prisma = prisma;
   }
 
-  async create(data: ISalesInvoiceCode): Promise<SalesInvoiceModel> {
-    const result = await this.prisma.sales_invoice_code.create({
+  /*
+    tx diisi ketika pemanggilnya sudah berada di dalam transaksi interaktif,
+    sehingga tulisan di sini ikut dibatalkan bila langkah berikutnya gagal.
+    Tanpa tx, perilakunya persis seperti sebelumnya.
+  */
+  async create(
+    data: ISalesInvoiceCode,
+    tx?: Prisma.TransactionClient
+  ): Promise<SalesInvoiceModel> {
+    const db = tx ?? this.prisma;
+    const result = await db.sales_invoice_code.create({
       data: {
         uuid: data.uuid,
         name: data.name,

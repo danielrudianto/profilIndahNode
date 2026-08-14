@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
 import ErrorList from "../constants/error-list.constant";
 import {
   translateDate,
@@ -24,6 +25,7 @@ export class SalesDepositController {
   stockOutRepository: StockOutRepository;
   receivableRepository: ReceivableRepository;
   overpaymentRepository: OverpaymentRepository;
+  prisma: PrismaClient;
 
   constructor(
     salesDepositRepository: SalesDepositRepository,
@@ -32,7 +34,8 @@ export class SalesDepositController {
     productStockRepository: ProductStockRepository,
     stockOutRepository: StockOutRepository,
     receivableRepository: ReceivableRepository,
-    overpaymentRepository: OverpaymentRepository
+    overpaymentRepository: OverpaymentRepository,
+    prisma: PrismaClient
   ) {
     this.salesDepositRepository = salesDepositRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
@@ -41,6 +44,7 @@ export class SalesDepositController {
     this.stockOutRepository = stockOutRepository;
     this.receivableRepository = receivableRepository;
     this.overpaymentRepository = overpaymentRepository;
+    this.prisma = prisma;
   }
 
   create = async (req: Request, res: Response) => {
@@ -212,8 +216,29 @@ export class SalesDepositController {
       }
       const customerID = deposit.customerID;
 
-      const result = await this.salesInvoiceRepository.create({
-        /*
+      /*
+        SATU TRANSAKSI untuk seluruh tulisan basis data di bawah.
+
+        Sebelumnya keenam langkah berjalan sendiri-sendiri, sehingga kegagalan
+        di tengah meninggalkan keadaan separuh jadi: fakturnya sudah terbit,
+        tetapi setoran belum tertandai, stok belum berkurang, dan kartu stoknya
+        belum ada. Keadaan itu tidak bisa dibereskan lewat aplikasi — percobaan
+        ulang selalu berhenti di pembuatan faktur karena uuid setoran sudah
+        terpakai, dan uuid itu unik pada sales_invoice_code.
+
+        Kini tidak ada yang tersimpan kecuali semuanya berhasil, sehingga
+        percobaan ulang selalu bertemu keadaan awal yang bersih.
+
+        Batas waktunya dinaikkan dari 5 detik bawaan: faktur dengan banyak baris
+        barang menulis satu baris stok keluar dan satu kartu stok untuk tiap
+        barang, dan kehabisan waktu di tengah justru menciptakan kegagalan baru
+        pada dokumen yang paling besar.
+      */
+      const result = await this.prisma.$transaction(
+        async (tx) => {
+          const faktur = await this.salesInvoiceRepository.create(
+            {
+              /*
           Penomoran memakai generateName milik repository FAKTUR, bukan milik
           setoran. Sebelumnya yang dipakai adalah milik setoran, sehingga faktur
           hasil konfirmasi beredar dengan nomor berawalan DPS-: penomoran faktur
@@ -223,111 +248,137 @@ export class SalesDepositController {
           Asal-usulnya tetap terlacak — tapi lewat kolom sales_invoice_code_id
           pada sales_deposit_code yang ditulis di bawah, bukan lewat awalan nomor.
         */
-        name: this.salesInvoiceRepository.generateName(date),
-        date: new Date(date),
-        customerID: customerID,
-        sales: deposit.sales,
-        createdAt: new Date(),
-        createdBy: userID,
-        discount: deposit.discount,
-        delivery: deposit.delivery,
-        service: deposit.service,
-        uuid: deposit.uuid,
-        sales_invoice: deposit.sales_deposit!.map((x) => {
-          return {
-            product_id: x.product_id,
-            product_unit_id: x.product_unit_id,
-            quantity: x.quantity,
-            price: x.price,
-            discount: x.discount,
-          };
-        }),
-        sales_invoice_payment: sales_invoice_payment!.map((x: any) => {
-          return {
-            payment_method_id: x.payment_method_id,
-            value: x.value,
-            date: new Date(x.date),
-            sales_invoice_code_id: 0,
-          };
-        }),
-        isPaid: deposit.isPaid,
-        isConfirm: true,
-        isDelete: false,
-        confirmedAt: new Date(),
-        confirmedBy: userID,
-      });
+              name: this.salesInvoiceRepository.generateName(date),
+              date: new Date(date),
+              customerID: customerID,
+              sales: deposit.sales,
+              createdAt: new Date(),
+              createdBy: userID,
+              discount: deposit.discount,
+              delivery: deposit.delivery,
+              service: deposit.service,
+              uuid: deposit.uuid,
+              sales_invoice: deposit.sales_deposit!.map((x) => {
+                return {
+                  product_id: x.product_id,
+                  product_unit_id: x.product_unit_id,
+                  quantity: x.quantity,
+                  price: x.price,
+                  discount: x.discount,
+                };
+              }),
+              sales_invoice_payment: sales_invoice_payment!.map((x: any) => {
+                return {
+                  payment_method_id: x.payment_method_id,
+                  value: x.value,
+                  date: new Date(x.date),
+                  sales_invoice_code_id: 0,
+                };
+              }),
+              isPaid: deposit.isPaid,
+              isConfirm: true,
+              isDelete: false,
+              confirmedAt: new Date(),
+              confirmedBy: userID,
+            },
+            tx
+          );
 
-      await this.salesDepositRepository.confirmByID(id, userID, result.id!);
+          await this.salesDepositRepository.confirmByID(
+            id,
+            userID,
+            faktur.id!,
+            tx
+          );
 
+          await this.stockOutRepository.create(
+            faktur.sales_invoice!.map((x) => {
+              const conversion =
+                x.product_unit == null ? 1 : x.product_unit.conversion;
+              return {
+                stock_in_id: null,
+                product_id: x.product_id,
+                adjustment_case_code_id: null,
+                adjustment_case_id: null,
+                date: date,
+                quantity: Number(x.quantity * conversion),
+                price: Number(x.price / conversion),
+                sales_invoice_id: x.id!,
+                sales_invoice_code_id: faktur.id!,
+              };
+            }),
+            tx
+          );
+
+          await this.productStockRepository.updateMany(
+            faktur.sales_invoice!.map((x) => {
+              const conversion =
+                x.product_unit == null ? 1 : x.product_unit.conversion;
+
+              return {
+                productID: x.product_id,
+                quantity: -1 * x.quantity * conversion,
+              };
+            }),
+            tx
+          );
+
+          const kartuStok = await this.stockCardRepository.createMany(
+            faktur.sales_invoice!.map((x) => {
+              const conversion =
+                x.product_unit == null ? 1 : x.product_unit.conversion;
+
+              return {
+                product_id: x.product_id,
+                product_unit_id: x.product_unit_id,
+                quantity: -1 * x.quantity * conversion,
+                display_quantity: -1 * x.quantity,
+                date: faktur.date,
+                document_name: faktur.name,
+                sales_invoice_id: x.id!,
+                sales_invoice_code_id: faktur.id!,
+                adjustment_case_code_id: null,
+                adjustment_case_id: null,
+                good_receipt_code_id: null,
+                good_receipt_id: null,
+                sales_return_id: null,
+                sales_return_code_id: null,
+                stock: null,
+                customer_id: faktur.customerID,
+                supplier_id: null,
+                created_at: new Date(),
+              };
+            }),
+            tx
+          );
+
+          return { faktur, kartuStok };
+        },
+        { timeout: 30000 }
+      );
+
+      /*
+        Yang di bawah ini SENGAJA di luar transaksi, dan urutannya penting.
+
+        addReceivableValue menaikkan penghitung di Redis, bukan di basis data.
+        Redis tidak ikut dibatalkan ketika transaksi gagal, sehingga menaikkannya
+        di dalam transaksi akan membuat total piutang membesar untuk konfirmasi
+        yang sebenarnya tidak jadi.
+
+        queue.add juga menulis ke Redis. Pekerjaan yang terlanjur mengantre untuk
+        kartu stok yang batal tersimpan akan mencari baris yang tidak pernah ada.
+
+        Keduanya baru dijalankan setelah transaksi benar-benar commit.
+      */
       if (!deposit.isPaid) {
         await this.receivableRepository.addReceivableValue(value - payment);
       }
 
-      await this.stockOutRepository.create(
-        result.sales_invoice!.map((x) => {
-          const conversion =
-            x.product_unit == null ? 1 : x.product_unit.conversion;
-          return {
-            stock_in_id: null,
-            product_id: x.product_id,
-            adjustment_case_code_id: null,
-            adjustment_case_id: null,
-            date: date,
-            quantity: Number(x.quantity * conversion),
-            price: Number(x.price / conversion),
-            sales_invoice_id: x.id!,
-            sales_invoice_code_id: result.id!,
-          };
-        })
-      );
+      for (const kartu of result.kartuStok) {
+        await queue.add("stock-card-inserted", { id: kartu.id });
+      }
 
-      await this.productStockRepository.updateMany(
-        result.sales_invoice!.map((x) => {
-          const conversion =
-            x.product_unit == null ? 1 : x.product_unit.conversion;
-
-          return {
-            productID: x.product_id,
-            quantity: -1 * x.quantity * conversion,
-          };
-        })
-      );
-
-      const stockCardResult = await this.stockCardRepository.createMany(
-        result.sales_invoice!.map((x) => {
-          const conversion =
-            x.product_unit == null ? 1 : x.product_unit.conversion;
-
-          return {
-            product_id: x.product_id,
-            product_unit_id: x.product_unit_id,
-            quantity: -1 * x.quantity * conversion,
-            display_quantity: -1 * x.quantity,
-            date: result.date,
-            document_name: result.name,
-            sales_invoice_id: x.id!,
-            sales_invoice_code_id: result.id!,
-            adjustment_case_code_id: null,
-            adjustment_case_id: null,
-            good_receipt_code_id: null,
-            good_receipt_id: null,
-            sales_return_id: null,
-            sales_return_code_id: null,
-            stock: null,
-            customer_id: result.customerID,
-            supplier_id: null,
-            created_at: new Date(),
-          };
-        })
-      );
-
-      stockCardResult.forEach(async (x) => {
-        await queue.add("stock-card-inserted", {
-          id: x.id,
-        });
-      });
-
-      return res.status(201).send(result);
+      return res.status(201).send(result.faktur);
     } catch (error) {
       /*
         Blok ini sebelumnya hanya mencatat ke log dan tidak pernah menyentuh

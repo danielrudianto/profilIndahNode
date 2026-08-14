@@ -545,8 +545,13 @@ export class SalesDepositRepository {
     membaca kedua keadaan itu lewat isDelete, jadi penandaan ini pula yang
     menutup pintu konfirmasi kedua.
   */
-  async confirmByID(id: number, userID: number, salesInvoiceCodeID: number) {
-    await this.prisma.sales_deposit_code.update({
+  async confirmByID(
+    id: number,
+    userID: number,
+    salesInvoiceCodeID: number,
+    tx?: Prisma.TransactionClient
+  ) {
+    await (tx ?? this.prisma).sales_deposit_code.update({
       where: {
         id: id,
       },

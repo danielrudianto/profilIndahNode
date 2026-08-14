@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { StockCardModel } from "../models/stock-card.model";
 import { IStockCard } from "../interfaces/stock-card.interface";
 
@@ -34,32 +34,45 @@ export class StockCardRepository {
     });
   }
 
-  createMany(data: IStockCard[]) {
+  /*
+    tx diisi ketika pemanggilnya sudah berada di dalam transaksi interaktif.
+
+    Prisma TIDAK bisa menyarangkan transaksi: memanggil $transaction dari dalam
+    $transaction lain akan membuka transaksi kedua pada koneksi yang berbeda,
+    sehingga tulisannya berada di luar jangkauan pembatalan pemanggil — persis
+    kebalikan dari yang diinginkan. Karena itu ketika tx ada, baris-barisnya
+    ditulis berurutan memakai klien itu, tanpa membuka transaksi sendiri.
+  */
+  createMany(data: IStockCard[], tx?: Prisma.TransactionClient) {
+    const baris = (x: IStockCard) => ({
+      date: x.date,
+      product_id: x.product_id,
+      product_unit_id: x.product_unit_id,
+      display_quantity: x.display_quantity,
+      quantity: x.quantity,
+      document_name: x.document_name,
+      supplier_id: x.supplier_id,
+      customer_id: x.customer_id,
+      sales_invoice_id: x.sales_invoice_id,
+      sales_invoice_code_id: x.sales_invoice_code_id,
+      adjustment_case_id: x.adjustment_case_id,
+      adjustment_case_code_id: x.adjustment_case_code_id,
+      good_receipt_id: x.good_receipt_id,
+      good_receipt_code_id: x.good_receipt_code_id,
+      sales_return_id: x.sales_return_id,
+      sales_return_code_id: x.sales_return_code_id,
+      stock: null,
+      created_at: x.created_at,
+    });
+
+    if (tx) {
+      return Promise.all(
+        data.map((x) => tx.stock_card.create({ data: baris(x) }))
+      );
+    }
+
     return this.prisma.$transaction(
-      data.map((x) => {
-        return this.prisma.stock_card.create({
-          data: {
-            date: x.date,
-            product_id: x.product_id,
-            product_unit_id: x.product_unit_id,
-            display_quantity: x.display_quantity,
-            quantity: x.quantity,
-            document_name: x.document_name,
-            supplier_id: x.supplier_id,
-            customer_id: x.customer_id,
-            sales_invoice_id: x.sales_invoice_id,
-            sales_invoice_code_id: x.sales_invoice_code_id,
-            adjustment_case_id: x.adjustment_case_id,
-            adjustment_case_code_id: x.adjustment_case_code_id,
-            good_receipt_id: x.good_receipt_id,
-            good_receipt_code_id: x.good_receipt_code_id,
-            sales_return_id: x.sales_return_id,
-            sales_return_code_id: x.sales_return_code_id,
-            stock: null,
-            created_at: x.created_at,
-          },
-        });
-      })
+      data.map((x) => this.prisma.stock_card.create({ data: baris(x) }))
     );
   }
 

@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import {
   DateHelper,
   formatDate,
@@ -124,8 +124,13 @@ export class StockOutRepository {
     ]);
   }
 
-  async create(data: IStockoutModel[]) {
-    return this.prisma.stock_out.createMany({
+  /*
+    tx diisi ketika pemanggilnya sudah berada di dalam transaksi interaktif,
+    sehingga tulisan di sini ikut dibatalkan bila langkah berikutnya gagal.
+    Tanpa tx, perilakunya persis seperti sebelumnya.
+  */
+  async create(data: IStockoutModel[], tx?: Prisma.TransactionClient) {
+    return (tx ?? this.prisma).stock_out.createMany({
       data: data.map((x) => {
         return {
           stock_in_id: null,

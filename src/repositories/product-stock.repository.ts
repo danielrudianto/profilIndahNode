@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import { IFetchCommonResult } from "../interfaces/fetch.interface";
 
 import { ProductBrandModel } from "../models/product-brand.model";
@@ -277,28 +277,40 @@ export class ProductStockRepository {
     };
   }
 
-  updateMany = async (items: { productID: number; quantity: number }[]) => {
-    const updateData = [];
-    for (let item of items) {
-      updateData.push(
-        this.prisma.product_stock.upsert({
-          where: {
-            id: item.productID,
-          },
-          create: {
-            id: item.productID,
-            stock: item.quantity,
-          },
-          update: {
-            stock: {
-              increment: item.quantity,
-            },
-          },
-        })
-      );
+  /*
+    tx diisi ketika pemanggilnya sudah berada di dalam transaksi interaktif.
+
+    Prisma TIDAK bisa menyarangkan transaksi: memanggil $transaction dari dalam
+    $transaction lain membuka transaksi kedua pada koneksi berbeda, sehingga
+    tulisannya lolos dari pembatalan pemanggil. Ketika tx ada, upsert-nya
+    dijalankan berurutan memakai klien itu.
+
+    Urutannya sengaja berurutan, bukan Promise.all: baris product_stock adalah
+    titik rebutan paling ramai di jalur ini, dan menembakkan banyak upsert
+    sekaligus ke dalam satu transaksi memperbesar peluang deadlock antar
+    permintaan yang menyentuh produk yang sama.
+  */
+  updateMany = async (
+    items: { productID: number; quantity: number }[],
+    tx?: Prisma.TransactionClient
+  ) => {
+    const argumen = (item: { productID: number; quantity: number }) => ({
+      where: { id: item.productID },
+      create: { id: item.productID, stock: item.quantity },
+      update: { stock: { increment: item.quantity } },
+    });
+
+    if (tx) {
+      const hasil = [];
+      for (const item of items) {
+        hasil.push(await tx.product_stock.upsert(argumen(item)));
+      }
+      return hasil;
     }
 
-    return this.prisma.$transaction(updateData);
+    return this.prisma.$transaction(
+      items.map((item) => this.prisma.product_stock.upsert(argumen(item)))
+    );
   };
 
   fetchOutputReport = async (data: {

@@ -27,7 +27,8 @@ const salesDepositController = new SalesDepositController(
   new ProductStockRepository(prisma),
   new StockOutRepository(prisma),
   new ReceivableRepository(redisClient, prisma),
-  new OverpaymentRepository(prisma)
+  new OverpaymentRepository(prisma),
+  prisma
 );
 
 router.get("/archives", salesDepositController.fetchAnnualArchives);
