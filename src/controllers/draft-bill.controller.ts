@@ -1,18 +1,23 @@
 import { Request, Response } from "express";
+import moment from "moment";
 import ErrorList from "../constants/error_list";
 import SocketHelper from "../utils/socket.helper";
-import {
-  DraftBillModel,
-  IConfirmDraftBillItems,
-} from "../models/draft-bill.model";
+import { IConfirmDraftBillItems } from "../models/draft-bill.model";
+import { DraftBillRepository } from "../repositories/draft-bill.repository";
 
 class DraftBillController {
+  private draftBillRepository: DraftBillRepository;
+
+  constructor(draftBillRepository: DraftBillRepository) {
+    this.draftBillRepository = draftBillRepository;
+  }
+
   /**
    * Create a new draft bill
    * @param req
    * @param res
    */
-  static create = (req: Request, res: Response) => {
+  create = (req: Request, res: Response) => {
     const customer_id = req.body.customer_id;
     const items = req.body.items as any[];
     const userID = req.body.userId;
@@ -22,16 +27,17 @@ class DraftBillController {
     const delivery = req.body.delivery;
     const otc = req.body.otc;
 
-    DraftBillModel.create({
-      otc: otc,
-      customer_id: customer_id,
-      note: note,
-      items: items,
-      created_by: userID,
-      name: this.generateName(date),
-      service: service,
-      delivery: delivery,
-    })
+    this.draftBillRepository
+      .create({
+        otc: otc,
+        customer_id: customer_id,
+        note: note,
+        items: items,
+        created_by: userID,
+        name: DraftBillController.generateName(date),
+        service: service,
+        delivery: delivery,
+      })
       .then((result) => {
         return res.status(201).send(result);
       })
@@ -58,9 +64,10 @@ class DraftBillController {
     )}${Math.floor(Math.random() * 10)}`;
   }
 
-  static fetchByName = (req: Request, res: Response) => {
+  fetchByName = (req: Request, res: Response) => {
     const name = req.body.name;
-    DraftBillModel.fetchByName(name)
+    this.draftBillRepository
+      .fetchByName(name)
       .then((result) => {
         return res.status(200).send(result);
       })
@@ -75,7 +82,7 @@ class DraftBillController {
    * @param req
    * @param res
    */
-  static confirmByID = (req: Request, res: Response) => {
+  confirmByID = (req: Request, res: Response) => {
     const id = req.body.id;
     const payment_methods = req.body.payment_methods;
 
@@ -86,7 +93,7 @@ class DraftBillController {
 
     const items = req.body.items as any[];
 
-    DraftBillModel.fetchByID(id).then((result) => {
+    this.draftBillRepository.fetchByID(id).then((result) => {
       if (!result) {
         return res.status(404).send(ErrorList["Not found"]);
       }
@@ -118,18 +125,19 @@ class DraftBillController {
         // }
       });
 
-      DraftBillModel.confirm({
-        id: id,
-        name: result.name,
-        date: new Date(result.created_at!),
-        customer_id: result.customer_id,
-        payment_methods: payment_methods,
-        service: service,
-        delivery: delivery,
-        discount: discount,
-        items: bills,
-        userID: userID,
-      })
+      this.draftBillRepository
+        .confirm({
+          id: id,
+          name: result.name,
+          date: new Date(result.created_at!),
+          customer_id: result.customer_id,
+          payment_methods: payment_methods,
+          service: service,
+          delivery: delivery,
+          discount: discount,
+          items: bills,
+          userID: userID,
+        })
         .then(async ([_, bill]) => {
           const socket = new SocketHelper("confirm-draft-bill", bill);
 
@@ -150,10 +158,11 @@ class DraftBillController {
    * @param req
    * @param res
    */
-  static deleteByID = (req: Request, res: Response) => {
+  deleteByID = (req: Request, res: Response) => {
     const id = req.body.id;
     const userID = req.body.userId;
-    DraftBillModel.deleteByID(id, userID)
+    this.draftBillRepository
+      .deleteByID(id, userID)
       .then((result) => {
         const socket = new SocketHelper("delete-draft-bill", {
           id: result.id,
@@ -173,11 +182,12 @@ class DraftBillController {
    * @param req
    * @param res
    */
-  static fetchArchives = (req: Request, res: Response) => {
+  fetchArchives = (req: Request, res: Response) => {
     const mode =
       req.query.mode == undefined ? 0 : parseInt(req.query.mode.toString());
     if (req.query.year == undefined) {
-      DraftBillModel.fetchArchiveYears(mode)!
+      this.draftBillRepository
+        .fetchArchiveYears(mode)!
         .then((result) => {
           return res.status(200).send(
             result.map((x) => {
@@ -194,7 +204,8 @@ class DraftBillController {
         });
     } else if (req.query.year != undefined && req.query.month == undefined) {
       const year = parseInt(req.query.year.toString());
-      DraftBillModel.fetchArchiveMonths(year, mode)!
+      this.draftBillRepository
+        .fetchArchiveMonths(year, mode)!
         .then((result) => {
           const response = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
           result.forEach((x) => {
@@ -212,7 +223,8 @@ class DraftBillController {
       const page =
         req.query.page == undefined ? 1 : parseInt(req.query.page.toString());
 
-      DraftBillModel.fetchArchive(year, month, page, mode)!
+      this.draftBillRepository
+        .fetchArchive(year, month, page, mode)!
         .then((result) => {
           return res.status(200).send({
             data: result[0].map((x) => {
@@ -236,6 +248,33 @@ class DraftBillController {
     } else {
       return res.status(404).send(ErrorList["Parameter error"]);
     }
+  };
+
+  /**
+   * Ambil draft bill berjalan milik satu OTC pada hari ini.
+   *
+   * Sebelumnya berada di SalesInvoiceController padahal yang dibaca adalah
+   * draft bill, sehingga controller itu ikut bergantung pada model draft bill.
+   */
+  fetchByOTC = (req: Request, res: Response) => {
+    const otc = req.params.otc;
+    const date = moment().format("YYYY-MM-DD");
+    this.draftBillRepository
+      .fetchByOTC({
+        otc: otc,
+        date: date,
+      })
+      .then((result) => {
+        if (!result) {
+          return res.status(404).send(ErrorList["Not found"]);
+        } else {
+          return res.status(200).send(result);
+        }
+      })
+      .catch((error) => {
+        console.error(`[error]: Error on fetching bill by OTC ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
+      });
   };
 }
 

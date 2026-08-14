@@ -50,6 +50,10 @@ router.post(
   ErrorHelper.intercept,
   receivableController.createPayment
 );
-router.delete("/:id", ReceivableController.deletePayment);
+/*
+  DELETE /:id dihapus. Isi blok try handler-nya sudah dikomentari, jadi
+  permintaan dengan id yang sah tidak pernah dibalas — hanya id tidak sah
+  yang menerima 400.
+*/
 
 export default router;

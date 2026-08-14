@@ -6,7 +6,6 @@ import {
   translatePage,
   translateSalesName,
 } from "../utils/escape.helper";
-import { DraftBillModel } from "../models/draft-bill.model";
 import moment from "moment";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { ReceivableRepository } from "../repositories/receivable.repository";
@@ -340,26 +339,6 @@ class SalesInvoiceController {
       console.error(`[error]: Error on fetching sales return ${error}`);
       return res.status(500).send(error);
     }
-  };
-
-  static fetchByOTC = (req: Request, res: Response) => {
-    const otc = req.params.otc;
-    const date = moment().format("YYYY-MM-DD");
-    DraftBillModel.fetchByOTC({
-      otc: otc,
-      date: date,
-    })
-      .then((result) => {
-        if (!result) {
-          return res.status(404).send(ErrorList["Not found"]);
-        } else {
-          return res.status(200).send(result);
-        }
-      })
-      .catch((error) => {
-        console.error(`[error]: Error on fetching bill by OTC ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      });
   };
 }
 

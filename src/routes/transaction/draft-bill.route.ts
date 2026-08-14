@@ -2,9 +2,15 @@ import { Router } from "express";
 import { body } from "express-validator";
 import ErrorList from "../../constants/error_list";
 import DraftBillController from "../../controllers/draft-bill.controller";
+import { prisma } from "../../utils/database.helper";
+import { DraftBillRepository } from "../../repositories/draft-bill.repository";
 import ErrorHelper from "../../utils/error.helper";
 
 const router = Router();
+
+const draftBillController = new DraftBillController(
+  new DraftBillRepository(prisma)
+);
 
 router.post(
   "/confirm",
@@ -19,14 +25,14 @@ router.post(
   body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
   body("id").notEmpty().withMessage(ErrorList["ID is required"]),
   ErrorHelper.intercept,
-  DraftBillController.confirmByID
+  draftBillController.confirmByID
 );
 
 router.post(
   "/delete",
   body("id").notEmpty().withMessage(ErrorList["ID is required"]),
   ErrorHelper.intercept,
-  DraftBillController.deleteByID
+  draftBillController.deleteByID
 );
 
 router.post(
@@ -37,10 +43,10 @@ router.post(
   body("service").exists().withMessage("Please fill in the service value"),
   body("delivery").exists().withMessage("Please fill in the delivery value"),
   ErrorHelper.intercept,
-  DraftBillController.create
+  draftBillController.create
 );
 
-router.get("/archives", DraftBillController.fetchArchives);
+router.get("/archives", draftBillController.fetchArchives);
 // router.get(
 //   "/unconfirmed",
 //   (req: Request, _, next: NextFunction) => {
@@ -49,7 +55,7 @@ router.get("/archives", DraftBillController.fetchArchives);
 //   },
 //   DraftBillController.fetch
 // );
-router.get("/name/:name", DraftBillController.fetchByName);
+router.get("/name/:name", draftBillController.fetchByName);
 /*
   GET /:id dihapus. Handler-nya hanya berisi kode yang dikomentari, jadi
   permintaan tidak pernah dibalas.
