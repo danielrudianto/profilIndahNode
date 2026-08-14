@@ -1,10 +1,10 @@
 import { Router } from "express";
-import { ProductPurchasePriceController } from "../../controller/product-price-purchase.controller";
-import { prisma } from "../../helper/database.helper";
+import { ProductPurchasePriceController } from "../../controllers/product-price-purchase.controller";
+import { prisma } from "../../utils/database.helper";
 import { ProductRepository } from "../../repositories/product.repository";
-import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ErrorHelper from "../../helper/error.helper";
+import { body } from "express-validator";
+import ErrorList from "../../constants/error_list";
+import ErrorHelper from "../../utils/error.helper";
 
 const router = Router();
 

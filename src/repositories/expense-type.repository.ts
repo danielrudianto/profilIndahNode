@@ -1,11 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { IExpense, ExpenseModel } from "../model/expense.model";
-import ExpenseTypeModel, { IExpenseType } from "../model/expense.type.model";
+import ExpenseTypeModel, { IExpenseType } from "../models/expense.type.model";
 
 export class ExpenseTypeRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 

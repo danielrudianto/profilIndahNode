@@ -1,4 +1,4 @@
-import { meili } from "../helper/meili.helper";
+import { meili } from "../utils/meili.helper";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
 
 export class ProductPackageService {

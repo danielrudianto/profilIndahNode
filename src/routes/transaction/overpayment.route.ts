@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import { OverpaymentController } from "../../controller/overpayment.controller";
-import { prisma } from "../../helper/database.helper";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import { OverpaymentController } from "../../controllers/overpayment.controller";
+import { prisma } from "../../utils/database.helper";
+import ErrorHelper from "../../utils/error.helper";
 import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 
 const router = Router();

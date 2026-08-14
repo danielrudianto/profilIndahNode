@@ -1,0 +1,56 @@
+# Garis dasar interpolasi pada query mentah.
+# Tiap baris = interpolasi yang sudah diperiksa dan dinilai bukan teks bebas
+# dari pengguna (umumnya angka atau nilai internal). Pemeriksa hanya melaporkan
+# yang BARU di luar daftar ini.
+#
+# Format: <berkas>  <interpolasi>  #<kemunculan ke-berapa di berkas itu>
+# Nomor baris sengaja tidak dipakai supaya perubahan format kode tidak
+# membuat seluruh daftar ini dianggap berubah.
+#
+# Regenerasi: node scripts/check-sql-injection.js --tulis
+# Menghapus baris dari sini akan membuat pemeriksa menandainya lagi.
+src/models/adjustment-case.model.ts  ${ids.join(",")}  #1
+src/models/adjustment-case.model.ts  ${company_id}  #1
+src/models/adjustment-case.model.ts  ${date}  #1
+src/models/bill.model.ts  ${ids.join(",")}  #1
+src/models/draft-bill.model.ts  ${year}  #1
+src/models/draft-bill.model.ts  ${month + 1}  #1
+src/models/draft-bill.model.ts  ${(page - 1) * 10}  #1
+src/models/draft-bill.model.ts  ${year}  #2
+src/models/draft-bill.model.ts  ${month + 1}  #2
+src/models/draft-bill.model.ts  ${(page - 1) * 10}  #2
+src/models/draft-bill.model.ts  ${year}  #3
+src/models/draft-bill.model.ts  ${month + 1}  #3
+src/models/draft-bill.model.ts  ${(page - 1) * 10}  #3
+src/models/purchase-invoice.model.ts  ${year}  #1
+src/models/purchase-invoice.model.ts  ${month}  #1
+src/models/purchase-invoice.model.ts  ${year}  #2
+src/models/purchase-invoice.model.ts  ${month == 0 ? "" : "AND MONTH(purchase_invoice.date) = " + mo}  #1
+src/models/purchase-invoice.model.ts  ${day == null ? "" : "AND DAY(purchase_invoice.date) = " + day}  #1
+src/models/purchase-invoice.model.ts  ${year}  #3
+src/models/purchase-invoice.model.ts  ${query}  #1
+src/models/purchase-invoice.model.ts  ${conditionalQueries}  #1
+src/models/purchase-invoice.model.ts  ${(page - 1) * 10}  #1
+src/models/purchase-invoice.model.ts  ${conditionalQueries}  #2
+src/models/purchase-invoice.model.ts  ${year}  #4
+src/models/purchase-invoice.model.ts  ${month}  #2
+src/models/purchase-invoice.model.ts  ${day == null}  #1
+src/models/purchase-invoice.model.ts  ${date}  #1
+src/models/purchase-invoice.model.ts  ${yesterday.toISOString().slice(0, 10)}  #1
+src/models/purchase-invoice.model.ts  ${yesterday}  #1
+src/models/purchase-invoice.model.ts  ${date.toISOString().slice(0, 10)}  #1
+src/models/purchase-invoice.model.ts  ${month + 1}  #1
+src/models/purchase-invoice.model.ts  ${year}  #5
+src/models/purchase-invoice.model.ts  ${lastMonth + 1}  #1
+src/models/purchase-invoice.model.ts  ${lastYear}  #1
+src/repositories/customer.repository.ts  ${ids.join(",")}  #1
+src/repositories/product-brand.repository.ts  ${id}  #1
+src/repositories/promotion.repository.ts  ${salesDateFilter}  #1
+src/repositories/promotion.repository.ts  ${productID.join(",")}  #1
+src/repositories/promotion.repository.ts  ${purchaseDateFilter}  #1
+src/repositories/promotion.repository.ts  ${supplierID}  #1
+src/repositories/promotion.repository.ts  ${productID.join(",")}  #2
+src/repositories/sales-invoice-payment.repository.ts  ${date.getFullYear()}  #1
+src/repositories/sales-invoice-payment.repository.ts  ${(}  #1
+src/repositories/sales-invoice-payment.repository.ts  ${date.getDate().toString().padStart(2, "0")}  #1
+src/repositories/sales-invoice.repository.ts  ${userID}  #1

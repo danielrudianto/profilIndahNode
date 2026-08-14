@@ -14,6 +14,12 @@ dist
 # Keduanya berisi data usaha & data user yang sebenarnya.
 data.ms
 dump.rdb
+*.rdb
+
+# Berkas sementara & tempelan yang sempat tercecer di akar proyek.
+# Pernah ada snapshot Redis bernama "df" berisi hash sandi user asli.
+*.patch
+MANIFEST.txt
 
 # Log & keluaran sementara
 log.txt

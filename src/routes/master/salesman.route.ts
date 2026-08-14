@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { SalesmanController } from "../../controller/sales.controller";
+import { SalesmanController } from "../../controllers/sales.controller";
 import { body } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ErrorHelper from "../../helper/error.helper";
-import { redisClient } from "../../helper/redis.helper";
+import ErrorList from "../../constants/error_list";
+import ErrorHelper from "../../utils/error.helper";
+import { redisClient } from "../../utils/redis.helper";
 
 const router = Router();
 

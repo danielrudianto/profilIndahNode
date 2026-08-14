@@ -1,11 +1,12 @@
 import { Prisma, PrismaClient } from "@prisma/client";
-import { SalesInvoiceModel } from "../model/sales-invoice.model";
-import { SalesInvoicePaymentModel } from "../model/sales-invoice-payment.model";
+import { RedisClientType } from "redis";
+import { SalesInvoiceModel } from "../models/sales-invoice.model";
+import { SalesInvoicePaymentModel } from "../models/sales-invoice-payment.model";
 
 export class ReceivableRepository {
-  redisClient: any;
+  redisClient: RedisClientType;
   prisma: PrismaClient;
-  constructor(redisClient: any, prisma: any) {
+  constructor(redisClient: RedisClientType, prisma: PrismaClient) {
     this.redisClient = redisClient;
     this.prisma = prisma;
   }
@@ -35,33 +36,29 @@ export class ReceivableRepository {
     payment_method_id: number | null;
     is_paid: boolean;
   }) {
-    try {
-      const [result, _] = await this.prisma.$transaction([
-        this.prisma.sales_invoice_payment.create({
-          data: {
-            date: data.date,
-            payment_method_id: data.payment_method_id,
-            value: data.amount,
-            sales_invoice_code_id: data.sales_invoice_code_id,
-          },
-          include: {
-            payment_method: true,
-          },
-        }),
-        this.prisma.sales_invoice_code.update({
-          where: {
-            id: data.sales_invoice_code_id,
-          },
-          data: {
-            is_paid: data.is_paid,
-          },
-        }),
-      ]);
+    const [result, _] = await this.prisma.$transaction([
+      this.prisma.sales_invoice_payment.create({
+        data: {
+          date: data.date,
+          payment_method_id: data.payment_method_id,
+          value: data.amount,
+          sales_invoice_code_id: data.sales_invoice_code_id,
+        },
+        include: {
+          payment_method: true,
+        },
+      }),
+      this.prisma.sales_invoice_code.update({
+        where: {
+          id: data.sales_invoice_code_id,
+        },
+        data: {
+          is_paid: data.is_paid,
+        },
+      }),
+    ]);
 
-      return SalesInvoicePaymentModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return SalesInvoicePaymentModel.fromMap(result);
   }
 
   async fetch() {

@@ -1,13 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { IUser, UserModel } from "../model/user.model";
-import { UserRoleModel } from "../model/user_role.model";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { ProductTypeViewModel } from "../model/product-type.model";
+import { IUser, UserModel } from "../models/user.model";
+import { UserRoleModel } from "../models/user_role.model";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import { ProductTypeViewModel } from "../models/product-type.model";
 
 export class UserRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 

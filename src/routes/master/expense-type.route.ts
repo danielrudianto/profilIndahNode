@@ -1,10 +1,13 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import { prisma } from "../../helper/database.helper";
-import ErrorList from "../../assets/error_list";
-import ExpenseTypeController from "../../controller/expense-type.controller";
-import ErrorHelper from "../../helper/error.helper";
+import { prisma } from "../../utils/database.helper";
+import ExpenseTypeController from "../../controllers/expense-type.controller";
 import { ExpenseTypeRepository } from "../../repositories/expense-type.repository";
+import { validate } from "../../utils/validate.helper";
+import {
+  buatTipePengeluaranSchema,
+  paramTipePengeluaranSchema,
+  ubahTipePengeluaranSchema,
+} from "../../schemas/master-lain.schema";
 
 const router = Router();
 
@@ -15,48 +18,26 @@ const expenseTypeController = new ExpenseTypeController(
 router.get("/autocomplete", expenseTypeController.fetchAutocomplete);
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be integer"]),
-  ErrorHelper.intercept,
+  validate(paramTipePengeluaranSchema, "params"),
   expenseTypeController.fetchByID
 );
 router.get("/", expenseTypeController.fetch);
 
 router.post(
   "/",
-  body("name")
-    .not()
-    .isEmpty()
-    .withMessage(ErrorList["Expense type name is required"]),
-  body("description")
-    .not()
-    .isEmpty()
-    .withMessage(ErrorList["Expense type description is required"]),
-  ErrorHelper.intercept,
+  validate(buatTipePengeluaranSchema),
   expenseTypeController.create
 );
 
 router.delete(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be integer"]),
-  ErrorHelper.intercept,
+  validate(paramTipePengeluaranSchema, "params"),
   expenseTypeController.delete
 );
 
 router.put(
   "/",
-  body("name")
-    .not()
-    .isEmpty()
-    .withMessage(ErrorList["Expense type name is required"]),
-  body("description")
-    .not()
-    .isEmpty()
-    .withMessage(ErrorList["Expense type description is required"]),
-  body("id").isNumeric().withMessage(ErrorList["ID is required"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be integer"]),
-  ErrorHelper.intercept,
+  validate(ubahTipePengeluaranSchema),
   expenseTypeController.update
 );
 

@@ -1,7 +1,10 @@
-import { Prisma, PrismaClient } from "@prisma/client";
-import { DateHelper, formatDate } from "../helper/date.helper";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import PromotionModel, { IPromotion } from "../model/promotion.model";
+import { PrismaClient } from "@prisma/client";
+import { DateHelper, formatDate } from "../utils/date.helper";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import PromotionModel, { IPromotion } from "../models/promotion.model";
 
 export class PromotionRepository {
   private prisma: PrismaClient;
@@ -405,26 +408,22 @@ export class PromotionRepository {
   }
 
   async countActive(): Promise<number> {
-    try {
-      const result = await this.prisma.promotion_code.count({
-        where: {
-          is_delete: false,
-          OR: [
-            {
-              end: null,
+    const result = await this.prisma.promotion_code.count({
+      where: {
+        is_delete: false,
+        OR: [
+          {
+            end: null,
+          },
+          {
+            end: {
+              gt: new Date(),
             },
-            {
-              end: {
-                gt: new Date(),
-              },
-            },
-          ],
-        },
-      });
+          },
+        ],
+      },
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }
 }

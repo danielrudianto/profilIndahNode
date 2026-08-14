@@ -1,4 +1,4 @@
-import { redisClient } from "../helper/redis.helper";
+import { redisClient } from "../utils/redis.helper";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";

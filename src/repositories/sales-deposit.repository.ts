@@ -3,16 +3,16 @@ import {
   IFetchAnnualArchives,
   IFetchCommon,
   IFetchCommonResult,
-} from "../interface/fetch.interface";
+} from "../interfaces/fetch.interface";
 import {
   ISalesDepositCode,
   SalesDepositModel,
-} from "../model/sales-deposit.model";
+} from "../models/sales-deposit.model";
 
 export class SalesDepositRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -130,139 +130,135 @@ export class SalesDepositRepository {
   async fetch(
     data: IFetchCommon
   ): Promise<IFetchCommonResult<SalesDepositModel>> {
-    try {
-      const keyword = data.keyword;
-      const pattern = /^[retail]{1,6}$/i;
+    const keyword = data.keyword;
+    const pattern = /^[retail]{1,6}$/i;
 
-      let where = {};
+    let where = {};
 
-      if (pattern.test(keyword) || keyword == "") {
-        where = {
-          is_delete: false,
-          OR: [
-            {
-              name: {
-                contains: data.keyword,
-              },
-            },
-            {
-              customer: null,
-            },
-            {
-              sales: {
-                contains: data.keyword,
-              },
-            },
-            {
-              customer: {
-                name: {
-                  contains: data.keyword,
-                },
-              },
-            },
-            {
-              customer: null,
-            },
-            {
-              sales_deposit: {
-                some: {
-                  product: {
-                    reference: {
-                      contains: data.keyword,
-                    },
-                  },
-                },
-              },
-            },
-            {
-              sales_deposit: {
-                some: {
-                  product: {
-                    description: {
-                      contains: data.keyword,
-                    },
-                  },
-                },
-              },
-            },
-          ],
-        };
-      } else {
-        where = {
-          is_delete: false,
-          OR: [
-            {
-              name: {
-                contains: data.keyword,
-              },
-            },
-            {
-              sales: {
-                contains: data.keyword,
-              },
-            },
-            {
-              customer: {
-                name: {
-                  contains: data.keyword,
-                },
-              },
-            },
-            {
-              sales_deposit: {
-                some: {
-                  product: {
-                    reference: {
-                      contains: data.keyword,
-                    },
-                  },
-                },
-              },
-            },
-            {
-              sales_deposit: {
-                some: {
-                  product: {
-                    description: {
-                      contains: data.keyword,
-                    },
-                  },
-                },
-              },
-            },
-          ],
-        };
-      }
-
-      const result = await this.prisma.sales_deposit_code.findMany({
-        where: where,
-        include: {
-          customer: true,
-          sales_deposit: {
-            include: {
-              product: true,
-              product_unit: true,
+    if (pattern.test(keyword) || keyword == "") {
+      where = {
+        is_delete: false,
+        OR: [
+          {
+            name: {
+              contains: data.keyword,
             },
           },
-        },
-        take: data.pageSize,
-        skip: (data.page - 1) * data.pageSize,
-        orderBy: {
-          id: "desc",
-        },
-      });
-
-      const totalCount = await this.prisma.sales_deposit_code.count({
-        where: where,
-      });
-
-      return {
-        data: result.map((x) => SalesDepositModel.fromMap(x)),
-        count: totalCount,
+          {
+            customer: null,
+          },
+          {
+            sales: {
+              contains: data.keyword,
+            },
+          },
+          {
+            customer: {
+              name: {
+                contains: data.keyword,
+              },
+            },
+          },
+          {
+            customer: null,
+          },
+          {
+            sales_deposit: {
+              some: {
+                product: {
+                  reference: {
+                    contains: data.keyword,
+                  },
+                },
+              },
+            },
+          },
+          {
+            sales_deposit: {
+              some: {
+                product: {
+                  description: {
+                    contains: data.keyword,
+                  },
+                },
+              },
+            },
+          },
+        ],
       };
-    } catch (error) {
-      throw error;
+    } else {
+      where = {
+        is_delete: false,
+        OR: [
+          {
+            name: {
+              contains: data.keyword,
+            },
+          },
+          {
+            sales: {
+              contains: data.keyword,
+            },
+          },
+          {
+            customer: {
+              name: {
+                contains: data.keyword,
+              },
+            },
+          },
+          {
+            sales_deposit: {
+              some: {
+                product: {
+                  reference: {
+                    contains: data.keyword,
+                  },
+                },
+              },
+            },
+          },
+          {
+            sales_deposit: {
+              some: {
+                product: {
+                  description: {
+                    contains: data.keyword,
+                  },
+                },
+              },
+            },
+          },
+        ],
+      };
     }
+
+    const result = await this.prisma.sales_deposit_code.findMany({
+      where: where,
+      include: {
+        customer: true,
+        sales_deposit: {
+          include: {
+            product: true,
+            product_unit: true,
+          },
+        },
+      },
+      take: data.pageSize,
+      skip: (data.page - 1) * data.pageSize,
+      orderBy: {
+        id: "desc",
+      },
+    });
+
+    const totalCount = await this.prisma.sales_deposit_code.count({
+      where: where,
+    });
+
+    return {
+      data: result.map((x) => SalesDepositModel.fromMap(x)),
+      count: totalCount,
+    };
   }
 
   async fetchAnnualArchives(): Promise<IFetchAnnualArchives[]> {
@@ -305,168 +301,164 @@ export class SalesDepositRepository {
     startDate: Date;
     endDate: Date;
   }) {
-    try {
-      let statusFilter: any = {};
-      if (
-        (!data.isPending && !data.isDelete) ||
-        (data.isPending && data.isDelete)
-      ) {
-        statusFilter = {
-          OR: [
-            {
-              is_delete: false,
-            },
-            {
-              is_delete: true,
-            },
-          ],
-        };
-      } else if (data.isPending) {
-        statusFilter = {
-          is_delete: false,
-        };
-      } else {
-        statusFilter = {
-          is_delete: true,
-        };
-      }
-
-      let orderBy;
-
-      if (data.sortBy == "date") {
-        orderBy = {
-          date: data.sortDirection,
-        };
-      } else if (data.sortBy == "name") {
-        orderBy = {
-          name: data.sortDirection,
-        };
-      } else if (data.sortBy === "customer") {
-        orderBy = {
-          customer: {
-            name: data.sortDirection,
+    let statusFilter: any = {};
+    if (
+      (!data.isPending && !data.isDelete) ||
+      (data.isPending && data.isDelete)
+    ) {
+      statusFilter = {
+        OR: [
+          {
+            is_delete: false,
           },
-        };
-      } else if (data.sortBy == "sales") {
-        orderBy = {
-          sales: data.sortDirection,
-        };
-      }
-
-      const [result, count] = await this.prisma.$transaction([
-        this.prisma.sales_deposit_code.findMany({
-          where: {
-            AND: [
-              {
-                date: {
-                  gt: new Date(data.year, data.month - 1, 1),
-                },
-              },
-              {
-                date: {
-                  lte: new Date(data.year, data.month, 0),
-                },
-              },
-              {
-                date: {
-                  gte: data.startDate,
-                },
-              },
-              {
-                date: {
-                  lte: data.endDate,
-                },
-              },
-              {
-                OR: [
-                  {
-                    name: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    sales: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    customer: {
-                      name: {
-                        contains: data.keyword,
-                      },
-                    },
-                  },
-                ],
-              },
-              statusFilter,
-            ],
+          {
+            is_delete: true,
           },
-          orderBy: orderBy,
-          include: {
-            customer: true,
-          },
-          take: data.limit,
-          skip: data.offset,
-        }),
-        this.prisma.sales_deposit_code.count({
-          where: {
-            AND: [
-              {
-                date: {
-                  gt: new Date(data.year, data.month - 1, 1),
-                },
-              },
-              {
-                date: {
-                  lte: new Date(data.year, data.month, 0),
-                },
-              },
-              {
-                date: {
-                  gte: data.startDate,
-                },
-              },
-              {
-                date: {
-                  lte: data.endDate,
-                },
-              },
-              {
-                OR: [
-                  {
-                    name: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    sales: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    customer: {
-                      name: {
-                        contains: data.keyword,
-                      },
-                    },
-                  },
-                ],
-              },
-              statusFilter,
-            ],
-          },
-        }),
-      ]);
-
-      return {
-        data: result.map((x) => {
-          return SalesDepositModel.fromMap(x);
-        }),
-        count: count,
+        ],
       };
-    } catch (error) {
-      throw error;
+    } else if (data.isPending) {
+      statusFilter = {
+        is_delete: false,
+      };
+    } else {
+      statusFilter = {
+        is_delete: true,
+      };
     }
+
+    let orderBy;
+
+    if (data.sortBy == "date") {
+      orderBy = {
+        date: data.sortDirection,
+      };
+    } else if (data.sortBy == "name") {
+      orderBy = {
+        name: data.sortDirection,
+      };
+    } else if (data.sortBy === "customer") {
+      orderBy = {
+        customer: {
+          name: data.sortDirection,
+        },
+      };
+    } else if (data.sortBy == "sales") {
+      orderBy = {
+        sales: data.sortDirection,
+      };
+    }
+
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.sales_deposit_code.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gt: new Date(data.year, data.month - 1, 1),
+              },
+            },
+            {
+              date: {
+                lte: new Date(data.year, data.month, 0),
+              },
+            },
+            {
+              date: {
+                gte: data.startDate,
+              },
+            },
+            {
+              date: {
+                lte: data.endDate,
+              },
+            },
+            {
+              OR: [
+                {
+                  name: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  sales: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  customer: {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                },
+              ],
+            },
+            statusFilter,
+          ],
+        },
+        orderBy: orderBy,
+        include: {
+          customer: true,
+        },
+        take: data.limit,
+        skip: data.offset,
+      }),
+      this.prisma.sales_deposit_code.count({
+        where: {
+          AND: [
+            {
+              date: {
+                gt: new Date(data.year, data.month - 1, 1),
+              },
+            },
+            {
+              date: {
+                lte: new Date(data.year, data.month, 0),
+              },
+            },
+            {
+              date: {
+                gte: data.startDate,
+              },
+            },
+            {
+              date: {
+                lte: data.endDate,
+              },
+            },
+            {
+              OR: [
+                {
+                  name: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  sales: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  customer: {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                },
+              ],
+            },
+            statusFilter,
+          ],
+        },
+      }),
+    ]);
+
+    return {
+      data: result.map((x) => {
+        return SalesDepositModel.fromMap(x);
+      }),
+      count: count,
+    };
   }
 
   async fetchByID(id: number) {
@@ -544,47 +536,39 @@ export class SalesDepositRepository {
   }
 
   async confirmByID(id: number, userID: number) {
-    try {
-      const result = await this.prisma.sales_deposit_code.update({
-        where: {
-          id: id,
-        },
-        data: {
-          is_delete: true,
-          deleted_at: new Date(),
-          deleted_by: userID,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    const result = await this.prisma.sales_deposit_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        deleted_at: new Date(),
+        deleted_by: userID,
+      },
+    });
   }
 
   async delete(id: number, userID: number) {
-    try {
-      const result = await this.prisma.sales_deposit_code.update({
-        where: {
-          id: id,
-        },
-        data: {
-          is_delete: true,
-          deleted_by: userID,
-          deleted_at: new Date(),
-        },
-        include: {
-          sales_deposit: {
-            include: {
-              product: true,
-              product_unit: true,
-            },
+    const result = await this.prisma.sales_deposit_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        deleted_by: userID,
+        deleted_at: new Date(),
+      },
+      include: {
+        sales_deposit: {
+          include: {
+            product: true,
+            product_unit: true,
           },
-          sales_deposit_payment: true,
         },
-      });
+        sales_deposit_payment: true,
+      },
+    });
 
-      return SalesDepositModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return SalesDepositModel.fromMap(result);
   }
 }

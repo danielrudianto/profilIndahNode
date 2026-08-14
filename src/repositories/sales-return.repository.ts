@@ -1,66 +1,62 @@
 import { PrismaClient } from "@prisma/client";
-import { DateHelper, formatDate } from "../helper/date.helper";
-import { IFetchAnnualArchives } from "../interface/fetch.interface";
+import { DateHelper, formatDate } from "../utils/date.helper";
+import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 import {
   ISalesReturnCode,
   SalesReturnCodeModel,
-} from "../model/sales-return.model";
+} from "../models/sales-return.model";
 
 export class SalesReturnRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
   create = async (data: ISalesReturnCode) => {
-    try {
-      const result = await this.prisma.sales_return_code.create({
-        data: {
-          name: data.name,
-          date: data.date,
-          created_at: data.created_at,
-          created_by: data.created_by,
-          is_confirm: true,
-          is_delete: false,
-          confirmed_at: new Date(),
-          confirmed_by: data.confirmed_by,
-          payment_method_id: data.payment_method_id,
-          sales_invoice_code_id: data.sales_invoice_code_id,
-          sales_return: {
-            createMany: {
-              data: data.sales_return!.map((x) => {
-                return {
-                  sales_invoice_id: x.sales_invoice_id,
-                  quantity: x.quantity,
-                };
-              }),
-            },
+    const result = await this.prisma.sales_return_code.create({
+      data: {
+        name: data.name,
+        date: data.date,
+        created_at: data.created_at,
+        created_by: data.created_by,
+        is_confirm: true,
+        is_delete: false,
+        confirmed_at: new Date(),
+        confirmed_by: data.confirmed_by,
+        payment_method_id: data.payment_method_id,
+        sales_invoice_code_id: data.sales_invoice_code_id,
+        sales_return: {
+          createMany: {
+            data: data.sales_return!.map((x) => {
+              return {
+                sales_invoice_id: x.sales_invoice_id,
+                quantity: x.quantity,
+              };
+            }),
           },
         },
-        include: {
-          sales_return: {
-            include: {
-              sales_invoice: {
-                include: {
-                  product: true,
-                  product_unit: true,
-                },
+      },
+      include: {
+        sales_return: {
+          include: {
+            sales_invoice: {
+              include: {
+                product: true,
+                product_unit: true,
               },
             },
           },
-          sales_invoice_code: true,
         },
-      });
+        sales_invoice_code: true,
+      },
+    });
 
-      if (!result) {
-        return null;
-      }
-
-      return SalesReturnCodeModel.fromMap(result);
-    } catch (error) {
-      throw error;
+    if (!result) {
+      return null;
     }
+
+    return SalesReturnCodeModel.fromMap(result);
   };
 
   async updateProductStock() {
@@ -106,72 +102,64 @@ export class SalesReturnRepository {
   }
 
   fetchByID = async (id: number) => {
-    try {
-      const result = await this.prisma.sales_return_code.findUnique({
-        where: {
-          id: id,
-        },
-        include: {
-          sales_return: {
-            include: {
-              sales_invoice: {
-                include: {
-                  product: true,
-                  product_unit: true,
-                },
+    const result = await this.prisma.sales_return_code.findUnique({
+      where: {
+        id: id,
+      },
+      include: {
+        sales_return: {
+          include: {
+            sales_invoice: {
+              include: {
+                product: true,
+                product_unit: true,
               },
             },
           },
-          payment_method: true,
-          user_sales_return_code_created_byTouser: {
-            include: {
-              user_avatar: true,
-            },
-          },
-          sales_invoice_code: {
-            include: {
-              customer: true,
-            },
+        },
+        payment_method: true,
+        user_sales_return_code_created_byTouser: {
+          include: {
+            user_avatar: true,
           },
         },
-      });
+        sales_invoice_code: {
+          include: {
+            customer: true,
+          },
+        },
+      },
+    });
 
-      if (!result) {
-        return null;
-      }
-
-      return SalesReturnCodeModel.fromMap(result);
-    } catch (error) {
-      throw error;
+    if (!result) {
+      return null;
     }
+
+    return SalesReturnCodeModel.fromMap(result);
   };
 
   fetchBySalesInvoiceCodeID = async (id: number) => {
-    try {
-      const result = await this.prisma.sales_return_code.findFirst({
-        where: {
-          sales_invoice_code_id: id,
-          is_delete: false,
-          is_confirm: true,
-        },
-        include: {
-          sales_return: {
-            include: {
-              sales_invoice: {
-                include: {
-                  product: true,
-                  product_unit: true,
-                },
+    const result = await this.prisma.sales_return_code.findFirst({
+      where: {
+        sales_invoice_code_id: id,
+        is_delete: false,
+        is_confirm: true,
+      },
+      include: {
+        sales_return: {
+          include: {
+            sales_invoice: {
+              include: {
+                product: true,
+                product_unit: true,
               },
             },
           },
         },
-      });
+      },
+    });
 
-      return result ? SalesReturnCodeModel.fromMap(result) : null;
-    } catch (error) {
-      throw error;
-    }
+    return result ? SalesReturnCodeModel.fromMap(result) : null;
   };
 
   fetchByBillIDs = async (billIDs: number[]) => {
@@ -193,8 +181,7 @@ export class SalesReturnRepository {
   async fetchPaymentsByDate(
     date: Date
   ): Promise<{ payment_method_id: number | null; value: number }[]> {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
         SELECT SUM(sales_return.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
         sales_return_code.payment_method_id
         FROM sales_return
@@ -208,15 +195,12 @@ export class SalesReturnRepository {
         GROUP BY sales_return_code.payment_method_id
       `;
 
-      return result.map((x) => {
-        return {
-          payment_method_id: x.payment_method_id,
-          value: Number(x.value),
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        payment_method_id: x.payment_method_id,
+        value: Number(x.value),
+      };
+    });
   }
 
   async fetchAnnualArchives(): Promise<IFetchAnnualArchives[]> {
@@ -387,35 +371,31 @@ export class SalesReturnRepository {
   }
 
   async delete(id: number, userID: number) {
-    try {
-      const result = await this.prisma.sales_return_code.update({
-        where: {
-          id: id,
-        },
-        data: {
-          is_delete: true,
-          is_confirm: false,
-          confirmed_at: new Date(),
-          confirmed_by: userID,
-        },
-        include: {
-          sales_return: {
-            include: {
-              sales_invoice: {
-                include: {
-                  product: true,
-                  product_unit: true,
-                },
+    const result = await this.prisma.sales_return_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        is_confirm: false,
+        confirmed_at: new Date(),
+        confirmed_by: userID,
+      },
+      include: {
+        sales_return: {
+          include: {
+            sales_invoice: {
+              include: {
+                product: true,
+                product_unit: true,
               },
             },
           },
-          sales_invoice_code: true,
         },
-      });
+        sales_invoice_code: true,
+      },
+    });
 
-      return SalesReturnCodeModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return SalesReturnCodeModel.fromMap(result);
   }
 }

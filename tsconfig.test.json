@@ -1,0 +1,12 @@
+{
+  // Konfigurasi khusus tes. Dipisah dari tsconfig.json supaya tipe global jest
+  // tidak bocor ke kompilasi produksi, dan supaya batasan rootDir "./src" tidak
+  // ikut berlaku pada berkas tes yang berada di luar src.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["node", "jest"],
+    "noEmit": true
+  },
+  "include": ["tests/**/*.ts", "src/**/*.ts"]
+}

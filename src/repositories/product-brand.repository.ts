@@ -1,44 +1,46 @@
 import { PrismaClient } from "@prisma/client";
-import { IProductBrand, ProductBrandModel } from "../model/product-brand.model";
-import { UserViewModel } from "../model/user.model";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { toPositiveInt } from "../helper/sql.helper";
+import {
+  IProductBrand,
+  ProductBrandModel,
+} from "../models/product-brand.model";
+import { UserViewModel } from "../models/user.model";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import { toPositiveInt } from "../utils/sql.helper";
 
 export class ProductBrandRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
   async create(data: IProductBrand): Promise<ProductBrandModel> {
-    try {
-      const result = await this.prisma.product_brand.create({
-        data: {
-          name: data.name,
-          created_by: data.created_by,
-        },
-        include: {
-          user: {
-            select: {
-              name: true,
-              username: true,
-              role: true,
-            },
+    const result = await this.prisma.product_brand.create({
+      data: {
+        name: data.name,
+        created_by: data.created_by,
+      },
+      include: {
+        user: {
+          select: {
+            name: true,
+            username: true,
+            role: true,
           },
         },
-      });
+      },
+    });
 
-      return new ProductBrandModel({
-        id: result.id,
-        name: result.name,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        user: UserViewModel.fromMap(result.user),
-      });
-    } catch (error) {
-      throw error;
-    }
+    return new ProductBrandModel({
+      id: result.id,
+      name: result.name,
+      created_by: result.created_by,
+      created_at: result.created_at,
+      user: UserViewModel.fromMap(result.user),
+    });
   }
 
   update(data: IProductBrand) {

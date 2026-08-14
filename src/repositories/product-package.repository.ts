@@ -3,14 +3,12 @@ import {
   IPackageCode,
   IPackagePrice,
   PackageCodeModel,
-} from "../model/product-package.model";
-import { ProductUnitModel } from "../model/product-unit.model";
-import { ProductModel } from "../model/product.model";
+} from "../models/product-package.model";
 
 export class ProductPackageRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -87,27 +85,23 @@ export class ProductPackageRepository {
   }
 
   async updateSalesPrice(data: IPackagePrice[]) {
-    try {
-      const updateData = [];
-      for (let i = 0; i < data.length; i++) {
-        const item = data[i];
-        updateData.push(
-          this.prisma.package_code.update({
-            where: {
-              id: item.package_code_id,
-            },
-            data: {
-              price: item.price,
-            },
-          })
-        );
-      }
-
-      // prisma transaction
-      await this.prisma.$transaction(updateData);
-    } catch (error) {
-      throw error;
+    const updateData = [];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      updateData.push(
+        this.prisma.package_code.update({
+          where: {
+            id: item.package_code_id,
+          },
+          data: {
+            price: item.price,
+          },
+        })
+      );
     }
+
+    // prisma transaction
+    await this.prisma.$transaction(updateData);
   }
 
   async delete(id: number, userID: number) {

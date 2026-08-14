@@ -1,9 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import { IPriceProduct, IProduct, ProductModel } from "../model/product.model";
-import { ProductBrandViewModel } from "../model/product-brand.model";
-import { ProductTypeViewModel } from "../model/product-type.model";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { queue } from "../helper/queue.helper";
+import { IPriceProduct, IProduct, ProductModel } from "../models/product.model";
+import { ProductBrandViewModel } from "../models/product-brand.model";
+import { ProductTypeViewModel } from "../models/product-type.model";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import { queue } from "../utils/queue.helper";
 
 export class ProductRepository {
   private prisma: PrismaClient;
@@ -13,115 +16,103 @@ export class ProductRepository {
   }
 
   async create(data: IProduct): Promise<ProductModel> {
-    try {
-      const result = await this.prisma.product.create({
-        data: {
-          reference: data.reference,
-          description: data.description,
-          product_brand_id: data.product_brand_id,
-          product_type_id: data.product_type_id,
-          created_by: data.created_by!,
-          created_at: data.created_at,
-          unit: data.unit,
-          sales_price: data.sales_price,
-          purchase_price: data.purchase_price,
-          sales_discount: data.sales_discount,
-          purchase_discount: data.purchase_discount,
-          minimum_stock: data.minimum_stock,
-        },
-      });
+    const result = await this.prisma.product.create({
+      data: {
+        reference: data.reference,
+        description: data.description,
+        product_brand_id: data.product_brand_id,
+        product_type_id: data.product_type_id,
+        created_by: data.created_by!,
+        created_at: data.created_at,
+        unit: data.unit,
+        sales_price: data.sales_price,
+        purchase_price: data.purchase_price,
+        sales_discount: data.sales_discount,
+        purchase_discount: data.purchase_discount,
+        minimum_stock: data.minimum_stock,
+      },
+    });
 
-      return new ProductModel({
-        id: result.id,
-        reference: result.reference,
-        description: result.description,
-        product_brand_id: result.product_brand_id,
-        product_type_id: result.product_type_id,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        unit: result.unit,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return new ProductModel({
+      id: result.id,
+      reference: result.reference,
+      description: result.description,
+      product_brand_id: result.product_brand_id,
+      product_type_id: result.product_type_id,
+      created_by: result.created_by,
+      created_at: result.created_at,
+      unit: result.unit,
+    });
   }
 
   async updateSalesPrice(data: IPriceProduct[]): Promise<void> {
-    try {
-      const updateData = [];
-      for (let i = 0; i < data.length; i++) {
-        const item = data[i];
-        if (item.product_unit_id != null) {
-          updateData.push(
-            this.prisma.product_unit.update({
-              data: {
-                sales_price: item.price,
-                sales_discount: item.discount,
-              },
-              where: {
-                id: item.product_unit_id,
-              },
-            })
-          );
-        } else {
-          updateData.push(
-            this.prisma.product.update({
-              data: {
-                sales_price: item.price,
-                sales_discount: item.discount,
-              },
-              where: {
-                id: item.product_id,
-              },
-            })
-          );
-        }
+    const updateData = [];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      if (item.product_unit_id != null) {
+        updateData.push(
+          this.prisma.product_unit.update({
+            data: {
+              sales_price: item.price,
+              sales_discount: item.discount,
+            },
+            where: {
+              id: item.product_unit_id,
+            },
+          })
+        );
+      } else {
+        updateData.push(
+          this.prisma.product.update({
+            data: {
+              sales_price: item.price,
+              sales_discount: item.discount,
+            },
+            where: {
+              id: item.product_id,
+            },
+          })
+        );
       }
-
-      // prisma transaction
-      const result = await this.prisma.$transaction(updateData);
-    } catch (error) {
-      throw error;
     }
+
+    // prisma transaction
+    const result = await this.prisma.$transaction(updateData);
   }
 
   async updatePurchasePrice(data: IPriceProduct[]): Promise<void> {
-    try {
-      const updateData = [];
-      for (let i = 0; i < data.length; i++) {
-        const item = data[i];
-        if (item.product_unit_id != null) {
-          updateData.push(
-            this.prisma.product_unit.update({
-              data: {
-                purchase_price: item.price,
-                purchase_discount: item.discount,
-              },
-              where: {
-                id: item.product_unit_id,
-              },
-            })
-          );
-        } else {
-          updateData.push(
-            this.prisma.product.update({
-              data: {
-                purchase_price: item.price,
-                purchase_discount: item.discount,
-              },
-              where: {
-                id: item.product_id,
-              },
-            })
-          );
-        }
+    const updateData = [];
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      if (item.product_unit_id != null) {
+        updateData.push(
+          this.prisma.product_unit.update({
+            data: {
+              purchase_price: item.price,
+              purchase_discount: item.discount,
+            },
+            where: {
+              id: item.product_unit_id,
+            },
+          })
+        );
+      } else {
+        updateData.push(
+          this.prisma.product.update({
+            data: {
+              purchase_price: item.price,
+              purchase_discount: item.discount,
+            },
+            where: {
+              id: item.product_id,
+            },
+          })
+        );
       }
-
-      // prisma transaction
-      await this.prisma.$transaction(updateData);
-    } catch (error) {
-      throw error;
     }
+
+    // prisma transaction
+    await this.prisma.$transaction(updateData);
   }
 
   async update(data: IProduct): Promise<ProductModel> {
@@ -183,177 +174,153 @@ export class ProductRepository {
   }
 
   async fetchByID(productID: number): Promise<ProductModel | null> {
-    try {
-      const result = await this.prisma.product.findUnique({
-        where: {
-          id: productID,
-        },
-        include: {
-          product_brand: true,
-          product_type: true,
-          product_unit: true,
-        },
-      });
+    const result = await this.prisma.product.findUnique({
+      where: {
+        id: productID,
+      },
+      include: {
+        product_brand: true,
+        product_type: true,
+        product_unit: true,
+      },
+    });
 
-      if (!result) return null;
+    if (!result) return null;
 
-      return ProductModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return ProductModel.fromMap(result);
   }
 
   async fetchByIDs(productIDs: number[]): Promise<ProductModel[]> {
-    try {
-      const result = await this.prisma.product.findMany({
-        where: {
-          id: {
-            in: productIDs,
-          },
+    const result = await this.prisma.product.findMany({
+      where: {
+        id: {
+          in: productIDs,
         },
-        include: {
-          product_brand: true,
-          product_type: true,
-        },
-      });
+      },
+      include: {
+        product_brand: true,
+        product_type: true,
+      },
+    });
 
-      return result.map((x) => {
-        return ProductModel.fromMap(x);
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return ProductModel.fromMap(x);
+    });
   }
 
   async fetchAutocomplete(keyword: string) {
-    try {
-      const result = await this.prisma.product.findMany({
-        select: {
-          id: true,
-          reference: true,
-        },
-        where: {
-          is_active: true,
-          OR: [
-            { reference: { contains: keyword } },
-            { description: { contains: keyword } },
-          ],
-        },
-      });
+    const result = await this.prisma.product.findMany({
+      select: {
+        id: true,
+        reference: true,
+      },
+      where: {
+        is_active: true,
+        OR: [
+          { reference: { contains: keyword } },
+          { description: { contains: keyword } },
+        ],
+      },
+    });
 
-      return result.map((item) => {
-        return {
-          id: item.id,
-          name: item.reference,
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((item) => {
+      return {
+        id: item.id,
+        name: item.reference,
+      };
+    });
   }
 
   async fetchByReference(reference: string): Promise<ProductModel | null> {
-    try {
-      const result = await this.prisma.product.findFirst({
-        where: { reference },
-      });
+    const result = await this.prisma.product.findFirst({
+      where: { reference },
+    });
 
-      if (!result) return null;
+    if (!result) return null;
 
-      return new ProductModel({
-        id: result.id,
-        reference: result.reference,
-        description: result.description,
-        product_brand_id: result.product_brand_id,
-        product_type_id: result.product_type_id,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        unit: result.unit,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return new ProductModel({
+      id: result.id,
+      reference: result.reference,
+      description: result.description,
+      product_brand_id: result.product_brand_id,
+      product_type_id: result.product_type_id,
+      created_by: result.created_by,
+      created_at: result.created_at,
+      unit: result.unit,
+    });
   }
 
   async fetchSales(
     data: IFetchCommon
   ): Promise<IFetchCommonResult<ProductModel>> {
-    try {
-      const [result, count] = await Promise.all([
-        this.prisma.product.findMany({
-          where: {
-            OR: [
-              {
-                reference: {
-                  contains: data.keyword,
-                },
+    const [result, count] = await Promise.all([
+      this.prisma.product.findMany({
+        where: {
+          OR: [
+            {
+              reference: {
+                contains: data.keyword,
               },
-              {
-                description: {
-                  contains: data.keyword,
-                },
+            },
+            {
+              description: {
+                contains: data.keyword,
               },
-            ],
-            is_delete: false,
-          },
-          include: {
-            product_type: true,
-            product_brand: true,
-          },
-          take: data.pageSize,
-          skip: (data.page - 1) * data.pageSize,
-        }),
-        this.prisma.product.count({
-          where: {
-            OR: [
-              {
-                reference: {
-                  contains: data.keyword,
-                },
+            },
+          ],
+          is_delete: false,
+        },
+        include: {
+          product_type: true,
+          product_brand: true,
+        },
+        take: data.pageSize,
+        skip: (data.page - 1) * data.pageSize,
+      }),
+      this.prisma.product.count({
+        where: {
+          OR: [
+            {
+              reference: {
+                contains: data.keyword,
               },
-              {
-                description: {
-                  contains: data.keyword,
-                },
+            },
+            {
+              description: {
+                contains: data.keyword,
               },
-            ],
-            is_delete: false,
-          },
-        }),
-      ]);
+            },
+          ],
+          is_delete: false,
+        },
+      }),
+    ]);
 
-      return {
-        data: result.map((x) => {
-          return ProductModel.fromMap(x);
-        }),
-        count: count,
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      data: result.map((x) => {
+        return ProductModel.fromMap(x);
+      }),
+      count: count,
+    };
   }
 
   async fetchSalesPriceByID(id: number): Promise<ProductModel | null> {
-    try {
-      const result = await this.prisma.product.findUnique({
-        where: {
-          id: id,
-        },
-        include: {
-          product_brand: true,
-          product_type: true,
-          product_unit: true,
-        },
-      });
+    const result = await this.prisma.product.findUnique({
+      where: {
+        id: id,
+      },
+      include: {
+        product_brand: true,
+        product_type: true,
+        product_unit: true,
+      },
+    });
 
-      if (!result) {
-        return null;
-      }
-
-      return ProductModel.fromMap(result);
-    } catch (error) {
-      throw error;
+    if (!result) {
+      return null;
     }
+
+    return ProductModel.fromMap(result);
   }
 
   async fetchPromotion(data: {
@@ -367,86 +334,82 @@ export class ProductRepository {
   }): Promise<number[]> {
     const filter: any[] = [];
 
-    try {
-      const productIDs = await this.prisma.product.findMany({
-        where: {
-          product_brand_id: {
-            in: data.brands,
-          },
-          AND: [
-            data.startsWith.length > 0
-              ? {
-                  OR: data.startsWith.map((x) => ({
+    const productIDs = await this.prisma.product.findMany({
+      where: {
+        product_brand_id: {
+          in: data.brands,
+        },
+        AND: [
+          data.startsWith.length > 0
+            ? {
+                OR: data.startsWith.map((x) => ({
+                  reference: {
+                    startsWith: x,
+                  },
+                })),
+              }
+            : {},
+          data.endsWith.length > 0
+            ? {
+                OR: data.endsWith.map((x) => ({
+                  reference: {
+                    endsWith: x,
+                  },
+                })),
+              }
+            : {},
+          data.contains.length > 0
+            ? {
+                OR: data.contains.map((x) => ({
+                  reference: {
+                    contains: x,
+                  },
+                })),
+              }
+            : {},
+          data.doesNotStartWith.length > 0
+            ? {
+                NOT: {
+                  OR: data.doesNotStartWith.map((x) => ({
                     reference: {
                       startsWith: x,
                     },
                   })),
-                }
-              : {},
-            data.endsWith.length > 0
-              ? {
-                  OR: data.endsWith.map((x) => ({
+                },
+              }
+            : {},
+          data.doesNotEndWith.length > 0
+            ? {
+                NOT: {
+                  OR: data.doesNotEndWith.map((x) => ({
                     reference: {
                       endsWith: x,
                     },
                   })),
-                }
-              : {},
-            data.contains.length > 0
-              ? {
-                  OR: data.contains.map((x) => ({
+                },
+              }
+            : {},
+          data.doesNotContain.length > 0
+            ? {
+                NOT: {
+                  OR: data.doesNotContain.map((x) => ({
                     reference: {
                       contains: x,
                     },
                   })),
-                }
-              : {},
-            data.doesNotStartWith.length > 0
-              ? {
-                  NOT: {
-                    OR: data.doesNotStartWith.map((x) => ({
-                      reference: {
-                        startsWith: x,
-                      },
-                    })),
-                  },
-                }
-              : {},
-            data.doesNotEndWith.length > 0
-              ? {
-                  NOT: {
-                    OR: data.doesNotEndWith.map((x) => ({
-                      reference: {
-                        endsWith: x,
-                      },
-                    })),
-                  },
-                }
-              : {},
-            data.doesNotContain.length > 0
-              ? {
-                  NOT: {
-                    OR: data.doesNotContain.map((x) => ({
-                      reference: {
-                        contains: x,
-                      },
-                    })),
-                  },
-                }
-              : {},
-          ],
-        },
-        select: {
-          id: true,
-        },
-      });
+                },
+              }
+            : {},
+        ],
+      },
+      select: {
+        id: true,
+      },
+    });
 
-      return productIDs.map((x) => {
-        return x.id;
-      });
-    } catch (error) {
-      throw error;
-    }
+    return productIDs.map((x) => {
+      return x.id;
+    });
   }
 
   async fetchOutputReport(data: {
@@ -456,10 +419,9 @@ export class ProductRepository {
     month: number;
     year: number;
   }) {
-    try {
-      const [result, brands, types] = await this.prisma.$transaction([
-        this.prisma.$queryRawUnsafe<any[]>(
-          `
+    const [result, brands, types] = await this.prisma.$transaction([
+      this.prisma.$queryRawUnsafe<any[]>(
+        `
             SELECT 
               product.id, 
               product.reference, 
@@ -545,96 +507,85 @@ export class ProductRepository {
             AND product_type.id IN (${data.type.join(",")})
             AND product.is_delete = 0
           `
-        ),
-        this.prisma.product_brand.findMany({
-          where: {
-            id: {
-              in: data.brand,
-            },
+      ),
+      this.prisma.product_brand.findMany({
+        where: {
+          id: {
+            in: data.brand,
           },
-        }),
-        this.prisma.product_type.findMany({
-          where: {
-            id: {
-              in: data.type,
-            },
+        },
+      }),
+      this.prisma.product_type.findMany({
+        where: {
+          id: {
+            in: data.type,
           },
-        }),
-      ]);
+        },
+      }),
+    ]);
 
-      return {
-        data: result.map((x) => {
-          return {
-            id: x.id,
-            reference: x.reference,
-            description: x.description,
-            unit: x.unit,
-            product_brand: {
-              id: x.product_brand_id,
-              name: x.product_brand_name,
-            },
-            product_type: {
-              id: x.product_type_id,
-              name: x.product_type_name,
-            },
-            report: {
-              good_receipt: Number(x.goodReceiptQuantity),
-              adjustment_case_found: Number(x.adjustmentQuantityPlus),
-              adjustment_case_lost: Number(x.adjustmentQuantityMinus),
-              sales_return: Number(x.salesReturnQuantity),
-              sales_invoice: Number(x.salesInvoiceQuantity),
-            },
-          };
-        }),
-        brands: brands.map((x) => {
-          return ProductBrandViewModel.fromMap(x);
-        }),
-        types: types.map((x) => {
-          return ProductTypeViewModel.fromMap(x);
-        }),
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      data: result.map((x) => {
+        return {
+          id: x.id,
+          reference: x.reference,
+          description: x.description,
+          unit: x.unit,
+          product_brand: {
+            id: x.product_brand_id,
+            name: x.product_brand_name,
+          },
+          product_type: {
+            id: x.product_type_id,
+            name: x.product_type_name,
+          },
+          report: {
+            good_receipt: Number(x.goodReceiptQuantity),
+            adjustment_case_found: Number(x.adjustmentQuantityPlus),
+            adjustment_case_lost: Number(x.adjustmentQuantityMinus),
+            sales_return: Number(x.salesReturnQuantity),
+            sales_invoice: Number(x.salesInvoiceQuantity),
+          },
+        };
+      }),
+      brands: brands.map((x) => {
+        return ProductBrandViewModel.fromMap(x);
+      }),
+      types: types.map((x) => {
+        return ProductTypeViewModel.fromMap(x);
+      }),
+    };
   }
 
   async delete(
     productID: number,
     userID: number
   ): Promise<ProductModel | null> {
-    try {
-      const result = await this.prisma.product.update({
-        where: { id: productID },
-        data: { is_delete: true, deleted_at: new Date(), deleted_by: userID },
-        include: {
-          product_brand: true,
-          product_type: true,
-        },
-      });
+    const result = await this.prisma.product.update({
+      where: { id: productID },
+      data: { is_delete: true, deleted_at: new Date(), deleted_by: userID },
+      include: {
+        product_brand: true,
+        product_type: true,
+      },
+    });
 
-      if (!result) {
-        return null;
-      }
-
-      return ProductModel.fromMap(result);
-    } catch (error) {
-      throw error;
+    if (!result) {
+      return null;
     }
+
+    return ProductModel.fromMap(result);
   }
 
   async fetchAll(): Promise<ProductModel[]> {
-    try {
-      const results = await this.prisma.product.findMany({
-        include: {
-          product_brand: true,
-          product_type: true,
-          product_unit: true,
-        },
-      });
+    const results = await this.prisma.product.findMany({
+      include: {
+        product_brand: true,
+        product_type: true,
+        product_unit: true,
+      },
+    });
 
-      return results.map((item) => ProductModel.fromMap(item));
-    } catch (error) {
-      throw error;
-    }
+    return results.map((item) => ProductModel.fromMap(item));
   }
 }

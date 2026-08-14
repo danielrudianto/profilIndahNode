@@ -1,4 +1,3 @@
-import { queue } from "../helper/queue.helper";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 
 export class StockCardService {

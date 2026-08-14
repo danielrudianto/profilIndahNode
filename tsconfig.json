@@ -98,5 +98,8 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */
-  }
+  },
+  /* Berkas tes dikompilasi lewat tsconfig.test.json. Tanpa exclude ini,
+     `npm run build` gagal karena tests/ berada di luar rootDir "./src". */
+  "exclude": ["node_modules", "dist", "tests"]
 }

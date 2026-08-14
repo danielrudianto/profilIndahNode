@@ -1,9 +1,9 @@
 import dotenv from "dotenv"; // If you load .env here for testing this file directly
 dotenv.config(); // If you load .env here
 
-import { connectRedis, redisClient } from "./helper/redis.helper";
-import { prisma } from "./helper/database.helper";
-import { meili } from "./helper/meili.helper";
+import { redisClient } from "./utils/redis.helper";
+import { prisma } from "./utils/database.helper";
+import { meili } from "./utils/meili.helper";
 import { ProductService } from "./services/product.service";
 import { ProductRepository } from "./repositories/product.repository";
 import { ProductUnitRepository } from "./repositories/product-unit.repository";
@@ -11,7 +11,6 @@ import { ProductPackageService } from "./services/package.service";
 import { ProductPackageRepository } from "./repositories/product-package.repository";
 import { StockInService } from "./services/stock-in.service";
 import { StockInRepository } from "./repositories/stock-in.repository";
-import { GoodReceiptService } from "./services/good-receipt.service";
 import { GoodReceiptRepository } from "./repositories/good-receipt.repository";
 import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";

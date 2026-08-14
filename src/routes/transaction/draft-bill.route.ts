@@ -1,8 +1,8 @@
-import { NextFunction, Request, Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import DraftBillController from "../../controller/draft-bill.controller";
-import ErrorHelper from "../../helper/error.helper";
+import { Router } from "express";
+import { body } from "express-validator";
+import ErrorList from "../../constants/error_list";
+import DraftBillController from "../../controllers/draft-bill.controller";
+import ErrorHelper from "../../utils/error.helper";
 
 const router = Router();
 
@@ -50,12 +50,10 @@ router.get("/archives", DraftBillController.fetchArchives);
 //   DraftBillController.fetch
 // );
 router.get("/name/:name", DraftBillController.fetchByName);
-router.get(
-  "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  DraftBillController.fetchByID
-);
+/*
+  GET /:id dihapus. Handler-nya hanya berisi kode yang dikomentari, jadi
+  permintaan tidak pernah dibalas.
+*/
 // router.get(
 //   "/",
 //   (req: Request, _, next: NextFunction) => {

@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import { prisma } from "../../helper/database.helper";
-import ErrorList from "../../assets/error_list";
-import ProductPackageController from "../../controller/product-package.controller";
-import ErrorHelper from "../../helper/error.helper";
+import { prisma } from "../../utils/database.helper";
+import ErrorList from "../../constants/error_list";
+import ProductPackageController from "../../controllers/product-package.controller";
+import ErrorHelper from "../../utils/error.helper";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
 
 const router = Router();

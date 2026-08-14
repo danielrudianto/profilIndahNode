@@ -1,15 +1,15 @@
 import { PrismaClient } from "@prisma/client";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { ProductBrandModel } from "../model/product-brand.model";
-import { ProductTypeModel } from "../model/product-type.model";
-import { ProductModel, ProductStockModel } from "../model/product.model";
-import { StockCardModel } from "../model/stock-card.model";
-import { toPositiveInt } from "../helper/sql.helper";
+import { IFetchCommonResult } from "../interfaces/fetch.interface";
+
+import { ProductBrandModel } from "../models/product-brand.model";
+import { ProductTypeModel } from "../models/product-type.model";
+import { ProductModel } from "../models/product.model";
+import { toPositiveInt } from "../utils/sql.helper";
 
 export class ProductStockRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -59,24 +59,20 @@ export class ProductStockRepository {
   }
 
   async fetchStockByProductID(id: number[]) {
-    try {
-      const stock = await this.prisma.product_stock.findMany({
-        where: {
-          id: {
-            in: id,
-          },
+    const stock = await this.prisma.product_stock.findMany({
+      where: {
+        id: {
+          in: id,
         },
-      });
+      },
+    });
 
-      return stock.map((x) => {
-        return {
-          product_id: x.id,
-          stock: Number(x.stock),
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return stock.map((x) => {
+      return {
+        product_id: x.id,
+        stock: Number(x.stock),
+      };
+    });
   }
 
   async fetchProblematicStock(data: {
@@ -86,76 +82,72 @@ export class ProductStockRepository {
     brands: number[];
     types: number[];
   }): Promise<IFetchCommonResult<ProductModel>> {
-    try {
-      let where = {
-        product_stock: {
-          stock: {
-            lt: 0,
+    let where = {
+      product_stock: {
+        stock: {
+          lt: 0,
+        },
+      },
+      is_delete: false,
+    };
+
+    if (data.brands.length > 0) {
+      (where as any).product_brand = {
+        id: {
+          in: data.brands,
+        },
+      };
+    }
+
+    if (data.types.length > 0) {
+      (where as any).product_type = {
+        id: {
+          in: data.types,
+        },
+      };
+    }
+
+    if (data.keyword.length > 0) {
+      (where as any).OR = [
+        {
+          reference: {
+            contains: data.keyword,
           },
         },
-        is_delete: false,
-      };
-
-      if (data.brands.length > 0) {
-        (where as any).product_brand = {
-          id: {
-            in: data.brands,
+        {
+          description: {
+            contains: data.keyword,
           },
-        };
-      }
-
-      if (data.types.length > 0) {
-        (where as any).product_type = {
-          id: {
-            in: data.types,
-          },
-        };
-      }
-
-      if (data.keyword.length > 0) {
-        (where as any).OR = [
-          {
-            reference: {
-              contains: data.keyword,
-            },
-          },
-          {
-            description: {
-              contains: data.keyword,
-            },
-          },
-        ];
-      }
-      const [result, count] = await this.prisma.$transaction([
-        this.prisma.product.findMany({
-          where: where,
-          include: {
-            product_brand: true,
-            product_type: true,
-            product_stock: true,
-          },
-          take: data.pageSize,
-          skip: (data.page - 1) * data.pageSize,
-          orderBy: [
-            {
-              reference: "asc",
-            },
-          ],
-        }),
-        this.prisma.product.count({
-          where: where,
-        }),
-      ]);
-
-      return {
-        data: result.map((x) => {
-          return ProductModel.fromMap(x);
-        }),
-        count: count,
-      };
-    } catch (error) {
-      throw error;
+        },
+      ];
     }
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where: where,
+        include: {
+          product_brand: true,
+          product_type: true,
+          product_stock: true,
+        },
+        take: data.pageSize,
+        skip: (data.page - 1) * data.pageSize,
+        orderBy: [
+          {
+            reference: "asc",
+          },
+        ],
+      }),
+      this.prisma.product.count({
+        where: where,
+      }),
+    ]);
+
+    return {
+      data: result.map((x) => {
+        return ProductModel.fromMap(x);
+      }),
+      count: count,
+    };
   }
 
   async fetchInadequateWarehouse(data: {
@@ -205,10 +197,9 @@ export class ProductStockRepository {
     brands: number[];
     types: number[];
   }) {
-    try {
-      const [result, count] = await this.prisma.$transaction([
-        this.prisma.$queryRawUnsafe<any[]>(
-          `
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.$queryRawUnsafe<any[]>(
+        `
           SELECT product.*, COALESCE(product_stock.stock, 0) AS stock, product_brand.name AS brand_name, product_type.name AS type_name,
           product_brand.created_by AS brand_created_by, product_type.created_by AS type_created_by
           FROM product
@@ -228,11 +219,11 @@ export class ProductStockRepository {
             toPositiveInt(data.pageSize, 10)
           }
         `,
-          `%${data.keyword ?? ""}%`,
-          `%${data.keyword ?? ""}%`
-        ),
-        this.prisma.$queryRawUnsafe<any[]>(
-          `
+        `%${data.keyword ?? ""}%`,
+        `%${data.keyword ?? ""}%`
+      ),
+      this.prisma.$queryRawUnsafe<any[]>(
+        `
           SELECT COUNT(product.id) AS count
           FROM product
           JOIN product_stock ON product_stock.id = product.id
@@ -243,78 +234,71 @@ export class ProductStockRepository {
             OR product.description LIKE ?
           )
         `,
-          `%${data.keyword ?? ""}%`,
-          `%${data.keyword ?? ""}%`
-        ),
-      ]);
+        `%${data.keyword ?? ""}%`,
+        `%${data.keyword ?? ""}%`
+      ),
+    ]);
 
-      let formattedCount = 0;
-      if (count == undefined || count.length == 0) {
-        formattedCount = 0;
-      } else {
-        formattedCount = Number(count[0].count);
-      }
-      return {
-        data: result.map((x) => {
-          return new ProductModel({
-            id: x.id,
-            reference: x.reference,
-            description: x.description,
-            product_brand_id: x.product_brand_id,
-            product_type_id: x.product_type_id,
-            created_at: new Date(x.created_at),
-            created_by: x.created_by,
-            minimum_stock: Number(x.minimum_stock),
-            unit: x.unit,
-            product_brand: new ProductBrandModel({
-              id: x.product_brand_id,
-              name: x.brand_name,
-              created_by: x.brand_created_by,
-            }),
-            product_type: new ProductTypeModel({
-              id: x.product_type_id,
-              name: x.type_name,
-              created_by: x.type_created_by,
-            }),
-            product_stock: {
-              product_id: x.id,
-              stock: Number(x.stock),
-            },
-          });
-        }),
-        count: formattedCount,
-      };
-    } catch (error) {
-      throw error;
+    let formattedCount = 0;
+    if (count == undefined || count.length == 0) {
+      formattedCount = 0;
+    } else {
+      formattedCount = Number(count[0].count);
     }
+    return {
+      data: result.map((x) => {
+        return new ProductModel({
+          id: x.id,
+          reference: x.reference,
+          description: x.description,
+          product_brand_id: x.product_brand_id,
+          product_type_id: x.product_type_id,
+          created_at: new Date(x.created_at),
+          created_by: x.created_by,
+          minimum_stock: Number(x.minimum_stock),
+          unit: x.unit,
+          product_brand: new ProductBrandModel({
+            id: x.product_brand_id,
+            name: x.brand_name,
+            created_by: x.brand_created_by,
+          }),
+          product_type: new ProductTypeModel({
+            id: x.product_type_id,
+            name: x.type_name,
+            created_by: x.type_created_by,
+          }),
+          product_stock: {
+            product_id: x.id,
+            stock: Number(x.stock),
+          },
+        });
+      }),
+      count: formattedCount,
+    };
   }
 
   updateMany = async (items: { productID: number; quantity: number }[]) => {
-    try {
-      const updateData = [];
-      for (let item of items) {
-        updateData.push(
-          this.prisma.product_stock.upsert({
-            where: {
-              id: item.productID,
+    const updateData = [];
+    for (let item of items) {
+      updateData.push(
+        this.prisma.product_stock.upsert({
+          where: {
+            id: item.productID,
+          },
+          create: {
+            id: item.productID,
+            stock: item.quantity,
+          },
+          update: {
+            stock: {
+              increment: item.quantity,
             },
-            create: {
-              id: item.productID,
-              stock: item.quantity,
-            },
-            update: {
-              stock: {
-                increment: item.quantity,
-              },
-            },
-          })
-        );
-      }
-
-      return this.prisma.$transaction(updateData);
-    } catch (error) {
-      throw error;
+          },
+        })
+      );
     }
+
+    return this.prisma.$transaction(updateData);
   };
 
   fetchOutputReport = async (data: {

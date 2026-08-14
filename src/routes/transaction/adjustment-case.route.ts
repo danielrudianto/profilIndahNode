@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { body, param, query } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import AdjustmentCaseController from "../../controller/adjustment-case.controller";
-import ErrorHelper from "../../helper/error.helper";
-import { superadministratorMiddleware } from "../../helper/auth.helper";
+import { body, param } from "express-validator";
+import ErrorList from "../../constants/error_list";
+import AdjustmentCaseController from "../../controllers/adjustment-case.controller";
+import ErrorHelper from "../../utils/error.helper";
+import { superadministratorMiddleware } from "../../utils/auth.helper";
 import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
-import { prisma } from "../../helper/database.helper";
+import { prisma } from "../../utils/database.helper";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";

@@ -1,10 +1,9 @@
 import { Router } from "express";
-import { param } from "express-validator";
-import { prisma } from "../../helper/database.helper";
-import ErrorList from "../../assets/error_list";
-import { ProductTypeController } from "../../controller/product-type.controller";
-import ErrorHelper from "../../helper/error.helper";
+import { prisma } from "../../utils/database.helper";
+import { ProductTypeController } from "../../controllers/product-type.controller";
 import { ProductTypeRepository } from "../../repositories/product-type.repository";
+import { validate } from "../../utils/validate.helper";
+import { paramTipeProdukSchema } from "../../schemas/master-lain.schema";
 
 const router = Router();
 
@@ -15,9 +14,7 @@ const productTypeController = new ProductTypeController(
 router.get("/autocomplete", productTypeController.fetchAutocomplete);
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(paramTipeProdukSchema, "params"),
   productTypeController.fetchByID
 );
 router.get("/", productTypeController.fetch);
@@ -26,9 +23,7 @@ router.put("/", productTypeController.update);
 
 router.delete(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(paramTipeProdukSchema, "params"),
   productTypeController.delete
 );
 

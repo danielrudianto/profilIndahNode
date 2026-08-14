@@ -1,10 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { IUserAvatar } from "../model/user-avatar.model";
+import { IUserAvatar } from "../models/user-avatar.model";
 
 export class UserAvatarRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 

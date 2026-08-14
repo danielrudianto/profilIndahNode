@@ -1,11 +1,11 @@
 import { Router } from "express";
-import ReceivableController from "../../controller/receivable.controller";
+import ReceivableController from "../../controllers/receivable.controller";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import ErrorHelper from "../../utils/error.helper";
 import { ReceivableRepository } from "../../repositories/receivable.repository";
-import { redisClient } from "../../helper/redis.helper";
-import { prisma } from "../../helper/database.helper";
+import { redisClient } from "../../utils/redis.helper";
+import { prisma } from "../../utils/database.helper";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 
 const router = Router();
@@ -17,7 +17,10 @@ const receivableController = new ReceivableController(
 
 router.get("/", receivableController.fetch);
 
-router.get("/history/:id", ReceivableController.fetchPaymentsHistory);
+/*
+  GET /history/:id dihapus. Handler-nya hanya berisi kode yang dikomentari
+  sejak model lama, jadi permintaan tidak pernah dibalas.
+*/
 
 router.get(
   "/customer/:id",

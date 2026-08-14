@@ -1,4 +1,3 @@
-import { PrismaClient } from "@prisma/client";
 import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 

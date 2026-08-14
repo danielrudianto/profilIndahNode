@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import PromotionController from "../../controller/promotion.controller";
-import { prisma } from "../../helper/database.helper";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import PromotionController from "../../controllers/promotion.controller";
+import { prisma } from "../../utils/database.helper";
+import ErrorHelper from "../../utils/error.helper";
 import { ProductRepository } from "../../repositories/product.repository";
 import { PromotionRepository } from "../../repositories/promotion.repository";
 

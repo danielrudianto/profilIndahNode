@@ -1,14 +1,14 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import GoodReceiptController from "../../controller/good-receipt.controller";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import GoodReceiptController from "../../controllers/good-receipt.controller";
+import ErrorHelper from "../../utils/error.helper";
 import {
   putriForbiddenMiddleware,
   superadministratorMiddleware,
-} from "../../helper/auth.helper";
+} from "../../utils/auth.helper";
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
-import { prisma } from "../../helper/database.helper";
+import { prisma } from "../../utils/database.helper";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";

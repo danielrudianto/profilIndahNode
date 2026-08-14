@@ -1,14 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import {
-  IStockIn,
-  IStockInUpdate,
-  StockInModel,
-} from "../model/stock-in.model";
+import { IStockIn, IStockInUpdate } from "../models/stock-in.model";
 
 export class StockInRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -110,60 +106,56 @@ export class StockInRepository {
   }
 
   async deleteMany(data: IStockInUpdate[]) {
-    try {
-      const where = [];
-      for (let i = 0; i < data.length; i++) {
-        where.push({
-          adjustment_case_id: data[i].adjustment_case_id,
-          adjustment_case_code_id: data[i].adjustment_case_code_id,
-          good_receipt_id: data[i].good_receipt_id,
-          good_receipt_code_id: data[i].good_receipt_code_id,
-        });
-      }
+    const where = [];
+    for (let i = 0; i < data.length; i++) {
+      where.push({
+        adjustment_case_id: data[i].adjustment_case_id,
+        adjustment_case_code_id: data[i].adjustment_case_code_id,
+        good_receipt_id: data[i].good_receipt_id,
+        good_receipt_code_id: data[i].good_receipt_code_id,
+      });
+    }
 
-      const stockIns = await this.prisma.stock_in.findMany({
-        where: {
-          OR: where,
-        },
-        include: {
-          stock_out: {
-            select: {
-              id: true,
-            },
+    const stockIns = await this.prisma.stock_in.findMany({
+      where: {
+        OR: where,
+      },
+      include: {
+        stock_out: {
+          select: {
+            id: true,
           },
         },
-      });
+      },
+    });
 
-      const deleteQuery: any[] = [];
-      const updateQuery: any[] = [];
-      stockIns.forEach((stockIn) => {
-        deleteQuery.push(
-          this.prisma.stock_in.delete({
+    const deleteQuery: any[] = [];
+    const updateQuery: any[] = [];
+    stockIns.forEach((stockIn) => {
+      deleteQuery.push(
+        this.prisma.stock_in.delete({
+          where: {
+            id: stockIn.id,
+          },
+        })
+      );
+
+      stockIn.stock_out.forEach((stockOut) => {
+        updateQuery.push(
+          this.prisma.stock_out.update({
             where: {
-              id: stockIn.id,
+              id: stockOut.id,
+            },
+            data: {
+              stock_in_id: null,
             },
           })
         );
-
-        stockIn.stock_out.forEach((stockOut) => {
-          updateQuery.push(
-            this.prisma.stock_out.update({
-              where: {
-                id: stockOut.id,
-              },
-              data: {
-                stock_in_id: null,
-              },
-            })
-          );
-        });
       });
+    });
 
-      await this.prisma.$transaction(updateQuery);
-      await this.prisma.$transaction(deleteQuery);
-    } catch (error) {
-      throw error;
-    }
+    await this.prisma.$transaction(updateQuery);
+    await this.prisma.$transaction(deleteQuery);
   }
 
   async deleteAll() {
@@ -171,8 +163,7 @@ export class StockInRepository {
   }
 
   async insertFromGoodReceipts() {
-    try {
-      await this.prisma.$queryRawUnsafe(`
+    await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_in (product_id, quantity, price, residue, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, company_id, date)
         SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), 
         (good_receipt.price - good_receipt.discount) / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
@@ -183,14 +174,10 @@ export class StockInRepository {
         WHERE good_receipt_code.is_delete = 0
         ORDER BY good_receipt_code.date ASC, good_receipt_code.id ASC
       `);
-    } catch (error) {
-      throw error;
-    }
   }
 
   async insertFromAdjustmentCases() {
-    try {
-      await this.prisma.$queryRawUnsafe(`
+    await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_in (product_id, quantity, price, residue, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, company_id, date)
         SELECT adjustment_case.product_id, adjustment_case.quantity * IF(adjustment_case.product_unit_id IS NULL, 1, product_unit.conversion), 
         adjustment_case.price / IF(adjustment_case.product_unit_id IS NULL, 1, product_unit.conversion), 
@@ -203,9 +190,6 @@ export class StockInRepository {
         AND adjustment_case.quantity > 0
         ORDER BY adjustment_case_code.date ASC, adjustment_case_code.id ASC
       `);
-    } catch (error) {
-      throw error;
-    }
   }
 
   async update(data: {
@@ -310,8 +294,7 @@ export class StockInRepository {
   }
 
   async calculate(): Promise<{ company: string; value: number }[]> {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
       SELECT company.name, c.value
       FROM company
       LEFT JOIN (
@@ -323,18 +306,15 @@ export class StockInRepository {
       ORDER BY value DESC
     `;
 
-      if (!result || result.length == 0) {
-        return [];
-      }
-
-      return result.map((x) => {
-        return {
-          company: x.name,
-          value: Number(x.value),
-        };
-      });
-    } catch (error) {
-      throw error;
+    if (!result || result.length == 0) {
+      return [];
     }
+
+    return result.map((x) => {
+      return {
+        company: x.name,
+        value: Number(x.value),
+      };
+    });
   }
 }

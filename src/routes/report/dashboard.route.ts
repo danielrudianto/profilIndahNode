@@ -1,7 +1,6 @@
 import { Router } from "express";
-import ReportController from "../../controller/report.controller";
-import { prisma } from "../../helper/database.helper";
-import { ExpenseReportModel } from "../../model/expense.model";
+import ReportController from "../../controllers/report.controller";
+import { prisma } from "../../utils/database.helper";
 import { CompanyRepository } from "../../repositories/company.repository";
 import { CustomerRepository } from "../../repositories/customer.repository";
 import { ExpenseTypeRepository } from "../../repositories/expense-type.repository";

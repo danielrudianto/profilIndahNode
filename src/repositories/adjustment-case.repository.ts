@@ -1,14 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import AdjustmentCaseModel, {
   IAdjustmentCaseCode,
-} from "../model/adjustment-case.model";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { IFetchArchive } from "../interface/archive.interface";
+} from "../models/adjustment-case.model";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
 
 export class AdjustmentCaseRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -143,39 +145,35 @@ export class AdjustmentCaseRepository {
   }
 
   async fetchCompanyReport(data: { date: Date; companyID: number }) {
-    try {
-      const result = await this.prisma.adjustment_case.findMany({
-        where: {
-          adjustment_case_code: {
-            is_delete: false,
-            company_id: data.companyID,
-            date: data.date,
+    const result = await this.prisma.adjustment_case.findMany({
+      where: {
+        adjustment_case_code: {
+          is_delete: false,
+          company_id: data.companyID,
+          date: data.date,
+        },
+      },
+      include: {
+        product: true,
+        product_unit: true,
+        adjustment_case_code: {
+          select: {
+            name: true,
           },
         },
-        include: {
-          product: true,
-          product_unit: true,
-          adjustment_case_code: {
-            select: {
-              name: true,
-            },
-          },
-        },
-      });
+      },
+    });
 
-      return result.map((x) => {
-        return {
-          reference: x.product.reference,
-          description: x.product.description,
-          quantity: Number(x.quantity),
-          unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
-          document: x.adjustment_case_code.name,
-          opponent: "Internal",
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        reference: x.product.reference,
+        description: x.product.description,
+        quantity: Number(x.quantity),
+        unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
+        document: x.adjustment_case_code.name,
+        opponent: "Internal",
+      };
+    });
   }
 
   async fetchUnconfirmed(
@@ -399,96 +397,92 @@ export class AdjustmentCaseRepository {
       };
     }
 
-    try {
-      const [result, count] = await this.prisma.$transaction([
-        this.prisma.adjustment_case_code.findMany({
-          where: {
-            AND: [
-              {
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.adjustment_case_code.findMany({
+        where: {
+          AND: [
+            {
+              name: {
+                contains: data.keyword,
+              },
+            },
+            {
+              date: {
+                gte: new Date(data.year, data.month - 1, 1),
+              },
+            },
+            {
+              date: {
+                lte: new Date(data.year, data.month, 0),
+              },
+            },
+            {
+              date: {
+                gte: data.startDate,
+              },
+            },
+            {
+              date: {
+                lte: data.endDate,
+              },
+            },
+            statusFilter,
+            typeFilter,
+          ],
+        },
+        include: {
+          company: true,
+        },
+        take: data.pageSize,
+        skip: (data.page - 1) * data.pageSize,
+        orderBy: orderBy,
+      }),
+      this.prisma.adjustment_case_code.count({
+        where: {
+          OR: [
+            {
+              name: {
+                contains: data.keyword,
+              },
+            },
+            {
+              company: {
                 name: {
                   contains: data.keyword,
                 },
               },
-              {
-                date: {
-                  gte: new Date(data.year, data.month - 1, 1),
-                },
+            },
+          ],
+          AND: [
+            {
+              date: {
+                gte: new Date(data.year, data.month - 1, 1),
               },
-              {
-                date: {
-                  lte: new Date(data.year, data.month, 0),
-                },
+            },
+            {
+              date: {
+                lte: new Date(data.year, data.month, 0),
               },
-              {
-                date: {
-                  gte: data.startDate,
-                },
+            },
+            {
+              date: {
+                gte: data.startDate,
               },
-              {
-                date: {
-                  lte: data.endDate,
-                },
+            },
+            {
+              date: {
+                lte: data.endDate,
               },
-              statusFilter,
-              typeFilter,
-            ],
-          },
-          include: {
-            company: true,
-          },
-          take: data.pageSize,
-          skip: (data.page - 1) * data.pageSize,
-          orderBy: orderBy,
-        }),
-        this.prisma.adjustment_case_code.count({
-          where: {
-            OR: [
-              {
-                name: {
-                  contains: data.keyword,
-                },
-              },
-              {
-                company: {
-                  name: {
-                    contains: data.keyword,
-                  },
-                },
-              },
-            ],
-            AND: [
-              {
-                date: {
-                  gte: new Date(data.year, data.month - 1, 1),
-                },
-              },
-              {
-                date: {
-                  lte: new Date(data.year, data.month, 0),
-                },
-              },
-              {
-                date: {
-                  gte: data.startDate,
-                },
-              },
-              {
-                date: {
-                  lte: data.endDate,
-                },
-              },
-            ],
-          },
-        }),
-      ]);
+            },
+          ],
+        },
+      }),
+    ]);
 
-      return {
-        data: result,
-        count: count,
-      };
-    } catch (error) {
-      throw error;
-    }
+    return {
+      data: result,
+      count: count,
+    };
   }
 
   async approve(id: number, userID: number) {

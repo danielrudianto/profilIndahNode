@@ -1,14 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import { translatePage } from "../helper/escape.helper";
-import { IFetchPagination } from "../interface/fetch.interface";
-import { CompanyModel } from "../model/company.model";
-import { IExpense, ExpenseModel } from "../model/expense.model";
-import ExpenseTypeModel from "../model/expense.type.model";
+import { IFetchPagination } from "../interfaces/fetch.interface";
+import { CompanyModel } from "../models/company.model";
+import { IExpense, ExpenseModel } from "../models/expense.model";
+import ExpenseTypeModel from "../models/expense.type.model";
 
 export class ExpenseRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -201,32 +200,28 @@ export class ExpenseRepository {
   }
 
   async fetchByID(id: number) {
-    try {
-      const result = await this.prisma.expense.findUnique({
-        where: { id },
-        include: {
-          expense_type: true,
-          user_expense_created_byTouser: {
-            include: {
-              user_avatar: true,
-            },
+    const result = await this.prisma.expense.findUnique({
+      where: { id },
+      include: {
+        expense_type: true,
+        user_expense_created_byTouser: {
+          include: {
+            user_avatar: true,
           },
-          user_expense_deleted_byTouser: {
-            include: {
-              user_avatar: true,
-            },
-          },
-          company: true,
         },
-      });
+        user_expense_deleted_byTouser: {
+          include: {
+            user_avatar: true,
+          },
+        },
+        company: true,
+      },
+    });
 
-      if (!result) {
-        return null;
-      }
-
-      return ExpenseModel.fromMap(result);
-    } catch (error) {
-      throw error;
+    if (!result) {
+      return null;
     }
+
+    return ExpenseModel.fromMap(result);
   }
 }

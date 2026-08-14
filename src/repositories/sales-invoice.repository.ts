@@ -2,75 +2,69 @@ import { PrismaClient } from "@prisma/client";
 import {
   ISalesInvoiceCode,
   SalesInvoiceModel,
-} from "../model/sales-invoice.model";
-import {
-  IFetchAnnualArchives,
-  IFetchCommonResult,
-} from "../interface/fetch.interface";
-import { DateHelper, formatDate } from "../helper/date.helper";
-import { IFetchArchiveResult } from "../interface/archive.interface";
-import ErrorList from "../assets/error_list";
+} from "../models/sales-invoice.model";
+import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
+
+import { DateHelper, formatDate } from "../utils/date.helper";
+import { IFetchArchiveResult } from "../interfaces/archive.interface";
+import ErrorList from "../constants/error_list";
 
 export class SalesInvoiceRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
   async create(data: ISalesInvoiceCode): Promise<SalesInvoiceModel> {
-    try {
-      const result = await this.prisma.sales_invoice_code.create({
-        data: {
-          uuid: data.uuid,
-          name: data.name,
-          created_by: data.createdBy,
-          created_at: data.createdAt,
-          customer_id: data.customerID,
-          discount: data.discount,
-          delivery: data.delivery,
-          service: data.service,
-          date: data.date,
-          is_confirm: data.isConfirm,
-          confirmed_by: data.confirmedBy,
-          confirmed_at: data.confirmedAt,
-          sales_invoice: {
-            createMany: {
-              data: data.sales_invoice!,
-            },
-          },
-          sales_invoice_payment: {
-            createMany: {
-              data: data.sales_invoice_payment!.map((x) => {
-                return {
-                  date: x.date,
-                  value: x.value,
-                  payment_method_id: x.payment_method_id,
-                };
-              }),
-            },
-          },
-          is_paid: data.isPaid,
-          sales: data.sales,
-        },
-        include: {
-          sales_invoice: {
-            include: {
-              product_unit: true,
-            },
-          },
-          sales_invoice_payment: {
-            include: {
-              payment_method: true,
-            },
+    const result = await this.prisma.sales_invoice_code.create({
+      data: {
+        uuid: data.uuid,
+        name: data.name,
+        created_by: data.createdBy,
+        created_at: data.createdAt,
+        customer_id: data.customerID,
+        discount: data.discount,
+        delivery: data.delivery,
+        service: data.service,
+        date: data.date,
+        is_confirm: data.isConfirm,
+        confirmed_by: data.confirmedBy,
+        confirmed_at: data.confirmedAt,
+        sales_invoice: {
+          createMany: {
+            data: data.sales_invoice!,
           },
         },
-      });
+        sales_invoice_payment: {
+          createMany: {
+            data: data.sales_invoice_payment!.map((x) => {
+              return {
+                date: x.date,
+                value: x.value,
+                payment_method_id: x.payment_method_id,
+              };
+            }),
+          },
+        },
+        is_paid: data.isPaid,
+        sales: data.sales,
+      },
+      include: {
+        sales_invoice: {
+          include: {
+            product_unit: true,
+          },
+        },
+        sales_invoice_payment: {
+          include: {
+            payment_method: true,
+          },
+        },
+      },
+    });
 
-      return SalesInvoiceModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return SalesInvoiceModel.fromMap(result);
   }
 
   async updateProductStock() {
@@ -118,27 +112,23 @@ export class SalesInvoiceRepository {
   }
 
   async deleteByID(id: number, userID: number): Promise<SalesInvoiceModel> {
-    try {
-      const result = await this.prisma.sales_invoice_code.update({
-        where: {
-          id: id,
-        },
-        data: {
-          is_delete: true,
-          is_confirm: false,
-          confirmed_at: new Date(),
-          confirmed_by: userID,
-        },
-      });
+    const result = await this.prisma.sales_invoice_code.update({
+      where: {
+        id: id,
+      },
+      data: {
+        is_delete: true,
+        is_confirm: false,
+        confirmed_at: new Date(),
+        confirmed_by: userID,
+      },
+    });
 
-      if (!result) {
-        throw new Error(ErrorList["Sales invoice not found"]);
-      }
-
-      return SalesInvoiceModel.fromMap(result);
-    } catch (error) {
-      throw error;
+    if (!result) {
+      throw new Error(ErrorList["Sales invoice not found"]);
     }
+
+    return SalesInvoiceModel.fromMap(result);
   }
 
   async fetchByID(id: number): Promise<SalesInvoiceModel | null> {
@@ -198,8 +188,7 @@ export class SalesInvoiceRepository {
     salesInvoiceCount: number;
     customerCount: number;
   }> {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
         SUM(sales_invoice_code.discount) AS discount, 
         SUM(sales_invoice_code.service) AS service, 
@@ -216,34 +205,30 @@ export class SalesInvoiceRepository {
         AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)};
     `;
 
-      if (!result || result.length == 0) {
-        return {
-          value: 0,
-          delivery: 0,
-          discount: 0,
-          service: 0,
-          salesInvoiceCount: 0,
-          customerCount: 0,
-        };
-      }
-
-      const data = result[0];
+    if (!result || result.length == 0) {
       return {
-        value: Number(data.value),
-        delivery: Number(data.delivery),
-        discount: Number(data.discount),
-        service: Number(data.service),
-        salesInvoiceCount: Number(data.salesInvoiceCount),
-        customerCount: Number(data.customerCount),
+        value: 0,
+        delivery: 0,
+        discount: 0,
+        service: 0,
+        salesInvoiceCount: 0,
+        customerCount: 0,
       };
-    } catch (error) {
-      throw error;
     }
+
+    const data = result[0];
+    return {
+      value: Number(data.value),
+      delivery: Number(data.delivery),
+      discount: Number(data.discount),
+      service: Number(data.service),
+      salesInvoiceCount: Number(data.salesInvoiceCount),
+      customerCount: Number(data.customerCount),
+    };
   }
 
   async fetchChart(month: number, year: number) {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
       SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
       SUM(sales_invoice_code.discount) AS discount, 
       SUM(sales_invoice_code.service) AS service, 
@@ -258,19 +243,16 @@ export class SalesInvoiceRepository {
       GROUP BY DAY(sales_invoice_code.date)
     `;
 
-      return result.map((x) => {
-        return {
-          date: Number(x.date),
-          value: Number(x.value),
-          discount: Number(x.discount),
-          delivery: Number(x.delivery),
-          service: Number(x.service),
-          salesInvoiceCount: Number(x.salesInvoiceCount),
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        date: Number(x.date),
+        value: Number(x.value),
+        discount: Number(x.discount),
+        delivery: Number(x.delivery),
+        service: Number(x.service),
+        salesInvoiceCount: Number(x.salesInvoiceCount),
+      };
+    });
   }
 
   async fetchBestBrand(month: number, year: number): Promise<string | null> {
@@ -302,8 +284,7 @@ export class SalesInvoiceRepository {
     month: number;
     year: number;
   }): Promise<{ name: string; id: number; value: number }[]> {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
         product_brand.name, product.product_brand_id
         FROM sales_invoice
@@ -316,20 +297,17 @@ export class SalesInvoiceRepository {
         GROUP BY product.product_brand_id
       `;
 
-      return result
-        .map((x) => {
-          return {
-            name: x.name,
-            id: Number(x.product_brand_id),
-            value: Number(x.value),
-          };
-        })
-        .sort((a, b) => {
-          return b.value - a.value;
-        });
-    } catch (error) {
-      throw error;
-    }
+    return result
+      .map((x) => {
+        return {
+          name: x.name,
+          id: Number(x.product_brand_id),
+          value: Number(x.value),
+        };
+      })
+      .sort((a, b) => {
+        return b.value - a.value;
+      });
   }
 
   async fetchBestType(month: number, year: number): Promise<string | null> {
@@ -361,8 +339,7 @@ export class SalesInvoiceRepository {
     month: number;
     year: number;
   }): Promise<{ name: string; id: number; value: number }[]> {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
         product_type.name, product.product_type_id
         FROM sales_invoice
@@ -375,28 +352,24 @@ export class SalesInvoiceRepository {
         GROUP BY product.product_type_id
       `;
 
-      return result
-        .map((x) => {
-          return {
-            name: x.name,
-            id: Number(x.product_brand_id),
-            value: Number(x.value),
-          };
-        })
-        .sort((a, b) => {
-          return b.value - a.value;
-        });
-    } catch (error) {
-      throw error;
-    }
+    return result
+      .map((x) => {
+        return {
+          name: x.name,
+          id: Number(x.product_brand_id),
+          value: Number(x.value),
+        };
+      })
+      .sort((a, b) => {
+        return b.value - a.value;
+      });
   }
 
   async fetchSalesSales(data: {
     month: number;
     year: number;
   }): Promise<{ sales: string; value: number }[]> {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
         sales_invoice_code.sales
         FROM sales_invoice
@@ -407,19 +380,16 @@ export class SalesInvoiceRepository {
         GROUP BY sales_invoice_code.sales
       `;
 
-      return result
-        .map((x) => {
-          return {
-            sales: x.sales,
-            value: Number(x.value),
-          };
-        })
-        .sort((a, b) => {
-          return b.value - a.value;
-        });
-    } catch (error) {
-      throw error;
-    }
+    return result
+      .map((x) => {
+        return {
+          sales: x.sales,
+          value: Number(x.value),
+        };
+      })
+      .sort((a, b) => {
+        return b.value - a.value;
+      });
   }
 
   async fetchBestSales(month: number, year: number) {
@@ -446,48 +416,44 @@ export class SalesInvoiceRepository {
   }
 
   async fetchDownload(month: number, year: number): Promise<any> {
-    try {
-      const result = await this.prisma.sales_invoice_code.findMany({
-        where: {
-          AND: [
-            {
-              date: {
-                lte: new Date(year, month, 0),
-              },
+    const result = await this.prisma.sales_invoice_code.findMany({
+      where: {
+        AND: [
+          {
+            date: {
+              lte: new Date(year, month, 0),
             },
-            {
-              date: {
-                gte: new Date(year, month - 1, 1),
-              },
+          },
+          {
+            date: {
+              gte: new Date(year, month - 1, 1),
             },
-          ],
-          is_delete: false,
-        },
-        include: {
-          sales_invoice: true,
-          customer: true,
-        },
-      });
+          },
+        ],
+        is_delete: false,
+      },
+      include: {
+        sales_invoice: true,
+        customer: true,
+      },
+    });
 
-      return result.map((x) => {
-        return {
-          date: x.date,
-          sales: x.sales,
-          customer_name: x.customer == null ? "Retail" : x.customer.name,
-          name: x.name,
-          delivery: Number(x.delivery),
-          discount: Number(x.discount),
-          service: Number(x.service),
-          value: x.sales_invoice.reduce((a, b) => {
-            return (
-              a + Number(b.quantity) * (Number(b.price) - Number(b.discount))
-            );
-          }, 0),
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        date: x.date,
+        sales: x.sales,
+        customer_name: x.customer == null ? "Retail" : x.customer.name,
+        name: x.name,
+        delivery: Number(x.delivery),
+        discount: Number(x.discount),
+        service: Number(x.service),
+        value: x.sales_invoice.reduce((a, b) => {
+          return (
+            a + Number(b.quantity) * (Number(b.price) - Number(b.discount))
+          );
+        }, 0),
+      };
+    });
   }
 
   async searchByReturns(
@@ -659,192 +625,188 @@ export class SalesInvoiceRepository {
     startDate: Date;
     endDate: Date;
   }): Promise<IFetchArchiveResult<SalesInvoiceModel>> {
-    try {
-      let paymentFilter: any = {};
-      if ((!data.isPaid && !data.isUnpaid) || (data.isPaid && data.isUnpaid)) {
-        paymentFilter = {
-          OR: [
-            {
-              is_paid: true,
-            },
-            {
-              is_paid: false,
-            },
-          ],
-        };
-      } else if (data.isPaid) {
-        paymentFilter = {
-          is_paid: true,
-        };
-      } else {
-        paymentFilter = {
-          is_paid: false,
-        };
-      }
-
-      let statusFilter: any = {};
-      if (
-        (!data.isActive && !data.isDelete) ||
-        (data.isActive && data.isDelete)
-      ) {
-        statusFilter = {
-          OR: [
-            {
-              is_delete: false,
-            },
-            {
-              is_delete: true,
-            },
-          ],
-        };
-      } else if (data.isActive) {
-        statusFilter = {
-          is_delete: false,
-        };
-      } else {
-        statusFilter = {
-          is_delete: true,
-        };
-      }
-
-      let orderBy;
-
-      if (data.sortBy == "date") {
-        orderBy = {
-          date: data.sortDirection,
-        };
-      } else if (data.sortBy == "name") {
-        orderBy = {
-          name: data.sortDirection,
-        };
-      } else if (data.sortBy === "customer") {
-        orderBy = {
-          customer: {
-            name: data.sortDirection,
+    let paymentFilter: any = {};
+    if ((!data.isPaid && !data.isUnpaid) || (data.isPaid && data.isUnpaid)) {
+      paymentFilter = {
+        OR: [
+          {
+            is_paid: true,
           },
-        };
-      } else if (data.sortBy == "sales") {
-        orderBy = {
-          sales: data.sortDirection,
-        };
-      }
-
-      const [result, count] = await this.prisma.$transaction([
-        this.prisma.sales_invoice_code.findMany({
-          where: {
-            AND: [
-              {
-                date: {
-                  gte: new Date(data.year, data.month - 1, 1),
-                },
-              },
-              {
-                date: {
-                  lte: new Date(data.year, data.month, 0),
-                },
-              },
-              {
-                date: {
-                  gte: data.startDate,
-                },
-              },
-              {
-                date: {
-                  lte: data.endDate,
-                },
-              },
-              {
-                OR: [
-                  {
-                    name: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    sales: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    customer: {
-                      name: {
-                        contains: data.keyword,
-                      },
-                    },
-                  },
-                ],
-              },
-              paymentFilter,
-              statusFilter,
-            ],
+          {
+            is_paid: false,
           },
-          orderBy: orderBy,
-          include: {
-            customer: true,
-          },
-          take: data.limit,
-          skip: data.offset,
-        }),
-        this.prisma.sales_invoice_code.count({
-          where: {
-            AND: [
-              {
-                date: {
-                  gte: new Date(data.year, data.month - 1, 1),
-                },
-              },
-              {
-                date: {
-                  lte: new Date(data.year, data.month, 0),
-                },
-              },
-              {
-                date: {
-                  gte: data.startDate,
-                },
-              },
-              {
-                date: {
-                  lte: data.endDate,
-                },
-              },
-              {
-                OR: [
-                  {
-                    name: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    sales: {
-                      contains: data.keyword,
-                    },
-                  },
-                  {
-                    customer: {
-                      name: {
-                        contains: data.keyword,
-                      },
-                    },
-                  },
-                ],
-              },
-              paymentFilter,
-              statusFilter,
-            ],
-          },
-        }),
-      ]);
-
-      return {
-        data: result.map((x) => {
-          return SalesInvoiceModel.fromMap(x);
-        }),
-        count: count,
+        ],
       };
-    } catch (error) {
-      throw error;
+    } else if (data.isPaid) {
+      paymentFilter = {
+        is_paid: true,
+      };
+    } else {
+      paymentFilter = {
+        is_paid: false,
+      };
     }
+
+    let statusFilter: any = {};
+    if (
+      (!data.isActive && !data.isDelete) ||
+      (data.isActive && data.isDelete)
+    ) {
+      statusFilter = {
+        OR: [
+          {
+            is_delete: false,
+          },
+          {
+            is_delete: true,
+          },
+        ],
+      };
+    } else if (data.isActive) {
+      statusFilter = {
+        is_delete: false,
+      };
+    } else {
+      statusFilter = {
+        is_delete: true,
+      };
+    }
+
+    let orderBy;
+
+    if (data.sortBy == "date") {
+      orderBy = {
+        date: data.sortDirection,
+      };
+    } else if (data.sortBy == "name") {
+      orderBy = {
+        name: data.sortDirection,
+      };
+    } else if (data.sortBy === "customer") {
+      orderBy = {
+        customer: {
+          name: data.sortDirection,
+        },
+      };
+    } else if (data.sortBy == "sales") {
+      orderBy = {
+        sales: data.sortDirection,
+      };
+    }
+
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.sales_invoice_code.findMany({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(data.year, data.month - 1, 1),
+              },
+            },
+            {
+              date: {
+                lte: new Date(data.year, data.month, 0),
+              },
+            },
+            {
+              date: {
+                gte: data.startDate,
+              },
+            },
+            {
+              date: {
+                lte: data.endDate,
+              },
+            },
+            {
+              OR: [
+                {
+                  name: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  sales: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  customer: {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                },
+              ],
+            },
+            paymentFilter,
+            statusFilter,
+          ],
+        },
+        orderBy: orderBy,
+        include: {
+          customer: true,
+        },
+        take: data.limit,
+        skip: data.offset,
+      }),
+      this.prisma.sales_invoice_code.count({
+        where: {
+          AND: [
+            {
+              date: {
+                gte: new Date(data.year, data.month - 1, 1),
+              },
+            },
+            {
+              date: {
+                lte: new Date(data.year, data.month, 0),
+              },
+            },
+            {
+              date: {
+                gte: data.startDate,
+              },
+            },
+            {
+              date: {
+                lte: data.endDate,
+              },
+            },
+            {
+              OR: [
+                {
+                  name: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  sales: {
+                    contains: data.keyword,
+                  },
+                },
+                {
+                  customer: {
+                    name: {
+                      contains: data.keyword,
+                    },
+                  },
+                },
+              ],
+            },
+            paymentFilter,
+            statusFilter,
+          ],
+        },
+      }),
+    ]);
+
+    return {
+      data: result.map((x) => {
+        return SalesInvoiceModel.fromMap(x);
+      }),
+      count: count,
+    };
   }
 
   async validateSalesReturn(
@@ -881,19 +843,15 @@ export class SalesInvoiceRepository {
   }
 
   async fetchSales(): Promise<string[]> {
-    try {
-      const sales = await this.prisma.sales_invoice_code.groupBy({
-        by: ["sales"],
-        where: {
-          sales: {
-            not: null,
-          },
+    const sales = await this.prisma.sales_invoice_code.groupBy({
+      by: ["sales"],
+      where: {
+        sales: {
+          not: null,
         },
-      });
+      },
+    });
 
-      return sales.map((x) => x.sales).filter((x): x is string => x != null);
-    } catch (error) {
-      throw error;
-    }
+    return sales.map((x) => x.sales).filter((x): x is string => x != null);
   }
 }

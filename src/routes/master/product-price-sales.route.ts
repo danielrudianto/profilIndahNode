@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import { ProductSalesPriceController } from "../../controller/product-price-sales.controller";
-import { prisma } from "../../helper/database.helper";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import { ProductSalesPriceController } from "../../controllers/product-price-sales.controller";
+import { prisma } from "../../utils/database.helper";
+import ErrorHelper from "../../utils/error.helper";
 import { ProductRepository } from "../../repositories/product.repository";
 
 const router = Router();
@@ -63,10 +63,10 @@ router.put(
   productSalesPriceController.update
 );
 
-router.post("/format", ProductSalesPriceController.fetchFormat);
-router.post("/bulk", ProductSalesPriceController.createBulk);
-
-router.put("/v2", ProductSalesPriceController.updateByIDV2);
-router.put("/", ProductSalesPriceController.updateByID);
+/*
+  POST /format, POST /bulk, PUT /v2, dan PUT / dihapus. Keempat handler-nya
+  hanya berisi kode yang dikomentari, jadi tidak pernah mengirim balasan dan
+  permintaan menggantung sampai timeout.
+*/
 
 export default router;

@@ -1,12 +1,15 @@
 import { PrismaClient } from "@prisma/client";
-import SupplierModel, { ISupplier } from "../model/supplier.model";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { toPositiveInt } from "../helper/sql.helper";
+import SupplierModel, { ISupplier } from "../models/supplier.model";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import { toPositiveInt } from "../utils/sql.helper";
 
 export class SupplierRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -111,7 +114,8 @@ export class SupplierRepository {
   async fetch(data: IFetchCommon): Promise<IFetchCommonResult<ISupplier>> {
     try {
       const [result, count] = await this.prisma.$transaction([
-        this.prisma.$queryRawUnsafe<any[]>(`
+        this.prisma.$queryRawUnsafe<any[]>(
+          `
               SELECT supplier.id, supplier.name, supplier.address, 
               supplier.npwp, user.name AS created_by_name, supplier.created_by,
               supplier.created_at, COALESCE(supplierCount.count, 0) AS count

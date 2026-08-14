@@ -1,12 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import { DateHelper, formatDate } from "../helper/date.helper";
-import { IStockoutModel } from "../model/stock-out.model";
+import { DateHelper, formatDate } from "../utils/date.helper";
+import { IStockoutModel } from "../models/stock-out.model";
 import { Decimal } from "@prisma/client/runtime";
+import { rentangBulan, rentangTahun } from "../utils/tanggal.helper";
 
 export class StockOutRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -33,42 +34,38 @@ export class StockOutRepository {
       adjustment_case_code_id: number | null;
     }[]
   ) {
-    try {
-      for (let i = 0; i < data.length; i++) {
-        const item = data[i];
-        const stockOuts = await this.prisma.stock_out.findMany({
-          where: {
-            sales_invoice_id: item.sales_invoice_id,
-            sales_invoice_code_id: item.sales_invoice_code_id,
-            adjustment_case_id: item.adjustment_case_id,
-            adjustment_case_code_id: item.adjustment_case_code_id,
-          },
-        });
+    for (let i = 0; i < data.length; i++) {
+      const item = data[i];
+      const stockOuts = await this.prisma.stock_out.findMany({
+        where: {
+          sales_invoice_id: item.sales_invoice_id,
+          sales_invoice_code_id: item.sales_invoice_code_id,
+          adjustment_case_id: item.adjustment_case_id,
+          adjustment_case_code_id: item.adjustment_case_code_id,
+        },
+      });
 
-        for (let j = 0; j < stockOuts.length; j++) {
-          const stockOut = stockOuts[j];
-          if (stockOut.stock_in_id != null) {
-            await this.prisma.stock_in.update({
-              where: {
-                id: stockOut.stock_in_id,
-              },
-              data: {
-                residue: {
-                  increment: stockOut.quantity,
-                },
-              },
-            });
-          }
-
-          await this.prisma.stock_out.delete({
+      for (let j = 0; j < stockOuts.length; j++) {
+        const stockOut = stockOuts[j];
+        if (stockOut.stock_in_id != null) {
+          await this.prisma.stock_in.update({
             where: {
-              id: stockOut.id,
+              id: stockOut.stock_in_id,
+            },
+            data: {
+              residue: {
+                increment: stockOut.quantity,
+              },
             },
           });
         }
+
+        await this.prisma.stock_out.delete({
+          where: {
+            id: stockOut.id,
+          },
+        });
       }
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -147,198 +144,181 @@ export class StockOutRepository {
       quantity: number;
     }[]
   ) {
-    try {
-      for (let i = 0; i < data.length; i++) {
-        let quantity = data[i].quantity;
-        while (quantity > 0) {
-          if (quantity == 0) {
-            break;
-          }
+    for (let i = 0; i < data.length; i++) {
+      let quantity = data[i].quantity;
+      while (quantity > 0) {
+        if (quantity == 0) {
+          break;
+        }
 
-          const stockOut = await this.prisma.stock_out.findFirst({
+        const stockOut = await this.prisma.stock_out.findFirst({
+          where: {
+            sales_invoice_id: data[i].sales_invoice_id,
+          },
+          orderBy: {
+            stock_in_id: "desc",
+          },
+        });
+
+        if (!stockOut) {
+          console.error(`[error]: Stock out not found`);
+          return;
+        }
+
+        const stockOutQuantity = Number(stockOut.quantity);
+
+        if (stockOutQuantity > quantity) {
+          await this.prisma.stock_out.update({
             where: {
-              sales_invoice_id: data[i].sales_invoice_id,
+              id: stockOut.id,
             },
-            orderBy: {
-              stock_in_id: "desc",
+            data: {
+              quantity: {
+                increment: -1 * quantity,
+              },
             },
           });
 
-          if (!stockOut) {
-            console.error(`[error]: Stock out not found`);
-            return;
-          }
-
-          const stockOutQuantity = Number(stockOut.quantity);
-
-          if (stockOutQuantity > quantity) {
-            await this.prisma.stock_out.update({
+          if (stockOut.stock_in_id != null) {
+            await this.prisma.stock_in.update({
               where: {
-                id: stockOut.id,
+                id: stockOut.stock_in_id,
               },
               data: {
-                quantity: {
-                  increment: -1 * quantity,
+                residue: {
+                  increment: quantity,
                 },
               },
             });
-
-            if (stockOut.stock_in_id != null) {
-              await this.prisma.stock_in.update({
-                where: {
-                  id: stockOut.stock_in_id,
-                },
-                data: {
-                  residue: {
-                    increment: quantity,
-                  },
-                },
-              });
-            }
-            quantity = 0;
-            break;
-          } else if (stockOutQuantity == quantity) {
-            await this.prisma.stock_out.delete({
-              where: {
-                id: stockOut.id,
-              },
-            });
-
-            if (stockOut.stock_in_id != null) {
-              await this.prisma.stock_in.update({
-                where: {
-                  id: stockOut.stock_in_id,
-                },
-                data: {
-                  residue: {
-                    increment: quantity,
-                  },
-                },
-              });
-            }
-            quantity = 0;
-            break;
-          } else {
-            await this.prisma.stock_out.delete({
-              where: {
-                id: stockOut.id,
-              },
-            });
-
-            if (stockOut.stock_in_id != null) {
-              await this.prisma.stock_in.update({
-                where: {
-                  id: stockOut.stock_in_id,
-                },
-                data: {
-                  residue: {
-                    increment: stockOutQuantity,
-                  },
-                },
-              });
-            }
-
-            quantity -= stockOutQuantity;
           }
+          quantity = 0;
+          break;
+        } else if (stockOutQuantity == quantity) {
+          await this.prisma.stock_out.delete({
+            where: {
+              id: stockOut.id,
+            },
+          });
+
+          if (stockOut.stock_in_id != null) {
+            await this.prisma.stock_in.update({
+              where: {
+                id: stockOut.stock_in_id,
+              },
+              data: {
+                residue: {
+                  increment: quantity,
+                },
+              },
+            });
+          }
+          quantity = 0;
+          break;
+        } else {
+          await this.prisma.stock_out.delete({
+            where: {
+              id: stockOut.id,
+            },
+          });
+
+          if (stockOut.stock_in_id != null) {
+            await this.prisma.stock_in.update({
+              where: {
+                id: stockOut.stock_in_id,
+              },
+              data: {
+                residue: {
+                  increment: stockOutQuantity,
+                },
+              },
+            });
+          }
+
+          quantity -= stockOutQuantity;
         }
       }
-    } catch (error) {
-      throw error;
     }
   }
 
   async calculate(month: number, year: number) {
-    try {
-      if (month > 0) {
-        const [result, unallocated] = await this.prisma.$transaction([
-          this.prisma.$queryRaw<any[]>`
+    if (month > 0) {
+      // Satu sumber untuk batas periode. Sebelumnya query mentah memakai
+      // YEAR()/MONTH() sementara findMany di bawahnya memakai rentang
+      // tanggal dengan batas atas yang meleset satu hari — dua bagian dari
+      // satu laporan memakai definisi "bulan" yang berbeda.
+      const periode = rentangBulan(year, month);
+      const [result, unallocated] = await this.prisma.$transaction([
+        this.prisma.$queryRaw<any[]>`
             SELECT
               SUM(stock_in.price * stock_out.quantity) AS hpp,
               SUM(stock_out.price * stock_out.quantity) AS sales,
               stock_in.company_id
             FROM stock_out
             LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
-            WHERE YEAR(stock_out.date) = ${year}
-            AND MONTH(stock_out.date) = ${month}
+            WHERE stock_out.date >= ${periode.mulai}
+            AND stock_out.date < ${periode.sebelum}
             GROUP BY stock_in.company_id
           `,
-          this.prisma.stock_out.findMany({
-            where: {
-              stock_in_id: null,
-              AND: [
-                {
-                  date: {
-                    gte: new Date(year, month - 1, 1),
-                  },
-                },
-                {
-                  date: {
-                    lt: new Date(year, month, 0),
-                  },
-                },
-              ],
+        this.prisma.stock_out.findMany({
+          where: {
+            stock_in_id: null,
+            date: {
+              gte: periode.mulai,
+              lt: periode.sebelum,
             },
-          }),
-        ]);
+          },
+        }),
+      ]);
 
-        return {
-          data: result.map((x) => {
-            return {
-              hpp: Number(x.hpp),
-              sales: Number(x.sales),
-              company_id: x.company_id,
-            };
-          }),
-          unallocated: unallocated.reduce((a, b) => {
-            return a + Number(b.quantity) * Number(b.price);
-          }, 0),
-        };
-      } else {
-        const [result, unallocated] = await this.prisma.$transaction([
-          this.prisma.$queryRaw<any[]>`
+      return {
+        data: result.map((x) => {
+          return {
+            hpp: Number(x.hpp),
+            sales: Number(x.sales),
+            company_id: x.company_id,
+          };
+        }),
+        unallocated: unallocated.reduce((a, b) => {
+          return a + Number(b.quantity) * Number(b.price);
+        }, 0),
+      };
+    } else {
+      const periode = rentangTahun(year);
+      const [result, unallocated] = await this.prisma.$transaction([
+        this.prisma.$queryRaw<any[]>`
             SELECT
               SUM(stock_in.price * stock_out.quantity) AS hpp,
               SUM(stock_out.price * stock_out.quantity) AS sales,
               stock_in.company_id
             FROM stock_out
             LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
-            WHERE YEAR(stock_out.date) = ${year}
+            WHERE stock_out.date >= ${periode.mulai}
+            AND stock_out.date < ${periode.sebelum}
             GROUP BY stock_in.company_id
           `,
-          this.prisma.stock_out.findMany({
-            where: {
-              stock_in_id: null,
-              AND: [
-                {
-                  date: {
-                    gte: new Date(year, 0, 1),
-                  },
-                },
-                {
-                  date: {
-                    lt: new Date(year, 12, 0),
-                  },
-                },
-              ],
+        this.prisma.stock_out.findMany({
+          where: {
+            stock_in_id: null,
+            date: {
+              gte: periode.mulai,
+              lt: periode.sebelum,
             },
-          }),
-        ]);
+          },
+        }),
+      ]);
 
-        return {
-          data: result.map((x) => {
-            return {
-              hpp: Number(x.hpp),
-              sales: Number(x.sales),
-              company_id: x.company_id,
-            };
-          }),
-          unallocated: unallocated.reduce((a, b) => {
-            return a + Number(b.quantity) * Number(b.price);
-          }, 0),
-        };
-      }
-    } catch (error) {
-      throw error;
+      return {
+        data: result.map((x) => {
+          return {
+            hpp: Number(x.hpp),
+            sales: Number(x.sales),
+            company_id: x.company_id,
+          };
+        }),
+        unallocated: unallocated.reduce((a, b) => {
+          return a + Number(b.quantity) * Number(b.price);
+        }, 0),
+      };
     }
   }
 
@@ -366,8 +346,7 @@ export class StockOutRepository {
   }
 
   async insertFromAdjustmentCases() {
-    try {
-      await this.prisma.$queryRawUnsafe(`
+    await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_out (product_id, quantity, date, stock_in_id, price, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id)
         SELECT adjustment_case.product_id, -1 * adjustment_case.quantity * IF(adjustment_case.product_unit_id IS NULL, 1, product_unit.conversion), adjustment_case_code.date,
         NULL, 0, NULL, NULL, adjustment_case.id, adjustment_case.adjustment_case_code_id
@@ -378,61 +357,53 @@ export class StockOutRepository {
         AND adjustment_case.quantity < 0
         ORDER BY adjustment_case_code.date ASC, adjustment_case.id ASC
       `);
-    } catch (error) {
-      throw error;
-    }
   }
 
   async fetchCompanyOutputReport(data: { date: Date; companyID: number }) {
-    try {
-      const result = await this.prisma.stock_out.findMany({
-        where: {
-          stock_in: {
-            company_id: data.companyID,
-          },
-          date: data.date,
+    const result = await this.prisma.stock_out.findMany({
+      where: {
+        stock_in: {
+          company_id: data.companyID,
         },
-        include: {
-          adjustment_case_code: {
-            select: {
-              name: true,
-            },
+        date: data.date,
+      },
+      include: {
+        adjustment_case_code: {
+          select: {
+            name: true,
           },
-          sales_invoice_code: {
-            select: {
-              name: true,
-              customer: true,
-            },
-          },
-          product: true,
         },
-      });
+        sales_invoice_code: {
+          select: {
+            name: true,
+            customer: true,
+          },
+        },
+        product: true,
+      },
+    });
 
-      return result.map((x) => {
-        return {
-          reference: x.product.reference,
-          description: x.product.description,
-          quantity: Number(x.quantity) * -1,
-          document:
-            x.sales_invoice_code != null
-              ? x.sales_invoice_code.name
-              : x.adjustment_case_code!.name,
-          opponent:
-            x.sales_invoice_code != null
-              ? x.sales_invoice_code.customer == null
-                ? "Retail"
-                : x.sales_invoice_code.customer.name
-              : "Internal",
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        reference: x.product.reference,
+        description: x.product.description,
+        quantity: Number(x.quantity) * -1,
+        document:
+          x.sales_invoice_code != null
+            ? x.sales_invoice_code.name
+            : x.adjustment_case_code!.name,
+        opponent:
+          x.sales_invoice_code != null
+            ? x.sales_invoice_code.customer == null
+              ? "Retail"
+              : x.sales_invoice_code.customer.name
+            : "Internal",
+      };
+    });
   }
 
   async fetchDailySalesReport(data: { date: Date; type: number[] }) {
-    try {
-      const result = await this.prisma.$queryRawUnsafe<any[]>(`
+    const result = await this.prisma.$queryRawUnsafe<any[]>(`
           SELECT product.id, product.reference, product.description, product_brand.name AS brand_name,
           product_type.name AS type_name, product.unit, product.product_brand_id, product.product_type_id,
           COALESCE(goodReceiptCount.quantity, 0) AS goodReceipt,
@@ -515,29 +486,26 @@ export class StockOutRepository {
           AND product.is_delete = 0
         `);
 
-      return result.map((x) => {
-        return {
-          reference: x.reference,
-          description: x.description,
-          product_brand: {
-            id: x.product_brand_id,
-            name: x.brand_name,
-          },
-          product_type: {
-            id: x.product_type_id,
-            name: x.type_name,
-          },
-          goodReceipt: Number(x.goodReceipt),
-          salesInvoice: Number(x.salesinvoice),
-          salesReturn: Number(x.salesReturn),
-          adjustmentCase: {
-            found: Number(x.adjustmentCaseFound),
-            lost: Number(x.adjustmentCaseLost),
-          },
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        reference: x.reference,
+        description: x.description,
+        product_brand: {
+          id: x.product_brand_id,
+          name: x.brand_name,
+        },
+        product_type: {
+          id: x.product_type_id,
+          name: x.type_name,
+        },
+        goodReceipt: Number(x.goodReceipt),
+        salesInvoice: Number(x.salesinvoice),
+        salesReturn: Number(x.salesReturn),
+        adjustmentCase: {
+          found: Number(x.adjustmentCaseFound),
+          lost: Number(x.adjustmentCaseLost),
+        },
+      };
+    });
   }
 }

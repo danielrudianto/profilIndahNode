@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import ErrorHelper from "../../helper/error.helper";
-import ErrorList from "../../assets/error_list";
-import ProductStockController from "../../controller/product-stock.controller";
+import ErrorHelper from "../../utils/error.helper";
+import ErrorList from "../../constants/error_list";
+import ProductStockController from "../../controllers/product-stock.controller";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
-import { prisma } from "../../helper/database.helper";
+import { prisma } from "../../utils/database.helper";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
 import { ProductRepository } from "../../repositories/product.repository";
-import { authMiddleware, authMiddlewareRole } from "../../helper/auth.helper";
+import { authMiddleware, authMiddlewareRole } from "../../utils/auth.helper";
 import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 
 const router = Router();

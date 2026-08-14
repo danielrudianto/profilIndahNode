@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { body } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ErrorHelper from "../../helper/error.helper";
-import UserAvatarController from "../../controller/user-avatar.controller";
+import ErrorList from "../../constants/error_list";
+import ErrorHelper from "../../utils/error.helper";
+import UserAvatarController from "../../controllers/user-avatar.controller";
 import { UserAvatarRepository } from "../../repositories/user-avatar.repository";
-import { prisma } from "../../helper/database.helper";
+import { prisma } from "../../utils/database.helper";
 
 const router = Router();
 

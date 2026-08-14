@@ -1,11 +1,15 @@
 import { Router } from "express";
-import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import PaymentMethodController from "../../controller/payment-method.controller";
-import { administratorMiddleware } from "../../helper/auth.helper";
-import ErrorHelper from "../../helper/error.helper";
-import { prisma } from "../../helper/database.helper";
+import PaymentMethodController from "../../controllers/payment-method.controller";
+import { administratorMiddleware } from "../../utils/auth.helper";
+import { prisma } from "../../utils/database.helper";
 import { PaymentMethodRepository } from "../../repositories/payment-method.repository";
+import { validate } from "../../utils/validate.helper";
+import {
+  buatMetodeSchema,
+  hapusMetodeSchema,
+  paramMetodeSchema,
+  ubahMetodeSchema,
+} from "../../schemas/master.schema";
 
 const router = Router();
 
@@ -19,37 +23,19 @@ router.get("/all", paymentMethodController.fetchAll);
 
 router.get(
   "/:id",
-  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(paramMetodeSchema, "params"),
   paymentMethodController.fetchByID
 );
 
 router.get("/", paymentMethodController.fetch);
 
-router.post(
-  "/",
-  body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  paymentMethodController.create
-);
+router.post("/", validate(buatMetodeSchema), paymentMethodController.create);
 
-router.put(
-  "/",
-  body("id").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-  body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  body("description").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  paymentMethodController.update
-);
+router.put("/", validate(ubahMetodeSchema), paymentMethodController.update);
 
 router.delete(
   "/:id",
-  param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
-  ErrorHelper.intercept,
+  validate(hapusMetodeSchema, "params"),
   administratorMiddleware,
   paymentMethodController.delete
 );

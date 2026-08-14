@@ -1,5 +1,5 @@
-import { prisma } from "../helper/database.helper";
-import { meili } from "../helper/meili.helper";
+import { prisma } from "../utils/database.helper";
+import { meili } from "../utils/meili.helper";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { ProductRepository } from "../repositories/product.repository";

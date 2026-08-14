@@ -1,13 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { CompanyModel, ICompany } from "../model/company.model";
-import { UserViewModel } from "../model/user.model";
-import { toPositiveInt } from "../helper/sql.helper";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import { CompanyModel, ICompany } from "../models/company.model";
+import { UserViewModel } from "../models/user.model";
+import { toPositiveInt } from "../utils/sql.helper";
 
 export class CompanyRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
@@ -137,7 +140,8 @@ export class CompanyRepository {
 
   async fetch(data: IFetchCommon): Promise<IFetchCommonResult<CompanyModel>> {
     const [result, count] = await this.prisma.$transaction([
-      this.prisma.$queryRawUnsafe<any[]>(`
+      this.prisma.$queryRawUnsafe<any[]>(
+        `
         SELECT company.id, company.name, company.address, 
         company.npwp, company.created_by, company.created_at, 
         company.is_delete,

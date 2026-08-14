@@ -1,33 +1,40 @@
 import { Router } from "express";
-import { body, query } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ReportController from "../../controller/report.controller";
+import ReportController from "../../controllers/report.controller";
 import {
-  administratorMiddleware,
   requireRole,
   superadministratorMiddleware,
-} from "../../helper/auth.helper";
-import { prisma } from "../../helper/database.helper";
-import ErrorHelper from "../../helper/error.helper";
+} from "../../utils/auth.helper";
+import { prisma } from "../../utils/database.helper";
+import { validate } from "../../utils/validate.helper";
+import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
 import { CompanyRepository } from "../../repositories/company.repository";
 import { CustomerRepository } from "../../repositories/customer.repository";
 import { ExpenseTypeRepository } from "../../repositories/expense-type.repository";
 import { ExpenseRepository } from "../../repositories/expense.repository";
 import { GoodReceiptRepository } from "../../repositories/good-receipt.repository";
+import { OverpaymentRepository } from "../../repositories/overpayment.repository";
 import { PaymentMethodRepository } from "../../repositories/payment-method.repository";
+import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { ProductRepository } from "../../repositories/product.repository";
 import { PromotionRepository } from "../../repositories/promotion.repository";
 import { SalesDepositPaymentRepository } from "../../repositories/sales-deposit-payment.repository";
+import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 import { SalesInvoicePaymentRepository } from "../../repositories/sales-invoice-payment.repository";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../../repositories/sales-return.repository";
+import { StockCardRepository } from "../../repositories/stock-card.repository";
 import { StockInRepository } from "../../repositories/stock-in.repository";
 import { StockOutRepository } from "../../repositories/stock-out.repository";
-import { ProductStockRepository } from "../../repositories/product-stock.repository";
-import { OverpaymentRepository } from "../../repositories/overpayment.repository";
-import { AdjustmentCaseRepository } from "../../repositories/adjustment-case.repository";
-import { StockCardRepository } from "../../repositories/stock-card.repository";
-import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
+import {
+  outputPerusahaanSchema,
+  outputSchema,
+  penjualanHarianSchema,
+  periodeBolehTahunanSchema,
+  periodeKueriSchema,
+  periodeWajibBulanSchema,
+  rentangTanggalSchema,
+  tanggalSchema,
+} from "../../schemas/report.schema";
 
 const router = Router();
 
@@ -53,99 +60,64 @@ const reportController = new ReportController(
   new StockCardRepository(prisma)
 );
 
+/*
+  Matriks peran diturunkan dari app-routing.module.ts pada frontend:
+    Purchasing [1,3,5,7]  Sales [2,3,5,7]  General [3,5,7]  Administrator [5,7]
+
+  Peran 6 (Gudang) sengaja tidak disertakan: ia tidak muncul pada guard laporan
+  mana pun di frontend dan hanya memakai rute /warehouse.
+*/
+const PERAN_PENJUALAN = [2, 3, 5, 7];
+const PERAN_PEMBELIAN = [1, 3, 5, 7];
+const PERAN_UMUM = [3, 5, 7];
+const PERAN_SUPERADMIN = [7];
+
 router.post(
   "/sales",
-  requireRole([2, 3, 5, 7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(periodeWajibBulanSchema),
   reportController.fetchSalesReport
 );
 
 router.post(
   "/purchase",
-  requireRole([1, 3, 5, 7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PEMBELIAN),
+  validate(periodeWajibBulanSchema),
   reportController.fetchPurchaseReport
 );
 
 router.post(
   "/money-receipt",
-  requireRole([3, 5, 7]),
-  body("date").exists().withMessage(ErrorList["Date required"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_UMUM),
+  validate(tanggalSchema),
   reportController.fetchMoneyReceipt
 );
 
 router.post(
   "/money-receipt/download",
-  requireRole([3, 5, 7]),
-  body("date").exists().withMessage(ErrorList["Date required"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_UMUM),
+  validate(tanggalSchema),
   reportController.downloadMoneyReceipt
 );
 
 router.post(
   "/money-receipt/dor",
-  requireRole([3, 5, 7]),
-  body("startDate").exists().withMessage(ErrorList["Date required"]),
-  body("endDate").exists().withMessage(ErrorList["Date required"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_UMUM),
+  validate(rentangTanggalSchema),
   reportController.fetchDorMoneyReceipt
 );
 
 router.post(
   "/output",
-  requireRole([2, 3, 5, 7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({ min: 1, max: 12 })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({ min: 2000 })
-    .withMessage(ErrorList["Year must be numeric"]),
-  body("group")
-    .isIn(["brand", "type"])
-    .withMessage(ErrorList["Invalid group report"]),
-  body("type").isArray().withMessage(ErrorList["Type must be an array"]),
-  body("type").custom((value) => {
-    if (!value.every((item: any) => Number.isInteger(item))) {
-      throw new Error(ErrorList["Type must be an integer"]);
-    }
-    return true;
-  }),
-  body("brand").isArray().withMessage(ErrorList["Type must be an array"]),
-  body("brand").custom((value) => {
-    if (!value.every((item: any) => Number.isInteger(item))) {
-      throw new Error(ErrorList["Type must be an integer"]);
-    }
-    return true;
-  }),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(outputSchema),
   reportController.fetchOutputReport
 );
 
 router.post(
   "/output-company",
-  requireRole([2, 3, 5, 7]),
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(outputPerusahaanSchema),
   reportController.fetchCompanyOutputReport
 );
 
@@ -157,176 +129,57 @@ router.get(
 
 router.post(
   "/daily-sales",
-  requireRole([3, 5, 7]),
-  body("day").notEmpty().withMessage(ErrorList["Day is required"]),
-  body("day")
-    .isInt({
-      min: 0,
-      max: 31,
-    })
-    .withMessage(ErrorList["Day must be numeric"]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  body("group").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_UMUM),
+  validate(penjualanHarianSchema),
   reportController.fetchDailySalesReport
 );
 
 router.post(
   "/purchase/download",
-  requireRole([1, 3, 5, 7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PEMBELIAN),
+  validate(periodeBolehTahunanSchema),
   reportController.downloadPurchaseReport
 );
 
 router.post(
   "/profit-loss",
-  requireRole([7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_SUPERADMIN),
+  validate(periodeBolehTahunanSchema),
   reportController.fetchProfitLoss
-);
-
-router.post(
-  "/sales",
-  requireRole([2, 3, 5, 7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("month")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
-  reportController.fetchSalesReport
 );
 
 router.get(
   "/sales/brand",
-  requireRole([2, 3, 5, 7]),
-  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  query("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  query("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(periodeKueriSchema, "query"),
   reportController.fetchBrandSalesReport
 );
 
 router.get(
   "/sales/type",
-  requireRole([2, 3, 5, 7]),
-  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  query("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  query("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(periodeKueriSchema, "query"),
   reportController.fetchTypeSalesreport
 );
 
 router.get(
   "/sales/sales",
-  requireRole([2, 3, 5, 7]),
-  query("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  query("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  query("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  query("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(periodeKueriSchema, "query"),
   reportController.fetchSalesSalesReport
 );
 
 router.post(
   "/sales/download",
-  requireRole([2, 3, 5, 7]),
-  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
-  body("month")
-    .isInt({
-      min: 0,
-      max: 12,
-    })
-    .withMessage(ErrorList["Month must be numeric"]),
-  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
-  body("year")
-    .isInt({
-      min: 2000,
-    })
-    .withMessage(ErrorList["Year must be numeric"]),
-  ErrorHelper.intercept,
+  requireRole(PERAN_PENJUALAN),
+  validate(periodeBolehTahunanSchema),
   reportController.downloadSalesReport
 );
 
-router.post(
-  "/product-stock-problem",
-  requireRole([7]),
-  ReportController.fetchProductStockProblem
-);
+/*
+  POST /product-stock-problem dihapus. Endpoint itu membaca MongoDB yang
+  koneksinya tidak pernah dibuka, jadi selalu gagal, dan isinya sama dengan
+  POST /product-stock/problematic yang sudah berjalan di atas Prisma.
+*/
 
 export default router;

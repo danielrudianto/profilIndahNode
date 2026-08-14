@@ -5,9 +5,9 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import cron from "node-cron";
-import { initIO } from "./helper/io";
+import { initIO } from "./utils/io";
 
-import { authMiddleware } from "./helper/auth.helper";
+import { administratorMiddleware, authMiddleware } from "./utils/auth.helper";
 import authRoutes from "./routes/authentication/auth.route";
 /*
   Routes for master data
@@ -18,7 +18,6 @@ import productSalesPriceRoutes from "./routes/master/product-price-sales.route";
 import productPurchasePriceRoutes from "./routes/master/product-price-purchase.route";
 import productBrandRoutes from "./routes/master/product-brand.route";
 import productTypeRoutes from "./routes/master/product-type.route";
-import productUnitRoutes from "./routes/master/product-unit.route";
 import productStockRoutes from "./routes/report/stock.route";
 
 import supplierRoutes from "./routes/master/supplier.route";
@@ -30,7 +29,6 @@ import expenseTypeRoutes from "./routes/master/expense-type.route";
   Routes for transactions data
 */
 import goodReceiptRoutes from "./routes/transaction/good-receipt.route";
-import purchaseInvoiceRoutes from "./routes/transaction/purchase-invoice.route";
 import userRoutes from "./routes/master/user.route";
 import userAvatarRoutes from "./routes/master/user-avatar.route";
 import expenseRoutes from "./routes/transaction/expense.route";
@@ -61,8 +59,8 @@ import changelogRoutes from "./routes/report/changelog.route";
 import compression from "compression";
 import helmet from "helmet";
 
-import { connectRedis, redisClient } from "./helper/redis.helper";
-import { prisma } from "./helper/database.helper";
+import { connectRedis, redisClient } from "./utils/redis.helper";
+import { prisma } from "./utils/database.helper";
 import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";
 import { StockInRepository } from "./repositories/stock-in.repository";
@@ -117,7 +115,6 @@ async function main() {
   );
   app.use("/product-brand", authMiddleware, productBrandRoutes);
   app.use("/product-type", authMiddleware, productTypeRoutes);
-  app.use("/product-unit", authMiddleware, productUnitRoutes);
   app.use("/product-stock", authMiddleware, productStockRoutes);
   app.use("/product-package", authMiddleware, productPackageRoutes);
   app.use("/promotion", authMiddleware, PromotionRoutes);
@@ -133,7 +130,6 @@ async function main() {
   app.use("/sales-return", authMiddleware, salesReturnRoutes);
 
   app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
-  app.use("/purchase-invoice", authMiddleware, purchaseInvoiceRoutes);
   app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
   app.use("/sales-deposit", authMiddleware, salesDepositRoutes);
   app.use("/draft-bill", authMiddleware, DraftBillRoutes);
@@ -149,12 +145,17 @@ async function main() {
 
   app.use("/administrator", administratorRoutes);
   app.use("/warehouse", warehouseRoutes);
-  app.use("/os", osRoutes);
-  app.use("/changelog", changelogRoutes);
+  // Keduanya sebelumnya terbuka tanpa autentikasi. /os membocorkan RAM, CPU dan
+  // model prosesor server ke siapa pun yang tahu alamatnya. Widget status server
+  // di dashboard memanggilnya dari sesi yang sudah login, sehingga tokennya ikut
+  // terkirim dan widget itu tetap berfungsi.
+  app.use("/os", administratorMiddleware, osRoutes);
+  app.use("/changelog", authMiddleware, changelogRoutes);
 
   const server = http.createServer(app);
-  server.listen(5000, () => {
-    console.info("[server]: Server is running on port 5000");
+  const port = Number(process.env.PORT) || 5000;
+  server.listen(port, () => {
+    console.info(`[server]: Server is running on port ${port}`);
   });
 
   const io = initIO(server);
@@ -165,6 +166,44 @@ async function main() {
 
   connectRedis();
   console.info("Redis client is connected");
+
+  // Penangkap 404. Tanpa ini, jalur yang tidak dikenal menggantung sampai
+  // timeout klien alih-alih menjawab dengan jelas.
+  app.use((req, res) => {
+    return res.status(404).send("Not found");
+  });
+
+  // Penangkap galat terakhir. Express hanya mengenali fungsi bertanda tangan
+  // empat argumen sebagai penangkap galat — parameter `_next` harus tetap ada
+  // walaupun tidak dipakai, kalau dihapus penangkap ini berhenti bekerja tanpa
+  // pesan apa pun.
+  app.use(
+    (
+      error: Error,
+      _req: express.Request,
+      res: express.Response,
+      _next: express.NextFunction
+    ) => {
+      console.error(`[error]: Unhandled error on request: ${error.stack}`);
+      if (res.headersSent) return;
+      return res.status(500).send("Internal server error");
+    }
+  );
 }
 
-main();
+// Kegagalan saat penyiapan (database, Redis) sebelumnya berakhir sebagai
+// unhandled rejection: proses mati tanpa menyebutkan penyebabnya, sehingga
+// tidak bisa dibedakan dari server yang crash karena sebab lain.
+main().catch((error) => {
+  console.error(`[fatal]: Gagal menjalankan server: ${error.stack ?? error}`);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error(`[error]: Unhandled promise rejection: ${reason}`);
+});
+
+process.on("uncaughtException", (error) => {
+  console.error(`[fatal]: Uncaught exception: ${error.stack}`);
+  process.exit(1);
+});

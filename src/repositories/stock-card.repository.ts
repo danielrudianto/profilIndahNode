@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { Decimal } from "@prisma/client/runtime";
-import { IStockCard, StockCardModel } from "../model/stock-card.model";
+import { IStockCard, StockCardModel } from "../models/stock-card.model";
 
 export class StockCardRepository {
   private prisma: PrismaClient;
@@ -82,128 +81,124 @@ export class StockCardRepository {
     date: Date;
     viewBy: "date" | "created";
   }) {
-    try {
-      if (data.viewBy === "date") {
-        const previous = await this.prisma.stock_card.findFirst({
-          where: {
-            date: {
-              lt: data.date,
-            },
-            product_id: data.productID,
+    if (data.viewBy === "date") {
+      const previous = await this.prisma.stock_card.findFirst({
+        where: {
+          date: {
+            lt: data.date,
           },
-          orderBy: [
+          product_id: data.productID,
+        },
+        orderBy: [
+          {
+            date: "desc",
+          },
+          {
+            id: "desc",
+          },
+        ],
+      });
+
+      const current = await this.prisma.stock_card.findMany({
+        where: {
+          date: data.date,
+          product_id: data.productID,
+        },
+        orderBy: [
+          {
+            id: "desc",
+          },
+        ],
+        include: {
+          customer: true,
+          supplier: true,
+          product_unit: true,
+        },
+      });
+
+      return {
+        data: current.map((x) => {
+          return StockCardModel.fromMap(x);
+        }),
+        previous: previous == null ? 0 : Number(previous.stock),
+      };
+    } else if (data.viewBy === "created") {
+      const previous = await this.prisma.stock_card.findFirst({
+        where: {
+          product_id: data.productID,
+          AND: [
             {
-              date: "desc",
+              created_at: {
+                lt: new Date(
+                  data.date.getFullYear(),
+                  data.date.getMonth(),
+                  data.date.getDate() + 1
+                ),
+              },
             },
             {
-              id: "desc",
+              created_at: {
+                gte: new Date(
+                  data.date.getFullYear(),
+                  data.date.getMonth(),
+                  data.date.getDate()
+                ),
+              },
             },
           ],
-        });
-
-        const current = await this.prisma.stock_card.findMany({
-          where: {
-            date: data.date,
-            product_id: data.productID,
+        },
+        orderBy: [
+          {
+            created_at: "desc",
           },
-          orderBy: [
+          {
+            id: "desc",
+          },
+        ],
+      });
+
+      const current = await this.prisma.stock_card.findMany({
+        where: {
+          product_id: data.productID,
+          AND: [
             {
-              id: "desc",
+              created_at: {
+                lt: new Date(
+                  data.date.getFullYear(),
+                  data.date.getMonth(),
+                  data.date.getDate() + 1
+                ),
+              },
+            },
+            {
+              created_at: {
+                gte: new Date(
+                  data.date.getFullYear(),
+                  data.date.getMonth(),
+                  data.date.getDate()
+                ),
+              },
             },
           ],
-          include: {
-            customer: true,
-            supplier: true,
-            product_unit: true,
+        },
+        orderBy: [
+          {
+            id: "desc",
           },
-        });
+        ],
+        include: {
+          customer: true,
+          supplier: true,
+          product_unit: true,
+        },
+      });
 
-        return {
-          data: current.map((x) => {
-            return StockCardModel.fromMap(x);
-          }),
-          previous: previous == null ? 0 : Number(previous.stock),
-        };
-      } else if (data.viewBy === "created") {
-        const previous = await this.prisma.stock_card.findFirst({
-          where: {
-            product_id: data.productID,
-            AND: [
-              {
-                created_at: {
-                  lt: new Date(
-                    data.date.getFullYear(),
-                    data.date.getMonth(),
-                    data.date.getDate() + 1
-                  ),
-                },
-              },
-              {
-                created_at: {
-                  gte: new Date(
-                    data.date.getFullYear(),
-                    data.date.getMonth(),
-                    data.date.getDate()
-                  ),
-                },
-              },
-            ],
-          },
-          orderBy: [
-            {
-              created_at: "desc",
-            },
-            {
-              id: "desc",
-            },
-          ],
-        });
-
-        const current = await this.prisma.stock_card.findMany({
-          where: {
-            product_id: data.productID,
-            AND: [
-              {
-                created_at: {
-                  lt: new Date(
-                    data.date.getFullYear(),
-                    data.date.getMonth(),
-                    data.date.getDate() + 1
-                  ),
-                },
-              },
-              {
-                created_at: {
-                  gte: new Date(
-                    data.date.getFullYear(),
-                    data.date.getMonth(),
-                    data.date.getDate()
-                  ),
-                },
-              },
-            ],
-          },
-          orderBy: [
-            {
-              id: "desc",
-            },
-          ],
-          include: {
-            customer: true,
-            supplier: true,
-            product_unit: true,
-          },
-        });
-
-        return {
-          data: current.map((x) => {
-            return StockCardModel.fromMap(x);
-          }),
-          previous: previous == null ? 0 : Number(previous.stock),
-        };
-      }
-    } catch (error) {
-      throw error;
+      return {
+        data: current.map((x) => {
+          return StockCardModel.fromMap(x);
+        }),
+        previous: previous == null ? 0 : Number(previous.stock),
+      };
     }
   }
 
@@ -325,17 +320,13 @@ export class StockCardRepository {
   }
 
   async delete(id: number) {
-    try {
-      const result = await this.prisma.stock_card.delete({
-        where: {
-          id: id,
-        },
-      });
+    const result = await this.prisma.stock_card.delete({
+      where: {
+        id: id,
+      },
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }
 
   async deleteMany(
@@ -350,27 +341,23 @@ export class StockCardRepository {
       sales_return_code_id: number | null;
     }[]
   ) {
-    try {
-      const deleteQuery = data.map((x) => {
-        return this.prisma.stock_card.deleteMany({
-          where: {
-            sales_invoice_id: x.sales_invoice_id,
-            sales_invoice_code_id: x.sales_invoice_code_id,
-            adjustment_case_id: x.adjustment_case_id,
-            adjustment_case_code_id: x.adjustment_case_code_id,
-            good_receipt_id: x.good_receipt_id,
-            good_receipt_code_id: x.good_receipt_code_id,
-            sales_return_id: x.sales_return_id,
-            sales_return_code_id: x.sales_return_code_id,
-          },
-        });
+    const deleteQuery = data.map((x) => {
+      return this.prisma.stock_card.deleteMany({
+        where: {
+          sales_invoice_id: x.sales_invoice_id,
+          sales_invoice_code_id: x.sales_invoice_code_id,
+          adjustment_case_id: x.adjustment_case_id,
+          adjustment_case_code_id: x.adjustment_case_code_id,
+          good_receipt_id: x.good_receipt_id,
+          good_receipt_code_id: x.good_receipt_code_id,
+          sales_return_id: x.sales_return_id,
+          sales_return_code_id: x.sales_return_code_id,
+        },
       });
+    });
 
-      const result = await this.prisma.$transaction(deleteQuery);
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    const result = await this.prisma.$transaction(deleteQuery);
+    return result;
   }
 
   async startup() {
@@ -430,83 +417,75 @@ export class StockCardRepository {
   }
 
   async reorder() {
-    try {
-      const productIDs = await this.prisma.stock_card.findMany({
-        distinct: ["product_id"],
+    const productIDs = await this.prisma.stock_card.findMany({
+      distinct: ["product_id"],
+      where: {
+        stock: null,
+      },
+    });
+
+    console.info(
+      `[info]: Found ${productIDs.length} products that needs to be reorder`
+    );
+
+    for (let i = 0; i < productIDs.length; i++) {
+      console.info(
+        `[info]: Start reordering ${i + 1}/${
+          productIDs.length
+        } product stock card`
+      );
+      const product_id = productIDs[i].product_id;
+
+      const stockCards = await this.prisma.stock_card.findMany({
         where: {
-          stock: null,
+          product_id: product_id,
         },
+        orderBy: [
+          {
+            date: "asc",
+          },
+          {
+            id: "asc",
+          },
+        ],
       });
 
-      console.info(
-        `[info]: Found ${productIDs.length} products that needs to be reorder`
-      );
+      let initialQuantity = 0;
+      const updateQuery = [];
 
-      for (let i = 0; i < productIDs.length; i++) {
-        console.info(
-          `[info]: Start reordering ${i + 1}/${
-            productIDs.length
-          } product stock card`
-        );
-        const product_id = productIDs[i].product_id;
-
-        const stockCards = await this.prisma.stock_card.findMany({
-          where: {
-            product_id: product_id,
-          },
-          orderBy: [
-            {
-              date: "asc",
+      for (let j = 0; j < stockCards.length; j++) {
+        initialQuantity += Number(stockCards[j].quantity);
+        updateQuery.push(
+          this.prisma.stock_card.update({
+            where: {
+              id: stockCards[j].id,
             },
-            {
-              id: "asc",
+            data: {
+              stock: initialQuantity,
             },
-          ],
-        });
-
-        let initialQuantity = 0;
-        const updateQuery = [];
-
-        for (let j = 0; j < stockCards.length; j++) {
-          initialQuantity += Number(stockCards[j].quantity);
-          updateQuery.push(
-            this.prisma.stock_card.update({
-              where: {
-                id: stockCards[j].id,
-              },
-              data: {
-                stock: initialQuantity,
-              },
-            })
-          );
-        }
-
-        await this.prisma.$transaction(updateQuery);
-
-        console.info(
-          `[info]: Done reordering ${i + 1}/${
-            productIDs.length
-          } product stock card`
+          })
         );
       }
 
-      console.info(`[info]: Reordering completed`);
-    } catch (error) {
-      throw error;
+      await this.prisma.$transaction(updateQuery);
+
+      console.info(
+        `[info]: Done reordering ${i + 1}/${
+          productIDs.length
+        } product stock card`
+      );
     }
+
+    console.info(`[info]: Reordering completed`);
   }
 
   async checkExistingByProductID(productID: number) {
-    try {
-      const stock = await this.prisma.stock_card.count({
-        where: {
-          product_id: productID,
-        },
-      });
+    const stock = await this.prisma.stock_card.count({
+      where: {
+        product_id: productID,
+      },
+    });
 
-      return stock > 0;
-    } catch (error) {
-      throw error;
-    }
+    return stock > 0;
   }
 }

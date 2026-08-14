@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { authMiddleware } from "../../helper/auth.helper";
+import { authMiddleware } from "../../utils/auth.helper";
 import { body } from "express-validator";
-import AuthController from "../../controller/auth.controller";
-import ErrorHelper from "../../helper/error.helper";
+import AuthController from "../../controllers/auth.controller";
+import ErrorHelper from "../../utils/error.helper";
 import { UserRepository } from "../../repositories/user.repository";
-import { prisma } from "../../helper/database.helper";
-import ErrorList from "../../assets/error_list";
+import { prisma } from "../../utils/database.helper";
+import ErrorList from "../../constants/error_list";
 
 const router = Router();
 const authController = new AuthController(new UserRepository(prisma));

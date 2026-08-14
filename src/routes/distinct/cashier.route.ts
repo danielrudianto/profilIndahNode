@@ -1,15 +1,14 @@
 import { Router } from "express";
-import UserController from "../../controller/user.controller";
-import SalesInvoiceController from "../../controller/sales-invoice.controller";
+import UserController from "../../controllers/user.controller";
+import SalesInvoiceController from "../../controllers/sales-invoice.controller";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ErrorHelper from "../../helper/error.helper";
-import DraftBillController from "../../controller/draft-bill.controller";
-import PaymentMethodController from "../../controller/payment-method.controller";
+import ErrorList from "../../constants/error_list";
+import ErrorHelper from "../../utils/error.helper";
+import DraftBillController from "../../controllers/draft-bill.controller";
 import { UserRepository } from "../../repositories/user.repository";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { CustomerRepository } from "../../repositories/customer.repository";
-import { prisma } from "../../helper/database.helper";
+import { prisma } from "../../utils/database.helper";
 
 const router = Router();
 

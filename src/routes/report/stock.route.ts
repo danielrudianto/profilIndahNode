@@ -1,13 +1,13 @@
 import { Router } from "express";
 import { body, param, query } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import ProductStockController from "../../controller/product-stock.controller";
-import { prisma } from "../../helper/database.helper";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import ProductStockController from "../../controllers/product-stock.controller";
+import { prisma } from "../../utils/database.helper";
+import ErrorHelper from "../../utils/error.helper";
 import { ProductStockRepository } from "../../repositories/product-stock.repository";
 import { ProductRepository } from "../../repositories/product.repository";
 import { ProductPackageRepository } from "../../repositories/product-package.repository";
-import { ProductStockCardController } from "../../controller/product-stock-card.controller";
+import { ProductStockCardController } from "../../controllers/product-stock-card.controller";
 import { StockCardRepository } from "../../repositories/stock-card.repository";
 import { SalesDepositRepository } from "../../repositories/sales-deposit.repository";
 
@@ -138,11 +138,10 @@ router.post(
   stockCardController.fetchMutation
 );
 
-router.post(
-  "/",
-  body("mode").exists().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
-  ProductStockController.create
-);
+/*
+  POST / dihapus. Seluruh badan ProductStockController.create sudah dikomentari
+  sejak era MongoDB, jadi handler-nya tidak pernah mengirim balasan sama sekali
+  dan permintaan menggantung sampai timeout.
+*/
 
 export default router;

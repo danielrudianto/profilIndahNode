@@ -1,12 +1,12 @@
 import { Router } from "express";
 import { body, param } from "express-validator";
-import ErrorList from "../../assets/error_list";
-import AuthController from "../../controller/auth.controller";
-import UserController from "../../controller/user.controller";
-import { administratorMiddleware } from "../../helper/auth.helper";
-import ErrorHelper from "../../helper/error.helper";
+import ErrorList from "../../constants/error_list";
+import AuthController from "../../controllers/auth.controller";
+import UserController from "../../controllers/user.controller";
+import { administratorMiddleware } from "../../utils/auth.helper";
+import ErrorHelper from "../../utils/error.helper";
 import { UserRepository } from "../../repositories/user.repository";
-import { prisma } from "../../helper/database.helper";
+import { prisma } from "../../utils/database.helper";
 import { SalesInvoiceRepository } from "../../repositories/sales-invoice.repository";
 import { CustomerRepository } from "../../repositories/customer.repository";
 

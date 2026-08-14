@@ -2,73 +2,64 @@ import { PrismaClient } from "@prisma/client";
 import {
   IPaymentMethod,
   PaymentMethodModel,
-} from "../model/payment-method.model";
-import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
-import { toPositiveInt } from "../helper/sql.helper";
+} from "../models/payment-method.model";
+import {
+  IFetchCommon,
+  IFetchCommonResult,
+} from "../interfaces/fetch.interface";
+import { toPositiveInt } from "../utils/sql.helper";
 
 export class PaymentMethodRepository {
   private prisma: PrismaClient;
 
-  constructor(prisma: any) {
+  constructor(prisma: PrismaClient) {
     this.prisma = prisma;
   }
 
   async create(data: IPaymentMethod): Promise<PaymentMethodModel> {
-    try {
-      const result = await this.prisma.payment_method.create({
-        data: {
-          name: data.name,
-          description: data.description,
-          created_at: new Date(),
-          created_by: data.created_by!,
-        },
-      });
+    const result = await this.prisma.payment_method.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        created_at: new Date(),
+        created_by: data.created_by!,
+      },
+    });
 
-      return new PaymentMethodModel({
-        ...result,
-        can_delete: true,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return new PaymentMethodModel({
+      ...result,
+      can_delete: true,
+    });
   }
 
   async update(data: IPaymentMethod): Promise<PaymentMethodModel> {
-    try {
-      const result = await this.prisma.payment_method.update({
-        where: {
-          id: data.id!,
-        },
-        data: {
-          name: data.name,
-          description: data.description,
-          updated_at: data.created_at,
-          updated_by: data.created_by,
-        },
-      });
+    const result = await this.prisma.payment_method.update({
+      where: {
+        id: data.id!,
+      },
+      data: {
+        name: data.name,
+        description: data.description,
+        updated_at: data.created_at,
+        updated_by: data.created_by,
+      },
+    });
 
-      return new PaymentMethodModel({
-        ...result,
-        can_delete: data.can_delete,
-      });
-    } catch (error) {
-      throw error;
-    }
+    return new PaymentMethodModel({
+      ...result,
+      can_delete: data.can_delete,
+    });
   }
 
   async delete(id: number, userID: number): Promise<void> {
-    try {
-      await this.prisma.payment_method.update({
-        where: { id: id },
-        data: {
-          is_delete: true,
-          deleted_by: userID,
-          deleted_at: new Date(),
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    await this.prisma.payment_method.update({
+      where: { id: id },
+      data: {
+        is_delete: true,
+        deleted_by: userID,
+        deleted_at: new Date(),
+      },
+    });
   }
 
   async fetch(
@@ -137,91 +128,79 @@ export class PaymentMethodRepository {
   }
 
   async fetchAutocomplete(keyword: string): Promise<PaymentMethodModel[]> {
-    try {
-      const result = await this.prisma.payment_method.findMany({
-        where: {
-          is_delete: false,
-          ...(keyword && {
-            OR: [
-              { name: { contains: keyword } },
-              { description: { contains: keyword } },
-            ],
-          }),
-        },
-        orderBy: { name: "asc" },
-        take: 5,
-      });
+    const result = await this.prisma.payment_method.findMany({
+      where: {
+        is_delete: false,
+        ...(keyword && {
+          OR: [
+            { name: { contains: keyword } },
+            { description: { contains: keyword } },
+          ],
+        }),
+      },
+      orderBy: { name: "asc" },
+      take: 5,
+    });
 
-      return result.map(
-        (item) =>
-          new PaymentMethodModel({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            can_delete: true, // Assuming all fetched methods can be deleted
-          })
-      );
-    } catch (error) {
-      throw error;
-    }
+    return result.map(
+      (item) =>
+        new PaymentMethodModel({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          can_delete: true, // Assuming all fetched methods can be deleted
+        })
+    );
   }
 
   async fetchByID(id: number): Promise<PaymentMethodModel | null> {
-    try {
-      const result = await this.prisma.payment_method.findUnique({
-        where: {
-          id: id,
-        },
-        select: {
-          name: true,
-          description: true,
-          id: true,
-          is_delete: true,
-        },
-      });
+    const result = await this.prisma.payment_method.findUnique({
+      where: {
+        id: id,
+      },
+      select: {
+        name: true,
+        description: true,
+        id: true,
+        is_delete: true,
+      },
+    });
 
-      if (!result) {
-        return null;
-      }
-
-      return new PaymentMethodModel({
-        id: result.id,
-        name: result.name,
-        description: result.description,
-        is_delete: result.is_delete,
-      });
-    } catch (error) {
-      throw error;
+    if (!result) {
+      return null;
     }
+
+    return new PaymentMethodModel({
+      id: result.id,
+      name: result.name,
+      description: result.description,
+      is_delete: result.is_delete,
+    });
   }
 
   async fetchAll(): Promise<PaymentMethodModel[]> {
-    try {
-      const result = await this.prisma.payment_method.findMany({
-        where: {
-          is_delete: false,
-        },
-        select: {
-          name: true,
-          description: true,
-          id: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
-      });
+    const result = await this.prisma.payment_method.findMany({
+      where: {
+        is_delete: false,
+      },
+      select: {
+        name: true,
+        description: true,
+        id: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    });
 
-      return result.map(
-        (item) =>
-          new PaymentMethodModel({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            can_delete: true, // Assuming all fetched methods can be deleted
-          })
-      );
-    } catch (error) {
-      throw error;
-    }
+    return result.map(
+      (item) =>
+        new PaymentMethodModel({
+          id: item.id,
+          name: item.name,
+          description: item.description,
+          can_delete: true, // Assuming all fetched methods can be deleted
+        })
+    );
   }
 }

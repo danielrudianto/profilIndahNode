@@ -1,4 +1,4 @@
-import { meili } from "../helper/meili.helper";
+import { meili } from "../utils/meili.helper";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { ProductRepository } from "../repositories/product.repository";
 

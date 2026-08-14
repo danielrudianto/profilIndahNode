@@ -1,13 +1,13 @@
 import { PrismaClient } from "@prisma/client";
-import GoodReceiptModel, { IGoodReceipt } from "../model/good-receipt.model";
+import GoodReceiptModel, { IGoodReceipt } from "../models/good-receipt.model";
 import {
   IFetchAnnualArchives,
   IFetchCommon,
   IFetchCommonResult,
-  IFetchMonthlyArchives,
-} from "../interface/fetch.interface";
-import { DateHelper, formatDate } from "../helper/date.helper";
-import ErrorList from "../assets/error_list";
+} from "../interfaces/fetch.interface";
+
+import { DateHelper, formatDate } from "../utils/date.helper";
+import ErrorList from "../constants/error_list";
 
 export class GoodReceiptRepository {
   private prisma: PrismaClient;
@@ -81,55 +81,51 @@ export class GoodReceiptRepository {
   }
 
   async update(data: IGoodReceipt) {
-    try {
-      const result = await this.prisma.good_receipt_code.update({
-        where: { id: data.id },
-        data: {
-          name: data.name,
-          invoice_name: data.invoice_name,
-          faktur: data.faktur,
-          date: data.date,
-          supplier_id: data.supplier_id,
-          company_id: data.company_id,
-          good_receipt: {
-            updateMany: {
-              data: {
-                is_delete: true,
-              },
-              where: {
-                good_receipt_code_id: data.id,
-              },
+    const result = await this.prisma.good_receipt_code.update({
+      where: { id: data.id },
+      data: {
+        name: data.name,
+        invoice_name: data.invoice_name,
+        faktur: data.faktur,
+        date: data.date,
+        supplier_id: data.supplier_id,
+        company_id: data.company_id,
+        good_receipt: {
+          updateMany: {
+            data: {
+              is_delete: true,
             },
-            createMany: {
-              data: data.good_receipt!.map((item) => {
-                return {
-                  quantity: item.quantity,
-                  price: item.price,
-                  discount: item.discount,
-                  product_id: item.product_id,
-                  product_unit_id: item.product_unit_id,
-                };
-              }),
-            },
-          },
-        },
-        include: {
-          good_receipt: {
             where: {
-              is_delete: false,
-            },
-            include: {
-              product: true,
-              product_unit: true,
+              good_receipt_code_id: data.id,
             },
           },
+          createMany: {
+            data: data.good_receipt!.map((item) => {
+              return {
+                quantity: item.quantity,
+                price: item.price,
+                discount: item.discount,
+                product_id: item.product_id,
+                product_unit_id: item.product_unit_id,
+              };
+            }),
+          },
         },
-      });
+      },
+      include: {
+        good_receipt: {
+          where: {
+            is_delete: false,
+          },
+          include: {
+            product: true,
+            product_unit: true,
+          },
+        },
+      },
+    });
 
-      return GoodReceiptModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return GoodReceiptModel.fromMap(result);
   }
 
   async updateProductStock() {
@@ -186,111 +182,95 @@ export class GoodReceiptRepository {
   }
 
   async deleteGoodReceiptByID(id: number): Promise<void> {
-    try {
-      await this.prisma.good_receipt.delete({
-        where: {
-          id: id,
-        },
-      });
-    } catch (error) {
-      throw error;
-    }
+    await this.prisma.good_receipt.delete({
+      where: {
+        id: id,
+      },
+    });
   }
 
   async fetchByName(name: string): Promise<GoodReceiptModel | null> {
-    try {
-      const goodReceipt = await this.prisma.good_receipt_code.findFirst({
-        where: {
-          name: name,
-          is_delete: false,
-        },
-        include: {
-          supplier: true,
-        },
-      });
+    const goodReceipt = await this.prisma.good_receipt_code.findFirst({
+      where: {
+        name: name,
+        is_delete: false,
+      },
+      include: {
+        supplier: true,
+      },
+    });
 
-      return goodReceipt == null ? null : GoodReceiptModel.fromMap(goodReceipt);
-    } catch (error) {
-      throw error;
-    }
+    return goodReceipt == null ? null : GoodReceiptModel.fromMap(goodReceipt);
   }
 
   async fetchByID(id: number): Promise<GoodReceiptModel | null> {
-    try {
-      const goodReceipt = await this.prisma.good_receipt_code.findUnique({
-        where: {
-          id: id,
-        },
-        include: {
-          supplier: true,
-          company: true,
-          good_receipt: {
-            include: {
-              product: true,
-              product_unit: true,
-            },
-            where: {
-              is_delete: false,
-            },
+    const goodReceipt = await this.prisma.good_receipt_code.findUnique({
+      where: {
+        id: id,
+      },
+      include: {
+        supplier: true,
+        company: true,
+        good_receipt: {
+          include: {
+            product: true,
+            product_unit: true,
           },
-          user_good_receipt_code_created_byTouser: {
-            include: {
-              user_avatar: true,
-            },
-          },
-          user_good_receipt_code_confirmed_byTouser: {
-            include: {
-              user_avatar: true,
-            },
+          where: {
+            is_delete: false,
           },
         },
-      });
+        user_good_receipt_code_created_byTouser: {
+          include: {
+            user_avatar: true,
+          },
+        },
+        user_good_receipt_code_confirmed_byTouser: {
+          include: {
+            user_avatar: true,
+          },
+        },
+      },
+    });
 
-      if (!goodReceipt) {
-        return null;
-      }
-
-      return GoodReceiptModel.fromMap(goodReceipt);
-    } catch (error) {
-      throw error;
+    if (!goodReceipt) {
+      return null;
     }
+
+    return GoodReceiptModel.fromMap(goodReceipt);
   }
 
   async fetchCompanyReport(data: { date: Date; companyID: number }) {
-    try {
-      const result = await this.prisma.good_receipt.findMany({
-        where: {
-          good_receipt_code: {
-            company_id: data.companyID,
-            is_delete: false,
-            date: data.date,
+    const result = await this.prisma.good_receipt.findMany({
+      where: {
+        good_receipt_code: {
+          company_id: data.companyID,
+          is_delete: false,
+          date: data.date,
+        },
+      },
+      include: {
+        product: true,
+        product_unit: true,
+        good_receipt_code: {
+          select: {
+            name: true,
+            supplier: true,
           },
         },
-        include: {
-          product: true,
-          product_unit: true,
-          good_receipt_code: {
-            select: {
-              name: true,
-              supplier: true,
-            },
-          },
-        },
-      });
+      },
+    });
 
-      return result.map((x) => {
-        return {
-          reference: x.product.reference,
-          description: x.product.description,
-          quantity: Number(x.quantity),
-          unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
-          document: x.good_receipt_code.name,
-          opponent: x.good_receipt_code.supplier.name,
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        reference: x.product.reference,
+        description: x.product.description,
+        quantity: Number(x.quantity),
+        unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
+        document: x.good_receipt_code.name,
+        opponent: x.good_receipt_code.supplier.name,
+      };
+    });
   }
 
   async fetchUnconfirmed(
@@ -601,8 +581,7 @@ export class GoodReceiptRepository {
   }
 
   async fetchChart(month: number, year: number) {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
+    const result = await this.prisma.$queryRaw<any[]>`
       SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, 
       SUM(good_receipt.discount) AS discount, 
       COUNT(good_receipt_code.id) AS goodReceiptCount,
@@ -616,17 +595,14 @@ export class GoodReceiptRepository {
       ORDER BY good_receipt_code.date ASC
     `;
 
-      return result.map((x) => {
-        return {
-          date: Number(x.date),
-          value: Number(x.value),
-          discount: Number(x.discount),
-          goodReceiptCount: Number(x.goodReceiptCount),
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        date: Number(x.date),
+        value: Number(x.value),
+        discount: Number(x.discount),
+        goodReceiptCount: Number(x.goodReceiptCount),
+      };
+    });
   }
 
   async fetchBestBrand(month: number, year: number): Promise<string | null> {
@@ -704,137 +680,75 @@ export class GoodReceiptRepository {
   }
 
   async fetchDownload(month: number, year: number) {
-    try {
-      const result = await this.prisma.good_receipt_code.findMany({
-        where: {
-          AND: [
-            {
-              date: {
-                gte: new Date(year, month - 1, 1),
-              },
-            },
-            {
-              date: {
-                lt: new Date(year, month, 0),
-              },
-            },
-          ],
-          is_delete: false,
-        },
-        include: {
-          good_receipt: {
-            where: {
-              is_delete: false,
+    const result = await this.prisma.good_receipt_code.findMany({
+      where: {
+        AND: [
+          {
+            date: {
+              gte: new Date(year, month - 1, 1),
             },
           },
-          supplier: true,
+          {
+            date: {
+              lt: new Date(year, month, 0),
+            },
+          },
+        ],
+        is_delete: false,
+      },
+      include: {
+        good_receipt: {
+          where: {
+            is_delete: false,
+          },
         },
-      });
+        supplier: true,
+      },
+    });
 
-      return result.map((x) => {
-        return {
-          date: x.date,
-          name: x.name,
-          invoice_name: x.invoice_name,
-          faktur: x.faktur,
-          supplier_name: x.supplier.name,
-          value: x.good_receipt.reduce((a, b) => {
-            return (
-              a + Number(b.quantity) * (Number(b.price) - Number(b.discount))
-            );
-          }, 0),
-          discount: Number(x.discount),
-        };
-      });
-    } catch (error) {
-      throw error;
-    }
+    return result.map((x) => {
+      return {
+        date: x.date,
+        name: x.name,
+        invoice_name: x.invoice_name,
+        faktur: x.faktur,
+        supplier_name: x.supplier.name,
+        value: x.good_receipt.reduce((a, b) => {
+          return (
+            a + Number(b.quantity) * (Number(b.price) - Number(b.discount))
+          );
+        }, 0),
+        discount: Number(x.discount),
+      };
+    });
   }
 
   async countBySupplierID(supplierID: number) {
-    try {
-      const result = await this.prisma.good_receipt_code.count({
-        where: {
-          supplier_id: supplierID,
-          is_delete: false,
-        },
-      });
+    const result = await this.prisma.good_receipt_code.count({
+      where: {
+        supplier_id: supplierID,
+        is_delete: false,
+      },
+    });
 
-      return result;
-    } catch (error) {
-      throw error;
-    }
+    return result;
   }
 
   async confirm(data: IGoodReceipt) {
-    try {
-      const [result, ..._] = await this.prisma.$transaction([
-        this.prisma.good_receipt_code.update({
-          where: {
-            id: data.id!,
-          },
-          data: {
-            discount: data.discount,
-            name: data.name,
-            faktur: data.faktur,
-            invoice_name: data.invoice_name,
-            confirmed_at: data.confirmed_at,
-            confirmed_by: data.confirmed_by,
-            is_confirm: data.is_confirm,
-            is_delete: data.is_delete,
-          },
-          include: {
-            good_receipt: {
-              include: {
-                product: true,
-                product_unit: true,
-              },
-              where: {
-                is_delete: false,
-              },
-            },
-            user_good_receipt_code_created_byTouser: {
-              include: {
-                user_avatar: true,
-              },
-            },
-            user_good_receipt_code_confirmed_byTouser: {
-              include: {
-                user_avatar: true,
-              },
-            },
-          },
-        }),
-        ...data.good_receipt!.map((x) => {
-          return this.prisma.good_receipt.update({
-            where: {
-              id: x.id,
-            },
-            data: {
-              price: x.price,
-              discount: x.discount,
-            },
-          });
-        }),
-      ]);
-
-      return GoodReceiptModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async reject(data: IGoodReceipt) {
-    try {
-      const result = await this.prisma.good_receipt_code.update({
+    const [result, ..._] = await this.prisma.$transaction([
+      this.prisma.good_receipt_code.update({
         where: {
-          id: data.id,
+          id: data.id!,
         },
         data: {
-          is_confirm: data.is_confirm,
-          is_delete: data.is_delete,
+          discount: data.discount,
+          name: data.name,
+          faktur: data.faktur,
+          invoice_name: data.invoice_name,
           confirmed_at: data.confirmed_at,
           confirmed_by: data.confirmed_by,
+          is_confirm: data.is_confirm,
+          is_delete: data.is_delete,
         },
         include: {
           good_receipt: {
@@ -857,12 +771,58 @@ export class GoodReceiptRepository {
             },
           },
         },
-      });
+      }),
+      ...data.good_receipt!.map((x) => {
+        return this.prisma.good_receipt.update({
+          where: {
+            id: x.id,
+          },
+          data: {
+            price: x.price,
+            discount: x.discount,
+          },
+        });
+      }),
+    ]);
 
-      return GoodReceiptModel.fromMap(result);
-    } catch (error) {
-      throw error;
-    }
+    return GoodReceiptModel.fromMap(result);
+  }
+
+  async reject(data: IGoodReceipt) {
+    const result = await this.prisma.good_receipt_code.update({
+      where: {
+        id: data.id,
+      },
+      data: {
+        is_confirm: data.is_confirm,
+        is_delete: data.is_delete,
+        confirmed_at: data.confirmed_at,
+        confirmed_by: data.confirmed_by,
+      },
+      include: {
+        good_receipt: {
+          include: {
+            product: true,
+            product_unit: true,
+          },
+          where: {
+            is_delete: false,
+          },
+        },
+        user_good_receipt_code_created_byTouser: {
+          include: {
+            user_avatar: true,
+          },
+        },
+        user_good_receipt_code_confirmed_byTouser: {
+          include: {
+            user_avatar: true,
+          },
+        },
+      },
+    });
+
+    return GoodReceiptModel.fromMap(result);
   }
 
   // Development purposes only
