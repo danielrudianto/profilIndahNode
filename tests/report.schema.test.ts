@@ -1,7 +1,7 @@
 import express from "express";
 import request from "supertest";
 import { body, query } from "express-validator";
-import ErrorHelper from "../src/utils/error.helper";
+import ErrorHelper from "./helpers/legacy-error.helper";
 import ErrorList from "../src/constants/error_list";
 import { validate } from "../src/utils/validate.helper";
 import {

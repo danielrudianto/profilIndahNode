@@ -4,7 +4,7 @@ import { ZodType } from "zod";
 /**
  * Menjalankan skema Zod terhadap satu bagian permintaan.
  *
- * Bentuk balasan galat dibuat sama persis dengan ErrorHelper.intercept yang
+ * Bentuk balasan galat mengikuti ErrorHelper.intercept yang dulu
  * dipakai express-validator: status 400 dengan badan berupa string mentah
  * berisi pesan pertama yang gagal — bukan JSON. Frontend menampilkan
  * `error.error` apa adanya, jadi mengubah bentuknya akan mengubah tampilan di
