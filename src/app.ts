@@ -1,3 +1,9 @@
+// HARUS berada di urutan impor paling atas. Modul ini menambal express.Router
+// agar penolakan promise dari handler async diteruskan ke penanganan galat,
+// dan tambalannya berjalan saat modul diimpor. Pemanggilan router.get(...) di
+// berkas route juga berjalan saat impor, jadi baris ini harus mendahului
+// seluruh impor route di bawahnya.
+import "./utils/async-error.helper";
 import { allowedOrigins } from "./constants/allowed-origin.constant";
 import dotenv from "dotenv"; // If you load .env here for testing this file directly
 dotenv.config(); // If you load .env here

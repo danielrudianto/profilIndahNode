@@ -169,35 +169,26 @@ describe("PUT / — mengubah perusahaan", () => {
   });
 
   /**
-   * CACAT: NPWP SELALU terhapus saat perusahaan diubah.
-   *
-   * Syaratnya ditulis:
-   *
-   *   npwp == null || panjang != 15 || panjang != 16 ? null : npwp
-   *
-   * Satu bilangan tidak mungkin sekaligus BUKAN 15 dan BUKAN 16 bernilai
-   * salah — begitu panjangnya 15, ruas `!= 16` benar; begitu 16, ruas `!= 15`
-   * benar. Jadi seluruh syaratnya selalu benar dan npwp selalu menjadi null.
-   *
-   * Akibatnya: mengubah nama atau alamat perusahaan lewat layar mana pun ikut
-   * MENGHAPUS NPWP-nya, tanpa peringatan apa pun. Handler create pada berkas
-   * yang sama memakai `== 15 || == 16` yang benar, jadi nilainya masuk saat
-   * dibuat lalu hilang pada penyuntingan pertama.
+   * Syaratnya dulu ditulis `panjang != 15 || panjang != 16`, yang selalu benar
+   * karena satu bilangan tidak mungkin sekaligus bukan 15 dan bukan 16.
+   * Akibatnya npwp SELALU dibuang: mengubah nama atau alamat perusahaan ikut
+   * menghapus NPWP-nya tanpa peringatan apa pun. Kini sama dengan create.
    */
   it.each([
-    ["15 digit", "123456789012345"],
-    ["16 digit", "1234567890123456"],
-    ["panjang lain", "12345"],
-  ])("CACAT: npwp %s tetap dibuang menjadi null", async (_nama, npwp) => {
+    ["15 digit dipertahankan", "123456789012345", "123456789012345"],
+    ["16 digit dipertahankan", "1234567890123456", "1234567890123456"],
+    ["panjang lain dibuang", "12345", null],
+    ["null tetap null", null, null],
+  ])("npwp %s", async (_nama, masukan, harapan) => {
     const repo = repositoryTiruan();
     repo.update.mockResolvedValue(perusahaan);
 
     await request(app(repo))
       .put("/")
-      .send({ id: 4, name: "PT Indah", address: "Jl. B", npwp });
+      .send({ id: 4, name: "PT Indah", address: "Jl. B", npwp: masukan });
 
     expect(repo.update).toHaveBeenCalledWith(
-      expect.objectContaining({ npwp: null })
+      expect.objectContaining({ npwp: harapan })
     );
   });
 
@@ -294,37 +285,21 @@ describe("GET / — daftar", () => {
   });
 
   /**
-   * CACAT BERAT: kata kunci berisi tanda persen MEMATIKAN PROSES.
-   *
-   * translateKeyword memakai decodeURIComponent, yang melempar URIError untuk
-   * penyandian persen yang tidak lengkap. Lemparannya terjadi SEBELUM blok
-   * try, jadi tidak tertangkap handler.
-   *
-   * Yang membuatnya berat: handler ini `async`, sehingga lemparannya menjadi
-   * promise yang ditolak. Express 4 tidak menangkap penolakan promise sama
-   * sekali, dan Node 15 ke atas menghentikan proses pada unhandled rejection.
-   * Jadi akibatnya bukan 500 bagi satu pemanggil, melainkan SELURUH server
-   * mati — permintaan lain yang sedang berjalan ikut putus.
-   *
-   * Pemicunya sepele: satu pengguna mengetik "%" di kolom pencarian mana pun
-   * dari tiga puluh dua tempat yang memanggil translateKeyword.
-   *
-   * Diuji dengan memanggil handler langsung, bukan lewat HTTP: lewat HTTP
-   * permintaannya menggantung tanpa balasan sampai tes kehabisan waktu, persis
-   * seperti yang dialami pemanggil sungguhan sebelum prosesnya tumbang.
+   * Kata kunci berisi "%" dulu MEMATIKAN PROSES: translateKeyword melempar
+   * URIError di luar blok try, lemparannya menjadi promise yang ditolak, dan
+   * Node menghentikan seluruh server. Kini kata kuncinya dipakai apa adanya
+   * dan pencariannya berjalan seperti biasa.
    */
-  it("CACAT: keyword '%' membuat handler menolak, bukan membalas 500", async () => {
+  it("keyword berisi persen tetap dicari, tidak menggagalkan permintaan", async () => {
     const repo = repositoryTiruan();
-    const c = new CompanyController(repo as never);
+    repo.fetch.mockResolvedValue({ data: [], count: 0 });
 
-    const req = { query: { keyword: "%" }, body: {} } as never;
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-    } as never;
+    const res = await request(app(repo)).get("/?keyword=%25");
 
-    await expect(c.fetch(req, res)).rejects.toThrow(URIError);
-    expect(repo.fetch).not.toHaveBeenCalled();
+    expect(res.status).toBe(200);
+    expect(repo.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({ keyword: "%" })
+    );
   });
 });
 

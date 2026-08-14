@@ -82,22 +82,28 @@ describe("translateKeyword", () => {
   });
 
   /**
-   * CACAT: melempar URIError pada penyandian persen yang tidak lengkap.
+   * Penyandian persen yang tidak lengkap tidak lagi melempar.
    *
-   * decodeURIComponent melempar bila `%` tidak diikuti dua digit heksadesimal.
-   * Nilai ini datang langsung dari req.query pada 32 pemanggilan, jadi
-   * permintaan sesederhana `GET /product?keyword=%` menghasilkan 500 — bukan
-   * hasil pencarian kosong. Pengguna yang mencari tanda persen, atau menempel
-   * teks yang mengandungnya, mematahkan halaman.
+   * decodeURIComponent menolak "%" yang tidak diikuti dua digit heksadesimal.
+   * Karena nilai ini datang langsung dari req.query pada tiga puluh dua
+   * pemanggilan — dan pada dua puluh empat di antaranya di LUAR blok try —
+   * lemparannya dulu menjadi promise yang ditolak yang tidak ditangani
+   * Express, dan Node menghentikan seluruh proses. Satu pengguna mengetik "%"
+   * di kolom pencarian mana pun sudah cukup untuk mematikan server.
    *
-   * Perbaikannya kecil (bungkus dengan try/catch dan kembalikan teks aslinya),
-   * tetapi mengubah status yang diterima pemanggil, jadi perlu diputuskan
-   * terpisah.
+   * Sekarang teksnya dipakai apa adanya: mencari "%" memang paling masuk akal
+   * diartikan sebagai mencari aksara itu sendiri.
    */
-  it("CACAT: melempar untuk penyandian persen yang cacat", () => {
-    expect(() => translateKeyword("%")).toThrow(URIError);
-    expect(() => translateKeyword("%zz")).toThrow(URIError);
-    expect(() => translateKeyword("diskon 50%")).toThrow(URIError);
+  it.each([
+    ["persen tunggal", "%", "%"],
+    ["persen diikuti bukan heksadesimal", "%zz", "%zz"],
+    ["persen di tengah kalimat", "diskon 50%", "diskon 50%"],
+  ])("%s dikembalikan apa adanya", (_nama, masukan, harapan) => {
+    expect(translateKeyword(masukan)).toBe(harapan);
+  });
+
+  it("penyandian yang sah tetap didekode", () => {
+    expect(translateKeyword("baja%20ringan")).toBe("baja ringan");
   });
 });
 

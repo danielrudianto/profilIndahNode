@@ -25,12 +25,31 @@ export function mysql_real_escape_string(string: string) {
   });
 }
 
+/**
+ * Kata kunci pencarian dari req.query.
+ *
+ * decodeURIComponent MELEMPAR URIError bila tanda persen tidak diikuti dua
+ * digit heksadesimal. Nilai ini datang langsung dari pengguna pada tiga puluh
+ * dua pemanggilan, dan pada dua puluh empat di antaranya berada DI LUAR blok
+ * try. Karena handler-nya async, lemparan itu menjadi promise yang ditolak
+ * yang tidak ditangani Express — dan Node menghentikan prosesnya. Satu
+ * pengguna mengetik "%" di kolom pencarian mana pun sudah cukup untuk
+ * mematikan seluruh server.
+ *
+ * Sekarang teks yang penyandiannya cacat dipakai apa adanya. Mencari "%"
+ * memang paling masuk akal diartikan sebagai mencari aksara "%" itu sendiri,
+ * bukan sebagai galat.
+ */
 export function translateKeyword(keyword: any): string {
   if (!keyword) {
     return "";
   }
 
-  return decodeURIComponent(keyword);
+  try {
+    return decodeURIComponent(keyword);
+  } catch {
+    return String(keyword);
+  }
 }
 
 export function translatePage(page: any): number {

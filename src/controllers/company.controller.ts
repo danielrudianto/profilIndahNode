@@ -46,12 +46,18 @@ class CompanyController {
     const id = req.body.id;
     const name = req.body.name;
     const address = req.body.address;
+    // Syaratnya sebelumnya ditulis `panjang != 15 || panjang != 16`, yang
+    // selalu benar: satu bilangan tidak mungkin sekaligus bukan 15 dan bukan
+    // 16. Akibatnya npwp SELALU menjadi null, sehingga mengubah nama atau
+    // alamat perusahaan ikut menghapus NPWP-nya tanpa peringatan. Bentuk di
+    // bawah ini menyamakannya dengan handler create pada berkas yang sama.
     const npwp =
-      req.body.npwp == null ||
-      req.body.npwp.toString().length != 15 ||
-      req.body.npwp.toString().length != 16
+      req.body.npwp == null
         ? null
-        : req.body.npwp;
+        : req.body.npwp.toString().length == 15 ||
+          req.body.npwp.toString().length == 16
+        ? req.body.npwp
+        : null;
     const userID = req.body.userId;
 
     try {
