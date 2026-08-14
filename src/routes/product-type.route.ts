@@ -3,7 +3,11 @@ import { prisma } from "../utils/database.helper";
 import { ProductTypeController } from "../controllers/product-type.controller";
 import { ProductTypeRepository } from "../repositories/product-type.repository";
 import { validate } from "../utils/validate.helper";
-import { paramProductTypeSchema } from "../schemas/product-type.schema";
+import {
+  createProductTypeSchema,
+  paramProductTypeSchema,
+  updateProductTypeSchema,
+} from "../schemas/product-type.schema";
 
 const router = Router();
 
@@ -18,8 +22,16 @@ router.get(
   productTypeController.fetchByID
 );
 router.get("/", productTypeController.fetch);
-router.post("/", productTypeController.create);
-router.put("/", productTypeController.update);
+router.post(
+  "/",
+  validate(createProductTypeSchema),
+  productTypeController.create
+);
+router.put(
+  "/",
+  validate(updateProductTypeSchema),
+  productTypeController.update
+);
 
 router.delete(
   "/:id",

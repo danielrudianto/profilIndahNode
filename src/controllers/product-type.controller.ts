@@ -85,7 +85,6 @@ export class ProductTypeController {
   fetch = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     const page = translatePage(req.query.page);
-    // const pageSize = Number(process.env.LIMIT!);
     const pageSize = translatePageSize(req.query.pageSize);
 
     try {

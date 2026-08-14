@@ -164,18 +164,3 @@ export const listQuery = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   keyword: z.string().optional(),
 });
-
-/**
- * Periode bulan dan tahun.
- *
- * Bulan memakai rentang 1-12. Sebagian pemanggil lama menyimpan bulan sebagai
- * 0-11 lalu menambahkan 1 sebelum memanggil; yang sampai ke sini harus sudah
- * dalam 1-12.
- */
-export const monthPeriod = z.object({
-  month: int(ErrorList["Month must be numeric"], 1).max(
-    12,
-    ErrorList["Month must be numeric"]
-  ),
-  year: int(ErrorList["Year must be numeric"], 2000),
-});

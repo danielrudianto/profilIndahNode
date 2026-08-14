@@ -83,7 +83,7 @@ function bungkus(fn: unknown): unknown {
   return terbungkus;
 }
 
-export function aktifkanPenangkapGalatAsync(): void {
+function aktifkanPenangkapGalatAsync(): void {
   const router = express.Router as unknown as Record<string, unknown> & {
     __sudahDitambal?: boolean;
   };

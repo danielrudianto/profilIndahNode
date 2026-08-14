@@ -16,7 +16,11 @@ import {
   paramExpenseTypeSchema,
   updateExpenseTypeSchema,
 } from "../../src/schemas/expense-type.schema";
-import { paramProductTypeSchema } from "../../src/schemas/product-type.schema";
+import {
+  createProductTypeSchema,
+  paramProductTypeSchema,
+  updateProductTypeSchema,
+} from "../../src/schemas/product-type.schema";
 
 /**
  * Perbandingan perilaku untuk merek produk, tipe produk, dan tipe pengeluaran.
@@ -117,6 +121,14 @@ function appBaru() {
     validate(paramProductTypeSchema, "params"),
     balas
   );
+  /*
+    Tidak ada padanannya di appLama: POST dan PUT /product-type memang tidak
+    pernah divalidasi pada rantai lama, jadi tidak ada perilaku yang bisa
+    dibandingkan. Keduanya diuji langsung di describe "Tipe produk — validasi
+    yang sebelumnya tidak ada" di bawah.
+  */
+  app.post("/tipe-produk", validate(createProductTypeSchema), balas);
+  app.put("/tipe-produk", validate(updateProductTypeSchema), balas);
   app.get("/tipe-biaya/:id", validate(paramExpenseTypeSchema, "params"), balas);
   app.post("/tipe-biaya", validate(createExpenseTypeSchema), balas);
   app.put("/tipe-biaya", validate(updateExpenseTypeSchema), balas);
@@ -268,6 +280,93 @@ describe("Batas panjang — aturan baru", () => {
       .send({ name: "a".repeat(101), description: "x" });
     expect(res.status).toBe(400);
     expect(res.text).toBe(ErrorList["Expense type name too long"]);
+  });
+});
+
+/**
+ * POST dan PUT /product-type adalah satu-satunya jalur tulis data master yang
+ * lolos tanpa pemeriksaan apa pun pada rantai lama. Tidak ada perilaku lama
+ * yang bisa dibandingkan, jadi seluruh blok ini menguji aturan barunya secara
+ * langsung — dan setiap kasus di sini adalah permintaan yang DULU DITERIMA.
+ */
+describe("Tipe produk — validasi yang sebelumnya tidak ada", () => {
+  it("POST tanpa name ditolak 400", async () => {
+    const res = await request(baru).post("/tipe-produk").send({});
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
+  });
+
+  it("POST dengan name kosong ditolak 400", async () => {
+    const res = await request(baru).post("/tipe-produk").send({ name: "" });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
+  });
+
+  it("POST dengan name 46 karakter ditolak 400", async () => {
+    const res = await request(baru)
+      .post("/tipe-produk")
+      .send({ name: "a".repeat(46) });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Product type name too long"]);
+  });
+
+  it("POST dengan name 45 karakter diterima", async () => {
+    const res = await request(baru)
+      .post("/tipe-produk")
+      .send({ name: "a".repeat(45) });
+    expect(res.status).toBe(200);
+  });
+
+  it("POST dengan name berupa angka ditolak — kebijakan ketat req.body", async () => {
+    const res = await request(baru).post("/tipe-produk").send({ name: 123 });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
+  });
+
+  it("PUT tanpa id ditolak 400", async () => {
+    const res = await request(baru).put("/tipe-produk").send({ name: "Besi" });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
+  });
+
+  it("PUT dengan id berupa teks ditolak — req.body bukan req.params", async () => {
+    const res = await request(baru)
+      .put("/tipe-produk")
+      .send({ id: "1", name: "Besi" });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
+  });
+
+  it("PUT dengan id 0 ditolak — batas bawahnya 1", async () => {
+    const res = await request(baru)
+      .put("/tipe-produk")
+      .send({ id: 0, name: "Besi" });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
+  });
+
+  it("PUT dengan name 46 karakter ditolak 400", async () => {
+    const res = await request(baru)
+      .put("/tipe-produk")
+      .send({ id: 1, name: "a".repeat(46) });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Product type name too long"]);
+  });
+
+  it("PUT yang sah diterima", async () => {
+    const res = await request(baru)
+      .put("/tipe-produk")
+      .send({ id: 1, name: "Besi" });
+    expect(res.status).toBe(200);
+  });
+
+  it("id diperiksa lebih dulu daripada name ketika keduanya salah", async () => {
+    // Urutan bidang di skema menentukan kalimat mana yang sampai ke pengguna.
+    const res = await request(baru)
+      .put("/tipe-produk")
+      .send({ name: "a".repeat(46) });
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Parameter error"]);
   });
 });
 

@@ -161,36 +161,6 @@ export const getOverpaymentSchema = z.object({
   ),
 });
 
-/**
- * Bentuk balasan.
- *
- * Belum dipakai untuk memvalidasi keluaran — controller masih mengirim objek
- * apa adanya. Nilainya sekarang ada pada tipe `Overpayment` di bawah, yang
- * bisa dipakai controller sebagai ganti `any`.
- *
- * Bidangnya ditulis ulang, tidak menyebar kelebihanBayarBase, karena tipenya
- * memang berubah saat melewati batas HTTP: `date` masuk sebagai teks ISO tetapi
- * keluar sebagai Date (OverpaymentCodeModel.fromMap memanggil `new Date`), dan
- * `value` keluar sebagai number setelah Decimal Prisma dilewatkan Number().
- * Memaksakan satu bentuk untuk keduanya akan membuat salah satu sisi keliru.
- */
-export const overpaymentResponseSchema = z.object({
-  id: z.number().int().min(1).optional(),
-  customer_id: z.number().int().nullable(),
-  date: z.date(),
-  sales_deposit_code_id: z.number().int().nullable(),
-  payment_method_id: z.number().int().nullable(),
-  return_payment_method: z.string(),
-  return_payment_number: z.string().nullable(),
-  return_payment_date: z.date(),
-  return_payment_bank: z.string().nullable(),
-  return_payment_name: z.string(),
-  created_by: z.number().int(),
-  created_at: z.date(),
-  value: z.number(),
-});
-
 export type CreateOverpayment = z.infer<typeof createOverpaymentSchema>;
 export type RefundReport = z.infer<typeof refundReportSchema>;
 export type GetOverpayment = z.infer<typeof getOverpaymentSchema>;
-export type Overpayment = z.infer<typeof overpaymentResponseSchema>;

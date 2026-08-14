@@ -145,7 +145,6 @@ export class SalesInvoiceModel {
   //   conditionalQueries += ` WHERE 1 = 1`;
 
   // static fetchGeneralByIDs(ids: number[]) {
-  //   if (ids.length == 0) return Promise.resolve([]);
 }
 
 export class SalesInvoiceItemModel {

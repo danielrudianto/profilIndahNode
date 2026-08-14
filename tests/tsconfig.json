@@ -1,0 +1,11 @@
+{
+  // Editor memilih tsconfig.json TERDEKAT saat menaik dari berkas yang dibuka.
+  // Tanpa berkas ini yang terpilih adalah tsconfig.json di akar, yang justru
+  // meng-exclude "tests" dan hanya memuat tipe "node" — sehingga describe, it,
+  // dan expect tidak dikenali dan seluruh berkas tes tampak merah, padahal
+  // kompilasinya sendiri bersih.
+  //
+  // Jest tetap memakai tsconfig.test.json; berkas ini hanya mengarahkan editor
+  // ke konfigurasi yang sama, tanpa menyalin isinya.
+  "extends": "../tsconfig.test.json"
+}

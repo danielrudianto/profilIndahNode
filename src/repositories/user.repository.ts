@@ -140,7 +140,6 @@ export class UserRepository {
         // user_sales: user.user_sales.map((x) => ({
         //   item_type_id: x.item_type.id,
         //   item_type_name: x.item_type.name,
-        // })),
         is_active: user.is_active,
         created_at: user.created_at,
         created_by: user.created_by, // Use the provided created_by
@@ -206,7 +205,6 @@ export class UserRepository {
         // user_sales: result.user_sales.map((x) => ({
         //   item_type_id: x.item_type.id,
         //   item_type_name: x.item_type.name,
-        // })),
         is_active: false, // Set to false as the user is being deleted
         created_at: result.created_at,
         created_by: result.created_by, // Use the provided created_by

@@ -117,32 +117,6 @@ class ProductStockController {
       );
       return res.status(500).send(error);
     }
-
-    //         return res.status(200).send({
-    //           data: result.hits.map((x) => {
-    //             const stockIndex = productStock.findIndex(
-    //               (y) => y.itemID == x.id
-    //             );
-    //             return {
-    //               id: x.id,
-    //               reference: x.reference,
-    //               description: x.description,
-    //               stock:
-    //                 stockIndex == -1
-    //                   ? 0
-    //                   : productStock[stockIndex].currentStock,
-    //               unit: stockIndex == -1 ? "" : productStock[stockIndex].unit,
-    //               item_brand_id: x.itemBrandID,
-    //               item_type_id: x.itemTypeID,
-    //               item_brand_name: x.brand,
-    //               item_type_name: x.type,
-    //             };
-    //           }),
-    //           count: result.estimatedTotalHits,
-    //         });
-    //       });
-    //     break;
-    // }
   };
 
   fetchWarehouse = async (req: Request, res: Response) => {

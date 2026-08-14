@@ -133,7 +133,6 @@ class CustomerController {
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
-    // const pageSize = Number(process.env.LIMIT!);
     const pageSize = translatePageSize(req.query.pageSize);
 
     try {

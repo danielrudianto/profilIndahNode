@@ -100,22 +100,5 @@ export const deleteSupplierSchema = z.object({
   id: intFromText(ErrorList["Parameter error"]),
 });
 
-/**
- * Bentuk balasan.
- *
- * Belum dipakai untuk memvalidasi keluaran — controller masih mengirim objek
- * apa adanya. Nilainya sekarang ada pada tipe `Supplier` di bawah, yang bisa
- * dipakai controller sebagai ganti `any`.
- */
-export const supplierResponseSchema = supplierBase.extend({
-  id: z.number().int().min(1),
-  npwp: z.string().nullable().optional(),
-  created_by: z.number().int().nullable().optional(),
-  created_at: z.date().nullable().optional(),
-  updated_by: z.number().int().nullable().optional(),
-  updated_at: z.date().nullable().optional(),
-});
-
 export type CreateSupplier = z.infer<typeof createSupplierSchema>;
 export type UpdateSupplier = z.infer<typeof updateSupplierSchema>;
-export type Supplier = z.infer<typeof supplierResponseSchema>;

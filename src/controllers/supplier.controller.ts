@@ -101,7 +101,6 @@ class SupplierController {
     try {
       const keyword = translateKeyword(req.query.keyword);
       const page = translatePage(req.query.page);
-      // const pageSize = parseInt(process.env.LIMIT!);
       const pageSize = translatePageSize(req.query.pageSize);
 
       const result = await this.supplierRepository.fetch({

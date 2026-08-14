@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { intFromText, requiredText } from "./common.schema";
+import { intFromText, requiredInt, requiredText } from "./common.schema";
 
 /**
  * Kontrak API untuk merek produk, tipe produk, dan tipe pengeluaran.
@@ -37,12 +37,39 @@ const PANJANG = {
 /* ------------------------------------------------------------------ */
 
 /**
- * POST dan PUT /product-type sama sekali tidak divalidasi pada rantai lama.
- * Skema di bawah disediakan tetapi BELUM dipasang ke route, karena memasangnya
- * berarti menolak permintaan yang selama ini diterima. Pemasangannya perlu
- * diputuskan terpisah.
+ * POST dan PUT /product-type sama sekali tidak divalidasi pada rantai lama —
+ * dua-duanya satu-satunya jalur tulis data master yang lolos tanpa pemeriksaan.
+ * Badan tanpa `name` diteruskan apa adanya ke Prisma, yang menolaknya sebagai
+ * galat basis data, sehingga pengguna menerima 500 untuk kesalahan pengisian
+ * yang seharusnya dijawab 400.
+ *
+ * Karena tidak ada rantai lama yang perlu ditiru, kedua skema di bawah ditulis
+ * lurus: tidak ada urutan pemeriksaan aneh yang harus dipertahankan.
+ *
+ * PERUBAHAN PERILAKU. Permintaan yang selama ini diterima kini ditolak —
+ * `name` kosong, `name` yang bukan teks, dan `name` melebihi lebar kolom
+ * VarChar(45). Sesuai kebijakan di common.schema.ts, `name` berupa angka pun
+ * ditolak; sebelum ini nilai seperti itu tersimpan sebagai teks.
  */
 export const createProductTypeSchema = z.object({
+  name: requiredText(ErrorList["Parameter error"]).max(
+    PANJANG.tipeProduk,
+    ErrorList["Product type name too long"]
+  ),
+});
+
+/**
+ * PUT /product-type
+ *
+ * `id` diperiksa lebih dulu daripada `name` — urutan bidang di sini menentukan
+ * pesan mana yang muncul untuk badan yang dua-duanya salah.
+ */
+export const updateProductTypeSchema = z.object({
+  id: requiredInt(
+    ErrorList["Parameter error"],
+    ErrorList["Parameter error"],
+    1
+  ),
   name: requiredText(ErrorList["Parameter error"]).max(
     PANJANG.tipeProduk,
     ErrorList["Product type name too long"]

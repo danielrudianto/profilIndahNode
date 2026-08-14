@@ -43,12 +43,6 @@ router.get(
   salesReturnController.fetchByID
 );
 
-// router.get(
-//   "/code/:id",
-//   validate(paramSalesReturnSchema, "params"),
-//   SalesReturnController.fetchCodeByID
-// );
-
 /*
   Urutan middleware dipertahankan apa adanya: pemeriksaan parameter berjalan
   lebih dulu, baru administratorMiddleware. Menukarnya akan mengubah balasan

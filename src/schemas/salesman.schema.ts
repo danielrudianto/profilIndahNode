@@ -66,16 +66,5 @@ export const deleteSalesmanSchema = z.object({
   ...salesmanBase.shape,
 });
 
-/**
- * Bentuk balasan GET /salesman dan GET /salesman/all.
- *
- * Redis set hanya bisa menyimpan teks, jadi balasannya selalu deretan nama
- * yang sudah diurutkan. Belum dipakai untuk memvalidasi keluaran — nilainya
- * sekarang ada pada tipe `SalesmanList` di bawah, yang bisa dipakai
- * controller sebagai ganti `any`.
- */
-export const salesmanResponseSchema = z.array(z.string());
-
 export type CreateSalesman = z.infer<typeof createSalesmanSchema>;
 export type DeleteSalesman = z.infer<typeof deleteSalesmanSchema>;
-export type SalesmanList = z.infer<typeof salesmanResponseSchema>;

@@ -54,7 +54,6 @@ import SalesmanRoutes from "./routes/salesman.route";
 /*
   Administrator Routes
 */
-import administratorRoutes from "./routes/administrator.route";
 import warehouseRoutes from "./routes/warehouse.route";
 import osRoutes from "./routes/os.route";
 import changelogRoutes from "./routes/changelog.route";
@@ -86,8 +85,6 @@ async function main() {
     new StockOutRepository(prisma),
     new StockInRepository(prisma)
   );
-
-  // await stockOutService.calculateStockOut();
 
   cron.schedule("0 0 * * *", async () => {
     // Assigning stock out to stock in
@@ -139,7 +136,6 @@ async function main() {
   app.use("/dashboard", authMiddleware, dashboardRoutes);
   app.use("/receivable", authMiddleware, ReceivableRoutes);
 
-  app.use("/administrator", administratorRoutes);
   app.use("/warehouse", warehouseRoutes);
   // Keduanya sebelumnya terbuka tanpa autentikasi. /os membocorkan RAM, CPU dan
   // model prosesor server ke siapa pun yang tahu alamatnya. Widget status server
