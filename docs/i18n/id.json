@@ -1,0 +1,325 @@
+{
+  "error": {
+    "auth": "Terjadi kesalahan pada saat melakukan autentikasi. Mohon periksa kembali informasi login anda.",
+    "notFound": "Data tidak ditemukan.",
+    "unknown": "Terjadi kesalahan yang tidak diketahui. Mohon hubungi administrator.",
+    "parameter": "Terjadi kesalahan pada parameter yang diberikan. Mohon periksa kembali.",
+    "delete": "Terjadi kesalahan pada saat menghapus data. Mohon hubungi administrator.",
+    "duplicate": "Data yang anda masukkan sudah ada sebelumnya. Mohon periksa kembali.",
+    "unableToDelete": "Tidak dapat menghapus data.",
+    "noChanges": "Tidak ada perubahan.",
+    "internalServer": "Terjadi kesalahan pada server. Mohon hubungi administrator."
+  },
+  "validation": {
+    "id": {
+      "required": "ID tidak boleh kosong.",
+      "numeric": "ID harus berupa angka.",
+      "integer": "Kesalahan pada ID yang diberikan."
+    },
+    "address": {
+      "required": "Alamat tidak boleh kosong."
+    },
+    "supplier": {
+      "nameTooLong": "Nama supplier maksimal 100 karakter.",
+      "npwpTooLong": "NPWP supplier maksimal 45 karakter.",
+      "idRequired": "ID supplier tidak boleh kosong.",
+      "idNumeric": "ID supplier harus berupa angka."
+    },
+    "customer": {
+      "nameTooLong": "Nama pelanggan maksimal 100 karakter.",
+      "picTooLong": "Nama PIC pelanggan maksimal 100 karakter.",
+      "addressTooLong": "Alamat pelanggan maksimal 191 karakter.",
+      "nameRequired": "Nama pelanggan tidak boleh kosong.",
+      "picRequired": "PIC pelanggan tidak boleh kosong.",
+      "phoneRequired": "Nomor telepon pelanggan tidak boleh kosong.",
+      "addressRequired": "Alamat pelanggan tidak boleh kosong.",
+      "npwpRequired": "NPWP pelanggan tidak boleh kosong.",
+      "idRequired": "ID pelanggan tidak boleh kosong.",
+      "idInteger": "Kesalahan pada ID pelanggan."
+    },
+    "company": {
+      "nameTooLong": "Nama perusahaan maksimal 50 karakter.",
+      "idRequired": "ID perusahaan tidak boleh kosong."
+    },
+    "paymentMethod": {
+      "nameTooLong": "Nama metode pembayaran maksimal 100 karakter.",
+      "required": "Metode pembayaran tidak boleh kosong.",
+      "numeric": "Metode pembayaran harus berupa angka."
+    },
+    "brand": {
+      "nameTooLong": "Nama merek maksimal 45 karakter.",
+      "required": "Merek tidak boleh kosong",
+      "array": "Data merek harus berupa array",
+      "integer": "Data merek harus berupa angka"
+    },
+    "productType": {
+      "nameTooLong": "Nama tipe produk maksimal 45 karakter."
+    },
+    "expenseType": {
+      "nameTooLong": "Nama tipe pengeluaran maksimal 100 karakter.",
+      "nameRequired": "Nama jenis pengeluaran tidak boleh kosong.",
+      "descriptionRequired": "Deskripsi jenis pengeluaran tidak boleh kosong."
+    },
+    "product": {
+      "referenceTooLong": "Kode produk maksimal 50 karakter.",
+      "descriptionTooLong": "Deskripsi produk maksimal 191 karakter.",
+      "referenceRequired": "Referensi produk tidak boleh kosong.",
+      "descriptionRequired": "Deskripsi produk tidak boleh kosong.",
+      "brandRequired": "Merek produk tidak boleh kosong.",
+      "typeRequired": "Tipe produk tidak boleh kosong.",
+      "unitRequired": "Satuan produk tidak boleh kosong.",
+      "minimumStockRequired": "Stok minimum produk tidak boleh kosong.",
+      "idRequired": "ID produk tidak boleh kosong.",
+      "unitIdRequired": "ID satuan produk tidak boleh kosong.",
+      "idNumeric": "ID produk harus berupa angka.",
+      "unitArray": "Satuan barang harus berupa array."
+    },
+    "uuid": {
+      "required": "UUID tidak boleh kosong."
+    },
+    "package": {
+      "itemIdRequired": "ID item paket tidak boleh kosong.",
+      "itemUnitIdRequired": "ID satuan item paket tidak boleh kosong.",
+      "itemQuantityRequired": "Kuantitas item paket tidak boleh kosong.",
+      "itemPriceRequired": "Harga item paket tidak boleh kosong.",
+      "itemDiscountRequired": "Diskon item paket tidak boleh kosong.",
+      "idRequired": "ID paket tidak boleh kosong.",
+      "idNumeric": "ID paket harus berupa angka.",
+      "nameRequired": "Nama paket tidak boleh kosong.",
+      "descriptionRequired": "Deskripsi paket tidak boleh kosong.",
+      "itemsRequired": "Item paket tidak boleh kosong."
+    },
+    "salesReturn": {
+      "itemsRequired": "Item retur penjualan tidak boleh kosong."
+    },
+    "item": {
+      "idRequired": "ID item tidak boleh kosong.",
+      "idNumeric": "ID item harus berupa angka.",
+      "required": "Item tidak boleh kosong."
+    },
+    "price": {
+      "required": "Harga tidak boleh kosong.",
+      "numeric": "Harga harus berupa angka."
+    },
+    "discount": {
+      "required": "Diskon tidak boleh kosong.",
+      "numeric": "Diskon harus berupa angka.",
+      "greaterThanPrice": "Diskon tidak boleh lebih besar dari harga."
+    },
+    "salesman": {
+      "nameRequired": "Nama sales tidak boleh kosong."
+    },
+    "quantity": {
+      "required": "Kuantitas tidak boleh kosong.",
+      "numeric": "Kuantitas harus berupa angka."
+    },
+    "paymentStatus": {
+      "required": "Status pembayaran tidak boleh kosong."
+    },
+    "delivery": {
+      "required": "Pengiriman tidak boleh kosong."
+    },
+    "service": {
+      "required": "Biaya layanan tidak boleh kosong."
+    },
+    "goodReceipt": {
+      "required": "Penerimaan barang tidak boleh kosong.",
+      "idRequired": "ID penerimaan barang tidak boleh kosong",
+      "array": "Penerimaan barang harus berupa array"
+    },
+    "date": {
+      "required": "Tanggal tidak boleh kosong."
+    },
+    "return": {
+      "dateRequired": "Tanggal pengembalian tidak boleh kosong",
+      "paymentMethodInvalid": "Metode pengembalian kelebihan pembayaran harus berupa Cash atau Transfer bank",
+      "nameRequired": "Nama penerima kelebihan dana tidak boleh kosong",
+      "paymentBankRequired": "Nama bank untuk pengembalian kelebihan dana tidak boleh kosong",
+      "paymentNumberRequired": "Nomor akun bank untuk pengembalian kelebihan dana tidak boleh kosong",
+      "paymentMethodRequired": "Metode pengembalian uang tidak boleh kosong",
+      "paymentNameRequired": "Nama penerima pengembalian uang tidak boleh kosong"
+    },
+    "name": {
+      "required": "Nama tidak boleh kosong."
+    },
+    "purchaseInvoice": {
+      "nameRequired": "Nama invoice pembelian tidak boleh kosong."
+    },
+    "adjustmentCase": {
+      "typeRequired": "Tipe kasus penyesuaian tidak boleh kosong.",
+      "companyIdRequired": "ID perusahaan kasus penyesuaian tidak boleh kosong.",
+      "lostTypeBoolean": "Tipe kasus penyesuaian hilang harus berupa boolean.",
+      "foundTypeBoolean": "Tipe kasus penyesuaian ditemukan harus berupa boolean."
+    },
+    "password": {
+      "required": "Password tidak boleh kosong."
+    },
+    "userRole": {
+      "required": "Role pengguna tidak boleh kosong."
+    },
+    "username": {
+      "required": "Username tidak boleh kosong."
+    },
+    "day": {
+      "required": "Tanggal tidak boleh kosong",
+      "numeric": "Tanggal harus berupa angka"
+    },
+    "month": {
+      "required": "Bulan tidak boleh kosong.",
+      "numeric": "Bulan harus berupa angka."
+    },
+    "year": {
+      "required": "Tahun tidak boleh kosong.",
+      "numeric": "Tahun harus berupa angka."
+    },
+    "promotion": {
+      "nameRequired": "Nama promosi tidak boleh kosong.",
+      "descriptionRequired": "Deskripsi promosi tidak boleh kosong.",
+      "startDateRequired": "Tanggal mulai promosi tidak boleh kosong.",
+      "endDateRequired": "Tanggal akhir promosi tidak boleh kosong.",
+      "targetRequired": "Target promosi tidak boleh kosong.",
+      "targetNumeric": "Target promosi harus berupa angka.",
+      "brandRequired": "Merek promosi tidak boleh kosong.",
+      "brandArray": "Merek promosi harus berupa array."
+    },
+    "archives": {
+      "parameter": "Terjadi kesalahan pada parameter arsip."
+    },
+    "salesInvoice": {
+      "itemArray": "Pencarian harus berupa array.",
+      "idRequired": "Data barang tidak boleh kosong.",
+      "idNumeric": "Data barang harus berupa angka"
+    },
+    "invoice": {
+      "nameRequired": "Nama faktur tidak boleh kosong",
+      "taxRequired": "Faktur pajak tidak boleh kosong"
+    },
+    "type": {
+      "required": "Tipe tidak boleh kosong",
+      "array": "Data tipe harus berupa array",
+      "integer": "Data tipe harus berupa angka"
+    },
+    "sortBy": {
+      "required": "Urutan dibutuhkan"
+    },
+    "sortDirection": {
+      "invalid": "Urutan hanya dapat dilakukan secara ascending atau descending"
+    },
+    "amount": {
+      "required": "Nominal tidak boleh kosong",
+      "numeric": "Nominal harus berupa angka"
+    },
+    "page": {
+      "required": "Halaman tidak boleh kosong",
+      "numeric": "Parameter halaman harus berupa angka"
+    },
+    "pageSize": {
+      "required": "Jumlah data tidak boleh kosong",
+      "numeric": "Parameter jumlah data harus berupa angka"
+    },
+    "payment": {
+      "required": "Data pembayaran tidak boleh kosong",
+      "array": "Data pembayaran harus berupa array",
+      "dateRequired": "Data tanggal pembayaran tidak boleh kosong"
+    },
+    "viewByMutation": {
+      "required": "Nilai filter tidak boleh kosong",
+      "invalid": "Filter harus merupakan tanggal dokumen atau tanggal pembuatan dokumen"
+    },
+    "keyword": {
+      "required": "Kata kunci pencarian tidak boleh kosong"
+    }
+  },
+  "user": {
+    "notActive": "Pengguna tidak aktif.",
+    "notFound": "Pengguna tidak ditemukan.",
+    "alreadyExists": "Pengguna sudah ada sebelumnya.",
+    "roleNotFound": "Peran tidak ditemukan."
+  },
+  "salesInvoice": {
+    "documentCreationFailed": "Gagal membentuk dokumen penjualan.",
+    "creationFailed": "Gagal membentuk nota baru.",
+    "paymentExceedsValue": "Nilai pembayaran lebih besar daripada nilai nota",
+    "paymentNotFound": "Pembayaran faktur penjualan tidak ditemukan",
+    "notFound": "Data faktur penjualan tidak ditemukan"
+  },
+  "status": {
+    "invalidUpdate": "Tidak dapat memperbarui status. Status yang diberikan tidak valid."
+  },
+  "salesman": {
+    "alreadyExists": "Sales sudah ada sebelumnya.",
+    "notFound": "Sales tidak ditemukan."
+  },
+  "product": {
+    "notFound": "Data produk tidak ditemukan.",
+    "unitNotFound": "Data satuan produk tidak ditemukan.",
+    "packageNotFound": "Data paket produk tidak ditemukan.",
+    "cannotBeDeleted": "Produk tidak dapat dihapus karena sudah digunakan dalam transaksi.",
+    "referenceDuplicate": "Referensi sudah ada sebelumnya."
+  },
+  "brand": {
+    "duplicate": "Nama merek sudah ada sebelumnya."
+  },
+  "invoice": {
+    "alreadyConfirmed": "Invoice sudah dikonfirmasi.",
+    "alreadyDeleted": "Invoice sudah dihapus.",
+    "notFound": "Data invoice tidak ditemukan.",
+    "billExists": "Faktur sudah ada sebelumnya."
+  },
+  "purchaseInvoice": {
+    "notFound": "Data invoice pembelian tidak ditemukan.",
+    "alreadyConfirmed": "Invoice pembelian sudah dikonfirmasi.",
+    "alreadyDeleted": "Invoice pembelian sudah dihapus."
+  },
+  "goodReceipt": {
+    "notFound": "Data penerimaan barang tidak ditemukan.",
+    "alreadyConfirmed": "Penerimaan barang sudah dikonfirmasi.",
+    "alreadyDeleted": "Penerimaan barang sudah dihapus.",
+    "notConfirmed": "Penerimaan barang belum dikonfirmasi.",
+    "creationFailed": "Gagal membentuk penerimaan barang baru."
+  },
+  "adjustmentCase": {
+    "notFound": "Data kasus penyesuaian tidak ditemukan.",
+    "notConfirmed": "Data kasus penyesuaian belum dikonfirmasi",
+    "alreadyConfirmed": "Data kasus penyesuaian sudah dikonfirmasi",
+    "alreadyDeleted": "Data kasus penyesuaian sudah dihapus"
+  },
+  "salesReturn": {
+    "blocksInvoiceDeletion": "Tidak dapat menghapus faktur karena ada retur penjualan yang terkait.",
+    "alreadyExists": "Retur penjualan sudah ada sebelumnya.",
+    "alreadyDeleted": "Data retur penjualan sudah dihapus.",
+    "creationFailed": "Gagal membentuk retur penjualan baru.",
+    "exceedsPurchased": "Retur lebih besar daripada barang yang dibeli."
+  },
+  "expenseType": {
+    "notFound": "Data jenis pengeluaran tidak ditemukan.",
+    "hasChild": "Jenis pengeluaran memiliki sub jenis."
+  },
+  "type": {
+    "notFound": "Tipe tidak ditemukan."
+  },
+  "customer": {
+    "notFound": "Pelanggan tidak ditemukan."
+  },
+  "salesDeposit": {
+    "creationFailed": "Gagal membentuk deposit baru.",
+    "notFound": "Deposit penjualan tidak ditemukan",
+    "alreadyConfirmed": "Deposit sudah dikonfirmasi atau dihapus sebelumnya",
+    "paymentExceedsValue": "Nominal pembayaran lebih besar daripada nilai bon"
+  },
+  "report": {
+    "invalidGroup": "Grup laporan harus merupakan merek atau tipe produk."
+  },
+  "promotion": {
+    "notFound": "Promosi tidak ditemukan"
+  },
+  "supplier": {
+    "hasBeenUsed": "Data supplier sudah digunakan sebelumnya sehingga tidak dihapus. Mohon periksa kembali."
+  },
+  "receivable": {
+    "exceedsSalesInvoice": "Nilai pembayaran melebihi nilai faktur penjualan"
+  },
+  "expense": {
+    "notFound": "Pengeluaran tidak ditemukan"
+  }
+}

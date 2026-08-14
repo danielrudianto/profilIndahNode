@@ -13,27 +13,6 @@ src/models/adjustment-case.model.ts  ${ids.join(",")}  #1
 src/models/adjustment-case.model.ts  ${company_id}  #1
 src/models/adjustment-case.model.ts  ${date}  #1
 src/models/bill.model.ts  ${ids.join(",")}  #1
-src/models/purchase-invoice.model.ts  ${year}  #1
-src/models/purchase-invoice.model.ts  ${month}  #1
-src/models/purchase-invoice.model.ts  ${year}  #2
-src/models/purchase-invoice.model.ts  ${month == 0 ? "" : "AND MONTH(purchase_invoice.date) = " + mo}  #1
-src/models/purchase-invoice.model.ts  ${day == null ? "" : "AND DAY(purchase_invoice.date) = " + day}  #1
-src/models/purchase-invoice.model.ts  ${year}  #3
-src/models/purchase-invoice.model.ts  ${query}  #1
-src/models/purchase-invoice.model.ts  ${conditionalQueries}  #1
-src/models/purchase-invoice.model.ts  ${(page - 1) * 10}  #1
-src/models/purchase-invoice.model.ts  ${conditionalQueries}  #2
-src/models/purchase-invoice.model.ts  ${year}  #4
-src/models/purchase-invoice.model.ts  ${month}  #2
-src/models/purchase-invoice.model.ts  ${day == null}  #1
-src/models/purchase-invoice.model.ts  ${date}  #1
-src/models/purchase-invoice.model.ts  ${yesterday.toISOString().slice(0, 10)}  #1
-src/models/purchase-invoice.model.ts  ${yesterday}  #1
-src/models/purchase-invoice.model.ts  ${date.toISOString().slice(0, 10)}  #1
-src/models/purchase-invoice.model.ts  ${month + 1}  #1
-src/models/purchase-invoice.model.ts  ${year}  #5
-src/models/purchase-invoice.model.ts  ${lastMonth + 1}  #1
-src/models/purchase-invoice.model.ts  ${lastYear}  #1
 src/repositories/customer.repository.ts  ${ids.join(",")}  #1
 src/repositories/draft-bill.repository.ts  ${year}  #1
 src/repositories/draft-bill.repository.ts  ${month + 1}  #1
