@@ -15,6 +15,8 @@ import cron from "node-cron";
 import { initIO } from "./utils/io.helper";
 
 import { administratorMiddleware, authMiddleware } from "./utils/auth.helper";
+import auditLogRoutes from "./routes/audit-log.route";
+import { jalankanDenganKonteks } from "./utils/request-context.helper";
 import authRoutes from "./routes/auth.route";
 /*
   Routes for master data
@@ -99,6 +101,23 @@ async function main() {
   app.use(express.urlencoded({ extended: true, limit: "100mb" }));
   app.use(express.json({ limit: "50mb" }));
 
+  /*
+    Membuka konteks per permintaan sebelum satu pun route berjalan.
+
+    Isinya baru terisi belakangan: authMiddleware-lah yang menuliskan userId,
+    dan itu terjadi setelah middleware ini. Yang dilakukan di sini hanya
+    menyediakan wadahnya, supaya pencatat jejak audit di lapisan Prisma bisa
+    membacanya tanpa perlu dioper melewati controller dan repository.
+
+    Permintaan tanpa token — login, misalnya — tetap berjalan dengan wadah yang
+    userId-nya null, dan jejaknya tercatat tanpa pemilik.
+  */
+  app.use((req, _res, next) => {
+    jalankanDenganKonteks({ userId: null }, () => {
+      next();
+    });
+  });
+
   app.use("/auth", authRoutes);
   app.use("/product", authMiddleware, productRoutes);
   app.use("/product-price-sales", authMiddleware, productSalesPriceRoutes);
@@ -142,6 +161,7 @@ async function main() {
   // di dashboard memanggilnya dari sesi yang sudah login, sehingga tokennya ikut
   // terkirim dan widget itu tetap berfungsi.
   app.use("/os", administratorMiddleware, osRoutes);
+  app.use("/audit-logs", administratorMiddleware, auditLogRoutes);
   app.use("/changelog", authMiddleware, changelogRoutes);
 
   const server = http.createServer(app);

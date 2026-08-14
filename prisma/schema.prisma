@@ -46,6 +46,7 @@ model user {
   deleted_at DateTime? @db.DateTime(0)
   role       Int
 
+  audit_log                                                    audit_log[]
   user                                                         user?                  @relation("userTouser_created_by", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_1")
   user_userTouser_deleted_by                                   user?                  @relation("userTouser_deleted_by", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "user_ibfk_2")
   adjustment_case_code_adjustment_case_code_confirmed_byTouser adjustment_case_code[] @relation("adjustment_case_code_confirmed_byTouser")
@@ -879,4 +880,26 @@ model overpayment {
   customer                          customer?           @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk1")
   sales_deposit_code                sales_deposit_code? @relation(fields: [sales_deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk3")
   user_overpayment_created_byTouser user                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk4")
+}
+
+/// Jejak audit seluruh sistem.
+///
+/// Dicatat otomatis oleh middleware Prisma di database.helper.ts, bukan oleh
+/// controller — jalur tulis yang lupa dipasangi pencatat tidak akan pernah
+/// ketahuan karena tidak menimbulkan galat apa pun.
+model audit_log {
+  id        Int      @id @default(autoincrement())
+  entity    String   @db.VarChar(64)
+  entity_id Int?
+  action    String   @db.VarChar(16)
+  user_id   Int?
+  changes   Json?
+  note      String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
+
+  user user? @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "audit_log_ibfk_1")
+
+  @@index([user_id], map: "audit_log_ibfk_1_idx")
+  @@index([entity, entity_id], map: "audit_log_entity_idx")
+  @@index([createdAt], map: "audit_log_created_at_idx")
 }

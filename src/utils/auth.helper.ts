@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { tetapkanPengguna } from "./request-context.helper";
 import { verify } from "jsonwebtoken";
 // Memakai klien bersama dari database.helper. Sebelumnya berkas ini membuat
 // PrismaClient sendiri, sehingga aplikasi berjalan dengan dua connection pool
@@ -46,6 +47,7 @@ export const authMiddleware = (
           }
 
           req.body.userId = decodedData.id;
+          tetapkanPengguna(decodedData.id);
           next();
         })
         .catch(() => {
@@ -98,6 +100,7 @@ export const authMiddlewareRole = (
           }
 
           req.body.userId = decodedData.id;
+          tetapkanPengguna(decodedData.id);
           req.body.role = user.role;
           req.body.user_sales = user.user_sales.map((x) => {
             return {
@@ -291,6 +294,7 @@ export const requireRole = (allowedRoles: number[]) => {
           // Sebagian controller membaca req.body.role; kalau nilainya dibiarkan
           // datang dari body, client bisa mengaku punya role apa pun.
           req.body.userId = user.id;
+          tetapkanPengguna(user.id);
           req.body.role = user.role;
           next();
         })
