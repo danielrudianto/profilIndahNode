@@ -43,6 +43,16 @@ export class ExpenseTypeRepository {
         data: {
           name: data.name,
           description: data.description,
+          // Kolom updated_by dan updated_at baru ditambahkan lewat migrasi
+          // 20260814000000_expense_type_updated_trail; sebelumnya expense_type
+          // adalah satu-satunya tabel bermuatan jejak pembuatan yang tidak
+          // punya pasangan jejak perubahan.
+          //
+          // Sumbernya data.created_by dan data.created_at karena itulah bidang
+          // yang dipakai controller untuk membawa identitas PENYUNTING —
+          // penamaan yang berlaku seragam di seluruh repository repo ini.
+          updated_by: data.created_by,
+          updated_at: data.created_at,
         },
       });
 

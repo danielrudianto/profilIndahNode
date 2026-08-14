@@ -49,6 +49,11 @@ class ExpenseTypeController {
         id: id,
         created_by: userID,
         created_at: new Date(),
+        // Mudah dibaca seolah menyunting sub-jenis akan mencabutnya dari
+        // induknya, padahal TIDAK: repository sengaja tidak menulis parent_id
+        // pada jalur update, jadi nilai ini diabaikan dan hubungan induk-anak
+        // tetap utuh. Tetap dikirim hanya karena IExpenseType mewajibkannya —
+        // antarmuka yang sama dipakai jalur create, yang memang menuliskannya.
         parent_id: null,
       });
 

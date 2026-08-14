@@ -58,6 +58,7 @@ model user {
   customer_customer_created_byTouser                           customer[]             @relation("customer_created_byTouser")
   customer_customer_deleted_byTouser                           customer[]             @relation("customer_deleted_byTouser")
   customer_customer_updated_byTouser                           customer[]             @relation("customer_updated_byTouser")
+  expense_type_expense_type_updated_byTouser                   expense_type[]         @relation("expense_type_updated_byTouser")
   expense_expense_created_byTouser                             expense[]              @relation("expense_created_byTouser")
   expense_expense_deleted_byTouser                             expense[]              @relation("expense_deleted_byTouser")
   expense_type                                                 expense_type[]
@@ -335,10 +336,13 @@ model expense_type {
   parent_id                          Int?
   created_by                         Int
   created_at                         DateTime       @default(now()) @db.DateTime(0)
+  updated_by                         Int?
+  updated_at                         DateTime?      @db.DateTime(0)
   is_delete                          Boolean        @default(false)
   deleted_by                         Int?
   deleted_at                         DateTime?      @db.DateTime(0)
   user                               user           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_type_ibfk_1")
+  user_expense_type_updated_byTouser user?          @relation("expense_type_updated_byTouser", fields: [updated_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_type_ibfk_4")
   user_expense_type_deleted_byTouser user?          @relation("expense_type_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_type_ibfk_3")
   expense_type                       expense_type?  @relation("expense_typeToexpense_type_parent_id", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "expense_type_ibfk_2")
   expense                            expense[]
@@ -347,6 +351,7 @@ model expense_type {
   @@index([created_by], map: "expense_type_ibfk_1_idx")
   @@index([parent_id], map: "expense_type_ibfk_2_idx")
   @@index([deleted_by], map: "expense_type_ibfk_3_idx")
+  @@index([updated_by], map: "expense_type_ibfk_4_idx")
 }
 
 model good_receipt {

@@ -70,16 +70,32 @@ class UserController {
         // user: user.user,
       };
 
-      const socket = new SocketHelper("createUser", result);
+      /*
+        Sandi awal hanya boleh keluar lewat balasan HTTP kepada administrator
+        yang membuat akunnya — dialah yang perlu membacakannya sekali kepada
+        pengguna baru.
+
+        Dua jalur lain di bawah ini sebelumnya ikut membawanya:
+
+        SIARAN SOCKET. SocketHelper memakai getIO().emit(), yang mengirim ke
+        SELURUH klien tersambung tanpa penyaringan peran. Setiap kali akun
+        dibuat, username beserta sandi awalnya muncul di peramban staf gudang,
+        sales, dan siapa pun yang sedang membuka aplikasi.
+
+        CACHE REDIS. Maksudnya membuang sandi sebelum disimpan, tetapi kuncinya
+        salah ketik — `pasword`, kurang satu huruf s. Akibatnya `password` yang
+        asli tetap ikut tersimpan di Redis, tanpa masa berlaku.
+
+        Keduanya kini memakai `tanpaSandi`, dan bidang `password` dibuang lewat
+        pemisahan destructuring supaya tidak bisa lolos lagi hanya karena salah
+        ketik nama kunci.
+      */
+      const { password: _sandiAwal, ...tanpaSandi } = result;
+
+      const socket = new SocketHelper("createUser", tanpaSandi);
       socket.create();
 
-      await redisClient.set(
-        `user:${user.id}`,
-        JSON.stringify({
-          ...result,
-          pasword: undefined,
-        })
-      );
+      await redisClient.set(`user:${user.id}`, JSON.stringify(tanpaSandi));
 
       return res.status(201).send(result);
     } catch (error) {

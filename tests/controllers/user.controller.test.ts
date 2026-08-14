@@ -242,71 +242,76 @@ describe("POST / — membuat pengguna", () => {
   });
 
   /**
-   * CACAT BERAT: sandi awal pengguna baru DISIARKAN ke semua klien socket.
+   * Sandi awal TIDAK boleh ikut disiarkan.
    *
-   * Muatan peristiwa "createUser" adalah objek `result` yang sama persis
-   * dengan yang dikirim ke administrator — termasuk `password` berisi sandi
-   * acak dalam TEKS TERANG. SocketHelper memanggil `getIO().emit(...)`, yaitu
-   * siaran ke SELURUH klien yang tersambung, tanpa penyaringan role sama
-   * sekali.
-   *
-   * Akibatnya: setiap pengguna yang sedang membuka aplikasi — termasuk staf
-   * gudang atau sales yang tidak berhak menyentuh manajemen pengguna —
-   * menerima username beserta sandi awal rekan barunya di peramban masing-
-   * masing. Karena pengguna baru lazimnya belum sempat mengganti sandinya,
-   * sandi itu masih berlaku saat diterima.
-   *
-   * Dikunci apa adanya. Perbaikannya adalah menyiarkan bentuk tanpa sandi,
-   * tetapi frontend mungkin sudah membaca bidang itu, jadi bukan perubahan
-   * yang boleh dilakukan diam-diam.
+   * Muatan "createUser" dulu adalah objek yang sama persis dengan balasan
+   * kepada administrator — termasuk `password` dalam teks terang. SocketHelper
+   * memakai getIO().emit(), yaitu siaran ke SELURUH klien tersambung tanpa
+   * penyaringan peran, sehingga staf gudang dan sales ikut menerima username
+   * beserta sandi awal rekan barunya — dan sandi itu masih berlaku karena
+   * pengguna baru belum sempat menggantinya.
    */
-  it("CACAT: peristiwa socket createUser memuat sandi teks terang", async () => {
+  it("peristiwa socket createUser tidak membawa sandi", async () => {
     const repo = repositoryTiruan();
     repo.check.mockResolvedValue(0);
     repo.create.mockResolvedValue(pengguna);
 
-    const res = await request(app(repo))
+    await request(app(repo))
       .post("/")
       .send({ username: "budi", name: "Budi", nik: "3201", role: 5 });
 
-    expect(kirimSocket).toHaveBeenCalledWith(
-      "createUser",
-      expect.objectContaining({
-        username: "budi",
-        password: res.body.password,
-      })
-    );
+    const [nama, muatan] = kirimSocket.mock.calls[0] as [string, object];
+    expect(nama).toBe("createUser");
+    expect(muatan).toEqual(expect.objectContaining({ username: "budi" }));
+    expect(Object.keys(muatan)).not.toContain("password");
   });
 
   /**
-   * CACAT: salah ketik `pasword` membuat sandi teks terang ikut tersimpan
-   * di Redis.
+   * Sandi awal TIDAK boleh tersimpan di Redis.
    *
-   * Baris penyimpanannya berbunyi `{ ...result, pasword: undefined }` — huruf
-   * "s"-nya kurang satu. Maksudnya jelas: membuang sandi sebelum disimpan.
-   * Yang terjadi justru menambahkan bidang baru bernama `pasword` bernilai
-   * undefined (yang lalu hilang saat JSON.stringify), sedangkan `password`
-   * yang asli tetap utuh.
+   * Baris penyimpanannya dulu berbunyi `{ ...result, pasword: undefined }` —
+   * huruf "s"-nya kurang satu. Maksudnya membuang sandi; yang terjadi justru
+   * menambah bidang bernama `pasword` yang lalu hilang saat JSON.stringify,
+   * sedangkan `password` asli tetap utuh. Redis di sini cache, bukan brankas:
+   * isinya tidak dienkripsi dan ikut masuk dump maupun cadangan, tanpa masa
+   * kedaluwarsa.
    *
-   * Akibatnya sandi awal setiap pengguna tersimpan sebagai teks terang di
-   * Redis tanpa masa kedaluwarsa — Redis di sini dipakai sebagai cache, bukan
-   * brankas: isinya tidak dienkripsi dan ikut masuk ke dump maupun cadangan.
+   * Sekarang bidangnya dibuang lewat destructuring, bukan ditimpa berdasarkan
+   * nama kunci — salah ketik serupa tidak bisa meloloskannya lagi.
    */
-  it("CACAT: sandi teks terang ikut tersimpan di Redis karena salah ketik", async () => {
+  it("cache Redis tidak memuat sandi", async () => {
     const repo = repositoryTiruan();
     repo.check.mockResolvedValue(0);
     repo.create.mockResolvedValue(pengguna);
 
-    const res = await request(app(repo))
+    await request(app(repo))
       .post("/")
       .send({ username: "budi", name: "Budi", nik: "3201", role: 5 });
 
     expect(redisSet).toHaveBeenCalledWith("user:12", expect.any(String));
     const tersimpan = JSON.parse(redisSet.mock.calls[0][1] as string);
-    expect(tersimpan.password).toBe(res.body.password);
-    // Bidang salah ketiknya sendiri hilang saat diserialkan, jadi tidak ada
-    // jejak di Redis yang menunjukkan bahwa pembuangan sandi pernah diniatkan.
-    expect(Object.keys(tersimpan)).not.toContain("pasword");
+    expect(tersimpan.password).toBeUndefined();
+    expect(tersimpan.pasword).toBeUndefined();
+    expect(tersimpan.username).toBe("budi");
+  });
+
+  /**
+   * Administrator yang membuat akun TETAP menerima sandinya — dialah yang
+   * membacakannya sekali kepada pengguna baru. Yang ditutup hanya dua jalur
+   * lain: siaran ke semua klien, dan penyimpanan permanen di cache.
+   */
+  it("balasan HTTP kepada administrator tetap memuat sandi awal", async () => {
+    const repo = repositoryTiruan();
+    repo.check.mockResolvedValue(0);
+    repo.create.mockResolvedValue(pengguna);
+
+    const res = await request(app(repo))
+      .post("/")
+      .send({ username: "budi", name: "Budi", nik: "3201", role: 5 });
+
+    expect(res.status).toBe(201);
+    expect(typeof res.body.password).toBe("string");
+    expect(res.body.password.length).toBeGreaterThan(0);
   });
 
   /**
