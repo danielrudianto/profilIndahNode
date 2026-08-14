@@ -1,0 +1,733 @@
+diff --git a/scripts/check-route-guards.js b/scripts/check-route-guards.js
+new file mode 100644
+index 0000000..87965f9
+--- /dev/null
++++ b/scripts/check-route-guards.js
+@@ -0,0 +1,131 @@
++#!/usr/bin/env node
++/**
++ * Memastikan tiap definisi route punya middleware otorisasi.
++ *
++ * Dibuat setelah ditemukan 16 endpoint /report terbuka publik karena
++ * app.use("/report", reportRoutes) dipasang tanpa authMiddleware dan
++ * masing-masing route di dalamnya juga tidak memasang apa pun.
++ *
++ * Yang diperiksa adalah blok tiap route sampai baris `);` penutup, bukan
++ * seluruh berkas — memeriksa per berkas akan lulus hanya karena ada satu
++ * route lain yang kebetulan sudah dijaga.
++ */
++const fs = require("fs");
++const path = require("path");
++
++// Berkas -> daftar route yang memang boleh publik, beserta alasannya.
++const ALLOWLIST = {
++  "src/routes/authentication/auth.route.ts": ["POST /login", "POST /refresh-token"],
++};
++
++const GUARDS = [
++  "authMiddleware",
++  "authMiddlewareRole",
++  "administratorMiddleware",
++  "superadministratorMiddleware",
++  "requireRole",
++];
++
++/**
++ * Guard bisa dipasang di tiga tempat: di app.use() saat router di-mount, di
++ * router.use() dalam berkas route, atau di definisi route-nya sendiri.
++ * Pemeriksa yang hanya membaca satu di antaranya akan melaporkan positif palsu
++ * untuk dua sisanya — versi pertama pemeriksa ini menandai 12 route yang
++ * sebenarnya sudah dijaga dari app.ts.
++ */
++function mountGuardedFiles(appPath) {
++  const guarded = new Set();
++  if (!fs.existsSync(appPath)) return guarded;
++  const source = fs.readFileSync(appPath, "utf8");
++
++  const imports = {};
++  for (const m of source.matchAll(/import\s+(\w+)\s+from\s+["'](\.[^"']+)["']/g)) {
++    imports[m[1]] = m[2];
++  }
++
++  for (const m of source.matchAll(/app\.use\(\s*["'][^"']*["']\s*,\s*([^)]+)\)/g)) {
++    const args = m[1];
++    if (!GUARDS.some((g) => new RegExp(`\\b${g}\\b`).test(args))) continue;
++    for (const name of Object.keys(imports)) {
++      if (new RegExp(`\\b${name}\\b`).test(args)) {
++        const rel = path.normalize(
++          path.join(path.dirname(appPath), imports[name]) + ".ts"
++        );
++        guarded.add(rel);
++      }
++    }
++  }
++  return guarded;
++}
++
++function walk(dir, out = []) {
++  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
++    const full = path.join(dir, entry.name);
++    if (entry.isDirectory()) walk(full, out);
++    else if (entry.name.endsWith(".route.ts")) out.push(full);
++  }
++  return out;
++}
++
++function routeBlocks(source) {
++  const blocks = [];
++  const lines = source.split("\n");
++  for (let i = 0; i < lines.length; i++) {
++    const start = lines[i].match(/^router\.(get|post|put|delete|patch)\(/);
++    if (!start) continue;
++    let depth = 0;
++    let body = "";
++    for (let j = i; j < lines.length; j++) {
++      body += lines[j] + "\n";
++      for (const ch of lines[j]) {
++        if (ch === "(") depth++;
++        else if (ch === ")") depth--;
++      }
++      if (depth === 0) break;
++    }
++    const pathMatch = body.match(/["'`]([^"'`]*)["'`]/);
++    blocks.push({
++      method: start[1].toUpperCase(),
++      path: pathMatch ? pathMatch[1] : "?",
++      line: i + 1,
++      body,
++    });
++  }
++  return blocks;
++}
++
++const root = process.argv[2] || "src/routes";
++const mountGuarded = mountGuardedFiles("src/app.ts");
++const findings = [];
++let checked = 0;
++
++for (const file of walk(root)) {
++  const rel = path.relative(process.cwd(), file);
++  const source = fs.readFileSync(file, "utf8");
++
++  // Guard yang dipasang lewat router.use() atau lewat app.use() saat mount
++  // berlaku untuk seluruh berkas.
++  const fileWide =
++    mountGuarded.has(path.normalize(rel)) ||
++    GUARDS.some((g) =>
++      new RegExp(`router\\.use\\([^)]*\\b${g}\\b`).test(source)
++    );
++
++  for (const block of routeBlocks(source)) {
++    checked++;
++    const label = `${block.method} ${block.path}`;
++    if ((ALLOWLIST[rel] || []).includes(label)) continue;
++    if (fileWide) continue;
++    const guarded = GUARDS.some((g) => new RegExp(`\\b${g}\\b`).test(block.body));
++    if (!guarded) findings.push(`${rel}:${block.line}  ${label}`);
++  }
++}
++
++console.log(`Route diperiksa: ${checked}`);
++if (findings.length === 0) {
++  console.log("OK — semua route punya middleware otorisasi.");
++  process.exit(0);
++}
++console.log(`\nTANPA OTORISASI: ${findings.length}`);
++for (const f of findings) console.log("  " + f);
++process.exit(1);
+diff --git a/scripts/check-sql-injection.js b/scripts/check-sql-injection.js
+new file mode 100644
+index 0000000..0be1cc9
+--- /dev/null
++++ b/scripts/check-sql-injection.js
+@@ -0,0 +1,73 @@
++#!/usr/bin/env node
++/**
++ * Mencari nilai dari request yang disisipkan langsung ke teks query mentah.
++ *
++ * Dibuat setelah ditemukan `keyword` dari body request disisipkan apa adanya ke
++ * dalam LIKE '%...%' pada enam repository. Yang dicari adalah interpolasi
++ * template string di dalam blok $queryRawUnsafe / $executeRawUnsafe.
++ *
++ * Baris berkomentar diabaikan: repo ini menyimpan banyak query lama sebagai
++ * komentar, dan menghitungnya membuat laporan penuh temuan yang tidak pernah
++ * dieksekusi sehingga temuan sungguhan tenggelam.
++ */
++const fs = require("fs");
++const path = require("path");
++
++// Interpolasi yang isinya dipastikan angka atau konstanta, bukan teks bebas.
++const SAFE = [/^toPositiveInt\(/, /^Number\(/, /^baseQuery$/, /^keywordCondition$/];
++
++function walk(dir, out = []) {
++  for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
++    const full = path.join(dir, e.name);
++    if (e.isDirectory()) walk(full, out);
++    else if (e.name.endsWith(".ts")) out.push(full);
++  }
++  return out;
++}
++
++/** Buang baris yang seluruhnya komentar `//`. */
++function stripCommentLines(source) {
++  return source
++    .split("\n")
++    .map((l) => (/^\s*\/\//.test(l) ? "" : l))
++    .join("\n");
++}
++
++const findings = [];
++let rawBlocks = 0;
++
++for (const file of walk("src")) {
++  const rel = path.relative(process.cwd(), file);
++  const original = fs.readFileSync(file, "utf8");
++  const source = stripCommentLines(original);
++  const lines = original.split("\n");
++
++  const re = /\$(?:query|execute)RawUnsafe/g;
++  let m;
++  while ((m = re.exec(source)) !== null) {
++    rawBlocks++;
++    // Ambil isi template string pertama sesudah pemanggilan.
++    const rest = source.slice(m.index, m.index + 4000);
++    const tick = rest.indexOf("`");
++    if (tick === -1) continue;
++    const end = rest.indexOf("`", tick + 1);
++    if (end === -1) continue;
++    const template = rest.slice(tick, end);
++
++    for (const interp of template.matchAll(/\$\{([^}]*)\}/g)) {
++      const expr = interp[1].trim();
++      if (SAFE.some((p) => p.test(expr))) continue;
++      const line = source.slice(0, m.index + tick + interp.index).split("\n").length;
++      findings.push(`${rel}:${line}  \${${expr.split("\n")[0].slice(0, 60)}}`);
++    }
++  }
++}
++
++console.log(`Blok raw query diperiksa: ${rawBlocks}`);
++if (findings.length === 0) {
++  console.log("OK — tidak ada interpolasi teks bebas di query mentah.");
++  process.exit(0);
++}
++console.log(`\nINTERPOLASI MENCURIGAKAN: ${findings.length}`);
++for (const f of findings) console.log("  " + f);
++process.exit(1);
+diff --git a/src/helper/auth.helper.ts b/src/helper/auth.helper.ts
+index 10da472..3ab7e6e 100644
+--- a/src/helper/auth.helper.ts
++++ b/src/helper/auth.helper.ts
+@@ -225,6 +225,79 @@ export const superadministratorMiddleware = (
+   });
+ };
+ 
++/**
++ * Membatasi akses ke daftar role tertentu.
++ *
++ * Dipakai pada endpoint yang datanya sensitif per-divisi. authMiddleware hanya
++ * menjawab "sudah login?" — ia tidak menjawab "boleh lihat ini?". Sebelum ini
++ * pembatasan divisi hanya ada di guard frontend, padahal guard itu membaca role
++ * dari localStorage yang dienkripsi memakai kunci yang ikut ter-commit ke repo
++ * publik. Artinya user mana pun yang login sah bisa mengubah role-nya sendiri
++ * di browser, atau melewati frontend sama sekali dengan memanggil API langsung.
++ *
++ * Kalau daftar role di sini dilonggarkan atau middleware ini dilepas, laporan
++ * penjualan/pembelian/keuangan kembali bisa dibaca lintas divisi tanpa jejak.
++ */
++export const requireRole = (allowedRoles: number[]) => {
++  return (req: Request, res: Response, next: NextFunction) => {
++    const tokenHeader = req.headers["authorization"]?.toString();
++    if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
++      return res.status(401).json({
++        auth: false,
++        message: "Incorrect token format",
++      });
++    }
++
++    const token = tokenHeader.split(" ")[1];
++
++    if (!token) {
++      return res.status(401).json({
++        auth: false,
++        message: "No token provided",
++      });
++    }
++
++    verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
++      if (error) {
++        return res.status(401).send("User not authorized");
++      }
++
++      const decodedData = decoded as any;
++      prisma.user
++        .findFirst({
++          where: {
++            id: decodedData.id,
++            is_active: true,
++          },
++          select: {
++            id: true,
++            role: true,
++            is_active: true,
++          },
++        })
++        .then((user) => {
++          if (user == null || !user.is_active) {
++            return res.status(401).send("User not authorized");
++          }
++
++          if (!allowedRoles.includes(user.role)) {
++            return res.status(403).send("Forbidden");
++          }
++
++          // Ditulis dari hasil verifikasi token, bukan dari kiriman client.
++          // Sebagian controller membaca req.body.role; kalau nilainya dibiarkan
++          // datang dari body, client bisa mengaku punya role apa pun.
++          req.body.userId = user.id;
++          req.body.role = user.role;
++          next();
++        })
++        .catch(() => {
++          return res.status(401).send("User not authorized");
++        });
++    });
++  };
++};
++
+ export const putriForbiddenMiddleware = (
+   req: Request,
+   res: Response,
+diff --git a/src/helper/sql.helper.ts b/src/helper/sql.helper.ts
+new file mode 100644
+index 0000000..761a860
+--- /dev/null
++++ b/src/helper/sql.helper.ts
+@@ -0,0 +1,19 @@
++/**
++ * Mengubah nilai dari request menjadi bilangan bulat non-negatif yang aman
++ * disisipkan ke klausa LIMIT/OFFSET.
++ *
++ * Keyword pencarian dikirim sebagai parameter query, tapi LIMIT dan OFFSET
++ * tidak bisa diperlakukan sama di semua jalur Prisma sehingga nilainya tetap
++ * disisipkan ke teks query. Karena itu nilainya harus dipastikan benar-benar
++ * angka di sini.
++ *
++ * Kalau pemeriksaan ini dilepas, isi `page`/`pageSize` dari body request masuk
++ * apa adanya ke SQL — sama persis dengan lubang yang baru saja ditutup pada
++ * keyword pencarian.
++ */
++export function toPositiveInt(value: unknown, fallback: number): number {
++  const parsed = Number(value);
++  if (!Number.isFinite(parsed)) return fallback;
++  const truncated = Math.trunc(parsed);
++  return truncated < 0 ? fallback : truncated;
++}
+diff --git a/src/repositories/company.repository.ts b/src/repositories/company.repository.ts
+index 50616f6..ff5678d 100644
+--- a/src/repositories/company.repository.ts
++++ b/src/repositories/company.repository.ts
+@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
+ import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+ import { CompanyModel, ICompany } from "../model/company.model";
+ import { UserViewModel } from "../model/user.model";
++import { toPositiveInt } from "../helper/sql.helper";
+ 
+ export class CompanyRepository {
+   private prisma: PrismaClient;
+@@ -150,13 +151,17 @@ export class CompanyRepository {
+         ) companyCount
+         ON company.id = companyCount.company_id
+         WHERE company.is_delete = 0
+-        AND (company.name LIKE '%${data.keyword}%' OR company.address LIKE '%${
+-        data.keyword
+-      }%')
++        AND (company.name LIKE ? OR company.address LIKE ?)
+         ORDER BY company.name ASC
+-        LIMIT ${data.pageSize}
+-        OFFSET ${(data.page - 1) * data.pageSize}
+-      `),
++        LIMIT ${toPositiveInt(data.pageSize, 10)}
++        OFFSET ${
++          toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
++          toPositiveInt(data.pageSize, 10)
++        }
++      `,
++        `%${data.keyword ?? ""}%`,
++        `%${data.keyword ?? ""}%`
++      ),
+       this.prisma.company.count({
+         where: {
+           is_delete: false,
+diff --git a/src/repositories/payment-method.repository.ts b/src/repositories/payment-method.repository.ts
+index b71965c..b07e674 100644
+--- a/src/repositories/payment-method.repository.ts
++++ b/src/repositories/payment-method.repository.ts
+@@ -4,6 +4,7 @@ import {
+   PaymentMethodModel,
+ } from "../model/payment-method.model";
+ import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
++import { toPositiveInt } from "../helper/sql.helper";
+ 
+ export class PaymentMethodRepository {
+   private prisma: PrismaClient;
+@@ -88,16 +89,22 @@ export class PaymentMethodRepository {
+       WHERE payment_method.is_delete = 0
+     `;
+ 
+-    const keywordCondition = data.keyword
+-      ? `AND (payment_method.name LIKE '%${data.keyword}%' OR payment_method.description LIKE '%${data.keyword}%')`
+-      : "";
++    const params: any[] = [];
++    let keywordCondition = "";
++    if (data.keyword) {
++      keywordCondition = `AND (payment_method.name LIKE ? OR payment_method.description LIKE ?)`;
++      params.push(`%${data.keyword}%`, `%${data.keyword}%`);
++    }
++
++    const limit = toPositiveInt(data.pageSize, 10);
++    const offset = toPositiveInt(data.page, 1) * limit - limit;
+ 
+     const query = `
+       ${baseQuery}
+       ${keywordCondition}
+       ORDER BY payment_method.name ASC
+-      LIMIT ${data.pageSize}
+-      OFFSET ${(data.page - 1) * data.pageSize}
++      LIMIT ${limit}
++      OFFSET ${offset}
+     `;
+ 
+     const countCondition = data.keyword
+@@ -111,7 +118,7 @@ export class PaymentMethodRepository {
+       : { is_delete: false };
+ 
+     const [result, count] = await this.prisma.$transaction([
+-      this.prisma.$queryRawUnsafe<any[]>(query),
++      this.prisma.$queryRawUnsafe<any[]>(query, ...params),
+       this.prisma.payment_method.count({ where: countCondition }),
+     ]);
+ 
+diff --git a/src/repositories/product-brand.repository.ts b/src/repositories/product-brand.repository.ts
+index 4d7ad7b..9e3151c 100644
+--- a/src/repositories/product-brand.repository.ts
++++ b/src/repositories/product-brand.repository.ts
+@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
+ import { IProductBrand, ProductBrandModel } from "../model/product-brand.model";
+ import { UserViewModel } from "../model/user.model";
+ import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
++import { toPositiveInt } from "../helper/sql.helper";
+ 
+ export class ProductBrandRepository {
+   private prisma: PrismaClient;
+@@ -86,16 +87,25 @@ export class ProductBrandRepository {
+         WHERE product_brand.is_delete = 0
+     `;
+ 
+-    const keywordCondition = data.keyword
+-      ? `AND product_brand.name LIKE '%${data.keyword}%'`
+-      : "";
++    // Keyword dikirim sebagai parameter, bukan disisipkan ke teks query.
++    // Kalau disisipkan, satu tanda kutip di dalam keyword sudah cukup untuk
++    // mengubah arti query dan membaca tabel lain.
++    const params: any[] = [];
++    let keywordCondition = "";
++    if (data.keyword) {
++      keywordCondition = `AND product_brand.name LIKE ?`;
++      params.push(`%${data.keyword}%`);
++    }
++
++    const limit = toPositiveInt(data.pageSize, 10);
++    const offset = toPositiveInt(data.page, 1) * limit - limit;
+ 
+     const query = `
+       ${baseQuery}
+       ${keywordCondition}
+       ORDER BY product_brand.name ASC
+-      LIMIT ${data.pageSize}
+-      OFFSET ${(data.page - 1) * data.pageSize}
++      LIMIT ${limit}
++      OFFSET ${offset}
+     `;
+ 
+     const countCondition = {
+@@ -104,7 +114,7 @@ export class ProductBrandRepository {
+     };
+ 
+     const [result, count] = await this.prisma.$transaction([
+-      this.prisma.$queryRawUnsafe<any[]>(query),
++      this.prisma.$queryRawUnsafe<any[]>(query, ...params),
+       this.prisma.product_brand.count({ where: countCondition }),
+     ]);
+ 
+diff --git a/src/repositories/product-stock.repository.ts b/src/repositories/product-stock.repository.ts
+index f6c85e4..1cf1610 100644
+--- a/src/repositories/product-stock.repository.ts
++++ b/src/repositories/product-stock.repository.ts
+@@ -4,6 +4,7 @@ import { ProductBrandModel } from "../model/product-brand.model";
+ import { ProductTypeModel } from "../model/product-type.model";
+ import { ProductModel, ProductStockModel } from "../model/product.model";
+ import { StockCardModel } from "../model/stock-card.model";
++import { toPositiveInt } from "../helper/sql.helper";
+ 
+ export class ProductStockRepository {
+   private prisma: PrismaClient;
+@@ -206,7 +207,8 @@ export class ProductStockRepository {
+   }) {
+     try {
+       const [result, count] = await this.prisma.$transaction([
+-        this.prisma.$queryRawUnsafe<any[]>(`
++        this.prisma.$queryRawUnsafe<any[]>(
++          `
+           SELECT product.*, COALESCE(product_stock.stock, 0) AS stock, product_brand.name AS brand_name, product_type.name AS type_name,
+           product_brand.created_by AS brand_created_by, product_type.created_by AS type_created_by
+           FROM product
+@@ -216,24 +218,34 @@ export class ProductStockRepository {
+           WHERE COALESCE(product_stock.stock,0) < product.minimum_stock
+           AND COALESCE(product_stock.stock, 0) >= 0
+           AND (
+-            product.reference LIKE '%${data.keyword}%'
+-            OR product.description LIKE '%${data.keyword}%'
++            product.reference LIKE ?
++            OR product.description LIKE ?
+           )
+           ORDER BY product.reference ASC
+-          LIMIT ${data.pageSize}
+-          OFFSET ${(data.page - 1) * data.pageSize}
+-        `),
+-        this.prisma.$queryRawUnsafe<any[]>(`
++          LIMIT ${toPositiveInt(data.pageSize, 10)}
++          OFFSET ${
++            toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
++            toPositiveInt(data.pageSize, 10)
++          }
++        `,
++          `%${data.keyword ?? ""}%`,
++          `%${data.keyword ?? ""}%`
++        ),
++        this.prisma.$queryRawUnsafe<any[]>(
++          `
+           SELECT COUNT(product.id) AS count
+           FROM product
+           JOIN product_stock ON product_stock.id = product.id
+           WHERE product_stock.stock < product.minimum_stock
+           AND COALESCE(product_stock.stock, 0) >= 0
+           AND (
+-            product.reference LIKE '%${data.keyword}%'
+-            OR product.description LIKE '%${data.keyword}%'
++            product.reference LIKE ?
++            OR product.description LIKE ?
+           )
+-        `),
++        `,
++          `%${data.keyword ?? ""}%`,
++          `%${data.keyword ?? ""}%`
++        ),
+       ]);
+ 
+       let formattedCount = 0;
+diff --git a/src/repositories/product-type.repository.ts b/src/repositories/product-type.repository.ts
+index 7cae6a4..66473de 100644
+--- a/src/repositories/product-type.repository.ts
++++ b/src/repositories/product-type.repository.ts
+@@ -3,6 +3,7 @@ import { IProductBrand, ProductBrandModel } from "../model/product-brand.model";
+ import { UserViewModel } from "../model/user.model";
+ import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+ import { IProductType, ProductTypeModel } from "../model/product-type.model";
++import { toPositiveInt } from "../helper/sql.helper";
+ 
+ export class ProductTypeRepository {
+   private prisma: PrismaClient;
+@@ -102,11 +103,15 @@ export class ProductTypeRepository {
+                 ON product_type.id = itemCount.product_type_id
+                 JOIN user ON product_type.created_by = user.id
+                 WHERE product_type.is_delete = 0
+-                AND product_type.name LIKE '%${data.keyword}%'
++                AND product_type.name LIKE ?
+                 ORDER BY product_type.name ASC
+-                LIMIT ${data.pageSize} 
+-                OFFSET ${(data.page - 1) * data.pageSize}
+-              `
++                LIMIT ${toPositiveInt(data.pageSize, 10)}
++                OFFSET ${
++                  toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
++                  toPositiveInt(data.pageSize, 10)
++                }
++              `,
++          `%${data.keyword ?? ""}%`
+         ),
+         this.prisma.product_type.count({
+           where: {
+diff --git a/src/repositories/supplier.repository.ts b/src/repositories/supplier.repository.ts
+index 2d002c2..e993e12 100644
+--- a/src/repositories/supplier.repository.ts
++++ b/src/repositories/supplier.repository.ts
+@@ -1,6 +1,7 @@
+ import { PrismaClient } from "@prisma/client";
+ import SupplierModel, { ISupplier } from "../model/supplier.model";
+ import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
++import { toPositiveInt } from "../helper/sql.helper";
+ 
+ export class SupplierRepository {
+   private prisma: PrismaClient;
+@@ -124,11 +125,16 @@ export class SupplierRepository {
+               ) supplierCount
+               ON supplierCount.supplier_id = supplier.id
+               WHERE supplier.is_delete = 0
+-              AND supplier.name LIKE '%${data.keyword}%'
++              AND supplier.name LIKE ?
+               ORDER BY name ASC
+-              LIMIT ${data.pageSize}
+-              OFFSET ${(data.page - 1) * data.pageSize}
+-            `),
++              LIMIT ${toPositiveInt(data.pageSize, 10)}
++              OFFSET ${
++                toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
++                toPositiveInt(data.pageSize, 10)
++              }
++            `,
++          `%${data.keyword ?? ""}%`
++        ),
+         this.prisma.supplier.count({
+           where: {
+             is_delete: false,
+diff --git a/src/routes/report/report.route.ts b/src/routes/report/report.route.ts
+index e65df00..eb4fa92 100644
+--- a/src/routes/report/report.route.ts
++++ b/src/routes/report/report.route.ts
+@@ -4,6 +4,7 @@ import ErrorList from "../../assets/error_list";
+ import ReportController from "../../controller/report.controller";
+ import {
+   administratorMiddleware,
++  requireRole,
+   superadministratorMiddleware,
+ } from "../../helper/auth.helper";
+ import { prisma } from "../../helper/database.helper";
+@@ -54,6 +55,7 @@ const reportController = new ReportController(
+ 
+ router.post(
+   "/sales",
++  requireRole([2, 3, 5, 7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({ min: 1, max: 12 })
+@@ -68,6 +70,7 @@ router.post(
+ 
+ router.post(
+   "/purchase",
++  requireRole([1, 3, 5, 7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({ min: 1, max: 12 })
+@@ -82,6 +85,7 @@ router.post(
+ 
+ router.post(
+   "/money-receipt",
++  requireRole([3, 5, 7]),
+   body("date").exists().withMessage(ErrorList["Date required"]),
+   ErrorHelper.intercept,
+   reportController.fetchMoneyReceipt
+@@ -89,6 +93,7 @@ router.post(
+ 
+ router.post(
+   "/money-receipt/download",
++  requireRole([3, 5, 7]),
+   body("date").exists().withMessage(ErrorList["Date required"]),
+   ErrorHelper.intercept,
+   reportController.downloadMoneyReceipt
+@@ -96,6 +101,7 @@ router.post(
+ 
+ router.post(
+   "/money-receipt/dor",
++  requireRole([3, 5, 7]),
+   body("startDate").exists().withMessage(ErrorList["Date required"]),
+   body("endDate").exists().withMessage(ErrorList["Date required"]),
+   ErrorHelper.intercept,
+@@ -104,6 +110,7 @@ router.post(
+ 
+ router.post(
+   "/output",
++  requireRole([2, 3, 5, 7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({ min: 1, max: 12 })
+@@ -135,6 +142,7 @@ router.post(
+ 
+ router.post(
+   "/output-company",
++  requireRole([2, 3, 5, 7]),
+   body("date").notEmpty().withMessage(ErrorList["Date required"]),
+   body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
+   ErrorHelper.intercept,
+@@ -149,6 +157,7 @@ router.get(
+ 
+ router.post(
+   "/daily-sales",
++  requireRole([3, 5, 7]),
+   body("day").notEmpty().withMessage(ErrorList["Day is required"]),
+   body("day")
+     .isInt({
+@@ -176,6 +185,7 @@ router.post(
+ 
+ router.post(
+   "/purchase/download",
++  requireRole([1, 3, 5, 7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({
+@@ -195,6 +205,7 @@ router.post(
+ 
+ router.post(
+   "/profit-loss",
++  requireRole([7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({
+@@ -214,6 +225,7 @@ router.post(
+ 
+ router.post(
+   "/sales",
++  requireRole([2, 3, 5, 7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({
+@@ -233,6 +245,7 @@ router.post(
+ 
+ router.get(
+   "/sales/brand",
++  requireRole([2, 3, 5, 7]),
+   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   query("month")
+     .isInt({
+@@ -252,6 +265,7 @@ router.get(
+ 
+ router.get(
+   "/sales/type",
++  requireRole([2, 3, 5, 7]),
+   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   query("month")
+     .isInt({
+@@ -271,6 +285,7 @@ router.get(
+ 
+ router.get(
+   "/sales/sales",
++  requireRole([2, 3, 5, 7]),
+   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   query("month")
+     .isInt({
+@@ -290,6 +305,7 @@ router.get(
+ 
+ router.post(
+   "/sales/download",
++  requireRole([2, 3, 5, 7]),
+   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+   body("month")
+     .isInt({
+@@ -309,6 +325,7 @@ router.post(
+ 
+ router.post(
+   "/product-stock-problem",
++  requireRole([7]),
+   ReportController.fetchProductStockProblem
+ );
+ 

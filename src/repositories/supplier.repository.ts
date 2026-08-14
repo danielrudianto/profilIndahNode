@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import SupplierModel, { ISupplier } from "../model/supplier.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+import { toPositiveInt } from "../helper/sql.helper";
 
 export class SupplierRepository {
   private prisma: PrismaClient;
@@ -124,11 +125,16 @@ export class SupplierRepository {
               ) supplierCount
               ON supplierCount.supplier_id = supplier.id
               WHERE supplier.is_delete = 0
-              AND supplier.name LIKE '%${data.keyword}%'
+              AND supplier.name LIKE ?
               ORDER BY name ASC
-              LIMIT ${data.pageSize}
-              OFFSET ${(data.page - 1) * data.pageSize}
-            `),
+              LIMIT ${toPositiveInt(data.pageSize, 10)}
+              OFFSET ${
+                toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
+                toPositiveInt(data.pageSize, 10)
+              }
+            `,
+          `%${data.keyword ?? ""}%`
+        ),
         this.prisma.supplier.count({
           where: {
             is_delete: false,

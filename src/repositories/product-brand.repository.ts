@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { IProductBrand, ProductBrandModel } from "../model/product-brand.model";
 import { UserViewModel } from "../model/user.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+import { toPositiveInt } from "../helper/sql.helper";
 
 export class ProductBrandRepository {
   private prisma: PrismaClient;
@@ -86,16 +87,25 @@ export class ProductBrandRepository {
         WHERE product_brand.is_delete = 0
     `;
 
-    const keywordCondition = data.keyword
-      ? `AND product_brand.name LIKE '%${data.keyword}%'`
-      : "";
+    // Keyword dikirim sebagai parameter, bukan disisipkan ke teks query.
+    // Kalau disisipkan, satu tanda kutip di dalam keyword sudah cukup untuk
+    // mengubah arti query dan membaca tabel lain.
+    const params: any[] = [];
+    let keywordCondition = "";
+    if (data.keyword) {
+      keywordCondition = `AND product_brand.name LIKE ?`;
+      params.push(`%${data.keyword}%`);
+    }
+
+    const limit = toPositiveInt(data.pageSize, 10);
+    const offset = toPositiveInt(data.page, 1) * limit - limit;
 
     const query = `
       ${baseQuery}
       ${keywordCondition}
       ORDER BY product_brand.name ASC
-      LIMIT ${data.pageSize}
-      OFFSET ${(data.page - 1) * data.pageSize}
+      LIMIT ${limit}
+      OFFSET ${offset}
     `;
 
     const countCondition = {
@@ -104,7 +114,7 @@ export class ProductBrandRepository {
     };
 
     const [result, count] = await this.prisma.$transaction([
-      this.prisma.$queryRawUnsafe<any[]>(query),
+      this.prisma.$queryRawUnsafe<any[]>(query, ...params),
       this.prisma.product_brand.count({ where: countCondition }),
     ]);
 

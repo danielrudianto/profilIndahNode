@@ -4,6 +4,7 @@ import { ProductBrandModel } from "../model/product-brand.model";
 import { ProductTypeModel } from "../model/product-type.model";
 import { ProductModel, ProductStockModel } from "../model/product.model";
 import { StockCardModel } from "../model/stock-card.model";
+import { toPositiveInt } from "../helper/sql.helper";
 
 export class ProductStockRepository {
   private prisma: PrismaClient;
@@ -206,7 +207,8 @@ export class ProductStockRepository {
   }) {
     try {
       const [result, count] = await this.prisma.$transaction([
-        this.prisma.$queryRawUnsafe<any[]>(`
+        this.prisma.$queryRawUnsafe<any[]>(
+          `
           SELECT product.*, COALESCE(product_stock.stock, 0) AS stock, product_brand.name AS brand_name, product_type.name AS type_name,
           product_brand.created_by AS brand_created_by, product_type.created_by AS type_created_by
           FROM product
@@ -216,24 +218,34 @@ export class ProductStockRepository {
           WHERE COALESCE(product_stock.stock,0) < product.minimum_stock
           AND COALESCE(product_stock.stock, 0) >= 0
           AND (
-            product.reference LIKE '%${data.keyword}%'
-            OR product.description LIKE '%${data.keyword}%'
+            product.reference LIKE ?
+            OR product.description LIKE ?
           )
           ORDER BY product.reference ASC
-          LIMIT ${data.pageSize}
-          OFFSET ${(data.page - 1) * data.pageSize}
-        `),
-        this.prisma.$queryRawUnsafe<any[]>(`
+          LIMIT ${toPositiveInt(data.pageSize, 10)}
+          OFFSET ${
+            toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
+            toPositiveInt(data.pageSize, 10)
+          }
+        `,
+          `%${data.keyword ?? ""}%`,
+          `%${data.keyword ?? ""}%`
+        ),
+        this.prisma.$queryRawUnsafe<any[]>(
+          `
           SELECT COUNT(product.id) AS count
           FROM product
           JOIN product_stock ON product_stock.id = product.id
           WHERE product_stock.stock < product.minimum_stock
           AND COALESCE(product_stock.stock, 0) >= 0
           AND (
-            product.reference LIKE '%${data.keyword}%'
-            OR product.description LIKE '%${data.keyword}%'
+            product.reference LIKE ?
+            OR product.description LIKE ?
           )
-        `),
+        `,
+          `%${data.keyword ?? ""}%`,
+          `%${data.keyword ?? ""}%`
+        ),
       ]);
 
       let formattedCount = 0;

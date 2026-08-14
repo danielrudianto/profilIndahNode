@@ -4,6 +4,7 @@ import {
   PaymentMethodModel,
 } from "../model/payment-method.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
+import { toPositiveInt } from "../helper/sql.helper";
 
 export class PaymentMethodRepository {
   private prisma: PrismaClient;
@@ -88,16 +89,22 @@ export class PaymentMethodRepository {
       WHERE payment_method.is_delete = 0
     `;
 
-    const keywordCondition = data.keyword
-      ? `AND (payment_method.name LIKE '%${data.keyword}%' OR payment_method.description LIKE '%${data.keyword}%')`
-      : "";
+    const params: any[] = [];
+    let keywordCondition = "";
+    if (data.keyword) {
+      keywordCondition = `AND (payment_method.name LIKE ? OR payment_method.description LIKE ?)`;
+      params.push(`%${data.keyword}%`, `%${data.keyword}%`);
+    }
+
+    const limit = toPositiveInt(data.pageSize, 10);
+    const offset = toPositiveInt(data.page, 1) * limit - limit;
 
     const query = `
       ${baseQuery}
       ${keywordCondition}
       ORDER BY payment_method.name ASC
-      LIMIT ${data.pageSize}
-      OFFSET ${(data.page - 1) * data.pageSize}
+      LIMIT ${limit}
+      OFFSET ${offset}
     `;
 
     const countCondition = data.keyword
@@ -111,7 +118,7 @@ export class PaymentMethodRepository {
       : { is_delete: false };
 
     const [result, count] = await this.prisma.$transaction([
-      this.prisma.$queryRawUnsafe<any[]>(query),
+      this.prisma.$queryRawUnsafe<any[]>(query, ...params),
       this.prisma.payment_method.count({ where: countCondition }),
     ]);
 

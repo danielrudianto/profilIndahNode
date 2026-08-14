@@ -2,6 +2,7 @@ import { PrismaClient } from "@prisma/client";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 import { CompanyModel, ICompany } from "../model/company.model";
 import { UserViewModel } from "../model/user.model";
+import { toPositiveInt } from "../helper/sql.helper";
 
 export class CompanyRepository {
   private prisma: PrismaClient;
@@ -150,13 +151,17 @@ export class CompanyRepository {
         ) companyCount
         ON company.id = companyCount.company_id
         WHERE company.is_delete = 0
-        AND (company.name LIKE '%${data.keyword}%' OR company.address LIKE '%${
-        data.keyword
-      }%')
+        AND (company.name LIKE ? OR company.address LIKE ?)
         ORDER BY company.name ASC
-        LIMIT ${data.pageSize}
-        OFFSET ${(data.page - 1) * data.pageSize}
-      `),
+        LIMIT ${toPositiveInt(data.pageSize, 10)}
+        OFFSET ${
+          toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
+          toPositiveInt(data.pageSize, 10)
+        }
+      `,
+        `%${data.keyword ?? ""}%`,
+        `%${data.keyword ?? ""}%`
+      ),
       this.prisma.company.count({
         where: {
           is_delete: false,

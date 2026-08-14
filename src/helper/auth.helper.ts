@@ -225,6 +225,79 @@ export const superadministratorMiddleware = (
   });
 };
 
+/**
+ * Membatasi akses ke daftar role tertentu.
+ *
+ * Dipakai pada endpoint yang datanya sensitif per-divisi. authMiddleware hanya
+ * menjawab "sudah login?" — ia tidak menjawab "boleh lihat ini?". Sebelum ini
+ * pembatasan divisi hanya ada di guard frontend, padahal guard itu membaca role
+ * dari localStorage yang dienkripsi memakai kunci yang ikut ter-commit ke repo
+ * publik. Artinya user mana pun yang login sah bisa mengubah role-nya sendiri
+ * di browser, atau melewati frontend sama sekali dengan memanggil API langsung.
+ *
+ * Kalau daftar role di sini dilonggarkan atau middleware ini dilepas, laporan
+ * penjualan/pembelian/keuangan kembali bisa dibaca lintas divisi tanpa jejak.
+ */
+export const requireRole = (allowedRoles: number[]) => {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const tokenHeader = req.headers["authorization"]?.toString();
+    if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
+      return res.status(401).json({
+        auth: false,
+        message: "Incorrect token format",
+      });
+    }
+
+    const token = tokenHeader.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        auth: false,
+        message: "No token provided",
+      });
+    }
+
+    verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
+      if (error) {
+        return res.status(401).send("User not authorized");
+      }
+
+      const decodedData = decoded as any;
+      prisma.user
+        .findFirst({
+          where: {
+            id: decodedData.id,
+            is_active: true,
+          },
+          select: {
+            id: true,
+            role: true,
+            is_active: true,
+          },
+        })
+        .then((user) => {
+          if (user == null || !user.is_active) {
+            return res.status(401).send("User not authorized");
+          }
+
+          if (!allowedRoles.includes(user.role)) {
+            return res.status(403).send("Forbidden");
+          }
+
+          // Ditulis dari hasil verifikasi token, bukan dari kiriman client.
+          // Sebagian controller membaca req.body.role; kalau nilainya dibiarkan
+          // datang dari body, client bisa mengaku punya role apa pun.
+          req.body.userId = user.id;
+          req.body.role = user.role;
+          next();
+        })
+        .catch(() => {
+          return res.status(401).send("User not authorized");
+        });
+    });
+  };
+};
+
 export const putriForbiddenMiddleware = (
   req: Request,
   res: Response,

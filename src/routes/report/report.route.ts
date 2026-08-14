@@ -4,6 +4,7 @@ import ErrorList from "../../assets/error_list";
 import ReportController from "../../controller/report.controller";
 import {
   administratorMiddleware,
+  requireRole,
   superadministratorMiddleware,
 } from "../../helper/auth.helper";
 import { prisma } from "../../helper/database.helper";
@@ -54,6 +55,7 @@ const reportController = new ReportController(
 
 router.post(
   "/sales",
+  requireRole([2, 3, 5, 7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({ min: 1, max: 12 })
@@ -68,6 +70,7 @@ router.post(
 
 router.post(
   "/purchase",
+  requireRole([1, 3, 5, 7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({ min: 1, max: 12 })
@@ -82,6 +85,7 @@ router.post(
 
 router.post(
   "/money-receipt",
+  requireRole([3, 5, 7]),
   body("date").exists().withMessage(ErrorList["Date required"]),
   ErrorHelper.intercept,
   reportController.fetchMoneyReceipt
@@ -89,6 +93,7 @@ router.post(
 
 router.post(
   "/money-receipt/download",
+  requireRole([3, 5, 7]),
   body("date").exists().withMessage(ErrorList["Date required"]),
   ErrorHelper.intercept,
   reportController.downloadMoneyReceipt
@@ -96,6 +101,7 @@ router.post(
 
 router.post(
   "/money-receipt/dor",
+  requireRole([3, 5, 7]),
   body("startDate").exists().withMessage(ErrorList["Date required"]),
   body("endDate").exists().withMessage(ErrorList["Date required"]),
   ErrorHelper.intercept,
@@ -104,6 +110,7 @@ router.post(
 
 router.post(
   "/output",
+  requireRole([2, 3, 5, 7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({ min: 1, max: 12 })
@@ -135,6 +142,7 @@ router.post(
 
 router.post(
   "/output-company",
+  requireRole([2, 3, 5, 7]),
   body("date").notEmpty().withMessage(ErrorList["Date required"]),
   body("company_id").notEmpty().withMessage(ErrorList["Company ID required"]),
   ErrorHelper.intercept,
@@ -149,6 +157,7 @@ router.get(
 
 router.post(
   "/daily-sales",
+  requireRole([3, 5, 7]),
   body("day").notEmpty().withMessage(ErrorList["Day is required"]),
   body("day")
     .isInt({
@@ -176,6 +185,7 @@ router.post(
 
 router.post(
   "/purchase/download",
+  requireRole([1, 3, 5, 7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({
@@ -195,6 +205,7 @@ router.post(
 
 router.post(
   "/profit-loss",
+  requireRole([7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({
@@ -214,6 +225,7 @@ router.post(
 
 router.post(
   "/sales",
+  requireRole([2, 3, 5, 7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({
@@ -233,6 +245,7 @@ router.post(
 
 router.get(
   "/sales/brand",
+  requireRole([2, 3, 5, 7]),
   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
   query("month")
     .isInt({
@@ -252,6 +265,7 @@ router.get(
 
 router.get(
   "/sales/type",
+  requireRole([2, 3, 5, 7]),
   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
   query("month")
     .isInt({
@@ -271,6 +285,7 @@ router.get(
 
 router.get(
   "/sales/sales",
+  requireRole([2, 3, 5, 7]),
   query("month").notEmpty().withMessage(ErrorList["Month is required"]),
   query("month")
     .isInt({
@@ -290,6 +305,7 @@ router.get(
 
 router.post(
   "/sales/download",
+  requireRole([2, 3, 5, 7]),
   body("month").notEmpty().withMessage(ErrorList["Month is required"]),
   body("month")
     .isInt({
@@ -309,6 +325,7 @@ router.post(
 
 router.post(
   "/product-stock-problem",
+  requireRole([7]),
   ReportController.fetchProductStockProblem
 );
 

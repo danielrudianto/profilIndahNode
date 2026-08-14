@@ -3,6 +3,7 @@ import { IProductBrand, ProductBrandModel } from "../model/product-brand.model";
 import { UserViewModel } from "../model/user.model";
 import { IFetchCommon, IFetchCommonResult } from "../interface/fetch.interface";
 import { IProductType, ProductTypeModel } from "../model/product-type.model";
+import { toPositiveInt } from "../helper/sql.helper";
 
 export class ProductTypeRepository {
   private prisma: PrismaClient;
@@ -102,11 +103,15 @@ export class ProductTypeRepository {
                 ON product_type.id = itemCount.product_type_id
                 JOIN user ON product_type.created_by = user.id
                 WHERE product_type.is_delete = 0
-                AND product_type.name LIKE '%${data.keyword}%'
+                AND product_type.name LIKE ?
                 ORDER BY product_type.name ASC
-                LIMIT ${data.pageSize} 
-                OFFSET ${(data.page - 1) * data.pageSize}
-              `
+                LIMIT ${toPositiveInt(data.pageSize, 10)}
+                OFFSET ${
+                  toPositiveInt(data.page, 1) * toPositiveInt(data.pageSize, 10) -
+                  toPositiveInt(data.pageSize, 10)
+                }
+              `,
+          `%${data.keyword ?? ""}%`
         ),
         this.prisma.product_type.count({
           where: {
