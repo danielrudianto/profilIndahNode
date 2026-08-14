@@ -124,43 +124,37 @@ describe("Bidang konfirmasi", () => {
     confirmed_at: new Date("2026-05-21T09:00:00.000Z"),
   };
 
-  it("CACAT: confirmed_by dari basis data dibuang dan selalu menjadi null", () => {
+  it("meneruskan siapa yang mengonfirmasi", () => {
     const m = AdjustmentCaseModel.fromMap(sudahDikonfirmasi);
-
-    expect(m.confirmed_by).toBeNull();
-    expect(m.confirmed_by).not.toBe(77);
+    expect(m.confirmed_by).toBe(77);
   });
 
-  it("CACAT: confirmed_at dari basis data dibuang dan diganti waktu sekarang", () => {
+  it("meneruskan tanggal konfirmasi dari basis data", () => {
     const m = AdjustmentCaseModel.fromMap(sudahDikonfirmasi);
 
     expect(m.confirmed_at).toBeInstanceOf(Date);
-    expect(m.confirmed_at!.toISOString()).not.toBe("2026-05-21T09:00:00.000Z");
-    expect(m.confirmed_at!.getTime()).toBeGreaterThan(
-      new Date("2025-01-01").getTime()
-    );
+    expect(m.confirmed_at!.toISOString()).toBe("2026-05-21T09:00:00.000Z");
   });
 
-  it("CACAT: dokumen yang BELUM dikonfirmasi pun mendapat confirmed_at hari ini", () => {
+  it("dokumen yang belum dikonfirmasi tidak mengarang tanggal konfirmasi", () => {
     const m = AdjustmentCaseModel.fromMap(barisPrisma);
 
     expect(m.is_confirm).toBe(false);
-    // Tidak dikonfirmasi, tetapi tetap punya tanggal konfirmasi.
-    expect(m.confirmed_at).toBeInstanceOf(Date);
-    expect(JSON.stringify(m)).toContain("confirmed_at");
+    expect(m.confirmed_at).toBeUndefined();
+    expect(m.confirmed_by).toBeNull();
   });
 
-  it("CACAT: dua pemanggilan berturut-turut menghasilkan confirmed_at berbeda", () => {
+  /**
+   * Nilainya kini ditentukan data, bukan jam. Dua pemanggilan pada baris yang
+   * sama karena itu harus menghasilkan nilai yang sama persis — sebelumnya
+   * tidak, karena confirmed_at diisi new Date() pada tiap pemanggilan.
+   */
+  it("dua pemanggilan pada baris yang sama menghasilkan nilai identik", () => {
     const a = AdjustmentCaseModel.fromMap(sudahDikonfirmasi);
-    for (let i = 0; i < 2_000_000; i++) {
-      // menghabiskan waktu sesaat agar jam bergerak
-    }
     const b = AdjustmentCaseModel.fromMap(sudahDikonfirmasi);
 
-    // Nilainya bergantung jam, bukan pada data — jadi tidak pernah stabil.
-    expect(b.confirmed_at!.getTime()).toBeGreaterThanOrEqual(
-      a.confirmed_at!.getTime()
-    );
+    expect(b.confirmed_at!.getTime()).toBe(a.confirmed_at!.getTime());
+    expect(b.confirmed_by).toBe(a.confirmed_by);
   });
 });
 
@@ -410,20 +404,18 @@ describe("Relasi perusahaan", () => {
   });
 
   /**
-   * CACAT: id perusahaan hilang karena CompanyModel.fromMap tidak menyalinnya.
-   *
-   * Cacatnya berasal dari CompanyModel, tetapi akibatnya terasa di sini:
-   * objek perusahaan pada dokumen penyesuaian tidak punya id, jadi frontend
-   * tidak bisa menautkannya ke halaman perusahaan maupun mencocokkannya
-   * dengan daftar yang sudah dimuat.
+   * id perusahaan sempat hilang karena CompanyModel.fromMap tidak menyalinnya.
+   * Akibatnya terasa di sini: objek perusahaan pada dokumen penyesuaian tidak
+   * punya id, jadi frontend tidak bisa menautkannya ke halaman perusahaan.
+   * Diperbaiki di CompanyModel; tes ini menjaga rambatannya.
    */
-  it("CACAT: company.id tidak ikut terbawa", () => {
+  it("membawa id perusahaan", () => {
     const m = AdjustmentCaseModel.fromMap({
       ...barisPrisma,
       company: barisCompany,
     });
 
-    expect(m.company!.id).toBeUndefined();
+    expect(m.company!.id).toBe(barisCompany.id);
   });
 });
 

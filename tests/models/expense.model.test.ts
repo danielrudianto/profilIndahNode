@@ -285,17 +285,17 @@ describe("Relasi perusahaan (company)", () => {
    * Satu-satunya penanda yang tersisa hanyalah `company_id` di tingkat
    * pengeluaran.
    */
-  it("CACAT: company.id tidak ikut karena CompanyModel.fromMap tidak menyalinnya", () => {
+  it("membawa id perusahaan", () => {
     const m = ExpenseModel.fromMap({ ...barisPrisma, company: barisCompany });
 
-    expect(m.company!.id).toBeUndefined();
-    expect(JSON.stringify(m.company)).not.toContain('"id"');
+    expect(m.company!.id).toBe(barisCompany.id);
+    expect(JSON.parse(JSON.stringify(m.company)).id).toBe(barisCompany.id);
   });
 
-  it("CACAT: company.created_at ditimpa waktu sekarang", () => {
+  it("created_at perusahaan berasal dari baris, bukan jam permintaan", () => {
     const m = ExpenseModel.fromMap({ ...barisPrisma, company: barisCompany });
 
-    expect(m.company!.created_at!.toISOString()).not.toBe(
+    expect(m.company!.created_at!.toISOString()).toBe(
       "2020-01-01T00:00:00.000Z"
     );
   });

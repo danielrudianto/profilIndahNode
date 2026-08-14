@@ -391,17 +391,14 @@ describe("Relasi perusahaan dan pemasok", () => {
    * pernah dianggap sama, dan laporan apa pun yang mengurutkan berdasarkan
    * tanggal ini menghasilkan urutan acak.
    */
-  it("CACAT: created_at perusahaan ditimpa waktu sekarang", () => {
+  it("created_at perusahaan berasal dari baris, bukan jam permintaan", () => {
     const m = GoodReceiptModel.fromMap({
       ...barisPrisma,
       company: barisCompany,
     });
 
-    expect(m.company!.created_at!.toISOString()).not.toBe(
+    expect(m.company!.created_at!.toISOString()).toBe(
       "2020-01-01T00:00:00.000Z"
-    );
-    expect(m.company!.created_at!.getTime()).toBeGreaterThan(
-      new Date("2025-01-01").getTime()
     );
   });
 

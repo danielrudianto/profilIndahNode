@@ -65,92 +65,71 @@ describe("fromMap menyalin bidang dari baris basis data", () => {
 
 describe("Bidang yang hilang di perjalanan", () => {
   /**
-   * CACAT: id tidak pernah diteruskan fromMap.
-   *
-   * Konstruktornya siap menerima id (ada cabang `if (data.id)`), tetapi fromMap
-   * sama sekali tidak mengirimkannya. Setiap perusahaan yang dibaca dari basis
-   * data karena itu keluar TANPA id.
-   *
-   * Akibatnya berat bagi frontend: daftar perusahaan tidak punya kunci untuk
-   * baris mana pun, sehingga tombol ubah dan hapus tidak tahu perusahaan mana
-   * yang dimaksud. Karena undefined dibuang JSON.stringify, balasan HTTP-nya
-   * bahkan tidak memuat kunci "id" — frontend tidak bisa membedakannya dari
-   * bidang yang memang tidak ada.
+   * id sempat tidak diteruskan fromMap sama sekali, sehingga setiap perusahaan
+   * sampai ke frontend tanpa kunci apa pun dan tombol ubah maupun hapus tidak
+   * tahu baris mana yang dimaksud. Diperbaiki; tes ini menjaganya.
    */
-  it("CACAT: id tidak ikut walau ada di baris basis data", () => {
+  it("meneruskan id, dan id itu ikut terserialkan", () => {
     const m = CompanyModel.fromMap(barisPrisma);
 
-    expect(m.id).toBeUndefined();
-    expect(JSON.stringify(m)).not.toContain('"id"');
+    expect(m.id).toBe(12);
+    expect(JSON.parse(JSON.stringify(m)).id).toBe(12);
   });
 
   /**
-   * CACAT: can_delete tidak diteruskan fromMap.
-   *
-   * Repository menghitung can_delete (boleh tidaknya perusahaan dihapus) dan
-   * menempelkannya ke baris, konstruktornya pun menugaskannya. Tetapi fromMap
-   * tidak mengirimnya, jadi nilainya selalu undefined.
-   *
-   * Akibat bagi pengguna: tombol hapus yang bergantung pada bidang ini tidak
-   * pernah muncul, atau muncul terus-menerus, tergantung nilai bawaan di sisi
-   * frontend. Perhitungan mahal di repository terbuang percuma.
+   * can_delete dihitung repository lalu sempat terbuang di fromMap, sehingga
+   * perhitungannya percuma dan tombol hapus tidak pernah dapat sinyal yang
+   * benar. Diperbaiki.
    */
-  it("CACAT: can_delete tidak ikut dan lenyap dari JSON", () => {
+  it("meneruskan can_delete yang dihitung repository", () => {
     const m = CompanyModel.fromMap(barisPrisma);
 
-    expect(m.can_delete).toBeUndefined();
-    // Kuncinya tetap ada pada objeknya (ditugasi undefined oleh konstruktor),
-    // tetapi hilang saat diserialkan — itulah yang dilihat frontend.
-    expect("can_delete" in m).toBe(true);
-    expect(JSON.stringify(m)).not.toContain("can_delete");
+    expect(m.can_delete).toBe(true);
+    expect(JSON.parse(JSON.stringify(m)).can_delete).toBe(true);
   });
 
   /**
-   * CACAT: relasi user penghapus tidak pernah diteruskan.
-   *
-   * Bidang user_company_deleted_byTouser dideklarasikan di kelas dan diisi
-   * konstruktor, tetapi fromMap tidak menyalinnya. Halaman riwayat tidak akan
-   * pernah bisa menampilkan siapa yang menghapus perusahaan — hanya nomor
-   * deleted_by tanpa nama.
+   * Relasi penghapus sempat tidak diteruskan, jadi halaman riwayat hanya bisa
+   * menampilkan nomor deleted_by tanpa nama. Diperbaiki.
    */
-  it("CACAT: user_company_deleted_byTouser tidak ikut", () => {
+  it("meneruskan relasi user penghapus bila ada", () => {
     const m = CompanyModel.fromMap(barisPrisma);
-    expect(m.user_company_deleted_byTouser).toBeUndefined();
+    expect(m.user_company_deleted_byTouser).toEqual(
+      barisPrisma.user_company_deleted_byTouser
+    );
+  });
+
+  it("membiarkan relasi penghapus undefined bila tidak dimuat", () => {
+    const { user_company_deleted_byTouser, ...tanpa } = barisPrisma;
+    expect(
+      CompanyModel.fromMap(tanpa).user_company_deleted_byTouser
+    ).toBeUndefined();
   });
 });
 
-describe("created_at ditimpa waktu sekarang", () => {
+describe("created_at berasal dari basis data", () => {
   /**
-   * CACAT: tanggal pembuatan dari basis data selalu dibuang.
-   *
-   * Konstruktornya menulis `this.created_at = new Date()` tanpa melihat
-   * data.created_at sama sekali. fromMap sudah repot-repot meneruskan nilai
-   * aslinya, tetapi nilai itu tidak pernah dipakai.
-   *
-   * Akibatnya setiap perusahaan tampak baru saja dibuat pada detik permintaan
-   * HTTP dijalankan. Kolom "dibuat pada" di layar berubah setiap kali halaman
-   * dimuat ulang, pengurutan berdasarkan tanggal menjadi tidak berarti, dan
-   * laporan yang menyaring berdasarkan periode pembuatan salah total.
+   * Konstruktornya sempat menulis `this.created_at = new Date()` tanpa melihat
+   * data sama sekali, sehingga nilai yang sudah repot-repot diteruskan fromMap
+   * selalu dibuang. Setiap perusahaan tampak baru dibuat pada detik permintaan
+   * HTTP berlangsung: kolom "dibuat pada" berubah tiap kali halaman dimuat
+   * ulang, dan laporan yang menyaring berdasarkan periode pembuatan salah
+   * total. Diperbaiki; tes ini menjaganya.
    */
-  it("CACAT: created_at mengabaikan nilai basis data dan memakai waktu sekarang", () => {
-    const sebelum = Date.now();
+  it("memakai tanggal dari baris, bukan waktu sekarang", () => {
     const m = CompanyModel.fromMap(barisPrisma);
-    const sesudah = Date.now();
 
     expect(m.created_at).toBeInstanceOf(Date);
-    expect(m.created_at!.getTime()).toBeGreaterThanOrEqual(sebelum);
-    expect(m.created_at!.getTime()).toBeLessThanOrEqual(sesudah);
-
-    // Tanggal asli dari basis data tidak berbekas sedikit pun.
-    expect(m.created_at!.getFullYear()).not.toBe(2024);
+    expect(m.created_at!.toISOString()).toBe(
+      barisPrisma.created_at.toISOString()
+    );
   });
 
-  it("CACAT: baris tanpa created_at pun tetap mendapat tanggal karangan", () => {
+  it("tidak mengarang tanggal untuk baris yang tidak membawanya", () => {
     const { created_at, ...tanpa } = barisPrisma;
-    const m = CompanyModel.fromMap(tanpa);
-
-    // Bukan Invalid Date, melainkan tanggal yang tampak sah padahal dikarang.
-    expect(isNaN(m.created_at!.getTime())).toBe(false);
+    // Lebih jujur undefined daripada tanggal karangan yang tampak sah:
+    // frontend bisa membedakannya dari tanggal yang memang terisi.
+    expect(CompanyModel.fromMap(tanpa).created_at).toBeUndefined();
   });
 });
 

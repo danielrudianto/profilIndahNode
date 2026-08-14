@@ -17,7 +17,11 @@ class AdjustmentCaseModel {
   is_confirm?: boolean;
   is_delete?: boolean;
   confirmed_by?: number | null;
-  confirmed_at?: Date;
+  // Boleh null: dokumen yang belum dikonfirmasi memang tidak punya tanggal
+  // konfirmasi, dan kolomnya nullable di basis data. Antarmuka
+  // IAdjustmentCaseCode sudah mengakuinya; kelas ini sebelumnya tidak, dan
+  // ketidakcocokan itu tertutup karena bidangnya selalu ditimpa new Date().
+  confirmed_at?: Date | null;
   company_id: number | null;
   adjustment_case: IAdjustmentCase[];
 
@@ -32,8 +36,15 @@ class AdjustmentCaseModel {
     this.created_at = data.created_at;
     this.is_confirm = data.is_confirm;
     this.is_delete = data.is_delete;
-    this.confirmed_by = null;
-    this.confirmed_at = new Date();
+    // Sebelumnya keduanya ditulis sebagai nilai tetap — `null` dan
+    // `new Date()` — sehingga nilai yang dikirim fromMap selalu dibuang.
+    // Akibatnya siapa yang menyetujui penyesuaian stok tidak pernah bisa
+    // ditampilkan, dan tanggal konfirmasi selalu jam permintaan berlangsung,
+    // bahkan untuk dokumen yang justru BELUM dikonfirmasi. Penyesuaian stok
+    // mengubah nilai persediaan tanpa transaksi jual-beli, jadi jejak
+    // persetujuannya adalah satu-satunya pengendalian atas dokumen itu.
+    this.confirmed_by = data.confirmed_by ?? null;
+    this.confirmed_at = data.confirmed_at;
     this.company_id = data.company_id;
     this.adjustment_case = data.adjustment_case || [];
     this.user_adjustment_case_code_created_byTouser =
