@@ -14,6 +14,35 @@ import ErrorList from "../constants/error_list";
  */
 
 /**
+ * KEBIJAKAN KETAT PADA req.body — BERLAKU DI SELURUH SKEMA.
+ *
+ * express-validator mengubah setiap nilai menjadi teks SEBELUM memeriksanya.
+ * Akibatnya `isInt()` meloloskan "5" persis seperti 5, dan `notEmpty()`
+ * meloloskan angka 123 maupun objek (yang menjadi "[object Object]"). Skema di
+ * bawah ini TIDAK menirunya: pada req.body dipakai z.number() dan z.string()
+ * yang menolak keduanya.
+ *
+ * Ini perubahan perilaku yang DISENGAJA, bukan kelalaian:
+ *
+ *   { month: "5" }        dulu 200, sekarang 400 validation.month.numeric
+ *   { name: 123 }         dulu 200, sekarang 400 validation.name.required
+ *   { name: {a:1} }       dulu 200 dan tersimpan sebagai "[object Object]"
+ *
+ * Alasannya, nilai yang lolos lewat pemaksaan tipe tidak berhenti di lapisan
+ * validasi: `page` berupa teks ikut masuk ke aritmatika offset, dan nama
+ * berupa objek benar-benar tersimpan. JSON sudah membawa tipe aslinya, jadi
+ * menerima teks hanya menyembunyikan cacat di sisi pemanggil.
+ *
+ * KONSEKUENSI RILIS: klien yang mengirim angka sebagai teks akan mulai
+ * menerima 400. Perubahan ini harus naik bersama frontend, sama seperti
+ * peralihan ErrorList ke key i18n.
+ *
+ * Yang TIDAK terkena kebijakan ini adalah req.params dan req.query — di sana
+ * nilai memang selalu teks dan tidak ada tipe asli yang bisa dipertahankan.
+ * Gunakan varian *DariTeks untuk keduanya.
+ */
+
+/**
  * Bilangan bulat dari sumber teks.
  *
  * Nilai pada req.params dan req.query selalu berupa string, bahkan untuk
@@ -98,6 +127,26 @@ export const teksWajib = (pesan: string) =>
   z
     .string({ error: pesan })
     .refine((nilai) => nilai.trim().length > 0, { message: pesan });
+
+/**
+ * Nilai yang harus ada dan tidak kosong — meniru notEmpty() apa adanya,
+ * termasuk kelonggarannya terhadap tipe.
+ *
+ * Dipakai pada bidang yang rantai lamanya memang hanya memeriksa keberadaan
+ * dan belum bisa diketatkan tanpa membahasnya dengan sisi klien lebih dulu.
+ * Untuk bidang teks yang jelas harus berupa teks, pakai teksWajib.
+ */
+export const wajibAda = (pesan: string) =>
+  z
+    .any()
+    .refine(
+      (nilai) => nilai !== undefined && nilai !== null && String(nilai) !== "",
+      { message: pesan }
+    );
+
+/** Nilai yang harus ada — meniru exists(); teks kosong tetap lolos. */
+export const harusAda = (pesan: string) =>
+  z.any().refine((nilai) => nilai !== undefined, { message: pesan });
 
 /** Parameter jalur `:id`. */
 export const paramId = z.object({

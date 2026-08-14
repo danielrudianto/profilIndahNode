@@ -1,6 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error_list";
-import { teksWajib } from "./common.schema";
+import { harusAda, teksWajib, wajibAda } from "./common.schema";
 
 /**
  * Kontrak API untuk produk dan pengeluaran.
@@ -17,19 +17,6 @@ import { teksWajib } from "./common.schema";
  * Bidang yang rantai lamanya hanya memakai isNumeric() tetap menerima 1.5 di
  * sini.
  */
-
-/** Nilai yang harus ada dan tidak kosong — meniru notEmpty(). */
-const wajibAda = (pesan: string) =>
-  z
-    .any()
-    .refine(
-      (nilai) => nilai !== undefined && nilai !== null && String(nilai) !== "",
-      { message: pesan }
-    );
-
-/** Nilai yang harus ada — meniru exists(); teks kosong tetap lolos. */
-const harusAda = (pesan: string) =>
-  z.any().refine((nilai) => nilai !== undefined, { message: pesan });
 
 /** Angka dalam bentuk apa pun — meniru isNumeric(), pecahan diterima. */
 const angka = (pesan: string) =>

@@ -1,14 +1,17 @@
 import { Router } from "express";
 import UserController from "../controllers/user.controller";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
-import ErrorHelper from "../utils/error.helper";
 import DraftBillController from "../controllers/draft-bill.controller";
 import { DraftBillRepository } from "../repositories/draft-bill.repository";
 import { UserRepository } from "../repositories/user.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { CustomerRepository } from "../repositories/customer.repository";
 import { prisma } from "../utils/database.helper";
+import { validate } from "../utils/validate.helper";
+import {
+  ambilTagihanOtcSchema,
+  hapusTagihanSchema,
+  konfirmasiTagihanSchema,
+} from "../schemas/cashier.schema";
 
 const router = Router();
 
@@ -26,26 +29,30 @@ const userController = new UserController(
 
 router.get("/", userController.fetchStatistics);
 
+/*
+  Sumber "params" harus disebut secara eksplisit: bawaan validate() adalah
+  req.body, dan kode OTC datang lewat jalur URL.
+*/
 router.get(
   "/bill/:otc",
-  param("otc").notEmpty().withMessage(ErrorList["Parameter error"]),
-  ErrorHelper.intercept,
+  validate(ambilTagihanOtcSchema, "params"),
   draftBillController.fetchByOTC
 );
 
 router.post(
   "/bill/delete",
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id").isInt().withMessage(ErrorList["ID is required"]),
-  ErrorHelper.intercept,
+  validate(hapusTagihanSchema),
   draftBillController.deleteByID
 );
 
+/*
+  authMiddleware pada app.use("/cashier", ...) berjalan lebih dulu dan menulis
+  userId ke req.body. validate() sengaja tidak mengganti isi req.body dengan
+  hasil parse, jadi nilai itu tetap sampai ke controller.
+*/
 router.post(
   "/bill/confirm",
-  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
-  body("id").isInt().withMessage(ErrorList["ID is required"]),
-  ErrorHelper.intercept,
+  validate(konfirmasiTagihanSchema),
   draftBillController.confirmByID
 );
 

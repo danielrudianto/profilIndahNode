@@ -77,6 +77,18 @@ chains terminated by `ErrorHelper.intercept`. Both produce the **same error
 shape**: HTTP 400 with a raw string body (the first failing message, not JSON) —
 the frontend renders `error.error` verbatim, so do not change the shape.
 
+**Zod schemas are deliberately stricter than the chains they replaced.**
+express-validator stringifies every value before checking it, so `isInt()`
+accepted `"5"` and `notEmpty()` accepted `123` and even objects (stored as
+`"[object Object]"`). On `req.body` the schemas use `z.number()`/`z.string()`
+and reject both. This is a real behavior change and must ship with the
+frontend. `req.params`/`req.query` are exempt — values there are always text,
+so use the `*DariTeks` helpers. The policy is documented in
+`src/schemas/common.schema.ts` and locked by
+`tests/kebijakan-ketat.schema.test.ts`; that guard exists because the change
+first slipped in untested, every migration case having happened to use the
+already-correct type.
+
 **`validate()` never overwrites the request.** Auth middleware writes `userId`
 and `role` onto `req.body`; the Zod bridge only `safeParse`s and passes through,
 so it must not replace `req.body`/`req.query` with the parse result or the

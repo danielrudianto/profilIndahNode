@@ -1,12 +1,14 @@
 import { Router } from "express";
 import ReceivableController from "../controllers/receivable.controller";
-import { body, param } from "express-validator";
-import ErrorList from "../constants/error_list";
-import ErrorHelper from "../utils/error.helper";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 import { redisClient } from "../utils/redis.helper";
 import { prisma } from "../utils/database.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
+import { validate } from "../utils/validate.helper";
+import {
+  buatPembayaranSchema,
+  paramPiutangPelangganSchema,
+} from "../schemas/receivable.schema";
 
 const router = Router();
 
@@ -24,30 +26,13 @@ router.get("/", receivableController.fetch);
 
 router.get(
   "/customer/:id",
-  param("id").notEmpty().withMessage(ErrorList["Customer ID is required"]),
-  param("id")
-    .isInt({ min: 0 })
-    .withMessage(ErrorList["CUstomer ID must be integer"]),
-  ErrorHelper.intercept,
+  validate(paramPiutangPelangganSchema, "params"),
   receivableController.fetchByCustomerID
 );
 
 router.post(
   "/payment",
-  body("date").notEmpty().withMessage(ErrorList["Date required"]),
-  body("amount").notEmpty().withMessage(ErrorList["Amount is required"]),
-  body("amount")
-    .isFloat({
-      min: 0,
-    })
-    .withMessage(ErrorList["Amount must be numeric"]),
-  body("full_payment")
-    .isBoolean()
-    .withMessage(ErrorList["Payment status required"]),
-  body("payment_method_id")
-    .exists()
-    .withMessage(ErrorList["Payment method required"]),
-  ErrorHelper.intercept,
+  validate(buatPembayaranSchema),
   receivableController.createPayment
 );
 /*

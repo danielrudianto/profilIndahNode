@@ -1,7 +1,4 @@
 import { Router } from "express";
-import { body } from "express-validator";
-import ErrorHelper from "../utils/error.helper";
-import ErrorList from "../constants/error_list";
 import ProductStockController from "../controllers/product-stock.controller";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { prisma } from "../utils/database.helper";
@@ -9,6 +6,11 @@ import { ProductPackageRepository } from "../repositories/product-package.reposi
 import { ProductRepository } from "../repositories/product.repository";
 import { authMiddleware, authMiddlewareRole } from "../utils/auth.helper";
 import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
+import { validate } from "../utils/validate.helper";
+import {
+  daftarStokGudangKurangSchema,
+  daftarStokGudangSchema,
+} from "../schemas/warehouse.schema";
 
 const router = Router();
 
@@ -19,31 +21,23 @@ const productStockController = new ProductStockController(
   new SalesDepositRepository(prisma)
 );
 
+/*
+  Kedua middleware autentikasi harus tetap berjalan SEBELUM validate(): keduanya
+  menulis userId, role, dan user_sales ke req.body, dan controller memakainya
+  untuk menentukan data siapa yang boleh dilihat. Bidang-bidang itu tidak ikut
+  divalidasi karena berasal dari token, bukan dari klien.
+*/
 router.post(
   "/product-stock",
   authMiddlewareRole,
-  body("keyword").exists().withMessage(ErrorList["Keyword is required"]),
-  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
-  body("page")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["Page must be numeric"]),
-  ErrorHelper.intercept,
+  validate(daftarStokGudangSchema),
   productStockController.fetchWarehouse
 );
 
 router.post(
   "/product-stock/inadequate",
   authMiddleware,
-  body("keyword").exists().withMessage(ErrorList["Keyword is required"]),
-  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
-  body("page")
-    .isInt({
-      min: 0,
-    })
-    .withMessage(ErrorList["Page must be numeric"]),
-  ErrorHelper.intercept,
+  validate(daftarStokGudangKurangSchema),
   productStockController.fetchInadequateWarehouse
 );
 
