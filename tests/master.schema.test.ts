@@ -46,7 +46,7 @@ function appLama() {
 
   app.post("/pelanggan", ...customerBody, ErrorHelper.intercept, balas);
 
-  // Urutan disalin persis dari src/routes/master/customer.route.ts:
+  // Urutan disalin persis dari src/routes/customer.route.ts:
   // id lebih dulu, baru customerBody. Sempat saya tulis terbalik, dan tesnya
   // tetap lulus karena kedua sisi memakai urutan yang sama-sama keliru —
   // rekonstruksi yang salah membuat perbandingan kehilangan artinya.
@@ -297,7 +297,7 @@ describe("Penjaga: urutan bidang skema mengikuti berkas route", () => {
    * dijalankan aplikasi.
    */
   const berkasRoute = readFileSync(
-    join(__dirname, "..", "src", "routes", "master", "customer.route.ts"),
+    join(__dirname, "..", "src", "routes", "customer.route.ts"),
     "utf8"
   );
 

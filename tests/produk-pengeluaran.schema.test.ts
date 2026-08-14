@@ -440,7 +440,7 @@ describe("Perubahan harga massal", () => {
 describe("Penjaga: berkas route tidak lagi menyimpan aturan validasi", () => {
   it("product.route.ts", () => {
     const isi = readFileSync(
-      join(__dirname, "..", "src", "routes", "master", "product.route.ts"),
+      join(__dirname, "..", "src", "routes", "product.route.ts"),
       "utf8"
     );
     expect(isi).not.toMatch(/ErrorHelper\.intercept/);
@@ -451,7 +451,7 @@ describe("Penjaga: berkas route tidak lagi menyimpan aturan validasi", () => {
 
   it("expense.route.ts", () => {
     const isi = readFileSync(
-      join(__dirname, "..", "src", "routes", "transaction", "expense.route.ts"),
+      join(__dirname, "..", "src", "routes", "expense.route.ts"),
       "utf8"
     );
     expect(isi).not.toMatch(/ErrorHelper\.intercept/);

@@ -1,0 +1,158 @@
+import { Router } from "express";
+import { body, param } from "express-validator";
+import ErrorList from "../constants/error_list";
+import { SalesDepositController } from "../controllers/sales-deposit.controller";
+import { prisma } from "../utils/database.helper";
+import ErrorHelper from "../utils/error.helper";
+import { redisClient } from "../utils/redis.helper";
+import { OverpaymentRepository } from "../repositories/overpayment.repository";
+import { ReceivableRepository } from "../repositories/receivable.repository";
+import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
+import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
+import { StockCardRepository } from "../repositories/stock-card.repository";
+import { StockOutRepository } from "../repositories/stock-out.repository";
+import { ProductStockRepository } from "../repositories/product-stock.repository";
+
+const router = Router();
+
+const salesDepositController = new SalesDepositController(
+  new SalesDepositRepository(prisma),
+  new SalesInvoiceRepository(prisma),
+  new StockCardRepository(prisma),
+  new ProductStockRepository(prisma),
+  new StockOutRepository(prisma),
+  new ReceivableRepository(redisClient, prisma),
+  new OverpaymentRepository(prisma)
+);
+
+router.get("/archives", salesDepositController.fetchAnnualArchives);
+router.post(
+  "/archives",
+  body("year").notEmpty().withMessage(ErrorList["Year is required"]),
+  body("year")
+    .isInt({ min: 2000 })
+    .withMessage(ErrorList["Year must be numeric"]),
+  body("month").notEmpty().withMessage(ErrorList["Month is required"]),
+  body("month")
+    .isInt({ min: 1, max: 12 })
+    .withMessage(ErrorList["Month must be numeric"]),
+  body("page").notEmpty().withMessage(ErrorList["Page is required"]),
+  body("page").isInt({ min: 1 }).withMessage(ErrorList["Page must be numeric"]),
+  body("pageSize").notEmpty().withMessage(ErrorList["Page size is required"]),
+  body("pageSize")
+    .isInt({
+      min: 10,
+      max: 50,
+    })
+    .withMessage(ErrorList["Page size must be numeric"]),
+  body("isPending").exists().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").exists().withMessage(ErrorList["Parameter error"]),
+  body("isPending").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("isDelete").isBoolean().withMessage(ErrorList["Parameter error"]),
+  body("sortBy").notEmpty().withMessage(ErrorList["Sort by required"]),
+  body("sortDirection")
+    .isIn(["asc", "desc"])
+    .withMessage(
+      ErrorList["Sort direction only supports ascending or descending"]
+    ),
+  ErrorHelper.intercept,
+  salesDepositController.fetchArchives
+);
+
+router.post(
+  "/confirm",
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id")
+    .isInt({
+      min: 0,
+    })
+    .withMessage(ErrorList["ID must be numeric"]),
+  body("date").notEmpty().withMessage(ErrorList["Date required"]),
+  body("sales_invoice_payment")
+    .notEmpty()
+    .withMessage(ErrorList["Payment is required"]),
+  body("sales_invoice_payment")
+    .isArray()
+    .withMessage(ErrorList["Payment must be an array"]),
+  body("sales_invoice_payment.*.payment_method_id")
+    .exists()
+    .withMessage(ErrorList["Payment method required"]),
+  body("sales_invoice_payment.*.value")
+    .isFloat({
+      min: 0,
+    })
+    .withMessage(ErrorList["Amount must be numeric"]),
+  body("sales_invoice_payment.*.date")
+    .notEmpty()
+    .withMessage(ErrorList["Payment date is required"]),
+  ErrorHelper.intercept,
+  salesDepositController.confirm
+);
+router.post(
+  "/reject",
+  body("id").notEmpty().withMessage(ErrorList["ID is required"]),
+  body("id").isInt({ min: 0 }).withMessage(ErrorList["ID must be numeric"]),
+  body("method")
+    .isIn(["create", "delete"])
+    .withMessage(ErrorList["Parameter error"]),
+  body("return_payment_date")
+    .if(body("method").equals("create"))
+    .notEmpty()
+    .withMessage(ErrorList["Date required"]),
+  body("return_payment_method")
+    .if(body("method").equals("create"))
+    .notEmpty()
+    .withMessage(ErrorList["Return payment method is required"]),
+  body("return_payment_name")
+    .if(body("method").equals("create"))
+    .notEmpty()
+    .withMessage(ErrorList["Return payment name is required"]),
+  ErrorHelper.intercept,
+  salesDepositController.reject
+);
+
+router.post(
+  "/",
+  body("uuid").notEmpty().withMessage(ErrorList["Parameter error"]),
+  body("customer_id")
+    .exists()
+    .withMessage(ErrorList["Customer ID is required"]),
+  body("discount").notEmpty().withMessage(ErrorList["Discount required"]),
+  body("discount")
+    .isFloat({
+      min: 0,
+    })
+    .withMessage(ErrorList["Discount must be numeric"]),
+  body("delivery").notEmpty().withMessage(ErrorList["Discount required"]),
+  body("delivery")
+    .isFloat({
+      min: 0,
+    })
+    .withMessage(ErrorList["Discount must be numeric"]),
+  body("service").notEmpty().withMessage(ErrorList["Discount required"]),
+  body("service")
+    .isFloat({
+      min: 0,
+    })
+    .withMessage(ErrorList["Discount must be numeric"]),
+  body("is_paid")
+    .isBoolean()
+    .withMessage(ErrorList["Payment status is required"]),
+  body("type")
+    .isIn(["INTERNAL", "EXTERNAL"])
+    .withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  salesDepositController.create
+);
+
+router.get(
+  "/:id",
+  param("id").isNumeric().withMessage(ErrorList["Parameter error"]),
+  param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
+  ErrorHelper.intercept,
+  salesDepositController.fetchByID
+);
+
+router.get("/", salesDepositController.fetch);
+
+export default router;

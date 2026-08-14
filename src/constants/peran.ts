@@ -7,7 +7,7 @@
  * Peran 6 (Gudang) sengaja tidak disertakan: ia tidak muncul pada guard laporan
  * mana pun di frontend dan hanya memakai rute /warehouse.
  *
- * Sebelumnya berada di routes/report/report.route.ts. Dipindah mengikuti
+ * Sebelumnya berada di routes/report.route.ts. Dipindah mengikuti
  * kesepakatan bahwa konstanta punya berkasnya sendiri di constants/.
  */
 export const PERAN_PENJUALAN = [2, 3, 5, 7];

@@ -9,50 +9,50 @@ import cron from "node-cron";
 import { initIO } from "./utils/io";
 
 import { administratorMiddleware, authMiddleware } from "./utils/auth.helper";
-import authRoutes from "./routes/authentication/auth.route";
+import authRoutes from "./routes/auth.route";
 /*
   Routes for master data
 */
-import productRoutes from "./routes/master/product.route";
-import productPackageRoutes from "./routes/master/product-package.route";
-import productSalesPriceRoutes from "./routes/master/product-price-sales.route";
-import productPurchasePriceRoutes from "./routes/master/product-price-purchase.route";
-import productBrandRoutes from "./routes/master/product-brand.route";
-import productTypeRoutes from "./routes/master/product-type.route";
-import productStockRoutes from "./routes/report/stock.route";
+import productRoutes from "./routes/product.route";
+import productPackageRoutes from "./routes/product-package.route";
+import productSalesPriceRoutes from "./routes/product-price-sales.route";
+import productPurchasePriceRoutes from "./routes/product-price-purchase.route";
+import productBrandRoutes from "./routes/product-brand.route";
+import productTypeRoutes from "./routes/product-type.route";
+import productStockRoutes from "./routes/stock.route";
 
-import supplierRoutes from "./routes/master/supplier.route";
-import customerRoutes from "./routes/master/customer.route";
-import companyRoutes from "./routes/master/company.route";
-import paymentMethodRoutes from "./routes/master/payment-method.route";
-import expenseTypeRoutes from "./routes/master/expense-type.route";
+import supplierRoutes from "./routes/supplier.route";
+import customerRoutes from "./routes/customer.route";
+import companyRoutes from "./routes/company.route";
+import paymentMethodRoutes from "./routes/payment-method.route";
+import expenseTypeRoutes from "./routes/expense-type.route";
 /*
   Routes for transactions data
 */
-import goodReceiptRoutes from "./routes/transaction/good-receipt.route";
-import userRoutes from "./routes/master/user.route";
-import userAvatarRoutes from "./routes/master/user-avatar.route";
-import expenseRoutes from "./routes/transaction/expense.route";
-import salesInvoiceRoutes from "./routes/transaction/sales-invoice.route";
-import salesDepositRoutes from "./routes/transaction/sales-deposit.route";
-import adjustmentEventRoutes from "./routes/transaction/adjustment-case.route";
-import reportRoutes from "./routes/report/report.route";
-import dashboardRoutes from "./routes/report/dashboard.route";
-import salesReturnRoutes from "./routes/transaction/sales-return.route";
-import DraftBillRoutes from "./routes/transaction/draft-bill.route";
-import OverpaymentRoutes from "./routes/transaction/overpayment.route";
-import CashierRoutes from "./routes/distinct/cashier.route";
-import PromotionRoutes from "./routes/master/promotion.route";
-import ReceivableRoutes from "./routes/transaction/receivable.route";
-import SalesmanRoutes from "./routes/master/salesman.route";
+import goodReceiptRoutes from "./routes/good-receipt.route";
+import userRoutes from "./routes/user.route";
+import userAvatarRoutes from "./routes/user-avatar.route";
+import expenseRoutes from "./routes/expense.route";
+import salesInvoiceRoutes from "./routes/sales-invoice.route";
+import salesDepositRoutes from "./routes/sales-deposit.route";
+import adjustmentEventRoutes from "./routes/adjustment-case.route";
+import reportRoutes from "./routes/report.route";
+import dashboardRoutes from "./routes/dashboard.route";
+import salesReturnRoutes from "./routes/sales-return.route";
+import DraftBillRoutes from "./routes/draft-bill.route";
+import OverpaymentRoutes from "./routes/overpayment.route";
+import CashierRoutes from "./routes/cashier.route";
+import PromotionRoutes from "./routes/promotion.route";
+import ReceivableRoutes from "./routes/receivable.route";
+import SalesmanRoutes from "./routes/salesman.route";
 
 /*
   Administrator Routes
 */
-import administratorRoutes from "./routes/distinct/administrator.route";
-import warehouseRoutes from "./routes/distinct/warehouse.route";
-import osRoutes from "./routes/distinct/os.route";
-import changelogRoutes from "./routes/report/changelog.route";
+import administratorRoutes from "./routes/administrator.route";
+import warehouseRoutes from "./routes/warehouse.route";
+import osRoutes from "./routes/os.route";
+import changelogRoutes from "./routes/changelog.route";
 
 /*
   Importing other

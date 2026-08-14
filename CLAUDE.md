@@ -38,9 +38,13 @@ Redis, Meilisearch.
 
 **MVC + Repository pattern, layered:**
 
-- `src/routes/` — Express routers, grouped by domain into subfolders:
-  `authentication/`, `master/`, `transaction/`, `report/`, `distinct/`.
-  One file per resource, suffix `.route.ts`.
+- `src/routes/` — Express routers, one flat file per resource, suffix
+  `.route.ts`. **No subfolders.** They used to exist (`master/`,
+  `transaction/`, `distinct/`, …) but they never matched the mount prefixes —
+  `master/customer.route.ts` mounts at `/customer`, not `/master/customer` —
+  so they grouped by a taxonomy that nothing else in the system used.
+  `src/app.ts` is the real index: every router appears there with its actual
+  URL prefix.
 - `src/controllers/` — request handling and orchestration (one class per domain).
 - `src/services/` — reusable business logic shared across controllers.
 - `src/repositories/` — Prisma-based data access (MySQL).

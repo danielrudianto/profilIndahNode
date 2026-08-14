@@ -15,7 +15,7 @@ const path = require("path");
 
 // Berkas -> daftar route yang memang boleh publik, beserta alasannya.
 const ALLOWLIST = {
-  "src/routes/authentication/auth.route.ts": ["POST /login", "POST /refresh-token"],
+  "src/routes/auth.route.ts": ["POST /login", "POST /refresh-token"],
 };
 
 const GUARDS = [

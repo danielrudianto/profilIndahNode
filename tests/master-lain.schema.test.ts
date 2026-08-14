@@ -271,10 +271,7 @@ describe("Batas panjang — aturan baru", () => {
 
 describe("Penjaga: berkas route tidak lagi menyimpan aturan validasi", () => {
   const baca = (nama: string) =>
-    readFileSync(
-      join(__dirname, "..", "src", "routes", "master", nama),
-      "utf8"
-    );
+    readFileSync(join(__dirname, "..", "src", "routes", nama), "utf8");
 
   for (const berkas of [
     "product-brand.route.ts",
