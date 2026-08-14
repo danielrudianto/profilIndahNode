@@ -176,6 +176,10 @@ model sales_invoice_code {
   stock_out                         stock_out[]
   stock_card                        stock_card[]
   sales_return_code                 sales_return_code[]
+  // Sisi balik deposit_code_ibfk_4. Berbentuk larik karena Prisma mewajibkannya
+  // pada relasi tanpa batasan unik, tetapi isinya paling banyak satu: sebuah
+  // setoran hanya dikonfirmasi sekali.
+  sales_deposit_code                sales_deposit_code[]
 
   @@index([created_by], map: "bill_code_ibfk_1_idx")
   @@index([confirmed_by], map: "bill_code_ibfk_2_idx")
@@ -228,7 +232,20 @@ model sales_deposit_code {
   // Sales string but optional, default NULL
   sales       String?
 
+  // Faktur yang lahir dari setoran ini. Sebelumnya kaitannya hanya tersirat
+  // lewat penomoran: fakturnya sengaja diberi nomor berawalan DPS- supaya
+  // ketahuan asalnya dari setoran. Cara itu membuat penomoran faktur tidak
+  // berurutan dan menaruh dua dokumen berbeda pada ruang nomor yang sama,
+  // jadi kaitannya kini dinyatakan lewat kolom ini dan fakturnya kembali
+  // memakai penomoran faktur biasa.
+  //
+  // Boleh NULL karena setoran yang belum dikonfirmasi belum punya faktur, dan
+  // karena seluruh setoran lama tidak akan terisi surut — kaitannya di sana
+  // tetap hanya lewat nomor DPS- yang telanjur beredar.
+  sales_invoice_code_id Int?
+
   date                              DateTime?               @db.Date
+  sales_invoice_code                sales_invoice_code?     @relation(fields: [sales_invoice_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_4")
   user_bill_code_confirmed_byTouser user?                   @relation("deposit_code_deleted_byTouser", fields: [deleted_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_2")
   user_bill_code_created_byTouser   user                    @relation("deposit_code_created_byTouser", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_1")
   customer                          customer?               @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "deposit_code_ibfk_3")
@@ -240,6 +257,7 @@ model sales_deposit_code {
   @@index([created_by], map: "deposit_code_ibfk_1_idx")
   @@index([deleted_by], map: "deposit_code_ibfk_2_idx")
   @@index([customer_id], map: "deposit_code_ibfk_3_idx")
+  @@index([sales_invoice_code_id], map: "deposit_code_ibfk_4_idx")
 }
 
 model sales_deposit_payment {

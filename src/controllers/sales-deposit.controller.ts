@@ -213,7 +213,17 @@ export class SalesDepositController {
       const customerID = deposit.customerID;
 
       const result = await this.salesInvoiceRepository.create({
-        name: this.salesDepositRepository.generateName(date),
+        /*
+          Penomoran memakai generateName milik repository FAKTUR, bukan milik
+          setoran. Sebelumnya yang dipakai adalah milik setoran, sehingga faktur
+          hasil konfirmasi beredar dengan nomor berawalan DPS-: penomoran faktur
+          jadi tidak berurutan, dan nomor itu bisa bertabrakan dengan nomor
+          dokumen setoran aslinya.
+
+          Asal-usulnya tetap terlacak — tapi lewat kolom sales_invoice_code_id
+          pada sales_deposit_code yang ditulis di bawah, bukan lewat awalan nomor.
+        */
+        name: this.salesInvoiceRepository.generateName(date),
         date: new Date(date),
         customerID: customerID,
         sales: deposit.sales,
@@ -247,7 +257,7 @@ export class SalesDepositController {
         confirmedBy: userID,
       });
 
-      await this.salesDepositRepository.confirmByID(id, userID);
+      await this.salesDepositRepository.confirmByID(id, userID, result.id!);
 
       if (!deposit.isPaid) {
         await this.receivableRepository.addReceivableValue(value - payment);

@@ -533,8 +533,20 @@ export class SalesDepositRepository {
     return result;
   }
 
-  async confirmByID(id: number, userID: number) {
-    const result = await this.prisma.sales_deposit_code.update({
+  /*
+    salesInvoiceCodeID adalah faktur yang lahir dari setoran ini. Kaitannya dulu
+    hanya tersirat lewat penomoran faktur yang diberi awalan DPS-; sejak migrasi
+    20260814010000_sales_deposit_invoice_link kaitannya punya kolom sendiri, dan
+    fakturnya kembali memakai penomoran faktur biasa.
+
+    Penandaannya memang memakai is_delete, bukan is_confirm — sales_deposit_code
+    tidak punya kolom is_confirm, dan setoran yang sudah menjadi faktur memang
+    tidak boleh muncul lagi di daftar setoran terbuka. Penjaga di awal confirm()
+    membaca kedua keadaan itu lewat isDelete, jadi penandaan ini pula yang
+    menutup pintu konfirmasi kedua.
+  */
+  async confirmByID(id: number, userID: number, salesInvoiceCodeID: number) {
+    await this.prisma.sales_deposit_code.update({
       where: {
         id: id,
       },
@@ -542,6 +554,7 @@ export class SalesDepositRepository {
         is_delete: true,
         deleted_at: new Date(),
         deleted_by: userID,
+        sales_invoice_code_id: salesInvoiceCodeID,
       },
     });
   }

@@ -563,7 +563,11 @@ describe("POST /confirm — setoran menjadi faktur", () => {
       "stok",
       "kartu-stok",
     ]);
-    expect(r.salesDeposit.confirmByID).toHaveBeenCalledWith(21, 99);
+    // Argumen ketiga adalah id faktur yang baru dibuat: sejak migrasi
+    // 20260814010000 kaitan setoran ke fakturnya disimpan di kolom
+    // sales_deposit_code.sales_invoice_code_id, bukan lagi tersirat lewat
+    // awalan nomor DPS-.
+    expect(r.salesDeposit.confirmByID).toHaveBeenCalledWith(21, 99, 77);
   });
 
   /**
@@ -652,19 +656,20 @@ describe("POST /confirm — setoran menjadi faktur", () => {
   });
 
   /**
-   * CACAT: faktur hasil konfirmasi diberi NOMOR SETORAN, bukan nomor faktur.
+   * Faktur hasil konfirmasi memakai penomoran FAKTUR, bukan penomoran setoran.
    *
-   * Penamaan memakai `salesDepositRepository.generateName`, yang menghasilkan
-   * awalan "DPS-". Penamaan faktur ada di `salesInvoiceRepository.generateName`
-   * dengan awalan "INV-", dan tidak pernah dipanggil di sini.
+   * Dulu penamaannya memakai `salesDepositRepository.generateName`, yang
+   * berawalan "DPS-", sehingga faktur penjualan yang lahir dari setoran beredar
+   * dengan nomor setoran: penomoran faktur menjadi tidak berurutan, dokumennya
+   * sulit dicari lewat pencarian nomor faktur, dan bila nomor itu kebetulan
+   * sama dengan nomor dokumen setoran aslinya, dua dokumen berbeda beredar
+   * dengan nomor yang sama ke tangan pelanggan.
    *
-   * Akibatnya bagi pengguna: faktur penjualan yang lahir dari setoran beredar
-   * dengan nomor berawalan DPS. Penomoran faktur menjadi tidak berurutan,
-   * dokumen sulit dicari lewat pencarian nomor faktur, dan bila nomor setoran
-   * itu kebetulan sama dengan nomor dokumen setoran aslinya, dua dokumen
-   * berbeda beredar dengan nomor yang sama ke tangan pelanggan.
+   * Asal-usulnya sekarang dicatat lewat kolom sales_invoice_code_id — dikunci
+   * oleh tes urutan pemanggilan di atas — sehingga awalan nomor tidak lagi
+   * perlu merangkap sebagai penanda asal.
    */
-  it("CACAT: faktur hasil konfirmasi bernomor DPS-, bukan INV-", async () => {
+  it("faktur hasil konfirmasi bernomor INV-, bukan DPS-", async () => {
     const r = repositoriTiruan();
     r.salesDeposit.fetchByID.mockResolvedValue(setoran());
     r.salesInvoice.create.mockResolvedValue(fakturHasilKonfirmasi());
@@ -672,10 +677,10 @@ describe("POST /confirm — setoran menjadi faktur", () => {
     await request(app(r)).post("/confirm").send(badanKonfirmasi);
 
     expect(r.salesInvoice.create.mock.calls[0][0].name).toBe(
-      "DPS-2024-33334444"
+      "INV-2024-55556666"
     );
-    expect(r.salesDeposit.generateName).toHaveBeenCalled();
-    expect(r.salesInvoice.generateName).not.toHaveBeenCalled();
+    expect(r.salesInvoice.generateName).toHaveBeenCalled();
+    expect(r.salesDeposit.generateName).not.toHaveBeenCalled();
   });
 
   /**

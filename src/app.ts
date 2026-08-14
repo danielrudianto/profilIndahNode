@@ -45,7 +45,6 @@ import adjustmentEventRoutes from "./routes/adjustment-case.route";
 import reportRoutes from "./routes/report.route";
 import dashboardRoutes from "./routes/dashboard.route";
 import salesReturnRoutes from "./routes/sales-return.route";
-import DraftBillRoutes from "./routes/draft-bill.route";
 import OverpaymentRoutes from "./routes/overpayment.route";
 import CashierRoutes from "./routes/cashier.route";
 import PromotionRoutes from "./routes/promotion.route";
@@ -130,7 +129,6 @@ async function main() {
   app.use("/good-receipt", authMiddleware, goodReceiptRoutes);
   app.use("/sales-invoice", authMiddleware, salesInvoiceRoutes);
   app.use("/sales-deposit", authMiddleware, salesDepositRoutes);
-  app.use("/draft-bill", authMiddleware, DraftBillRoutes);
   app.use("/overpayment", authMiddleware, OverpaymentRoutes);
   app.use("/cashier", authMiddleware, CashierRoutes);
 
