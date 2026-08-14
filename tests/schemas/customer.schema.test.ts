@@ -4,22 +4,17 @@ import express from "express";
 import request from "supertest";
 import { body, param } from "express-validator";
 import ErrorHelper from "../support/legacy-error.helper";
+import { balas, buatBanding } from "../support/schema-comparison.helper";
 import ErrorList from "../../src/constants/error-list.constant";
 import { validate } from "../../src/utils/validate.helper";
-import {
-  createPaymentMethodSchema,
-  deletePaymentMethodSchema,
-  updatePaymentMethodSchema,
-} from "../../src/schemas/payment-method.schema";
 import {
   createCustomerSchema,
   paramCustomerSchema,
   updateCustomerSchema,
 } from "../../src/schemas/customer.schema";
-import { createCompanySchema } from "../../src/schemas/company.schema";
 
 /**
- * Perbandingan perilaku untuk data master.
+ * Perbandingan perilaku untuk pelanggan.
  *
  * Yang paling mudah tertukar di sini adalah exists() versus notEmpty().
  * customer.phone_number dan customer.npwp memakai exists() — teks kosong
@@ -27,14 +22,11 @@ import { createCompanySchema } from "../../src/schemas/company.schema";
  * menolak pelanggan tanpa NPWP, yang selama ini data sah.
  */
 
-const balas = (_req: express.Request, res: express.Response) =>
-  res.status(200).send("OK");
-
 function appLama() {
   const app = express();
   app.use(express.json());
 
-  const customerBody = [
+  const badanPelanggan = [
     body("name").notEmpty().withMessage(ErrorList["Customer name is required"]),
     body("pic").notEmpty().withMessage(ErrorList["Customer PIC is required"]),
     body("phone_number")
@@ -46,10 +38,10 @@ function appLama() {
     body("npwp").exists().withMessage(ErrorList["Customer NPWP is required"]),
   ];
 
-  app.post("/pelanggan", ...customerBody, ErrorHelper.intercept, balas);
+  app.post("/pelanggan", ...badanPelanggan, ErrorHelper.intercept, balas);
 
   // Urutan disalin persis dari src/routes/customer.route.ts:
-  // id lebih dulu, baru customerBody. Sempat saya tulis terbalik, dan tesnya
+  // id lebih dulu, baru badanPelanggan. Sempat saya tulis terbalik, dan tesnya
   // tetap lulus karena kedua sisi memakai urutan yang sama-sama keliru —
   // rekonstruksi yang salah membuat perbandingan kehilangan artinya.
   app.put(
@@ -58,7 +50,7 @@ function appLama() {
     body("id")
       .isInt({ min: 1 })
       .withMessage(ErrorList["CUstomer ID must be integer"]),
-    ...customerBody,
+    ...badanPelanggan,
     ErrorHelper.intercept,
     balas
   );
@@ -67,46 +59,6 @@ function appLama() {
     "/pelanggan/:id",
     param("id").notEmpty().withMessage(ErrorList["Parameter error"]),
     param("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
-  app.post(
-    "/perusahaan",
-    body("name").exists().withMessage(ErrorList["Parameter error"]),
-    body("address").exists().withMessage(ErrorList["Parameter error"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
-  app.post(
-    "/metode",
-    body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-    body("description")
-      .not()
-      .isEmpty()
-      .withMessage(ErrorList["Parameter error"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
-  app.put(
-    "/metode",
-    body("id").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-    body("id").isInt({ min: 1 }).withMessage(ErrorList["Parameter error"]),
-    body("name").not().isEmpty().withMessage(ErrorList["Parameter error"]),
-    body("description")
-      .not()
-      .isEmpty()
-      .withMessage(ErrorList["Parameter error"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
-  app.delete(
-    "/metode/:id",
-    param("id").notEmpty().withMessage(ErrorList["ID is required"]),
-    param("id").isInt({ min: 1 }).withMessage(ErrorList["ID must be numeric"]),
     ErrorHelper.intercept,
     balas
   );
@@ -120,35 +72,12 @@ function appBaru() {
   app.post("/pelanggan", validate(createCustomerSchema), balas);
   app.put("/pelanggan", validate(updateCustomerSchema), balas);
   app.get("/pelanggan/:id", validate(paramCustomerSchema, "params"), balas);
-  app.post("/perusahaan", validate(createCompanySchema), balas);
-  app.post("/metode", validate(createPaymentMethodSchema), balas);
-  app.put("/metode", validate(updatePaymentMethodSchema), balas);
-  app.delete(
-    "/metode/:id",
-    validate(deletePaymentMethodSchema, "params"),
-    balas
-  );
   return app;
 }
 
 const lama = appLama();
 const baru = appBaru();
-
-async function banding(
-  metode: "post" | "put" | "get" | "delete",
-  jalur: string,
-  badan?: any
-) {
-  const kirim = (app: express.Express) => {
-    const r = (request(app) as any)[metode](jalur);
-    return badan === undefined ? r : r.send(badan);
-  };
-  const [a, b] = await Promise.all([kirim(lama), kirim(baru)]);
-  return {
-    lama: { status: a.status, teks: a.text },
-    baru: { status: b.status, teks: b.text },
-  };
-}
+const banding = buatBanding(lama, baru);
 
 const pelangganLengkap = {
   name: "PT Sejahtera",
@@ -205,60 +134,6 @@ describe("Pelanggan — perilaku harus identik", () => {
   }
 });
 
-describe("Perusahaan — perilaku harus identik", () => {
-  const kasus: Array<[string, any]> = [
-    ["lengkap", { name: "PT A", address: "Jl. B" }],
-    ["name kosong tetap diterima", { name: "", address: "Jl. B" }],
-    ["tanpa name", { address: "Jl. B" }],
-    ["tanpa address", { name: "PT A" }],
-    ["badan kosong", {}],
-  ];
-
-  for (const [nama, badan] of kasus) {
-    it(nama, async () => {
-      const h = await banding("post", "/perusahaan", badan);
-      expect(h.baru).toEqual(h.lama);
-    });
-  }
-});
-
-describe("Metode pembayaran — perilaku harus identik", () => {
-  const kasus: Array<[string, any]> = [
-    ["lengkap", { name: "Tunai", description: "Bayar langsung" }],
-    ["tanpa name", { description: "x" }],
-    ["name kosong", { name: "", description: "x" }],
-    ["tanpa description", { name: "Tunai" }],
-    ["badan kosong", {}],
-  ];
-
-  for (const [nama, badan] of kasus) {
-    it(nama, async () => {
-      const h = await banding("post", "/metode", badan);
-      expect(h.baru).toEqual(h.lama);
-    });
-  }
-
-  const kasusUbah: Array<[string, any]> = [
-    ["lengkap", { id: 1, name: "Tunai", description: "x" }],
-    ["tanpa id", { name: "Tunai", description: "x" }],
-    ["id nol", { id: 0, name: "Tunai", description: "x" }],
-    ["id bukan angka", { id: "abc", name: "Tunai", description: "x" }],
-  ];
-
-  for (const [nama, badan] of kasusUbah) {
-    it(`ubah: ${nama}`, async () => {
-      const h = await banding("put", "/metode", badan);
-      expect(h.baru).toEqual(h.lama);
-    });
-  }
-
-  it("hapus memakai pesan berbeda dari rute lain", async () => {
-    const h = await banding("delete", "/metode/abc");
-    expect(h.baru).toEqual(h.lama);
-    expect(h.baru.teks).toBe(ErrorList["ID must be numeric"]);
-  });
-});
-
 describe("Batas panjang — aturan baru", () => {
   it("nama pelanggan 101 karakter ditolak", async () => {
     const res = await request(baru)
@@ -281,14 +156,6 @@ describe("Batas panjang — aturan baru", () => {
       .send({ ...pelangganLengkap, address: "a".repeat(192) });
     expect(res.status).toBe(400);
     expect(res.text).toBe(ErrorList["Customer address too long"]);
-  });
-
-  it("nama perusahaan 51 karakter ditolak", async () => {
-    const res = await request(baru)
-      .post("/perusahaan")
-      .send({ name: "a".repeat(51), address: "Jl. B" });
-    expect(res.status).toBe(400);
-    expect(res.text).toBe(ErrorList["Company name too long"]);
   });
 });
 

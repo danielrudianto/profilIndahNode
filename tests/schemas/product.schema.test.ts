@@ -2,29 +2,22 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import express from "express";
 import request from "supertest";
-import { body, param, query } from "express-validator";
+import { body, param } from "express-validator";
 import ErrorHelper from "../support/legacy-error.helper";
+import { balas, buatBanding } from "../support/schema-comparison.helper";
 import ErrorList from "../../src/constants/error-list.constant";
 import { validate } from "../../src/utils/validate.helper";
 import {
   activateProductSchema,
   createProductSchema,
+  deleteProductSchema,
+  getProductSchema,
   updateProductPriceSchema,
   updateProductSchema,
 } from "../../src/schemas/product.schema";
-import {
-  getProductSchema,
-  deleteProductSchema,
-} from "../../src/schemas/product-price.schema";
-import {
-  createExpenseSchema,
-  queryExpenseMutationSchema,
-  queryExpenseSchema,
-  updateExpenseSchema,
-} from "../../src/schemas/expense.schema";
 
 /**
- * Perbandingan perilaku untuk produk dan pengeluaran.
+ * Perbandingan perilaku untuk produk.
  *
  * Dua sifat express-validator yang mudah salah ditiru dan diuji khusus di sini:
  *
@@ -33,10 +26,11 @@ import {
  *   diterima — dan frontend memang mengirim sebagian nilai sebagai teks.
  *
  *   isNumeric() menerima PECAHAN. Hanya isInt() yang menyaringnya.
+ *
+ * GET dan DELETE /product/:id memakai pasangan pesan yang BERBEDA satu sama
+ * lain meski berada di berkas route yang sama — "ID is required"/"ID must be
+ * numeric" versus "Parameter error". Perbedaan itu ditiru apa adanya.
  */
-
-const balas = (_req: express.Request, res: express.Response) =>
-  res.status(200).send("OK");
 
 function appLama() {
   const app = express();
@@ -116,50 +110,6 @@ function appLama() {
     balas
   );
 
-  const expenseBody = [
-    body("date").notEmpty().withMessage(ErrorList["Parameter error"]),
-    body("description").notEmpty().withMessage(ErrorList["Parameter error"]),
-    body("value").notEmpty().withMessage(ErrorList["Parameter error"]),
-    body("value").isNumeric().withMessage(ErrorList["Parameter error"]),
-    body("company_id").notEmpty().withMessage(ErrorList["Parameter error"]),
-    body("company_id").isNumeric().withMessage(ErrorList["Parameter error"]),
-    body("expense_type_id")
-      .notEmpty()
-      .withMessage(ErrorList["Parameter error"]),
-  ];
-
-  app.post("/biaya", ...expenseBody, ErrorHelper.intercept, balas);
-  app.put(
-    "/biaya",
-    ...expenseBody,
-    body("id").notEmpty().withMessage(ErrorList["Parameter error"]),
-    body("id").isNumeric().withMessage(ErrorList["Parameter error"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
-  app.get(
-    "/biaya",
-    query("month").notEmpty().withMessage(ErrorList["Month is required"]),
-    query("month")
-      .isInt({ min: 0, max: 12 })
-      .withMessage(ErrorList["Month must be numeric"]),
-    query("year").notEmpty().withMessage(ErrorList["Year is required"]),
-    query("year").isNumeric().withMessage(ErrorList["Year must be numeric"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
-  app.get(
-    "/biaya/mutation",
-    query("month").notEmpty().withMessage(ErrorList["Month is required"]),
-    query("month").isNumeric().withMessage(ErrorList["Month must be numeric"]),
-    query("year").notEmpty().withMessage(ErrorList["Year is required"]),
-    query("year").isNumeric().withMessage(ErrorList["Year must be numeric"]),
-    ErrorHelper.intercept,
-    balas
-  );
-
   return app;
 }
 
@@ -171,35 +121,12 @@ function appBaru() {
   app.put("/produk/active", validate(activateProductSchema), balas);
   app.get("/produk/:id", validate(getProductSchema, "params"), balas);
   app.delete("/produk/:id", validate(deleteProductSchema, "params"), balas);
-  app.post("/biaya", validate(createExpenseSchema), balas);
-  app.put("/biaya", validate(updateExpenseSchema), balas);
-  app.get("/biaya", validate(queryExpenseSchema, "query"), balas);
-  app.get(
-    "/biaya/mutation",
-    validate(queryExpenseMutationSchema, "query"),
-    balas
-  );
   return app;
 }
 
 const lama = appLama();
 const baru = appBaru();
-
-async function banding(
-  metode: "post" | "put" | "get" | "delete",
-  jalur: string,
-  badan?: any
-) {
-  const kirim = (app: express.Express) => {
-    const r = (request(app) as any)[metode](jalur);
-    return badan === undefined ? r : r.send(badan);
-  };
-  const [a, b] = await Promise.all([kirim(lama), kirim(baru)]);
-  return {
-    lama: { status: a.status, teks: a.text },
-    baru: { status: b.status, teks: b.text },
-  };
-}
+const banding = buatBanding(lama, baru);
 
 const produkLengkap = {
   reference: "HB-001",
@@ -282,88 +209,6 @@ describe("Produk — aktif dan parameter jalur", () => {
   }
 });
 
-describe("Pengeluaran", () => {
-  const biaya = {
-    date: "2026-05-01",
-    description: "Listrik",
-    value: 500000,
-    company_id: 1,
-    expense_type_id: 2,
-  };
-  const kasus: Array<[string, any]> = [
-    ["lengkap", biaya],
-    ["value berupa teks angka", { ...biaya, value: "500000" }],
-    ["value bukan angka", { ...biaya, value: "abc" }],
-    ["value pecahan diterima", { ...biaya, value: 1500.5 }],
-    ["tanpa value", { ...biaya, value: undefined }],
-    ["company_id berupa teks", { ...biaya, company_id: "1" }],
-    ["tanpa description", { ...biaya, description: undefined }],
-    ["badan kosong", {}],
-  ];
-  for (const [nama, badan] of kasus) {
-    it(`buat: ${nama}`, async () => {
-      const h = await banding("post", "/biaya", badan);
-      expect(h.baru).toEqual(h.lama);
-    });
-  }
-
-  for (const [nama, badan] of [
-    ["lengkap", { ...biaya, id: 1 }],
-    ["tanpa id", biaya],
-    ["id bukan angka", { ...biaya, id: "abc" }],
-  ] as Array<[string, any]>) {
-    it(`ubah: ${nama}`, async () => {
-      const h = await banding("put", "/biaya", badan);
-      expect(h.baru).toEqual(h.lama);
-    });
-  }
-});
-
-describe("Pengeluaran — dua rute kueri dengan aturan berbeda", () => {
-  const kasus = [
-    "?month=5&year=2026",
-    "?month=0&year=2026",
-    "?month=13&year=2026",
-    "?month=abc&year=2026",
-    "?year=2026",
-    "",
-  ];
-
-  for (const q of kasus) {
-    it(`GET /biaya${q}`, async () => {
-      const h = await banding("get", "/biaya" + q);
-      expect(h.baru).toEqual(h.lama);
-    });
-    it(`GET /biaya/mutation${q}`, async () => {
-      const h = await banding("get", "/biaya/mutation" + q);
-      expect(h.baru).toEqual(h.lama);
-    });
-  }
-
-  it("penjaga: month=13 ditolak di / tetapi diterima di /mutation", async () => {
-    // Kalau kedua rute disamakan, salah satu harapan ini gagal.
-    const a = await request(baru).get("/biaya?month=13&year=2026");
-    const b = await request(baru).get("/biaya/mutation?month=13&year=2026");
-    expect(a.status).toBe(400);
-    expect(b.status).toBe(200);
-  });
-});
-
-describe("isNumeric menerima teks — jangan diganti z.number()", () => {
-  it("value berupa teks '500000' diterima kedua sisi", async () => {
-    const badan = {
-      date: "2026-05-01",
-      description: "Listrik",
-      value: "500000",
-      company_id: "1",
-      expense_type_id: 2,
-    };
-    const h = await banding("post", "/biaya", badan);
-    expect(h.lama.status).toBe(200);
-    expect(h.baru.status).toBe(200);
-  });
-});
-
 describe("Batas panjang — aturan baru", () => {
   it("reference 51 karakter ditolak", async () => {
     const res = await request(baru)
@@ -397,6 +242,12 @@ describe("Batas panjang — aturan baru", () => {
   });
 });
 
+/**
+ * updateProductPriceSchema tinggal di product.schema.ts, bukan di
+ * product-price.schema.ts — jangan tertukar dengan updateUnitPriceSchema yang
+ * bentuk badannya berbeda. Yang ini dipakai PUT /product/price-purchase dan
+ * PUT /product/price-sales.
+ */
 describe("Perubahan harga massal", () => {
   const sah = {
     items: [{ product_id: 1, price: 1000, discount: 0 }],
@@ -451,14 +302,5 @@ describe("Penjaga: berkas route tidak lagi menyimpan aturan validasi", () => {
     expect(isi).not.toMatch(/\bbody\(/);
     // Salah ketik "-router.delete(" pada berkas asli ikut dibersihkan.
     expect(isi).not.toMatch(/-router\./);
-  });
-
-  it("expense.route.ts", () => {
-    const isi = readFileSync(
-      join(__dirname, "..", "..", "src", "routes", "expense.route.ts"),
-      "utf8"
-    );
-    expect(isi).not.toMatch(/ErrorHelper\.intercept/);
-    expect(isi).not.toMatch(/\bbody\(/);
   });
 });

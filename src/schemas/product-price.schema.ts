@@ -19,18 +19,6 @@ import { requiredInt, requiredIntFromText, required } from "./common.schema";
  */
 
 /** Angka dalam bentuk apa pun — meniru isNumeric(), pecahan diterima. */
-const angka = (pesan: string) =>
-  z
-    .any()
-    .refine(
-      (nilai) =>
-        nilai !== undefined &&
-        nilai !== null &&
-        String(nilai).trim() !== "" &&
-        !isNaN(Number(nilai)),
-      { message: pesan }
-    );
-
 /** Bilangan bulat minimal 1 — meniru isInt({ min: 1 }). */
 const bulatMin1 = (pesan: string) =>
   z
@@ -213,21 +201,5 @@ export const getSalesPriceSchema = z.object({
     ErrorList["ID is required"],
     ErrorList["ID must be numeric"],
     1
-  ),
-});
-
-/** GET /product/:id — pesannya berbeda dari DELETE pada berkas yang sama. */
-export const getProductSchema = z.object({
-  id: required(ErrorList["ID is required"]).refine(
-    (nilai) => !isNaN(Number(nilai)),
-    { message: ErrorList["ID must be numeric"] }
-  ),
-});
-
-/** DELETE /product/:id */
-export const deleteProductSchema = z.object({
-  id: angka(ErrorList["Parameter error"]).refine(
-    (nilai) => Number.isInteger(Number(nilai)) && Number(nilai) >= 1,
-    { message: ErrorList["Parameter error"] }
   ),
 });

@@ -9,13 +9,11 @@ import { validate } from "../utils/validate.helper";
 import {
   activateProductSchema,
   createProductSchema,
+  deleteProductSchema,
+  getProductSchema,
   updateProductPriceSchema,
   updateProductSchema,
 } from "../schemas/product.schema";
-import {
-  getProductSchema,
-  deleteProductSchema,
-} from "../schemas/product-price.schema";
 
 const router = Router();
 

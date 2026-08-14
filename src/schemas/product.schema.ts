@@ -161,3 +161,27 @@ export const updateProductPriceSchema = z.object({
     )
     .refine(() => true, { message: ErrorList["Parameter error"] }),
 });
+
+/*
+  Kedua skema di bawah sebelumnya tinggal di product-price.schema.ts padahal
+  hanya product.route.ts yang memakainya — berkas skema harga tidak pernah
+  menyentuhnya. Helper `angka` yang dibutuhkan deleteProductSchema tidak ikut
+  pindah karena berkas ini sudah punya salinan yang isinya sama persis; kedua
+  berkas ternyata menyimpan definisi kembar sejak awal.
+*/
+
+/** GET /product/:id — pesannya berbeda dari DELETE pada berkas yang sama. */
+export const getProductSchema = z.object({
+  id: required(ErrorList["ID is required"]).refine(
+    (nilai) => !isNaN(Number(nilai)),
+    { message: ErrorList["ID must be numeric"] }
+  ),
+});
+
+/** DELETE /product/:id */
+export const deleteProductSchema = z.object({
+  id: angka(ErrorList["Parameter error"]).refine(
+    (nilai) => Number.isInteger(Number(nilai)) && Number(nilai) >= 1,
+    { message: ErrorList["Parameter error"] }
+  ),
+});
