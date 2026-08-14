@@ -59,6 +59,21 @@ export class SupplierRepository {
           name: data.name,
           address: data.address,
           npwp: data.npwp,
+          // Kolom supplier.updated_by dan updated_at sudah ada di basis data
+          // tetapi tidak pernah diisi, jadi perubahan pada pemasok tidak
+          // meninggalkan jejak siapa pun. Repository sejenis — customer,
+          // company, payment_method, product_brand, product_type — sudah
+          // mengisinya dengan pola yang sama.
+          //
+          // Nilainya diambil dari data.created_by dan data.created_at karena
+          // itulah bidang yang dipakai controller untuk membawa identitas
+          // PENYUNTING. Penamaan itu memang membingungkan dan berlaku di
+          // seluruh repo; menggantinya berarti menyentuh setiap antarmuka
+          // sekaligus, jadi dibiarkan seragam dulu. Kolom created_by dan
+          // created_at yang sebenarnya tidak ikut ditulis di sini, sehingga
+          // jejak pembuatannya tetap utuh.
+          updated_by: data.created_by,
+          updated_at: data.created_at,
         },
         select: {
           id: true,

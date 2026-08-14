@@ -66,6 +66,13 @@ export class PromotionRepository {
           end: data.endDate,
           supplier_id: data.supplier_id,
           target: data.target,
+          // Kolom promotion_code.updated_by dan updated_at sudah ada tetapi
+          // tidak pernah diisi, sehingga perubahan pada promosi tidak
+          // meninggalkan jejak siapa pun. Sumbernya data.created_by /
+          // data.created_at, yang pada jalur update memang membawa identitas
+          // penyunting — pola yang sama dipakai seluruh repository lain.
+          updated_by: data.created_by,
+          updated_at: data.created_at,
           promotion_rules: {
             deleteMany: {},
             createMany: {

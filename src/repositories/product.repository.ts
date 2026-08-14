@@ -125,8 +125,17 @@ export class ProductRepository {
           description: data.description,
           product_brand_id: data.product_brand_id,
           product_type_id: data.product_type_id,
-          created_by: data.created_by!,
-          created_at: data.created_at,
+          // Sebelumnya ditulis ke kolom created_by dan created_at, padahal
+          // yang dibawa controller adalah identitas PENYUNTING. Akibatnya
+          // setiap penyuntingan produk menghapus jejak siapa yang membuatnya
+          // dan kapan — tidak bisa dipulihkan, karena nilai lamanya ikut
+          // tertimpa. Kolom updated_by dan updated_at sudah tersedia di tabel
+          // product tetapi tidak pernah diisi.
+          //
+          // Bidang sumbernya tetap bernama created_by/created_at karena
+          // itulah pola yang dipakai seluruh repository di repo ini.
+          updated_by: data.created_by!,
+          updated_at: data.created_at,
           unit: data.unit,
           sales_price: data.sales_price,
           purchase_price: data.purchase_price,
