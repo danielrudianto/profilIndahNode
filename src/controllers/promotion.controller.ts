@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import moment from "moment";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { translateKeyword, translatePage } from "../utils/escape.helper";
 import { ProductRepository } from "../repositories/product.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";

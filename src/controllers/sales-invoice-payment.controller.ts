@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-payment.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";

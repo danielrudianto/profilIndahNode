@@ -6,7 +6,7 @@ import {
   translateSalesName,
 } from "../utils/escape.helper";
 
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
 
 class DepositController {

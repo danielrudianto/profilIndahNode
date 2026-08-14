@@ -2,7 +2,7 @@ import express from "express";
 import request from "supertest";
 import { body, param, query } from "express-validator";
 import ErrorHelper from "./helpers/legacy-error.helper";
-import ErrorList from "../src/constants/error_list";
+import ErrorList from "../src/constants/error-list.constant";
 import { validate } from "../src/utils/validate.helper";
 import {
   inadequateStockSchema,

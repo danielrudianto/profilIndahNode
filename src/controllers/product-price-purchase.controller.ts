@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { translateKeyword, translatePage } from "../utils/escape.helper";
 import { queue } from "../utils/queue.helper";
 import { ProductRepository } from "../repositories/product.repository";

@@ -7,7 +7,7 @@
 import { compare, hash } from "bcryptjs";
 import { Request, Response } from "express";
 import { sign, verify } from "jsonwebtoken";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { UserRepository } from "../repositories/user.repository";
 
 class AuthController {

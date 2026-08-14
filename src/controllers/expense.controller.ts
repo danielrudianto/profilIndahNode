@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import SocketHelper from "../utils/socket.helper";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { ExpenseRepository } from "../repositories/expense.repository";
 import { translatePage } from "../utils/escape.helper";
 import { CompanyRepository } from "../repositories/company.repository";

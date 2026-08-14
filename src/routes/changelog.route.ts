@@ -1,5 +1,5 @@
 import { Router } from "express";
-import changelog from "../constants/changelog";
+import changelog from "../constants/changelog.constant";
 
 const router = Router();
 

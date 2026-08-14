@@ -3,7 +3,7 @@ import {
   PERAN_PENJUALAN,
   PERAN_SUPERADMIN,
   PERAN_UMUM,
-} from "../constants/peran";
+} from "../constants/role.constant";
 import { Router } from "express";
 import FinancialReportController from "../controllers/financial-report.controller";
 import MoneyReceiptController from "../controllers/money-receipt.controller";

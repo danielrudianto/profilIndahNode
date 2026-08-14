@@ -1,4 +1,4 @@
-import { allowedOrigins } from "./constants/asal-diizinkan";
+import { allowedOrigins } from "./constants/allowed-origin.constant";
 import dotenv from "dotenv"; // If you load .env here for testing this file directly
 dotenv.config(); // If you load .env here
 
@@ -6,7 +6,7 @@ import express from "express";
 import cors from "cors";
 import http from "http";
 import cron from "node-cron";
-import { initIO } from "./utils/io";
+import { initIO } from "./utils/io.helper";
 
 import { administratorMiddleware, authMiddleware } from "./utils/auth.helper";
 import authRoutes from "./routes/auth.route";

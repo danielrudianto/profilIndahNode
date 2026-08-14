@@ -1,5 +1,5 @@
 import { z } from "zod";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 
 /**
  * Potongan skema yang dipakai berulang di banyak domain.

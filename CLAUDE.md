@@ -184,7 +184,12 @@ chains are middleware, not constants; leave those beside their routes.
 
 - TypeScript throughout; formatted with Prettier (`npm run pretty`) — 2-space
   indent, double quotes, semicolons, trailing commas.
-- File naming: kebab-case with a role suffix — `*.route.ts`, `*.controller.ts`,
-  `*.repository.ts`, `*.model.ts`, `*.schema.ts`, `*.helper.ts`.
+- File naming: kebab-case with a role suffix, **every file in every layer** —
+  `*.route.ts`, `*.controller.ts`, `*.repository.ts`, `*.model.ts`,
+  `*.schema.ts`, `*.interface.ts`, `*.constant.ts`, `*.helper.ts`. No
+  exceptions, no snake_case, no dots as separators.
+- Exported identifiers are English; comments and local variable names are
+  Indonesian. A file therefore reads as English API surface with Indonesian
+  reasoning around it.
 - Comments and validation messages are written in **Indonesian**; keep new ones
   consistent with that.

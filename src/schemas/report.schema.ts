@@ -1,5 +1,5 @@
 import { z } from "zod";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { requiredInt, requiredIntFromText } from "./common.schema";
 
 /**

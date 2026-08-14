@@ -37,14 +37,14 @@ describe("io.ts — daur hidup instance Server", () => {
 
   it("getIO melempar sebelum initIO dipanggil", () => {
     jest.isolateModules(() => {
-      const { getIO } = require("../src/utils/io");
+      const { getIO } = require("../src/utils/io.helper");
       expect(() => getIO()).toThrow("Socket.io not initialized!");
     });
   });
 
   it("initIO mengembalikan Server, dan getIO memberi instance yang sama", () => {
     jest.isolateModules(() => {
-      const { initIO, getIO } = require("../src/utils/io");
+      const { initIO, getIO } = require("../src/utils/io.helper");
       const server = http.createServer();
       const io = initIO(server);
 
@@ -62,7 +62,7 @@ describe("io.ts — daur hidup instance Server", () => {
 
   it("initIO kedua kali menggantikan instance sebelumnya", () => {
     jest.isolateModules(() => {
-      const { initIO, getIO } = require("../src/utils/io");
+      const { initIO, getIO } = require("../src/utils/io.helper");
       const server1 = http.createServer();
       const server2 = http.createServer();
 
@@ -84,7 +84,9 @@ describe("SocketHelper", () => {
   it("mengirim nama dan data peristiwa apa adanya", () => {
     jest.isolateModules(() => {
       const emit = jest.fn();
-      jest.doMock("../src/utils/io", () => ({ getIO: () => ({ emit }) }));
+      jest.doMock("../src/utils/io.helper", () => ({
+        getIO: () => ({ emit }),
+      }));
 
       const SocketHelper = require("../src/utils/socket.helper").default;
       new SocketHelper("product-created", { id: 7 }).create();
@@ -97,7 +99,9 @@ describe("SocketHelper", () => {
   it("data peristiwa bernilai null bila tidak diberikan", () => {
     jest.isolateModules(() => {
       const emit = jest.fn();
-      jest.doMock("../src/utils/io", () => ({ getIO: () => ({ emit }) }));
+      jest.doMock("../src/utils/io.helper", () => ({
+        getIO: () => ({ emit }),
+      }));
 
       const SocketHelper = require("../src/utils/socket.helper").default;
       new SocketHelper("cache-cleared").create();
@@ -114,7 +118,9 @@ describe("SocketHelper", () => {
   it("belum mengirim apa pun sebelum create() dipanggil", () => {
     jest.isolateModules(() => {
       const emit = jest.fn();
-      jest.doMock("../src/utils/io", () => ({ getIO: () => ({ emit }) }));
+      jest.doMock("../src/utils/io.helper", () => ({
+        getIO: () => ({ emit }),
+      }));
 
       const SocketHelper = require("../src/utils/socket.helper").default;
       new SocketHelper("product-created", { id: 7 });

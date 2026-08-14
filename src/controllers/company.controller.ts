@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import SocketHelper from "../utils/socket.helper";
 import { CompanyRepository } from "../repositories/company.repository";
 import { translateKeyword, translatePage } from "../utils/escape.helper";

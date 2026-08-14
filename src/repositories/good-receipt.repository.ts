@@ -8,7 +8,7 @@ import {
 } from "../interfaces/fetch.interface";
 
 import { DateHelper, formatDate } from "../utils/date.helper";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 
 export class GoodReceiptRepository {
   private prisma: PrismaClient;

@@ -1,12 +1,12 @@
-import { IAchivement } from "../interfaces/achivement.interface";
+import { IAchievement } from "../interfaces/achievement.interface";
 
 /**
  * Daftar pencapaian salesman beserta ambang batasnya.
  *
- * Menambah pencapaian cukup dengan menambah entri di sini; AchivementModel
+ * Menambah pencapaian cukup dengan menambah entri di sini; AchievementModel
  * membacanya secara berurutan dan tidak perlu ikut diubah.
  */
-export const achivements: IAchivement[] = [
+export const achievements: IAchievement[] = [
   {
     name: "Ordinary sales",
     shortName: "OrdinarySales",
@@ -65,4 +65,4 @@ export const achivements: IAchivement[] = [
   },
 ];
 
-export default achivements;
+export default achievements;

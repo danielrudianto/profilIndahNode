@@ -2,7 +2,7 @@ import { body } from "express-validator";
 import express from "express";
 import request from "supertest";
 import ErrorHelper from "./helpers/legacy-error.helper";
-import ErrorList from "../src/constants/error_list";
+import ErrorList from "../src/constants/error-list.constant";
 import { validate } from "../src/utils/validate.helper";
 import { requiredMonthPeriodSchema } from "../src/schemas/report.schema";
 import { createSupplierSchema } from "../src/schemas/supplier.schema";

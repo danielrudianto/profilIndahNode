@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { meili } from "../utils/meili.helper";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { translateKeyword, translatePage } from "../utils/escape.helper";
 import SocketHelper from "../utils/socket.helper";
 import { PackageCodeModel } from "../models/product-package.model";

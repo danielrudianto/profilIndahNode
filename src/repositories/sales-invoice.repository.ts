@@ -5,7 +5,7 @@ import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 
 import { DateHelper, formatDate } from "../utils/date.helper";
 import { IFetchArchiveResult } from "../interfaces/archive.interface";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 
 export class SalesInvoiceRepository {
   private prisma: PrismaClient;

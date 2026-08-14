@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import {
   translateDate,
   translateKeyword,

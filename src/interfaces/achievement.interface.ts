@@ -1,4 +1,4 @@
-export interface IAchivement {
+export interface IAchievement {
   name: string;
   shortName: string;
   description: string;

@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
 import { join } from "path";
-import ErrorList from "../src/constants/error_list";
+import ErrorList from "../src/constants/error-list.constant";
 
 /**
  * Penjaga paritas antara katalog key dan berkas terjemahan.

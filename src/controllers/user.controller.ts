@@ -1,6 +1,6 @@
 import { hash } from "bcryptjs";
 import { Request, Response } from "express";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import SocketHelper from "../utils/socket.helper";
 import { redisClient } from "../utils/redis.helper";
 import { UserRepository } from "../repositories/user.repository";
@@ -8,7 +8,7 @@ import { UserRoleModel } from "../models/user_role.model";
 import { translateKeyword, translatePage } from "../utils/escape.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { CustomerRepository } from "../repositories/customer.repository";
-import { AchivementModel } from "../models/achivement.model";
+import { AchievementModel } from "../models/achievement.model";
 
 class UserController {
   userRepository: UserRepository;
@@ -146,12 +146,12 @@ class UserController {
       const salesInvoices =
         await this.salesInvoiceRepository.fetchSalesStatistics(userID);
 
-      const achivements = new AchivementModel({
+      const achievements = new AchievementModel({
         customer: customersCreated,
         sales: salesInvoices,
-      }).getAchivements();
+      }).getAchievements();
 
-      return res.status(200).send(achivements);
+      return res.status(200).send(achievements);
     } catch (error) {
       console.error(`[error]: Error on fetching user statistics ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

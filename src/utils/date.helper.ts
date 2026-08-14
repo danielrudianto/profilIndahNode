@@ -1,4 +1,4 @@
-import { formatDate } from "../constants/format-tanggal";
+import { formatDate } from "../constants/date-format.constant";
 import { RentangTanggal } from "../interfaces/date.interface";
 
 export { formatDate };

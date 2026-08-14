@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import moment from "moment";
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import SocketHelper from "../utils/socket.helper";
 import { IConfirmDraftBillItems } from "../interfaces/draft-bill.interface";
 import { DraftBillRepository } from "../repositories/draft-bill.repository";

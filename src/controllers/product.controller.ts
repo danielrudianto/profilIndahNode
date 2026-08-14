@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { ProductModel } from "../models/product.model";
 
-import ErrorList from "../constants/error_list";
+import ErrorList from "../constants/error-list.constant";
 import { ProductRepository } from "../repositories/product.repository";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { meili } from "../utils/meili.helper";
