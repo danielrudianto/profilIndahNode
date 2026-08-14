@@ -26,8 +26,4 @@ export class UserRoleModel {
   }
 
   // check if role is available
-  static isAvailable(roleID: number): boolean {
-    const role = this.roles.find((r) => r.id === roleID);
-    return role ? role.available : false;
-  }
 }

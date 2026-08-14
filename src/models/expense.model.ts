@@ -75,42 +75,10 @@ export class ExpenseModel {
     });
   }
 
-  // static countByType(expense_type_id: number) {
-  //   return prisma.expense.count({
-  //     where: {
-  //       is_delete: false,
-  //       expense_type_id: expense_type_id,
-  //     },
-  //   });
-  // }
-
-  // static countByTypeGroup() {
-  //   return prisma.expense.groupBy({
-  //     by: ["expense_type_id"],
-  //     _count: true,
-  //     where: {
-  //       is_delete: false,
-  //     },
-  //   });
-  // }
-
   /**
    * Fetch appendix for report
    * @param month
    * @param year
    * @returns
    */
-  // static fetchAppendix(month: number, year: number) {
-  //   return prisma.$queryRawUnsafe<any[]>(`
-  //     SELECT expense_type.name, expense.value, expense_type.description,
-  //     company.name AS company_name, expense.date
-  //     FROM expense
-  //     JOIN expense_type ON expense_type.id = expense.expense_type_id
-  //     JOIN company ON expense.company_id = company.id
-  //     WHERE YEAR(expense.date) = ${year}
-  //     ${month == 0 ? "" : `AND MONTH(expense.date) = ${month}`}
-  //     AND expense.is_delete = 0
-  //     ORDER BY expense.date ASC
-  //   `);
-  // }
 }

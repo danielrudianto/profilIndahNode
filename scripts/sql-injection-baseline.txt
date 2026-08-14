@@ -9,10 +9,6 @@
 #
 # Regenerasi: node scripts/check-sql-injection.js --tulis
 # Menghapus baris dari sini akan membuat pemeriksa menandainya lagi.
-src/models/adjustment-case.model.ts  ${ids.join(",")}  #1
-src/models/adjustment-case.model.ts  ${company_id}  #1
-src/models/adjustment-case.model.ts  ${date}  #1
-src/models/bill.model.ts  ${ids.join(",")}  #1
 src/repositories/customer.repository.ts  ${ids.join(",")}  #1
 src/repositories/draft-bill.repository.ts  ${year}  #1
 src/repositories/draft-bill.repository.ts  ${month + 1}  #1
