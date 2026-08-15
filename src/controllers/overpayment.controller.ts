@@ -59,6 +59,7 @@ export class OverpaymentController {
         sortBy: sortBy,
         sortDirection: sortDirection,
         status: req.query.status as string | undefined,
+        keyword: req.query.keyword as string | undefined,
       });
 
       return res.status(200).send(result);

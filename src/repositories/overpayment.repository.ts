@@ -61,6 +61,8 @@ export class OverpaymentRepository {
     sortDirection: string;
     /** Kosong berarti seluruhnya; lihat penyaringnya di bawah. */
     status?: string;
+    /** Dicocokkan ke nama pelanggan. Kosong berarti tidak menyaring. */
+    keyword?: string;
   }) {
     let orderBy: any = {};
 
@@ -107,6 +109,24 @@ export class OverpaymentRepository {
       where = lewatTempo;
     } else if (data.status === "resolved") {
       where = { is_resolved: true };
+    }
+
+    /*
+      Pencarian dicocokkan ke nama pelanggan saja. Nomor dokumennya diturunkan
+      frontend dari id dan tidak tersimpan sebagai kolom, jadi tidak ada yang
+      bisa dicocokkan di sini — mencocokkan id sebagai teks akan membuat "12"
+      ikut menemukan 112 dan 121.
+    */
+    const kata = (data.keyword ?? "").trim();
+    if (kata !== "") {
+      where = {
+        ...where,
+        customer: {
+          name: {
+            contains: kata,
+          },
+        },
+      };
     }
 
     /*
