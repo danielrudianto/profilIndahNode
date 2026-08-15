@@ -69,8 +69,21 @@ router.post(
   adjustmentCaseController.create
 );
 
+/*
+  Penghapusan disamakan dengan approve dan reject: hanya superadministrator.
+
+  Sebelumnya route ini hanya berlindung pada authMiddleware di app.ts, sehingga
+  SETIAP pengguna yang login — termasuk sales dan gudang — dapat menghapus
+  penyesuaian stok milik siapa pun. Penyesuaian stok mengubah jumlah barang
+  tanpa dokumen jual-beli, jadi kemampuan menghapusnya setara dengan kemampuan
+  menyetujuinya, dan keduanya memang dipegang pemilik.
+
+  Menyembunyikan tombolnya di frontend tidak menutup apa pun: endpoint-nya tetap
+  bisa dipanggil langsung.
+*/
 router.delete(
   "/:id",
+  superadministratorMiddleware,
   validate(paramAdjustmentCaseSchema, "params"),
   adjustmentCaseController.delete
 );
