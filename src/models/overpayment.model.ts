@@ -20,6 +20,8 @@ export class OverpaymentCodeModel {
   created_by: number;
   created_at: Date;
   value: number;
+  /** Benar bila uangnya sudah dikembalikan ke pelanggan. */
+  is_resolved: boolean;
 
   customer?: CustomerModel | null;
   user_overpayment_created_byTouser?: UserViewModel;
@@ -37,6 +39,7 @@ export class OverpaymentCodeModel {
     this.return_payment_bank = data.return_payment_bank;
     this.return_payment_name = data.return_payment_name;
     this.created_by = data.created_by;
+    this.is_resolved = data.is_resolved ?? false;
     this.created_at = data.created_at;
     this.value = data.value;
 
@@ -61,6 +64,7 @@ export class OverpaymentCodeModel {
       created_by: data.created_by,
       created_at: new Date(data.created_at),
       value: Number(data.value),
+      is_resolved: data.is_resolved ?? false,
       customer:
         data.customer == null
           ? null

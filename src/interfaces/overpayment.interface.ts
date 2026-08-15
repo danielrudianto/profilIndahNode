@@ -18,6 +18,19 @@ export interface IOverpaymentCode {
   created_at: Date;
   value: number;
 
+  /**
+   * Benar bila uangnya sudah dikembalikan ke pelanggan.
+   *
+   * Kolomnya sudah lama ada di basis data tetapi tidak pernah ikut dikirim,
+   * sehingga antarmuka mustahil membedakan yang masih menunggu dari yang sudah
+   * selesai — dan daftar kelebihan bayar tidak punya arti tanpa pembedaan itu.
+   *
+   * OPSIONAL karena antarmuka ini dipakai untuk membaca sekaligus membuat, dan
+   * catatan yang baru dibuat belum punya keadaan itu — basis datanya sendiri
+   * yang memberi nilai bawaan false.
+   */
+  is_resolved?: boolean;
+
   customer?: CustomerModel | null;
   sales_invoice?: SalesInvoiceModel;
   user_overpayment_created_byTouser?: UserViewModel;

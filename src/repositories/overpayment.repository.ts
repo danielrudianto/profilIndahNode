@@ -59,6 +59,8 @@ export class OverpaymentRepository {
     pageSize: number;
     sortBy: String;
     sortDirection: string;
+    /** Kosong berarti seluruhnya; lihat penyaringnya di bawah. */
+    status?: string;
   }) {
     let orderBy: any = {};
 
@@ -80,29 +82,96 @@ export class OverpaymentRepository {
         break;
     }
 
-    const [result, count] = await this.prisma.$transaction([
-      this.prisma.overpayment.findMany({
-        include: {
-          customer: true,
-          user_overpayment_created_byTouser: {
-            include: {
-              user_avatar: true,
+    /*
+      Batas "lewat jatuh tempo" adalah awal hari ini, bukan saat ini juga:
+      pengembalian yang dijanjikan hari ini belum terlambat sampai harinya
+      habis. Memakai waktu berjalan akan menandai janji hari ini sebagai
+      terlambat sejak pukul satu pagi.
+    */
+    const awalHariIni = new Date();
+    awalHariIni.setHours(0, 0, 0, 0);
+
+    const menunggu = {
+      is_resolved: false,
+      return_payment_date: { gte: awalHariIni },
+    };
+    const lewatTempo = {
+      is_resolved: false,
+      return_payment_date: { lt: awalHariIni },
+    };
+
+    let where: any = {};
+    if (data.status === "waiting") {
+      where = menunggu;
+    } else if (data.status === "overdue") {
+      where = lewatTempo;
+    } else if (data.status === "resolved") {
+      where = { is_resolved: true };
+    }
+
+    /*
+      Kedua penghitung sengaja TIDAK dihitung dari halaman yang sedang tampil.
+      Halaman berisi sepuluh baris, sementara chip-nya menyatakan keadaan
+      seluruh daftar — dihitung dari halaman, angkanya berubah setiap kali
+      pengguna berpindah halaman, dan itu terbaca seperti data yang berubah
+      sendiri. Penghitungnya juga tidak ikut tersaring: chip harus tetap
+      menunjukkan berapa yang ada ketika saringannya sedang menyala.
+    */
+    const [result, count, jumlahMenunggu, jumlahLewatTempo] =
+      await this.prisma.$transaction([
+        this.prisma.overpayment.findMany({
+          where: where,
+          include: {
+            customer: true,
+            payment_method: true,
+            user_overpayment_created_byTouser: {
+              include: {
+                user_avatar: true,
+              },
             },
           },
-        },
-        orderBy: orderBy,
-        take: data.pageSize,
-        skip: (data.page - 1) * data.pageSize,
-      }),
-      this.prisma.overpayment.count({}),
-    ]);
+          orderBy: orderBy,
+          take: data.pageSize,
+          skip: (data.page - 1) * data.pageSize,
+        }),
+        this.prisma.overpayment.count({ where: where }),
+        this.prisma.overpayment.count({ where: menunggu }),
+        this.prisma.overpayment.count({ where: lewatTempo }),
+      ]);
 
     return {
       data: result.map((x) => {
         return OverpaymentCodeModel.fromMap(x);
       }),
       count: count,
+      summary: {
+        waiting: jumlahMenunggu,
+        overdue: jumlahLewatTempo,
+      },
     };
+  }
+
+  /**
+   * Menandai sebuah kelebihan bayar sudah dikembalikan.
+   *
+   * Mengembalikan false bila catatannya tidak ada ATAU sudah ditandai
+   * sebelumnya — keduanya berarti tidak ada yang berubah, dan pemanggilnya
+   * berhak tahu itu. Diperiksa lewat updateMany dengan syarat is_resolved
+   * masih false, jadi dua penekanan yang datang bersamaan tidak sama-sama
+   * berhasil.
+   */
+  async resolve(id: number): Promise<boolean> {
+    const hasil = await this.prisma.overpayment.updateMany({
+      where: {
+        id: id,
+        is_resolved: false,
+      },
+      data: {
+        is_resolved: true,
+      },
+    });
+
+    return hasil.count > 0;
   }
 
   async fetchReportByDate(date: Date) {

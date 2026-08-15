@@ -58,12 +58,43 @@ export class OverpaymentController {
         pageSize: pageSize,
         sortBy: sortBy,
         sortDirection: sortDirection,
+        status: req.query.status as string | undefined,
       });
 
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching overpayment data ${error}`);
       return res.status(500).send(error);
+    }
+  };
+
+  /**
+   * Menandai sebuah kelebihan bayar sudah dikembalikan.
+   *
+   * Menjawab 409, bukan 404, ketika catatannya ada tetapi sudah ditandai:
+   * permintaannya sah, keadaannya saja yang sudah bukan itu lagi. Membedakan
+   * keduanya penting karena yang satu berarti salah alamat dan yang lain
+   * berarti sudah beres — dan keduanya sama-sama mungkin ketika dua orang
+   * menekan tombol yang sama hampir bersamaan.
+   */
+  resolve = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+
+    try {
+      const catatan = await this.overpaymentRepository.fetchByID(id);
+      if (catatan == null) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const berubah = await this.overpaymentRepository.resolve(id);
+      if (!berubah) {
+        return res.status(409).send(ErrorList["No changes"]);
+      }
+
+      return res.status(200).send({ id: id, is_resolved: true });
+    } catch (error) {
+      console.error(`[error]: Error on resolving overpayment ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

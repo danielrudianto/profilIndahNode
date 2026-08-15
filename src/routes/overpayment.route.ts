@@ -34,6 +34,20 @@ router.get(
 );
 
 /*
+  Menandai uangnya sudah dikembalikan. PATCH, bukan POST: ini mengubah satu
+  ruas pada catatan yang sudah ada, bukan membuat catatan baru.
+
+  Skema parameternya dipakai ulang dari fetchByID — bentuk id-nya sama, dan
+  menulis ulang aturan yang sama di dua tempat adalah cara aturan itu
+  pelan-pelan berbeda.
+*/
+router.patch(
+  "/:id/resolve",
+  validate(getOverpaymentSchema, "params"),
+  overpaymentController.resolve
+);
+
+/*
   Tanpa validasi, sama seperti sebelumnya. page dan pageSize diterjemahkan
   controller lewat translatePage/translatePageSize yang sudah punya nilai
   bawaan, dan sortBy/sortDirection tidak pernah diperiksa rantai lama.
