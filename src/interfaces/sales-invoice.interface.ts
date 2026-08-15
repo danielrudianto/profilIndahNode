@@ -24,6 +24,14 @@ export interface ISalesInvoiceCode {
   confirmedBy?: number | null;
   confirmedAt?: Date | null;
 
+  /**
+   * Nilai akhir faktur. Sengaja opsional: hanya terisi bila baris fakturnya
+   * ikut diambil, sebab totalnya dihitung dari baris itu dan tidak disimpan di
+   * basis data. Membiarkannya undefined lebih jujur daripada mengirim nol
+   * untuk faktur yang barisnya memang tidak diminta.
+   */
+  total?: number;
+
   customer?: CustomerModel | null;
   user_bill_code_created_byTouser?: UserViewModel;
   user_bill_code_confirmed_byTouser?: UserViewModel | null;

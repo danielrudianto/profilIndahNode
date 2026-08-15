@@ -28,6 +28,9 @@ export class SalesInvoiceModel {
   uuid: string;
   payment_term: number | null = null;
 
+  /** Nilai akhir faktur; terisi hanya bila barisnya ikut diambil. */
+  total?: number;
+
   sales_invoice?: ISalesInvoice[] = [];
   sales_invoice_payment?: SalesInvoicePaymentModel[] = [];
 
@@ -53,12 +56,45 @@ export class SalesInvoiceModel {
     this.isPaid = data.isPaid;
     this.sales = data.sales;
     this.isDelete = data.isDelete;
+    this.total = data.total;
     this.sales_invoice = data.sales_invoice;
     this.sales_invoice_payment = data.sales_invoice_payment;
     this.customer = data.customer;
     this.user_bill_code_created_byTouser = data.user_bill_code_created_byTouser;
     this.user_bill_code_confirmed_byTouser =
       data.user_bill_code_confirmed_byTouser;
+  }
+
+  /**
+   * Nilai akhir sebuah faktur.
+   *
+   * SATU-SATUNYA TEMPAT RUMUS INI DITULIS. Sebelumnya ia hanya hidup sebagai
+   * SQL di fetchSalesStatistics, sehingga siapa pun yang butuh total di
+   * tempat lain harus menyalinnya — dan salinan itulah yang pelan-pelan
+   * berbeda. Diskon dokumen dikurangi SETELAH diskon per baris, lalu ongkir
+   * dan jasa ditambahkan; urutan itu bagian dari rumusnya, bukan selera.
+   *
+   * Angkanya dilewatkan Number() karena Prisma mengembalikan kolom Decimal
+   * sebagai objek, bukan bilangan: dijumlahkan apa adanya, hasilnya rangkaian
+   * teks, bukan nilai.
+   */
+  static hitungTotal(data: {
+    sales_invoice?: { quantity: any; price: any; discount: any }[];
+    discount: any;
+    delivery: any;
+    service: any;
+  }): number {
+    const nilai = (data.sales_invoice ?? []).reduce(
+      (jumlah, baris) =>
+        jumlah +
+        Number(baris.quantity) * (Number(baris.price) - Number(baris.discount)),
+      0
+    );
+
+    return (
+      nilai - Number(data.discount) + Number(data.service) +
+      Number(data.delivery)
+    );
   }
 
   static fromMap(data: any) {
@@ -79,6 +115,10 @@ export class SalesInvoiceModel {
       isPaid: data.is_paid,
       isDelete: data.is_delete,
       uuid: data.uuid,
+      total:
+        data.sales_invoice == undefined
+          ? undefined
+          : SalesInvoiceModel.hitungTotal(data),
       sales_invoice:
         data.sales_invoice == undefined
           ? []

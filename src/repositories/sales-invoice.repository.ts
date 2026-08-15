@@ -753,6 +753,19 @@ export class SalesInvoiceRepository {
         orderBy: orderBy,
         include: {
           customer: true,
+          /*
+            Barisnya diambil semata untuk menghitung total — daftar arsip
+            menampilkannya sebagai satu kolom. Hanya tiga kolom yang ditarik,
+            bukan seluruh baris beserta produknya, karena selebihnya tidak
+            dipakai dan jumlah barisnya bisa banyak.
+          */
+          sales_invoice: {
+            select: {
+              quantity: true,
+              price: true,
+              discount: true,
+            },
+          },
         },
         take: data.limit,
         skip: data.offset,
