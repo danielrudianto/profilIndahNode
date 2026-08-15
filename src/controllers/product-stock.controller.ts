@@ -82,8 +82,49 @@ class ProductStockController {
     const page = Number(req.query.page);
     const keyword = translateKeyword(req.query.keyword);
     const pageSize = Number(req.query.pageSize);
+    const condition = req.query.condition as string | undefined;
 
     try {
+      /*
+        Penghitung chip selalu ikut, juga ketika saringannya sedang menyala:
+        ia menyatakan keadaan SELURUH katalog, bukan halaman yang tampil.
+        Dihitung dari halaman, angkanya berubah setiap kali pengguna berpindah
+        halaman — dan itu terbaca seperti data yang berubah sendiri.
+      */
+      const summary = await this.productStockRepository.countConditions();
+
+      /*
+        Ketika disaring, datanya diambil dari basis data, bukan Meilisearch:
+        "di bawah ambangnya sendiri" adalah perbandingan antara dua kolom, dan
+        indeks pencarian tidak menyimpan hubungan itu. Kedua repositori ini
+        sudah ada dan sudah dipakai halaman lain — bentuk barisnya sama persis
+        dengan jalur biasa, sampai ke product_stock.stock dan product_brand.
+      */
+      if (condition === "low" || condition === "negative") {
+        const hasil =
+          condition === "low"
+            ? await this.productStockRepository.fetchInadequateStock({
+                keyword: keyword,
+                page: page,
+                pageSize: pageSize,
+                brands: [],
+                types: [],
+              })
+            : await this.productStockRepository.fetchProblematicStock({
+                keyword: keyword,
+                page: page,
+                pageSize: pageSize,
+                brands: [],
+                types: [],
+              });
+
+        return res.status(200).send({
+          data: hasil.data,
+          count: hasil.count,
+          summary: summary,
+        });
+      }
+
       const result = await meili.index("product").search(keyword, {
         limit: pageSize,
         offset: (page - 1) * pageSize,
@@ -110,6 +151,7 @@ class ProductStockController {
           };
         }),
         count: result.estimatedTotalHits,
+        summary: summary,
       });
     } catch (error) {
       console.error(

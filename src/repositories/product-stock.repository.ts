@@ -34,6 +34,51 @@ export class ProductStockRepository {
     }
   }
 
+  /**
+   * Menghitung barang yang stoknya bermasalah, untuk chip ringkasan 15a.
+   *
+   * Kedua keadaannya SALING LEPAS dan definisinya diambil dari kueri yang
+   * sudah dipakai fetchProblematicStock dan fetchInadequateStock — bukan
+   * ditulis ulang di sini. Menipis berarti di bawah ambangnya sendiri tetapi
+   * belum minus; minus berarti sudah di bawah nol. Sebuah barang tidak pernah
+   * terhitung dua kali.
+   *
+   * Ambangnya adalah product.minimum_stock, kolom yang memang sudah ada — jadi
+   * tidak ada angka baru yang perlu ditebak atau ditanyakan.
+   *
+   * Ditulis sebagai raw query TANPA satu pun interpolasi: Prisma tidak bisa
+   * membandingkan dua kolom pada tabel berbeda lewat findMany.
+   */
+  async countConditions(): Promise<{ low: number; negative: number }> {
+    const hasil = await this.prisma.$queryRaw<
+      { low: bigint; negative: bigint }[]
+    >`
+      SELECT
+        SUM(
+          CASE
+            WHEN COALESCE(product_stock.stock, 0) >= 0
+             AND COALESCE(product_stock.stock, 0) < product.minimum_stock
+            THEN 1 ELSE 0
+          END
+        ) AS low,
+        SUM(
+          CASE WHEN COALESCE(product_stock.stock, 0) < 0 THEN 1 ELSE 0 END
+        ) AS negative
+      FROM product
+      LEFT JOIN product_stock ON product_stock.id = product.id
+      WHERE product.is_delete = 0
+    `;
+
+    if (hasil.length === 0) {
+      return { low: 0, negative: 0 };
+    }
+
+    return {
+      low: Number(hasil[0].low ?? 0),
+      negative: Number(hasil[0].negative ?? 0),
+    };
+  }
+
   async fetchStock(productID: number[]) {
     try {
       const stocks = await this.prisma.product_stock.findMany({
