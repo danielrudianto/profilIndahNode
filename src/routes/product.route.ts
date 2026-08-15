@@ -41,14 +41,34 @@ router.put(
 );
 router.put("/", validate(updateProductSchema), productController.update);
 
+/*
+  Hanya administrator (peran 5) dan pemilik (peran 7) yang boleh MENIMPA harga
+  di master barang.
+
+  Sebelumnya rute ini hanya dijaga authMiddleware di titik pasangnya, sehingga
+  setiap pengguna yang sudah masuk — termasuk staf pembelian dan sales — bisa
+  menulis ulang harga seluruh barang lewat satu panggilan langsung. Menyembunyikan
+  tombolnya di layar bukan penjagaan; yang menahan akses harus di sini.
+*/
 router.put(
   "/price-purchase",
+  administratorMiddleware,
   validate(updateProductPriceSchema),
   productController.updatePurchasePrice
 );
 
+/*
+  Hanya administrator (peran 5) dan pemilik (peran 7) yang boleh MENIMPA harga
+  di master barang.
+
+  Sebelumnya rute ini hanya dijaga authMiddleware di titik pasangnya, sehingga
+  setiap pengguna yang sudah masuk — termasuk staf pembelian dan sales — bisa
+  menulis ulang harga seluruh barang lewat satu panggilan langsung. Menyembunyikan
+  tombolnya di layar bukan penjagaan; yang menahan akses harus di sini.
+*/
 router.put(
   "/price-sales",
+  administratorMiddleware,
   validate(updateProductPriceSchema),
   productController.updateSalesPrice
 );
