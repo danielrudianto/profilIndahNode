@@ -18,6 +18,7 @@ import {
   searchSalesReturnSchema,
   paramInvoiceSchema,
 } from "../schemas/sales-invoice.schema";
+import { SalesInvoiceRebateRepository } from "../repositories/sales-invoice-rebate.repository";
 
 const router = Router();
 
@@ -28,7 +29,8 @@ const salesInvoiceController = new SalesInvoiceController(
   new StockOutRepository(prisma),
   new ProductStockRepository(prisma),
   new SalesInvoicePaymentRepository(prisma),
-  new StockCardRepository(prisma)
+  new StockCardRepository(prisma),
+  new SalesInvoiceRebateRepository(prisma)
 );
 
 const salesmanController = new SalesmanController(redisClient);

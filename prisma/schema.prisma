@@ -25,6 +25,7 @@ model payment_method {
   sales_invoice_payment                sales_invoice_payment[]
   sales_deposit_payment                sales_deposit_payment[]
   overpayment                          overpayment[]
+  sales_invoice_rebate                 sales_invoice_rebate[]
 
   @@index([created_by], map: "payment_method_ibfk_1_idx")
   @@index([deleted_by], map: "payment_method_ibfk_2_idx")
@@ -100,6 +101,7 @@ model user {
   user_avatar                                                  user_avatar?
   notification                                                 notification[]
   overpayment                                                  overpayment[]
+  sales_invoice_rebate                            sales_invoice_rebate[]
 
   @@index([created_by], map: "user_ibfk_1_idx")
   @@index([deleted_by], map: "user_ibfk_2_idx")
@@ -181,6 +183,7 @@ model sales_invoice_code {
   // pada relasi tanpa batasan unik, tetapi isinya paling banyak satu: sebuah
   // setoran hanya dikonfirmasi sekali.
   sales_deposit_code                sales_deposit_code[]
+  sales_invoice_rebate              sales_invoice_rebate[]
 
   @@index([created_by], map: "bill_code_ibfk_1_idx")
   @@index([confirmed_by], map: "bill_code_ibfk_2_idx")
@@ -902,4 +905,41 @@ model audit_log {
   @@index([user_id], map: "audit_log_ibfk_1_idx")
   @@index([entity, entity_id], map: "audit_log_entity_idx")
   @@index([createdAt], map: "audit_log_created_at_idx")
+}
+
+/// Pengembalian diskon berupa uang kepada pelanggan.
+///
+/// Toko sering memberi diskon bukan dengan memotong harga di faktur, melainkan
+/// dengan MENGEMBALIKAN uangnya — cash di kasir atau transfer. Fakturnya tetap
+/// menunjukkan harga penuh, sebab itulah yang dilihat pemberi kerja si pembeli.
+/// Selama uang keluar itu tidak dicatat, kas sore hari selalu kurang dibanding
+/// laporan, dan selisihnya tidak bisa dijelaskan.
+///
+/// TABEL SENDIRI, BUKAN KOLOM DI sales_invoice_code. Nilainya TIDAK BOLEH
+/// mengurangi total faktur — begitu ia menjadi kolom diskon, angka yang tercetak
+/// ikut turun dan seluruh gunanya hilang. Yang dicatat di sini adalah arus kas
+/// keluar yang kebetulan terikat pada sebuah faktur.
+model sales_invoice_rebate {
+  id                    Int      @id @default(autoincrement())
+  sales_invoice_code_id Int
+  value                 Decimal  @db.Decimal(15, 4)
+  /// Cash atau transfer; mengikuti daftar metode pembayaran yang sudah ada.
+  payment_method_id     Int?
+  /// Tanggal uangnya keluar — menentukan laporan kas hari mana ia masuk.
+  date                  DateTime @db.Date
+  /// Siapa yang menerima uangnya. Inilah yang membuat selisih kas bisa ditelusuri.
+  receiver_name         String   @db.VarChar(100)
+  /// Diisi hanya bila dikembalikan lewat transfer.
+  bank_name             String?  @db.VarChar(100)
+  account_number        String?  @db.VarChar(50)
+  created_by            Int
+  created_at            DateTime @default(now()) @db.DateTime(0)
+
+  sales_invoice_code sales_invoice_code @relation(fields: [sales_invoice_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "sales_invoice_rebate_ibfk_1")
+  payment_method     payment_method?    @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "sales_invoice_rebate_ibfk_2")
+  user               user               @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "sales_invoice_rebate_ibfk_3")
+
+  @@index([sales_invoice_code_id], map: "sales_invoice_rebate_ibfk_1_idx")
+  @@index([payment_method_id], map: "sales_invoice_rebate_ibfk_2_idx")
+  @@index([created_by], map: "sales_invoice_rebate_ibfk_3_idx")
 }

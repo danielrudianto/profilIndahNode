@@ -15,6 +15,7 @@ import { StockOutRepository } from "../repositories/stock-out.repository";
 import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-payment.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
+import { SalesInvoiceRebateRepository } from "../repositories/sales-invoice-rebate.repository";
 
 class SalesInvoiceController {
   salesInvoiceRepository: SalesInvoiceRepository;
@@ -24,6 +25,7 @@ class SalesInvoiceController {
   productStockRepository: ProductStockRepository;
   salesInvoicePaymentRepository: SalesInvoicePaymentRepository;
   stockCardRepository: StockCardRepository;
+  salesInvoiceRebateRepository: SalesInvoiceRebateRepository;
 
   constructor(
     salesInvoiceRepository: SalesInvoiceRepository,
@@ -32,9 +34,11 @@ class SalesInvoiceController {
     stockOutRepository: StockOutRepository,
     productStockRepository: ProductStockRepository,
     salesInvoicePaymentRepository: SalesInvoicePaymentRepository,
-    stockCardRepository: StockCardRepository
+    stockCardRepository: StockCardRepository,
+    salesInvoiceRebateRepository: SalesInvoiceRebateRepository
   ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
+    this.salesInvoiceRebateRepository = salesInvoiceRebateRepository;
     this.receivableRepository = receivableRepository;
     this.salesReturnRepository = salesReturnRepository;
     this.stockOutRepository = stockOutRepository;
@@ -56,6 +60,11 @@ class SalesInvoiceController {
     const isPaid = req.body.is_paid;
     const sales = translateSalesName(req.body.sales);
     const uuid = req.body.uuid;
+    /*
+      Pengembalian diskon berupa uang. Kosong berarti diskonnya memang hanya
+      dipotong di faktur, dan tidak ada uang yang keluar.
+    */
+    const rebate = req.body.rebate;
 
     try {
       const billResult = await this.salesInvoiceRepository.create({
@@ -87,6 +96,26 @@ class SalesInvoiceController {
 
       if (!billResult) {
         return res.status(500).send(ErrorList["Sales invoice creation failed"]);
+      }
+
+      /*
+        Pengembalian diskon dicatat SETELAH fakturnya ada, sebab ia menunjuk
+        ke id faktur itu. Nilainya sengaja tidak ikut mengurangi apa pun di
+        atas: fakturnya harus tetap menunjukkan harga penuh, dan justru itu
+        alasan potongannya diberikan sebagai uang.
+      */
+      if (rebate != null && Number(rebate.value) > 0) {
+        await this.salesInvoiceRebateRepository.create({
+          sales_invoice_code_id: billResult.id!,
+          value: Number(rebate.value),
+          payment_method_id: rebate.payment_method_id ?? null,
+          date: date,
+          receiver_name: rebate.receiver_name,
+          bank_name: rebate.bank_name ?? null,
+          account_number: rebate.account_number ?? null,
+          created_by: userID,
+          created_at: new Date(),
+        });
       }
 
       if (!isPaid) {
