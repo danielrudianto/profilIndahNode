@@ -20,9 +20,12 @@ export class StockOutRepository {
       where: {
         stock_in_id: null,
       },
-      orderBy: {
-        date: "asc",
-      },
+      /*
+        id sebagai pemutus seri. Tanpa itu, urutan baris bertanggal sama tidak
+        dijamin — dua kali perhitungan bisa memberi HPP berbeda pada data yang
+        sama persis.
+      */
+      orderBy: [{ date: "asc" }, { id: "asc" }],
     });
   }
 
@@ -73,9 +76,18 @@ export class StockOutRepository {
     }
   }
 
-  async update(data: {
-    stock_in_id: number;
-    assignedQuantity: number;
+  /**
+   * Menetapkan satu stock_out ke lapisan-lapisan stok masuknya, ATOMIK.
+   *
+   * Seluruh rencana diterapkan dalam SATU transaksi: baris asli memegang
+   * jatah pertama, jatah berikutnya menjadi baris baru, dan bila stoknya
+   * kurang, sisanya tetap dicatat sebagai baris tanpa penetapan — jumlah
+   * total stock_out tidak pernah berubah. Pendahulunya menulis per pasangan:
+   * baris asli sudah dikecilkan sementara sisanya baru hidup di memori,
+   * sehingga proses yang mati di tengah menghapus kuantitas itu dari
+   * pembukuan secara permanen.
+   */
+  async assign(data: {
     stockOut: {
       id: number;
       product_id: number;
@@ -86,42 +98,65 @@ export class StockOutRepository {
       price: Decimal;
       date: Date;
     };
+    plan: { stock_in_id: number; quantity: number }[];
+    sisa: number;
   }) {
-    return this.prisma.$transaction([
-      this.prisma.stock_in.update({
+    const salinan = {
+      product_id: data.stockOut.product_id,
+      price: data.stockOut.price,
+      sales_invoice_id: data.stockOut.sales_invoice_id,
+      sales_invoice_code_id: data.stockOut.sales_invoice_code_id,
+      adjustment_case_id: data.stockOut.adjustment_case_id,
+      adjustment_case_code_id: data.stockOut.adjustment_case_code_id,
+      date: data.stockOut.date,
+    };
+
+    const operasi = [
+      this.prisma.stock_out.update({
         where: {
-          id: data.stock_in_id,
+          id: data.stockOut.id,
         },
         data: {
-          residue: {
-            increment: data.assignedQuantity * -1,
-          },
+          stock_in_id: data.plan[0].stock_in_id,
+          quantity: data.plan[0].quantity,
         },
       }),
-      data.stockOut.id == 0
-        ? this.prisma.stock_out.create({
-            data: {
-              product_id: data.stockOut!.product_id,
-              price: data.stockOut.price,
-              quantity: data.assignedQuantity,
-              sales_invoice_id: data.stockOut.sales_invoice_id,
-              sales_invoice_code_id: data.stockOut.sales_invoice_code_id,
-              adjustment_case_id: data.stockOut.adjustment_case_id,
-              adjustment_case_code_id: data.stockOut.adjustment_case_code_id,
-              date: data.stockOut.date,
-              stock_in_id: data.stock_in_id,
+      ...data.plan.slice(1).map((jatah) =>
+        this.prisma.stock_out.create({
+          data: {
+            ...salinan,
+            quantity: jatah.quantity,
+            stock_in_id: jatah.stock_in_id,
+          },
+        })
+      ),
+      ...data.plan.map((jatah) =>
+        this.prisma.stock_in.update({
+          where: {
+            id: jatah.stock_in_id,
+          },
+          data: {
+            residue: {
+              decrement: jatah.quantity,
             },
-          })
-        : this.prisma.stock_out.update({
-            where: {
-              id: data.stockOut.id,
-            },
-            data: {
-              stock_in_id: data.stock_in_id,
-              quantity: data.assignedQuantity,
-            },
-          }),
-    ]);
+          },
+        })
+      ),
+    ];
+
+    if (data.sisa > 0) {
+      operasi.push(
+        this.prisma.stock_out.create({
+          data: {
+            ...salinan,
+            quantity: data.sisa,
+            stock_in_id: null,
+          },
+        })
+      );
+    }
+
+    return this.prisma.$transaction(operasi);
   }
 
   /*

@@ -15,6 +15,8 @@ import { ProductPackageService } from "./services/package.service";
 import { ProductPackageRepository } from "./repositories/product-package.repository";
 import { StockCardService } from "./services/stock-card.service";
 import { StockCardRepository } from "./repositories/stock-card.repository";
+import { StockOutService } from "./services/stock-out.service";
+import { StockOutRepository } from "./repositories/stock-out.repository";
 
 const workerOptions = {
   connection: {
@@ -44,6 +46,11 @@ const productPackageService = new ProductPackageService(
 
 const stockCardService = new StockCardService(new StockCardRepository(prisma));
 
+const stockOutService = new StockOutService(
+  new StockOutRepository(prisma),
+  new StockInRepository(prisma)
+);
+
 const workerHandler = async (job: Job<any>) => {
   const name = job.name;
   switch (name) {
@@ -61,6 +68,22 @@ const workerHandler = async (job: Job<any>) => {
       break;
     case "good-receipt-created":
       await goodReceiptService.create(job.data.id);
+      /*
+        Stok yang baru masuk bisa jadi melayani penjualan yang sedang
+        menunggak penetapan (terjual saat lapisan kosong) — sapu sekali
+        supaya tunggakannya tidak menunggu dokumen berikutnya.
+      */
+      await stockOutService.calculateStockOut();
+      break;
+    /*
+      Penetapan HPP OTOMATIS. Dulu perhitungan ini hanya hidup sebagai
+      perintah CLI manual, sehingga angka HPP bulan berjalan bergantung pada
+      disiplin operator menjalankannya. Kini setiap dokumen yang menulis
+      stock_out mengantrekan job ini; concurrency worker = 1 menjamin dua
+      sapuan tidak pernah berebut residue yang sama.
+    */
+    case "hpp-assign":
+      await stockOutService.calculateStockOut();
       break;
     case "package-updated":
       await productPackageService.update(job.data.id);

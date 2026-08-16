@@ -19,16 +19,27 @@ export class GoodReceiptService {
         throw new Error("Good receipt not found");
       }
 
+      /*
+        SATUAN DASAR, bukan satuan dokumen. Seluruh mesin HPP — stock_out
+        faktur penjualan, penimpaan harga saat faktur pembelian dikonfirmasi,
+        dan pembangunan ulang lewat CLI — bekerja dalam satuan dasar dengan
+        harga netto diskon per satuan dasar. Jalur ini pernah menulis mentah
+        dari dokumennya: terima 3 box (= 300 pcs) tercatat residue 3 dengan
+        harga per box tanpa diskon, sehingga FIFO kehabisan lapisan seratus
+        kali lebih cepat dan HPP baris yang terisi meledak ratusan kali lipat.
+      */
       const result = await this.stockInRepository.createMany(
         goodReceipt.good_receipt!.map((item) => {
+          const konversi =
+            item.product_unit == null ? 1 : item.product_unit.conversion;
+
           return {
             date: goodReceipt.date,
             company_id: goodReceipt.company_id,
             supplier_id: goodReceipt.supplier_id,
             product_id: item.product_id,
-            quantity: item.quantity,
-            price: item.price,
-            discount: item.discount,
+            quantity: item.quantity * konversi,
+            price: (item.price - item.discount) / konversi,
             created_at: new Date(),
             created_by: goodReceipt.created_by,
             good_receipt_id: item.id!,

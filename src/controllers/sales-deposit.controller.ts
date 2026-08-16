@@ -302,7 +302,8 @@ export class SalesDepositController {
                 adjustment_case_id: null,
                 date: date,
                 quantity: Number(x.quantity * conversion),
-                price: Number(x.price / conversion),
+                /* Netto diskon baris — sejalan dengan faktur penjualan dan CLI. */
+                price: Number((x.price - x.discount) / conversion),
                 sales_invoice_id: x.id!,
                 sales_invoice_code_id: faktur.id!,
               };
@@ -377,6 +378,9 @@ export class SalesDepositController {
       for (const kartu of result.kartuStok) {
         await queue.add("stock-card-inserted", { id: kartu.id });
       }
+
+      /* Penetapan HPP menyusul di worker — lihat case hpp-assign. */
+      await queue.add("hpp-assign", {});
 
       return res.status(201).send(result.faktur);
     } catch (error) {

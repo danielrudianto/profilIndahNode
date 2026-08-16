@@ -144,8 +144,17 @@ class AdjustmentCaseController {
             return {
               date: result.date,
               product_id: x.product_id,
+              /*
+                DIMUTLAKKAN. Kasus hilang disimpan bernilai negatif di
+                adjustment_case, dan stock_out yang ikut negatif tidak pernah
+                diproses penetapan FIFO (syaratnya quantity > 0) — kerugiannya
+                tidak pernah dinilai, dan lapisan stok yang secara fisik sudah
+                hilang tidak pernah dikonsumsi, sehingga penjualan berikutnya
+                memakan lapisan lama yang seharusnya habis. CLI pembangunan
+                ulang sudah menulis positif; kini keduanya sejalan.
+              */
               quantity:
-                x.quantity *
+                Math.abs(x.quantity) *
                 (x.product_unit == null ? 1 : x.product_unit.conversion),
               adjustment_case_code_id: result.id!,
               adjustment_case_id: x.id!,
@@ -190,6 +199,9 @@ class AdjustmentCaseController {
           id: x.id,
         });
       });
+
+      /* Penetapan HPP menyusul di worker — lihat case hpp-assign. */
+      await queue.add("hpp-assign", {});
 
       return res.status(201).send(adjustmentCase);
     } catch (error) {

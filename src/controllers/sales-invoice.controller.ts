@@ -143,7 +143,13 @@ class SalesInvoiceController {
             adjustment_case_id: null,
             date: date,
             quantity: Number(x.quantity * conversion),
-            price: Number(x.price / conversion),
+            /*
+              NETTO diskon baris, seperti pada pembangunan ulang lewat CLI.
+              Harga ini menjadi angka "sales" pada laporan HPP; tanpa
+              dikurangi diskon, penjualannya tampak lebih besar dari uang
+              yang sungguh masuk.
+            */
+            price: Number((x.price - x.discount) / conversion),
             sales_invoice_id: x.id!,
             sales_invoice_code_id: billResult.id!,
           };
@@ -195,6 +201,9 @@ class SalesInvoiceController {
           id: x.id,
         });
       });
+
+      /* Penetapan HPP menyusul di worker — lihat case hpp-assign. */
+      await queue.add("hpp-assign", {});
 
       return res.status(201).send(billResult);
     } catch (error) {

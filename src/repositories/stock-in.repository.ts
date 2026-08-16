@@ -246,28 +246,10 @@ export class StockInRepository {
     ]);
   }
 
-  async fetchUnfilled(productID: number) {
-    const stockIn = await this.prisma.stock_in.findFirst({
-      where: {
-        residue: {
-          gt: 0,
-        },
-        product_id: productID,
-      },
-      orderBy: {
-        date: "asc",
-      },
-    });
-
-    return stockIn == null
-      ? null
-      : {
-          ...stockIn,
-          residue: Number(stockIn.residue),
-          quantity: Number(stockIn.quantity),
-        };
-  }
-
+  /*
+    id sebagai pemutus seri — lihat catatan di fetchUnassigned milik
+    stock-out.repository: FIFO pada tanggal yang sama harus deterministik.
+  */
   async fetchManyUnfilled(productIDs: number[]) {
     const stockIn = await this.prisma.stock_in.findMany({
       where: {
@@ -278,9 +260,7 @@ export class StockInRepository {
           in: productIDs,
         },
       },
-      orderBy: {
-        date: "asc",
-      },
+      orderBy: [{ date: "asc" }, { id: "asc" }],
     });
 
     return stockIn.map((x) => {
