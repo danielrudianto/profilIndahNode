@@ -14,14 +14,12 @@ class ExpenseTypeController {
   create = async (req: Request, res: Response) => {
     const name = req.body.name;
     const description = req.body.description;
-    const parent_id = req.body.parent_id;
     const userID = req.body.userId;
 
     try {
       const result = await this.expenseTypeRepository.create({
         name: name,
         description: description,
-        parent_id: parent_id,
         created_by: userID,
         created_at: new Date(),
       });
@@ -49,12 +47,6 @@ class ExpenseTypeController {
         id: id,
         created_by: userID,
         created_at: new Date(),
-        // Mudah dibaca seolah menyunting sub-jenis akan mencabutnya dari
-        // induknya, padahal TIDAK: repository sengaja tidak menulis parent_id
-        // pada jalur update, jadi nilai ini diabaikan dan hubungan induk-anak
-        // tetap utuh. Tetap dikirim hanya karena IExpenseType mewajibkannya —
-        // antarmuka yang sama dipakai jalur create, yang memang menuliskannya.
-        parent_id: null,
       });
 
       return res.status(201).send(result);
@@ -72,16 +64,6 @@ class ExpenseTypeController {
       const expenseType = await this.expenseTypeRepository.fetchByID(id);
       if (!expenseType) {
         return res.status(404).send(ErrorList["Not found"]);
-      }
-
-      if (expenseType.parent_id == null) {
-        const children = await this.expenseTypeRepository.countByParentID(
-          expenseType.id!
-        );
-
-        if (children > 0) {
-          return res.status(400).send(ErrorList["Expense type has child"]);
-        }
       }
 
       const result = await this.expenseTypeRepository.delete(id, userID);

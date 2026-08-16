@@ -218,7 +218,6 @@ enum ErrorList {
 
   "Expense not found" = "expense.notFound",
   "Expense type not found" = "expenseType.notFound",
-  "Expense type has child" = "expenseType.hasChild",
   "Expense type name is required" = "validation.expenseType.nameRequired",
   "Expense type description is required" = "validation.expenseType.descriptionRequired",
 

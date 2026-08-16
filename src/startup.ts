@@ -3,6 +3,7 @@ dotenv.config(); // If you load .env here
 
 import { redisClient } from "./utils/redis.helper";
 import { prisma } from "./utils/database.helper";
+import { EXPENSE_TYPE_SEED } from "./constants/expense-type-seed.constant";
 import { meili } from "./utils/meili.helper";
 import { ProductService } from "./services/product.service";
 import { ProductRepository } from "./repositories/product.repository";
@@ -212,6 +213,55 @@ async function orderStockCard() {
   await stockCardService.reorder();
 }
 
+/**
+ * Menanam daftar baku tipe pengeluaran (lihat constants/expense-type-seed).
+ *
+ * Idempoten: mencocokkan berdasarkan nama. Tipe yang sudah ada dibiarkan —
+ * termasuk yang pernah dihapus-lunak, supaya menjalankan seeder dua kali
+ * tidak menghidupkan kembali keputusan yang sudah diambil. created_by memakai
+ * pengguna tertua di basis data; seeder menolak berjalan pada basis data
+ * tanpa pengguna sama sekali.
+ */
+async function seedExpenseType() {
+  const pengguna = await prisma.user.findFirst({
+    orderBy: { id: "asc" },
+    select: { id: true },
+  });
+
+  if (!pengguna) {
+    console.error(
+      "[error]: Tidak ada pengguna di basis data — jalankan pembuatan pengguna lebih dulu."
+    );
+    return;
+  }
+
+  const sudahAda = await prisma.expense_type.findMany({
+    select: { name: true },
+  });
+  const namaAda = new Set(sudahAda.map((tipe) => tipe.name));
+
+  let ditanam = 0;
+  for (const tipe of EXPENSE_TYPE_SEED) {
+    if (namaAda.has(tipe.name)) {
+      continue;
+    }
+
+    await prisma.expense_type.create({
+      data: {
+        name: tipe.name,
+        description: tipe.description,
+        created_by: pengguna.id,
+        created_at: new Date(),
+      },
+    });
+    ditanam++;
+  }
+
+  console.info(
+    `[info]: Seeder tipe pengeluaran selesai — ${ditanam} baru, ${namaAda.size} sudah ada.`
+  );
+}
+
 async function createIndexes() {
   await meili.createIndex("product", {
     primaryKey: "id",
@@ -254,6 +304,9 @@ async function runFunction(funcName: string) {
       process.exit(0);
     case "syncSales":
       await syncSales();
+      process.exit(0);
+    case "seedExpenseType":
+      await seedExpenseType();
       process.exit(0);
     default:
       console.error("[error]: Function not found");

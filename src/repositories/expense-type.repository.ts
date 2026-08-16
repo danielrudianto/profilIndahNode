@@ -2,6 +2,10 @@ import { IExpenseType } from "../interfaces/expense-type.interface";
 import { PrismaClient } from "@prisma/client";
 import ExpenseTypeModel from "../models/expense-type.model";
 
+/**
+ * Tipe pengeluaran datar — lihat catatan di models/expense-type.model.ts.
+ * Kolom parent_id sengaja tidak pernah disentuh di sini.
+ */
 export class ExpenseTypeRepository {
   private prisma: PrismaClient;
 
@@ -17,18 +21,10 @@ export class ExpenseTypeRepository {
           description: data.description,
           created_by: data.created_by,
           created_at: data.created_at || new Date(),
-          parent_id: data.parent_id,
         },
       });
 
-      return new ExpenseTypeModel({
-        id: result.id,
-        name: result.name,
-        description: result.description,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        parent_id: result.parent_id,
-      });
+      return ExpenseTypeModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error on creating expense type ${error}`);
       throw new Error("Internal server error");
@@ -43,11 +39,6 @@ export class ExpenseTypeRepository {
         data: {
           name: data.name,
           description: data.description,
-          // Kolom updated_by dan updated_at baru ditambahkan lewat migrasi
-          // 20260814000000_expense_type_updated_trail; sebelumnya expense_type
-          // adalah satu-satunya tabel bermuatan jejak pembuatan yang tidak
-          // punya pasangan jejak perubahan.
-          //
           // Sumbernya data.created_by dan data.created_at karena itulah bidang
           // yang dipakai controller untuk membawa identitas PENYUNTING —
           // penamaan yang berlaku seragam di seluruh repository repo ini.
@@ -56,14 +47,7 @@ export class ExpenseTypeRepository {
         },
       });
 
-      return new ExpenseTypeModel({
-        id: result.id,
-        name: result.name,
-        description: result.description,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        parent_id: result.parent_id,
-      });
+      return ExpenseTypeModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error on updating expense type ${error}`);
       throw new Error("Internal server error");
@@ -106,7 +90,6 @@ export class ExpenseTypeRepository {
           description: true,
           created_by: true,
           created_at: true,
-          parent_id: true,
         },
       });
 
@@ -114,42 +97,7 @@ export class ExpenseTypeRepository {
         throw new Error("Expense type not found");
       }
 
-      let children: any[] = [];
-
-      if (result.parent_id == null) {
-        children = await this.prisma.expense_type.findMany({
-          where: {
-            parent_id: id,
-            is_delete: false,
-          },
-          select: {
-            id: true,
-            name: true,
-            description: true,
-            created_by: true,
-            created_at: true,
-          },
-        });
-      }
-
-      return new ExpenseTypeModel({
-        id: result.id,
-        name: result.name,
-        description: result.description,
-        created_by: result.created_by,
-        created_at: result.created_at,
-        parent_id: result.parent_id,
-        children: children.map((child) => {
-          return new ExpenseTypeModel({
-            id: child.id,
-            name: child.name,
-            description: child.description,
-            created_by: child.created_by,
-            created_at: child.created_at,
-            parent_id: result.id, // Set parent_id to the current expense type ID
-          });
-        }),
-      });
+      return ExpenseTypeModel.fromMap(result);
     } catch (error) {
       console.error(`[error]: Error on fetching expense type by ID ${error}`);
       throw new Error("Internal server error");
@@ -161,9 +109,6 @@ export class ExpenseTypeRepository {
       const result = await this.prisma.expense_type.findMany({
         where: {
           is_delete: false,
-          parent_id: {
-            not: null,
-          }, // Only fetch top-level expense types
           OR: [
             {
               name: {
@@ -181,7 +126,9 @@ export class ExpenseTypeRepository {
           id: true,
           name: true,
           description: true,
-          parent_id: true,
+        },
+        orderBy: {
+          name: "asc",
         },
         take: 5,
       });
@@ -199,74 +146,8 @@ export class ExpenseTypeRepository {
 
   async fetch() {
     try {
-      const result = await this.prisma.$queryRaw<any[]>`
-        SELECT expense_type.*, IF(c.count > 0, FALSE, TRUE) AS can_delete
-        FROM expense_type
-        LEFT JOIN (
-          SELECT COUNT(id) AS count, expense_type.parent_id
-          FROM expense_type
-          WHERE is_delete = false
-          AND expense_type.parent_id IS NOT NULL
-          GROUP BY expense_type.parent_id
-        ) c ON expense_type.id = c.parent_id
-        WHERE is_delete = 0
-        AND expense_type.parent_id IS NULL
-        ORDER BY expense_type.name ASC
-      `;
-
-      return result.map((item) => {
-        return new ExpenseTypeModel({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          created_by: item.created_by,
-          created_at: item.created_at,
-          parent_id: item.parent_id,
-          can_delete: Boolean(Number(item.can_delete)),
-        });
-      });
-    } catch (error) {
-      console.error(`[error]: Error on fetching expense types ${error}`);
-      throw new Error("Internal server error");
-    }
-  }
-
-  async fetchAll(data: { withChildren: boolean }) {
-    try {
-      const result = await this.prisma.$queryRaw<any[]>`
-        SELECT expense_type.id, expense_type.name, expense_type.description, 
-        IF(COALESCE(c.count, 0) = 0, "1", "0") AS can_delete 
-        FROM expense_type 
-        LEFT JOIN (
-          SELECT COUNT(id) AS count, expense_type.parent_id
-          FROM expense_type
-          WHERE is_delete = 0
-          AND expense_type.parent_id IS NOT NULL
-          GROUP BY expense_type.parent_id
-        ) c
-        ON expense_type.id = c.parent_id
-        WHERE is_delete = 0 AND expense_type.parent_id IS NULL
-      `;
-
-      if (!data.withChildren) {
-        return result.map((item) => {
-          return new ExpenseTypeModel({
-            id: item.id,
-            name: item.name,
-            description: item.description,
-            created_by: item.created_by,
-            created_at: item.created_at,
-            parent_id: item.parent_id,
-            can_delete: item.can_delete,
-          });
-        });
-      }
-
-      const children = await this.prisma.expense_type.findMany({
+      const result = await this.prisma.expense_type.findMany({
         where: {
-          parent_id: {
-            not: null,
-          },
           is_delete: false,
         },
         select: {
@@ -275,54 +156,21 @@ export class ExpenseTypeRepository {
           description: true,
           created_by: true,
           created_at: true,
-          parent_id: true,
+        },
+        orderBy: {
+          name: "asc",
         },
       });
 
-      // Map the result to ExpenseTypeModel and include children
-      return result.map((item) => {
-        return new ExpenseTypeModel({
-          id: item.id,
-          name: item.name,
-          description: item.description,
-          created_by: item.created_by,
-          created_at: item.created_at,
-          parent_id: item.parent_id,
-          can_delete: Boolean(Number(item.can_delete)),
-          children: children
-            .filter((child) => child.parent_id === item.id)
-            .map((child) => {
-              return new ExpenseTypeModel({
-                id: child.id,
-                name: child.name,
-                description: child.description,
-                created_by: child.created_by,
-                created_at: child.created_at,
-                parent_id: item.id, // Set parent_id to the current expense type ID
-              });
-            }),
-        });
-      });
+      return result.map((item) => ExpenseTypeModel.fromMap(item));
     } catch (error) {
       console.error(`[error]: Error on fetching expense types ${error}`);
       throw new Error("Internal server error");
     }
   }
 
-  async countByParentID(id: number) {
-    try {
-      const count = await this.prisma.expense_type.count({
-        where: {
-          parent_id: id,
-          is_delete: false,
-        },
-      });
-      return count;
-    } catch (error) {
-      console.error(
-        `[error]: Error on counting expense types by parent ID ${error}`
-      );
-      throw new Error("Internal server error");
-    }
+  /** Nama dipertahankan untuk pemanggil lama; isinya kini sama dengan fetch. */
+  async fetchAll() {
+    return this.fetch();
   }
 }

@@ -141,9 +141,7 @@ class ExpenseController {
     try {
       const result = await this.expenseRepository.fetchReport(month, year);
       const company = await this.companyRepository.fetchAll();
-      const expenseTypes = await this.expenseTypeRepository.fetchAll({
-        withChildren: true,
-      });
+      const expenseTypes = await this.expenseTypeRepository.fetchAll();
 
       return res.status(200).send({
         result: result,

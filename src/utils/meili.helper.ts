@@ -74,4 +74,15 @@ export const initializeMeiliSearch = async () => {
   }
 };
 
-initializeMeiliSearch();
+/*
+  Kegagalannya DITANGKAP, bukan dibiarkan mengambang: modul ini ikut termuat
+  oleh perintah satu-kali di startup.ts, dan penolakan tak tertangani dari
+  Meilisearch yang mati mematikan seluruh proses sebelum perintahnya sempat
+  berjalan — seeder gagal hanya karena mesin pencari tidak menyala. Server
+  tetap mencatat kegagalannya; fitur pencarian sajalah yang lumpuh.
+*/
+initializeMeiliSearch().catch((error) => {
+  console.error(
+    `[error]: Meilisearch tidak dapat diinisialisasi — fitur pencarian tidak akan berfungsi. ${error}`
+  );
+});
