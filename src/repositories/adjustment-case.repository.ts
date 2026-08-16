@@ -431,6 +431,12 @@ export class AdjustmentCaseRepository {
         },
         include: {
           company: true,
+          /* Kolom "Dibuat oleh" pada daftar arsip (12a) — cukup namanya. */
+          user_adjustment_case_code_created_byTouser: {
+            select: {
+              name: true,
+            },
+          },
         },
         take: data.pageSize,
         skip: (data.page - 1) * data.pageSize,
