@@ -2,6 +2,7 @@ import { Router } from "express";
 import SupplierController from "../controllers/supplier.controller";
 import { prisma } from "../utils/database.helper";
 import { validate } from "../utils/validate.helper";
+import { superadministratorMiddleware } from "../utils/auth.helper";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { SupplierRepository } from "../repositories/supplier.repository";
 import {
@@ -19,6 +20,18 @@ const supplierController = new SupplierController(
 );
 
 router.get("/autocomplete", supplierController.fetchAutocomplete);
+
+/*
+  Laporan belanja per supplier — SEBELUM "/:id" supaya "report" tidak
+  tertangkap sebagai id, dan dikunci super administrator: nilai belanja
+  per supplier adalah angka yang sensitif.
+*/
+router.get(
+  "/:id/report",
+  superadministratorMiddleware,
+  validate(getSupplierSchema, "params"),
+  supplierController.fetchReport
+);
 
 router.get(
   "/:id",

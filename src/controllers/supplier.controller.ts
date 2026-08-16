@@ -147,6 +147,35 @@ class SupplierController {
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
+
+  /**
+   * Laporan belanja pada satu supplier. Rutennya dikunci super administrator
+   * — nilai belanja per supplier adalah angka yang sensitif.
+   */
+  fetchReport = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const year = Number(req.query.year) || 0;
+
+      const supplier = await this.supplierRepository.fetchByID(id);
+      if (!supplier) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const report = await this.supplierRepository.fetchReport(id, year);
+
+      return res.status(200).send({
+        supplier: {
+          id: supplier.id,
+          name: supplier.name,
+        },
+        ...report,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching supplier report ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
 }
 
 export default SupplierController;

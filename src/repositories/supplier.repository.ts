@@ -243,4 +243,108 @@ export class SupplierRepository {
       throw error;
     }
   }
+
+  /**
+   * Laporan belanja pada satu supplier — hanya untuk super administrator.
+   *
+   * Seluruhnya agregat dari penerimaan barang yang tidak terhapus; tidak ada
+   * baris dokumen mentah yang ikut terkirim. Nilai dihitung netto diskon
+   * baris pada satuan dokumennya (harga x kuantitas satuan yang sama, jadi
+   * tanpa konversi); kuantitas ditampilkan dalam satuan dasar supaya bisa
+   * dijumlahkan lintas satuan. Tahun 0 berarti sepanjang waktu.
+   */
+  async fetchReport(supplierID: number, year: number) {
+    try {
+      const [ringkasan, merek, barang, tahunTersedia] = await Promise.all([
+        this.prisma.$queryRaw<any[]>`
+          SELECT
+            COALESCE(SUM((gr.price - gr.discount) * gr.quantity), 0) AS total_nilai,
+            COUNT(DISTINCT grc.id) AS jumlah_dokumen,
+            COUNT(DISTINCT gr.product_id) AS produk_unik,
+            MIN(grc.date) AS pertama,
+            MAX(grc.date) AS terakhir
+          FROM good_receipt gr
+          JOIN good_receipt_code grc ON gr.good_receipt_code_id = grc.id
+          WHERE grc.supplier_id = ${supplierID}
+            AND grc.is_delete = 0
+            AND gr.is_delete = 0
+            AND (${year} = 0 OR YEAR(grc.date) = ${year})
+        `,
+        this.prisma.$queryRaw<any[]>`
+          SELECT
+            pb.name AS merek,
+            COUNT(DISTINCT gr.product_id) AS produk_unik,
+            COALESCE(SUM(gr.quantity * COALESCE(pu.conversion, 1)), 0) AS kuantitas,
+            COALESCE(SUM((gr.price - gr.discount) * gr.quantity), 0) AS nilai
+          FROM good_receipt gr
+          JOIN good_receipt_code grc ON gr.good_receipt_code_id = grc.id
+          JOIN product p ON gr.product_id = p.id
+          JOIN product_brand pb ON p.product_brand_id = pb.id
+          LEFT JOIN product_unit pu ON gr.product_unit_id = pu.id
+          WHERE grc.supplier_id = ${supplierID}
+            AND grc.is_delete = 0
+            AND gr.is_delete = 0
+            AND (${year} = 0 OR YEAR(grc.date) = ${year})
+          GROUP BY pb.id, pb.name
+          ORDER BY nilai DESC
+        `,
+        this.prisma.$queryRaw<any[]>`
+          SELECT
+            p.reference AS referensi,
+            p.description AS deskripsi,
+            p.unit AS satuan,
+            COUNT(DISTINCT grc.id) AS jumlah_dokumen,
+            COALESCE(SUM(gr.quantity * COALESCE(pu.conversion, 1)), 0) AS kuantitas,
+            COALESCE(SUM((gr.price - gr.discount) * gr.quantity), 0) AS nilai
+          FROM good_receipt gr
+          JOIN good_receipt_code grc ON gr.good_receipt_code_id = grc.id
+          JOIN product p ON gr.product_id = p.id
+          LEFT JOIN product_unit pu ON gr.product_unit_id = pu.id
+          WHERE grc.supplier_id = ${supplierID}
+            AND grc.is_delete = 0
+            AND gr.is_delete = 0
+            AND (${year} = 0 OR YEAR(grc.date) = ${year})
+          GROUP BY p.id, p.reference, p.description, p.unit
+          ORDER BY jumlah_dokumen DESC, nilai DESC
+          LIMIT 15
+        `,
+        this.prisma.$queryRaw<any[]>`
+          SELECT DISTINCT YEAR(grc.date) AS tahun
+          FROM good_receipt_code grc
+          WHERE grc.supplier_id = ${supplierID}
+            AND grc.is_delete = 0
+          ORDER BY tahun DESC
+        `,
+      ]);
+
+      const r = ringkasan[0] ?? {};
+      return {
+        summary: {
+          totalValue: Number(r.total_nilai ?? 0),
+          documentCount: Number(r.jumlah_dokumen ?? 0),
+          uniqueProducts: Number(r.produk_unik ?? 0),
+          firstDate: r.pertama ?? null,
+          lastDate: r.terakhir ?? null,
+        },
+        brands: merek.map((x) => ({
+          name: x.merek,
+          uniqueProducts: Number(x.produk_unik),
+          quantity: Number(x.kuantitas),
+          value: Number(x.nilai),
+        })),
+        topProducts: barang.map((x) => ({
+          reference: x.referensi,
+          description: x.deskripsi,
+          unit: x.satuan,
+          documentCount: Number(x.jumlah_dokumen),
+          quantity: Number(x.kuantitas),
+          value: Number(x.nilai),
+        })),
+        availableYears: tahunTersedia.map((x) => Number(x.tahun)),
+      };
+    } catch (error) {
+      console.error(`[error]: Error on fetching supplier report ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
 }
