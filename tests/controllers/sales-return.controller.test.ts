@@ -446,6 +446,21 @@ describe("DELETE /:id — membatalkan retur", () => {
     });
   });
 
+  /*
+    SEMBUH: stock_out yang dibuat ulang saat retur dibatalkan lahir tanpa
+    lapisan stock_in. Dulu ia menggantung tak-teralokasi sampai kebetulan ada
+    dokumen lain yang memicu penetapan; kini sapuannya diantre langsung.
+  */
+  it("mengantre hpp-assign setelah membuat ulang stock_out", async () => {
+    const r = repositoriTiruan();
+    r.salesReturn.fetchByID.mockResolvedValue(returTersimpan());
+    r.salesReturn.delete.mockResolvedValue({ id: 33 });
+
+    await request(app(r)).delete("/33");
+
+    expect(tambahAntrean).toHaveBeenCalledWith("hpp-assign", {});
+  });
+
   it("membalas 404 bila retur tidak ada", async () => {
     const r = repositoriTiruan();
     r.salesReturn.fetchByID.mockResolvedValue(null);

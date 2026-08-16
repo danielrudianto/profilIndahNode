@@ -279,6 +279,13 @@ class SalesReturnController {
         })
       );
 
+      /*
+        Baris stock_out yang baru dibuat ulang di atas belum menunjuk lapisan
+        stock_in mana pun. Tanpa sapuan ini ia menggantung tak-teralokasi
+        sampai kebetulan ada dokumen lain yang memicu penetapan.
+      */
+      await queue.add("hpp-assign", {});
+
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on deleting sales return ${error}`);
