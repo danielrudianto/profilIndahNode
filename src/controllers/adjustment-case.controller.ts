@@ -319,6 +319,15 @@ class AdjustmentCaseController {
         );
       }
 
+      /*
+        Menghapus kasus "ditemukan" melepas stock_out yang sempat menempel
+        pada lapisannya — sapu supaya mereka pindah ke lapisan lain, bukan
+        menunggak sampai dokumen berikutnya.
+      */
+      if (type == 0) {
+        await queue.add("hpp-assign", {});
+      }
+
       for (let i = 0; i < adjustmentCase.adjustment_case!.length; i++) {
         await queue.add("stock-card-deleted", {
           sales_invoice_code_id: null,

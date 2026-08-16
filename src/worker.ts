@@ -96,6 +96,11 @@ const workerHandler = async (job: Job<any>) => {
       break;
     case "good-receipt-deleted":
       await goodReceiptService.deleteByID(job.data);
+      /*
+        Lapisan yang dihapus melepas stock_out yang menempel padanya — sapu
+        supaya mereka menempel ulang ke lapisan yang tersisa.
+      */
+      await stockOutService.calculateStockOut();
       // `break` ini sempat ikut terkubur di dalam bongkahan kode Mongoose yang
       // dikomentari di bawahnya. Selama bongkahan itu masih ada, ketiadaannya
       // tidak berefek — tidak ada case lain di belakangnya untuk dijatuhi.

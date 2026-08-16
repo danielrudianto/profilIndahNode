@@ -239,16 +239,23 @@ class GoodReceiptController {
 
         await this.stockInRepository.createMany(
           result.good_receipt!.map((x) => {
+            const konversi =
+              x.product_unit == null ? 1 : x.product_unit.conversion;
+
             return {
               good_receipt_code_id: result.id!,
               good_receipt_id: x.id!,
               adjustment_case_code_id: null,
               adjustment_case_id: null,
-              price: x.price - x.discount,
+              /*
+                Dibagi konversi — kuantitasnya satuan dasar, harganya juga
+                harus per satuan dasar. Jalur ini sempat menulis harga netto
+                per satuan DOKUMEN pada kuantitas satuan dasar: 3 box @1,5jt
+                menjadi 300 pcs @1,47jt per pcs, HPP meledak seratus kali.
+              */
+              price: (x.price - x.discount) / konversi,
               product_id: x.product_id,
-              quantity:
-                x.quantity *
-                (x.product_unit == null ? 1 : x.product_unit.conversion),
+              quantity: x.quantity * konversi,
               company_id: result.company_id,
               date: result.date,
             };
@@ -292,6 +299,13 @@ class GoodReceiptController {
             };
           })
         );
+
+        /*
+          Stock_out yang tadinya menempel pada lapisan lama sudah dilepas oleh
+          deleteMany di atas — sapu sekali supaya mereka menempel ke lapisan
+          baru, bukan menunggu dokumen berikutnya.
+        */
+        await queue.add("hpp-assign", {});
 
         return res.status(201).send(result);
       }
