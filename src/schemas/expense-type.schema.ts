@@ -44,8 +44,22 @@ const tipePengeluaranBase = z.object({
   description: requiredText(ErrorList["Expense type description is required"]),
 });
 
-/** POST /expense-type */
-export const createExpenseTypeSchema = tipePengeluaranBase;
+/**
+ * POST /expense-type — selalu membuat ANAK, jadi parent_id wajib.
+ * Keabsahan induknya (hidup dan benar-benar baku) diperiksa controller;
+ * skema hanya menjaga bentuknya.
+ */
+export const createExpenseTypeSchema = z.object({
+  ...tipePengeluaranBase.shape,
+  parent_id: z
+    .any()
+    .refine((nilai) => nilai !== undefined && !isNaN(Number(nilai)), {
+      message: ErrorList["Expense type parent invalid"],
+    })
+    .refine((nilai) => Number.isInteger(Number(nilai)) && Number(nilai) >= 1, {
+      message: ErrorList["Expense type parent invalid"],
+    }),
+});
 
 /** PUT /expense-type — urutan lama: name, description, lalu id. */
 export const updateExpenseTypeSchema = z.object({

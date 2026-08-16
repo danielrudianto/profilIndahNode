@@ -14,12 +14,24 @@ class ExpenseTypeController {
   create = async (req: Request, res: Response) => {
     const name = req.body.name;
     const description = req.body.description;
+    const parentID = Number(req.body.parent_id);
     const userID = req.body.userId;
 
     try {
+      /*
+        Yang dibuat lewat API selalu ANAK, dan induknya harus salah satu
+        kategori baku — baris hidup dengan parent_id null. Tanpa penjagaan
+        ini, anak bisa menumpang pada anak lain dan pohonnya kembali liar.
+      */
+      const induk = await this.expenseTypeRepository.fetchByID(parentID);
+      if (!induk || induk.is_delete || induk.parent_id != null) {
+        return res.status(400).send(ErrorList["Expense type parent invalid"]);
+      }
+
       const result = await this.expenseTypeRepository.create({
         name: name,
         description: description,
+        parent_id: parentID,
         created_by: userID,
         created_at: new Date(),
       });
@@ -41,6 +53,15 @@ class ExpenseTypeController {
     const userID = req.body.userId;
 
     try {
+      /* Induk baku tidak bisa disunting — hanya anak. */
+      const target = await this.expenseTypeRepository.fetchByID(id);
+      if (!target) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+      if (target.parent_id == null) {
+        return res.status(400).send(ErrorList["Expense type is fixed"]);
+      }
+
       const result = await this.expenseTypeRepository.update({
         name: name,
         description: description,
@@ -64,6 +85,11 @@ class ExpenseTypeController {
       const expenseType = await this.expenseTypeRepository.fetchByID(id);
       if (!expenseType) {
         return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      /* Induk baku tidak bisa dihapus — hanya anak. */
+      if (expenseType.parent_id == null) {
+        return res.status(400).send(ErrorList["Expense type is fixed"]);
       }
 
       const result = await this.expenseTypeRepository.delete(id, userID);

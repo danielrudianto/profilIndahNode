@@ -3,8 +3,9 @@ import { PrismaClient } from "@prisma/client";
 import ExpenseTypeModel from "../models/expense-type.model";
 
 /**
- * Tipe pengeluaran datar — lihat catatan di models/expense-type.model.ts.
- * Kolom parent_id sengaja tidak pernah disentuh di sini.
+ * Tipe pengeluaran dua tingkat — lihat catatan di models/expense-type.model.ts.
+ * Penjagaan "induk baku tidak boleh disentuh" hidup di controller; repository
+ * ini hanya menjalankan apa yang diminta.
  */
 export class ExpenseTypeRepository {
   private prisma: PrismaClient;
@@ -13,12 +14,14 @@ export class ExpenseTypeRepository {
     this.prisma = prisma;
   }
 
+  /** Membuat ANAK — parent_id wajib menunjuk induk baku. */
   async create(data: IExpenseType) {
     try {
       const result = await this.prisma.expense_type.create({
         data: {
           name: data.name,
           description: data.description,
+          parent_id: data.parent_id,
           created_by: data.created_by,
           created_at: data.created_at || new Date(),
         },
@@ -31,6 +34,7 @@ export class ExpenseTypeRepository {
     }
   }
 
+  /** Menyunting nama dan deskripsi anak; induknya tidak ikut berpindah. */
   async update(data: IExpenseType) {
     try {
       const id = data.id!;
@@ -56,14 +60,6 @@ export class ExpenseTypeRepository {
 
   async delete(id: number, userID: number) {
     try {
-      const expenseType = await this.prisma.expense_type.findUnique({
-        where: { id },
-      });
-
-      if (!expenseType) {
-        throw new Error("Expense type not found");
-      }
-
       await this.prisma.expense_type.update({
         where: {
           id: id,
@@ -90,11 +86,13 @@ export class ExpenseTypeRepository {
           description: true,
           created_by: true,
           created_at: true,
+          parent_id: true,
+          is_delete: true,
         },
       });
 
       if (!result) {
-        throw new Error("Expense type not found");
+        return null;
       }
 
       return ExpenseTypeModel.fromMap(result);
@@ -104,11 +102,19 @@ export class ExpenseTypeRepository {
     }
   }
 
+  /**
+   * Saran untuk pencatatan pengeluaran: HANYA ANAK. Induk cuma wadah —
+   * pengeluaran yang menempel langsung ke induk membuat gulungan laporan
+   * menghitungnya dua kali.
+   */
   async fetchAutocomplete(keyword: string) {
     try {
       const result = await this.prisma.expense_type.findMany({
         where: {
           is_delete: false,
+          parent_id: {
+            not: null,
+          },
           OR: [
             {
               name: {
@@ -126,6 +132,7 @@ export class ExpenseTypeRepository {
           id: true,
           name: true,
           description: true,
+          parent_id: true,
         },
         orderBy: {
           name: "asc",
@@ -144,32 +151,61 @@ export class ExpenseTypeRepository {
     }
   }
 
+  /** Seluruh induk baku beserta anak hidupnya, untuk daftar dan laporan. */
   async fetch() {
     try {
-      const result = await this.prisma.expense_type.findMany({
-        where: {
-          is_delete: false,
-        },
-        select: {
-          id: true,
-          name: true,
-          description: true,
-          created_by: true,
-          created_at: true,
-        },
-        orderBy: {
-          name: "asc",
-        },
-      });
+      const [induk, anak] = await Promise.all([
+        this.prisma.expense_type.findMany({
+          where: {
+            is_delete: false,
+            parent_id: null,
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            created_by: true,
+            created_at: true,
+            parent_id: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        }),
+        this.prisma.expense_type.findMany({
+          where: {
+            is_delete: false,
+            parent_id: {
+              not: null,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            created_by: true,
+            created_at: true,
+            parent_id: true,
+          },
+          orderBy: {
+            name: "asc",
+          },
+        }),
+      ]);
 
-      return result.map((item) => ExpenseTypeModel.fromMap(item));
+      return induk.map((item) =>
+        ExpenseTypeModel.fromMap({
+          ...item,
+          children: anak.filter((a) => a.parent_id === item.id),
+        })
+      );
     } catch (error) {
       console.error(`[error]: Error on fetching expense types ${error}`);
       throw new Error("Internal server error");
     }
   }
 
-  /** Nama dipertahankan untuk pemanggil lama; isinya kini sama dengan fetch. */
+  /** Nama dipertahankan untuk pemanggil lama; isinya sama dengan fetch. */
   async fetchAll() {
     return this.fetch();
   }

@@ -1,14 +1,12 @@
 import { IExpenseType } from "../interfaces/expense-type.interface";
 
 /**
- * Tipe pengeluaran — daftar DATAR yang baku.
+ * Tipe pengeluaran dua tingkat dengan INDUK BAKU.
  *
- * Hirarki induk-anak dibuang atas keputusan pemilik: dua tingkat membuat
- * pencatatan berbelit tanpa menambah arti pada laporan. Kolom parent_id
- * masih ada di basis data sebagai warisan, tetapi tidak lagi dibaca maupun
- * ditulis oleh lapisan mana pun. Isi daftarnya dijaga lewat seeder
- * (`npm run start:seed-expense-type`); endpoint tulisnya hanya untuk super
- * administrator sebagai pintu darurat.
+ * Induk (parent_id null) adalah kategori besar yang ditanam seeder
+ * (`npm run start:seed-expense-type`) dan tidak bisa diubah maupun dihapus
+ * lewat API — itulah yang menjaga laporan tetap seragam. Anak bebas dikelola
+ * pengguna dan wajib menunjuk salah satu induk; pengeluaran dicatat ke anak.
  */
 export class ExpenseTypeModel {
   id?: number;
@@ -16,9 +14,11 @@ export class ExpenseTypeModel {
   description: string;
   created_by: number;
   created_at?: Date;
+  parent_id?: number | null;
   is_delete?: boolean;
   deleted_by?: number | null;
   deleted_at?: Date | null;
+  children?: ExpenseTypeModel[];
 
   constructor(data: IExpenseType) {
     this.id = data.id;
@@ -26,9 +26,13 @@ export class ExpenseTypeModel {
     this.description = data.description;
     this.created_by = data.created_by;
     this.created_at = data.created_at || new Date();
+    this.parent_id = data.parent_id ?? null;
     this.is_delete = data.is_delete || false;
     this.deleted_by = data.deleted_by;
     this.deleted_at = data.deleted_at;
+    this.children = (data.children ?? []).map((anak) =>
+      anak instanceof ExpenseTypeModel ? anak : new ExpenseTypeModel(anak)
+    );
   }
 
   static fromMap(data: any): ExpenseTypeModel {
@@ -38,9 +42,11 @@ export class ExpenseTypeModel {
       description: data.description,
       created_by: data.created_by,
       created_at: data.created_at,
+      parent_id: data.parent_id,
       is_delete: data.is_delete,
       deleted_by: data.deleted_by,
       deleted_at: data.deleted_at,
+      children: data.children,
     });
   }
 }
