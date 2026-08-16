@@ -498,8 +498,12 @@ describe("GET /report — laporan biaya sebulan", () => {
     expect(repo.expense.fetchReport).toHaveBeenCalledWith(3, 2024);
   });
 
-  /** Jenis biaya diminta beserta anaknya supaya pengelompokannya bisa bertingkat. */
-  it("meminta jenis biaya beserta anak-anaknya", async () => {
+  /*
+    fetchAll kini tanpa parameter: sejak tipe pengeluaran menjadi dua tingkat
+    berinduk baku, ia SELALU mengembalikan induk beserta anaknya — pilihan
+    withChildren tidak ada lagi.
+  */
+  it("meminta seluruh jenis biaya beserta anak-anaknya tanpa parameter", async () => {
     const repo = repositoryTiruan();
     repo.expense.fetchReport.mockResolvedValue([]);
     repo.company.fetchAll.mockResolvedValue([]);
@@ -507,9 +511,7 @@ describe("GET /report — laporan biaya sebulan", () => {
 
     await request(app(repo)).get("/report?month=3&year=2024");
 
-    expect(repo.expenseType.fetchAll).toHaveBeenCalledWith({
-      withChildren: true,
-    });
+    expect(repo.expenseType.fetchAll).toHaveBeenCalledWith();
   });
 
   it("membalas 500 bila salah satu repository gagal", async () => {

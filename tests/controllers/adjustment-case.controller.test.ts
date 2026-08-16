@@ -424,8 +424,15 @@ describe("POST /approve — menyetujui penyesuaian", () => {
     expect(repo.stockOut.create).not.toHaveBeenCalled();
   });
 
-  /** Semua jumlah negatif berarti barang hilang: dicatat sebagai stok KELUAR. */
-  it("mencatat stok keluar bila semua jumlah negatif", async () => {
+  /**
+   * Semua jumlah negatif berarti barang hilang: dicatat sebagai stok KELUAR
+   * dengan kuantitas yang DIMUTLAKKAN. Kasus hilang disimpan negatif di
+   * adjustment_case, tetapi stock_out negatif tidak pernah diproses penetapan
+   * FIFO (syaratnya quantity > 0) — kerugiannya tidak pernah dinilai dan
+   * lapisan yang hilang fisik tidak pernah dikonsumsi. CLI pembangunan ulang
+   * sudah menulis positif; kini jalur hidup sejalan.
+   */
+  it("mencatat stok keluar positif bila semua jumlah negatif", async () => {
     const repo = repoSetujuSiap();
     repo.adjustmentCase.approve.mockResolvedValue({
       ...disetujui,
@@ -445,7 +452,7 @@ describe("POST /approve — menyetujui penyesuaian", () => {
     expect(repo.stockOut.create).toHaveBeenCalledWith([
       expect.objectContaining({
         product_id: 100,
-        quantity: -24,
+        quantity: 24,
         price: 0,
         stock_in_id: null,
       }),
@@ -645,15 +652,23 @@ describe("POST /approve — menyetujui penyesuaian", () => {
     const repo = repoSetujuSiap();
     let antrianSelesai = false;
     let lanjutkan: (() => void) | undefined;
-    tambahAntrian.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          lanjutkan = () => {
-            antrianSelesai = true;
-            resolve();
-          };
-        })
-    );
+    /*
+      Hanya job kartu stok yang digantung — dialah yang ditembak di dalam
+      forEach tanpa ditunggu. Job hpp-assign justru DI-AWAIT oleh handler
+      (disengaja: penetapan HPP harus pasti terantre sebelum balasan sukses),
+      jadi menggantungkannya ikut menggantung seluruh permintaan.
+    */
+    tambahAntrian.mockImplementation((nama: string) => {
+      if (nama !== "stock-card-inserted") {
+        return Promise.resolve();
+      }
+      return new Promise<void>((resolve) => {
+        lanjutkan = () => {
+          antrianSelesai = true;
+          resolve();
+        };
+      });
+    });
 
     const res = await request(app(repo)).post("/approve").send({ id: 7 });
 

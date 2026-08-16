@@ -552,19 +552,13 @@ describe("PUT / — menyunting penerimaan barang", () => {
   });
 
   /**
-   * CACAT BERAT: menyunting dokumen MERUSAK harga pokok barang bersatuan.
-   *
-   * Saat membuat dokumen, harga stok masuk dihitung
-   * `(price - discount) / conversion` — harga per satuan terkecil. Saat
-   * MENYUNTING, rumusnya hanya `price - discount`: pembagian konversinya
-   * hilang.
-   *
-   * Untuk barang 1 dus berisi 12, harga pokok per batang melonjak 12 kali
-   * lipat begitu dokumennya disunting sekali saja. Semua penjualan barang itu
-   * sesudahnya dilaporkan RUGI besar, dan nilai persediaan di neraca ikut
-   * menggelembung. Tidak ada peringatan apa pun; angkanya hanya berubah.
+   * SEMBUH: menyunting dokumen kini menghitung harga stok masuk dengan rumus
+   * yang sama seperti saat membuatnya — `(price - discount) / conversion`,
+   * harga per satuan terkecil. Dulu pembagian konversinya hilang di jalur
+   * sunting: barang 1 dus isi 12 melonjak 12 kali lipat harga pokoknya
+   * begitu dokumennya disunting sekali, tanpa peringatan apa pun.
    */
-  it("CACAT: update menyimpan harga stok masuk tanpa membagi konversi satuan", async () => {
+  it("update menyimpan harga stok masuk per satuan terkecil, netto diskon", async () => {
     const repo = repoSuntingSiap();
 
     await request(app(repo)).put("/").send(badanSunting());
@@ -572,7 +566,7 @@ describe("PUT / — menyunting penerimaan barang", () => {
     expect(repo.stockIn.createMany).toHaveBeenCalledWith([
       expect.objectContaining({
         product_id: 100,
-        price: 108000, // seharusnya 9000, yaitu (120000 - 12000) / 12
+        price: 9000, // (120000 - 12000) / 12
         quantity: 24,
       }),
     ]);

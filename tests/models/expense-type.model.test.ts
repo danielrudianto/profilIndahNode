@@ -1,21 +1,18 @@
 import ExpenseTypeModel from "../../src/models/expense-type.model";
 
 /**
- * Perilaku ExpenseTypeModel.
+ * Perilaku ExpenseTypeModel setelah tipe pengeluaran menjadi dua tingkat
+ * dengan induk baku: induk (parent_id null) lahir dari seeder dan terkunci,
+ * anak bebas dikelola dan selalu menunjuk salah satu induk.
  *
- * Jenis pengeluaran tersusun bertingkat: satu induk boleh punya banyak anak
- * (parent_id / children). Model ini menerjemahkan barisnya menjadi balasan
- * HTTP untuk layar master jenis pengeluaran.
+ * Dua hal berubah dari model lamanya dan dijaga di sini: bidang can_delete
+ * dan parent hilang (halaman daftar tidak lagi menawarkannya), dan anak-anak
+ * pada `children` kini DILEWATKAN konstruktor sehingga penerjemahan nilai
+ * cadangan berlaku sama untuk induk dan anak — dulu anak lolos mentah.
  *
- * Catatan penting: kelas ini juga punya fetchByID dan fetchByParentID yang
- * memanggil Prisma. Keduanya butuh basis data, jadi tidak diuji di sini. Yang
- * diuji hanya bagian murni: konstruktor dan fromMap.
- *
- * Pola yang membedakan model ini dari yang lain adalah pemakaian `||` sebagai
- * nilai cadangan pada is_delete, can_delete, created_at, dan children. Operator
- * `||` menolak SEMUA nilai jatuh — bukan hanya undefined — dan meloloskan
- * semua nilai bangkit apa adanya, termasuk teks "0" yang di JavaScript
- * bernilai benar. Itulah sumber sebagian besar cacat di bawah.
+ * Yang sengaja TIDAK berubah ikut dijaga: pola `||` pada created_at dan
+ * is_delete masih menerima nilai bangkit apa adanya, jadi cacat teks "0"
+ * dari MySQL masih ada dan didokumentasikan di bawah.
  */
 
 const barisPrisma = {
@@ -26,7 +23,6 @@ const barisPrisma = {
   created_at: new Date("2024-02-01T00:00:00.000Z"),
   parent_id: null,
   is_delete: false,
-  can_delete: true,
 };
 
 describe("fromMap menyalin bidang dari baris basis data", () => {
@@ -39,11 +35,16 @@ describe("fromMap menyalin bidang dari baris basis data", () => {
     expect(m.created_by).toBe(1);
   });
 
-  it("menyalin parent_id, termasuk null untuk jenis tingkat teratas", () => {
+  it("menyalin parent_id, termasuk null untuk kategori induk", () => {
     expect(ExpenseTypeModel.fromMap(barisPrisma).parent_id).toBeNull();
     expect(
       ExpenseTypeModel.fromMap({ ...barisPrisma, parent_id: 3 }).parent_id
     ).toBe(3);
+  });
+
+  it("parent_id yang tidak dikirim menjadi null, bukan undefined", () => {
+    const { parent_id, ...tanpa } = barisPrisma;
+    expect(ExpenseTypeModel.fromMap(tanpa).parent_id).toBeNull();
   });
 
   it("menyalin jejak penghapusan", () => {
@@ -62,6 +63,18 @@ describe("fromMap menyalin bidang dari baris basis data", () => {
       ExpenseTypeModel
     );
   });
+
+  it("tidak lagi membawa bidang can_delete maupun parent", () => {
+    const m = ExpenseTypeModel.fromMap({
+      ...barisPrisma,
+      can_delete: true,
+      parent: { id: 3, name: "Operasional" },
+    });
+
+    expect((m as any).can_delete).toBeUndefined();
+    expect((m as any).parent).toBeUndefined();
+    expect(JSON.stringify(m)).not.toContain("Operasional");
+  });
 });
 
 describe("Bidang tanggal", () => {
@@ -72,15 +85,11 @@ describe("Bidang tanggal", () => {
   });
 
   /**
-   * CACAT: created_at yang hilang dipalsukan menjadi waktu sekarang.
+   * CACAT WARISAN: created_at yang hilang dipalsukan menjadi waktu sekarang.
    *
-   * Konstruktornya menulis `data.created_at || new Date()`. Datanya tidak
-   * dibiarkan kosong, melainkan diganti jam permintaan berlangsung.
-   *
-   * Akibatnya bagi pemakai: jenis pengeluaran yang sudah bertahun-tahun ada
-   * tampak seolah baru dibuat detik ini bila kolomnya tidak ikut termuat.
-   * Daftar yang diurutkan berdasarkan tanggal pembuatan menjadi acak, dan
-   * tidak ada isyarat apa pun bahwa nilainya palsu.
+   * Konstruktornya masih menulis `data.created_at || new Date()`. Jenis
+   * pengeluaran lama yang kolom tanggalnya tidak ikut termuat tampak seolah
+   * baru dibuat detik ini, tanpa isyarat bahwa nilainya palsu.
    */
   it("CACAT: created_at yang hilang dipalsukan menjadi waktu sekarang", () => {
     const { created_at, ...tanpa } = barisPrisma;
@@ -91,76 +100,6 @@ describe("Bidang tanggal", () => {
     expect(m.created_at!.getTime()).toBeGreaterThan(
       new Date("2025-01-01").getTime()
     );
-  });
-});
-
-describe("Penanganan kolom boolean can_delete", () => {
-  it("menerima boolean asli", () => {
-    expect(
-      ExpenseTypeModel.fromMap({ ...barisPrisma, can_delete: true }).can_delete
-    ).toBe(true);
-    expect(
-      ExpenseTypeModel.fromMap({ ...barisPrisma, can_delete: false }).can_delete
-    ).toBe(false);
-  });
-
-  it("menjadi false bila tidak dikirim, bukan undefined", () => {
-    const { can_delete, ...tanpa } = barisPrisma;
-    expect(ExpenseTypeModel.fromMap(tanpa).can_delete).toBe(false);
-  });
-
-  /**
-   * CACAT: teks "0" dari MySQL menjadi teks "0" yang justru bernilai BENAR.
-   *
-   * fromMap menulis `data.can_delete || false`. Operator `||` hanya menoleh
-   * pada nilai jatuh; teks "0" adalah nilai BANGKIT di JavaScript, jadi ia
-   * lolos apa adanya dan tersimpan sebagai teks "0" pada bidang yang diketik
-   * `boolean`. Tidak ada penerjemahan teks sama sekali di model ini —
-   * bandingkan dengan CustomerModel dan ProductBrandModel yang setidaknya
-   * membandingkannya dengan "1".
-   *
-   * Akibatnya bagi pemakai adalah yang paling parah dari seluruh cacat di
-   * berkas ini: frontend menulis `if (item.can_delete)` untuk menampilkan
-   * tombol hapus. Nilai "0" lolos pemeriksaan itu, jadi tombol hapus MUNCUL
-   * untuk jenis pengeluaran yang sebenarnya TIDAK BOLEH dihapus karena masih
-   * dipakai transaksi. Pengguna menekannya dan baru tahu setelah server
-   * menolak — atau lebih buruk, bila server tidak memeriksa ulang, data
-   * transaksi kehilangan acuan jenisnya.
-   */
-  it('CACAT: teks "0" lolos sebagai teks dan bernilai benar', () => {
-    const m = ExpenseTypeModel.fromMap({ ...barisPrisma, can_delete: "0" });
-
-    expect(m.can_delete).toBe("0" as unknown as boolean);
-    expect(m.can_delete).not.toBe(false);
-    // Inilah yang membuat tombol hapus muncul untuk data yang terkunci.
-    expect(Boolean(m.can_delete)).toBe(true);
-  });
-
-  it('CACAT: teks "1" tetap teks, bukan boolean true', () => {
-    const m = ExpenseTypeModel.fromMap({ ...barisPrisma, can_delete: "1" });
-
-    expect(m.can_delete).toBe("1" as unknown as boolean);
-    expect(m.can_delete).not.toBe(true);
-  });
-
-  /**
-   * CACAT: angka dari TinyInt tidak seragam — 1 tetap angka, 0 menjadi false.
-   *
-   * `1 || false` menghasilkan 1 (angka lolos karena bangkit), sedangkan
-   * `0 || false` menghasilkan false (angka nol adalah nilai jatuh). Jadi
-   * bidang yang sama bisa berupa angka atau boolean tergantung nilainya.
-   *
-   * Akibatnya frontend yang membandingkan dengan `=== true` gagal pada data
-   * yang boleh dihapus, tetapi berhasil pada data yang tidak boleh dihapus.
-   * Perilakunya tidak konsisten dan sulit ditelusuri.
-   */
-  it("CACAT: angka 1 tetap angka sedangkan angka 0 menjadi false", () => {
-    expect(
-      ExpenseTypeModel.fromMap({ ...barisPrisma, can_delete: 1 }).can_delete
-    ).toBe(1 as unknown as boolean);
-    expect(
-      ExpenseTypeModel.fromMap({ ...barisPrisma, can_delete: 0 }).can_delete
-    ).toBe(false);
   });
 });
 
@@ -177,14 +116,9 @@ describe("Penanganan kolom boolean is_delete", () => {
   });
 
   /**
-   * CACAT: is_delete memakai pola `||` yang sama, dengan akibat terbalik.
-   *
-   * Teks "0" — yang di basis data berarti "TIDAK terhapus" — lolos sebagai
-   * teks bangkit. Frontend yang menyaring `list.filter(x => !x.is_delete)`
-   * membuang jenis pengeluaran yang MASIH AKTIF dari daftar pilihan.
-   *
-   * Akibatnya pengguna tidak bisa memilih jenis pengeluaran itu saat mencatat
-   * pengeluaran baru, seolah-olah jenisnya sudah dihapus padahal tidak.
+   * CACAT WARISAN: teks "0" dari MySQL lolos sebagai teks yang bernilai
+   * BENAR — `||` hanya menoleh pada nilai jatuh. Penyaring
+   * `list.filter(x => !x.is_delete)` akan membuang jenis yang masih aktif.
    */
   it('CACAT: teks "0" membuat jenis aktif dikira terhapus', () => {
     const m = ExpenseTypeModel.fromMap({ ...barisPrisma, is_delete: "0" });
@@ -210,7 +144,6 @@ describe("Larik bersarang children", () => {
     description: "BBM kendaraan",
     created_by: 1,
     parent_id: 8,
-    can_delete: "0",
   };
 
   it("larik yang dikirim ikut terbawa", () => {
@@ -230,74 +163,34 @@ describe("Larik bersarang children", () => {
     expect(ExpenseTypeModel.fromMap(barisPrisma).children).toEqual([]);
   });
 
-  it("larik null juga menjadi larik kosong karena null adalah nilai jatuh", () => {
+  it("larik null juga menjadi larik kosong", () => {
     expect(
       ExpenseTypeModel.fromMap({ ...barisPrisma, children: null }).children
     ).toEqual([]);
   });
 
   /**
-   * CACAT: anak-anak TIDAK dilewatkan fromMap, jadi tetap objek mentah.
-   *
-   * fromMap menyalin `data.children` apa adanya. Akibatnya setiap anak lolos
-   * dari seluruh penerjemahan yang berlaku bagi induknya: can_delete tidak
-   * diberi nilai cadangan, is_delete tidak diberi nilai cadangan, created_at
-   * tidak diisi, dan objeknya bukan instance ExpenseTypeModel.
-   *
-   * Akibatnya bagi pemakai: pada layar bertingkat, baris induk dan baris anak
-   * berperilaku berbeda untuk kolom yang sama. Anak yang tidak punya
-   * can_delete di basis data akan kehilangan kuncinya sama sekali (induk
-   * mendapat false), sehingga tombol hapus pada baris anak menghilang tanpa
-   * alasan yang terlihat. Bila suatu saat penerjemahan boolean di fromMap
-   * diperbaiki, baris anak TETAP rusak karena tidak melewatinya.
+   * SEMBUH: anak kini dilewatkan konstruktor, jadi baris induk dan baris anak
+   * berperilaku sama untuk kolom yang sama. Dulu anak disalin mentah dan
+   * lolos dari seluruh penerjemahan nilai cadangan.
    */
-  it("CACAT: children bukan instance ExpenseTypeModel dan tidak diterjemahkan", () => {
+  it("anak menjadi instance ExpenseTypeModel dengan nilai cadangan yang sama", () => {
     const m = ExpenseTypeModel.fromMap({ ...barisPrisma, children: [anak] });
 
-    expect(m.children![0]).not.toBeInstanceOf(ExpenseTypeModel);
-    // can_delete anak tidak melewati `|| false` maupun penerjemahan apa pun.
-    expect(m.children![0].can_delete).toBe("0" as unknown as boolean);
-    // created_at anak tidak diisi, padahal induknya selalu diisi.
-    expect(m.children![0].created_at).toBeUndefined();
+    expect(m.children![0]).toBeInstanceOf(ExpenseTypeModel);
+    // is_delete anak yang tidak dikirim mendapat false, sama seperti induk.
+    expect(m.children![0].is_delete).toBe(false);
+    // created_at anak diisi oleh konstruktor, sama seperti induk.
+    expect(m.children![0].created_at).toBeInstanceOf(Date);
   });
 
-  it("CACAT: anak tanpa can_delete kehilangan kuncinya, berbeda dari induknya", () => {
+  it("anak yang sudah berupa instance tidak dibungkus dua kali", () => {
+    const instanceAnak = ExpenseTypeModel.fromMap(anak);
     const m = ExpenseTypeModel.fromMap({
       ...barisPrisma,
-      children: [
-        { id: 9, name: "Tol", description: "Tol", created_by: 1, parent_id: 8 },
-      ],
+      children: [instanceAnak],
     });
 
-    expect(m.children![0].can_delete).toBeUndefined();
-    // Induknya, dengan masukan yang sama-sama tidak menyertakan can_delete,
-    // justru mendapat false. Dua perilaku berbeda pada bidang yang sama.
-    const { can_delete, ...indukTanpa } = barisPrisma;
-    expect(ExpenseTypeModel.fromMap(indukTanpa).can_delete).toBe(false);
-  });
-});
-
-/**
- * CACAT: bidang `parent` tidak pernah bisa terisi.
- *
- * Kelasnya mengumumkan `parent?: ExpenseTypeModel | null`, tetapi jalurnya
- * terputus di TIGA tempat sekaligus: antarmuka IExpenseType tidak memuatnya,
- * konstruktor tidak menugasinya, dan fromMap tidak meneruskannya.
- *
- * Akibatnya bagi pemakai: layar yang ingin menampilkan "Bahan Bakar (di bawah
- * Kendaraan)" tidak pernah menerima nama induknya, hanya parent_id berupa
- * angka. Frontend terpaksa memuat seluruh daftar jenis pengeluaran lebih dulu
- * hanya untuk menerjemahkan satu angka menjadi nama.
- */
-describe("Bidang yang tidak pernah terisi", () => {
-  it("CACAT: parent tetap undefined walau ada di baris basis data", () => {
-    const m = ExpenseTypeModel.fromMap({
-      ...barisPrisma,
-      parent_id: 3,
-      parent: { id: 3, name: "Operasional", description: "x", created_by: 1 },
-    });
-
-    expect(m.parent).toBeUndefined();
-    expect(JSON.stringify(m)).not.toContain("Operasional");
+    expect(m.children![0]).toBe(instanceAnak);
   });
 });

@@ -44,6 +44,17 @@ export class StockOutService {
    * jadi ia dipakai job worker `hpp-assign` setiap ada dokumen stok baru,
    * dan tetap bisa dijalankan manual lewat `npm run start:calculate-hpp`.
    */
+  /*
+    Kuantitas di basis data Decimal(12,2), tetapi aritmetika di sini float
+    JS: 0.3 - 0.1 - 0.1 - 0.1 menyisakan 4e-17, yang lolos pemeriksaan
+    `sisa > 0` dan melahirkan baris menunggak berkuantitas 0,00 — abadi,
+    karena tiap sapuan berikutnya hanya melewatinya sambil memperingatkan.
+    Semua hasil kurang/minimum dibulatkan kembali ke dua desimal.
+  */
+  private bulatkan(nilai: number): number {
+    return Math.round(nilai * 100) / 100;
+  }
+
   async calculateStockOut() {
     const stockOuts = await this.stockOutRepository.fetchUnassigned();
     console.info(
@@ -78,13 +89,13 @@ export class StockOutService {
           break;
         }
 
-        const ambil = Math.min(lapis.residue, sisa);
+        const ambil = this.bulatkan(Math.min(lapis.residue, sisa));
         if (ambil <= 0) {
           continue;
         }
 
         plan.push({ stock_in_id: lapis.id, quantity: ambil });
-        sisa -= ambil;
+        sisa = this.bulatkan(sisa - ambil);
       }
 
       if (plan.length === 0) {

@@ -75,6 +75,13 @@ function repositoriTiruan() {
     stockCard: {
       createMany: jest.fn().mockResolvedValue([]),
     },
+    /*
+      Pengembalian diskon tunai (rebate) — dicatat SETELAH fakturnya ada,
+      hanya bila nilainya positif. Lihat blok rebate pada handler create.
+    */
+    salesInvoiceRebate: {
+      create: jest.fn(),
+    },
   };
 }
 
@@ -88,7 +95,8 @@ function controller(r: Repos) {
     r.stockOut as never,
     r.productStock as never,
     r.salesInvoicePayment as never,
-    r.stockCard as never
+    r.stockCard as never,
+    r.salesInvoiceRebate as never
   );
 }
 
@@ -313,7 +321,9 @@ describe("POST / — barang keluar, stok, dan kartu stok", () => {
 
     await request(app(r)).post("/").send(badanBuat);
 
-    // 2 dus x 12 pcs = 24 pcs keluar; harga per pcs 120.000 / 12 = 10.000.
+    // 2 dus x 12 pcs = 24 pcs keluar; harga per pcs NETTO diskon baris:
+    // (120.000 - 20.000) / 12. Dulu diskonnya tidak dikurangkan, sehingga
+    // angka "sales" pada laporan HPP lebih besar dari uang yang sungguh masuk.
     expect(r.stockOut.create).toHaveBeenCalledWith([
       {
         stock_in_id: null,
@@ -322,7 +332,7 @@ describe("POST / — barang keluar, stok, dan kartu stok", () => {
         adjustment_case_id: null,
         date: new Date("2024-05-01T00:00:00.000Z"),
         quantity: 24,
-        price: 10000,
+        price: (120000 - 20000) / 12,
         sales_invoice_id: 501,
         sales_invoice_code_id: 77,
       },
@@ -338,7 +348,8 @@ describe("POST / — barang keluar, stok, dan kartu stok", () => {
     await request(app(r)).post("/").send(badanBuat);
 
     expect(r.stockOut.create.mock.calls[0][0][0].quantity).toBe(2);
-    expect(r.stockOut.create.mock.calls[0][0][0].price).toBe(120000);
+    // Netto diskon baris, konversi 1: 120.000 - 20.000.
+    expect(r.stockOut.create.mock.calls[0][0][0].price).toBe(100000);
   });
 
   it("mengurangi stok sebanyak kuantitas terkonversi", async () => {

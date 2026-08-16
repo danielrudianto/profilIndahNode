@@ -60,6 +60,12 @@ function stockRepositoryTiruan() {
     fetchStock: jest.fn(),
     fetchStockByProductID: jest.fn(),
     fetchInadequateWarehouse: jest.fn(),
+    /*
+      Penghitung chip kondisi pada halaman stok 15a — jalur GET / memanggilnya
+      SEBELUM apa pun, jadi tiruannya wajib ada atau seluruh daftar membalas
+      500. Nilai bawaannya nol-nol supaya tiap uji tidak perlu mengaturnya.
+    */
+    countConditions: jest.fn().mockResolvedValue({ low: 0, negative: 0 }),
   };
 }
 

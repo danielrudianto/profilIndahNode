@@ -93,11 +93,19 @@ describe("Tipe pengeluaran — perilaku harus identik", () => {
     });
   }
 
+  /*
+    Sejak tipe pengeluaran menjadi dua tingkat, create MEWAJIBKAN parent_id —
+    perubahan kontrak yang disengaja, bukan selisih yang harus disamakan.
+    Kasus paritas di bawah menyertakan parent_id sah supaya yang dibandingkan
+    tinggal bagian yang memang tidak berubah (pesan name dan description);
+    rantai lama mengabaikan bidang tambahan itu. Aturan parent_id sendiri
+    diuji terpisah di bawah.
+  */
   const kasus: Array<[string, any]> = [
-    ["lengkap", { name: "Listrik", description: "Tagihan bulanan" }],
-    ["tanpa name", { description: "x" }],
-    ["name kosong", { name: "", description: "x" }],
-    ["tanpa description", { name: "Listrik" }],
+    ["lengkap", { name: "Listrik", description: "Tagihan bulanan", parent_id: 1 }],
+    ["tanpa name", { description: "x", parent_id: 1 }],
+    ["name kosong", { name: "", description: "x", parent_id: 1 }],
+    ["tanpa description", { name: "Listrik", parent_id: 1 }],
     ["badan kosong", {}],
   ];
   for (const [nama, badan] of kasus) {
@@ -126,9 +134,32 @@ describe("Batas panjang — aturan baru", () => {
   it("nama tipe pengeluaran 101 karakter ditolak", async () => {
     const res = await request(baru)
       .post("/tipe-biaya")
-      .send({ name: "a".repeat(101), description: "x" });
+      .send({ name: "a".repeat(101), description: "x", parent_id: 1 });
     expect(res.status).toBe(400);
     expect(res.text).toBe(ErrorList["Expense type name too long"]);
+  });
+});
+
+describe("parent_id — aturan baru tipe dua tingkat", () => {
+  const salah: Array<[string, any]> = [
+    ["tanpa parent_id", { name: "Listrik", description: "x" }],
+    ["parent_id bukan angka", { name: "Listrik", description: "x", parent_id: "abc" }],
+    ["parent_id nol", { name: "Listrik", description: "x", parent_id: 0 }],
+    ["parent_id pecahan", { name: "Listrik", description: "x", parent_id: 1.5 }],
+  ];
+  for (const [nama, badan] of salah) {
+    it(`ditolak: ${nama}`, async () => {
+      const res = await request(baru).post("/tipe-biaya").send(badan);
+      expect(res.status).toBe(400);
+      expect(res.text).toBe(ErrorList["Expense type parent invalid"]);
+    });
+  }
+
+  it("parent_id bilangan bulat positif lolos skema", async () => {
+    const res = await request(baru)
+      .post("/tipe-biaya")
+      .send({ name: "Listrik", description: "x", parent_id: 7 });
+    expect(res.status).toBe(200);
   });
 });
 

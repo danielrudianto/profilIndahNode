@@ -304,7 +304,8 @@
   },
   "expenseType": {
     "notFound": "Data jenis pengeluaran tidak ditemukan.",
-    "hasChild": "Jenis pengeluaran memiliki sub jenis."
+    "parentInvalid": "Kategori induknya tidak dikenal atau bukan kategori baku.",
+    "fixed": "Kategori baku tidak bisa diubah atau dihapus."
   },
   "type": {
     "notFound": "Tipe tidak ditemukan."

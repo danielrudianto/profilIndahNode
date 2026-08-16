@@ -523,13 +523,16 @@ describe("POST /confirm — setoran menjadi faktur", () => {
 
     await request(app(r)).post("/confirm").send(badanKonfirmasi);
 
-    // 2 dus x 12 pcs = 24 pcs; harga per pcs 120.000 / 12 = 10.000.
+    // 2 dus x 12 pcs = 24 pcs; harga per pcs NETTO diskon baris:
+    // (120.000 - 20.000) / 12 — sejalan dengan faktur penjualan dan CLI.
+    // Dulu diskonnya tidak dikurangkan, sehingga angka "sales" pada laporan
+    // HPP lebih besar dari uang yang sungguh masuk.
     expect(r.stockOut.create).toHaveBeenCalledWith(
       [
         expect.objectContaining({
           product_id: 10,
           quantity: 24,
-          price: 10000,
+          price: (120000 - 20000) / 12,
           sales_invoice_id: 501,
           sales_invoice_code_id: 77,
         }),

@@ -278,7 +278,9 @@ export class StockOutRepository {
             });
           }
 
-          quantity -= stockOutQuantity;
+          /* Dibulatkan dua desimal — pecahan float 1e-16 membuat while
+             berputar sekali lagi tanpa perlu. */
+          quantity = Math.round((quantity - stockOutQuantity) * 100) / 100;
         }
       }
     }
