@@ -6,9 +6,22 @@
 // ini sekaligus menghapus keadaan dua pustaka hash yang berjalan berdampingan.
 import { compare, hash } from "bcryptjs";
 import { Request, Response } from "express";
-import { sign, verify } from "jsonwebtoken";
+import { sign, verify, SignOptions } from "jsonwebtoken";
 import ErrorList from "../constants/error-list.constant";
 import { UserRepository } from "../repositories/user.repository";
+
+/*
+  @types/jsonwebtoken 9 mengetik expiresIn sebagai templat pustaka `ms`
+  ("1h", "7d", ...), bukan string bebas. Nilai kita datang dari .env yang
+  bertipe string — fungsi ini hanya menuangkan tipenya.
+
+  Env-nya DIBACA SAAT DIPANGGIL, bukan saat modul dimuat. Versi yang
+  menuang sekali di puncak modul terbukti rapuh: siapa pun yang mengimpor
+  modul ini sebelum dotenv.config() — pengujian melakukannya — mendapat
+  undefined yang membeku selamanya.
+*/
+const masaBerlaku = (nilai: string | undefined) =>
+  nilai as SignOptions["expiresIn"];
 
 class AuthController {
   userRepository: UserRepository;
@@ -40,14 +53,14 @@ class AuthController {
       }
 
       const token = sign({ id: user.id }, process.env.TOKEN_KEY!.toString(), {
-        expiresIn: process.env.EXPIRATION,
+        expiresIn: masaBerlaku(process.env.EXPIRATION),
       });
 
       const refreshToken = sign(
         { id: user.id },
         process.env.REFRESH_TOKEN_KEY!.toString(),
         {
-          expiresIn: process.env.REFRESH_EXPIRATION,
+          expiresIn: masaBerlaku(process.env.REFRESH_EXPIRATION),
         }
       );
 
@@ -170,7 +183,7 @@ class AuthController {
           },
           process.env.TOKEN_KEY!.toString(),
           {
-            expiresIn: process.env.EXPIRATION,
+            expiresIn: masaBerlaku(process.env.EXPIRATION),
           }
         );
 
