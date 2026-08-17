@@ -55,7 +55,11 @@ class ProductStockController {
   fetchInadequate = async (req: Request, res: Response) => {
     const page = translatePage(req.body.page);
     const keyword = translateKeyword(req.body.keyword);
-    const limit = Number(process.env.LIMIT!);
+    // pageSize opsional (divalidasi Zod, maksimum 10000) dipakai unduhan
+    // Excel untuk menarik seluruh baris sekali jalan.
+    const limit = req.body.pageSize
+      ? Number(req.body.pageSize)
+      : Number(process.env.LIMIT!);
     const brands = req.body.brands;
     const types = req.body.types;
 

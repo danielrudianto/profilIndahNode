@@ -11,6 +11,10 @@
 # Menghapus baris dari sini akan membuat pemeriksa menandainya lagi.
 src/repositories/customer.repository.ts  ${ids.join(",")}  #1
 src/repositories/product-brand.repository.ts  ${id}  #1
+src/repositories/product-stock.repository.ts  ${saringanMerek}  #1
+src/repositories/product-stock.repository.ts  ${saringanTipe}  #1
+src/repositories/product-stock.repository.ts  ${saringanMerek}  #2
+src/repositories/product-stock.repository.ts  ${saringanTipe}  #2
 src/repositories/promotion.repository.ts  ${salesDateFilter}  #1
 src/repositories/promotion.repository.ts  ${productID.join(",")}  #1
 src/repositories/promotion.repository.ts  ${purchaseDateFilter}  #1

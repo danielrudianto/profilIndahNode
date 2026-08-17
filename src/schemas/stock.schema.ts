@@ -148,8 +148,16 @@ const stockFilterBase = z.object({
 /** POST /stock/problematic */
 export const problematicStockSchema = stockFilterBase;
 
-/** POST /stock/inadequate */
-export const inadequateStockSchema = stockFilterBase;
+/**
+ * POST /stock/inadequate
+ *
+ * `pageSize` opsional dipakai tombol unduh Excel untuk meminta seluruh
+ * baris sekali jalan — endpoint unduhan lamanya (POST /product-stock)
+ * sudah dihapus. Tanpa pageSize, ukuran halaman ikut env LIMIT.
+ */
+export const inadequateStockSchema = stockFilterBase.extend({
+  pageSize: z.number().int().min(1).max(10000).optional(),
+});
 
 /**
  * POST /stock/mutation

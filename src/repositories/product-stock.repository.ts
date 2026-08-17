@@ -242,6 +242,25 @@ export class ProductStockRepository {
     brands: number[];
     types: number[];
   }) {
+    // Saringan merek/tipe akhirnya benar-benar dipakai: dulu controller
+    // meneruskannya tetapi SQL-nya tidak pernah membaca, jadi dialog
+    // saringan di halaman lama diam-diam tidak berbuat apa-apa. Kosong
+    // berarti semua. Nilainya dikirim lewat placholder ? — yang
+    // diinterpolasi hanya deretan tanda tanyanya.
+    const saringanMerek =
+      data.brands.length > 0
+        ? `AND product.product_brand_id IN (${data.brands
+            .map(() => "?")
+            .join(",")})`
+        : "";
+    const saringanTipe =
+      data.types.length > 0
+        ? `AND product.product_type_id IN (${data.types
+            .map(() => "?")
+            .join(",")})`
+        : "";
+    const nilaiSaringan = [...data.brands, ...data.types];
+
     const [result, count] = await this.prisma.$transaction([
       this.prisma.$queryRawUnsafe<any[]>(
         `
@@ -251,8 +270,11 @@ export class ProductStockRepository {
           LEFT JOIN product_stock ON product_stock.id = product.id
           JOIN product_brand ON product.product_brand_id = product_brand.id
           JOIN product_type ON product.product_type_id = product_type.id
-          WHERE COALESCE(product_stock.stock,0) < product.minimum_stock
+          WHERE product.is_delete = 0
+          AND COALESCE(product_stock.stock,0) < product.minimum_stock
           AND COALESCE(product_stock.stock, 0) >= 0
+          ${saringanMerek}
+          ${saringanTipe}
           AND (
             product.reference LIKE ?
             OR product.description LIKE ?
@@ -264,21 +286,29 @@ export class ProductStockRepository {
             toPositiveInt(data.pageSize, 10)
           }
         `,
+        ...nilaiSaringan,
         `%${data.keyword ?? ""}%`,
         `%${data.keyword ?? ""}%`
       ),
+      // LEFT JOIN + COALESCE, sama persis dengan query datanya: dengan
+      // JOIN biasa, barang yang belum punya baris product_stock muncul
+      // di halaman tetapi tidak pernah terhitung — paginasinya bohong.
       this.prisma.$queryRawUnsafe<any[]>(
         `
           SELECT COUNT(product.id) AS count
           FROM product
-          JOIN product_stock ON product_stock.id = product.id
-          WHERE product_stock.stock < product.minimum_stock
+          LEFT JOIN product_stock ON product_stock.id = product.id
+          WHERE product.is_delete = 0
+          AND COALESCE(product_stock.stock, 0) < product.minimum_stock
           AND COALESCE(product_stock.stock, 0) >= 0
+          ${saringanMerek}
+          ${saringanTipe}
           AND (
             product.reference LIKE ?
             OR product.description LIKE ?
           )
         `,
+        ...nilaiSaringan,
         `%${data.keyword ?? ""}%`,
         `%${data.keyword ?? ""}%`
       ),
