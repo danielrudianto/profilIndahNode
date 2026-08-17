@@ -39,6 +39,7 @@ describe("Nilai bawaan", () => {
       page: 1,
       pageSize: 25,
       entity: null,
+      entityID: null,
       userID: null,
       dateFrom: null,
       dateTo: null,
