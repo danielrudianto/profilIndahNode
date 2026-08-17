@@ -429,6 +429,19 @@ export class ProductRepository {
     month: number;
     year: number;
   }) {
+    // Saringan kosong berarti SEMUA merek/tipe. Tanpa cabang ini, array
+    // kosong menghasilkan `IN ()` yang patah di MySQL — halaman lama
+    // menutupinya dengan memaksa pengguna mencentang semuanya satu-satu.
+    // Nilainya aman diinterpolasi: Zod menjamin array bilangan bulat.
+    const saringanMerek =
+      data.brand.length > 0
+        ? `AND product_brand.id IN (${data.brand.join(",")})`
+        : "";
+    const saringanTipe =
+      data.type.length > 0
+        ? `AND product_type.id IN (${data.type.join(",")})`
+        : "";
+
     const [result, brands, types] = await this.prisma.$transaction([
       this.prisma.$queryRawUnsafe<any[]>(
         `
@@ -513,24 +526,30 @@ export class ProductRepository {
               GROUP BY sales_invoice.product_id
             ) AS salesReturnCount ON product.id = salesReturnCount.product_id
             
-            WHERE product_brand.id IN (${data.brand.join(",")}) 
-            AND product_type.id IN (${data.type.join(",")})
-            AND product.is_delete = 0
+            WHERE product.is_delete = 0
+            ${saringanMerek}
+            ${saringanTipe}
           `
       ),
       this.prisma.product_brand.findMany({
-        where: {
-          id: {
-            in: data.brand,
-          },
-        },
+        where:
+          data.brand.length > 0
+            ? {
+                id: {
+                  in: data.brand,
+                },
+              }
+            : undefined,
       }),
       this.prisma.product_type.findMany({
-        where: {
-          id: {
-            in: data.type,
-          },
-        },
+        where:
+          data.type.length > 0
+            ? {
+                id: {
+                  in: data.type,
+                },
+              }
+            : undefined,
       }),
     ]);
 
