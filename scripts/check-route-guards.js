@@ -43,7 +43,10 @@ function mountGuardedFiles(appPath) {
     imports[m[1]] = m[2];
   }
 
-  for (const m of source.matchAll(/app\.use\(\s*["'][^"']*["']\s*,\s*([^)]+)\)/g)) {
+  // Sampai `);` penutup, bukan `)` pertama: penjaga seperti
+  // requireRole(PERAN_UMUM) membawa kurungnya sendiri, dan berhenti di
+  // kurung pertama memotong nama route-nya dari tangkapan.
+  for (const m of source.matchAll(/app\.use\(\s*["'][^"']*["']\s*,\s*([\s\S]*?)\);/g)) {
     const args = m[1];
     if (!GUARDS.some((g) => new RegExp(`\\b${g}\\b`).test(args))) continue;
     for (const name of Object.keys(imports)) {

@@ -14,7 +14,12 @@ import http from "http";
 import cron from "node-cron";
 import { initIO } from "./utils/io.helper";
 
-import { administratorMiddleware, authMiddleware } from "./utils/auth.helper";
+import {
+  administratorMiddleware,
+  authMiddleware,
+  requireRole,
+} from "./utils/auth.helper";
+import { PERAN_UMUM } from "./constants/role.constant";
 import auditLogRoutes from "./routes/audit-log.route";
 import { jalankanDenganKonteks } from "./utils/request-context.helper";
 import authRoutes from "./routes/auth.route";
@@ -150,7 +155,13 @@ async function main() {
 
   app.use("/user", authMiddleware, userRoutes);
   app.use("/user-avatar", authMiddleware, userAvatarRoutes);
-  app.use("/expense", authMiddleware, expenseRoutes);
+  /*
+    Pengeluaran adalah catatan uang. Menu frontend-nya memang hanya untuk
+    peran umum (3, 5, 7), tetapi menu tersembunyi bukan penjagaan —
+    kuncinya harus di sini. Ubah dan hapus lebih ketat lagi di dalam
+    route-nya: khusus administrator.
+  */
+  app.use("/expense", requireRole(PERAN_UMUM), expenseRoutes);
   app.use("/report", reportRoutes);
   app.use("/dashboard", authMiddleware, dashboardRoutes);
   app.use("/receivable", authMiddleware, ReceivableRoutes);

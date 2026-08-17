@@ -5,6 +5,7 @@ import { ExpenseRepository } from "../repositories/expense.repository";
 import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseTypeRepository } from "../repositories/expense-type.repository";
 import { validate } from "../utils/validate.helper";
+import { administratorMiddleware } from "../utils/auth.helper";
 import {
   createExpenseSchema,
   queryExpenseMutationSchema,
@@ -41,10 +42,17 @@ router.get(
 
 router.post("/", validate(createExpenseSchema), expenseController.create);
 
-router.put("/", validate(updateExpenseSchema), expenseController.update);
+// Ubah dan hapus catatan uang khusus administrator dan pemilik.
+router.put(
+  "/",
+  administratorMiddleware,
+  validate(updateExpenseSchema),
+  expenseController.update
+);
 
 router.delete(
   "/:id",
+  administratorMiddleware,
   validate(paramExpenseSchema, "params"),
   expenseController.delete
 );
