@@ -137,29 +137,23 @@ export class StockCardRepository {
         previous: previous == null ? 0 : Number(previous.stock),
       };
     } else if (data.viewBy === "created") {
+      /*
+        Stok awal = keadaan SEBELUM hari itu dimulai. Versi lama mencari
+        baris terakhir yang created_at-nya DI DALAM hari yang sama —
+        stok akhir hari dijadikan stok awal, lalu pemanggilnya
+        menambahkan mutasi hari itu sekali lagi: 99 → 87 tampil sebagai
+        87 → 75.
+      */
       const previous = await this.prisma.stock_card.findFirst({
         where: {
           product_id: data.productID,
-          AND: [
-            {
-              created_at: {
-                lt: new Date(
-                  data.date.getFullYear(),
-                  data.date.getMonth(),
-                  data.date.getDate() + 1
-                ),
-              },
-            },
-            {
-              created_at: {
-                gte: new Date(
-                  data.date.getFullYear(),
-                  data.date.getMonth(),
-                  data.date.getDate()
-                ),
-              },
-            },
-          ],
+          created_at: {
+            lt: new Date(
+              data.date.getFullYear(),
+              data.date.getMonth(),
+              data.date.getDate()
+            ),
+          },
         },
         orderBy: [
           {
