@@ -201,6 +201,37 @@ export class SalesReturnRepository {
     });
   }
 
+  /**
+   * Nilai dan jumlah retur sebulan, untuk kartu retur di laporan
+   * penjualan. Nilainya harga faktur asal netto dikali kuantitas retur.
+   */
+  async fetchMonthlyReturn(
+    month: number,
+    year: number
+  ): Promise<{ value: number; count: number }> {
+    try {
+      const result = await this.prisma.$queryRaw<any[]>`
+        SELECT
+          COALESCE(SUM(sales_return.quantity * (sales_invoice.price - sales_invoice.discount)), 0) AS value,
+          COUNT(DISTINCT sales_return_code.id) AS count
+        FROM sales_return_code
+        JOIN sales_return ON sales_return.sales_return_code_id = sales_return_code.id
+        JOIN sales_invoice ON sales_invoice.id = sales_return.sales_invoice_id
+        WHERE sales_return_code.is_delete = false
+          AND MONTH(sales_return_code.date) = ${month}
+          AND YEAR(sales_return_code.date) = ${year}
+      `;
+
+      return {
+        value: Number(result[0]?.value ?? 0),
+        count: Number(result[0]?.count ?? 0),
+      };
+    } catch (error) {
+      console.error(`[error]: Error on fetching monthly return ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
   async fetchAnnualArchives(): Promise<IFetchAnnualArchives[]> {
     try {
       const result = await this.prisma.$queryRaw<

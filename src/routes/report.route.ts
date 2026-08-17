@@ -44,7 +44,8 @@ import {
 const router = Router();
 
 const salesReportController = new SalesReportController(
-  new SalesInvoiceRepository(prisma)
+  new SalesInvoiceRepository(prisma),
+  new SalesReturnRepository(prisma)
 );
 
 const purchaseReportController = new PurchaseReportController(

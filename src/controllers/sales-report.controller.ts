@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
+import { SalesReturnRepository } from "../repositories/sales-return.repository";
 
 /**
  * Laporan penjualan beserta unduhannya.
@@ -9,9 +10,14 @@ import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository
  */
 export class SalesReportController {
   private salesInvoiceRepository: SalesInvoiceRepository;
+  private salesReturnRepository: SalesReturnRepository;
 
-  constructor(salesInvoiceRepository: SalesInvoiceRepository) {
+  constructor(
+    salesInvoiceRepository: SalesInvoiceRepository,
+    salesReturnRepository: SalesReturnRepository
+  ) {
     this.salesInvoiceRepository = salesInvoiceRepository;
+    this.salesReturnRepository = salesReturnRepository;
   }
 
   fetchSalesReport = async (req: Request, res: Response) => {
@@ -27,6 +33,18 @@ export class SalesReportController {
     const brand = await this.salesInvoiceRepository.fetchBestBrand(month, year);
     const type = await this.salesInvoiceRepository.fetchBestType(month, year);
     const sales = await this.salesInvoiceRepository.fetchBestSales(month, year);
+    /*
+      Kartu retur dan pelanggan di berkas desain 9a. Bentuk lama halaman
+      membaca returned_value/returns yang tidak pernah dikirim siapa pun.
+    */
+    const retur = await this.salesReturnRepository.fetchMonthlyReturn(
+      month,
+      year
+    );
+    const customerCount = await this.salesInvoiceRepository.fetchCustomerCount(
+      month,
+      year
+    );
 
     return res.status(200).send({
       salesInvoiceCount: result.salesInvoiceCount,
@@ -38,6 +56,9 @@ export class SalesReportController {
       brand: brand,
       sales: sales,
       type: type,
+      returned_value: retur.value,
+      returns: retur.count,
+      customerCount: customerCount,
     });
   };
 

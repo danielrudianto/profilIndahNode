@@ -184,6 +184,29 @@ export class SalesInvoiceRepository {
     }
   }
 
+  /**
+   * Jumlah pelanggan BERBEDA yang berbelanja pada satu bulan, untuk kartu
+   * pelanggan di laporan penjualan. Penjualan eceran (customer_id null)
+   * tidak dihitung — ia bukan satu pelanggan.
+   */
+  async fetchCustomerCount(month: number, year: number): Promise<number> {
+    try {
+      const result = await this.prisma.$queryRaw<any[]>`
+        SELECT COUNT(DISTINCT customer_id) AS count
+        FROM sales_invoice_code
+        WHERE is_delete = false
+          AND customer_id IS NOT NULL
+          AND MONTH(date) = ${month}
+          AND YEAR(date) = ${year}
+      `;
+
+      return Number(result[0]?.count ?? 0);
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer count ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
+
   async fetchByDateRange(
     startDate: Date,
     endDate: Date

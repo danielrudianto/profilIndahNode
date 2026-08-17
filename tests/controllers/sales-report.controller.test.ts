@@ -38,13 +38,20 @@ function repositoryTiruan() {
     fetchTypeSales: jest.fn(),
     fetchSalesSales: jest.fn(),
     fetchDownload: jest.fn(),
+    fetchCustomerCount: jest.fn(),
+  };
+}
+
+function repositoryReturTiruan() {
+  return {
+    fetchMonthlyReturn: jest.fn().mockResolvedValue({ value: 0, count: 0 }),
   };
 }
 
 type Repo = ReturnType<typeof repositoryTiruan>;
 
-function app(repo: Repo) {
-  const c = new SalesReportController(repo as never);
+function app(repo: Repo, retur = repositoryReturTiruan()) {
+  const c = new SalesReportController(repo as never, retur as never);
   const a = express();
   a.use(express.json());
   // userId biasanya ditulis authMiddleware ke req.body sebelum handler jalan.
@@ -75,6 +82,7 @@ function siapkanRingkasan(repo: Repo) {
   repo.fetchBestBrand.mockResolvedValue("MEREK A");
   repo.fetchBestType.mockResolvedValue("TIPE B");
   repo.fetchBestSales.mockResolvedValue("AGUS");
+  repo.fetchCustomerCount.mockResolvedValue(5);
 }
 
 beforeEach(() => {
@@ -102,6 +110,10 @@ describe("POST /sales — laporan penjualan bulanan", () => {
       brand: "MEREK A",
       sales: "AGUS",
       type: "TIPE B",
+      /* Kartu retur dan pelanggan pada berkas desain 9a. */
+      returned_value: 0,
+      returns: 0,
+      customerCount: 5,
     });
   });
 
@@ -172,7 +184,7 @@ describe("POST /sales — laporan penjualan bulanan", () => {
   it("CACAT: fetchSalesReport menolak tanpa membalas saat repository gagal", async () => {
     const repo = repositoryTiruan();
     repo.fetchByDateRange.mockRejectedValue(new Error("kueri kehabisan waktu"));
-    const c = new SalesReportController(repo as never);
+    const c = new SalesReportController(repo as never, repositoryReturTiruan() as never);
 
     const req = { body: { month: 3, year: 2026 }, query: {} } as never;
     const res = {
@@ -212,7 +224,7 @@ describe("POST /sales — laporan penjualan bulanan", () => {
         })
     );
 
-    const c = new SalesReportController(repo as never);
+    const c = new SalesReportController(repo as never, repositoryReturTiruan() as never);
     const res = {
       status: jest.fn().mockReturnThis(),
       send: jest.fn().mockReturnThis(),
