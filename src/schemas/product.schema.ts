@@ -185,3 +185,53 @@ export const deleteProductSchema = z.object({
     { message: ErrorList["Parameter error"] }
   ),
 });
+
+/* ================================================================== */
+/* Satuan tambahan                                                     */
+/* ================================================================== */
+
+/**
+ * Rute satuan adalah rute BARU — tidak ada rantai lama yang ditiru, jadi
+ * kebijakan ketat common.schema.ts berlaku penuh: angka harus angka.
+ * conversion wajib positif; nol atau negatif membuat setiap dokumen yang
+ * memakainya menghitung stok mundur.
+ */
+const hargaOpsional = z.number({ error: ErrorList["Parameter error"] })
+  .min(0, ErrorList["Parameter error"])
+  .optional();
+
+/** POST /product/:id/unit */
+export const createProductUnitSchema = z.object({
+  unit: requiredText(ErrorList["Product unit is required"]).max(
+    PANJANG_PRODUK.unit,
+    ErrorList["Product unit too long"]
+  ),
+  conversion: z
+    .number({ error: ErrorList["Conversion must be positive"] })
+    .gt(0, ErrorList["Conversion must be positive"]),
+  sales_price: hargaOpsional,
+  sales_discount: hargaOpsional,
+  purchase_price: hargaOpsional,
+  purchase_discount: hargaOpsional,
+});
+
+/**
+ * PUT /product/unit/:id
+ *
+ * conversion opsional: pemanggil yang hanya mengganti nama tidak perlu
+ * mengirimnya. Bila dikirim dan satuannya sudah terpakai, controller
+ * menolak dengan 409 — aturan penguncian bukan urusan bentuk data.
+ */
+export const updateProductUnitSchema = z.object({
+  unit: requiredText(ErrorList["Product unit is required"]).max(
+    PANJANG_PRODUK.unit,
+    ErrorList["Product unit too long"]
+  ),
+  conversion: z
+    .number({ error: ErrorList["Conversion must be positive"] })
+    .gt(0, ErrorList["Conversion must be positive"])
+    .optional(),
+});
+
+/** Parameter id satuan — bentuknya sama dengan id produk. */
+export const paramProductUnitSchema = getProductSchema;

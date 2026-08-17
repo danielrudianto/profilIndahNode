@@ -72,7 +72,9 @@
       "idRequired": "ID produk tidak boleh kosong.",
       "unitIdRequired": "ID satuan produk tidak boleh kosong.",
       "idNumeric": "ID produk harus berupa angka.",
-      "unitArray": "Satuan barang harus berupa array."
+      "unitArray": "Satuan barang harus berupa array.",
+      "unitTooLong": "Nama satuan terlalu panjang (maksimal 45 karakter)",
+      "conversionPositive": "Rasio konversi harus angka lebih dari nol"
     },
     "uuid": {
       "required": "UUID tidak boleh kosong."

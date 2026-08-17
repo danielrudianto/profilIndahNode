@@ -121,6 +121,8 @@ enum ErrorList {
   "Product unit ID is required" = "validation.product.unitIdRequired",
   "Product ID must be numeric" = "validation.product.idNumeric",
   "Product unit must be an array" = "validation.product.unitArray",
+  "Product unit too long" = "validation.product.unitTooLong",
+  "Conversion must be positive" = "validation.product.conversionPositive",
   "Reference unique constraint" = "product.referenceDuplicate",
 
   "Brand unique constraint" = "brand.duplicate",

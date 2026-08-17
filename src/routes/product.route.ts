@@ -1,5 +1,6 @@
 import { Router } from "express";
 import ProductController from "../controllers/product.controller";
+import ProductUnitController from "../controllers/product-unit.controller";
 import { administratorMiddleware } from "../utils/auth.helper";
 import { ProductRepository } from "../repositories/product.repository";
 import { prisma } from "../utils/database.helper";
@@ -9,10 +10,13 @@ import { validate } from "../utils/validate.helper";
 import {
   activateProductSchema,
   createProductSchema,
+  createProductUnitSchema,
   deleteProductSchema,
   getProductSchema,
+  paramProductUnitSchema,
   updateProductPriceSchema,
   updateProductSchema,
+  updateProductUnitSchema,
 } from "../schemas/product.schema";
 
 const router = Router();
@@ -21,6 +25,43 @@ const productController = new ProductController(
   new ProductRepository(prisma),
   new ProductUnitRepository(prisma),
   new StockCardRepository(prisma)
+);
+
+const productUnitController = new ProductUnitController(
+  new ProductUnitRepository(prisma),
+  new ProductRepository(prisma)
+);
+
+/*
+  Satuan tambahan: tambah bebas, conversion terkunci begitu terpakai,
+  hapus berganti nonaktif bila riwayatnya sudah menunjuk. Semua jalur
+  tulisnya khusus administrator — satu salah angka di rasio satuan
+  menggeser stok dan HPP seluruh riwayat.
+*/
+router.get(
+  "/:id/units",
+  validate(getProductSchema, "params"),
+  productUnitController.fetchByProduct
+);
+router.post(
+  "/:id/unit",
+  administratorMiddleware,
+  validate(getProductSchema, "params"),
+  validate(createProductUnitSchema),
+  productUnitController.create
+);
+router.put(
+  "/unit/:id",
+  administratorMiddleware,
+  validate(paramProductUnitSchema, "params"),
+  validate(updateProductUnitSchema),
+  productUnitController.update
+);
+router.delete(
+  "/unit/:id",
+  administratorMiddleware,
+  validate(paramProductUnitSchema, "params"),
+  productUnitController.delete
 );
 
 router.post("/", validate(createProductSchema), productController.create);
