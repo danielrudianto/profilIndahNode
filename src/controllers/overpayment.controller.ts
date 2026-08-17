@@ -46,6 +46,42 @@ export class OverpaymentController {
     }
   };
 
+  /**
+   * PUT /overpayment/:id — layar 16c, menu "Update".
+   *
+   * Hanya catatan yang belum dikembalikan yang boleh diubah; 409 untuk
+   * yang sudah, mengikuti pembedaan 404/409 milik resolve().
+   */
+  update = async (req: Request, res: Response) => {
+    const id = Number(req.params.id);
+
+    try {
+      const hasil = await this.overpaymentRepository.update(id, {
+        date: new Date(req.body.date),
+        customer_id: req.body.customer_id,
+        payment_method_id: req.body.payment_method_id,
+        value: req.body.value,
+        return_payment_date: new Date(req.body.return_payment_date),
+        return_payment_method: req.body.return_payment_method,
+        return_payment_name: req.body.return_payment_name,
+        return_payment_bank: req.body.return_payment_bank,
+        return_payment_number: req.body.return_payment_number,
+      });
+
+      if (hasil === "tidak-ada") {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+      if (hasil === "sudah-dikembalikan") {
+        return res.status(409).send(ErrorList["No changes"]);
+      }
+
+      return res.status(200).send({ id: id });
+    } catch (error) {
+      console.error(`[error]: Error on updating overpayment ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const pageSize = translatePageSize(req.query.pageSize);

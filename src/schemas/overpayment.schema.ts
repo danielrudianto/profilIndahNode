@@ -15,8 +15,8 @@ import { present, requiredIntFromText, requiredText } from "./common.schema";
  *   Create    untuk POST — Base apa adanya
  *   Response  bentuk balasan
  *
- * Lapis Update tidak ada karena domain ini memang tidak punya rute ubah;
- * kelebihan bayar hanya dibuat, dibaca, dan dilaporkan.
+ * Lapis Update memakai Base apa adanya — bidang yang boleh diubah sama
+ * persis dengan bidang pembuatan, hanya alamatnya yang membawa id.
  *
  * URUTAN BIDANG PENTING. Pesan yang sampai ke pengguna adalah pesan pertama
  * yang gagal, jadi urutan kunci di sini mengikuti persis urutan pemasangan
@@ -120,6 +120,9 @@ const kelebihanBayarBase = z.object({
  * seolah masukan pengguna.
  */
 export const createOverpaymentSchema = kelebihanBayarBase;
+
+/** PUT /overpayment/:id — bidangnya sama persis dengan pembuatan. */
+export const updateOverpaymentSchema = kelebihanBayarBase;
 
 /**
  * POST /overpayment/return

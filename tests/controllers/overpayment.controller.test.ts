@@ -40,6 +40,7 @@ function repositoryTiruan() {
     fetch: jest.fn(),
     fetchByID: jest.fn(),
     fetchReportByDate: jest.fn(),
+    update: jest.fn(),
   };
 }
 
@@ -56,6 +57,7 @@ function app(repo: Repo) {
   });
   a.post("/report", c.fetchReport);
   a.post("/", c.create);
+  a.put("/:id", c.update);
   a.get("/:id", c.fetchByID);
   a.get("/", c.fetch);
   return a;
@@ -195,6 +197,72 @@ describe("POST / — mencatat pengembalian kelebihan bayar", () => {
     repo.create.mockRejectedValue(new Error("koneksi putus"));
 
     const res = await request(app(repo)).post("/").send({ value: 1000 });
+
+    expect(res.status).toBe(500);
+    expect(res.text).toBe(ErrorList["Internal server error"]);
+  });
+});
+
+describe("PUT /:id — mengubah catatan yang belum dikembalikan", () => {
+  const isian = {
+    date: "2025-10-10",
+    value: 322000,
+    customer_id: null,
+    payment_method_id: null,
+    return_payment_date: "2025-10-10",
+    return_payment_method: "Cash",
+    return_payment_name: "0",
+    return_payment_bank: null,
+    return_payment_number: null,
+  };
+
+  it("membalas 200 berisi id ketika repository menjawab ok", async () => {
+    const repo = repositoryTiruan();
+    repo.update.mockResolvedValue("ok");
+
+    const res = await request(app(repo)).put("/5").send(isian);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ id: 5 });
+    const [id, data] = repo.update.mock.calls[0];
+    expect(id).toBe(5);
+    expect(data.value).toBe(322000);
+    expect(data.return_payment_method).toBe("Cash");
+    /* Tanggal diteruskan sebagai Date, bukan teks mentah. */
+    expect(data.date).toBeInstanceOf(Date);
+    expect(data.return_payment_date).toBeInstanceOf(Date);
+  });
+
+  it("membalas 404 ketika catatannya tidak ada", async () => {
+    const repo = repositoryTiruan();
+    repo.update.mockResolvedValue("tidak-ada");
+
+    const res = await request(app(repo)).put("/999").send(isian);
+
+    expect(res.status).toBe(404);
+    expect(res.text).toBe(ErrorList["Not found"]);
+  });
+
+  /*
+    409, bukan 404: catatannya ada, keadaannya saja yang sudah bukan itu
+    lagi — uangnya telanjur keluar, dan mengubah angka setelah itu berarti
+    catatan kas berhenti cocok dengan kenyataan.
+  */
+  it("membalas 409 ketika catatannya sudah dikembalikan", async () => {
+    const repo = repositoryTiruan();
+    repo.update.mockResolvedValue("sudah-dikembalikan");
+
+    const res = await request(app(repo)).put("/5").send(isian);
+
+    expect(res.status).toBe(409);
+    expect(res.text).toBe(ErrorList["No changes"]);
+  });
+
+  it("membalas 500 bila repository gagal", async () => {
+    const repo = repositoryTiruan();
+    repo.update.mockRejectedValue(new Error("koneksi putus"));
+
+    const res = await request(app(repo)).put("/5").send(isian);
 
     expect(res.status).toBe(500);
     expect(res.text).toBe(ErrorList["Internal server error"]);

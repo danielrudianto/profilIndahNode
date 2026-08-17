@@ -6,6 +6,7 @@ import { validate } from "../utils/validate.helper";
 import {
   getOverpaymentSchema,
   createOverpaymentSchema,
+  updateOverpaymentSchema,
   refundReportSchema,
 } from "../schemas/overpayment.schema";
 
@@ -31,6 +32,18 @@ router.get(
   "/:id",
   validate(getOverpaymentSchema, "params"),
   overpaymentController.fetchByID
+);
+
+/*
+  Menu "Update" pada daftar 16c. Bentuk id-nya dipinjam dari fetchByID,
+  badan permintaannya dari skema pembuatan — bidang yang boleh diubah
+  memang sama persis dengan bidang saat dicatat.
+*/
+router.put(
+  "/:id",
+  validate(getOverpaymentSchema, "params"),
+  validate(updateOverpaymentSchema),
+  overpaymentController.update
 );
 
 /*

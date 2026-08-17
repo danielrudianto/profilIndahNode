@@ -32,6 +32,58 @@ export class OverpaymentRepository {
     return OverpaymentCodeModel.fromMap(result);
   }
 
+  /**
+   * Mengubah catatan yang BELUM dikembalikan. Yang sudah is_resolved
+   * dibiarkan — uangnya sudah keluar; mengubah angkanya setelah itu
+   * berarti catatan kas berhenti cocok dengan kenyataan.
+   *
+   * Kembaliannya tiga keadaan supaya controller bisa membedakan 404
+   * dari 409, sama seperti pola resolve().
+   */
+  async update(
+    id: number,
+    data: {
+      date: Date;
+      customer_id: number | null;
+      payment_method_id: number | null;
+      value: number;
+      return_payment_date: Date;
+      return_payment_method: string;
+      return_payment_name: string;
+      return_payment_bank: string | null;
+      return_payment_number: string | null;
+    }
+  ): Promise<"ok" | "tidak-ada" | "sudah-dikembalikan"> {
+    const ada = await this.prisma.overpayment.findUnique({
+      where: { id: id },
+      select: { is_resolved: true },
+    });
+
+    if (ada == null) {
+      return "tidak-ada";
+    }
+    if (ada.is_resolved) {
+      return "sudah-dikembalikan";
+    }
+
+    await this.prisma.overpayment.update({
+      where: { id: id },
+      data: {
+        date: data.date,
+        customer_id: data.customer_id,
+        payment_method_id: data.payment_method_id,
+        value: data.value,
+        return_payment_date: data.return_payment_date,
+        return_payment_method: data.return_payment_method,
+        return_payment_name: data.return_payment_name,
+        return_payment_bank: data.return_payment_bank,
+        return_payment_number: data.return_payment_number,
+      },
+    });
+
+    return "ok";
+  }
+
   async createMany(data: IOverpaymentCode[]) {
     const insertQuery = data.map((x) => {
       return this.prisma.overpayment.create({
