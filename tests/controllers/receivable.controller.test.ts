@@ -360,18 +360,16 @@ describe("POST /payment — cacat yang menyangkut uang", () => {
   });
 
   /**
-   * CACAT: nominal berbentuk teks membuat faktur TIDAK PERNAH ditandai lunas.
+   * SEMBUH: penandaan lunas kini memakai toleransi pembulatan, bukan
+   * kesamaan persis.
    *
-   * Nominal diteruskan mentah, sementara penandaan lunas memakai perbandingan
-   * ketat `amount === maximumPaymentValue`. Teks "100000" tidak pernah sama
-   * dengan angka 100000, jadi `is_paid` tetap false meskipun pembayarannya
-   * pas menutup seluruh tagihan. Perbandingan penolakan `amount > sisa` justru
-   * memakai perbandingan longgar, sehingga jumlahnya sendiri tetap lolos.
-   *
-   * Akibatnya bagi pengguna: faktur yang sudah dibayar lunas terus muncul di
-   * daftar piutang, ikut ditagih ulang, dan nominalnya tersimpan sebagai teks.
+   * Dulu `amount === maximumPaymentValue`: teks "100000" tidak pernah
+   * sama dengan angka 100000, dan sisa Rp 1-5 hasil pembulatan kasir
+   * menggantungkan faktur "belum lunas" selamanya. Kini
+   * `sisa - nominal <= PAYMENT_ROUNDING_TOLERANCE` — pengurangan
+   * memaksa teks menjadi angka, dan selisih receh dianggap lunas.
    */
-  it("CACAT: nominal teks yang pas melunasi tetap menyisakan is_paid false", async () => {
+  it("SEMBUH: nominal teks yang pas melunasi kini menandai lunas", async () => {
     const recv = receivableRepositoryTiruan();
     const inv = salesInvoiceRepositoryTiruan();
     inv.fetchByID.mockResolvedValue(faktur());
@@ -385,6 +383,38 @@ describe("POST /payment — cacat yang menyangkut uang", () => {
     });
 
     expect(recv.create.mock.calls[0][0].amount).toBe("100000");
+    expect(recv.create.mock.calls[0][0].is_paid).toBe(true);
+  });
+
+  it("sisa dalam toleransi (Rp 5) ikut ditandai lunas", async () => {
+    const recv = receivableRepositoryTiruan();
+    const inv = salesInvoiceRepositoryTiruan();
+    inv.fetchByID.mockResolvedValue(faktur());
+    recv.create.mockResolvedValue({ id: 1 });
+
+    await request(app(recv, inv)).post("/payment").send({
+      date: "2024-05-01",
+      amount: 99995,
+      payment_method_id: 2,
+      sales_invoice_id: 5,
+    });
+
+    expect(recv.create.mock.calls[0][0].is_paid).toBe(true);
+  });
+
+  it("sisa di atas toleransi tetap belum lunas", async () => {
+    const recv = receivableRepositoryTiruan();
+    const inv = salesInvoiceRepositoryTiruan();
+    inv.fetchByID.mockResolvedValue(faktur());
+    recv.create.mockResolvedValue({ id: 1 });
+
+    await request(app(recv, inv)).post("/payment").send({
+      date: "2024-05-01",
+      amount: 99994,
+      payment_method_id: 2,
+      sales_invoice_id: 5,
+    });
+
     expect(recv.create.mock.calls[0][0].is_paid).toBe(false);
   });
 

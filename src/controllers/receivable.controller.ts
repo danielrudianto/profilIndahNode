@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
+import { PAYMENT_ROUNDING_TOLERANCE } from "../constants/receivable.constant";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 import { translatePage, translatePageSize } from "../utils/escape.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
@@ -109,7 +110,9 @@ class ReceivableController {
         payment_method_id,
         sales_invoice_code_id: sales_invoice_id,
         amount,
-        is_paid: amount === maximumPaymentValue,
+        // Kesamaan persis membuat sisa Rp 1-5 hasil pembulatan
+        // menggantungkan faktur "belum lunas" selamanya.
+        is_paid: maximumPaymentValue - amount <= PAYMENT_ROUNDING_TOLERANCE,
       });
 
       return res.status(201).send(result);

@@ -159,6 +159,12 @@ async function insertStockInOut() {
     new StockInRepository(prisma)
   );
 
+  // stock_out menunjuk stock_in lewat FK stock_in_id, jadi yang menunjuk
+  // harus pergi lebih dulu. Urutan lama (stock_in duluan) langsung P2003
+  // begitu dijalankan pada basis data yang FK-nya ditegakkan migrasi.
+  console.info(`[info]: Start clearing stock out data`);
+  await stockOutService.delete();
+
   console.info(`[info]: Start inserting stock in data`);
 
   await stockInService.delete();
@@ -168,7 +174,6 @@ async function insertStockInOut() {
 
   console.info(`[info]: Start inserting stock out data`);
 
-  await stockOutService.delete();
   await stockOutService.insertFromDocuments();
 
   console.info(`[info]: Stock out successfully inserted`);
@@ -197,6 +202,35 @@ async function calculateStockOut() {
   } catch (error) {
     console.error(`[error]: Error on calculating HPP ${error}`);
   }
+}
+
+/**
+ * Jalur borongan — untuk pembangunan ulang historis yang antreannya
+ * ratusan ribu baris; aturan penetapannya sama persis dengan
+ * calculateStockOut.
+ */
+async function calculateStockOutBulk() {
+  const stockOutService = new StockOutService(
+    new StockOutRepository(prisma),
+    new StockInRepository(prisma)
+  );
+  try {
+    await stockOutService.calculateStockOutBulk();
+  } catch (error) {
+    console.error(`[error]: Error on calculating HPP (bulk) ${error}`);
+  }
+}
+
+/**
+ * Penyapu piutang receh: menandai lunas dokumen yang sisanya <=
+ * toleransi pembulatan (Rp 5). Idempoten, aman dijalankan kapan pun.
+ */
+async function settleRoundedReceivables() {
+  const { ReceivableRepository } = require("./repositories/receivable.repository");
+  const { redisClient } = require("./utils/redis.helper");
+  const repo = new ReceivableRepository(redisClient, prisma);
+  const jumlah = await repo.settleWithinTolerance();
+  console.info(`[info]: ${jumlah} dokumen receh ditandai lunas`);
 }
 
 async function insertStockCard() {
@@ -295,6 +329,12 @@ async function runFunction(funcName: string) {
       process.exit(0);
     case "calculateStockOut":
       await calculateStockOut();
+      process.exit(0);
+    case "calculateStockOutBulk":
+      await calculateStockOutBulk();
+      process.exit(0);
+    case "settleRoundedReceivables":
+      await settleRoundedReceivables();
       process.exit(0);
     case "insertStockCard":
       await insertStockCard();
