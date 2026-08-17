@@ -84,7 +84,7 @@ describe("translateKeyword tidak boleh melempar lagi", () => {
  * keputusan tersendiri. Yang dijaga di sini adalah jumlahnya tidak BERTAMBAH.
  */
 describe("Handler async tanpa try/catch tidak boleh bertambah", () => {
-  const BATAS = 12;
+  const BATAS = 10;
 
   function hitungTanpaTry(): string[] {
     const hasil: string[] = [];
@@ -141,8 +141,6 @@ describe("Handler async tanpa try/catch tidak boleh bertambah", () => {
         "promotion.downloadPurchaseResultByID",
         "promotion.downloadSalesResultByID",
         "promotion.fetchResult",
-        "purchase-report.fetchPurchaseReport",
-        "sales-report.fetchSalesReport",
         "sales.deleteSalesman",
         "sales.fetch",
         "sales.fetchAll",

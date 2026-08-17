@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { DateHelper, formatDate } from "../utils/date.helper";
+import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 import { SalesReturnCodeModel } from "../models/sales-return.model";
 import { ISalesReturnCode } from "../interfaces/sales-return.interface";
@@ -218,8 +218,14 @@ export class SalesReturnRepository {
         JOIN sales_return ON sales_return.sales_return_code_id = sales_return_code.id
         JOIN sales_invoice ON sales_invoice.id = sales_return.sales_invoice_id
         WHERE sales_return_code.is_delete = false
-          AND MONTH(sales_return_code.date) = ${month}
-          AND YEAR(sales_return_code.date) = ${year}
+          AND sales_return_code.date >= ${DateHelper.convertDate(
+            rentangBulan(year, month).mulai,
+            formatDate.YYYYMMDD
+          )}
+          AND sales_return_code.date < ${DateHelper.convertDate(
+            rentangBulan(year, month).sebelum,
+            formatDate.YYYYMMDD
+          )}
       `;
 
       return {

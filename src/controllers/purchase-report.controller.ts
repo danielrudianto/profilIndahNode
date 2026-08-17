@@ -18,18 +18,17 @@ export class PurchaseReportController {
     const month = Number(req.body.month);
     const year = Number(req.body.year);
 
-    const result = await this.goodReceiptRepository.fetchByDateRange(
-      new Date(year, month - 1, 1),
-      new Date(year, month, 0)
-    );
-
-    const chart = await this.goodReceiptRepository.fetchChart(month, year);
-    const brand = await this.goodReceiptRepository.fetchBestBrand(month, year);
-    const type = await this.goodReceiptRepository.fetchBestType(month, year);
-    const supplier = await this.goodReceiptRepository.fetchBestSupplier(
-      month,
-      year
-    );
+    /* Kelima agregat saling bebas — berbarengan, bukan berbaris. */
+    const [result, chart, brand, type, supplier] = await Promise.all([
+      this.goodReceiptRepository.fetchByDateRange(
+        new Date(year, month - 1, 1),
+        new Date(year, month, 0)
+      ),
+      this.goodReceiptRepository.fetchChart(month, year),
+      this.goodReceiptRepository.fetchBestBrand(month, year),
+      this.goodReceiptRepository.fetchBestType(month, year),
+      this.goodReceiptRepository.fetchBestSupplier(month, year),
+    ]);
 
     return res.status(200).send({
       value: result.reduce((a, b) => {

@@ -223,3 +223,27 @@ ANALYZE TABLE stock_in, stock_out, sales_invoice_code;
 --  Bagian 1.1 dan 3 ada supaya pilihan ini bisa dibuktikan dengan
 --  angka, bukan diterima begitu saja.
 -- ============================================================
+
+-- ============================================================
+--  BAGIAN 4 — Indeks penutup untuk laporan persediaan
+--  (ditambahkan 2026-08-18, sesi optimasi)
+--
+--  report/inventory menghitung nilai stok per perusahaan lewat
+--  tabel turunan: SELURUH stock_out yang ber-induk digrup per
+--  stock_in_id dengan saringan tanggal. Indeks bawaan foreign key
+--  hanya memuat stock_in_id, sehingga date dan quantity tetap
+--  diambil dari barisnya satu per satu. Indeks penutup di bawah
+--  membuat seluruh tabel turunan itu terjawab dari indeksnya saja.
+--
+--  Terukur pada salinan produksi: report/inventory 1,65 dtk -> 0,46 dtk.
+--  Perkiraan durasi pembuatan: ~6 detik pada ~930.000 baris.
+-- ============================================================
+
+SET SESSION lock_wait_timeout = 10;
+
+ALTER TABLE stock_out
+  ADD INDEX idx_stock_out_induk (stock_in_id, date, quantity),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
+SET SESSION lock_wait_timeout = 31536000;

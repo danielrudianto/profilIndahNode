@@ -24,27 +24,27 @@ export class SalesReportController {
     const month = Number(req.body.month);
     const year = Number(req.body.year);
 
-    const result = await this.salesInvoiceRepository.fetchByDateRange(
-      new Date(year, month - 1, 1),
-      new Date(year, month, 0)
-    );
-
-    const chart = await this.salesInvoiceRepository.fetchChart(month, year);
-    const brand = await this.salesInvoiceRepository.fetchBestBrand(month, year);
-    const type = await this.salesInvoiceRepository.fetchBestType(month, year);
-    const sales = await this.salesInvoiceRepository.fetchBestSales(month, year);
     /*
+      Ketujuh agregat saling bebas — dijalankan BERBARENGAN, bukan
+      berbaris. Berurutan, waktu halamannya adalah jumlah semua query;
+      berbarengan, ia hanya selambat query terlambatnya.
+
       Kartu retur dan pelanggan di berkas desain 9a. Bentuk lama halaman
       membaca returned_value/returns yang tidak pernah dikirim siapa pun.
     */
-    const retur = await this.salesReturnRepository.fetchMonthlyReturn(
-      month,
-      year
-    );
-    const customerCount = await this.salesInvoiceRepository.fetchCustomerCount(
-      month,
-      year
-    );
+    const [result, chart, brand, type, sales, retur, customerCount] =
+      await Promise.all([
+        this.salesInvoiceRepository.fetchByDateRange(
+          new Date(year, month - 1, 1),
+          new Date(year, month, 0)
+        ),
+        this.salesInvoiceRepository.fetchChart(month, year),
+        this.salesInvoiceRepository.fetchBestBrand(month, year),
+        this.salesInvoiceRepository.fetchBestType(month, year),
+        this.salesInvoiceRepository.fetchBestSales(month, year),
+        this.salesReturnRepository.fetchMonthlyReturn(month, year),
+        this.salesInvoiceRepository.fetchCustomerCount(month, year),
+      ]);
 
     return res.status(200).send({
       salesInvoiceCount: result.salesInvoiceCount,

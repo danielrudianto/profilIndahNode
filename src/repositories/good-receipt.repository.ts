@@ -7,7 +7,7 @@ import {
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
 
-import { DateHelper, formatDate } from "../utils/date.helper";
+import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
 import ErrorList from "../constants/error-list.constant";
 
 export class GoodReceiptRepository {
@@ -590,10 +590,22 @@ export class GoodReceiptRepository {
       FROM good_receipt
       JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
       WHERE good_receipt_code.is_delete = 0
-      AND MONTH(good_receipt_code.date) = ${month}
-      AND YEAR(good_receipt_code.date) = ${year}
+      AND good_receipt_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND good_receipt_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY DAY(good_receipt_code.date)
-      ORDER BY good_receipt_code.date ASC
+      /*
+        Diurutkan pada EKSPRESI yang digrup, bukan kolom mentahnya:
+        only_full_group_by (bawaan MySQL 5.7+) menolak ORDER BY kolom
+        yang tidak berada di GROUP BY, dan itulah yang membuat seluruh
+        laporan pembelian menjawab 500.
+      */
+      ORDER BY DAY(good_receipt_code.date) ASC
     `;
 
     return result.map((x) => {
@@ -616,8 +628,14 @@ export class GoodReceiptRepository {
       JOIN product ON good_receipt.product_id = product.id
       JOIN product_brand ON product.product_brand_id = product_brand.id
       WHERE good_receipt_code.is_delete = 0
-      AND MONTH(good_receipt_code.date) = ${month}
-      AND YEAR(good_receipt_code.date) = ${year}
+      AND good_receipt_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND good_receipt_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY product_brand.id
       ORDER BY value DESC
       LIMIT 1
@@ -641,8 +659,14 @@ export class GoodReceiptRepository {
       JOIN product ON good_receipt.product_id = product.id
       JOIN product_type ON product.product_type_id = product_type.id
       WHERE good_receipt_code.is_delete = 0
-      AND MONTH(good_receipt_code.date) = ${month}
-      AND YEAR(good_receipt_code.date) = ${year}
+      AND good_receipt_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND good_receipt_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY product_type.id
       ORDER BY value DESC
       LIMIT 1
@@ -665,8 +689,14 @@ export class GoodReceiptRepository {
       JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
       JOIN supplier ON good_receipt_code.supplier_id = supplier.id
       WHERE good_receipt_code.is_delete = 0
-      AND MONTH(good_receipt_code.date) = ${month}
-      AND YEAR(good_receipt_code.date) = ${year}
+      AND good_receipt_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND good_receipt_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY supplier.id
       ORDER BY value DESC
       LIMIT 1

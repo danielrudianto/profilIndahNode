@@ -210,10 +210,10 @@ describe("POST /sales — laporan penjualan bulanan", () => {
    * kueri, bukan yang terlama. Pada kueri agregat sebulan yang masing-masing
    * memakan waktu, selisihnya terasa langsung sebagai layar yang lama kosong.
    *
-   * Dibuktikan dengan menunda kueri pertama: kalau semuanya berbarengan,
+   * Dibuktikan dengan menunda kueri pertama: karena semuanya berbarengan,
    * kueri kedua sudah terpanggil saat yang pertama masih menunggu.
    */
-  it("CACAT: kueri laporan dijalankan berurutan, bukan berbarengan", async () => {
+  it("kueri laporan dijalankan berbarengan, bukan berurutan", async () => {
     const repo = repositoryTiruan();
     siapkanRingkasan(repo);
     let lepaskan: (() => void) | undefined;
@@ -236,12 +236,15 @@ describe("POST /sales — laporan penjualan bulanan", () => {
 
     // Beri kesempatan antrean mikrotask berjalan.
     await Promise.resolve();
-    // Kueri berikutnya belum tersentuh: semuanya menunggu yang pertama.
-    expect(repo.fetchChart).not.toHaveBeenCalled();
+    // Kueri lain SUDAH berjalan walau yang pertama masih menggantung —
+    // itulah berbarengan. Dulu di sini tercatat sebagai CACAT: semuanya
+    // berbaris menunggu yang pertama selesai.
+    expect(repo.fetchChart).toHaveBeenCalled();
+    expect(repo.fetchBestBrand).toHaveBeenCalled();
 
     lepaskan!();
     await jalan;
-    expect(repo.fetchChart).toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(200);
   });
 });
 

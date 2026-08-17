@@ -3,7 +3,7 @@ import { SalesInvoiceModel } from "../models/sales-invoice.model";
 import { ISalesInvoiceCode } from "../interfaces/sales-invoice.interface";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 
-import { DateHelper, formatDate } from "../utils/date.helper";
+import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
 import { IFetchArchiveResult } from "../interfaces/archive.interface";
 import ErrorList from "../constants/error-list.constant";
 
@@ -196,8 +196,14 @@ export class SalesInvoiceRepository {
         FROM sales_invoice_code
         WHERE is_delete = false
           AND customer_id IS NOT NULL
-          AND MONTH(date) = ${month}
-          AND YEAR(date) = ${year}
+          AND date >= ${DateHelper.convertDate(
+            rentangBulan(year, month).mulai,
+            formatDate.YYYYMMDD
+          )}
+          AND date < ${DateHelper.convertDate(
+            rentangBulan(year, month).sebelum,
+            formatDate.YYYYMMDD
+          )}
       `;
 
       return Number(result[0]?.count ?? 0);
@@ -268,8 +274,14 @@ export class SalesInvoiceRepository {
       FROM sales_invoice
       JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
       WHERE sales_invoice_code.is_delete = 0
-      AND MONTH(sales_invoice_code.date) = ${month}
-      AND YEAR(sales_invoice_code.date) = ${year}
+      AND sales_invoice_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND sales_invoice_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY DAY(sales_invoice_code.date)
     `;
 
@@ -295,8 +307,14 @@ export class SalesInvoiceRepository {
       JOIN product ON sales_invoice.product_id = product.id
       JOIN product_brand ON product.product_brand_id = product_brand.id
       WHERE sales_invoice_code.is_delete = 0
-      AND MONTH(sales_invoice_code.date) = ${month}
-      AND YEAR(sales_invoice_code.date) = ${year}
+      AND sales_invoice_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND sales_invoice_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY product_brand.id
       ORDER BY value DESC
       LIMIT 1
@@ -321,8 +339,14 @@ export class SalesInvoiceRepository {
         JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
         JOIN product ON sales_invoice.product_id = product.id
         JOIN product_brand ON product.product_brand_id = product_brand.id
-        WHERE MONTH(sales_invoice_code.date) = ${data.month + 1}
-        AND YEAR(sales_invoice_code.date) = ${data.year}
+        WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month + 1).mulai,
+          formatDate.YYYYMMDD
+        )}
+        AND sales_invoice_code.date < ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month + 1).sebelum,
+          formatDate.YYYYMMDD
+        )}
         AND sales_invoice_code.is_delete = 0
         GROUP BY product.product_brand_id
       `;
@@ -350,8 +374,14 @@ export class SalesInvoiceRepository {
       JOIN product ON sales_invoice.product_id = product.id
       JOIN product_type ON product.product_type_id = product_type.id
       WHERE sales_invoice_code.is_delete = 0
-      AND MONTH(sales_invoice_code.date) = ${month}
-      AND YEAR(sales_invoice_code.date) = ${year}
+      AND sales_invoice_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND sales_invoice_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       GROUP BY product_type.id
       ORDER BY value DESC
       LIMIT 1
@@ -376,8 +406,14 @@ export class SalesInvoiceRepository {
         JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
         JOIN product ON sales_invoice.product_id = product.id
         JOIN product_type ON product.product_type_id = product_type.id
-        WHERE MONTH(sales_invoice_code.date) = ${data.month + 1}
-        AND YEAR(sales_invoice_code.date) = ${data.year}
+        WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month + 1).mulai,
+          formatDate.YYYYMMDD
+        )}
+        AND sales_invoice_code.date < ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month + 1).sebelum,
+          formatDate.YYYYMMDD
+        )}
         AND sales_invoice_code.is_delete = 0
         GROUP BY product.product_type_id
       `;
@@ -404,8 +440,14 @@ export class SalesInvoiceRepository {
         sales_invoice_code.sales
         FROM sales_invoice
         JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
-        WHERE MONTH(sales_invoice_code.date) = ${data.month + 1}
-        AND YEAR(sales_invoice_code.date) = ${data.year}
+        WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month + 1).mulai,
+          formatDate.YYYYMMDD
+        )}
+        AND sales_invoice_code.date < ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month + 1).sebelum,
+          formatDate.YYYYMMDD
+        )}
         AND sales_invoice_code.is_delete = 0
         GROUP BY sales_invoice_code.sales
       `;
@@ -429,8 +471,14 @@ export class SalesInvoiceRepository {
       FROM sales_invoice
       JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
       WHERE sales_invoice_code.is_delete = 0
-      AND MONTH(sales_invoice_code.date) = ${month}
-      AND YEAR(sales_invoice_code.date) = ${year}
+      AND sales_invoice_code.date >= ${DateHelper.convertDate(
+        rentangBulan(year, month).mulai,
+        formatDate.YYYYMMDD
+      )}
+      AND sales_invoice_code.date < ${DateHelper.convertDate(
+        rentangBulan(year, month).sebelum,
+        formatDate.YYYYMMDD
+      )}
       AND sales_invoice_code.sales IS NOT NULL
       GROUP BY sales_invoice_code.sales
       ORDER BY value DESC
