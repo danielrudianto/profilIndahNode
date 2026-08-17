@@ -1,73 +1,51 @@
 import { Request, Response } from "express";
+import { DashboardRepository } from "../repositories/dashboard.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
-import { PromotionRepository } from "../repositories/promotion.repository";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
-import { SalesDepositRepository } from "../repositories/sales-deposit.repository";
+import { PromotionRepository } from "../repositories/promotion.repository";
 
 /**
  * Ringkasan angka untuk halaman dashboard.
  *
- * Dipisahkan dari ReportController yang menerima 19 repository di
- * konstruktornya padahal tiap laporan hanya memakai sebagian kecil.
+ * `fetch` melayani dashboard administrator (layar 9c) dalam satu balasan
+ * lewat DashboardRepository. Dua handler lain adalah dashboard peran
+ * sales dan purchasing yang masih memakai repository domain lama.
  */
 export class DashboardController {
+  private dashboardRepository: DashboardRepository;
   private salesInvoiceRepository: SalesInvoiceRepository;
   private goodReceiptRepository: GoodReceiptRepository;
   private promotionRepository: PromotionRepository;
-  private salesDepositRepository: SalesDepositRepository;
 
   constructor(
+    dashboardRepository: DashboardRepository,
     salesInvoiceRepository: SalesInvoiceRepository,
     goodReceiptRepository: GoodReceiptRepository,
-    promotionRepository: PromotionRepository,
-    salesDepositRepository: SalesDepositRepository
+    promotionRepository: PromotionRepository
   ) {
+    this.dashboardRepository = dashboardRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.goodReceiptRepository = goodReceiptRepository;
     this.promotionRepository = promotionRepository;
-    this.salesDepositRepository = salesDepositRepository;
   }
 
-  fetchAdministratorDashboard = async (req: Request, res: Response) => {
+  fetch = async (req: Request, res: Response) => {
+    // "Hari ini" milik pengguna, bukan milik server: frontend mengirim
+    // tanggalnya. Tanpa parameter, jatuh ke tanggal server.
+    const hariIni = req.query.date
+      ? new Date(String(req.query.date))
+      : new Date();
+    const mingguLalu = new Date(hariIni);
+    mingguLalu.setDate(mingguLalu.getDate() - 6);
+
     try {
-      const date = new Date();
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-
-      const [
-        currentSales,
-        previousSales,
-        currentPurchase,
-        previousPurchase,
-        activePromotion,
-        deposit,
-      ] = await Promise.all([
-        this.salesInvoiceRepository.fetchByDateRange(date, date),
-        this.salesInvoiceRepository.fetchByDateRange(yesterday, yesterday),
-        this.goodReceiptRepository.fetchByDateRange(date, date),
-        this.goodReceiptRepository.fetchByDateRange(yesterday, yesterday),
-        this.promotionRepository.countActive(),
-        this.salesDepositRepository.countPending(),
-      ]);
-
-      return res.status(200).send({
-        sales: {
-          current: currentSales.value,
-          previous: previousSales.value,
-        },
-        purchase: {
-          current: currentPurchase.reduce((a, b) => {
-            return a + b.value - b.discount;
-          }, 0),
-          previous: previousPurchase.reduce((a, b) => {
-            return a + b.value - b.discount;
-          }, 0),
-        },
-        deposit: deposit,
-        promotion: activePromotion,
-      });
+      const result = await this.dashboardRepository.ringkasan(
+        hariIni,
+        mingguLalu
+      );
+      return res.status(200).send(result);
     } catch (error) {
-      console.error(`[error]: Error on fetching sales dashboard ${error}`);
+      console.error(`[error]: Error on fetching dashboard ${error}`);
       return res.status(500).send(error);
     }
   };
