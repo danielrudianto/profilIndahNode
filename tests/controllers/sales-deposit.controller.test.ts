@@ -1091,21 +1091,16 @@ describe("GET /, GET /:id, GET /archives, POST /archives", () => {
   });
 
   /**
-   * CACAT: halaman dan kata kunci arsip dibaca dari query string, padahal
-   * rutenya POST dan skemanya MEWAJIBKAN keduanya ada di badan permintaan.
+   * SEMBUH: halaman dan kata kunci arsip kini dibaca dari badan permintaan.
    *
-   * `archiveSalesDepositSchema` mewajibkan `page` dan `pageSize` di badan,
-   * tetapi handler membaca `req.query.page` dan `req.query.keyword`, lalu
-   * memakai `process.env.LIMIT` sebagai ukuran halaman. Nilai yang sudah
-   * divalidasi tidak pernah dipakai.
+   * Dulu handler membaca `req.query.page` dan `req.query.keyword` padahal
+   * rutenya POST dan skemanya mewajibkan keduanya di badan — arsip setoran
+   * selalu menampilkan halaman pertama dan pencariannya mati sama sekali.
    *
-   * Akibatnya bagi pengguna: arsip setoran SELALU menampilkan halaman pertama.
-   * Menekan tombol halaman 2, 3, dan seterusnya mengirim page di badan
-   * permintaan, tetapi controller tetap menghitung offset 0. Setoran di luar
-   * halaman pertama tidak bisa dijangkau sama sekali dari antarmuka, dan
-   * ukuran halaman yang dipilih pengguna diabaikan.
+   * `pageSize` di badan tetap diabaikan dengan sengaja: ukuran halaman
+   * dipatok server lewat LIMIT, sama seperti arsip retur penjualan.
    */
-  it("CACAT: page dan pageSize di badan permintaan diabaikan sepenuhnya", async () => {
+  it("SEMBUH: page dan keyword di badan permintaan dipakai", async () => {
     const r = repositoriTiruan();
     r.salesDeposit.fetchArchives.mockResolvedValue({ data: [], count: 0 });
 
@@ -1118,10 +1113,10 @@ describe("GET /, GET /:id, GET /archives, POST /archives", () => {
     });
 
     const arg = r.salesDeposit.fetchArchives.mock.calls[0][0];
-    // Halaman 5 seharusnya melewati 200 baris; yang dipakai tetap 0.
-    expect(arg.offset).toBe(0);
+    // Halaman 5 melewati 4 × LIMIT (10) = 40 baris.
+    expect(arg.offset).toBe(40);
     expect(arg.limit).toBe(10);
-    expect(arg.keyword).toBe("");
+    expect(arg.keyword).toBe("indah");
   });
 
   /**

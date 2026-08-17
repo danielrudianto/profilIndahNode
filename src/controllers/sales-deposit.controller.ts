@@ -149,8 +149,13 @@ export class SalesDepositController {
   fetchArchives = async (req: Request, res: Response) => {
     const year = req.body.year;
     const month = req.body.month;
-    const keyword = translateKeyword(req.query.keyword);
-    const page = translatePage(req.query.page);
+    /*
+      Dari BADAN permintaan, bukan query string. Rutenya POST dan skemanya
+      mewajibkan keduanya di badan; membaca req.query membuat arsip selalu
+      menampilkan halaman pertama dan pencariannya mati sama sekali.
+    */
+    const keyword = translateKeyword(req.body.keyword);
+    const page = translatePage(req.body.page);
     const offset = Number(process.env.LIMIT!);
     const isPending = req.body.isPending as boolean;
     const isDelete = req.body.isDelete as boolean;
