@@ -375,6 +375,15 @@ export class StockCardRepository {
   }
 
   async startup() {
+    /*
+      Bangun ulang berarti MULAI DARI KOSONG. INSERT di bawah menyalin
+      SEMUA dokumen tanpa memeriksa apa yang sudah ada — dijalankan pada
+      basis data yang stock_card-nya sudah terisi, setiap mutasi jadi
+      dobel dan saldo berjalannya ikut kacau. TRUNCATE, bukan DELETE:
+      jutaan baris dihapusnya seketika dan id kembali dari satu.
+    */
+    await this.prisma.$executeRaw`TRUNCATE TABLE stock_card`;
+
     const result = await this.prisma.$queryRaw`
       INSERT INTO stock_card (product_id, product_unit_id, quantity, display_quantity, date, customer_id, supplier_id, document_name, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, sales_return_id, sales_return_code_id, stock, created_at)
       (
