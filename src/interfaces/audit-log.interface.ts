@@ -14,6 +14,8 @@ export interface IAuditLogFilter {
   page: number;
   pageSize: number;
   entity: string | null;
+  /** Menyaring jejak SATU dokumen — dipakai riwayat perubahan di dialog view. */
+  entityID: number | null;
   userID: number[] | null;
   dateFrom: Date | null;
   dateTo: Date | null;

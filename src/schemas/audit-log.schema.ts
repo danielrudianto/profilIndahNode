@@ -61,6 +61,10 @@ export const queryAuditLogSchema = z.object({
   page: halaman,
   page_size: ukuranHalaman,
   entity: z.string().max(64, ErrorList["Parameter error"]).optional(),
+  entityID: z
+    .string()
+    .regex(/^[0-9]+$/, ErrorList["Parameter error"])
+    .optional(),
   userID: daftarPengguna,
   dateFrom: tanggal,
   dateTo: tanggal,

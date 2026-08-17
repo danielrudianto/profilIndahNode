@@ -27,6 +27,7 @@ class AuditLogController {
     const page = Number(req.query.page) || 1;
     const pageSize = Number(req.query.page_size) || 25;
     const entity = (req.query.entity as string) || null;
+    const entityID = req.query.entityID ? Number(req.query.entityID) : null;
 
     const dariQuery = req.query.userID;
     const userID =
@@ -48,6 +49,7 @@ class AuditLogController {
         page: page,
         pageSize: pageSize,
         entity: entity,
+        entityID: entityID,
         userID: userID,
         dateFrom: dateFrom,
         dateTo: dateTo,

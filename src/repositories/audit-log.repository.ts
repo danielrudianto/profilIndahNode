@@ -25,6 +25,10 @@ export class AuditLogRepository {
       where.entity = filter.entity;
     }
 
+    if (filter.entityID) {
+      where.entity_id = filter.entityID;
+    }
+
     if (filter.userID?.length) {
       where.user_id = { in: filter.userID };
     }
