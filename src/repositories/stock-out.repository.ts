@@ -387,8 +387,15 @@ export class StockOutRepository {
         ON sales_invoice.id = sr.sales_invoice_id
         JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
         WHERE sales_invoice_code.is_delete = 0
+        AND (sales_invoice.quantity - COALESCE(sr.quantity, 0)) > 0
         ORDER BY sales_invoice_code.date ASC, sales_invoice.id ASC
       `);
+    // Baris <= 0 sengaja tidak dilahirkan: retur penuh berarti tidak ada
+    // barang keluar bersih (dulu jadi baris 0,00 abadi yang disapu-lewati
+    // selamanya), dan retur MELEBIHI penjualan adalah anomali pencatatan
+    // yang harus dibereskan di dokumennya — baris minus di stock_out cuma
+    // menyembunyikannya. Di dump produksi 17 Agu 2026 anomali itu ada dua:
+    // sales_invoice 29034 (jual 4, retur 8) dan 682613 (jual 10, retur 13).
   }
 
   async insertFromAdjustmentCases() {
