@@ -37,8 +37,12 @@ export class StockReportController {
   }
 
   fetchInventoryReport = async (req: Request, res: Response) => {
+    // Tanpa tanggal berarti hari ini — bentuk lama laporan ini memang
+    // hanya bisa menjawab "sekarang".
+    const tanggal = req.query.date ? new Date(String(req.query.date)) : new Date();
+
     try {
-      const result = await this.stockInRepository.calculate();
+      const result = await this.stockInRepository.calculateAsOf(tanggal);
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching inventory report ${error}`);

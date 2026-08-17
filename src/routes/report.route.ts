@@ -40,6 +40,7 @@ import {
   requiredMonthPeriodSchema,
   dateRangeSchema,
   dateSchema,
+  inventoryQuerySchema,
 } from "../schemas/report.schema";
 
 const router = Router();
@@ -131,6 +132,7 @@ router.post(
 router.get(
   "/inventory",
   superadministratorMiddleware,
+  validate(inventoryQuerySchema, "query"),
   stockReportController.fetchInventoryReport
 );
 

@@ -273,28 +273,60 @@ export class StockInRepository {
     });
   }
 
-  async calculate(): Promise<{ company: string; value: number }[]> {
-    const result = await this.prisma.$queryRaw<any[]>`
-      SELECT company.name, c.value
-      FROM company
-      LEFT JOIN (
-        SELECT SUM(stock_in.price * stock_in.residue) AS value, stock_in.company_id
+  /**
+   * Nilai persediaan per perusahaan PADA suatu tanggal.
+   *
+   * Sisa sebuah lapisan pada tanggal T = kuantitasnya dikurangi seluruh
+   * keluaran tertetapkan yang bertanggal <= T; hanya lapisan bertanggal
+   * <= T yang ikut dihitung. Bentuk lamanya membaca kolom residue —
+   * angka "sekarang" yang tidak bisa ditanya mundur.
+   *
+   * Keluaran TANPA induk tidak punya harga pokok, jadi tidak mungkin
+   * masuk hitungan — jumlah dan nilai jualnya dikembalikan terpisah
+   * supaya laporan bisa jujur, bukan diam-diam menganggapnya nol.
+   */
+  async calculateAsOf(tanggal: Date): Promise<{
+    companies: { id: number; company: string; value: number }[];
+    unassigned: { count: number; value: number };
+  }> {
+    const [nilai, tanpaInduk] = await this.prisma.$transaction([
+      this.prisma.$queryRaw<any[]>`
+        SELECT company.id, company.name,
+          SUM(stock_in.price * (stock_in.quantity - COALESCE(keluar.quantity, 0))) AS value
         FROM stock_in
-        GROUP BY stock_in.company_id
-      ) AS c
-      ON company.id = c.company_id
-      ORDER BY value DESC
-    `;
+        JOIN company ON company.id = stock_in.company_id
+        LEFT JOIN (
+          SELECT stock_out.stock_in_id, SUM(stock_out.quantity) AS quantity
+          FROM stock_out
+          WHERE stock_out.stock_in_id IS NOT NULL
+          AND stock_out.date <= ${tanggal}
+          GROUP BY stock_out.stock_in_id
+        ) AS keluar ON keluar.stock_in_id = stock_in.id
+        WHERE stock_in.date <= ${tanggal}
+        GROUP BY company.id, company.name
+        ORDER BY value DESC
+      `,
+      this.prisma.$queryRaw<any[]>`
+        SELECT COUNT(*) AS n, COALESCE(SUM(stock_out.quantity * stock_out.price), 0) AS value
+        FROM stock_out
+        WHERE stock_out.stock_in_id IS NULL
+        AND stock_out.quantity > 0
+        AND stock_out.date <= ${tanggal}
+      `,
+    ]);
 
-    if (!result || result.length == 0) {
-      return [];
-    }
-
-    return result.map((x) => {
-      return {
-        company: x.name,
-        value: Number(x.value),
-      };
-    });
+    return {
+      companies: (nilai ?? []).map((x) => {
+        return {
+          id: Number(x.id),
+          company: x.name,
+          value: Number(x.value),
+        };
+      }),
+      unassigned: {
+        count: Number(tanpaInduk[0]?.n ?? 0),
+        value: Number(tanpaInduk[0]?.value ?? 0),
+      },
+    };
   }
 }

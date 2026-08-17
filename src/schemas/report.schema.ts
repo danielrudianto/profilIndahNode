@@ -76,6 +76,19 @@ export const dateSchema = z.object({
   }),
 });
 
+/**
+ * GET /report/inventory — `date` opsional; tanpa tanggal berarti hari
+ * ini. Nilainya teks (query string) dan harus terbaca sebagai tanggal.
+ */
+export const inventoryQuerySchema = z.object({
+  date: z
+    .string()
+    .refine((nilai) => !Number.isNaN(new Date(nilai).getTime()), {
+      message: ErrorList["Date required"],
+    })
+    .optional(),
+});
+
 /** POST /report/money-receipt/dor */
 export const dateRangeSchema = z.object({
   startDate: z.any().refine((nilai) => nilai !== undefined, {

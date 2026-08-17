@@ -1,4 +1,6 @@
 import express from "express";
+import { validate } from "../../src/utils/validate.helper";
+import { inventoryQuerySchema } from "../../src/schemas/report.schema";
 import request from "supertest";
 
 /**
@@ -27,7 +29,7 @@ jest.mock("../../src/utils/socket.helper", () => ({
 import StockReportController from "../../src/controllers/stock-report.controller";
 
 function stockInTiruan() {
-  return { calculate: jest.fn() };
+  return { calculateAsOf: jest.fn() };
 }
 function produkTiruan() {
   return { fetchOutputReport: jest.fn() };
@@ -85,7 +87,13 @@ function app(r: Semua) {
     if (req.body && typeof req.body === "object") req.body.userId ??= 99;
     next();
   });
-  a.get("/inventory", c.fetchInventoryReport);
+  // validate ikut dipasang persis seperti route aslinya — penolakan
+  // tanggal rusak memang tanggung jawab lapisan skema, bukan controller.
+  a.get(
+    "/inventory",
+    validate(inventoryQuerySchema, "query"),
+    c.fetchInventoryReport
+  );
   a.post("/output", c.fetchOutputReport);
   a.post("/output-company", c.fetchCompanyOutputReport);
   return a;
@@ -113,27 +121,44 @@ beforeEach(() => {
 });
 
 describe("GET /inventory — nilai persediaan per perusahaan", () => {
+  const hasil = {
+    companies: [{ id: 1, company: "PT Indah", value: 5_000_000 }],
+    unassigned: { count: 2, value: 150_000 },
+  };
+
   it("membalas 200 dan meneruskan hasil repository apa adanya", async () => {
     const r = repositoryTiruan();
-    r.stockIn.calculate.mockResolvedValue([
-      { company: "PT Indah", value: 5_000_000 },
-    ]);
+    r.stockIn.calculateAsOf.mockResolvedValue(hasil);
 
     const res = await request(app(r)).get("/inventory");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([{ company: "PT Indah", value: 5_000_000 }]);
-    expect(r.stockIn.calculate).toHaveBeenCalledWith();
+    expect(res.body).toEqual(hasil);
+    // Tanpa parameter, tanggalnya hari ini.
+    const tanggal = r.stockIn.calculateAsOf.mock.calls[0][0] as Date;
+    expect(tanggal).toBeInstanceOf(Date);
+    expect(Math.abs(tanggal.getTime() - Date.now())).toBeLessThan(60_000);
   });
 
-  it("membalas daftar kosong bila belum ada persediaan", async () => {
+  it("meneruskan tanggal dari query string apa adanya", async () => {
     const r = repositoryTiruan();
-    r.stockIn.calculate.mockResolvedValue([]);
+    r.stockIn.calculateAsOf.mockResolvedValue(hasil);
 
-    const res = await request(app(r)).get("/inventory");
+    const res = await request(app(r)).get("/inventory?date=2026-03-31");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual([]);
+    expect(r.stockIn.calculateAsOf).toHaveBeenCalledWith(
+      new Date("2026-03-31")
+    );
+  });
+
+  it("menolak tanggal yang tidak terbaca dengan 400", async () => {
+    const r = repositoryTiruan();
+
+    const res = await request(app(r)).get("/inventory?date=kemarin-sore");
+
+    expect(res.status).toBe(400);
+    expect(r.stockIn.calculateAsOf).not.toHaveBeenCalled();
   });
 
   /**
@@ -149,7 +174,7 @@ describe("GET /inventory — nilai persediaan per perusahaan", () => {
    */
   it("CACAT: kegagalan dibalas 500 berisi objek galat tanpa pesan", async () => {
     const r = repositoryTiruan();
-    r.stockIn.calculate.mockRejectedValue(
+    r.stockIn.calculateAsOf.mockRejectedValue(
       Object.assign(new Error("kueri gagal"), {
         code: "P2010",
         meta: { table: "stock_in" },
