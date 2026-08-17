@@ -97,4 +97,9 @@ export const queryExpenseMutationSchema = z.object({
     (nilai) => !isNaN(Number(nilai)),
     { message: ErrorList["Year must be numeric"] }
   ),
+  /** Opsional, untuk unduhan rekap: satu permintaan berisi semua baris. */
+  pageSize: z
+    .string()
+    .regex(/^[0-9]+$/, ErrorList["Parameter error"])
+    .optional(),
 });

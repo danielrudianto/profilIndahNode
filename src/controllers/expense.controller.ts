@@ -109,7 +109,11 @@ class ExpenseController {
       const year = Number(req.query.year);
       const month = Number(req.query.month);
       const page = translatePage(req.query.page);
-      const pageSize = Number(process.env.LIMIT);
+      // pageSize opsional (divalidasi Zod, dipagari 10000) dipakai
+      // unduhan rekap untuk menarik seluruh baris bulan itu sekali jalan.
+      const pageSize = req.query.pageSize
+        ? Math.min(Number(req.query.pageSize), 10000)
+        : Number(process.env.LIMIT);
 
       const result = await this.expenseRepository.fetch({
         year: year,
