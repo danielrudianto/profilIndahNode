@@ -4,11 +4,11 @@ import request from "supertest";
 /**
  * Perilaku DashboardController.
  *
- * Mengikuti acuan company.controller.test.ts: keempat repository disuntikkan
- * lewat konstruktor sebagai objek berisi jest.fn(). Controller ini tidak
- * menyimpan apa pun — ia hanya menyusun rentang tanggal, memanggil repository
- * secara berbarengan, lalu menjumlahkan hasilnya. Maka yang diuji adalah
- * RENTANG TANGGAL yang diteruskan dan ARITMETIKA ringkasannya.
+ * Mengikuti acuan company.controller.test.ts: repository disuntikkan lewat
+ * konstruktor sebagai objek berisi jest.fn(). GET / (dashboard 9c) hanya
+ * menyusun pasangan tanggal lalu meneruskan hasil ringkasan() apa adanya —
+ * maka yang diuji adalah TANGGAL yang diteruskan dan kejujuran penerusannya.
+ * Dua handler peran lama (sales, purchasing) tetap diuji seperti semula.
  *
  * SocketHelper tetap ditiru mengikuti pola berkas acuan, supaya getIO() yang
  * belum diinisialisasi tidak melempar bila kelak dashboard ikut berkirim
@@ -28,6 +28,9 @@ jest.mock("../../src/utils/socket.helper", () => ({
 
 import DashboardController from "../../src/controllers/dashboard.controller";
 
+function dashboardTiruan() {
+  return { ringkasan: jest.fn() };
+}
 function fakturTiruan() {
   return { fetchByDateRange: jest.fn() };
 }
@@ -37,26 +40,23 @@ function penerimaanTiruan() {
 function promosiTiruan() {
   return { countActive: jest.fn().mockResolvedValue(0) };
 }
-function setoranTiruan() {
-  return { countPending: jest.fn().mockResolvedValue(0) };
-}
 
+type Dashboard = ReturnType<typeof dashboardTiruan>;
 type Faktur = ReturnType<typeof fakturTiruan>;
 type Penerimaan = ReturnType<typeof penerimaanTiruan>;
 type Promosi = ReturnType<typeof promosiTiruan>;
-type Setoran = ReturnType<typeof setoranTiruan>;
 
 function app(
   faktur: Faktur,
   penerimaan: Penerimaan,
   promosi: Promosi = promosiTiruan(),
-  setoran: Setoran = setoranTiruan()
+  dashboard: Dashboard = dashboardTiruan()
 ) {
   const c = new DashboardController(
+    dashboard as never,
     faktur as never,
     penerimaan as never,
-    promosi as never,
-    setoran as never
+    promosi as never
   );
   const a = express();
   a.use(express.json());
@@ -65,7 +65,7 @@ function app(
     if (req.body && typeof req.body === "object") req.body.userId ??= 99;
     next();
   });
-  a.post("/administrator", c.fetchAdministratorDashboard);
+  a.get("/", c.fetch);
   a.post("/sales", c.fetchSalesDashboard);
   a.post("/purchasing", c.fetchPurchaseDashboard);
   return a;
@@ -101,155 +101,81 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 
-describe("POST /administrator — ringkasan untuk administrator", () => {
-  function siapkan() {
+describe("GET / — dashboard administrator 9c", () => {
+  const isi = {
+    sales: { value: 1_000, count: 2, unpaid: 1 },
+    purchase: { value: 500, count: 1 },
+    deposit: { value: 0, count: 0 },
+    promotion: { count: 3, endingSoon: 1, rows: [] },
+    week: [],
+    invoices: [],
+  };
+
+  it("meneruskan hasil ringkasan() apa adanya", async () => {
+    const dashboard = dashboardTiruan();
+    dashboard.ringkasan.mockResolvedValue(isi);
+
+    const res = await request(
+      app(fakturTiruan(), penerimaanTiruan(), promosiTiruan(), dashboard)
+    ).get("/");
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual(isi);
+    expect(dashboard.ringkasan).toHaveBeenCalledTimes(1);
+  });
+
+  it("memakai ?date sebagai hari ini, dan mundur enam hari untuk awal minggu", async () => {
+    const dashboard = dashboardTiruan();
+    dashboard.ringkasan.mockResolvedValue(isi);
+
+    await request(
+      app(fakturTiruan(), penerimaanTiruan(), promosiTiruan(), dashboard)
+    ).get("/?date=2025-06-14");
+
+    const [ini, lalu] = dashboard.ringkasan.mock.calls[0] as Date[];
+    expect(ini.toISOString().slice(0, 10)).toBe("2025-06-14");
+    expect(lalu.toISOString().slice(0, 10)).toBe("2025-06-08");
+  });
+
+  it("tanpa ?date jatuh ke tanggal server, tetap berjarak enam hari", async () => {
+    const dashboard = dashboardTiruan();
+    dashboard.ringkasan.mockResolvedValue(isi);
+
+    await request(
+      app(fakturTiruan(), penerimaanTiruan(), promosiTiruan(), dashboard)
+    ).get("/");
+
+    const [ini, lalu] = dashboard.ringkasan.mock.calls[0] as Date[];
+    expect(ini.toDateString()).toBe(hariIni.toDateString());
+    const selisihHari = Math.round(
+      (ini.getTime() - lalu.getTime()) / 86_400_000
+    );
+    expect(selisihHari).toBe(6);
+  });
+
+  it("membalas 500 bila ringkasan() gagal", async () => {
+    const dashboard = dashboardTiruan();
+    dashboard.ringkasan.mockRejectedValue(new Error("koneksi putus"));
+
+    const res = await request(
+      app(fakturTiruan(), penerimaanTiruan(), promosiTiruan(), dashboard)
+    ).get("/");
+
+    expect(res.status).toBe(500);
+  });
+
+  it("tidak menyentuh repository penjualan, pembelian, maupun promosi", async () => {
     const faktur = fakturTiruan();
     const penerimaan = penerimaanTiruan();
     const promosi = promosiTiruan();
-    const setoran = setoranTiruan();
+    const dashboard = dashboardTiruan();
+    dashboard.ringkasan.mockResolvedValue(isi);
 
-    faktur.fetchByDateRange
-      .mockResolvedValueOnce(penjualan(1_000_000))
-      .mockResolvedValueOnce(penjualan(800_000));
-    penerimaan.fetchByDateRange
-      .mockResolvedValueOnce([
-        penerimaanBarang(500_000, 25_000),
-        penerimaanBarang(200_000, 0),
-      ])
-      .mockResolvedValueOnce([penerimaanBarang(300_000, 50_000)]);
-    promosi.countActive.mockResolvedValue(4);
-    setoran.countPending.mockResolvedValue(7);
+    await request(app(faktur, penerimaan, promosi, dashboard)).get("/");
 
-    return { faktur, penerimaan, promosi, setoran };
-  }
-
-  it("membalas 200 berisi penjualan, pembelian, setoran, dan promosi", async () => {
-    const { faktur, penerimaan, promosi, setoran } = siapkan();
-
-    const res = await request(app(faktur, penerimaan, promosi, setoran)).post(
-      "/administrator"
-    );
-
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({
-      sales: { current: 1_000_000, previous: 800_000 },
-      // Pembelian dijumlahkan sebagai nilai dikurangi potongan tiap baris:
-      // (500.000 - 25.000) + (200.000 - 0) = 675.000
-      purchase: { current: 675_000, previous: 250_000 },
-      deposit: 7,
-      promotion: 4,
-    });
-  });
-
-  it("membaca penjualan hari ini dan kemarin, masing-masing satu hari penuh", async () => {
-    const { faktur, penerimaan, promosi, setoran } = siapkan();
-
-    await request(app(faktur, penerimaan, promosi, setoran)).post(
-      "/administrator"
-    );
-
-    const [awal1, akhir1] = faktur.fetchByDateRange.mock.calls[0] as Date[];
-    const [awal2, akhir2] = faktur.fetchByDateRange.mock.calls[1] as Date[];
-    // Rentang hari ini: tanggal awal dan akhir sama.
-    expect(awal1.toDateString()).toBe(hariIni.toDateString());
-    expect(akhir1.toDateString()).toBe(hariIni.toDateString());
-    // Rentang kemarin: sehari sebelumnya.
-    expect(awal2.toDateString()).toBe(kemarin.toDateString());
-    expect(akhir2.toDateString()).toBe(kemarin.toDateString());
-  });
-
-  it("memakai rentang yang sama untuk pembelian", async () => {
-    const { faktur, penerimaan, promosi, setoran } = siapkan();
-
-    await request(app(faktur, penerimaan, promosi, setoran)).post(
-      "/administrator"
-    );
-
-    const [awal1] = penerimaan.fetchByDateRange.mock.calls[0] as Date[];
-    const [awal2] = penerimaan.fetchByDateRange.mock.calls[1] as Date[];
-    expect(awal1.toDateString()).toBe(hariIni.toDateString());
-    expect(awal2.toDateString()).toBe(kemarin.toDateString());
-    expect(promosi.countActive).toHaveBeenCalledTimes(1);
-    expect(setoran.countPending).toHaveBeenCalledTimes(1);
-  });
-
-  it("membalas nol untuk pembelian bila tidak ada penerimaan barang", async () => {
-    const faktur = fakturTiruan();
-    const penerimaan = penerimaanTiruan();
-    faktur.fetchByDateRange.mockResolvedValue(penjualan(0));
-    penerimaan.fetchByDateRange.mockResolvedValue([]);
-
-    const res = await request(app(faktur, penerimaan)).post("/administrator");
-
-    expect(res.status).toBe(200);
-    expect(res.body.purchase).toEqual({ current: 0, previous: 0 });
-  });
-
-  /**
-   * CACAT: kegagalan dibalas dengan objek galat, bukan key i18n.
-   *
-   * `res.status(500).send(error)` mengirim objek Error apa adanya. `message`
-   * milik Error bersifat non-enumerable, jadi yang sampai ke peramban adalah
-   * JSON tanpa pesan apa pun — dan pada galat Prisma, justru `code` dan `meta`
-   * yang enumerable itulah yang ikut terkirim.
-   *
-   * Akibat bagi pengguna: dashboard yang gagal dimuat hanya menampilkan galat
-   * kosong, sementara rincian internal basis data bocor ke klien. Ketiga
-   * handler di controller ini melakukan hal yang sama.
-   */
-  it("CACAT: kegagalan dibalas 500 berisi objek galat tanpa pesan", async () => {
-    const faktur = fakturTiruan();
-    const penerimaan = penerimaanTiruan();
-    faktur.fetchByDateRange.mockRejectedValue(
-      Object.assign(new Error("koneksi putus"), { code: "P1001" })
-    );
-    penerimaan.fetchByDateRange.mockResolvedValue([]);
-
-    const res = await request(app(faktur, penerimaan)).post("/administrator");
-
-    expect(res.status).toBe(500);
-    expect(res.body.message).toBeUndefined();
-    expect(res.text).not.toContain("error.internalServer");
-    expect(res.body.code).toBe("P1001");
-  });
-
-  /**
-   * CACAT: angka penjualan di dashboard tidak sama dengan angka di laporan
-   * penjualan untuk hari yang sama.
-   *
-   * Dashboard memakai `result.value` mentah. Laporan penjualan
-   * (SalesReportController.fetchSalesReport) menghitung
-   * `value + delivery + service - discount`. Untuk data yang sama persis,
-   * kedua layar menampilkan dua angka berbeda tanpa penjelasan apa pun.
-   *
-   * Lebih jauh lagi, di dalam handler ini sendiri perlakuannya tidak seragam:
-   * pembelian DIKURANGI potongan tiap baris, penjualan TIDAK. Jadi kolom
-   * "penjualan" bruto dibandingkan berdampingan dengan kolom "pembelian" neto,
-   * dan selisih keduanya yang dibaca pemilik usaha sebagai margin selalu
-   * lebih besar dari yang sebenarnya.
-   */
-  it("CACAT: penjualan dihitung bruto, pembelian neto", async () => {
-    const faktur = fakturTiruan();
-    const penerimaan = penerimaanTiruan();
-    faktur.fetchByDateRange.mockResolvedValue({
-      value: 1_000_000,
-      discount: 300_000,
-      delivery: 20_000,
-      service: 10_000,
-      salesInvoiceCount: 1,
-      customerCount: 1,
-    });
-    penerimaan.fetchByDateRange.mockResolvedValue([
-      penerimaanBarang(1_000_000, 300_000),
-    ]);
-
-    const res = await request(app(faktur, penerimaan)).post("/administrator");
-
-    // Penjualan: potongan 300.000, ongkos kirim 20.000, dan jasa 10.000
-    // semuanya diabaikan.
-    expect(res.body.sales.current).toBe(1_000_000);
-    // Pembelian: potongan 300.000 dikurangkan.
-    expect(res.body.purchase.current).toBe(700_000);
+    expect(faktur.fetchByDateRange).not.toHaveBeenCalled();
+    expect(penerimaan.fetchByDateRange).not.toHaveBeenCalled();
+    expect(promosi.countActive).not.toHaveBeenCalled();
   });
 });
 
@@ -280,14 +206,14 @@ describe("POST /sales — ringkasan untuk divisi penjualan", () => {
     });
   });
 
-  it("tidak menyentuh repository pembelian maupun setoran", async () => {
+  it("tidak menyentuh repository pembelian maupun ringkasan 9c", async () => {
     const { faktur, penerimaan, promosi } = siapkan();
-    const setoran = setoranTiruan();
+    const dashboard = dashboardTiruan();
 
-    await request(app(faktur, penerimaan, promosi, setoran)).post("/sales");
+    await request(app(faktur, penerimaan, promosi, dashboard)).post("/sales");
 
     expect(penerimaan.fetchByDateRange).not.toHaveBeenCalled();
-    expect(setoran.countPending).not.toHaveBeenCalled();
+    expect(dashboard.ringkasan).not.toHaveBeenCalled();
   });
 
   it("rentang bulan berjalan dimulai tanggal 1 dan berakhir di hari terakhir", async () => {
@@ -405,16 +331,16 @@ describe("POST /purchasing — ringkasan untuk divisi pembelian", () => {
     });
   });
 
-  it("tidak menyentuh repository penjualan maupun setoran", async () => {
+  it("tidak menyentuh repository penjualan maupun ringkasan 9c", async () => {
     const { faktur, penerimaan, promosi } = siapkan();
-    const setoran = setoranTiruan();
+    const dashboard = dashboardTiruan();
 
-    await request(app(faktur, penerimaan, promosi, setoran)).post(
+    await request(app(faktur, penerimaan, promosi, dashboard)).post(
       "/purchasing"
     );
 
     expect(faktur.fetchByDateRange).not.toHaveBeenCalled();
-    expect(setoran.countPending).not.toHaveBeenCalled();
+    expect(dashboard.ringkasan).not.toHaveBeenCalled();
   });
 
   /** Tumpang tindih tanggal 1 yang sama juga terjadi di sini. */

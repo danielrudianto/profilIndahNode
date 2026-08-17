@@ -7,37 +7,42 @@ export class StockCardService {
     this.stockCardRepository = stockCardRepository;
   }
 
+  /*
+    Kedua jalur di bawah menghitung ulang mulai TEPAT SETELAH baris
+    berjangkar terakhir (stock terisi), BUKAN dari baris yang sedang
+    disentuh. Bedanya kelihatan saat ada baris ber-stock NULL terselip
+    di antaranya — sisa job antrean yang dulu gagal (antreannya tanpa
+    retry): dihitung dari baris yang disentuh, baris NULL itu dilompati
+    selamanya dan kuantitasnya hilang dari semua saldo sesudahnya;
+    dihitung dari setelah jangkar, ia ikut tersembuhkan.
+  */
   async update(id: number) {
-    try {
-      const stockCard = await this.stockCardRepository.fetchByID(id);
-      if (!stockCard) {
-        throw new Error("Stock card not found");
-      }
+    const stockCard = await this.stockCardRepository.fetchByID(id);
+    if (!stockCard) {
+      throw new Error("Stock card not found");
+    }
 
-      const previous = await this.stockCardRepository.fetchPrevious({
+    const previous = await this.stockCardRepository.fetchPrevious({
+      product_id: stockCard.product_id,
+      date: new Date(stockCard.date),
+      id: id,
+    });
+
+    if (previous == null) {
+      /* Tidak ada jangkar: hitung ulang seluruh riwayat produk ini. */
+      await this.stockCardRepository.reorderSince({
         product_id: stockCard.product_id,
-        date: new Date(stockCard.date),
-        id: id,
+        id: 0,
+        initial_stock: 0,
+        date: new Date(0),
       });
-
-      if (previous == null) {
-        await this.stockCardRepository.reorderSince({
-          product_id: stockCard.product_id,
-          id: id,
-          initial_stock: 0,
-          date: new Date(stockCard.date),
-        });
-      } else {
-        const runningStock = previous.stock!;
-        await this.stockCardRepository.reorderSince({
-          product_id: stockCard.product_id,
-          id: id,
-          initial_stock: runningStock,
-          date: new Date(stockCard.date),
-        });
-      }
-    } catch (error) {
-      throw error;
+    } else {
+      await this.stockCardRepository.reorderSince({
+        product_id: stockCard.product_id,
+        id: previous.id! + 1,
+        initial_stock: previous.stock!,
+        date: new Date(previous.date),
+      });
     }
   }
 
@@ -69,17 +74,16 @@ export class StockCardService {
     if (previous == null) {
       await this.stockCardRepository.reorderSince({
         product_id: stockCard.product_id,
-        id: id!,
+        id: 0,
         initial_stock: 0,
-        date: new Date(stockCard.date),
+        date: new Date(0),
       });
     } else {
-      const runningStock = previous.stock!;
       await this.stockCardRepository.reorderSince({
         product_id: stockCard.product_id,
-        id: id!,
-        initial_stock: runningStock,
-        date: new Date(stockCard.date),
+        id: previous.id! + 1,
+        initial_stock: previous.stock!,
+        date: new Date(previous.date),
       });
     }
   }

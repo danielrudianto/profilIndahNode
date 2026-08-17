@@ -9,30 +9,11 @@ export class StockCardRepository {
     this.prisma = prisma;
   }
 
-  create(data: IStockCard) {
-    this.prisma.stock_card.create({
-      data: {
-        date: data.date,
-        product_id: data.product_id,
-        product_unit_id: data.product_unit_id,
-        display_quantity: data.display_quantity,
-        quantity: data.quantity,
-        document_name: data.document_name,
-        supplier_id: data.supplier_id,
-        customer_id: data.customer_id,
-        sales_invoice_id: data.sales_invoice_id,
-        sales_invoice_code_id: data.sales_invoice_code_id,
-        adjustment_case_id: data.adjustment_case_id,
-        adjustment_case_code_id: data.adjustment_case_code_id,
-        good_receipt_id: data.good_receipt_id,
-        good_receipt_code_id: data.good_receipt_code_id,
-        sales_return_id: data.sales_return_id,
-        sales_return_code_id: data.sales_return_code_id,
-        stock: null,
-        created_at: data.created_at,
-      },
-    });
-  }
+  /*
+    create() satuan pernah ada di sini — tanpa await dan tanpa return,
+    sehingga PrismaPromise-nya tidak pernah dieksekusi. Tidak ada satu
+    pun pemanggilnya; seluruh jalur hidup memakai createMany.
+  */
 
   /*
     tx diisi ketika pemanggilnya sudah berada di dalam transaksi interaktif.
