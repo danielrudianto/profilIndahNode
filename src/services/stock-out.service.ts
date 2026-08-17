@@ -55,6 +55,131 @@ export class StockOutService {
     return Math.round(nilai * 100) / 100;
   }
 
+  /**
+   * Jalur BORONGAN penetapan HPP — untuk pembangunan ulang historis.
+   *
+   * Aturannya persis calculateStockOut: FIFO per produk pada urutan
+   * (tanggal, id) yang sama, dengan pembulatan dua desimal yang sama.
+   * Bedanya seluruh rencana dihitung di memori lalu ditulis massal —
+   * jalur per-baris menetapkan ±40 baris per detik, jadi membangun
+   * ulang ±1 juta baris memakan hampir tujuh jam; jalur ini menit.
+   */
+  async calculateStockOutBulk() {
+    const stockOuts = await this.stockOutRepository.fetchUnassigned();
+    console.info(
+      `[info]: Penetapan HPP borongan — ${stockOuts.length} stock_out menunggu`
+    );
+
+    const produkIds = [...new Set(stockOuts.map((x) => x.product_id))];
+    const lapisanSemua = await this.stockInRepository.fetchManyUnfilled(
+      produkIds
+    );
+
+    // Urutan (tanggal, id) dari query dipertahankan per produk.
+    const lapisanPerProduk = new Map<
+      number,
+      { id: number; residue: number }[]
+    >();
+    for (const lapis of lapisanSemua) {
+      if (!lapisanPerProduk.has(lapis.product_id)) {
+        lapisanPerProduk.set(lapis.product_id, []);
+      }
+      lapisanPerProduk.get(lapis.product_id)!.push({
+        id: lapis.id,
+        residue: lapis.residue,
+      });
+    }
+
+    const ubah: { id: number; stock_in_id: number; quantity: number }[] = [];
+    const tambah: any[] = [];
+    const konsumsi = new Map<number, number>();
+    let dilewati = 0;
+    let tanpaLapisan = 0;
+    let kurang = 0;
+
+    for (const stockOut of stockOuts) {
+      const kebutuhan = Number(stockOut.quantity);
+      if (kebutuhan <= 0) {
+        dilewati += 1;
+        continue;
+      }
+
+      const lapisan = lapisanPerProduk.get(stockOut.product_id) ?? [];
+      const plan: { stock_in_id: number; quantity: number }[] = [];
+      let sisa = kebutuhan;
+
+      for (const lapis of lapisan) {
+        if (sisa <= 0) {
+          break;
+        }
+        if (lapis.residue <= 0) {
+          continue;
+        }
+
+        const ambil = this.bulatkan(Math.min(lapis.residue, sisa));
+        if (ambil <= 0) {
+          continue;
+        }
+
+        plan.push({ stock_in_id: lapis.id, quantity: ambil });
+        lapis.residue = this.bulatkan(lapis.residue - ambil);
+        konsumsi.set(
+          lapis.id,
+          this.bulatkan((konsumsi.get(lapis.id) ?? 0) + ambil)
+        );
+        sisa = this.bulatkan(sisa - ambil);
+      }
+
+      if (plan.length === 0) {
+        tanpaLapisan += 1;
+        continue;
+      }
+
+      const salinan = {
+        product_id: stockOut.product_id,
+        price: stockOut.price,
+        sales_invoice_id: stockOut.sales_invoice_id,
+        sales_invoice_code_id: stockOut.sales_invoice_code_id,
+        adjustment_case_id: stockOut.adjustment_case_id,
+        adjustment_case_code_id: stockOut.adjustment_case_code_id,
+        date: stockOut.date,
+      };
+
+      ubah.push({
+        id: stockOut.id,
+        stock_in_id: plan[0].stock_in_id,
+        quantity: plan[0].quantity,
+      });
+      for (const jatah of plan.slice(1)) {
+        tambah.push({
+          ...salinan,
+          quantity: jatah.quantity,
+          stock_in_id: jatah.stock_in_id,
+        });
+      }
+      if (sisa > 0) {
+        kurang += 1;
+        tambah.push({ ...salinan, quantity: sisa, stock_in_id: null });
+      }
+    }
+
+    console.info(
+      `[info]: Rencana borongan — ${ubah.length} ditetapkan, ${tambah.length} baris pecahan/sisa, ` +
+        `${tanpaLapisan} tanpa lapisan, ${kurang} kurang stok, ${dilewati} dilewati (kuantitas <= 0)`
+    );
+
+    await this.stockOutRepository.applyBulkAssignments({
+      ubah: ubah,
+      tambah: tambah,
+      konsumsi: [...konsumsi.entries()].map(([stock_in_id, quantity]) => ({
+        stock_in_id: stock_in_id,
+        quantity: quantity,
+      })),
+    });
+
+    console.info(`[info]: Penetapan borongan selesai ditulis`);
+  }
+
   async calculateStockOut() {
     const stockOuts = await this.stockOutRepository.fetchUnassigned();
     console.info(

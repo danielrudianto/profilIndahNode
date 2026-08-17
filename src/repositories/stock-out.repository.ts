@@ -159,6 +159,95 @@ export class StockOutRepository {
     return this.prisma.$transaction(operasi);
   }
 
+  /** Memecah larik menjadi potongan berukuran tetap untuk tulisan massal. */
+  private potong<T>(larik: T[], ukuran: number): T[][] {
+    const hasil: T[][] = [];
+    for (let i = 0; i < larik.length; i += ukuran) {
+      hasil.push(larik.slice(i, i + ukuran));
+    }
+    return hasil;
+  }
+
+  /**
+   * Menerapkan rencana borongan dari calculateStockOutBulk dalam SATU
+   * transaksi: penetapan baris asli lewat tabel temporer + UPDATE JOIN,
+   * baris pecahan/sisa lewat createMany, dan pengurangan residue
+   * lapisan lewat tabel temporer kedua. Seluruh nilai dikirim sebagai
+   * parameter (Prisma.sql/join) — tidak ada teks bebas di query.
+   *
+   * Tabel temporer hidup per koneksi; transaksi interaktif menjamin
+   * semua statement menumpang koneksi yang sama, dan keduanya dibuang
+   * sebelum koneksi kembali ke kolam.
+   */
+  async applyBulkAssignments(data: {
+    ubah: { id: number; stock_in_id: number; quantity: number }[];
+    tambah: {
+      product_id: number;
+      quantity: number;
+      date: Date;
+      price: Decimal;
+      stock_in_id: number | null;
+      sales_invoice_id: number | null;
+      sales_invoice_code_id: number | null;
+      adjustment_case_id: number | null;
+      adjustment_case_code_id: number | null;
+    }[];
+    konsumsi: { stock_in_id: number; quantity: number }[];
+  }) {
+    await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$executeRaw`
+          CREATE TEMPORARY TABLE _rencana_hpp (
+            id INT PRIMARY KEY,
+            stock_in_id INT NOT NULL,
+            quantity DECIMAL(12,2) NOT NULL
+          )`;
+        for (const bagian of this.potong(data.ubah, 5000)) {
+          await tx.$executeRaw`
+            INSERT INTO _rencana_hpp (id, stock_in_id, quantity)
+            VALUES ${Prisma.join(
+              bagian.map(
+                (u) => Prisma.sql`(${u.id}, ${u.stock_in_id}, ${u.quantity})`
+              )
+            )}`;
+        }
+        await tx.$executeRaw`
+          UPDATE stock_out
+          JOIN _rencana_hpp ON _rencana_hpp.id = stock_out.id
+          SET stock_out.stock_in_id = _rencana_hpp.stock_in_id,
+              stock_out.quantity = _rencana_hpp.quantity`;
+
+        for (const bagian of this.potong(data.tambah, 5000)) {
+          await tx.stock_out.createMany({ data: bagian });
+        }
+
+        /*
+          residue TIDAK di-increment/decrement — dihitung ulang dari
+          kebenarannya: kuantitas lapisan dikurangi seluruh penetapan
+          yang kini menempel padanya. Versi decrement pernah meleset
+          62.334 unit pada uji dump produksi (bercampur dengan sisa
+          keadaan sapuan per-baris yang dihentikan di tengah); hitung
+          ulang kebal terhadap drift apa pun sekaligus menyembuhkan
+          drift lama yang telanjur tersimpan.
+        */
+        await tx.$executeRaw`
+          UPDATE stock_in
+          LEFT JOIN (
+            SELECT stock_out.stock_in_id, SUM(stock_out.quantity) AS terpakai
+            FROM stock_out
+            WHERE stock_out.stock_in_id IS NOT NULL
+            GROUP BY stock_out.stock_in_id
+          ) AS pakai ON pakai.stock_in_id = stock_in.id
+          SET stock_in.residue = stock_in.quantity - COALESCE(pakai.terpakai, 0)`;
+
+        await tx.$executeRaw`DROP TEMPORARY TABLE _rencana_hpp`;
+      },
+      // Bangun ulang historis menulis ratusan ribu baris — batas waktu
+      // bawaan transaksi interaktif (5 detik) jelas tidak cukup.
+      { timeout: 30 * 60 * 1000, maxWait: 60 * 1000 }
+    );
+  }
+
   /*
     tx diisi ketika pemanggilnya sudah berada di dalam transaksi interaktif,
     sehingga tulisan di sini ikut dibatalkan bila langkah berikutnya gagal.
