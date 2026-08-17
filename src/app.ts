@@ -76,6 +76,8 @@ import { prisma } from "./utils/database.helper";
 import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";
 import { StockInRepository } from "./repositories/stock-in.repository";
+import { StockCardService } from "./services/stock-card.service";
+import { StockCardRepository } from "./repositories/stock-card.repository";
 
 const options: cors.CorsOptions = {
   origin: allowedOrigins,
@@ -93,9 +95,22 @@ async function main() {
     new StockInRepository(prisma)
   );
 
+  const stockCardService = new StockCardService(
+    new StockCardRepository(prisma)
+  );
+
   cron.schedule("0 0 * * *", async () => {
     // Assigning stock out to stock in
     await stockOutService.calculateStockOut();
+
+    /*
+      Jaring pengaman terakhir kartu stok. Job antrean sudah dicoba
+      ulang lima kali dan hitung ulangnya menyembuhkan baris terselip,
+      tetapi bila SEMUA itu gagal, baris ber-saldo NULL tertinggal.
+      reorder() mencari produk yang punya baris NULL dan menghitung
+      ulang seluruh riwayatnya — malam tanpa masalah, kerjanya nol.
+    */
+    await stockCardService.reorder();
   });
 
   const app = express();
