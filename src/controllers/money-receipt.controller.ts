@@ -4,6 +4,7 @@ import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-pay
 import { SalesDepositPaymentRepository } from "../repositories/sales-deposit-payment.repository";
 import { PaymentMethodRepository } from "../repositories/payment-method.repository";
 import { OverpaymentRepository } from "../repositories/overpayment.repository";
+import { SalesInvoiceRebateRepository } from "../repositories/sales-invoice-rebate.repository";
 
 /**
  * Rekap penerimaan uang dari berbagai sumber pembayaran.
@@ -17,19 +18,22 @@ export class MoneyReceiptController {
   private salesDepositPaymentRepository: SalesDepositPaymentRepository;
   private salesReturnRepository: SalesReturnRepository;
   private overpaymentRepository: OverpaymentRepository;
+  private salesInvoiceRebateRepository: SalesInvoiceRebateRepository;
 
   constructor(
     paymentMethodRepository: PaymentMethodRepository,
     salesInvoicePaymentRepository: SalesInvoicePaymentRepository,
     salesDepositPaymentRepository: SalesDepositPaymentRepository,
     salesReturnRepository: SalesReturnRepository,
-    overpaymentRepository: OverpaymentRepository
+    overpaymentRepository: OverpaymentRepository,
+    salesInvoiceRebateRepository: SalesInvoiceRebateRepository
   ) {
     this.paymentMethodRepository = paymentMethodRepository;
     this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
     this.salesDepositPaymentRepository = salesDepositPaymentRepository;
     this.salesReturnRepository = salesReturnRepository;
     this.overpaymentRepository = overpaymentRepository;
+    this.salesInvoiceRebateRepository = salesInvoiceRebateRepository;
   }
 
   fetchMoneyReceipt = async (req: Request, res: Response) => {
@@ -57,6 +61,13 @@ export class MoneyReceiptController {
 
       const overpaymentReturn =
         await this.overpaymentRepository.fetchReportByReturnDate(date);
+
+      /*
+        Pengembalian diskon faktur: uang KELUAR lewat metode pilihannya.
+        Pembayaran tunai 5.000 dengan diskon 1.000 yang dikembalikan via
+        transfer berarti +5.000 di kas dan -1.000 di transfer.
+      */
+      const rebates = await this.salesInvoiceRebateRepository.sumByDate(date);
 
       const salesInvoicePaymentIndex = salesInvoicePayments.findIndex(
         (x) => x.payment_method_id == null
@@ -134,6 +145,8 @@ export class MoneyReceiptController {
             (overpaymentReturnIndex == -1
               ? 0
               : overpaymentReturn[overpaymentReturnIndex].value),
+          rebate:
+            rebates.find((y) => y.payment_method_id == null)?.value ?? 0,
         },
         {
           id: 0,
@@ -181,6 +194,7 @@ export class MoneyReceiptController {
               (overpaymentReturnIndex == -1
                 ? 0
                 : overpaymentReturn[overpaymentReturnIndex].value),
+            rebate: rebates.find((y) => y.payment_method_id == x.id)?.value ?? 0,
           };
         }),
       ]);

@@ -21,6 +21,7 @@ import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseRepository } from "../repositories/expense.repository";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { OverpaymentRepository } from "../repositories/overpayment.repository";
+import { SalesInvoiceRebateRepository } from "../repositories/sales-invoice-rebate.repository";
 import { PaymentMethodRepository } from "../repositories/payment-method.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { ProductRepository } from "../repositories/product.repository";
@@ -57,7 +58,8 @@ const moneyReceiptController = new MoneyReceiptController(
   new SalesInvoicePaymentRepository(prisma),
   new SalesDepositPaymentRepository(prisma),
   new SalesReturnRepository(prisma),
-  new OverpaymentRepository(prisma)
+  new OverpaymentRepository(prisma),
+  new SalesInvoiceRebateRepository(prisma)
 );
 
 const stockReportController = new StockReportController(

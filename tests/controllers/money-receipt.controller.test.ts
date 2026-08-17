@@ -59,6 +59,7 @@ function repositoryTiruan() {
       fetchReportByReceiveDate: jest.fn(),
       fetchReportByReturnDate: jest.fn(),
     },
+    salesInvoiceRebate: { sumByDate: jest.fn() },
   };
 }
 
@@ -78,6 +79,7 @@ function repoSiapPakai(): Repo {
   repo.salesReturn.fetchPaymentsByDate.mockResolvedValue([]);
   repo.overpayment.fetchReportByReceiveDate.mockResolvedValue([]);
   repo.overpayment.fetchReportByReturnDate.mockResolvedValue([]);
+  repo.salesInvoiceRebate.sumByDate.mockResolvedValue([]);
   return repo;
 }
 
@@ -87,7 +89,8 @@ function controller(repo: Repo) {
     repo.salesInvoicePayment as never,
     repo.salesDepositPayment as never,
     repo.salesReturn as never,
-    repo.overpayment as never
+    repo.overpayment as never,
+    repo.salesInvoiceRebate as never
   );
 }
 
@@ -126,6 +129,7 @@ describe("POST /money-receipt — rekap penerimaan harian", () => {
       salesDeposit: 0,
       salesReturn: 0,
       overpayment: 0,
+      rebate: 0,
     });
     expect(res.body[1]).toEqual({ id: 0, name: "DOR", data: [] });
   });
@@ -213,6 +217,36 @@ describe("POST /money-receipt — rekap penerimaan harian", () => {
    * akan terbaca sebagai penerimaan dan kas hari itu tampak lebih besar dari
    * yang sebenarnya.
    */
+  /*
+    Pengembalian diskon faktur adalah uang KELUAR lewat metodenya sendiri:
+    bayar tunai 5.000 dengan diskon 1.000 yang dikembalikan via transfer
+    berarti +5.000 di baris Cash dan rebate 1.000 di baris transfernya.
+  */
+  it("kolom rebate memecah pengembalian diskon per metode", async () => {
+    const repo = repoSiapPakai();
+    repo.paymentMethod.fetchAll.mockResolvedValue([
+      { id: 2, name: "Transfer BCA" },
+    ]);
+    repo.salesInvoicePayment.fetchPaymentsByDate.mockResolvedValue([
+      { payment_method_id: null, value: 5000 },
+    ]);
+    repo.salesInvoiceRebate.sumByDate.mockResolvedValue([
+      { payment_method_id: 2, value: 1000 },
+      { payment_method_id: null, value: 250 },
+    ]);
+
+    const res = await request(app(repo))
+      .post("/money-receipt")
+      .send({ date: "2024-03-15" });
+
+    const cash = res.body[0];
+    expect(cash.salesInvoice).toBe(5000);
+    expect(cash.rebate).toBe(250);
+
+    const transfer = res.body.find((x: any) => x.id === 2);
+    expect(transfer.rebate).toBe(1000);
+  });
+
   it("kolom overpayment adalah penerimaan dikurangi pengembalian", async () => {
     const repo = repoSiapPakai();
     repo.overpayment.fetchReportByReceiveDate.mockResolvedValue([
@@ -276,6 +310,7 @@ describe("POST /money-receipt — rekap penerimaan harian", () => {
       salesDeposit: 0,
       salesReturn: 25,
       overpayment: 50,
+      rebate: 0,
     });
     expect(res.body[3]).toEqual({
       id: 2,
@@ -284,6 +319,7 @@ describe("POST /money-receipt — rekap penerimaan harian", () => {
       salesDeposit: 400,
       salesReturn: 0,
       overpayment: 0,
+      rebate: 0,
     });
   });
 
