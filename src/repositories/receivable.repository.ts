@@ -140,6 +140,50 @@ export class ReceivableRepository {
     page: number;
     pageSize: number;
   }) {
+    // Kunci dokumen dikumpulkan dulu — idiom yang sama dengan fetch() —
+    // supaya jumlah SELURUH sisa pelanggan ini bisa dihitung sekali di
+    // server. Halaman yang dikirim cuma sepotong, dan menjumlahkannya
+    // di peramban menghasilkan "total" yang berubah-ubah per halaman.
+    const kunciDokumen = await this.prisma.sales_invoice_code.findMany({
+      where: {
+        is_paid: false,
+        is_delete: false,
+        customer_id: data.customerID,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (kunciDokumen.length === 0) {
+      return { data: [], count: 0, total: 0 };
+    }
+
+    const idDokumen = kunciDokumen.map((x) => x.id);
+
+    const totalBaris = await this.prisma.$queryRaw<any[]>`
+      SELECT COALESCE(SUM(
+        nilai.value + sic.delivery + sic.service - sic.discount - COALESCE(bayar.value, 0)
+      ), 0) AS total
+      FROM sales_invoice_code sic
+      JOIN (
+        SELECT
+          SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+          sales_invoice.sales_invoice_code_id
+        FROM sales_invoice
+        WHERE sales_invoice.sales_invoice_code_id IN (${Prisma.join(idDokumen)})
+        GROUP BY sales_invoice.sales_invoice_code_id
+      ) AS nilai ON nilai.sales_invoice_code_id = sic.id
+      LEFT JOIN (
+        SELECT
+          SUM(sales_invoice_payment.value) AS value,
+          sales_invoice_payment.sales_invoice_code_id
+        FROM sales_invoice_payment
+        WHERE sales_invoice_payment.sales_invoice_code_id IN (${Prisma.join(idDokumen)})
+        GROUP BY sales_invoice_payment.sales_invoice_code_id
+      ) AS bayar ON bayar.sales_invoice_code_id = sic.id
+      WHERE sic.id IN (${Prisma.join(idDokumen)})`;
+
     const [result, count] = await this.prisma.$transaction([
       this.prisma.sales_invoice_code.findMany({
         where: {
@@ -180,6 +224,7 @@ export class ReceivableRepository {
         return SalesInvoiceModel.fromMap(x);
       }),
       count: count,
+      total: Number(totalBaris[0]?.total ?? 0),
     };
   }
 }
