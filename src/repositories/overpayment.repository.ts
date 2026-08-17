@@ -137,7 +137,7 @@ export class OverpaymentRepository {
       sendiri. Penghitungnya juga tidak ikut tersaring: chip harus tetap
       menunjukkan berapa yang ada ketika saringannya sedang menyala.
     */
-    const [result, count, jumlahMenunggu, jumlahLewatTempo] =
+    const [result, count, ringkasMenunggu, ringkasLewatTempo, ringkasSelesai] =
       await this.prisma.$transaction([
         this.prisma.overpayment.findMany({
           where: where,
@@ -155,8 +155,26 @@ export class OverpaymentRepository {
           skip: (data.page - 1) * data.pageSize,
         }),
         this.prisma.overpayment.count({ where: where }),
-        this.prisma.overpayment.count({ where: menunggu }),
-        this.prisma.overpayment.count({ where: lewatTempo }),
+        /*
+          Nilai ikut dijumlahkan, bukan hanya dihitung barisnya: banner di
+          atas daftar menyebut berapa RUPIAH yang masih menunggu, dan
+          angka itu harus milik seluruh tabel, bukan halaman yang tampil.
+        */
+        this.prisma.overpayment.aggregate({
+          where: menunggu,
+          _count: true,
+          _sum: { value: true },
+        }),
+        this.prisma.overpayment.aggregate({
+          where: lewatTempo,
+          _count: true,
+          _sum: { value: true },
+        }),
+        this.prisma.overpayment.aggregate({
+          where: { is_resolved: true },
+          _count: true,
+          _sum: { value: true },
+        }),
       ]);
 
     return {
@@ -165,8 +183,12 @@ export class OverpaymentRepository {
       }),
       count: count,
       summary: {
-        waiting: jumlahMenunggu,
-        overdue: jumlahLewatTempo,
+        waiting: ringkasMenunggu._count,
+        overdue: ringkasLewatTempo._count,
+        waitingValue: Number(ringkasMenunggu._sum.value ?? 0),
+        overdueValue: Number(ringkasLewatTempo._sum.value ?? 0),
+        resolved: ringkasSelesai._count,
+        resolvedValue: Number(ringkasSelesai._sum.value ?? 0),
       },
     };
   }
