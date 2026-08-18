@@ -20,11 +20,17 @@ class PromotionController {
   create = async (req: Request, res: Response) => {
     const name = req.body.name;
     const description = req.body.description;
-    const startDate = moment(req.body.start_date, "DD-MM-YYYY").toDate();
+    /*
+      moment.utc, BUKAN moment lokal: kolom `start` bertipe DATE, dan Prisma
+      menyimpan bagian tanggal UTC-nya. Tengah malam WIB = kemarin 17:00 UTC,
+      jadi parse lokal membuat tanggal mulai MUNDUR SEHARI pada setiap
+      penyimpanan. Sudah terjadi diam-diam sejak lama.
+    */
+    const startDate = moment.utc(req.body.start_date, "DD-MM-YYYY").toDate();
     const endDate =
       req.body.end_date == null
         ? null
-        : moment(req.body.end_date, "DD-MM-YYYY").toDate();
+        : moment.utc(req.body.end_date, "DD-MM-YYYY").toDate();
     const target = req.body.target;
     const supplierID = req.body.supplier_id;
     const userID = req.body.userId;
@@ -93,11 +99,12 @@ class PromotionController {
     const id = req.body.id;
     const name = req.body.name;
     const description = req.body.description;
-    const startDate = moment(req.body.start_date, "DD-MM-YYYY").toDate();
+    /* moment.utc — alasannya sama dengan pada create di atas. */
+    const startDate = moment.utc(req.body.start_date, "DD-MM-YYYY").toDate();
     const endDate =
       req.body.end_date == null
         ? null
-        : moment(req.body.end_date, "DD-MM-YYYY").toDate();
+        : moment.utc(req.body.end_date, "DD-MM-YYYY").toDate();
     const target = req.body.target;
     const supplierID = req.body.supplier_id;
     const userID = req.body.userId;
