@@ -67,6 +67,19 @@ class SalesInvoiceController {
     const rebate = req.body.rebate;
 
     try {
+      /*
+        Diskon faktur wajib tertampung total nilai barangnya — cermin aturan
+        penerimaan barang. Tanpa penjaga ini total faktur bisa negatif.
+      */
+      const totalBaris = sales_invoice.reduce(
+        (a, x) =>
+          a + (Number(x.price) - Number(x.discount)) * Number(x.quantity),
+        0
+      );
+      if (discount > totalBaris + delivery + service) {
+        return res.status(400).send(ErrorList["Discount > total"]);
+      }
+
       const billResult = await this.salesInvoiceRepository.create({
         name: this.salesInvoiceRepository.generateName(date),
         uuid: uuid,

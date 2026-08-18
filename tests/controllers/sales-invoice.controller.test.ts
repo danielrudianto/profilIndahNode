@@ -435,6 +435,35 @@ describe("POST / — barang keluar, stok, dan kartu stok", () => {
 });
 
 describe("POST / — jalur galat", () => {
+  /*
+    Cermin aturan penerimaan barang: diskon faktur yang melebihi total
+    nilai barang (plus ongkir dan jasa) membuat total faktur negatif —
+    bukan dokumen yang sah.
+  */
+  it("membalas 400 bila diskon faktur melebihi total nilainya", async () => {
+    const r = repositoriTiruan();
+
+    // Nilai barang (120rb-20rb)*2 = 200rb + kirim 15rb + jasa 10rb = 225rb.
+    const res = await request(app(r))
+      .post("/")
+      .send({ ...badanBuat, discount: 225001 });
+
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Discount > total"]);
+    expect(r.salesInvoice.create).not.toHaveBeenCalled();
+  });
+
+  it("diskon persis setotal nilainya masih diterima", async () => {
+    const r = repositoriTiruan();
+    r.salesInvoice.create.mockResolvedValue(fakturTersimpan());
+
+    const res = await request(app(r))
+      .post("/")
+      .send({ ...badanBuat, discount: 225000 });
+
+    expect(res.status).toBe(201);
+  });
+
   it("membalas 500 khusus bila repository tidak mengembalikan faktur", async () => {
     const r = repositoriTiruan();
     r.salesInvoice.create.mockResolvedValue(null);
