@@ -65,6 +65,51 @@ export class PurchaseReportController {
       return res.status(500).send(error);
     }
   };
+
+  fetchSupplierPurchaseReport = async (req: Request, res: Response) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    try {
+      const result = await this.goodReceiptRepository.fetchSupplierPurchases(
+        month,
+        year
+      );
+      return res.status(200).send({ data: result });
+    } catch (error) {
+      console.error(`[error]: Error on fetching supplier purchases ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchBrandPurchaseReport = async (req: Request, res: Response) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    try {
+      const result = await this.goodReceiptRepository.fetchBrandPurchases(
+        month,
+        year
+      );
+      return res.status(200).send({ data: result });
+    } catch (error) {
+      console.error(`[error]: Error on fetching brand purchases ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
+  fetchTypePurchaseReport = async (req: Request, res: Response) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    try {
+      const result = await this.goodReceiptRepository.fetchTypePurchases(
+        month,
+        year
+      );
+      return res.status(200).send({ data: result });
+    } catch (error) {
+      console.error(`[error]: Error on fetching type purchases ${error}`);
+      return res.status(500).send(error);
+    }
+  };
 }
 
 export default PurchaseReportController;

@@ -618,6 +618,77 @@ export class GoodReceiptRepository {
     });
   }
 
+  /**
+   * Peringkat belanja sebulan per satu dimensi — kartu peringkat di
+   * laporan pembelian. Bentuk kembalian dan penyaringnya seturut
+   * peringkat penjualan.
+   */
+  private async peringkatBelanja(
+    month: number,
+    year: number,
+    pilih: string,
+    join: string,
+    group: string,
+  ): Promise<{ name: string; id: number; value: number }[]> {
+    const kueri = `
+      SELECT ${pilih},
+      SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      ${join}
+      WHERE good_receipt_code.is_delete = 0
+      AND good_receipt_code.date >= ?
+      AND good_receipt_code.date < ?
+      GROUP BY ${group}
+    `;
+
+    const result = await this.prisma.$queryRawUnsafe<any[]>(
+      kueri,
+      DateHelper.convertDate(rentangBulan(year, month).mulai, formatDate.YYYYMMDD),
+      DateHelper.convertDate(rentangBulan(year, month).sebelum, formatDate.YYYYMMDD),
+    );
+
+    return result
+      .map((x) => ({
+        name: x.name,
+        id: Number(x.id),
+        value: Number(x.value),
+      }))
+      .sort((a, b) => b.value - a.value);
+  }
+
+  async fetchSupplierPurchases(month: number, year: number) {
+    return this.peringkatBelanja(
+      month,
+      year,
+      "supplier.id AS id, supplier.name AS name",
+      "JOIN supplier ON good_receipt_code.supplier_id = supplier.id",
+      "supplier.id",
+    );
+  }
+
+  async fetchBrandPurchases(month: number, year: number) {
+    return this.peringkatBelanja(
+      month,
+      year,
+      "product_brand.id AS id, product_brand.name AS name",
+      `JOIN product ON good_receipt.product_id = product.id
+      JOIN product_brand ON product.product_brand_id = product_brand.id`,
+      "product_brand.id",
+    );
+  }
+
+  async fetchTypePurchases(month: number, year: number) {
+    return this.peringkatBelanja(
+      month,
+      year,
+      "product_type.id AS id, product_type.name AS name",
+      `JOIN product ON good_receipt.product_id = product.id
+      JOIN product_type ON product.product_type_id = product_type.id`,
+      "product_type.id",
+    );
+  }
+
   async fetchBestBrand(month: number, year: number): Promise<string | null> {
     const result = await this.prisma.$queryRaw<any[]>`
       SELECT product_brand.id AS id,

@@ -179,6 +179,27 @@ router.get(
 );
 
 router.get(
+  "/purchase/supplier",
+  requireRole(PERAN_PEMBELIAN),
+  validate(queryPeriodSchema, "query"),
+  purchaseReportController.fetchSupplierPurchaseReport
+);
+
+router.get(
+  "/purchase/brand",
+  requireRole(PERAN_PEMBELIAN),
+  validate(queryPeriodSchema, "query"),
+  purchaseReportController.fetchBrandPurchaseReport
+);
+
+router.get(
+  "/purchase/type",
+  requireRole(PERAN_PEMBELIAN),
+  validate(queryPeriodSchema, "query"),
+  purchaseReportController.fetchTypePurchaseReport
+);
+
+router.get(
   "/sales/sales",
   requireRole(PERAN_PENJUALAN),
   validate(queryPeriodSchema, "query"),
