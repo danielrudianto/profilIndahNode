@@ -6,6 +6,7 @@
  */
 export const allowedOrigins = [
   "http://localhost:5173",
+  "https://sandbox.profilindah.id",
   "https://stock.profilindah.id",
   "https://v16.profilindah.id",
   "https://v19.profilindah.id",
