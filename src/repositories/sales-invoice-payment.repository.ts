@@ -184,28 +184,41 @@ export class SalesInvoicePaymentRepository {
 
   async downloadReport(date: Date) {
     try {
-      const result = await this.prisma.$queryRawUnsafe<any[]>(`
-      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer, a.value AS value, 
+      /*
+        Tabel turunan nilai faktur ikut disaring ke tanggal yang sama —
+        bentuk lamanya mengagregasi SELURUH sales_invoice (hampir sejuta
+        baris) untuk laporan satu hari, dan tanggalnya diinterpolasi
+        sebagai teks alih-alih placeholder.
+      */
+      const tanggal = `${date.getFullYear()}-${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`;
+
+      const result = await this.prisma.$queryRawUnsafe<any[]>(
+        `
+      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer, a.value AS value,
       SUM(sales_invoice_payment.value) AS payment, COALESCE(payment_method.name, "Cash") AS paymentMethod
       FROM sales_invoice_payment
       JOIN sales_invoice_code ON sales_invoice_payment.sales_invoice_code_id = sales_invoice_code.id
       JOIN (
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, sales_invoice.sales_invoice_code_id
           FROM sales_invoice
+          JOIN sales_invoice_code sic2 ON sic2.id = sales_invoice.sales_invoice_code_id
+          WHERE sic2.date = ?
+          AND sic2.is_delete = 0
           GROUP BY sales_invoice_code_id
       ) AS a
       ON sales_invoice_code.id = a.sales_invoice_code_id
       LEFT JOIN customer ON sales_invoice_code.customer_id = customer.id
       LEFT JOIN payment_method ON sales_invoice_payment.payment_method_id = payment_method.id
-      WHERE sales_invoice_code.date = '${date.getFullYear()}-${(
-        date.getMonth() + 1
-      )
-        .toString()
-        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}'
+      WHERE sales_invoice_code.date = ?
       AND sales_invoice_code.is_delete = 0
-      GROUP BY sales_invoice_payment.payment_method_id, 
+      GROUP BY sales_invoice_payment.payment_method_id,
       sales_invoice_payment.sales_invoice_code_id
-    `);
+    `,
+        tanggal,
+        tanggal
+      );
 
       return result.map((x) => {
         return {
