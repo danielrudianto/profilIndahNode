@@ -541,13 +541,59 @@ export class StockOutRepository {
       `);
   }
 
-  async fetchCompanyOutputReport(data: { date: Date; companyID: number }) {
+  /*
+    Laporan per perusahaan — keluaran stok MILIK perusahaan itu (lewat
+    pemilik lapisan, stock_in.company_id): faktur penjualan tidak
+    membawa company, jadi satu-satunya atribusi "toko mana yang jual"
+    adalah lapisan siapa yang terpakai. Dulu per hari lewat dialog di
+    dashboard lama; kini per bulan.
+  */
+  async fetchCompanyOutputSummary(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }) {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT product.reference, product.description, product.unit,
+        SUM(stock_out.quantity) AS quantity,
+        COUNT(DISTINCT stock_out.sales_invoice_code_id)
+          + COUNT(DISTINCT stock_out.adjustment_case_code_id) AS documents
+      FROM stock_out
+      JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+      JOIN product ON stock_out.product_id = product.id
+      WHERE stock_in.company_id = ${data.companyID}
+      AND stock_out.date >= ${data.mulai}
+      AND stock_out.date < ${data.sebelum}
+      GROUP BY product.id, product.reference, product.description, product.unit
+      ORDER BY quantity DESC
+    `;
+
+    return result.map((x) => {
+      return {
+        reference: x.reference,
+        description: x.description,
+        unit: x.unit,
+        quantity: Number(x.quantity),
+        documents: Number(x.documents),
+      };
+    });
+  }
+
+  /** Baris rinci keluaran — bahan unduhan Excel. */
+  async fetchCompanyOutputDetail(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }) {
     const result = await this.prisma.stock_out.findMany({
       where: {
         stock_in: {
           company_id: data.companyID,
         },
-        date: data.date,
+        date: {
+          gte: data.mulai,
+          lt: data.sebelum,
+        },
       },
       include: {
         adjustment_case_code: {
@@ -563,13 +609,16 @@ export class StockOutRepository {
         },
         product: true,
       },
+      orderBy: [{ date: "asc" }, { id: "asc" }],
     });
 
     return result.map((x) => {
       return {
+        date: x.date,
         reference: x.product.reference,
         description: x.product.description,
-        quantity: Number(x.quantity) * -1,
+        unit: x.product.unit,
+        quantity: Number(x.quantity),
         document:
           x.sales_invoice_code != null
             ? x.sales_invoice_code.name

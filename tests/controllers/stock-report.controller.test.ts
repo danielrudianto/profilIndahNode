@@ -1,6 +1,9 @@
 import express from "express";
 import { validate } from "../../src/utils/validate.helper";
-import { inventoryQuerySchema } from "../../src/schemas/report.schema";
+import {
+  companyPeriodQuerySchema,
+  inventoryQuerySchema,
+} from "../../src/schemas/report.schema";
 import request from "supertest";
 
 /**
@@ -41,13 +44,25 @@ function stokProdukTiruan() {
   return { fetchOutputReport: jest.fn() };
 }
 function stockOutTiruan() {
-  return { fetchCompanyOutputReport: jest.fn() };
+  return {
+    fetchCompanyOutputSummary: jest.fn(),
+    fetchCompanyOutputDetail: jest.fn(),
+  };
 }
 function penerimaanTiruan() {
-  return { fetchCompanyReport: jest.fn() };
+  return {
+    fetchCompanySummary: jest.fn(),
+    fetchCompanyDetail: jest.fn(),
+  };
 }
 function penyesuaianTiruan() {
-  return { fetchCompanyReport: jest.fn() };
+  return {
+    fetchCompanySummary: jest.fn(),
+    fetchCompanyDetail: jest.fn(),
+  };
+}
+function perusahaanTiruan() {
+  return { fetchByID: jest.fn() };
 }
 
 type Semua = {
@@ -57,6 +72,7 @@ type Semua = {
   stockOut: ReturnType<typeof stockOutTiruan>;
   penerimaan: ReturnType<typeof penerimaanTiruan>;
   penyesuaian: ReturnType<typeof penyesuaianTiruan>;
+  perusahaan: ReturnType<typeof perusahaanTiruan>;
 };
 
 function repositoryTiruan(): Semua {
@@ -67,6 +83,7 @@ function repositoryTiruan(): Semua {
     stockOut: stockOutTiruan(),
     penerimaan: penerimaanTiruan(),
     penyesuaian: penyesuaianTiruan(),
+    perusahaan: perusahaanTiruan(),
   };
 }
 
@@ -77,7 +94,8 @@ function buatController(r: Semua) {
     r.stokProduk as never,
     r.stockOut as never,
     r.penerimaan as never,
-    r.penyesuaian as never
+    r.penyesuaian as never,
+    r.perusahaan as never
   );
 }
 
@@ -99,7 +117,11 @@ function app(r: Semua) {
     c.fetchInventoryReport
   );
   a.post("/output", c.fetchOutputReport);
-  a.post("/output-company", c.fetchCompanyOutputReport);
+  a.get(
+    "/company",
+    validate(companyPeriodQuerySchema, "query"),
+    c.fetchCompanyReport
+  );
   return a;
 }
 
@@ -378,112 +400,133 @@ describe("POST /output — laporan keluar-masuk barang", () => {
   });
 });
 
-describe("POST /output-company — mutasi barang satu perusahaan", () => {
+describe("GET /company — laporan bulanan satu perusahaan", () => {
   function siapkan(r: Semua) {
-    r.stockOut.fetchCompanyOutputReport.mockResolvedValue([
-      { product_id: 11, quantity: 3 },
+    r.perusahaan.fetchByID.mockResolvedValue({ id: 4, name: "CV Karunia" });
+    r.stockOut.fetchCompanyOutputSummary.mockResolvedValue([
+      {
+        reference: "A-1",
+        description: "Barang A",
+        unit: "PCS",
+        quantity: 30,
+        documents: 4,
+      },
     ]);
-    r.penerimaan.fetchCompanyReport.mockResolvedValue([
-      { product_id: 11, quantity: 10, sumber: "penerimaan" },
+    r.penerimaan.fetchCompanySummary.mockResolvedValue([
+      {
+        reference: "A-1",
+        description: "Barang A",
+        unit: "PCS",
+        quantity: 10,
+        documents: 2,
+      },
     ]);
-    r.penyesuaian.fetchCompanyReport.mockResolvedValue([
-      { product_id: 12, quantity: 2, sumber: "penyesuaian" },
+    r.penyesuaian.fetchCompanySummary.mockResolvedValue([
+      {
+        reference: "A-1",
+        description: "Barang A",
+        unit: "PCS",
+        quantity: 5,
+        documents: 1,
+      },
+      {
+        reference: "B-2",
+        description: "Barang B",
+        unit: "SET",
+        quantity: 2,
+        documents: 1,
+      },
     ]);
   }
 
-  it("membalas 200 dengan keluaran terpisah dan masukan yang digabung", async () => {
+  it("melebur masuk per produk dan menghitung ringkasan", async () => {
     const r = repositoryTiruan();
     siapkan(r);
 
-    const res = await request(app(r))
-      .post("/output-company")
-      .send({ date: "2026-03-15", company_id: 4 });
+    const res = await request(app(r)).get(
+      "/company?company_id=4&month=3&year=2026"
+    );
 
     expect(res.status).toBe(200);
-    expect(res.body.output).toEqual([{ product_id: 11, quantity: 3 }]);
-    // Penerimaan barang dan penyesuaian stok disatukan menjadi satu daftar
-    // "input"; urutannya penerimaan dulu, baru penyesuaian.
+    expect(res.body.company).toEqual({ id: 4, name: "CV Karunia" });
+    // Penerimaan + penyesuaian barang yang sama menyatu jadi satu baris.
     expect(res.body.input).toEqual([
-      { product_id: 11, quantity: 10, sumber: "penerimaan" },
-      { product_id: 12, quantity: 2, sumber: "penyesuaian" },
+      {
+        reference: "A-1",
+        description: "Barang A",
+        unit: "PCS",
+        quantity: 15,
+        documents: 3,
+      },
+      {
+        reference: "B-2",
+        description: "Barang B",
+        unit: "SET",
+        quantity: 2,
+        documents: 1,
+      },
     ]);
+    expect(res.body.summary).toEqual({
+      outputQuantity: 30,
+      outputDocuments: 4,
+      inputQuantity: 17,
+      inputDocuments: 4,
+    });
   });
 
-  it("meneruskan tanggal dan perusahaan yang sama ke ketiga repository", async () => {
+  it("meneruskan rentang bulan yang sama ke ketiga repository", async () => {
     const r = repositoryTiruan();
     siapkan(r);
 
-    await request(app(r))
-      .post("/output-company")
-      .send({ date: "2026-03-15", company_id: 4 });
+    await request(app(r)).get("/company?company_id=4&month=3&year=2026");
 
-    const harapan = { date: new Date("2026-03-15"), companyID: 4 };
-    expect(r.stockOut.fetchCompanyOutputReport).toHaveBeenCalledWith(harapan);
-    expect(r.penerimaan.fetchCompanyReport).toHaveBeenCalledWith(harapan);
-    expect(r.penyesuaian.fetchCompanyReport).toHaveBeenCalledWith(harapan);
+    const harapan = {
+      companyID: 4,
+      mulai: new Date(2026, 2, 1),
+      sebelum: new Date(2026, 3, 1),
+    };
+    expect(r.stockOut.fetchCompanyOutputSummary).toHaveBeenCalledWith(harapan);
+    expect(r.penerimaan.fetchCompanySummary).toHaveBeenCalledWith(harapan);
+    expect(r.penyesuaian.fetchCompanySummary).toHaveBeenCalledWith(harapan);
+  });
+
+  it("membalas 404 untuk perusahaan yang tidak ada", async () => {
+    const r = repositoryTiruan();
+    siapkan(r);
+    r.perusahaan.fetchByID.mockResolvedValue(null);
+
+    const res = await request(app(r)).get(
+      "/company?company_id=999&month=3&year=2026"
+    );
+
+    expect(res.status).toBe(404);
+  });
+
+  it("skema menolak bulan di luar 1-12 dan company_id kosong", async () => {
+    const r = repositoryTiruan();
+    siapkan(r);
+
+    const salahBulan = await request(app(r)).get(
+      "/company?company_id=4&month=13&year=2026"
+    );
+    const tanpaPerusahaan = await request(app(r)).get(
+      "/company?month=3&year=2026"
+    );
+
+    expect(salahBulan.status).toBe(400);
+    expect(tanpaPerusahaan.status).toBe(400);
+    expect(r.stockOut.fetchCompanyOutputSummary).not.toHaveBeenCalled();
   });
 
   it("membalas 500 bila salah satu repository gagal", async () => {
     const r = repositoryTiruan();
     siapkan(r);
-    r.penyesuaian.fetchCompanyReport.mockRejectedValue(new Error("gagal"));
+    r.penyesuaian.fetchCompanySummary.mockRejectedValue(new Error("gagal"));
 
-    const res = await request(app(r))
-      .post("/output-company")
-      .send({ date: "2026-03-15", company_id: 4 });
+    const res = await request(app(r)).get(
+      "/company?company_id=4&month=3&year=2026"
+    );
 
     expect(res.status).toBe(500);
-  });
-
-  /**
-   * CACAT: tanggal yang tidak bisa dibaca menjadi Invalid Date, bukan galat.
-   *
-   * `new Date(req.body.date)` pada teks yang bukan tanggal menghasilkan
-   * Invalid Date tanpa melempar apa pun. Nilai itu diteruskan ke ketiga
-   * repository, yang kemudian memformatnya menjadi teks tanggal untuk kueri.
-   *
-   * Ini BUKAN keadaan yang mustahil: companyOutputSchema di route hanya
-   * memeriksa bahwa `date` ada dan tidak kosong — bentuknya tidak diperiksa
-   * sama sekali. Teks apa pun lolos sampai ke sini.
-   *
-   * Akibat bagi pengguna: laporan mutasi tampil KOSONG seolah-olah hari itu
-   * memang tidak ada perpindahan barang, alih-alih memberi tahu bahwa tanggal
-   * yang dikirim tidak terbaca. Selisih stok yang sedang ditelusuri jadi
-   * tampak wajar padahal datanya tidak pernah diambil.
-   */
-  it("CACAT: tanggal tak terbaca diteruskan sebagai Invalid Date", async () => {
-    const r = repositoryTiruan();
-    siapkan(r);
-
-    const res = await request(app(r))
-      .post("/output-company")
-      .send({ date: "kemarin sore", company_id: 4 });
-
-    expect(res.status).toBe(200);
-    const dikirim = r.stockOut.fetchCompanyOutputReport.mock.calls[0][0] as {
-      date: Date;
-    };
-    expect(dikirim.date.toString()).toBe("Invalid Date");
-  });
-
-  /**
-   * Perusahaan tidak diperiksa di controller: `company_id` yang tidak dikirim
-   * diteruskan sebagai undefined. Penjagaannya ada di
-   * validate(companyOutputSchema) pada route, yang menolak nilai kosong —
-   * jadi keadaan ini tidak tercapai lewat rute sungguhan. Dikunci supaya jelas
-   * bahwa controller ini TIDAK boleh dipasang di rute tanpa skema.
-   */
-  it("meneruskan company_id yang tidak dikirim sebagai undefined", async () => {
-    const r = repositoryTiruan();
-    siapkan(r);
-
-    const res = await request(app(r))
-      .post("/output-company")
-      .send({ date: "2026-03-15" });
-
-    expect(res.status).toBe(200);
-    expect(r.stockOut.fetchCompanyOutputReport).toHaveBeenCalledWith(
-      expect.objectContaining({ companyID: undefined })
-    );
   });
 });

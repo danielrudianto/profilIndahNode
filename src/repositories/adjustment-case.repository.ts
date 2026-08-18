@@ -143,13 +143,60 @@ export class AdjustmentCaseRepository {
     }
   }
 
-  async fetchCompanyReport(data: { date: Date; companyID: number }) {
+  /*
+    Laporan per perusahaan, sisi masuk dari penyesuaian (barang temuan,
+    quantity > 0) — agregat per produk dalam satuan dasar; kasus hilang
+    (quantity < 0) sudah terhitung di sisi keluar lewat stock_out.
+  */
+  async fetchCompanySummary(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }) {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT product.reference, product.description, product.unit,
+        SUM(adjustment_case.quantity * COALESCE(product_unit.conversion, 1)) AS quantity,
+        COUNT(DISTINCT adjustment_case_code.id) AS documents
+      FROM adjustment_case
+      JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
+      JOIN product ON adjustment_case.product_id = product.id
+      LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
+      WHERE adjustment_case_code.company_id = ${data.companyID}
+      AND adjustment_case_code.is_delete = 0
+      AND adjustment_case.quantity > 0
+      AND adjustment_case_code.date >= ${data.mulai}
+      AND adjustment_case_code.date < ${data.sebelum}
+      GROUP BY product.id, product.reference, product.description, product.unit
+      ORDER BY quantity DESC
+    `;
+
+    return result.map((x) => {
+      return {
+        reference: x.reference,
+        description: x.description,
+        unit: x.unit,
+        quantity: Number(x.quantity),
+        documents: Number(x.documents),
+      };
+    });
+  }
+
+  /** Baris rinci penyesuaian masuk — bahan unduhan Excel laporan perusahaan. */
+  async fetchCompanyDetail(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }) {
     const result = await this.prisma.adjustment_case.findMany({
       where: {
+        quantity: { gt: 0 },
         adjustment_case_code: {
           is_delete: false,
           company_id: data.companyID,
-          date: data.date,
+          date: {
+            gte: data.mulai,
+            lt: data.sebelum,
+          },
         },
       },
       include: {
@@ -157,18 +204,23 @@ export class AdjustmentCaseRepository {
         product_unit: true,
         adjustment_case_code: {
           select: {
+            date: true,
             name: true,
           },
         },
       },
+      orderBy: [{ adjustment_case_code_id: "asc" }, { id: "asc" }],
     });
 
     return result.map((x) => {
       return {
+        date: x.adjustment_case_code.date,
         reference: x.product.reference,
         description: x.product.description,
-        quantity: Number(x.quantity),
-        unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
+        unit: x.product.unit,
+        quantity:
+          Number(x.quantity) *
+          (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
         document: x.adjustment_case_code.name,
         opponent: "Internal",
       };

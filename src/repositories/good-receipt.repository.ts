@@ -252,13 +252,60 @@ export class GoodReceiptRepository {
     return GoodReceiptModel.fromMap(goodReceipt);
   }
 
-  async fetchCompanyReport(data: { date: Date; companyID: number }) {
+  /*
+    Laporan per perusahaan, sisi masuk dari penerimaan barang — agregat
+    per produk dalam SATUAN DASAR (kuantitas dikali konversi), supaya
+    sejajar dengan sisi keluar yang memang tercatat satuan dasar.
+  */
+  async fetchCompanySummary(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }) {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT product.reference, product.description, product.unit,
+        SUM(good_receipt.quantity * COALESCE(product_unit.conversion, 1)) AS quantity,
+        COUNT(DISTINCT good_receipt_code.id) AS documents
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN product ON good_receipt.product_id = product.id
+      LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
+      WHERE good_receipt_code.company_id = ${data.companyID}
+      AND good_receipt_code.is_delete = 0
+      AND good_receipt.is_delete = 0
+      AND good_receipt_code.date >= ${data.mulai}
+      AND good_receipt_code.date < ${data.sebelum}
+      GROUP BY product.id, product.reference, product.description, product.unit
+      ORDER BY quantity DESC
+    `;
+
+    return result.map((x) => {
+      return {
+        reference: x.reference,
+        description: x.description,
+        unit: x.unit,
+        quantity: Number(x.quantity),
+        documents: Number(x.documents),
+      };
+    });
+  }
+
+  /** Baris rinci penerimaan — bahan unduhan Excel laporan perusahaan. */
+  async fetchCompanyDetail(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }) {
     const result = await this.prisma.good_receipt.findMany({
       where: {
+        is_delete: false,
         good_receipt_code: {
           company_id: data.companyID,
           is_delete: false,
-          date: data.date,
+          date: {
+            gte: data.mulai,
+            lt: data.sebelum,
+          },
         },
       },
       include: {
@@ -266,19 +313,24 @@ export class GoodReceiptRepository {
         product_unit: true,
         good_receipt_code: {
           select: {
+            date: true,
             name: true,
             supplier: true,
           },
         },
       },
+      orderBy: [{ good_receipt_code_id: "asc" }, { id: "asc" }],
     });
 
     return result.map((x) => {
       return {
+        date: x.good_receipt_code.date,
         reference: x.product.reference,
         description: x.product.description,
-        quantity: Number(x.quantity),
-        unit: x.product_unit == null ? x.product.unit : x.product_unit.unit,
+        unit: x.product.unit,
+        quantity:
+          Number(x.quantity) *
+          (x.product_unit == null ? 1 : Number(x.product_unit.conversion)),
         document: x.good_receipt_code.name,
         opponent: x.good_receipt_code.supplier.name,
       };

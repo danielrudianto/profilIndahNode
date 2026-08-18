@@ -101,15 +101,20 @@ export const dateRangeSchema = z.object({
 });
 
 /** POST /report/output-company */
-export const companyOutputSchema = z.object({
-  date: z.any().refine((nilai) => nilai !== undefined && String(nilai) !== "", {
-    message: ErrorList["Date required"],
-  }),
-  company_id: z
-    .any()
-    .refine((nilai) => nilai !== undefined && String(nilai) !== "", {
-      message: ErrorList["Company ID required"],
-    }),
+/**
+ * GET /report/company dan /company/download — laporan bulanan per
+ * perusahaan. Pengganti companyOutputSchema harian: dialog lama sudah
+ * tiada dan penggantinya halaman berpemilih bulan. Nilainya teks
+ * (query string).
+ */
+export const companyPeriodQuerySchema = z.object({
+  month: requiredIntFromText(bulanKosong, bulanSalah, 1, 12),
+  year: tahunKueri,
+  company_id: requiredIntFromText(
+    ErrorList["Company ID required"],
+    ErrorList["Company ID required"],
+    1
+  ),
 });
 
 /**

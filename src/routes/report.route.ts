@@ -32,7 +32,7 @@ import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import {
-  companyOutputSchema,
+  companyPeriodQuerySchema,
   outputSchema,
   dailySalesSchema,
   optionalMonthPeriodSchema,
@@ -69,7 +69,8 @@ const stockReportController = new StockReportController(
   new ProductStockRepository(prisma),
   new StockOutRepository(prisma),
   new GoodReceiptRepository(prisma),
-  new AdjustmentCaseRepository(prisma)
+  new AdjustmentCaseRepository(prisma),
+  new CompanyRepository(prisma)
 );
 
 const financialReportController = new FinancialReportController(
@@ -129,11 +130,18 @@ router.post(
   stockReportController.fetchOutputReport
 );
 
-router.post(
-  "/output-company",
+router.get(
+  "/company",
   requireRole(PERAN_PENJUALAN),
-  validate(companyOutputSchema),
-  stockReportController.fetchCompanyOutputReport
+  validate(companyPeriodQuerySchema, "query"),
+  stockReportController.fetchCompanyReport
+);
+
+router.get(
+  "/company/download",
+  requireRole(PERAN_PENJUALAN),
+  validate(companyPeriodQuerySchema, "query"),
+  stockReportController.downloadCompanyReport
 );
 
 router.get(
