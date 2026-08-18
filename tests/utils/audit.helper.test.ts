@@ -1,5 +1,4 @@
-import { Prisma } from "@prisma/client";
-import { pasangPencatatAudit } from "../../src/utils/audit.helper";
+import { buatHookAudit } from "../../src/utils/audit.helper";
 import {
   jalankanDenganKonteks,
   tetapkanPengguna,
@@ -8,28 +7,21 @@ import {
 /**
  * Pencatat jejak audit.
  *
- * Bekerja sebagai middleware Prisma, jadi yang diuji di sini adalah fungsi
- * yang didaftarkan lewat $use: ia dipanggil dengan params buatan, dan yang
- * diperiksa adalah baris apa yang akhirnya ditulis ke audit_log.
+ * Bekerja sebagai client extension Prisma ($use dihapus di Prisma 6), jadi
+ * yang diuji di sini adalah HOOK-nya: buatHookAudit dipanggil dengan operasi
+ * buatan, dan yang diperiksa adalah baris apa yang akhirnya ditulis ke
+ * audit_log. Mesin $extends milik Prisma tidak ikut dihidupkan — pemasangannya
+ * satu baris deklaratif di denganPencatatAudit.
  *
  * Pemilihan lapisan ini disengaja. Mencatat lewat controller berarti setiap
  * jalur tulis harus ingat memanggil pencatatnya, dan jalur yang lupa tidak
  * pernah menimbulkan galat — ia hanya diam-diam tidak tercatat.
  */
 
-type Middleware = (
-  params: Prisma.MiddlewareParams,
-  next: (p: Prisma.MiddlewareParams) => Promise<unknown>
-) => Promise<unknown>;
-
 function klienTiruan() {
   const tercatat: any[] = [];
-  let middleware: Middleware | null = null;
 
   const klien = {
-    $use: (fn: Middleware) => {
-      middleware = fn;
-    },
     audit_log: {
       create: jest.fn(async ({ data }: any) => {
         tercatat.push(data);
@@ -38,22 +30,25 @@ function klienTiruan() {
     },
   };
 
-  pasangPencatatAudit(klien as never);
+  const hook = buatHookAudit(klien as never);
   return {
     klien,
     tercatat,
     jalankan: (p: any, hasil: unknown = {}) =>
-      middleware!(p, async () => hasil),
+      hook({
+        model: p.model,
+        operation: p.action,
+        args: p.args,
+        query: async () => hasil,
+      }),
   };
 }
 
-function params(ubah: Partial<Prisma.MiddlewareParams> = {}): any {
+function params(ubah: Record<string, unknown> = {}): any {
   return {
     model: "customer",
     action: "create",
     args: { data: { name: "PT A" } },
-    dataPath: [],
-    runInTransaction: false,
     ...ubah,
   };
 }
@@ -73,7 +68,7 @@ describe("Model yang dicatat", () => {
     const { tercatat, jalankan } = klienTiruan();
     // stock_card lahir puluhan sekaligus dari satu faktur; mencatatnya akan
     // menenggelamkan halaman aktivitas.
-    await jalankan(params({ model: "stock_card" as never }), { id: 1 });
+    await jalankan(params({ model: "stock_card" }), { id: 1 });
 
     expect(tercatat).toHaveLength(0);
   });
@@ -81,7 +76,7 @@ describe("Model yang dicatat", () => {
   it("TIDAK mencatat operasi baca", async () => {
     const { tercatat, jalankan } = klienTiruan();
     for (const action of ["findMany", "findUnique", "count", "aggregate"]) {
-      await jalankan(params({ action: action as never }), []);
+      await jalankan(params({ action: action }), []);
     }
 
     expect(tercatat).toHaveLength(0);
@@ -89,7 +84,7 @@ describe("Model yang dicatat", () => {
 
   it("mencatat audit_log itu sendiri? tidak — jika tidak, pencatatnya akan memanggil dirinya tanpa henti", async () => {
     const { tercatat, jalankan } = klienTiruan();
-    await jalankan(params({ model: "audit_log" as never }), { id: 1 });
+    await jalankan(params({ model: "audit_log" }), { id: 1 });
 
     expect(tercatat).toHaveLength(0);
   });
@@ -100,7 +95,7 @@ describe("Isi yang disimpan", () => {
     const { tercatat, jalankan } = klienTiruan();
     await jalankan(
       params({
-        model: "user" as never,
+        model: "user",
         args: { data: { username: "budi", password: "rahasia-sekali" } },
       }),
       { id: 3 }
@@ -135,7 +130,7 @@ describe("Isi yang disimpan", () => {
     // membuat satu baris jejak berisi ribuan karakter.
     await jalankan(
       params({
-        model: "sales_invoice_code" as never,
+        model: "sales_invoice_code",
         args: {
           data: {
             name: "INV-1",
@@ -195,7 +190,7 @@ describe("Ketahanan", () => {
     const { tercatat, jalankan } = klienTiruan();
     await jalankan(
       params({
-        action: "update" as never,
+        action: "update",
         args: { where: { id: 12 }, data: { name: "B" } },
       }),
       { count: 1 }
@@ -208,7 +203,7 @@ describe("Ketahanan", () => {
     const { tercatat, jalankan } = klienTiruan();
     await jalankan(
       params({
-        action: "createMany" as never,
+        action: "createMany",
         args: { data: [{ name: "A" }] },
       }),
       { count: 3 }
@@ -217,12 +212,16 @@ describe("Ketahanan", () => {
     expect(tercatat[0].entity_id).toBeNull();
   });
 
-  it("baris dari dalam transaksi diberi catatan", async () => {
+  /**
+   * Penanda "dicatat dari dalam transaksi" hilang bersama $use: hook
+   * extension tidak diberi tahu status transaksinya. Batasan koneksinya
+   * sendiri tidak berubah — jejak tetap ditulis di luar transaksi dan tidak
+   * ikut dibatalkan; hanya penandanya yang tidak bisa diberikan lagi.
+   */
+  it("note selalu null — penanda transaksi tidak tersedia pada extension", async () => {
     const { tercatat, jalankan } = klienTiruan();
-    // Tulisan jejak memakai klien dasar, sehingga tidak ikut dibatalkan bila
-    // transaksinya gagal. Catatan ini yang memberi tahu pembacanya.
-    await jalankan(params({ runInTransaction: true }), { id: 1 });
+    await jalankan(params(), { id: 1 });
 
-    expect(tercatat[0].note).toBe("dicatat dari dalam transaksi");
+    expect(tercatat[0].note).toBeNull();
   });
 });

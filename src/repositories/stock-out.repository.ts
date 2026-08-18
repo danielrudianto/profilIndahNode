@@ -6,7 +6,13 @@ import {
   rentangTahun,
 } from "../utils/date.helper";
 import { IStockoutModel } from "../interfaces/stock-out.interface";
-import { Decimal } from "@prisma/client/runtime";
+/*
+  Prisma 6 tidak lagi mengekspor jalur "@prisma/client/runtime"; kelas
+  Decimal kini hidup di namespace Prisma. Alias ini menjaga sisa berkas
+  tetap menyebut Decimal seperti sebelumnya — sebagai tipe maupun nilai.
+*/
+type Decimal = Prisma.Decimal;
+const Decimal = Prisma.Decimal;
 
 export class StockOutRepository {
   private prisma: PrismaClient;

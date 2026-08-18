@@ -7,11 +7,19 @@ import {
 import { penggunaSaatIni } from "./request-context.helper";
 
 /**
- * Pencatat jejak audit, dipasang sebagai middleware Prisma.
+ * Pencatat jejak audit, dipasang sebagai client extension Prisma.
  *
  * Dipilih di lapisan ini, bukan di controller, karena tidak ada jalur tulis
  * yang bisa lupa dipasangi — dan jalur yang terlupa tidak akan pernah
  * menimbulkan galat, ia hanya diam-diam tidak tercatat.
+ *
+ * Dulu bentuknya middleware $use. Prisma 6 menghapus $use, dan padanannya
+ * kini $extends dengan hook query — isinya sama, hanya wadahnya yang
+ * berganti. Satu kemampuan hilang bersama $use: middleware lama diberi tahu
+ * ketika operasinya berjalan di dalam transaksi (runInTransaction), hook
+ * extension tidak. Baris jejak dari dalam transaksi karena itu tidak lagi
+ * membawa catatan khusus — batasannya tetap sama (lihat komentar di bawah),
+ * hanya penandanya yang tidak bisa diberikan.
  */
 
 /** Membuang bidang yang tidak boleh atau tidak berguna untuk dicatat. */
@@ -66,69 +74,95 @@ function susunPerubahan(data: unknown): Record<string, { to: unknown }> | null {
   return hasil;
 }
 
+type ArgsOperasi = { data?: unknown; where?: { id?: unknown } } | undefined;
+
 /** Mengambil id baris yang tersentuh, bila operasinya menyebutkannya. */
-function ambilId(
-  params: Prisma.MiddlewareParams,
-  hasil: unknown
-): number | null {
+function ambilId(args: ArgsOperasi, hasil: unknown): number | null {
   const dariHasil = (hasil as { id?: unknown } | null)?.id;
   if (typeof dariHasil === "number") return dariHasil;
 
-  const where = params.args?.where as { id?: unknown } | undefined;
+  const where = args?.where;
   if (typeof where?.id === "number") return where.id;
 
   return null;
 }
 
-export function pasangPencatatAudit(prisma: PrismaClient): void {
-  prisma.$use(async (params, next) => {
-    const hasil = await next(params);
+type HookOperasi = {
+  model: string;
+  operation: string;
+  args: unknown;
+  query: (args: unknown) => Promise<unknown>;
+};
 
-    const aksi = params.action ? AUDITED_ACTIONS[params.action] : undefined;
-    if (!aksi || !params.model || !AUDITED_MODELS.includes(params.model)) {
+/**
+ * Logika hook-nya sendiri, terpisah dari pemasangan $extends supaya bisa
+ * diuji murni — mesin extension Prisma tidak perlu ikut dihidupkan.
+ * `dasar` cukup membawa audit_log; itulah satu-satunya yang disentuh.
+ */
+export function buatHookAudit(dasar: Pick<PrismaClient, "audit_log">) {
+  return async ({ model, operation, args, query }: HookOperasi) => {
+    const hasil = await query(args);
+
+    const aksi = AUDITED_ACTIONS[operation];
+    if (!aksi || !AUDITED_MODELS.includes(model)) {
       return hasil;
     }
 
     /*
-      Pencatatannya TIDAK boleh menggagalkan operasi aslinya. Jejak audit
-      adalah catatan pendamping; kehilangan satu barisnya jauh lebih ringan
-      daripada membatalkan penyimpanan faktur yang sudah benar. Karena itu
-      seluruh blok ini dibungkus try/catch yang hanya mencatat ke log.
-    */
+            Pencatatannya TIDAK boleh menggagalkan operasi aslinya. Jejak audit
+            adalah catatan pendamping; kehilangan satu barisnya jauh lebih
+            ringan daripada membatalkan penyimpanan faktur yang sudah benar.
+            Karena itu seluruh blok ini dibungkus try/catch yang hanya
+            mencatat ke log.
+          */
     try {
+      const isian = args as ArgsOperasi;
       const isiJejak = {
-        entity: params.model,
-        entity_id: ambilId(params, hasil),
+        entity: model,
+        entity_id: ambilId(isian, hasil),
         action: aksi,
         user_id: penggunaSaatIni(),
-        changes: (susunPerubahan(params.args?.data) ?? undefined) as
+        changes: (susunPerubahan(isian?.data) ?? undefined) as
           | Prisma.InputJsonValue
           | undefined,
-        note: params.runInTransaction ? "dicatat dari dalam transaksi" : null,
+        note: null,
       };
 
       /*
-        BATASAN YANG PERLU DIKETAHUI PEMBACA JEJAK.
+              BATASAN YANG PERLU DIKETAHUI PEMBACA JEJAK.
 
-        Tulisan ini memakai klien dasar, sehingga ia berjalan pada koneksi
-        tersendiri — TIDAK ikut transaksi yang sedang berjalan, dan karenanya
-        TIDAK ikut dibatalkan bila transaksi itu gagal. Jejak untuk perubahan
-        yang pada akhirnya tidak tersimpan tetap tertinggal.
+              Tulisan ini memakai klien dasar, sehingga ia berjalan pada
+              koneksi tersendiri — TIDAK ikut transaksi yang sedang berjalan,
+              dan karenanya TIDAK ikut dibatalkan bila transaksi itu gagal.
+              Jejak untuk perubahan yang pada akhirnya tidak tersimpan tetap
+              tertinggal.
 
-        Itu sebabnya baris yang lahir dari dalam transaksi diberi catatan.
-        Menyalurkannya ke klien transaksi tidak mungkin dari sini: middleware
-        Prisma hanya menerima params dan next, bukan klien yang sedang dipakai.
-
-        Kekeliruan arah sebaliknya lebih berbahaya: bila jejaknya ikut
-        transaksi, kegagalan menulis jejak akan MEMBATALKAN penyimpanan faktur
-        yang sudah benar. Catatan pendamping tidak layak menjatuhkan data
-        aslinya.
-      */
-      await prisma.audit_log.create({ data: isiJejak });
+              Kekeliruan arah sebaliknya lebih berbahaya: bila jejaknya ikut
+              transaksi, kegagalan menulis jejak akan MEMBATALKAN penyimpanan
+              faktur yang sudah benar. Catatan pendamping tidak layak
+              menjatuhkan data aslinya.
+            */
+      await dasar.audit_log.create({ data: isiJejak });
     } catch (error) {
       console.error(`[error]: Gagal mencatat jejak audit — ${error}`);
     }
 
     return hasil;
+  };
+}
+
+/**
+ * Membungkus klien dasar dengan pencatat audit dan mengembalikan klien
+ * TURUNANNYA — inilah yang harus dipakai seluruh aplikasi.
+ */
+export function denganPencatatAudit(dasar: PrismaClient) {
+  const hook = buatHookAudit(dasar);
+  return dasar.$extends({
+    name: "pencatat-audit",
+    query: {
+      $allModels: {
+        $allOperations: hook as never,
+      },
+    },
   });
 }
