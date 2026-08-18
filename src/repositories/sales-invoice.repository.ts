@@ -340,11 +340,11 @@ export class SalesInvoiceRepository {
         JOIN product ON sales_invoice.product_id = product.id
         JOIN product_brand ON product.product_brand_id = product_brand.id
         WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
-          rentangBulan(data.year, data.month + 1).mulai,
+          rentangBulan(data.year, data.month).mulai,
           formatDate.YYYYMMDD
         )}
         AND sales_invoice_code.date < ${DateHelper.convertDate(
-          rentangBulan(data.year, data.month + 1).sebelum,
+          rentangBulan(data.year, data.month).sebelum,
           formatDate.YYYYMMDD
         )}
         AND sales_invoice_code.is_delete = 0
@@ -407,11 +407,11 @@ export class SalesInvoiceRepository {
         JOIN product ON sales_invoice.product_id = product.id
         JOIN product_type ON product.product_type_id = product_type.id
         WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
-          rentangBulan(data.year, data.month + 1).mulai,
+          rentangBulan(data.year, data.month).mulai,
           formatDate.YYYYMMDD
         )}
         AND sales_invoice_code.date < ${DateHelper.convertDate(
-          rentangBulan(data.year, data.month + 1).sebelum,
+          rentangBulan(data.year, data.month).sebelum,
           formatDate.YYYYMMDD
         )}
         AND sales_invoice_code.is_delete = 0
@@ -441,11 +441,11 @@ export class SalesInvoiceRepository {
         FROM sales_invoice
         JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
         WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
-          rentangBulan(data.year, data.month + 1).mulai,
+          rentangBulan(data.year, data.month).mulai,
           formatDate.YYYYMMDD
         )}
         AND sales_invoice_code.date < ${DateHelper.convertDate(
-          rentangBulan(data.year, data.month + 1).sebelum,
+          rentangBulan(data.year, data.month).sebelum,
           formatDate.YYYYMMDD
         )}
         AND sales_invoice_code.is_delete = 0
