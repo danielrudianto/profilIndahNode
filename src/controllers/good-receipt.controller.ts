@@ -5,6 +5,7 @@ import {
   translateKeyword,
   translatePage,
 } from "../utils/escape.helper";
+import { alokasiDiskonFaktur } from "../utils/hpp.helper";
 
 import { queue } from "../utils/queue.helper";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
@@ -48,6 +49,19 @@ class GoodReceiptController {
       req.body.is_confirm == undefined ? false : req.body.is_confirm;
 
     try {
+      /*
+        Diskon faktur harus tertampung baris — kalau melebihi total nilai
+        baris, harga pokoknya jadi negatif dan itu bukan dokumen yang sah.
+      */
+      const totalBaris = good_receipt_items.reduce(
+        (a, x) =>
+          a + (Number(x.price) - Number(x.discount)) * Number(x.quantity),
+        0
+      );
+      if (Number(discount ?? 0) > totalBaris) {
+        return res.status(400).send(ErrorList["Discount > total"]);
+      }
+
       const result = await this.goodReceiptRepository.create({
         uuid: uuid,
         name: name,
@@ -74,20 +88,31 @@ class GoodReceiptController {
         is_delete: false,
       });
 
+      /*
+        HPP #4: diskon faktur dialokasikan pro-rata ke baris, jadi harga
+        pokok lapisan = nilai bersih baris setelah bagiannya, per satuan
+        dasar. Dokumen tanpa diskon menghasilkan alokasi nol — rumusnya
+        jatuh kembali ke (harga - diskon barang) / konversi yang lama.
+      */
+      const alokasi = alokasiDiskonFaktur(
+        result.good_receipt!.map((x) => (x.price - x.discount) * x.quantity),
+        Number(discount ?? 0)
+      );
+
       await this.stockInRepository.createMany(
-        result.good_receipt!.map((x) => {
+        result.good_receipt!.map((x, i) => {
+          const konversi =
+            x.product_unit == null ? 1 : x.product_unit.conversion;
           return {
             good_receipt_code_id: result.id!,
             good_receipt_id: x.id!,
             adjustment_case_code_id: null,
             adjustment_case_id: null,
             price:
-              (x.price - x.discount) /
-              (x.product_unit == null ? 1 : x.product_unit.conversion),
+              ((x.price - x.discount) * x.quantity - alokasi[i]) /
+              (x.quantity * konversi),
             product_id: x.product_id,
-            quantity:
-              x.quantity *
-              (x.product_unit == null ? 1 : x.product_unit.conversion),
+            quantity: x.quantity * konversi,
             company_id: result.company_id,
             date: result.date,
           };
@@ -171,6 +196,16 @@ class GoodReceiptController {
         return res.status(400).send(ErrorList["Good receipt not confirmed"]);
       }
 
+      /* Diskon faktur wajib tertampung total nilai baris — cermin create. */
+      const totalBaris = (good_receipt as any[]).reduce(
+        (a, x) =>
+          a + (Number(x.price) - Number(x.discount)) * Number(x.quantity),
+        0
+      );
+      if (Number(discount ?? 0) > totalBaris) {
+        return res.status(400).send(ErrorList["Discount > total"]);
+      }
+
       const result = await this.goodReceiptRepository.update({
         uuid: data.uuid,
         id: id,
@@ -237,8 +272,14 @@ class GoodReceiptController {
           await queue.add("good-receipt-deleted", data.good_receipt![i].id);
         }
 
+        /* HPP #4: bagian diskon faktur tiap baris, pro-rata nilai bersih. */
+        const alokasi = alokasiDiskonFaktur(
+          result.good_receipt!.map((x) => (x.price - x.discount) * x.quantity),
+          Number(discount ?? 0)
+        );
+
         await this.stockInRepository.createMany(
-          result.good_receipt!.map((x) => {
+          result.good_receipt!.map((x, i) => {
             const konversi =
               x.product_unit == null ? 1 : x.product_unit.conversion;
 
@@ -248,12 +289,15 @@ class GoodReceiptController {
               adjustment_case_code_id: null,
               adjustment_case_id: null,
               /*
-                Dibagi konversi — kuantitasnya satuan dasar, harganya juga
-                harus per satuan dasar. Jalur ini sempat menulis harga netto
-                per satuan DOKUMEN pada kuantitas satuan dasar: 3 box @1,5jt
+                Nilai bersih baris (dikurangi bagian diskon faktur) dibagi
+                kuantitas satuan dasar. Dibagi konversi karena kuantitasnya
+                satuan dasar — jalur ini sempat menulis harga netto per
+                satuan DOKUMEN pada kuantitas satuan dasar: 3 box @1,5jt
                 menjadi 300 pcs @1,47jt per pcs, HPP meledak seratus kali.
               */
-              price: (x.price - x.discount) / konversi,
+              price:
+                ((x.price - x.discount) * x.quantity - alokasi[i]) /
+                (x.quantity * konversi),
               product_id: x.product_id,
               quantity: x.quantity * konversi,
               company_id: result.company_id,
@@ -515,6 +559,37 @@ class GoodReceiptController {
         return res.status(400).send(ErrorList["Good receipt already deleted"]);
       }
 
+      /*
+        Harga/diskon baru datang dari body, kuantitas dan konversi dari
+        dokumen yang sudah ada — digabung per id. Lapisan stok dihitung
+        dari gabungan ini, BUKAN dari include hasil confirm: include pada
+        update kode dibaca sebelum update baris dalam transaksi yang sama,
+        jadi isinya masih harga lama.
+      */
+      const barisDb = new Map(data.good_receipt!.map((x) => [x.id, x]));
+      const barisBaru = (good_receipt as any[])
+        .filter((x) => barisDb.has(x.id))
+        .map((x) => {
+          const db = barisDb.get(x.id)!;
+          return {
+            id: Number(x.id),
+            price: Number(x.price),
+            discount: Number(x.discount),
+            quantity: Number(db.quantity),
+            konversi:
+              db.product_unit == null ? 1 : Number(db.product_unit.conversion),
+          };
+        });
+
+      /* Diskon faktur wajib tertampung total nilai baris — cermin create. */
+      const totalBaris = barisBaru.reduce(
+        (a, x) => a + (x.price - x.discount) * x.quantity,
+        0
+      );
+      if (Number(discount ?? 0) > totalBaris) {
+        return res.status(400).send(ErrorList["Discount > total"]);
+      }
+
       const goodReceipt = await this.goodReceiptRepository.confirm({
         uuid: data.uuid,
         id: id,
@@ -538,16 +613,22 @@ class GoodReceiptController {
         supplier_id: data.supplier_id,
       });
 
+      /* HPP #4: bagian diskon faktur tiap baris, pro-rata nilai bersih. */
+      const alokasi = alokasiDiskonFaktur(
+        barisBaru.map((x) => (x.price - x.discount) * x.quantity),
+        Number(discount ?? 0)
+      );
+
       await this.stockInRepository.updateMany(
-        goodReceipt.good_receipt!.map((x) => {
+        barisBaru.map((x, i) => {
           return {
-            good_receipt_id: x.id!,
+            good_receipt_id: x.id,
             good_receipt_code_id: id,
             adjustment_case_id: null,
             adjustment_case_code_id: null,
             price:
-              (x.price - x.discount) /
-              (x.product_unit == null ? 1 : x.product_unit.conversion),
+              ((x.price - x.discount) * x.quantity - alokasi[i]) /
+              (x.quantity * x.konversi),
           };
         })
       );

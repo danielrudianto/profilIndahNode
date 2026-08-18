@@ -43,6 +43,12 @@ export class GoodReceiptRepository {
           company_id: data.company_id,
           invoice_name: data.invoice_name,
           faktur: data.faktur,
+          /*
+            Sempat tak ditulis sama sekali — dokumen yang dibuat langsung
+            terkonfirmasi kehilangan diskon fakturnya (kolom jatuh ke
+            default 0), persis bug 2023-2025 pada jalur lama.
+          */
+          discount: data.discount ?? 0,
           good_receipt: {
             createMany: {
               data: data.good_receipt!.map((item) => {
@@ -91,6 +97,11 @@ export class GoodReceiptRepository {
         date: data.date,
         supplier_id: data.supplier_id,
         company_id: data.company_id,
+        /*
+          Sempat tak ditulis — lapisan stok sudah menghitung diskon faktur
+          yang baru sementara dokumennya masih memajang angka lama.
+        */
+        discount: data.discount ?? 0,
         good_receipt: {
           updateMany: {
             data: {
@@ -582,22 +593,42 @@ export class GoodReceiptRepository {
   }
 
   async fetchChart(month: number, year: number) {
+    const mulai = DateHelper.convertDate(
+      rentangBulan(year, month).mulai,
+      formatDate.YYYYMMDD
+    );
+    const sebelum = DateHelper.convertDate(
+      rentangBulan(year, month).sebelum,
+      formatDate.YYYYMMDD
+    );
+
+    /*
+      Nilai per hari memakai definisi bersih HPP #4 (faktor diskon faktur),
+      baris terhapus disaring, dan jumlah dokumen dihitung DISTINCT —
+      COUNT biasa menghitung baris barang, bukan dokumen.
+    */
     const result = await this.prisma.$queryRaw<any[]>`
-      SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)) AS value, 
-      SUM(good_receipt.discount) AS discount, 
-      COUNT(good_receipt_code.id) AS goodReceiptCount,
+      SELECT SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)
+        * COALESCE(1 - good_receipt_code.discount / NULLIF(tot.total, 0), 1)) AS value,
+      SUM(good_receipt.discount) AS discount,
+      COUNT(DISTINCT good_receipt_code.id) AS goodReceiptCount,
       DAY(good_receipt_code.date) AS date
       FROM good_receipt
       JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN (
+        SELECT gr2.good_receipt_code_id, SUM((gr2.price - gr2.discount) * gr2.quantity) AS total
+        FROM good_receipt gr2
+        JOIN good_receipt_code grc2 ON grc2.id = gr2.good_receipt_code_id
+        WHERE gr2.is_delete = 0
+        AND grc2.is_delete = 0
+        AND grc2.date >= ${mulai}
+        AND grc2.date < ${sebelum}
+        GROUP BY gr2.good_receipt_code_id
+      ) AS tot ON tot.good_receipt_code_id = good_receipt_code.id
       WHERE good_receipt_code.is_delete = 0
-      AND good_receipt_code.date >= ${DateHelper.convertDate(
-        rentangBulan(year, month).mulai,
-        formatDate.YYYYMMDD
-      )}
-      AND good_receipt_code.date < ${DateHelper.convertDate(
-        rentangBulan(year, month).sebelum,
-        formatDate.YYYYMMDD
-      )}
+      AND good_receipt.is_delete = 0
+      AND good_receipt_code.date >= ${mulai}
+      AND good_receipt_code.date < ${sebelum}
       GROUP BY DAY(good_receipt_code.date)
       /*
         Diurutkan pada EKSPRESI yang digrup, bukan kolom mentahnya:
@@ -628,24 +659,53 @@ export class GoodReceiptRepository {
     year: number,
     pilih: string,
     join: string,
-    group: string,
+    group: string
   ): Promise<{ name: string; id: number; value: number }[]> {
+    /*
+      Nilai memakai definisi bersih yang sama dengan HPP #4: nilai baris
+      dikali faktor diskon faktur dokumennya (1 - diskon/total baris).
+      Baris terhapus ikut disaring — dokumen yang pernah diedit menyimpan
+      baris lamanya dengan is_delete=1, dan tanpa saringan itu nilainya
+      terhitung dobel.
+    */
     const kueri = `
       SELECT ${pilih},
-      SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
+      SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity
+        * COALESCE(1 - good_receipt_code.discount / NULLIF(tot.total, 0), 1)) AS value
       FROM good_receipt
       JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      JOIN (
+        SELECT gr2.good_receipt_code_id, SUM((gr2.price - gr2.discount) * gr2.quantity) AS total
+        FROM good_receipt gr2
+        JOIN good_receipt_code grc2 ON grc2.id = gr2.good_receipt_code_id
+        WHERE gr2.is_delete = 0
+        AND grc2.is_delete = 0
+        AND grc2.date >= ?
+        AND grc2.date < ?
+        GROUP BY gr2.good_receipt_code_id
+      ) AS tot ON tot.good_receipt_code_id = good_receipt_code.id
       ${join}
       WHERE good_receipt_code.is_delete = 0
+      AND good_receipt.is_delete = 0
       AND good_receipt_code.date >= ?
       AND good_receipt_code.date < ?
       GROUP BY ${group}
     `;
 
+    const mulai = DateHelper.convertDate(
+      rentangBulan(year, month).mulai,
+      formatDate.YYYYMMDD
+    );
+    const sebelum = DateHelper.convertDate(
+      rentangBulan(year, month).sebelum,
+      formatDate.YYYYMMDD
+    );
     const result = await this.prisma.$queryRawUnsafe<any[]>(
       kueri,
-      DateHelper.convertDate(rentangBulan(year, month).mulai, formatDate.YYYYMMDD),
-      DateHelper.convertDate(rentangBulan(year, month).sebelum, formatDate.YYYYMMDD),
+      mulai,
+      sebelum,
+      mulai,
+      sebelum
     );
 
     return result
@@ -663,7 +723,7 @@ export class GoodReceiptRepository {
       year,
       "supplier.id AS id, supplier.name AS name",
       "JOIN supplier ON good_receipt_code.supplier_id = supplier.id",
-      "supplier.id",
+      "supplier.id"
     );
   }
 
@@ -674,7 +734,7 @@ export class GoodReceiptRepository {
       "product_brand.id AS id, product_brand.name AS name",
       `JOIN product ON good_receipt.product_id = product.id
       JOIN product_brand ON product.product_brand_id = product_brand.id`,
-      "product_brand.id",
+      "product_brand.id"
     );
   }
 
@@ -685,100 +745,28 @@ export class GoodReceiptRepository {
       "product_type.id AS id, product_type.name AS name",
       `JOIN product ON good_receipt.product_id = product.id
       JOIN product_type ON product.product_type_id = product_type.id`,
-      "product_type.id",
+      "product_type.id"
     );
   }
 
+  /*
+    "Terbaik" = juara peringkat — dulu tiga query kembaran yang tidak
+    memakai faktor diskon faktur, sekarang menumpang mesin peringkat yang
+    definisi nilainya satu.
+  */
   async fetchBestBrand(month: number, year: number): Promise<string | null> {
-    const result = await this.prisma.$queryRaw<any[]>`
-      SELECT product_brand.id AS id,
-      product_brand.name AS name,
-      SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
-      FROM good_receipt
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN product ON good_receipt.product_id = product.id
-      JOIN product_brand ON product.product_brand_id = product_brand.id
-      WHERE good_receipt_code.is_delete = 0
-      AND good_receipt_code.date >= ${DateHelper.convertDate(
-        rentangBulan(year, month).mulai,
-        formatDate.YYYYMMDD
-      )}
-      AND good_receipt_code.date < ${DateHelper.convertDate(
-        rentangBulan(year, month).sebelum,
-        formatDate.YYYYMMDD
-      )}
-      GROUP BY product_brand.id
-      ORDER BY value DESC
-      LIMIT 1
-    `;
-
-    if (!result || result.length == 0) {
-      return null;
-    }
-
-    const data = result[0];
-    return data.name;
+    const peringkat = await this.fetchBrandPurchases(month, year);
+    return peringkat[0]?.name ?? null;
   }
 
   async fetchBestType(month: number, year: number): Promise<string | null> {
-    const result = await this.prisma.$queryRaw<any[]>`
-      SELECT product_type.id AS id,
-      product_type.name AS name,
-      SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
-      FROM good_receipt
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN product ON good_receipt.product_id = product.id
-      JOIN product_type ON product.product_type_id = product_type.id
-      WHERE good_receipt_code.is_delete = 0
-      AND good_receipt_code.date >= ${DateHelper.convertDate(
-        rentangBulan(year, month).mulai,
-        formatDate.YYYYMMDD
-      )}
-      AND good_receipt_code.date < ${DateHelper.convertDate(
-        rentangBulan(year, month).sebelum,
-        formatDate.YYYYMMDD
-      )}
-      GROUP BY product_type.id
-      ORDER BY value DESC
-      LIMIT 1
-    `;
-
-    if (!result || result.length == 0) {
-      return null;
-    }
-
-    const data = result[0];
-    return data.name;
+    const peringkat = await this.fetchTypePurchases(month, year);
+    return peringkat[0]?.name ?? null;
   }
 
   async fetchBestSupplier(month: number, year: number) {
-    const result = await this.prisma.$queryRaw<any[]>`
-      SELECT supplier.id AS id,
-      supplier.name AS name,
-      SUM((good_receipt.price - good_receipt.discount) * good_receipt.quantity) AS value
-      FROM good_receipt
-      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-      JOIN supplier ON good_receipt_code.supplier_id = supplier.id
-      WHERE good_receipt_code.is_delete = 0
-      AND good_receipt_code.date >= ${DateHelper.convertDate(
-        rentangBulan(year, month).mulai,
-        formatDate.YYYYMMDD
-      )}
-      AND good_receipt_code.date < ${DateHelper.convertDate(
-        rentangBulan(year, month).sebelum,
-        formatDate.YYYYMMDD
-      )}
-      GROUP BY supplier.id
-      ORDER BY value DESC
-      LIMIT 1
-    `;
-
-    if (!result || result.length == 0) {
-      return null;
-    }
-
-    const data = result[0];
-    return data.name;
+    const peringkat = await this.fetchSupplierPurchases(month, year);
+    return peringkat[0]?.name ?? null;
   }
 
   async fetchDownload(month: number, year: number) {
@@ -927,16 +915,40 @@ export class GoodReceiptRepository {
     return GoodReceiptModel.fromMap(result);
   }
 
-  // Development purposes only
+  /*
+    Job CLI pembangunan ulang lapisan stok dari sejarah penerimaan.
+
+    Tiga perbaikan yang menyamakannya dengan jalur hidup:
+    - Harga dibagi konversi — kuantitasnya satuan dasar, harga per satuan
+      DOKUMEN membuat HPP meledak seratus kali pada barang berkonversi.
+    - Diskon faktur dialokasikan pro-rata lewat faktor per dokumen
+      (1 - diskon/total baris); pembulatannya per baris, tanpa pelemparan
+      sisa sen seperti di jalur hidup — untuk pembangunan ulang massal
+      selisih sen itu diterima.
+    - Baris terhapus (good_receipt.is_delete) tidak lagi ikut terangkat.
+  */
   async createStockIn() {
     return this.prisma.$queryRawUnsafe(`
-      INSERT INTO stock_in (product_id, quantity, price, date, residue, company_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id) 
-        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), (good_receipt.price - good_receipt.discount),  good_Receipt_code.date, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+      INSERT INTO stock_in (product_id, quantity, price, date, residue, company_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id)
+        SELECT good_receipt.product_id,
+        good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        (good_receipt.price - good_receipt.discount)
+          * COALESCE(1 - good_receipt_code.discount / NULLIF(tot.total, 0), 1)
+          / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        good_receipt_code.date,
+        good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
         good_receipt_code.company_id, NULL, NULL, good_receipt.id, good_receipt_code.id
         FROM good_receipt
         JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
         LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
+        JOIN (
+          SELECT good_receipt_code_id, SUM((price - discount) * quantity) AS total
+          FROM good_receipt
+          WHERE is_delete = 0
+          GROUP BY good_receipt_code_id
+        ) AS tot ON tot.good_receipt_code_id = good_receipt_code.id
         WHERE good_receipt_code.is_delete = 0
+        AND good_receipt.is_delete = 0
     `);
   }
 }

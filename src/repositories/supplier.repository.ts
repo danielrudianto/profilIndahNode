@@ -255,16 +255,31 @@ export class SupplierRepository {
    */
   async fetchReport(supplierID: number, year: number) {
     try {
+      /*
+        Nilai memakai definisi bersih HPP #4: nilai baris dikali faktor
+        diskon faktur dokumennya (1 - diskon/total baris), lewat join
+        tot yang sama di ketiga query.
+      */
       const [ringkasan, merek, barang, tahunTersedia] = await Promise.all([
         this.prisma.$queryRaw<any[]>`
           SELECT
-            COALESCE(SUM((gr.price - gr.discount) * gr.quantity), 0) AS total_nilai,
+            COALESCE(SUM((gr.price - gr.discount) * gr.quantity
+              * COALESCE(1 - grc.discount / NULLIF(tot.total, 0), 1)), 0) AS total_nilai,
             COUNT(DISTINCT grc.id) AS jumlah_dokumen,
             COUNT(DISTINCT gr.product_id) AS produk_unik,
             MIN(grc.date) AS pertama,
             MAX(grc.date) AS terakhir
           FROM good_receipt gr
           JOIN good_receipt_code grc ON gr.good_receipt_code_id = grc.id
+          JOIN (
+            SELECT gr2.good_receipt_code_id, SUM((gr2.price - gr2.discount) * gr2.quantity) AS total
+            FROM good_receipt gr2
+            JOIN good_receipt_code grc2 ON grc2.id = gr2.good_receipt_code_id
+            WHERE grc2.supplier_id = ${supplierID}
+              AND gr2.is_delete = 0
+              AND grc2.is_delete = 0
+            GROUP BY gr2.good_receipt_code_id
+          ) AS tot ON tot.good_receipt_code_id = grc.id
           WHERE grc.supplier_id = ${supplierID}
             AND grc.is_delete = 0
             AND gr.is_delete = 0
@@ -275,12 +290,22 @@ export class SupplierRepository {
             pb.name AS merek,
             COUNT(DISTINCT gr.product_id) AS produk_unik,
             COALESCE(SUM(gr.quantity * COALESCE(pu.conversion, 1)), 0) AS kuantitas,
-            COALESCE(SUM((gr.price - gr.discount) * gr.quantity), 0) AS nilai
+            COALESCE(SUM((gr.price - gr.discount) * gr.quantity
+              * COALESCE(1 - grc.discount / NULLIF(tot.total, 0), 1)), 0) AS nilai
           FROM good_receipt gr
           JOIN good_receipt_code grc ON gr.good_receipt_code_id = grc.id
           JOIN product p ON gr.product_id = p.id
           JOIN product_brand pb ON p.product_brand_id = pb.id
           LEFT JOIN product_unit pu ON gr.product_unit_id = pu.id
+          JOIN (
+            SELECT gr2.good_receipt_code_id, SUM((gr2.price - gr2.discount) * gr2.quantity) AS total
+            FROM good_receipt gr2
+            JOIN good_receipt_code grc2 ON grc2.id = gr2.good_receipt_code_id
+            WHERE grc2.supplier_id = ${supplierID}
+              AND gr2.is_delete = 0
+              AND grc2.is_delete = 0
+            GROUP BY gr2.good_receipt_code_id
+          ) AS tot ON tot.good_receipt_code_id = grc.id
           WHERE grc.supplier_id = ${supplierID}
             AND grc.is_delete = 0
             AND gr.is_delete = 0
@@ -295,11 +320,21 @@ export class SupplierRepository {
             p.unit AS satuan,
             COUNT(DISTINCT grc.id) AS jumlah_dokumen,
             COALESCE(SUM(gr.quantity * COALESCE(pu.conversion, 1)), 0) AS kuantitas,
-            COALESCE(SUM((gr.price - gr.discount) * gr.quantity), 0) AS nilai
+            COALESCE(SUM((gr.price - gr.discount) * gr.quantity
+              * COALESCE(1 - grc.discount / NULLIF(tot.total, 0), 1)), 0) AS nilai
           FROM good_receipt gr
           JOIN good_receipt_code grc ON gr.good_receipt_code_id = grc.id
           JOIN product p ON gr.product_id = p.id
           LEFT JOIN product_unit pu ON gr.product_unit_id = pu.id
+          JOIN (
+            SELECT gr2.good_receipt_code_id, SUM((gr2.price - gr2.discount) * gr2.quantity) AS total
+            FROM good_receipt gr2
+            JOIN good_receipt_code grc2 ON grc2.id = gr2.good_receipt_code_id
+            WHERE grc2.supplier_id = ${supplierID}
+              AND gr2.is_delete = 0
+              AND grc2.is_delete = 0
+            GROUP BY gr2.good_receipt_code_id
+          ) AS tot ON tot.good_receipt_code_id = grc.id
           WHERE grc.supplier_id = ${supplierID}
             AND grc.is_delete = 0
             AND gr.is_delete = 0

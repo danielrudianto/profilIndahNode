@@ -1,7 +1,4 @@
-import {
-  IPromotion,
-  IFetchPromotion,
-} from "../interfaces/promotion.interface";
+import { IPromotion, IFetchPromotion } from "../interfaces/promotion.interface";
 import { PrismaClient } from "@prisma/client";
 import { DateHelper, formatDate } from "../utils/date.helper";
 import {
@@ -103,7 +100,7 @@ export class PromotionRepository {
   }
 
   async fetch(
-    data: IFetchPromotion,
+    data: IFetchPromotion
   ): Promise<IFetchCommonResult<PromotionModel>> {
     try {
       /*

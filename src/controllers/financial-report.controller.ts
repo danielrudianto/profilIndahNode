@@ -107,9 +107,7 @@ export class FinancialReportController {
 
       return res.status(200).send({ data: data });
     } catch (error) {
-      console.error(
-        `[error]: Error on fetching profit loss trend ${error}`
-      );
+      console.error(`[error]: Error on fetching profit loss trend ${error}`);
       return res.status(500).send(error);
     }
   };

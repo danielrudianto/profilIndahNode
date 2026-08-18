@@ -108,7 +108,8 @@
     "discount": {
       "required": "Diskon tidak boleh kosong.",
       "numeric": "Diskon harus berupa angka.",
-      "greaterThanPrice": "Diskon tidak boleh lebih besar dari harga."
+      "greaterThanPrice": "Diskon tidak boleh lebih besar dari harga.",
+      "greaterThanTotal": "Diskon faktur tidak boleh melebihi total nilai barang."
     },
     "salesman": {
       "nameRequired": "Nama sales tidak boleh kosong."

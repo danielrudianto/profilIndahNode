@@ -43,6 +43,7 @@ enum ErrorList {
   "Discount required" = "validation.discount.required",
   "Discount must be numeric" = "validation.discount.numeric",
   "Discount > price" = "validation.discount.greaterThanPrice",
+  "Discount > total" = "validation.discount.greaterThanTotal",
   "Amount is required" = "validation.amount.required",
   "Amount must be numeric" = "validation.amount.numeric",
   "Keyword is required" = "validation.keyword.required",
