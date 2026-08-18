@@ -364,6 +364,46 @@ export class SalesInvoiceRepository {
       });
   }
 
+  /**
+   * Peringkat penjualan per pelanggan sebulan — kartu "pelanggan teratas"
+   * di laporan penjualan. Faktur retail tidak menunjuk pelanggan; namanya
+   * dikirim null dan frontend yang melabelinya.
+   */
+  async fetchCustomerSales(data: {
+    month: number;
+    year: number;
+  }): Promise<{ name: string | null; id: number | null; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+        customer.name, sales_invoice_code.customer_id
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        LEFT JOIN customer ON customer.id = sales_invoice_code.customer_id
+        WHERE sales_invoice_code.date >= ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month).mulai,
+          formatDate.YYYYMMDD
+        )}
+        AND sales_invoice_code.date < ${DateHelper.convertDate(
+          rentangBulan(data.year, data.month).sebelum,
+          formatDate.YYYYMMDD
+        )}
+        AND sales_invoice_code.is_delete = 0
+        GROUP BY sales_invoice_code.customer_id, customer.name
+      `;
+
+    return result
+      .map((x) => {
+        return {
+          name: x.name ?? null,
+          id: x.customer_id == null ? null : Number(x.customer_id),
+          value: Number(x.value),
+        };
+      })
+      .sort((a, b) => {
+        return b.value - a.value;
+      });
+  }
+
   async fetchBestType(month: number, year: number): Promise<string | null> {
     const result = await this.prisma.$queryRaw<any[]>`
       SELECT product_type.id AS id,

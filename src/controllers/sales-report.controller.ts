@@ -80,6 +80,24 @@ export class SalesReportController {
     }
   };
 
+  fetchCustomerSalesReport = async (req: Request, res: Response) => {
+    const month = Number(req.query.month);
+    const year = Number(req.query.year);
+    try {
+      const result = await this.salesInvoiceRepository.fetchCustomerSales({
+        month: month,
+        year: year,
+      });
+
+      return res.status(200).send({
+        data: result,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer report ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   fetchTypeSalesreport = async (req: Request, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);

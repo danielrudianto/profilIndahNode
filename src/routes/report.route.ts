@@ -172,6 +172,13 @@ router.get(
 );
 
 router.get(
+  "/sales/customer",
+  requireRole(PERAN_PENJUALAN),
+  validate(queryPeriodSchema, "query"),
+  salesReportController.fetchCustomerSalesReport
+);
+
+router.get(
   "/sales/sales",
   requireRole(PERAN_PENJUALAN),
   validate(queryPeriodSchema, "query"),
