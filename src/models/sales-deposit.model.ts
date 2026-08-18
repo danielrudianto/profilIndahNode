@@ -101,8 +101,8 @@ export class SalesDepositModel {
                   item.product_unit == null
                     ? null
                     : item.product_unit == undefined
-                    ? undefined
-                    : ProductUnitModel.fromMap(item.product_unit),
+                      ? undefined
+                      : ProductUnitModel.fromMap(item.product_unit),
               };
             }),
       sales_deposit_payment:
@@ -118,12 +118,12 @@ export class SalesDepositModel {
                   x.payment_method == undefined
                     ? undefined
                     : x.payment_method == null
-                    ? null
-                    : new PaymentMethodViewModel({
-                        id: x.payment_method_id,
-                        name: x.payment_method.name,
-                        description: x.payment_method.description,
-                      }),
+                      ? null
+                      : new PaymentMethodViewModel({
+                          id: x.payment_method_id,
+                          name: x.payment_method.name,
+                          description: x.payment_method.description,
+                        }),
                 sales_deposit_code_id: data.id,
               });
             }),
@@ -131,8 +131,8 @@ export class SalesDepositModel {
         data.customer == null
           ? null
           : data.customer == undefined
-          ? undefined
-          : CustomerModel.fromMap(data.customer),
+            ? undefined
+            : CustomerModel.fromMap(data.customer),
 
       user_bill_code_created_byTouser:
         data.user_bill_code_created_byTouser == undefined
@@ -142,8 +142,8 @@ export class SalesDepositModel {
         data.user_bill_code_confirmed_byTouser == undefined
           ? undefined
           : data.user_bill_code_confirmed_byTouser == null
-          ? null
-          : UserViewModel.fromMap(data.user_bill_code_confirmed_byTouser),
+            ? null
+            : UserViewModel.fromMap(data.user_bill_code_confirmed_byTouser),
     });
   }
 }

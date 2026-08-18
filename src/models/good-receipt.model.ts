@@ -88,8 +88,8 @@ class GoodReceiptModel {
                 item.product_unit == undefined
                   ? undefined
                   : item.product_unit == null
-                  ? null
-                  : ProductUnitModel.fromMap(item.product_unit),
+                    ? null
+                    : ProductUnitModel.fromMap(item.product_unit),
             })),
       company:
         data.company == undefined ? undefined : new CompanyModel(data.company),
@@ -105,10 +105,10 @@ class GoodReceiptModel {
         data.user_good_receipt_code_confirmed_byTouser == undefined
           ? undefined
           : data.user_good_receipt_code_confirmed_byTouser == null
-          ? null
-          : UserViewModel.fromMap(
-              data.user_good_receipt_code_confirmed_byTouser
-            ),
+            ? null
+            : UserViewModel.fromMap(
+                data.user_good_receipt_code_confirmed_byTouser
+              ),
     });
   }
 }

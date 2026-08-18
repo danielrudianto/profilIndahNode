@@ -83,9 +83,8 @@ class ProductPackageController {
   updateSalesPrice = async (req: Request, res: Response) => {
     try {
       const items = req.body.items;
-      const result = await this.productPackageRepository.updateSalesPrice(
-        items
-      );
+      const result =
+        await this.productPackageRepository.updateSalesPrice(items);
 
       for (let item of items) {
         await queue.add("package-updated", { id: item.package_code_id });

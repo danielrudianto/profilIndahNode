@@ -23,12 +23,15 @@ export class ProductService {
       }
 
       const productUnits = await this.productUnitRepository.fetchByItemID(id);
-      const result = await meili.index("product").addDocuments([
-        {
-          ...product,
-          product_unit: productUnits,
-        },
-      ], { primaryKey: "id" });
+      const result = await meili.index("product").addDocuments(
+        [
+          {
+            ...product,
+            product_unit: productUnits,
+          },
+        ],
+        { primaryKey: "id" }
+      );
 
       return result;
     } catch (error) {
@@ -45,7 +48,9 @@ export class ProductService {
         throw new Error("No products found");
       }
 
-      const result = await meili.index("product").addDocuments(products, { primaryKey: "id" });
+      const result = await meili
+        .index("product")
+        .addDocuments(products, { primaryKey: "id" });
       return result;
       return result;
     } catch (error) {

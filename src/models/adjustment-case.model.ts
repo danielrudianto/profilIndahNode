@@ -68,8 +68,8 @@ class AdjustmentCaseModel {
         data.company == undefined
           ? undefined
           : data.company == null
-          ? null
-          : CompanyModel.fromMap(data.company),
+            ? null
+            : CompanyModel.fromMap(data.company),
       adjustment_case:
         data.adjustment_case == undefined
           ? undefined

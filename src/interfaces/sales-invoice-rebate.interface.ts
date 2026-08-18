@@ -1,4 +1,3 @@
-
 export interface ISalesInvoiceRebate {
   id?: number;
   sales_invoice_code_id: number;

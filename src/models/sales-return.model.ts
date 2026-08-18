@@ -88,8 +88,8 @@ export class SalesReturnCodeModel {
         data.payment_method == null
           ? null
           : data.payment_method == undefined
-          ? undefined
-          : PaymentMethodModel.fromMap(data.payment_method),
+            ? undefined
+            : PaymentMethodModel.fromMap(data.payment_method),
     });
   }
   /**

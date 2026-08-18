@@ -59,9 +59,8 @@ class ReceivableController {
         sales_invoice_id,
       } = req.body;
 
-      const salesInvoice = await this.salesInvoiceRepository.fetchByID(
-        sales_invoice_id
-      );
+      const salesInvoice =
+        await this.salesInvoiceRepository.fetchByID(sales_invoice_id);
 
       if (!salesInvoice || salesInvoice.isDelete) {
         return res.status(404).send(ErrorList["Sales invoice not found"]);

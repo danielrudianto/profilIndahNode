@@ -18,7 +18,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }
@@ -185,7 +188,10 @@ describe("POST /sales — laporan penjualan bulanan", () => {
   it("CACAT: fetchSalesReport menolak tanpa membalas saat repository gagal", async () => {
     const repo = repositoryTiruan();
     repo.fetchByDateRange.mockRejectedValue(new Error("kueri kehabisan waktu"));
-    const c = new SalesReportController(repo as never, repositoryReturTiruan() as never);
+    const c = new SalesReportController(
+      repo as never,
+      repositoryReturTiruan() as never
+    );
 
     const req = { body: { month: 3, year: 2026 }, query: {} } as never;
     const res = {
@@ -225,7 +231,10 @@ describe("POST /sales — laporan penjualan bulanan", () => {
         })
     );
 
-    const c = new SalesReportController(repo as never, repositoryReturTiruan() as never);
+    const c = new SalesReportController(
+      repo as never,
+      repositoryReturTiruan() as never
+    );
     const res = {
       status: jest.fn().mockReturnThis(),
       send: jest.fn().mockReturnThis(),

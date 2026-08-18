@@ -25,7 +25,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }

@@ -87,9 +87,8 @@ class PaymentMethodController {
   fetchAutocomplete = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     try {
-      const result = await this.paymentMethodRepository.fetchAutocomplete(
-        keyword
-      );
+      const result =
+        await this.paymentMethodRepository.fetchAutocomplete(keyword);
       return res.status(200).send(result);
     } catch (error) {
       console.error(

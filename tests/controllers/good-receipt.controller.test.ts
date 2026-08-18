@@ -26,7 +26,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }
@@ -235,7 +238,7 @@ describe("POST / — membuat penerimaan barang", () => {
       .send(badanBuat({ is_confirm: true, userId: 7 }));
 
     const [dikirim] = repo.goodReceipt.create.mock.calls[0] as [
-      { is_confirm: boolean; confirmed_by: number; confirmed_at: Date }
+      { is_confirm: boolean; confirmed_by: number; confirmed_at: Date },
     ];
     expect(dikirim.is_confirm).toBe(true);
     expect(dikirim.confirmed_by).toBe(7);
@@ -616,7 +619,7 @@ describe("PUT / — menyunting penerimaan barang", () => {
       .send(badanSunting({ userId: 55 }));
 
     const [dikirim] = repo.goodReceipt.update.mock.calls[0] as [
-      { confirmed_by: number; confirmed_at: Date }
+      { confirmed_by: number; confirmed_at: Date },
     ];
     expect(dikirim.confirmed_by).toBe(55);
     expect(dikirim.confirmed_at.getTime()).toBeGreaterThanOrEqual(sebelum);
@@ -1325,7 +1328,7 @@ describe("POST /check dan GET /:id, /unconfirmed, /archives", () => {
     await request(app(repo)).post("/archives").send({ year: 2024, month: 3 });
 
     const [dikirim] = repo.goodReceipt.fetchArchives.mock.calls[0] as [
-      { startDate: Date; endDate: Date }
+      { startDate: Date; endDate: Date },
     ];
     expect(Number.isNaN(dikirim.startDate.getTime())).toBe(true);
     expect(Number.isNaN(dikirim.endDate.getTime())).toBe(true);

@@ -66,8 +66,8 @@ export class ExpenseModel {
         data.user_expense_deleted_byTouser == null
           ? null
           : data.user_expense_deleted_byTouser == undefined
-          ? undefined
-          : UserViewModel.fromMap(data.user_expense_deleted_byTouser),
+            ? undefined
+            : UserViewModel.fromMap(data.user_expense_deleted_byTouser),
       company:
         data.company == undefined
           ? undefined

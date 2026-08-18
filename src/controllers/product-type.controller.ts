@@ -133,9 +133,8 @@ export class ProductTypeController {
   fetchAutocomplete = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     try {
-      const result = await this.productTypeRepository.fetchAutocomplete(
-        keyword
-      );
+      const result =
+        await this.productTypeRepository.fetchAutocomplete(keyword);
       return res.status(200).send(result);
     } catch (error) {
       console.error(

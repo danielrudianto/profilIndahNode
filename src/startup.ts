@@ -97,7 +97,9 @@ async function syncProduct() {
   const chunkSize = 1000; // Define your chunk size
   for (let i = 0; i < products.length; i += chunkSize) {
     const chunk = products.slice(i, i + chunkSize);
-    const productInsertTask = await meili.index("product").addDocuments(chunk, { primaryKey: "id" });
+    const productInsertTask = await meili
+      .index("product")
+      .addDocuments(chunk, { primaryKey: "id" });
     await meili.tasks.waitForTask(productInsertTask.taskUid);
     console.info(`[info]: Inserted chunk ${Math.floor(i / chunkSize) + 1}`);
   }
@@ -226,7 +228,9 @@ async function calculateStockOutBulk() {
  * toleransi pembulatan (Rp 5). Idempoten, aman dijalankan kapan pun.
  */
 async function settleRoundedReceivables() {
-  const { ReceivableRepository } = require("./repositories/receivable.repository");
+  const {
+    ReceivableRepository,
+  } = require("./repositories/receivable.repository");
   const { redisClient } = require("./utils/redis.helper");
   const repo = new ReceivableRepository(redisClient, prisma);
   const jumlah = await repo.settleWithinTolerance();

@@ -145,8 +145,7 @@ export class MoneyReceiptController {
             (overpaymentReturnIndex == -1
               ? 0
               : overpaymentReturn[overpaymentReturnIndex].value),
-          rebate:
-            rebates.find((y) => y.payment_method_id == null)?.value ?? 0,
+          rebate: rebates.find((y) => y.payment_method_id == null)?.value ?? 0,
         },
         {
           id: 0,
@@ -194,7 +193,8 @@ export class MoneyReceiptController {
               (overpaymentReturnIndex == -1
                 ? 0
                 : overpaymentReturn[overpaymentReturnIndex].value),
-            rebate: rebates.find((y) => y.payment_method_id == x.id)?.value ?? 0,
+            rebate:
+              rebates.find((y) => y.payment_method_id == x.id)?.value ?? 0,
           };
         }),
       ]);
@@ -207,9 +207,8 @@ export class MoneyReceiptController {
   downloadMoneyReceipt = async (req: Request, res: Response) => {
     try {
       const date = new Date(req.body.date);
-      const payments = await this.salesInvoicePaymentRepository.downloadReport(
-        date
-      );
+      const payments =
+        await this.salesInvoicePaymentRepository.downloadReport(date);
       return res.status(200).send({
         data: payments,
       });

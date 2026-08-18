@@ -102,7 +102,10 @@ describe("Tipe pengeluaran — perilaku harus identik", () => {
     diuji terpisah di bawah.
   */
   const kasus: Array<[string, any]> = [
-    ["lengkap", { name: "Listrik", description: "Tagihan bulanan", parent_id: 1 }],
+    [
+      "lengkap",
+      { name: "Listrik", description: "Tagihan bulanan", parent_id: 1 },
+    ],
     ["tanpa name", { description: "x", parent_id: 1 }],
     ["name kosong", { name: "", description: "x", parent_id: 1 }],
     ["tanpa description", { name: "Listrik", parent_id: 1 }],
@@ -143,9 +146,15 @@ describe("Batas panjang — aturan baru", () => {
 describe("parent_id — aturan baru tipe dua tingkat", () => {
   const salah: Array<[string, any]> = [
     ["tanpa parent_id", { name: "Listrik", description: "x" }],
-    ["parent_id bukan angka", { name: "Listrik", description: "x", parent_id: "abc" }],
+    [
+      "parent_id bukan angka",
+      { name: "Listrik", description: "x", parent_id: "abc" },
+    ],
     ["parent_id nol", { name: "Listrik", description: "x", parent_id: 0 }],
-    ["parent_id pecahan", { name: "Listrik", description: "x", parent_id: 1.5 }],
+    [
+      "parent_id pecahan",
+      { name: "Listrik", description: "x", parent_id: 1.5 },
+    ],
   ];
   for (const [nama, badan] of salah) {
     it(`ditolak: ${nama}`, async () => {

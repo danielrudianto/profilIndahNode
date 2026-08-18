@@ -115,9 +115,8 @@ class ExpenseTypeController {
   fetchAutocomplete = async (req: Request, res: Response) => {
     const keyword = translateKeyword(req.query.keyword);
     try {
-      const result = await this.expenseTypeRepository.fetchAutocomplete(
-        keyword
-      );
+      const result =
+        await this.expenseTypeRepository.fetchAutocomplete(keyword);
       return res.status(200).send(result);
     } catch (error) {
       console.error(

@@ -74,8 +74,8 @@ const dataHargaSatuan = z.any().superRefine((nilai, ctx) => {
   const baris: unknown[] = Array.isArray(nilai)
     ? nilai
     : nilai !== null && typeof nilai === "object"
-    ? Object.values(nilai as Record<string, unknown>)
-    : [];
+      ? Object.values(nilai as Record<string, unknown>)
+      : [];
 
   const ambil = (b: unknown, kunci: string): unknown =>
     b !== null && typeof b === "object"

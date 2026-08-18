@@ -32,8 +32,8 @@ export class SalesDepositPaymentModel {
         data.payment_method == undefined
           ? undefined
           : data.payment_method == null
-          ? null
-          : PaymentMethodViewModel.fromMap(data.payment_method),
+            ? null
+            : PaymentMethodViewModel.fromMap(data.payment_method),
     });
   }
 }

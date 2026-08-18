@@ -71,9 +71,8 @@ export class StockOutService {
     );
 
     const produkIds = [...new Set(stockOuts.map((x) => x.product_id))];
-    const lapisanSemua = await this.stockInRepository.fetchManyUnfilled(
-      produkIds
-    );
+    const lapisanSemua =
+      await this.stockInRepository.fetchManyUnfilled(produkIds);
 
     // Urutan (tanggal, id) dari query dipertahankan per produk.
     const lapisanPerProduk = new Map<

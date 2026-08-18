@@ -16,7 +16,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }
@@ -230,7 +233,7 @@ describe("validateCreate — pemeriksa bidang wajib", () => {
     a.use(express.json());
     a.use((req, _res, next) => {
       req.body ??= {};
-    req.body.userId ??= 99;
+      req.body.userId ??= 99;
       next();
     });
     a.post("/", c.updateAvatar);

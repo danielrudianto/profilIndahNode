@@ -196,7 +196,8 @@ export const deleteProductSchema = z.object({
  * conversion wajib positif; nol atau negatif membuat setiap dokumen yang
  * memakainya menghitung stok mundur.
  */
-const hargaOpsional = z.number({ error: ErrorList["Parameter error"] })
+const hargaOpsional = z
+  .number({ error: ErrorList["Parameter error"] })
   .min(0, ErrorList["Parameter error"])
   .optional();
 

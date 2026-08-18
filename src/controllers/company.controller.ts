@@ -18,9 +18,9 @@ class CompanyController {
       req.body.npwp == null
         ? null
         : req.body.npwp.toString().length == 15 ||
-          req.body.npwp.toString().length == 16
-        ? req.body.npwp
-        : null;
+            req.body.npwp.toString().length == 16
+          ? req.body.npwp
+          : null;
     const userID = req.body.userId;
 
     try {
@@ -55,9 +55,9 @@ class CompanyController {
       req.body.npwp == null
         ? null
         : req.body.npwp.toString().length == 15 ||
-          req.body.npwp.toString().length == 16
-        ? req.body.npwp
-        : null;
+            req.body.npwp.toString().length == 16
+          ? req.body.npwp
+          : null;
     const userID = req.body.userId;
 
     try {

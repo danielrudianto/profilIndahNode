@@ -41,9 +41,8 @@ class SalesReturnController {
       const sales_invoice_code_id = req.body.sales_invoice_code_id;
 
       // first need to check if the quantity satisfies
-      const validation = await this.salesInvoiceRepository.validateSalesReturn(
-        sales_return
-      );
+      const validation =
+        await this.salesInvoiceRepository.validateSalesReturn(sales_return);
 
       if (!validation) {
         return res.status(400).send(ErrorList["Sales return insufficient"]);

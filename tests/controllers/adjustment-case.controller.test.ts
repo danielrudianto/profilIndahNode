@@ -26,7 +26,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }
@@ -227,7 +230,7 @@ describe("POST / — membuat penyesuaian stok", () => {
       });
 
     const [dikirim] = repo.adjustmentCase.create.mock.calls[0] as [
-      { name: string }
+      { name: string },
     ];
     expect(dikirim.name).toMatch(/^ADJ-2023-\d{8}$/);
   });
@@ -1141,7 +1144,7 @@ describe("GET /:id, /unconfirmed, /archives", () => {
       .send({ year: 2024, month: 3, sortBy: "date", sortDirection: "desc" });
 
     const [dikirim] = repo.adjustmentCase.fetchArchives.mock.calls[0] as [
-      { startDate: Date; endDate: Date }
+      { startDate: Date; endDate: Date },
     ];
     expect(dikirim.startDate.getTime()).toBeGreaterThanOrEqual(sebelum);
     expect(dikirim.endDate.getTime()).toBeGreaterThanOrEqual(sebelum);

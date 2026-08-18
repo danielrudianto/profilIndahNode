@@ -27,7 +27,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }
@@ -340,7 +343,9 @@ describe("POST / — membuat produk", () => {
     repo.create.mockResolvedValue(produk());
 
     const { units: _units, ...tanpaUnits } = isiBadan;
-    const res = await request(app(repo, unit, card)).post("/").send(tanpaUnits);
+    const res = await request(app(repo, unit, card))
+      .post("/")
+      .send(tanpaUnits);
 
     expect(res.status).toBe(500);
     expect(res.text).toBe(ErrorList["Internal server error"]);
@@ -538,9 +543,11 @@ describe("PUT /toggle — mengaktifkan dan menonaktifkan produk", () => {
     repo.fetchByID.mockResolvedValue(produk({ is_active: true }));
     repo.toggleActive.mockResolvedValue(produk({ is_active: false }));
 
-    const res = await request(app(repo, unit, card)).put("/toggle").send({
-      id: 5,
-    });
+    const res = await request(app(repo, unit, card))
+      .put("/toggle")
+      .send({
+        id: 5,
+      });
 
     expect(res.status).toBe(201);
     // Controller mengirim nilai lama; repository yang bertugas membalikkannya.
@@ -554,7 +561,9 @@ describe("PUT /toggle — mengaktifkan dan menonaktifkan produk", () => {
     repo.fetchByID.mockResolvedValue(produk({ is_active: false }));
     repo.toggleActive.mockResolvedValue(produk());
 
-    await request(app(repo, unit, card)).put("/toggle").send({ id: "5" });
+    await request(app(repo, unit, card))
+      .put("/toggle")
+      .send({ id: "5" });
 
     expect(repo.fetchByID).toHaveBeenCalledWith(5);
     expect(repo.toggleActive).toHaveBeenCalledWith(5, false);
@@ -566,14 +575,20 @@ describe("PUT /toggle — mengaktifkan dan menonaktifkan produk", () => {
     const card = stockCardRepositoryTiruan();
     repo.fetchByID.mockResolvedValue(null);
     expect(
-      (await request(app(repo, unit, card)).put("/toggle").send({ id: 5 }))
-        .status
+      (
+        await request(app(repo, unit, card))
+          .put("/toggle")
+          .send({ id: 5 })
+      ).status
     ).toBe(404);
 
     repo.fetchByID.mockResolvedValue(produk({ is_delete: true }));
     expect(
-      (await request(app(repo, unit, card)).put("/toggle").send({ id: 5 }))
-        .status
+      (
+        await request(app(repo, unit, card))
+          .put("/toggle")
+          .send({ id: 5 })
+      ).status
     ).toBe(400);
     expect(repo.toggleActive).not.toHaveBeenCalled();
   });
@@ -598,7 +613,9 @@ describe("PUT /toggle — mengaktifkan dan menonaktifkan produk", () => {
     repo.fetchByID.mockResolvedValue(produk({ is_active: true }));
     repo.toggleActive.mockResolvedValue(produk({ is_active: false }));
 
-    await request(app(repo, unit, card)).put("/toggle").send({ id: 5 });
+    await request(app(repo, unit, card))
+      .put("/toggle")
+      .send({ id: 5 });
 
     expect(tambahAntrian).not.toHaveBeenCalled();
   });

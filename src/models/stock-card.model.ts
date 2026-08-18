@@ -81,21 +81,21 @@ export class StockCardModel {
         x.customer == null
           ? null
           : x.customer == undefined
-          ? undefined
-          : CustomerModel.fromMap(x.customer),
+            ? undefined
+            : CustomerModel.fromMap(x.customer),
       supplier:
         x.supplier == null
           ? null
           : x.supplier == undefined
-          ? undefined
-          : SupplierModel.fromMap(x.supplier),
+            ? undefined
+            : SupplierModel.fromMap(x.supplier),
       created_at: new Date(x.created_at),
       product_unit:
         x.product_unit == null
           ? null
           : x.product_unit == undefined
-          ? undefined
-          : ProductUnitModel.fromMap(x.product_unit),
+            ? undefined
+            : ProductUnitModel.fromMap(x.product_unit),
     });
   }
 }

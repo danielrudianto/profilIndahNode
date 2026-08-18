@@ -45,9 +45,8 @@ class ProductController {
     const units = req.body.units as any[];
 
     try {
-      const existingItem = await this.productRepository.fetchByReference(
-        reference
-      );
+      const existingItem =
+        await this.productRepository.fetchByReference(reference);
 
       if (existingItem != null) {
         return res.status(400).send(ErrorList["Reference unique constraint"]);
@@ -174,9 +173,8 @@ class ProductController {
     }
 
     try {
-      const existingItem = await this.productRepository.fetchByReference(
-        reference
-      );
+      const existingItem =
+        await this.productRepository.fetchByReference(reference);
 
       if (existingItem != null && existingItem.id !== id) {
         return res.status(400).send(ErrorList["Reference unique constraint"]);
@@ -298,9 +296,8 @@ class ProductController {
         return res.status(404).send(ErrorList["Product not found"]);
       }
 
-      const exists = await this.stockCardRepository.checkExistingByProductID(
-        id
-      );
+      const exists =
+        await this.stockCardRepository.checkExistingByProductID(id);
       result.can_delete = !exists;
       return res.status(200).send(result);
     } catch (error) {

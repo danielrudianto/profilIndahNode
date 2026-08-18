@@ -123,8 +123,7 @@ export function buatHookAudit(dasar: Pick<PrismaClient, "audit_log">) {
         action: aksi,
         user_id: penggunaSaatIni(),
         changes: (susunPerubahan(isian?.data) ?? undefined) as
-          | Prisma.InputJsonValue
-          | undefined,
+          Prisma.InputJsonValue | undefined,
         note: null,
       };
 

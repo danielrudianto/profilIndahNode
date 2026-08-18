@@ -69,8 +69,8 @@ export class OverpaymentCodeModel {
         data.customer == null
           ? null
           : data.customer == undefined
-          ? undefined
-          : CustomerModel.fromMap(data.customer),
+            ? undefined
+            : CustomerModel.fromMap(data.customer),
       user_overpayment_created_byTouser:
         data.user_overpayment_created_byTouser == undefined
           ? undefined
@@ -79,8 +79,8 @@ export class OverpaymentCodeModel {
         data.payment_method == null
           ? null
           : data.payment_method == undefined
-          ? undefined
-          : PaymentMethodModel.fromMap(data.payment_method),
+            ? undefined
+            : PaymentMethodModel.fromMap(data.payment_method),
     });
   }
 }

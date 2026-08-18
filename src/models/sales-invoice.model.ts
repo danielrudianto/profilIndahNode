@@ -92,7 +92,9 @@ export class SalesInvoiceModel {
     );
 
     return (
-      nilai - Number(data.discount) + Number(data.service) +
+      nilai -
+      Number(data.discount) +
+      Number(data.service) +
       Number(data.delivery)
     );
   }
@@ -139,8 +141,8 @@ export class SalesInvoiceModel {
                   item.product_unit == null
                     ? null
                     : item.product_unit == undefined
-                    ? undefined
-                    : ProductUnitModel.fromMap(item.product_unit),
+                      ? undefined
+                      : ProductUnitModel.fromMap(item.product_unit),
               };
             }),
       sales_invoice_payment:
@@ -167,8 +169,8 @@ export class SalesInvoiceModel {
         data.customer == undefined
           ? undefined
           : data.customer == null
-          ? null
-          : CustomerModel.fromMap(data.customer),
+            ? null
+            : CustomerModel.fromMap(data.customer),
       user_bill_code_created_byTouser:
         data.user_bill_code_created_byTouser == undefined
           ? undefined
@@ -177,8 +179,8 @@ export class SalesInvoiceModel {
         data.user_bill_code_confirmed_byTouser == undefined
           ? undefined
           : data.user_bill_code_confirmed_byTouser == null
-          ? null
-          : UserViewModel.fromMap(data.user_bill_code_confirmed_byTouser),
+            ? null
+            : UserViewModel.fromMap(data.user_bill_code_confirmed_byTouser),
     });
   }
 
@@ -225,8 +227,8 @@ export class SalesInvoiceItemModel {
         data.product_unit == null
           ? null
           : data.product_unit == undefined
-          ? undefined
-          : ProductUnitModel.fromMap(data.product_unit),
+            ? undefined
+            : ProductUnitModel.fromMap(data.product_unit),
     });
 
     return result;

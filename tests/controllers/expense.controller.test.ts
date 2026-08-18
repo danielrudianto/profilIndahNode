@@ -19,7 +19,10 @@ const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
-    constructor(public nama: string, public data: unknown) {}
+    constructor(
+      public nama: string,
+      public data: unknown
+    ) {}
     create() {
       kirimSocket(this.nama, this.data);
     }
@@ -255,7 +258,7 @@ describe("PUT / — mengubah biaya", () => {
       .send({ id: 12, value: 1, date: "2024-03-10", userId: 55 });
 
     const [dikirim] = repo.expense.update.mock.calls[0] as [
-      { created_by: number; created_at: Date }
+      { created_by: number; created_at: Date },
     ];
     expect(dikirim.created_by).toBe(55);
     expect(dikirim.created_at.getTime()).toBeGreaterThanOrEqual(sebelum);
@@ -400,7 +403,7 @@ describe("GET / — daftar biaya per bulan", () => {
     await request(app(repo)).get("/");
 
     const [dikirim] = repo.expense.fetch.mock.calls[0] as [
-      { year: number; month: number }
+      { year: number; month: number },
     ];
     expect(Number.isNaN(dikirim.year)).toBe(true);
     expect(Number.isNaN(dikirim.month)).toBe(true);
