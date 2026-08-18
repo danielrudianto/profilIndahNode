@@ -86,43 +86,43 @@ export class SalesDepositRepository {
     )}${Math.floor(Math.random() * 10)}`;
   }
 
-  async fetchByProductID(productID: number[]): Promise<number[]> {
-    try {
-      // fetch the sums
-      const deposits = await this.prisma.sales_deposit.groupBy({
-        by: ["product_id"],
-        _sum: {
-          quantity: true,
-        },
-        where: {
-          product_id: {
-            in: productID,
+  /*
+    Deposit TERBUKA satu produk — siapa memegang berapa. Terbuka berarti
+    kode setorannya belum ditandai is_delete: belum menjadi faktur dan
+    belum dibatalkan (lihat catatan pada confirmByID). Menggantikan
+    fetchByProductID lama yang tidak pernah dipanggil siapa pun dan
+    cacat: Number() atas objek groupBy selalu menghasilkan NaN.
+  */
+  async fetchOutstandingByProduct(productID: number) {
+    const baris = await this.prisma.sales_deposit.findMany({
+      where: {
+        product_id: productID,
+        is_delete: false,
+        sales_deposit_code: { is_delete: false },
+      },
+      select: {
+        quantity: true,
+        product_unit: { select: { unit: true } },
+        sales_deposit_code: {
+          select: {
+            id: true,
+            name: true,
+            created_at: true,
+            customer: { select: { name: true } },
           },
-          is_delete: false,
         },
-      });
+      },
+      orderBy: { sales_deposit_code: { created_at: "desc" } },
+    });
 
-      const response: {
-        product_id: number;
-        quantity: number;
-      }[] = [];
-
-      for (let i = 0; i < productID.length; i++) {
-        const product = productID[i];
-        const deposit = deposits.find((d) => d.product_id === product);
-        response.push({
-          product_id: product,
-          quantity: deposit ? Number(deposit) : 0,
-        });
-      }
-
-      return response.map((d) => {
-        return d.quantity;
-      });
-    } catch (error) {
-      console.error(`[error]: Error on fetching deposits ${error}`);
-      throw new Error("Internal server error");
-    }
+    return baris.map((x) => ({
+      depositCodeID: x.sales_deposit_code.id,
+      document: x.sales_deposit_code.name,
+      date: x.sales_deposit_code.created_at,
+      customer: x.sales_deposit_code.customer?.name ?? null,
+      quantity: Number(x.quantity),
+      unit: x.product_unit?.unit ?? null,
+    }));
   }
 
   async fetch(

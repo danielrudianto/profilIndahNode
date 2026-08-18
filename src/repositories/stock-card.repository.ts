@@ -247,6 +247,12 @@ export class StockCardRepository {
         where: {
           product_id: data.productID,
         },
+        // Lawan transaksinya ikut: supplier untuk barang masuk, pelanggan
+        // untuk barang keluar. Nama saja — kartunya bukan halaman kontak.
+        include: {
+          supplier: { select: { id: true, name: true } },
+          customer: { select: { id: true, name: true } },
+        },
         orderBy: [
           {
             date: "desc",

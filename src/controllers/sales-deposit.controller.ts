@@ -121,6 +121,19 @@ export class SalesDepositController {
     }
   };
 
+  /* Rincian pemegang deposit terbuka satu produk — dipakai kartu stok. */
+  fetchOutstandingByProduct = async (req: Request, res: Response) => {
+    try {
+      const productID = Number(req.params.id);
+      const result =
+        await this.salesDepositRepository.fetchOutstandingByProduct(productID);
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching outstanding deposits ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetchByID = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);

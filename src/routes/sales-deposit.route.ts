@@ -57,6 +57,13 @@ router.post(
   salesDepositController.create
 );
 
+/* Harus di atas /:id — "product" bukan id. */
+router.get(
+  "/product/:id",
+  validate(paramSalesDepositSchema, "params"),
+  salesDepositController.fetchOutstandingByProduct
+);
+
 router.get(
   "/:id",
   validate(paramSalesDepositSchema, "params"),
