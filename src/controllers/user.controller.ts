@@ -251,11 +251,8 @@ class UserController {
 
       return res.status(201).send(result);
     } catch (err: unknown) {
-      if (err instanceof Error) {
-        return res.status(500).send(err);
-      } else {
-        return res.status(500).send(ErrorList["Unknown error"]);
-      }
+      console.error(`[error]: Error on toggling user ${err}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

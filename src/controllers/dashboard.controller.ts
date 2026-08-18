@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { DashboardRepository } from "../repositories/dashboard.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
@@ -46,7 +47,7 @@ export class DashboardController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching dashboard ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -109,7 +110,7 @@ export class DashboardController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching sales dashboard ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -180,7 +181,7 @@ export class DashboardController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching sales dashboard ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

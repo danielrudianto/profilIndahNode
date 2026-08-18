@@ -52,7 +52,7 @@ class ProductStockController {
       console.error(
         `[error]: Error on fetching problematic product stock ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -82,7 +82,7 @@ class ProductStockController {
       console.error(
         `[error]: Error on fetching problematic product stock ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -165,7 +165,7 @@ class ProductStockController {
       console.error(
         `[error]: Error on fetching default product stock ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -263,7 +263,7 @@ class ProductStockController {
       console.error(
         `[error]: Error on fetching product stock warehouse ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -308,7 +308,7 @@ class ProductStockController {
       console.error(
         `[error]: Error on fetching product stock warehouse ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -319,7 +319,7 @@ class ProductStockController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching product meta data ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -335,7 +335,7 @@ class ProductStockController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching product stock ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -364,7 +364,7 @@ class ProductStockController {
       }
     } catch (error) {
       console.error(`[error]: Error on fetching package stock ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

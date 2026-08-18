@@ -117,7 +117,7 @@ export class SalesDepositController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching sales deposit ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -145,7 +145,7 @@ export class SalesDepositController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching sales deposit ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -155,7 +155,7 @@ export class SalesDepositController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching annual archive ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -472,7 +472,7 @@ export class SalesDepositController {
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on deleting sales deposit ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

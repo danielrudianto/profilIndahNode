@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { SalesInvoicePaymentRepository } from "../repositories/sales-invoice-payment.repository";
 import { SalesDepositPaymentRepository } from "../repositories/sales-deposit-payment.repository";
@@ -132,7 +133,7 @@ export class MoneyReceiptController {
       return res.status(200).send({ data: data, dorBulanIni: dorBulanIni });
     } catch (error) {
       console.error(`[error]: Error on fetching money receipt trend ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -301,7 +302,7 @@ export class MoneyReceiptController {
       ]);
     } catch (error) {
       console.error(`[error]: Error on fetching money receipt ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -317,7 +318,7 @@ export class MoneyReceiptController {
       console.error(
         `[error]: Error on downloading money receipt data ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

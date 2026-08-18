@@ -161,7 +161,7 @@ class SalesReturnController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error during fetching sales invoice ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -288,7 +288,7 @@ class SalesReturnController {
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on deleting sales return ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

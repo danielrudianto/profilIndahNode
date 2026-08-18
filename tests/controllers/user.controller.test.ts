@@ -659,19 +659,12 @@ describe("PATCH /:id — menyalakan dan mematikan pengguna", () => {
   });
 
   /**
-   * CACAT: galat dikirim sebagai objek Error, bukan key i18n.
-   *
-   * Penangkapnya berbunyi `res.status(500).send(err)`. Express menyerialkan
-   * objek Error menjadi JSON, dan `message` milik Error bersifat
-   * non-enumerable — sehingga yang sampai ke pengguna adalah badan JSON tanpa
-   * pesan apa pun, berbeda dari seluruh handler lain di berkas ini yang
-   * mengirim key "error.internalServer".
-   *
-   * Akibat bagi pengguna: kegagalan menonaktifkan pengguna muncul sebagai
-   * galat kosong di layar. Frontend tidak punya key untuk diterjemahkan, jadi
-   * administrator tidak tahu apakah perintahnya berhasil atau tidak.
+   * Dulu CACAT: penangkapnya berbunyi `res.status(500).send(err)`, sehingga
+   * yang sampai ke pengguna adalah badan JSON tanpa pesan — `message` milik
+   * Error non-enumerable — berbeda dari seluruh handler lain di berkas ini.
+   * Kini toggleActive juga membalas key "error.internalServer".
    */
-  it("CACAT: kegagalan dibalas 500 tanpa pesan yang bisa ditampilkan", async () => {
+  it("membalas key i18n saat toggleActive gagal, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     repo.fetchByID.mockResolvedValue(pengguna);
     repo.toggleActive.mockRejectedValue(new Error("koneksi putus"));
@@ -679,7 +672,7 @@ describe("PATCH /:id — menyalakan dan mematikan pengguna", () => {
     const res = await request(app(repo)).patch("/12");
 
     expect(res.status).toBe(500);
-    expect(res.text).not.toContain(ErrorList["Internal server error"]);
+    expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(res.text).not.toContain("koneksi putus");
   });
 });

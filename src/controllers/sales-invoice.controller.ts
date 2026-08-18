@@ -283,7 +283,7 @@ class SalesInvoiceController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching archives ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -343,7 +343,7 @@ class SalesInvoiceController {
       console.error(
         `[error]: error during fetching sales invoice by ID ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -363,7 +363,7 @@ class SalesInvoiceController {
       return res.status(200).send(payments);
     } catch (error) {
       console.error(`[error]: Error on fetching payments ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -380,7 +380,7 @@ class SalesInvoiceController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching sales return ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

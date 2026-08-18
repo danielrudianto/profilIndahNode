@@ -138,25 +138,19 @@ describe("GET / — daftar produk untuk pengisian harga jual", () => {
   });
 
   /**
-   * CACAT: balasan galat berbadan kosong.
-   *
-   * Blok catch-nya menulis `res.status(500).send(error)`. Express
-   * menyerialkan objek Error sebagai JSON, dan `message` maupun `stack`
-   * bukan properti terhitung, jadi yang sampai ke pengguna adalah `{}`.
-   *
-   * Akibat bagi pengguna: layar hanya menampilkan kegagalan tanpa kalimat apa
-   * pun, dan frontend tidak menerima key i18n yang bisa diterjemahkan —
-   * berbeda dengan controller lain yang mengirim ErrorList.
+   * Dulu CACAT: blok catch-nya menulis `res.status(500).send(error)`, dan
+   * karena `message` maupun `stack` bukan properti terhitung, yang sampai ke
+   * pengguna adalah `{}` tanpa key i18n. Kini membalas ErrorList seperti
+   * controller lain.
    */
-  it("CACAT: 500 dikirim sebagai objek kosong, bukan key galat", async () => {
+  it("membalas key i18n saat daftar gagal dimuat, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     repo.fetchSales.mockRejectedValue(new Error("koneksi putus"));
 
     const res = await request(app(repo)).get("/");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
-    expect(res.text).not.toBe(ErrorList["Internal server error"]);
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -196,14 +190,15 @@ describe("GET /:id — harga jual satu produk", () => {
     expect(res.body.sales_price).toBe(1500);
   });
 
-  it("membalas 500 berbadan kosong bila kueri gagal", async () => {
+  // Dulu CACAT: 500 berbadan "{}"; kini key i18n seperti controller lain.
+  it("membalas key i18n saat kueri gagal", async () => {
     const repo = repositoryTiruan();
     repo.fetchSalesPriceByID.mockRejectedValue(new Error("koneksi putus"));
 
     const res = await request(app(repo)).get("/5");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -308,7 +303,8 @@ describe("PUT / — mengubah harga jual satu produk", () => {
     expect(repo.updateSalesPrice).not.toHaveBeenCalled();
   });
 
-  it("membalas 500 berbadan kosong bila penyimpanan gagal", async () => {
+  // Dulu CACAT: 500 berbadan "{}"; kini key i18n seperti controller lain.
+  it("membalas key i18n bila penyimpanan gagal", async () => {
     const repo = repositoryTiruan();
     repo.fetchByID.mockResolvedValue(produk());
     repo.updateSalesPrice.mockRejectedValue(new Error("gagal"));
@@ -316,7 +312,7 @@ describe("PUT / — mengubah harga jual satu produk", () => {
     const res = await request(app(repo)).put("/").send({ product_id: 5, data });
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(tambahAntrian).not.toHaveBeenCalled();
   });
 
@@ -325,8 +321,9 @@ describe("PUT / — mengubah harga jual satu produk", () => {
    *
    * `data` langsung dipetakan tanpa pemeriksaan. Bila bidang itu tidak
    * dikirim, yang terjadi adalah TypeError yang tertangkap try dan menjadi
-   * 500 berbadan kosong — pengguna tidak diberi tahu bidang mana yang kurang,
-   * dan pesannya tidak bisa dibedakan dari basis data yang sedang mati.
+   * 500 — pengguna tidak diberi tahu bidang mana yang kurang, dan pesannya
+   * (kini key i18n galat server, dulu badan kosong) tidak bisa dibedakan
+   * dari basis data yang sedang mati.
    */
   it("CACAT: 500 saat data tidak dikirim, bukan 400", async () => {
     const repo = repositoryTiruan();
@@ -335,7 +332,7 @@ describe("PUT / — mengubah harga jual satu produk", () => {
     const res = await request(app(repo)).put("/").send({ product_id: 5 });
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(repo.updateSalesPrice).not.toHaveBeenCalled();
   });
 
@@ -344,7 +341,7 @@ describe("PUT / — mengubah harga jual satu produk", () => {
    * keberhasilan.
    *
    * Harganya sudah tersimpan sebelum `queue.add` dipanggil. Bila Redis sedang
-   * tidak bisa dihubungi, balasannya menjadi 500 berbadan kosong.
+   * tidak bisa dihubungi, balasannya menjadi 500 galat server.
    *
    * Akibat bagi pengguna: harga jual SUDAH berubah di basis data, tetapi layar
    * bertuliskan gagal. Operator mengisi ulang seluruh baris harga dan menekan

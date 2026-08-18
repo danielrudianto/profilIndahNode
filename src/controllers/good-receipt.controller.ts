@@ -436,7 +436,7 @@ class GoodReceiptController {
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on deleting good receipt ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -636,7 +636,7 @@ class GoodReceiptController {
       return res.status(200).send(goodReceipt);
     } catch (error) {
       console.error(`[error]: Error on confirming purchase invoice ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -721,7 +721,7 @@ class GoodReceiptController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on confirming purchase invoice ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

@@ -1,5 +1,6 @@
 import express from "express";
 import request from "supertest";
+import ErrorList from "../../src/constants/error-list.constant";
 
 /**
  * Perilaku ProductStockCardController.
@@ -13,11 +14,11 @@ import request from "supertest";
  * memanggil getIO() yang MELEMPAR bila initIO belum dipanggil, dan di dalam
  * tes initIO memang tidak pernah dipanggil.
  *
- * CATATAN UMUM TENTANG BALASAN GALAT. Kedua blok catch menulis
- * `res.status(500).send(error)` — objek Error dikirim apa adanya, bukan key
- * i18n dari ErrorList seperti di controller lain. Express menyerialkannya
- * sebagai JSON, dan `message` maupun `stack` pada Error bukan properti
- * terhitung, jadi yang sampai ke pengguna adalah badan kosong `{}`.
+ * CATATAN UMUM TENTANG BALASAN GALAT. Dulu kedua blok catch menulis
+ * `res.status(500).send(error)` — objek Error diserialkan menjadi `{}`
+ * karena `message` dan `stack` bukan properti terhitung. Kini keduanya
+ * membalas key i18n ErrorList["Internal server error"] seperti controller
+ * lain, dan tes di bawah menjaganya.
  */
 
 const kirimSocket = jest.fn();
@@ -139,7 +140,7 @@ describe("GET /:id — kartu stok satu produk", () => {
     expect(produk.fetchByIDs).not.toHaveBeenCalled();
   });
 
-  it("membalas 500 dengan badan kosong bila repository gagal", async () => {
+  it("membalas key i18n bila repository gagal", async () => {
     const produk = productRepositoryTiruan();
     const kartu = stockCardRepositoryTiruan();
     kartu.fetchByProductID.mockRejectedValue(new Error("koneksi putus"));
@@ -147,7 +148,7 @@ describe("GET /:id — kartu stok satu produk", () => {
     const res = await request(app(produk, kartu)).get("/5?page=1&pageSize=10");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -241,7 +242,7 @@ describe("POST /mutation — mutasi stok", () => {
     );
   });
 
-  it("membalas 500 dengan badan kosong bila repository gagal", async () => {
+  it("membalas key i18n bila repository gagal", async () => {
     const produk = productRepositoryTiruan();
     const kartu = stockCardRepositoryTiruan();
     kartu.fetchMutation.mockRejectedValue(new Error("koneksi putus"));
@@ -251,7 +252,7 @@ describe("POST /mutation — mutasi stok", () => {
       .send({ date: "2026-08-01", product_id: 5, viewBy: "date" });
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**

@@ -20,13 +20,12 @@ import ErrorList from "../../src/constants/error-list.constant";
  *                         sini hanya membaca), tetapi tiruannya dipertahankan
  *                         agar bentuk berkas ini sama dengan acuan.
  *
- * CATATAN UMUM TENTANG BALASAN GALAT. Semua blok catch di controller ini
- * menulis `res.status(500).send(error)` — objek Error dikirim apa adanya,
- * berbeda dengan controller lain yang mengirim key i18n dari ErrorList.
- * Express menyerialkan objek itu sebagai JSON, dan `message` maupun `stack`
- * pada Error bukan properti terhitung, sehingga yang sampai ke pengguna adalah
- * badan kosong `{}`. Layar hanya menampilkan galat tanpa kalimat apa pun dan
- * frontend tidak punya key untuk diterjemahkan.
+ * CATATAN UMUM TENTANG BALASAN GALAT. Dulu semua blok catch di controller ini
+ * menulis `res.status(500).send(error)` — objek Error diserialkan menjadi
+ * badan kosong `{}` karena `message` dan `stack` bukan properti terhitung,
+ * sehingga frontend tidak punya key untuk diterjemahkan. Kini semuanya
+ * membalas key i18n ErrorList["Internal server error"] seperti controller
+ * lain, dan tes-tes 500 di bawah menjaganya.
  */
 
 const kirimSocket = jest.fn();
@@ -220,7 +219,7 @@ describe("POST /problematic dan POST /inadequate", () => {
     expect(r.stok.fetchProblematicStock).not.toHaveBeenCalled();
   });
 
-  it("membalas 500 dengan badan kosong bila repository gagal", async () => {
+  it("membalas key i18n bila repository gagal", async () => {
     const r = repos();
     r.stok.fetchProblematicStock.mockRejectedValue(new Error("koneksi putus"));
 
@@ -229,9 +228,7 @@ describe("POST /problematic dan POST /inadequate", () => {
       .send({ brands: [], types: [] });
 
     expect(res.status).toBe(500);
-    // Objek Error yang diserialkan menjadi JSON kosong: pengguna tidak
-    // diberitahu apa pun tentang penyebabnya.
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -297,14 +294,14 @@ describe("GET / — daftar stok lewat Meilisearch", () => {
     expect(cariMeili).toHaveBeenCalledWith("product", "%", expect.anything());
   });
 
-  it("membalas 500 dengan badan kosong bila Meilisearch gagal", async () => {
+  it("membalas key i18n bila Meilisearch gagal", async () => {
     const r = repos();
     cariMeili.mockRejectedValue(new Error("meili mati"));
 
     const res = await request(app(r)).get("/?page=1&pageSize=10");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(r.stok.fetchStock).not.toHaveBeenCalled();
   });
 
@@ -459,7 +456,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
     expect(res.body.data[0].product_stock).toEqual({ stock: 30 });
   });
 
-  it("membalas 500 dengan badan kosong bila pencarian gagal", async () => {
+  it("membalas key i18n bila pencarian gagal", async () => {
     const r = repos();
     cariMeili.mockRejectedValue(new Error("meili mati"));
 
@@ -468,7 +465,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
       .send({ ...badan, role: 2 });
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -576,7 +573,7 @@ describe("POST /warehouse/inadequate — produk yang stoknya di bawah minimum", 
     });
   });
 
-  it("membalas 500 dengan badan kosong bila repository gagal", async () => {
+  it("membalas key i18n bila repository gagal", async () => {
     const r = repos();
     r.stok.fetchInadequateWarehouse.mockRejectedValue(new Error("gagal"));
 
@@ -585,7 +582,7 @@ describe("POST /warehouse/inadequate — produk yang stoknya di bawah minimum", 
       .send({ keyword: "", page: 1, pageSize: 10 });
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -638,14 +635,14 @@ describe("GET /meta/:id — data ringkas produk", () => {
     expect(res.body).toEqual({ id: 5, reference: "PRD-001" });
   });
 
-  it("membalas 500 dengan badan kosong bila kueri gagal", async () => {
+  it("membalas key i18n bila kueri gagal", async () => {
     const r = repos();
     r.produk.fetchByID.mockRejectedValue(new Error("koneksi putus"));
 
     const res = await request(app(r)).get("/meta/5");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -684,14 +681,14 @@ describe("GET /product/:id — stok satu produk", () => {
     expect(res.body).toEqual({ stock: { product_id: 5, stock: 42 } });
   });
 
-  it("membalas 500 dengan badan kosong bila kueri gagal", async () => {
+  it("membalas key i18n bila kueri gagal", async () => {
     const r = repos();
     r.stok.fetchStockByProductID.mockRejectedValue(new Error("gagal"));
 
     const res = await request(app(r)).get("/product/5");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -752,7 +749,7 @@ describe("GET /package/:id — stok tiap isi paket", () => {
     expect(r.stok.fetchStockByProductID).not.toHaveBeenCalled();
   });
 
-  it("membalas 500 dengan badan kosong bila kueri stok gagal", async () => {
+  it("membalas key i18n bila kueri stok gagal", async () => {
     const r = repos();
     r.paket.fetchByID.mockResolvedValue({
       id: 3,
@@ -763,7 +760,7 @@ describe("GET /package/:id — stok tiap isi paket", () => {
     const res = await request(app(r)).get("/package/3");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -801,14 +798,14 @@ describe("GET /package/:id — stok tiap isi paket", () => {
    * dipanggil pada undefined. Galatnya tertangkap try dan menjadi 500
    * berbadan kosong — tidak bisa dibedakan dari basis data yang sedang mati.
    */
-  it("CACAT: paket tanpa package_content membalas 500 berbadan kosong", async () => {
+  it("paket tanpa package_content membalas 500 ber-key i18n", async () => {
     const r = repos();
     r.paket.fetchByID.mockResolvedValue({ id: 3 });
 
     const res = await request(app(r)).get("/package/3");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(r.stok.fetchStockByProductID).not.toHaveBeenCalled();
   });
 });

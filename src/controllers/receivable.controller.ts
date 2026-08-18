@@ -24,7 +24,7 @@ class ReceivableController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching receivable ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -45,7 +45,7 @@ class ReceivableController {
       console.error(
         `[error]: Error on fetching receivable by customerID ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -119,7 +119,7 @@ class ReceivableController {
       console.error(
         `[error]: Error on creating sales invoice payment ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

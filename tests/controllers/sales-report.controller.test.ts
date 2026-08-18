@@ -1,5 +1,6 @@
 import express from "express";
 import request from "supertest";
+import ErrorList from "../../src/constants/error-list.constant";
 
 /**
  * Perilaku SalesReportController.
@@ -377,18 +378,13 @@ describe("POST /sales/download — unduhan laporan penjualan", () => {
   });
 
   /**
-   * CACAT: galat dikirim sebagai objek Error, bukan key i18n.
-   *
-   * Keempat handler ber-try/catch di berkas ini menutup dengan
-   * `res.status(500).send(error)`. `message` milik Error bersifat
-   * non-enumerable, jadi badan balasannya kosong dari penjelasan — sementara
-   * properti galat Prisma yang enumerable (`code`, `meta`) justru ikut
-   * terkirim ke peramban.
-   *
-   * Akibat bagi pengguna: tombol unduh yang gagal tidak memberi pesan apa pun
-   * yang bisa ditampilkan, sedangkan rincian internal basis data bocor keluar.
+   * Dulu CACAT: handler ber-try/catch di berkas ini menutup dengan
+   * `res.status(500).send(error)` — `message` yang non-enumerable hilang,
+   * sementara properti galat Prisma (`code`, `meta`) justru bocor ke
+   * peramban. Kini kegagalan unduhan membalas key i18n tanpa rincian
+   * internal basis data.
    */
-  it("CACAT: kegagalan unduhan mengirim objek galat, bukan pesan", async () => {
+  it("membalas key i18n saat unduhan gagal, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     repo.fetchDownload.mockRejectedValue(
       Object.assign(new Error("kueri gagal"), {
@@ -402,9 +398,8 @@ describe("POST /sales/download — unduhan laporan penjualan", () => {
       .send({ month: 3, year: 2026 });
 
     expect(res.status).toBe(500);
-    expect(res.body.message).toBeUndefined();
-    expect(res.text).not.toContain("error.internalServer");
-    expect(res.body.code).toBe("P2010");
-    expect(res.body.meta).toEqual({ table: "sales_invoice" });
+    expect(res.text).toBe(ErrorList["Internal server error"]);
+    expect(res.text).not.toContain("P2010");
+    expect(res.text).not.toContain("sales_invoice");
   });
 });

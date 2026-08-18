@@ -101,7 +101,7 @@ export class OverpaymentController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching overpayment data ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -142,7 +142,7 @@ export class OverpaymentController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching overpayment data ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -156,7 +156,7 @@ export class OverpaymentController {
       console.error(
         `[error]: Error on fetching overpayment return data ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

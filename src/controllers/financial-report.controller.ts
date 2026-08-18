@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseRepository } from "../repositories/expense.repository";
@@ -48,7 +49,7 @@ export class FinancialReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching profit loss report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -95,7 +96,7 @@ export class FinancialReportController {
       return res.status(200).send({ data: data });
     } catch (error) {
       console.error(`[error]: Error on fetching profit loss trend ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -114,7 +115,7 @@ export class FinancialReportController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching daily sales report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

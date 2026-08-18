@@ -139,26 +139,20 @@ describe("GET / — daftar produk untuk pengisian harga beli", () => {
   });
 
   /**
-   * CACAT: balasan galat berbadan kosong.
-   *
-   * Blok catch-nya menulis `res.status(500).send(error)` — objek Error dikirim
-   * apa adanya, bukan key i18n dari ErrorList seperti pada handler update di
-   * berkas yang sama. Express menyerialkannya sebagai JSON, dan `message`
-   * maupun `stack` pada Error bukan properti terhitung.
-   *
-   * Akibat bagi pengguna: yang sampai ke layar adalah `{}` — tidak ada kalimat
-   * yang bisa ditampilkan dan tidak ada key yang bisa diterjemahkan frontend,
-   * sehingga pengguna hanya melihat kegagalan tanpa keterangan apa pun.
+   * Dulu CACAT: blok catch-nya menulis `res.status(500).send(error)` — objek
+   * Error diserialkan menjadi `{}` karena `message` dan `stack` bukan
+   * properti terhitung, sehingga frontend tidak punya key untuk
+   * diterjemahkan. Kini membalas key i18n seperti handler update di berkas
+   * yang sama.
    */
-  it("CACAT: 500 dikirim sebagai objek kosong, bukan key galat", async () => {
+  it("membalas key i18n saat daftar gagal dimuat, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     repo.fetchSales.mockRejectedValue(new Error("koneksi putus"));
 
     const res = await request(app(repo)).get("/");
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
-    expect(res.text).not.toBe(ErrorList["Internal server error"]);
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   /**
@@ -282,7 +276,8 @@ describe("PUT / — mengubah harga beli satu produk", () => {
     expect(repo.updatePurchasePrice).not.toHaveBeenCalled();
   });
 
-  it("membalas 500 berbadan kosong bila penyimpanan gagal", async () => {
+  // Dulu CACAT: 500 berbadan "{}"; kini key i18n seperti controller lain.
+  it("membalas key i18n bila penyimpanan gagal", async () => {
     const repo = repositoryTiruan();
     repo.fetchByID.mockResolvedValue(produk());
     repo.updatePurchasePrice.mockRejectedValue(new Error("gagal"));
@@ -290,7 +285,7 @@ describe("PUT / — mengubah harga beli satu produk", () => {
     const res = await request(app(repo)).put("/").send({ product_id: 5, data });
 
     expect(res.status).toBe(500);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(tambahAntrian).not.toHaveBeenCalled();
   });
 
@@ -299,7 +294,7 @@ describe("PUT / — mengubah harga beli satu produk", () => {
    * keberhasilan.
    *
    * Harganya sudah tersimpan sebelum `queue.add` dipanggil. Bila Redis sedang
-   * tidak bisa dihubungi, balasannya menjadi 500 berbadan kosong.
+   * tidak bisa dihubungi, balasannya menjadi 500 galat server.
    *
    * Akibat bagi pengguna: harga beli SUDAH berubah di basis data, tetapi layar
    * bertuliskan gagal. Operator mengisi ulang seluruh baris harga dan menekan

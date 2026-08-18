@@ -740,15 +740,12 @@ describe("POST /reject — menolak penyesuaian", () => {
   });
 
   /**
-   * CACAT: badan balasan galat pada reject berupa objek Error mentah.
-   *
-   * Handler tetangganya membalas ErrorList["Internal server error"], tetapi
-   * reject memakai `res.status(500).send(error)`. Objek Error dijadikan JSON
-   * "{}" karena message dan stack bukan properti yang bisa dihitung, jadi
-   * pemanggil menerima badan KOSONG dan frontend tidak punya key i18n untuk
-   * ditampilkan.
+   * Dulu CACAT: reject memakai `res.status(500).send(error)` sehingga objek
+   * Error dijadikan JSON "{}" — message dan stack bukan properti yang bisa
+   * dihitung — dan frontend tidak punya key i18n untuk ditampilkan. Kini
+   * reject membalas ErrorList["Internal server error"] seperti tetangganya.
    */
-  it("CACAT: badan galat reject berupa objek kosong, bukan key i18n", async () => {
+  it("membalas key i18n saat reject gagal, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     repo.adjustmentCase.fetchByID.mockResolvedValue(penyesuaian);
     repo.adjustmentCase.reject.mockRejectedValue(new Error("gagal"));
@@ -756,8 +753,7 @@ describe("POST /reject — menolak penyesuaian", () => {
     const res = await request(app(repo)).post("/reject").send({ id: 7 });
 
     expect(res.status).toBe(500);
-    expect(res.body).toEqual({});
-    expect(res.text).not.toBe(ErrorList["Internal server error"]);
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 });
 

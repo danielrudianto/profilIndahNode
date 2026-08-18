@@ -4,6 +4,7 @@
   ke penanganan galat secara bawaan, persis yang dilakukan tambalannya.
 */
 import { allowedOrigins } from "./constants/allowed-origin.constant";
+import ErrorList from "./constants/error-list.constant";
 import dotenv from "dotenv"; // If you load .env here for testing this file directly
 dotenv.config(); // If you load .env here
 
@@ -234,7 +235,7 @@ async function main() {
     ) => {
       console.error(`[error]: Unhandled error on request: ${error.stack}`);
       if (res.headersSent) return;
-      return res.status(500).send("Internal server error");
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   );
 }

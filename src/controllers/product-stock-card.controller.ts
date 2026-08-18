@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { translatePage } from "../utils/escape.helper";
 import { ProductRepository } from "../repositories/product.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
@@ -30,7 +31,7 @@ export class ProductStockCardController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching product stock card ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -49,7 +50,7 @@ export class ProductStockCardController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fething product stock ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

@@ -1,4 +1,5 @@
 import express from "express";
+import ErrorList from "../../src/constants/error-list.constant";
 import { validate } from "../../src/utils/validate.helper";
 import {
   companyPeriodQuerySchema,
@@ -188,17 +189,12 @@ describe("GET /inventory — nilai persediaan per perusahaan", () => {
   });
 
   /**
-   * CACAT: galat dikirim sebagai objek Error, bukan key i18n.
-   *
-   * Ketiga handler di berkas ini menutup dengan `res.status(500).send(error)`.
-   * `message` milik Error bersifat non-enumerable, jadi badan balasannya kosong
-   * dari penjelasan; sebaliknya properti galat Prisma yang enumerable —
-   * `code` dan `meta` — justru ikut terkirim ke peramban.
-   *
-   * Akibat bagi pengguna: laporan yang gagal dimuat hanya menampilkan galat
-   * tanpa kalimat, sementara rincian internal basis data bocor keluar.
+   * Dulu CACAT: handler di berkas ini menutup dengan
+   * `res.status(500).send(error)` — `message` yang non-enumerable hilang,
+   * sementara properti galat Prisma (`code`, `meta`) justru bocor ke
+   * peramban. Kini kegagalan dibalas key i18n tanpa rincian internal.
    */
-  it("CACAT: kegagalan dibalas 500 berisi objek galat tanpa pesan", async () => {
+  it("membalas key i18n saat kueri gagal, tanpa membocorkan galatnya", async () => {
     const r = repositoryTiruan();
     r.stockIn.calculateAsOf.mockRejectedValue(
       Object.assign(new Error("kueri gagal"), {
@@ -210,9 +206,8 @@ describe("GET /inventory — nilai persediaan per perusahaan", () => {
     const res = await request(app(r)).get("/inventory");
 
     expect(res.status).toBe(500);
-    expect(res.body.message).toBeUndefined();
-    expect(res.text).not.toContain("error.internalServer");
-    expect(res.body.code).toBe("P2010");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
+    expect(res.text).not.toContain("P2010");
   });
 });
 

@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { RedisClientType } from "redis";
 import { translateKeyword } from "../utils/escape.helper";
 
@@ -18,7 +19,7 @@ export class SalesmanController {
       next();
     } catch (error) {
       console.error(`[error]: Error during adding a salesman`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

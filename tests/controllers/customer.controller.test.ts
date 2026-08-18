@@ -347,17 +347,12 @@ describe("DELETE /:id — penjagaan sebelum menghapus", () => {
   });
 
   /**
-   * CACAT: penghapusan yang gagal mengirim objek galat mentah ke klien.
-   *
-   * Handler lain membalas ErrorList["Internal server error"], sebuah key i18n.
-   * Di sini yang dikirim adalah `error` itu sendiri. Dua akibatnya sekaligus:
-   * pesan galat basis data — termasuk nama tabel dan potongan kueri — bisa
-   * bocor ke layar pengguna; dan karena Error tidak punya properti yang bisa
-   * diserialkan, badan balasannya justru KOSONG, sehingga frontend tidak punya
-   * apa pun untuk ditampilkan dan pengguna hanya melihat galat tanpa
-   * keterangan.
+   * Dulu CACAT: penghapusan yang gagal mengirim objek galat mentah lewat
+   * `res.status(500).send(error)` — pesan basis data bisa bocor, sementara
+   * badan yang sampai justru "{}" karena Error tidak punya properti yang bisa
+   * diserialkan. Kini delete membalas key i18n seperti handler lain.
    */
-  it("CACAT: delete membalas 500 dengan badan kosong, bukan key i18n", async () => {
+  it("membalas key i18n saat penghapusan gagal, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     repo.fetchByID.mockResolvedValue(pelanggan);
     repo.delete.mockRejectedValue(new Error("Table 'customer' doesn't exist"));
@@ -365,8 +360,7 @@ describe("DELETE /:id — penjagaan sebelum menghapus", () => {
     const res = await request(app(repo)).delete("/12");
 
     expect(res.status).toBe(500);
-    expect(res.text).not.toBe(ErrorList["Internal server error"]);
-    expect(res.text).toBe("{}");
+    expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
   it("delete tidak mengirim peristiwa socket", async () => {

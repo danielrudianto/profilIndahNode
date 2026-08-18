@@ -84,7 +84,7 @@ export class StockReportController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching inventory report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -220,7 +220,7 @@ export class StockReportController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching inventory trend ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -261,7 +261,7 @@ export class StockReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching output report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

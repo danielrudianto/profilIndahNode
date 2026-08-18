@@ -111,7 +111,7 @@ class CustomerController {
       return res.status(200).send(customer);
     } catch (error) {
       console.error(`[error]: Error on deleting customer: ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

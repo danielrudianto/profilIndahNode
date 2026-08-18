@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 
 /**
@@ -62,7 +63,7 @@ export class PurchaseReportController {
       console.error(
         `[error]: Error on fetching purchase invoice report ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -77,7 +78,7 @@ export class PurchaseReportController {
       return res.status(200).send({ data: result });
     } catch (error) {
       console.error(`[error]: Error on fetching supplier purchases ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -92,7 +93,7 @@ export class PurchaseReportController {
       return res.status(200).send({ data: result });
     } catch (error) {
       console.error(`[error]: Error on fetching brand purchases ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -107,7 +108,7 @@ export class PurchaseReportController {
       return res.status(200).send({ data: result });
     } catch (error) {
       console.error(`[error]: Error on fetching type purchases ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

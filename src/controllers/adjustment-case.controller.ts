@@ -251,7 +251,7 @@ class AdjustmentCaseController {
       return res.status(201).send(result);
     } catch (error) {
       console.error(`[error]: Error on disapprove adjustment case: ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 

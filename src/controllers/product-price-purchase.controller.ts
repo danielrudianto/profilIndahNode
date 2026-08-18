@@ -24,7 +24,7 @@ export class ProductPurchasePriceController {
       });
       return res.status(200).send(result);
     } catch (error) {
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -101,7 +101,7 @@ export class ProductPurchasePriceController {
       console.error(
         `[error]: Error on updating product purchase price ${error}`
       );
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import ErrorList from "../constants/error-list.constant";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
 
@@ -76,7 +77,7 @@ export class SalesReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching brand report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -94,7 +95,7 @@ export class SalesReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching customer report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -112,7 +113,7 @@ export class SalesReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching type report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -130,7 +131,7 @@ export class SalesReportController {
       });
     } catch (error) {
       console.error(`[error]: Error on fetching type report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 
@@ -147,7 +148,7 @@ export class SalesReportController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching sales report ${error}`);
-      return res.status(500).send(error);
+      return res.status(500).send(ErrorList["Internal server error"]);
     }
   };
 }
