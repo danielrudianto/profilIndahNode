@@ -94,8 +94,15 @@ export const paramUserSchema = z.object({
  * `userId` tidak ikut divalidasi: nilainya ditulis authMiddleware ke req.body,
  * bukan dikirim klien.
  */
+/*
+  Aturan BARU, bukan migrasi: ganti sandi kini mensyaratkan sandi lama.
+  Rantai lama membiarkan siapa pun di depan komputer yang kebuka
+  mengganti sandi pemiliknya tanpa membuktikan tahu sandi sebelumnya.
+*/
 export const updateUserPasswordSchema = z.object({
+  /* password lebih dulu: badan kosong tetap berpesan sama dengan rantai lama. */
   password: requiredText(ErrorList["Password is required"]),
+  currentPassword: requiredText(ErrorList["Current password required"]),
 });
 
 export type CreateUser = z.infer<typeof createUserSchema>;

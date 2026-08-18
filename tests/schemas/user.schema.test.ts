@@ -159,10 +159,13 @@ describe("PUT /user — perilaku harus identik", () => {
 
 describe("POST /user/changePassword — perilaku harus identik", () => {
   const kasus: Array<[string, any]> = [
-    ["sandi terisi", { password: "rahasia" }],
+    ["sandi terisi", { currentPassword: "lama", password: "rahasia" }],
     ["tanpa sandi", {}],
-    ["sandi kosong", { password: "" }],
-    ["userId dari authMiddleware ikut lewat", { userId: 9, password: "abc" }],
+    ["sandi kosong", { currentPassword: "lama", password: "" }],
+    [
+      "userId dari authMiddleware ikut lewat",
+      { userId: 9, currentPassword: "lama", password: "abc" },
+    ],
   ];
 
   for (const [nama, badan] of kasus) {
@@ -171,6 +174,22 @@ describe("POST /user/changePassword — perilaku harus identik", () => {
       expect(h.baru).toEqual(h.lama);
     });
   }
+
+  /*
+    Aturan BARU, bukan migrasi: sandi lama kini wajib ada — rantai lama
+    membiarkan siapa pun di depan komputer terbuka mengganti sandi
+    pemiliknya tanpa membuktikan tahu sandi sebelumnya. Kebenaran sandi
+    lamanya diperiksa controller (compare), bukan skema.
+  */
+  it("tanpa currentPassword: dulu diterima, sekarang ditolak", async () => {
+    const h = await keduanya("post", "/changePassword", {
+      password: "rahasia",
+    });
+
+    expect(h.lama.status).toBe(200);
+    expect(h.baru.status).toBe(400);
+    expect(h.baru.teks).toBe(ErrorList["Current password required"]);
+  });
 });
 
 describe("Parameter :id — perilaku harus identik", () => {
@@ -354,7 +373,10 @@ describe("Perbedaan disengaja: nilai bukan teks ditolak pada bidang teks", () =>
   }
 
   it("password berupa angka: dulu diterima, sekarang ditolak", async () => {
-    const h = await keduanya("post", "/changePassword", { password: 12345 });
+    const h = await keduanya("post", "/changePassword", {
+      currentPassword: "lama",
+      password: 12345,
+    });
 
     expect(h.lama.status).toBe(200);
     expect(h.baru.status).toBe(400);

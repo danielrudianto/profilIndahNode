@@ -49,9 +49,11 @@ jest.mock("../../src/utils/redis.helper", () => ({
 }));
 
 const hashTiruan = jest.fn();
+const compareTiruan = jest.fn();
 jest.mock("bcryptjs", () => ({
   __esModule: true,
   hash: (...a: unknown[]) => hashTiruan(...a),
+  compare: (...a: unknown[]) => compareTiruan(...a),
 }));
 
 import UserController from "../../src/controllers/user.controller";
@@ -68,6 +70,7 @@ function repositoryTiruan() {
     delete: jest.fn(),
     fetch: jest.fn(),
     fetchByID: jest.fn(),
+    fetchPasswordByID: jest.fn(),
   };
 }
 
@@ -121,6 +124,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   process.env.LIMIT = "10";
   hashTiruan.mockResolvedValue("hash-tersimpan");
+  compareTiruan.mockResolvedValue(true);
 });
 
 describe("POST / — membuat pengguna", () => {
@@ -729,27 +733,48 @@ describe("DELETE /:id — menghapus pengguna", () => {
 });
 
 describe("POST /changePassword — mengganti sandi sendiri", () => {
+  function siapkanPemilik(repo: ReturnType<typeof repositoryTiruan>) {
+    repo.fetchPasswordByID.mockResolvedValue("hash-lama");
+    repo.updatePassword.mockResolvedValue({ id: 99, name: "Budi" });
+  }
+
   it("membalas 200 dan menyimpan hash sandi baru", async () => {
     const repo = repositoryTiruan();
-    repo.updatePassword.mockResolvedValue({ id: 99, name: "Budi" });
+    siapkanPemilik(repo);
 
     const res = await request(app(repo))
       .post("/changePassword")
-      .send({ password: "sandiBaru" });
+      .send({ currentPassword: "sandiLama", password: "sandiBaru" });
 
     expect(res.status).toBe(200);
+    // Sandi lama dibuktikan lewat compare terhadap hash tersimpan.
+    expect(compareTiruan).toHaveBeenCalledWith("sandiLama", "hash-lama");
     expect(hashTiruan).toHaveBeenCalledWith("sandiBaru", 12);
     // Sandi hanya bisa diganti untuk pemilik token, bukan id kiriman klien.
     expect(repo.updatePassword).toHaveBeenCalledWith(99, "hash-tersimpan");
   });
 
-  it("tidak memantulkan sandi baru di badan balasan", async () => {
+  it("sandi lama yang salah ditolak tanpa menyentuh penyimpanan", async () => {
     const repo = repositoryTiruan();
-    repo.updatePassword.mockResolvedValue({ id: 99, name: "Budi" });
+    siapkanPemilik(repo);
+    compareTiruan.mockResolvedValue(false);
 
     const res = await request(app(repo))
       .post("/changePassword")
-      .send({ password: "sandiBaru" });
+      .send({ currentPassword: "tebakan", password: "sandiBaru" });
+
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Current password incorrect"]);
+    expect(repo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("tidak memantulkan sandi baru di badan balasan", async () => {
+    const repo = repositoryTiruan();
+    siapkanPemilik(repo);
+
+    const res = await request(app(repo))
+      .post("/changePassword")
+      .send({ currentPassword: "sandiLama", password: "sandiBaru" });
 
     expect(res.text).not.toContain("sandiBaru");
     expect(res.text).not.toContain("hash-tersimpan");
@@ -757,11 +782,12 @@ describe("POST /changePassword — mengganti sandi sendiri", () => {
 
   it("membalas 500 bila penyimpanan gagal", async () => {
     const repo = repositoryTiruan();
+    siapkanPemilik(repo);
     repo.updatePassword.mockRejectedValue(new Error("koneksi putus"));
 
     const res = await request(app(repo))
       .post("/changePassword")
-      .send({ password: "sandiBaru" });
+      .send({ currentPassword: "sandiLama", password: "sandiBaru" });
 
     expect(res.status).toBe(500);
     expect(res.text).toBe(ErrorList["Internal server error"]);

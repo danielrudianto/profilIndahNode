@@ -1,4 +1,4 @@
-import { hash } from "bcryptjs";
+import { compare, hash } from "bcryptjs";
 import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
 import SocketHelper from "../utils/socket.helper";
@@ -256,9 +256,24 @@ class UserController {
 
   updatePassword = async (req: Request, res: Response) => {
     try {
+      const currentPassword = req.body.currentPassword;
       const password = req.body.password;
-      const hashedPassword = await hash(password, 12);
       const userID = req.body.userId;
+
+      /*
+        Sandi lama wajib terbukti benar dulu — token yang tertinggal di
+        komputer terbuka tidak boleh cukup untuk merebut akun.
+      */
+      const hashTersimpan = await this.userRepository.fetchPasswordByID(userID);
+      if (hashTersimpan === null) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+      const cocok = await compare(currentPassword, hashTersimpan);
+      if (!cocok) {
+        return res.status(400).send(ErrorList["Current password incorrect"]);
+      }
+
+      const hashedPassword = await hash(password, 12);
       const result = await this.userRepository.updatePassword(
         userID,
         hashedPassword

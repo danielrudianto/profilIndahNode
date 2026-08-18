@@ -160,7 +160,9 @@
       "foundTypeBoolean": "Tipe kasus penyesuaian ditemukan harus berupa boolean."
     },
     "password": {
-      "required": "Password tidak boleh kosong."
+      "required": "Password tidak boleh kosong.",
+      "currentRequired": "Kata sandi saat ini tidak boleh kosong.",
+      "currentWrong": "Kata sandi saat ini salah."
     },
     "userRole": {
       "required": "Role pengguna tidak boleh kosong."

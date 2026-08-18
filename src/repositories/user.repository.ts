@@ -291,6 +291,20 @@ export class UserRepository {
     });
   }
 
+  /*
+    Hanya hash sandi, bukan UserModel utuh: fetchByID sengaja tidak memuat
+    kolom password karena hasilnya mengalir ke balasan GET, dan menambahkannya
+    di sana berarti hash ikut terkirim ke klien.
+  */
+  async fetchPasswordByID(id: number): Promise<string | null> {
+    const hasil = await this.prisma.user.findUnique({
+      where: { id },
+      select: { password: true },
+    });
+
+    return hasil?.password ?? null;
+  }
+
   async fetch(data: IFetchCommon): Promise<IFetchCommonResult<UserModel>> {
     const { page, keyword, pageSize } = data;
 
