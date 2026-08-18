@@ -136,6 +136,13 @@ router.get(
   stockReportController.fetchInventoryReport
 );
 
+router.get(
+  "/inventory/trend",
+  superadministratorMiddleware,
+  validate(inventoryQuerySchema, "query"),
+  stockReportController.fetchInventoryTrend
+);
+
 router.post(
   "/daily-sales",
   requireRole(PERAN_UMUM),

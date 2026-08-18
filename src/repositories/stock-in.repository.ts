@@ -329,4 +329,99 @@ export class StockInRepository {
       },
     };
   }
+
+  /*
+    Tren nilai gudang: 12 titik, satu per bulan, berakhir di bulan
+    `tanggal`. Nilai pada suatu titik = kumulatif masuk dikurangi
+    kumulatif keluar-ternilai sejak awal sejarah — dua query GROUP BY
+    bulan, saldo berjalannya dihitung di sini; jauh lebih murah daripada
+    memanggil calculateAsOf dua belas kali. Titik terakhir memakai batas
+    `tanggal` persis, jadi angkanya sama dengan hero halaman.
+  */
+  async trendAsOf(
+    tanggal: Date
+  ): Promise<{ year: number; month: number; value: number }[]> {
+    const [masuk, keluar] = await this.prisma.$transaction([
+      this.prisma.$queryRaw<any[]>`
+        SELECT YEAR(stock_in.date) AS tahun, MONTH(stock_in.date) AS bulan,
+          SUM(stock_in.price * stock_in.quantity) AS nilai
+        FROM stock_in
+        WHERE stock_in.date <= ${tanggal}
+        GROUP BY tahun, bulan
+      `,
+      this.prisma.$queryRaw<any[]>`
+        SELECT YEAR(stock_out.date) AS tahun, MONTH(stock_out.date) AS bulan,
+          SUM(stock_in.price * stock_out.quantity) AS nilai
+        FROM stock_out
+        JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+        WHERE stock_out.date <= ${tanggal}
+        GROUP BY tahun, bulan
+      `,
+    ]);
+
+    /* Kunci bulan absolut (tahun*12 + bulan-1) supaya mudah diurut-jalankan. */
+    const delta = new Map<number, number>();
+    for (const x of masuk) {
+      const kunci = Number(x.tahun) * 12 + Number(x.bulan) - 1;
+      delta.set(kunci, (delta.get(kunci) ?? 0) + Number(x.nilai));
+    }
+    for (const x of keluar) {
+      const kunci = Number(x.tahun) * 12 + Number(x.bulan) - 1;
+      delta.set(kunci, (delta.get(kunci) ?? 0) - Number(x.nilai));
+    }
+
+    const akhir = tanggal.getFullYear() * 12 + tanggal.getMonth();
+    let saldo = 0;
+    for (const [kunci, nilai] of delta) {
+      if (kunci < akhir - 11) {
+        saldo += nilai;
+      }
+    }
+
+    const hasil: { year: number; month: number; value: number }[] = [];
+    for (let kunci = akhir - 11; kunci <= akhir; kunci++) {
+      saldo += delta.get(kunci) ?? 0;
+      hasil.push({
+        year: Math.floor(kunci / 12),
+        month: (kunci % 12) + 1,
+        value: saldo,
+      });
+    }
+    return hasil;
+  }
+
+  /*
+    Nilai persediaan per merek pada suatu tanggal — bahan sorotan "merek
+    apa yang paling banyak mengendap di gudang". Rumus sisanya sama
+    dengan calculateAsOf.
+  */
+  async nilaiPerMerekAsOf(
+    tanggal: Date
+  ): Promise<{ name: string; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT product_brand.name,
+        SUM(stock_in.price * (stock_in.quantity - COALESCE(keluar.quantity, 0))) AS value
+      FROM stock_in
+      JOIN product ON product.id = stock_in.product_id
+      JOIN product_brand ON product_brand.id = product.product_brand_id
+      LEFT JOIN (
+        SELECT stock_out.stock_in_id, SUM(stock_out.quantity) AS quantity
+        FROM stock_out
+        WHERE stock_out.stock_in_id IS NOT NULL
+        AND stock_out.date <= ${tanggal}
+        GROUP BY stock_out.stock_in_id
+      ) AS keluar ON keluar.stock_in_id = stock_in.id
+      WHERE stock_in.date <= ${tanggal}
+      GROUP BY product_brand.id, product_brand.name
+      ORDER BY value DESC
+      LIMIT 8
+    `;
+
+    return result.map((x) => {
+      return {
+        name: x.name,
+        value: Number(x.value),
+      };
+    });
+  }
 }

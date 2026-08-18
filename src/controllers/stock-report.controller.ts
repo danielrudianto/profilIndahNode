@@ -52,6 +52,28 @@ export class StockReportController {
     }
   };
 
+  /**
+   * Bahan grafik dan sorotan laporan persediaan: tren nilai gudang 12
+   * bulan (berakhir di tanggal diminta) plus nilai per merek pada
+   * tanggal itu. Dikunci super administrator seperti /inventory.
+   */
+  fetchInventoryTrend = async (req: Request, res: Response) => {
+    const tanggal = req.query.date
+      ? new Date(String(req.query.date))
+      : new Date();
+
+    try {
+      const [trend, brands] = await Promise.all([
+        this.stockInRepository.trendAsOf(tanggal),
+        this.stockInRepository.nilaiPerMerekAsOf(tanggal),
+      ]);
+      return res.status(200).send({ trend: trend, brands: brands });
+    } catch (error) {
+      console.error(`[error]: Error on fetching inventory trend ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   fetchOutputReport = async (req: Request, res: Response) => {
     const brand = req.body.brand as number[];
     const type = req.body.type as number[];
