@@ -1,6 +1,15 @@
 import { ProductBrandModel } from "../models/product-brand.model";
 import SupplierModel from "../models/supplier.model";
 import { UserViewModel } from "../models/user.model";
+import { IFetchCommon } from "./fetch.interface";
+
+/**
+ * Saringan daftar promosi. "active" = belum berakhir (berjalan maupun akan
+ * datang), "finished" = tanggal akhirnya sudah lewat; selain itu semua baris.
+ */
+export interface IFetchPromotion extends IFetchCommon {
+  status?: string;
+}
 
 export interface IPromotion {
   id?: number;

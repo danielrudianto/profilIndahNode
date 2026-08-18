@@ -71,6 +71,7 @@ class PromotionController {
         keyword: keyword,
         page: page,
         pageSize: pageSize,
+        status: req.query.status as string | undefined,
       });
 
       return res.status(200).send(result);

@@ -1,4 +1,7 @@
-import { IPromotion } from "../interfaces/promotion.interface";
+import {
+  IPromotion,
+  IFetchPromotion,
+} from "../interfaces/promotion.interface";
 import { PrismaClient } from "@prisma/client";
 import { DateHelper, formatDate } from "../utils/date.helper";
 import {
@@ -99,18 +102,36 @@ export class PromotionRepository {
     }
   }
 
-  async fetch(data: IFetchCommon): Promise<IFetchCommonResult<PromotionModel>> {
+  async fetch(
+    data: IFetchPromotion,
+  ): Promise<IFetchCommonResult<PromotionModel>> {
     try {
+      /*
+        Saringan status dihitung dari tanggal akhirnya, sama dengan pil
+        status di daftarnya: "finished" = sudah lewat, "active" = belum
+        (termasuk yang belum mulai dan yang tanpa tanggal akhir).
+      */
+      const kini = new Date();
+      const saringanStatus =
+        data.status === "active"
+          ? { OR: [{ end: null }, { end: { gte: kini } }] }
+          : data.status === "finished"
+            ? { end: { lt: kini } }
+            : {};
+
+      const syarat = {
+        ...saringanStatus,
+        name: {
+          contains: data.keyword,
+        },
+        description: {
+          contains: data.keyword,
+        },
+      };
+
       const [result, count] = await this.prisma.$transaction([
         this.prisma.promotion_code.findMany({
-          where: {
-            name: {
-              contains: data.keyword,
-            },
-            description: {
-              contains: data.keyword,
-            },
-          },
+          where: syarat,
           orderBy: { created_at: "desc" },
           skip: (data.page - 1) * data.pageSize,
           take: data.pageSize,
@@ -125,14 +146,7 @@ export class PromotionRepository {
           },
         }),
         this.prisma.promotion_code.count({
-          where: {
-            name: {
-              contains: data.keyword,
-            },
-            description: {
-              contains: data.keyword,
-            },
-          },
+          where: syarat,
         }),
       ]);
 
