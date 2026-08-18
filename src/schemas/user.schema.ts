@@ -27,9 +27,8 @@ import { intFromText, requiredText } from "./common.schema";
  * Akibatnya kasus paling umum di endpoint ini, yaitu bidang yang tidak dikirim
  * sama sekali, membalas kalimat berbahasa Inggris yang tidak ada di ErrorList.
  * Sejak ErrorList berisi key i18n, balasan itu menjadi satu-satunya yang tidak
- * bisa diterjemahkan frontend. Skema ini memakai key yang semestinya, persis
- * seperti yang sudah dilakukan pada PUT /auth/password. Statusnya tetap 400;
- * hanya isi badannya yang berubah.
+ * bisa diterjemahkan frontend. Skema ini memakai key yang semestinya.
+ * Statusnya tetap 400; hanya isi badannya yang berubah.
  */
 
 /**
@@ -84,12 +83,6 @@ export const paramUserSchema = z.object({
 
 /**
  * POST /user/changePassword
- *
- * Sengaja tidak memakai updatePasswordSchema milik domain auth. Keduanya kebetulan
- * berbentuk sama sekarang, tetapi berasal dari rantai yang berbeda — yang di
- * sini sudah memasang .withMessage() sejak awal, yang di auth tidak — dan
- * menyatukannya membuat perubahan aturan pada satu endpoint diam-diam ikut
- * berlaku pada endpoint yang lain.
  *
  * `userId` tidak ikut divalidasi: nilainya ditulis authMiddleware ke req.body,
  * bukan dikirim klien.

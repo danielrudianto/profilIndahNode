@@ -4,7 +4,7 @@
 // kerentanan berkategori critical di proyek ini, dan ia butuh kompilasi native
 // saat install. Berkas lain (user.controller.ts) sudah memakai bcryptjs, jadi
 // ini sekaligus menghapus keadaan dua pustaka hash yang berjalan berdampingan.
-import { compare, hash } from "bcryptjs";
+import { compare } from "bcryptjs";
 import { Request, Response } from "express";
 import { sign, verify, SignOptions } from "jsonwebtoken";
 import ErrorList from "../constants/error-list.constant";
@@ -81,77 +81,6 @@ class AuthController {
     } catch (error) {
       console.error(`[error]: Error while login. ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
-    }
-  };
-
-  updatePassword = async (req: Request, res: Response) => {
-    const userID = parseInt(req.body.userId);
-    const password = req.body.password;
-
-    const user = await this.userRepository.fetchByID(userID);
-    if (!user) {
-      return res.status(404).send(ErrorList["User not found"]);
-    }
-
-    if (!user.is_active) {
-      return res.status(400).send(ErrorList["User not active"]);
-    }
-
-    // If password is not provided, generate random password
-    // But if password is provided, hash it
-    if (password == undefined || password == null || password == "") {
-      const randomPassword = this.generateRandomPassword();
-      const hashedPassword = await this.hashPassword(randomPassword);
-      try {
-        const result = await this.userRepository.updatePassword(
-          userID,
-          hashedPassword
-        );
-
-        return res.status(201).send({
-          ...result,
-          password: randomPassword,
-        });
-      } catch (error) {
-        console.error(`[erroFr]: error on updating user ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      }
-    } else {
-      try {
-        const hashedPassword = await this.hashPassword(password);
-        const result = await this.userRepository.updatePassword(
-          userID,
-          hashedPassword
-        );
-
-        return res.status(201).send({
-          ...result,
-          password: password,
-        });
-      } catch (error) {
-        console.error(`[error]: error on updating user ${error}`);
-        return res.status(500).send(ErrorList["Internal server error"]);
-      }
-    }
-  };
-
-  private generateRandomPassword = (): string => {
-    let password = "";
-    const characters =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-    for (let i = 0; i < 8; i++) {
-      password +=
-        characters[Math.floor(Math.random() * (characters.length - 1))];
-    }
-    return password;
-  };
-
-  private hashPassword = async (password: string): Promise<string> => {
-    try {
-      return await hash(password, 12);
-    } catch (error) {
-      console.error(`[error]: Error on hashing password ${error}`);
-      throw new Error(ErrorList["Internal server error"]);
     }
   };
 

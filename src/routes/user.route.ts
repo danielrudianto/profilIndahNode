@@ -1,7 +1,7 @@
 import { Router } from "express";
 import AuthController from "../controllers/auth.controller";
 import UserController from "../controllers/user.controller";
-import { administratorMiddleware } from "../utils/auth.helper";
+import { administratorMiddleware, requireRole } from "../utils/auth.helper";
 import { UserRepository } from "../repositories/user.repository";
 import { prisma } from "../utils/database.helper";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
@@ -38,6 +38,18 @@ router.post(
   "/changePassword",
   validate(updateUserPasswordSchema),
   userController.updatePassword
+);
+
+/*
+  requireRole, bukan administratorMiddleware: controller perlu tahu PERAN
+  pemanggil untuk menolak admin yang me-reset sesama admin, dan hanya
+  requireRole yang menuliskan role hasil verifikasi token ke req.body.
+*/
+router.put(
+  "/:id/reset-password",
+  requireRole([5, 7]),
+  validate(paramUserSchema, "params"),
+  userController.resetPassword
 );
 
 router.post(

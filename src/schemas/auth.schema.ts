@@ -23,27 +23,13 @@ export const loginSchema = z.object({
   password: requiredText(ErrorList["Password is required"]),
 });
 
-/**
- * PUT /auth/password
- *
- * PERUBAHAN PERILAKU YANG DISENGAJA.
- *
- * Rantai lama menulis `body("password").not().isEmpty()` tanpa
- * `.withMessage()`, sehingga express-validator memakai pesan bawaannya dan
- * endpoint ini membalas 400 dengan badan berisi teks `Invalid value` —
- * kalimat berbahasa Inggris yang tidak berasal dari ErrorList sama sekali.
- *
- * Sejak nilai ErrorList berubah menjadi key i18n, cacat itu makin terasa:
- * frontend akan menerima `Invalid value` yang bukan key dan tidak bisa
- * diterjemahkan. Karena itu di sini dipakai key yang semestinya.
- *
- * Bidang `userId` tidak ikut divalidasi. Nilainya ditulis authMiddleware ke
- * req.body, bukan dikirim klien; memvalidasinya berarti memperlakukan
- * identitas pemanggil seolah masukan pengguna.
- */
-export const updatePasswordSchema = z.object({
-  password: requiredText(ErrorList["Password is required"]),
-});
+/*
+  PUT /auth/password dan PUT /auth/reset-password sudah DIBUANG beserta
+  skemanya. Keduanya mengganti sandi pemilik token tanpa membuktikan sandi
+  lama — sesi yang tercuri cukup untuk merebut akun, dan varian reset-nya
+  bahkan membuatkan sandi acak tanpa validasi apa pun. Penggantinya:
+  POST /user/changePassword (wajib sandi lama) dan reset oleh administrator
+  di PUT /user/:id/reset-password.
+*/
 
 export type Login = z.infer<typeof loginSchema>;
-export type UpdatePassword = z.infer<typeof updatePasswordSchema>;

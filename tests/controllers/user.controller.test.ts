@@ -102,6 +102,16 @@ function app(repo: Repo, faktur?: RepoFaktur, pelanggan?: RepoPelanggan) {
   });
   a.post("/", c.create);
   a.post("/changePassword", c.updatePassword);
+  // role ditulis requireRole dari hasil verifikasi token; di sini disuntik
+  // per permintaan lewat header uji supaya tiap kasus bisa memilih perannya.
+  a.put(
+    "/:id/reset-password",
+    (req, _res, next) => {
+      req.body.role = Number(req.headers["x-uji-role"] ?? 5);
+      next();
+    },
+    c.resetPassword
+  );
   a.put("/", c.update);
   a.delete("/:id", c.delete);
   a.patch("/:id", c.toggleActive);
@@ -788,6 +798,123 @@ describe("POST /changePassword — mengganti sandi sendiri", () => {
     const res = await request(app(repo))
       .post("/changePassword")
       .send({ currentPassword: "sandiLama", password: "sandiBaru" });
+
+    expect(res.status).toBe(500);
+    expect(res.text).toBe(ErrorList["Internal server error"]);
+  });
+});
+
+describe("PUT /:id/reset-password — reset oleh administrator", () => {
+  function siapkanTarget(repo: ReturnType<typeof repositoryTiruan>, role = 2) {
+    repo.fetchByID.mockResolvedValue({
+      id: 4,
+      name: "Winda",
+      username: "winda",
+      nik: "5171",
+      role,
+      roleText: "Penjualan",
+      is_active: true,
+    });
+    repo.updatePassword.mockResolvedValue({ id: 4, name: "Winda" });
+  }
+
+  it("membuat sandi acak 8 aksara, menyimpan hash-nya, mengirim teks aslinya", async () => {
+    const repo = repositoryTiruan();
+    siapkanTarget(repo);
+
+    const res = await request(app(repo)).put("/4/reset-password").send({});
+
+    expect(res.status).toBe(200);
+    expect(res.body.password).toMatch(/^[A-Za-z0-9]{8}$/);
+    // Yang di-hash adalah sandi acak yang sama dengan yang dikirim balik.
+    expect(hashTiruan).toHaveBeenCalledWith(res.body.password, 12);
+    expect(repo.updatePassword).toHaveBeenCalledWith(4, "hash-tersimpan");
+  });
+
+  it("balasannya berbentuk sama dengan balasan pembuatan akun", async () => {
+    const repo = repositoryTiruan();
+    siapkanTarget(repo);
+
+    const res = await request(app(repo)).put("/4/reset-password").send({});
+
+    // Dialog kredensial frontend membaca ruas-ruas ini.
+    expect(res.body).toMatchObject({
+      id: 4,
+      name: "Winda",
+      username: "winda",
+      nik: "5171",
+      role_id: 2,
+      role: "Penjualan",
+    });
+  });
+
+  it("admin tidak boleh me-reset sesama admin", async () => {
+    const repo = repositoryTiruan();
+    siapkanTarget(repo, 5);
+
+    const res = await request(app(repo))
+      .put("/4/reset-password")
+      .set("x-uji-role", "5")
+      .send({});
+
+    expect(res.status).toBe(403);
+    expect(res.text).toBe(ErrorList["Reset password forbidden"]);
+    expect(repo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("admin juga tidak boleh me-reset superadministrator", async () => {
+    const repo = repositoryTiruan();
+    siapkanTarget(repo, 7);
+
+    const res = await request(app(repo))
+      .put("/4/reset-password")
+      .set("x-uji-role", "5")
+      .send({});
+
+    expect(res.status).toBe(403);
+    expect(repo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("superadministrator boleh me-reset admin", async () => {
+    const repo = repositoryTiruan();
+    siapkanTarget(repo, 5);
+
+    const res = await request(app(repo))
+      .put("/4/reset-password")
+      .set("x-uji-role", "7")
+      .send({});
+
+    expect(res.status).toBe(200);
+    expect(repo.updatePassword).toHaveBeenCalledWith(4, "hash-tersimpan");
+  });
+
+  it("membalas 404 bila pengguna tidak ditemukan", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue(null);
+
+    const res = await request(app(repo)).put("/4/reset-password").send({});
+
+    expect(res.status).toBe(404);
+    expect(repo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("membalas 400 bila pengguna sudah dinonaktifkan", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue({ id: 4, role: 2, is_active: false });
+
+    const res = await request(app(repo)).put("/4/reset-password").send({});
+
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["User not active"]);
+    expect(repo.updatePassword).not.toHaveBeenCalled();
+  });
+
+  it("membalas 500 bila penyimpanan gagal", async () => {
+    const repo = repositoryTiruan();
+    siapkanTarget(repo);
+    repo.updatePassword.mockRejectedValue(new Error("koneksi putus"));
+
+    const res = await request(app(repo)).put("/4/reset-password").send({});
 
     expect(res.status).toBe(500);
     expect(res.text).toBe(ErrorList["Internal server error"]);

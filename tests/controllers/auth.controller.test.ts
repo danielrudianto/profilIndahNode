@@ -46,7 +46,6 @@ function repositoryTiruan() {
   return {
     fetchByUsername: jest.fn(),
     fetchByID: jest.fn(),
-    updatePassword: jest.fn(),
   };
 }
 
@@ -64,7 +63,6 @@ function app(repo: Repo) {
   });
   a.post("/login", c.login);
   a.post("/refresh-token", c.refreshToken);
-  a.put("/password", c.updatePassword);
   a.get("/profile", c.fetchProfile);
   return a;
 }
@@ -505,186 +503,9 @@ describe("GET /profile — profil pemanggil", () => {
   });
 });
 
-describe("PUT /password — mengubah sandi sendiri", () => {
-  const sasaran = { id: 99, name: "Budi", is_active: true };
-  const hasilRepo = { id: 99, name: "Budi", username: "budi", nik: "3201" };
-
-  it("membalas 201 dan menyimpan sandi dalam bentuk hash", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockResolvedValue(sasaran);
-    repo.updatePassword.mockResolvedValue(hasilRepo);
-    hashTiruan.mockResolvedValue("hash-baru");
-
-    const res = await request(app(repo))
-      .put("/password")
-      .send({ password: "sandiBaru123" });
-
-    expect(res.status).toBe(201);
-    // Yang masuk ke basis data adalah hash, bukan teks aslinya.
-    expect(repo.updatePassword).toHaveBeenCalledWith(99, "hash-baru");
-    expect(hashTiruan).toHaveBeenCalledWith("sandiBaru123", 12);
-  });
-
-  it("hanya bisa mengubah sandi pemilik token, bukan id kiriman klien", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockResolvedValue(sasaran);
-    repo.updatePassword.mockResolvedValue(hasilRepo);
-    hashTiruan.mockResolvedValue("hash-baru");
-
-    // `id` di badan permintaan sengaja diisi milik orang lain.
-    await request(app(repo))
-      .put("/password")
-      .send({ password: "sandiBaru123", id: 1 });
-
-    // Tetap 99, yaitu userId yang ditulis middleware autentikasi.
-    expect(repo.fetchByID).toHaveBeenCalledWith(99);
-    expect(repo.updatePassword).toHaveBeenCalledWith(99, "hash-baru");
-  });
-
-  it("membalas 404 bila pengguna tidak ditemukan", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockResolvedValue(null);
-
-    const res = await request(app(repo))
-      .put("/password")
-      .send({ password: "sandiBaru123" });
-
-    expect(res.status).toBe(404);
-    expect(res.text).toBe(ErrorList["User not found"]);
-    expect(repo.updatePassword).not.toHaveBeenCalled();
-  });
-
-  it("membalas 400 bila pengguna sudah dinonaktifkan", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockResolvedValue({ ...sasaran, is_active: false });
-
-    const res = await request(app(repo))
-      .put("/password")
-      .send({ password: "sandiBaru123" });
-
-    expect(res.status).toBe(400);
-    expect(res.text).toBe(ErrorList["User not active"]);
-    expect(repo.updatePassword).not.toHaveBeenCalled();
-  });
-
-  it("membalas 500 bila penyimpanan gagal", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockResolvedValue(sasaran);
-    hashTiruan.mockResolvedValue("hash-baru");
-    repo.updatePassword.mockRejectedValue(new Error("koneksi putus"));
-
-    const res = await request(app(repo))
-      .put("/password")
-      .send({ password: "sandiBaru123" });
-
-    expect(res.status).toBe(500);
-    expect(res.text).toBe(ErrorList["Internal server error"]);
-  });
-
-  describe("tanpa mengirim sandi — sandi acak dibuatkan", () => {
-    it("membuat sandi acak 8 aksara, menyimpan hash-nya, mengirim teks aslinya", async () => {
-      const repo = repositoryTiruan();
-      repo.fetchByID.mockResolvedValue(sasaran);
-      repo.updatePassword.mockResolvedValue(hasilRepo);
-      hashTiruan.mockResolvedValue("hash-acak");
-
-      const res = await request(app(repo)).put("/password").send({});
-
-      expect(res.status).toBe(201);
-      expect(repo.updatePassword).toHaveBeenCalledWith(99, "hash-acak");
-      // Sandi acak inilah satu-satunya cara pengguna tahu sandi barunya, jadi
-      // ia memang harus ikut di balasan.
-      expect(typeof res.body.password).toBe("string");
-      expect(res.body.password).toHaveLength(8);
-      expect(res.body.password).toMatch(/^[A-Za-z0-9]{8}$/);
-      // Yang di-hash adalah sandi acak yang sama dengan yang dikirim balik.
-      expect(hashTiruan).toHaveBeenCalledWith(res.body.password, 12);
-    });
-
-    it.each([
-      ["sandi kosong", ""],
-      ["sandi null", null],
-    ])("%s juga memicu pembuatan sandi acak", async (_nama, nilai) => {
-      const repo = repositoryTiruan();
-      repo.fetchByID.mockResolvedValue(sasaran);
-      repo.updatePassword.mockResolvedValue(hasilRepo);
-      hashTiruan.mockResolvedValue("hash-acak");
-
-      const res = await request(app(repo))
-        .put("/password")
-        .send({ password: nilai });
-
-      expect(res.status).toBe(201);
-      expect(res.body.password).toHaveLength(8);
-    });
-
-    it("membalas 500 bila penyimpanan sandi acak gagal", async () => {
-      const repo = repositoryTiruan();
-      repo.fetchByID.mockResolvedValue(sasaran);
-      hashTiruan.mockResolvedValue("hash-acak");
-      repo.updatePassword.mockRejectedValue(new Error("koneksi putus"));
-
-      const res = await request(app(repo)).put("/password").send({});
-
-      expect(res.status).toBe(500);
-      expect(res.text).toBe(ErrorList["Internal server error"]);
-    });
-  });
-
-  /**
-   * CACAT: sandi baru dikirim balik dalam bentuk teks terang.
-   *
-   * Ketika klien mengirim sandi pilihannya sendiri, balasannya berisi
-   * `password: <sandi itu juga>`. Klien sudah tahu sandinya — mengirimnya
-   * kembali tidak menambah apa pun, tetapi menambah tempat sandi itu tercecer:
-   * badan balasan HTTP masuk ke log akses proxy, ke cache, ke panel Network
-   * peramban, dan ke laporan galat frontend yang lazim ikut menyertakan
-   * badan balasan.
-   *
-   * Untuk sandi acak yang dibuatkan server, mengirim teks terang memang tidak
-   * terhindarkan. Untuk sandi yang dipilih sendiri oleh pengguna, tidak.
-   */
-  it("CACAT: sandi pilihan pengguna dipantulkan kembali sebagai teks terang", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockResolvedValue(sasaran);
-    repo.updatePassword.mockResolvedValue(hasilRepo);
-    hashTiruan.mockResolvedValue("hash-baru");
-
-    const res = await request(app(repo))
-      .put("/password")
-      .send({ password: "sandiRahasiaSaya" });
-
-    expect(res.body.password).toBe("sandiRahasiaSaya");
-  });
-
-  /**
-   * CACAT BERAT: fetchByID di updatePassword berada DI LUAR blok try.
-   *
-   * Kedua cabang penyimpanan sandi punya try/catch sendiri, tetapi pengambilan
-   * penggunanya tidak. Karena handler ini `async`, penolakan dari repository
-   * menjadi promise yang ditolak dan tidak ada yang menangkapnya — Express 4
-   * tidak menangani penolakan promise, dan Node 15 ke atas menghentikan proses
-   * pada unhandled rejection.
-   *
-   * Jadi satu gangguan basis data sesaat pada PUT /auth/password tidak berujung
-   * 500 bagi satu pemanggil, melainkan MEMATIKAN SELURUH SERVER — dan endpoint
-   * ini terbuka bagi setiap pengguna yang sudah masuk.
-   *
-   * Diuji dengan memanggil handler langsung: lewat HTTP permintaannya
-   * menggantung tanpa balasan sampai tes kehabisan waktu.
-   */
-  it("CACAT: updatePassword menolak tanpa membalas saat pengambilan pengguna gagal", async () => {
-    const repo = repositoryTiruan();
-    repo.fetchByID.mockRejectedValue(new Error("koneksi putus"));
-    const c = new AuthController(repo as never);
-
-    const req = { body: { userId: 99, password: "x" }, query: {} } as never;
-    const res = {
-      status: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-    } as never;
-
-    await expect(c.updatePassword(req, res)).rejects.toThrow("koneksi putus");
-    expect((res as any).status).not.toHaveBeenCalled();
-  });
-});
+/*
+  Suite PUT /password sudah dibuang bersama endpointnya. Endpoint itu
+  mengganti sandi pemilik token tanpa membuktikan sandi lama, dan cacat
+  beratnya (fetchByID di luar try — unhandled rejection mematikan server)
+  ikut hilang bersamanya. Penggantinya diuji di user.controller.test.ts.
+*/

@@ -1,4 +1,5 @@
 import { compare, hash } from "bcryptjs";
+import { randomInt } from "crypto";
 import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
 import SocketHelper from "../utils/socket.helper";
@@ -138,13 +139,17 @@ class UserController {
     }
   };
 
+  /*
+    randomInt dari crypto, bukan Math.random: ini sandi, bukan undian.
+    Versi lama juga punya cacat kecil `length - 1` yang membuat aksara
+    terakhir ("9") tidak pernah terpilih.
+  */
   private async generatePassword(): Promise<string> {
     let password = "";
     const characters =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
     for (let i = 0; i < 8; i++) {
-      password +=
-        characters[Math.floor(Math.random() * (characters.length - 1))];
+      password += characters[randomInt(characters.length)];
     }
 
     return password;
@@ -281,6 +286,54 @@ class UserController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on updating password ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  /*
+    Reset oleh administrator untuk pengguna yang LUPA sandinya — satu-satunya
+    jalur ganti sandi tanpa bukti sandi lama, maka sandinya selalu buatan
+    server (acak), tidak pernah pilihan pemanggil. Balasannya berbentuk sama
+    dengan balasan pembuatan akun supaya dialog kredensial yang sama bisa
+    dipakai ulang.
+  */
+  resetPassword = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const peranPemanggil = Number(req.body.role);
+
+      const user = await this.userRepository.fetchByID(id);
+      if (!user) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      if (!user.is_active) {
+        return res.status(400).send(ErrorList["User not active"]);
+      }
+
+      /*
+        Administrator me-reset sandi sesama administrator = merebut akun
+        berprivilese setara. Hanya superadministrator yang boleh.
+      */
+      if ((user.role === 5 || user.role === 7) && peranPemanggil !== 7) {
+        return res.status(403).send(ErrorList["Reset password forbidden"]);
+      }
+
+      const sandiBaru = await this.generatePassword();
+      const hashedPassword = await this.hashPassword(sandiBaru);
+      await this.userRepository.updatePassword(id, hashedPassword);
+
+      return res.status(200).send({
+        id: user.id,
+        name: user.name,
+        nik: user.nik,
+        username: user.username,
+        role_id: user.role,
+        role: user.roleText,
+        password: sandiBaru,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on resetting password ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };

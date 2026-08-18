@@ -46,6 +46,7 @@ enum ErrorList {
   "Discount > total" = "validation.discount.greaterThanTotal",
   "Current password required" = "validation.password.currentRequired",
   "Current password incorrect" = "validation.password.currentWrong",
+  "Reset password forbidden" = "validation.password.resetForbidden",
   "Amount is required" = "validation.amount.required",
   "Amount must be numeric" = "validation.amount.numeric",
   "Keyword is required" = "validation.keyword.required",

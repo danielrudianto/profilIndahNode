@@ -4,10 +4,7 @@ import { body } from "express-validator";
 import ErrorHelper from "../support/legacy-error.helper";
 import ErrorList from "../../src/constants/error-list.constant";
 import { validate } from "../../src/utils/validate.helper";
-import {
-  loginSchema,
-  updatePasswordSchema,
-} from "../../src/schemas/auth.schema";
+import { loginSchema } from "../../src/schemas/auth.schema";
 
 /**
  * Perbandingan perilaku: express-validator lama versus skema Zod baru.
@@ -41,14 +38,6 @@ function appLama() {
     balas
   );
 
-  // Perhatikan: tanpa .withMessage(), persis seperti route aslinya.
-  app.put(
-    "/password",
-    body("password").not().isEmpty(),
-    ErrorHelper.intercept,
-    balas
-  );
-
   return app;
 }
 
@@ -56,7 +45,6 @@ function appBaru() {
   const app = express();
   app.use(express.json());
   app.post("/login", validate(loginSchema), balas);
-  app.put("/password", validate(updatePasswordSchema), balas);
   return app;
 }
 
@@ -125,42 +113,8 @@ describe("POST /login — perilaku harus identik", () => {
   });
 });
 
-describe("PUT /password", () => {
-  it("menerima sandi yang terisi", async () => {
-    const h = await keduanya("put", "/password", { password: "sandibaru" });
-    expect(h.baru).toEqual(h.lama);
-    expect(h.baru.status).toBe(200);
-  });
-
-  it("membiarkan userId dari authMiddleware lewat tanpa dipermasalahkan", async () => {
-    const h = await keduanya("put", "/password", {
-      userId: 7,
-      password: "sandibaru",
-    });
-    expect(h.baru.status).toBe(200);
-  });
-});
-
-/**
- * PERUBAHAN PERILAKU YANG DISENGAJA.
- *
- * Rantai lama pada PUT /password tidak memasang .withMessage(), sehingga
- * express-validator memakai pesan bawaannya: teks "Invalid value" yang tidak
- * berasal dari ErrorList. Setelah ErrorList berisi key i18n, pesan itu menjadi
- * satu-satunya balasan galat yang tidak bisa diterjemahkan frontend.
- *
- * Statusnya tetap 400; hanya isi badannya yang berubah.
- */
-describe("Perbedaan yang disengaja: pesan bawaan diganti key i18n", () => {
-  it("lama membalas teks bawaan express-validator", async () => {
-    const res = await request(lama).put("/password").send({});
-    expect(res.status).toBe(400);
-    expect(res.text).toBe("Invalid value");
-  });
-
-  it("baru membalas key i18n dengan status yang sama", async () => {
-    const res = await request(baru).put("/password").send({});
-    expect(res.status).toBe(400);
-    expect(res.text).toBe(ErrorList["Password is required"]);
-  });
-});
+/*
+  Bagian PUT /password sudah dibuang bersama endpoint dan skemanya: jalur
+  ganti sandi tanpa bukti sandi lama digantikan POST /user/changePassword
+  dan reset administrator di PUT /user/:id/reset-password.
+*/

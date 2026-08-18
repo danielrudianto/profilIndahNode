@@ -162,7 +162,8 @@
     "password": {
       "required": "Password tidak boleh kosong.",
       "currentRequired": "Kata sandi saat ini tidak boleh kosong.",
-      "currentWrong": "Kata sandi saat ini salah."
+      "currentWrong": "Kata sandi saat ini salah.",
+      "resetForbidden": "Hanya superadministrator yang boleh me-reset kata sandi administrator."
     },
     "userRole": {
       "required": "Role pengguna tidak boleh kosong."
