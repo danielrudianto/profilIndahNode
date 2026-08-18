@@ -42,6 +42,10 @@ export class MoneyReceiptController {
    * bayar diterima) dan keluar (retur + pengembalian diskon + kelebihan
    * bayar dikembalikan). Hari tanpa pergerakan diisi nol di sini supaya
    * frontend selalu menerima 30 baris berurutan.
+   *
+   * Ikut dikirim: akumulasi DOR bulan berjalan sampai tanggal diminta —
+   * sistem ini bukan sistem gaji, jadi yang dilaporkan hanya "sudah
+   * terkumpul berapa", bukan status potongannya.
    */
   fetchMoneyReceiptTrend = async (req: Request, res: Response) => {
     const akhir = req.query.date
@@ -59,16 +63,37 @@ export class MoneyReceiptController {
         akhir.getMonth(),
         akhir.getDate() - 29
       );
+      const awalBulan = new Date(akhir.getFullYear(), akhir.getMonth(), 1);
 
-      const [faktur, deposit, retur, lebihMasuk, lebihKeluar, rebate] =
-        await Promise.all([
-          this.salesInvoicePaymentRepository.sumHarian(mulai, sebelum),
-          this.salesDepositPaymentRepository.sumHarian(mulai, sebelum),
-          this.salesReturnRepository.sumHarian(mulai, sebelum),
-          this.overpaymentRepository.sumHarianMasuk(mulai, sebelum),
-          this.overpaymentRepository.sumHarianKeluar(mulai, sebelum),
-          this.salesInvoiceRebateRepository.sumHarian(mulai, sebelum),
-        ]);
+      const [
+        faktur,
+        deposit,
+        retur,
+        lebihMasuk,
+        lebihKeluar,
+        rebate,
+        dorFaktur,
+        dorDeposit,
+      ] = await Promise.all([
+        this.salesInvoicePaymentRepository.sumHarian(mulai, sebelum),
+        this.salesDepositPaymentRepository.sumHarian(mulai, sebelum),
+        this.salesReturnRepository.sumHarian(mulai, sebelum),
+        this.overpaymentRepository.sumHarianMasuk(mulai, sebelum),
+        this.overpaymentRepository.sumHarianKeluar(mulai, sebelum),
+        this.salesInvoiceRebateRepository.sumHarian(mulai, sebelum),
+        this.salesInvoicePaymentRepository.fetchDORPaymentsByDateRange(
+          awalBulan,
+          akhir
+        ),
+        this.salesDepositPaymentRepository.fetchDORPaymentsByDateRange(
+          awalBulan,
+          akhir
+        ),
+      ]);
+
+      const dorBulanIni =
+        dorFaktur.reduce((a, x) => a + Number(x.value), 0) +
+        dorDeposit.reduce((a, x) => a + Number(x.value), 0);
 
       const kunci = (tanggal: Date) => tanggal.toISOString().slice(0, 10);
       const masuk = new Map<string, number>();
@@ -104,7 +129,7 @@ export class MoneyReceiptController {
         });
       }
 
-      return res.status(200).send({ data: data });
+      return res.status(200).send({ data: data, dorBulanIni: dorBulanIni });
     } catch (error) {
       console.error(`[error]: Error on fetching money receipt trend ${error}`);
       return res.status(500).send(error);
