@@ -388,37 +388,47 @@ export class ProductStockRepository {
     );
   };
 
+  /*
+    Stok penutup bulan sebelumnya per produk — kartu stok terakhir
+    (tanggal lalu id tertinggi) sampai hari terakhir bulan lalu.
+
+    Dulu satu findFirst PER PRODUK dalam satu transaksi: ribuan query
+    berurutan sekali buka laporan, lalu dicari lagi dengan findIndex
+    O(n²). Kini satu query greatest-per-group di atas indeks
+    (product_id, date, id), hasilnya dipetakan lewat Map.
+  */
   fetchOutputReport = async (data: {
     product_id: number[];
     month: number;
     year: number;
   }) => {
-    const result = await this.prisma.$transaction(
-      data.product_id.map((x) => {
-        return this.prisma.stock_card.findFirst({
-          where: {
-            product_id: x,
-            date: {
-              lte: new Date(data.year, data.month - 1, 0),
-            },
-          },
-          orderBy: [
-            {
-              date: "desc",
-            },
-            {
-              id: "desc",
-            },
-          ],
-        });
-      })
+    const batas = new Date(data.year, data.month - 1, 0);
+
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT sc.product_id, sc.stock
+      FROM stock_card sc
+      JOIN (
+        SELECT s2.product_id, MAX(s2.id) AS id
+        FROM stock_card s2
+        JOIN (
+          SELECT product_id, MAX(date) AS tanggal
+          FROM stock_card
+          WHERE date <= ${batas}
+          GROUP BY product_id
+        ) puncak ON puncak.product_id = s2.product_id
+          AND puncak.tanggal = s2.date
+        GROUP BY s2.product_id
+      ) pilih ON pilih.id = sc.id
+    `;
+
+    const stokPerProduk = new Map<number, number>(
+      result.map((x) => [Number(x.product_id), Number(x.stock)])
     );
 
     return data.product_id.map((x) => {
-      const stockIndex = result.findIndex((y) => y?.product_id == x);
       return {
         product_id: x,
-        stock: stockIndex == -1 ? 0 : Number(result[stockIndex]?.stock),
+        stock: stokPerProduk.get(x) ?? 0,
       };
     });
   };

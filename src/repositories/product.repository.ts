@@ -8,6 +8,7 @@ import {
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
 import { queue } from "../utils/queue.helper";
+import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
 
 export class ProductRepository {
   private prisma: PrismaClient;
@@ -442,6 +443,21 @@ export class ProductRepository {
         ? `AND product_type.id IN (${data.type.join(",")})`
         : "";
 
+    /*
+      Rentang tanggal sargable — saringan lama MONTH()/YEAR() membungkus
+      kolomnya dengan fungsi sehingga indeks tanggal tak terpakai dan
+      kelima tabel turunan memindai penuh; laporan ini sempat 30 detik.
+      Batasnya dikirim sebagai placeholder, bukan interpolasi.
+    */
+    const mulai = DateHelper.convertDate(
+      rentangBulan(data.year, data.month).mulai,
+      formatDate.YYYYMMDD
+    );
+    const sebelum = DateHelper.convertDate(
+      rentangBulan(data.year, data.month).sebelum,
+      formatDate.YYYYMMDD
+    );
+
     const [result, brands, types] = await this.prisma.$transaction([
       this.prisma.$queryRawUnsafe<any[]>(
         `
@@ -470,8 +486,8 @@ export class ProductRepository {
               JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
               LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
               WHERE good_receipt_code.is_delete = 0
-              AND MONTH(good_receipt_code.date) = ${data.month} 
-              AND YEAR(good_receipt_code.date) = ${data.year}
+              AND good_receipt_code.date >= ?
+              AND good_receipt_code.date < ?
               GROUP BY good_receipt.product_id
             ) AS goodReceiptCount ON product.id = goodReceiptCount.product_id
             
@@ -482,8 +498,8 @@ export class ProductRepository {
               JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
               LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
               WHERE adjustment_case_code.is_delete = 0
-              AND MONTH(adjustment_case_code.date) = ${data.month} 
-              AND YEAR(adjustment_case_code.date) = ${data.year}
+              AND adjustment_case_code.date >= ?
+              AND adjustment_case_code.date < ?
               AND adjustment_case.quantity > 0
               GROUP BY adjustment_case.product_id
             ) AS adjustmentCountPlus ON product.id = adjustmentCountPlus.product_id
@@ -495,8 +511,8 @@ export class ProductRepository {
               JOIN adjustment_case_code ON adjustment_case.adjustment_case_code_id = adjustment_case_code.id
               LEFT JOIN product_unit ON adjustment_case.product_unit_id = product_unit.id
               WHERE adjustment_case_code.is_delete = 0
-              AND MONTH(adjustment_case_code.date) = ${data.month} 
-              AND YEAR(adjustment_case_code.date) = ${data.year}
+              AND adjustment_case_code.date >= ?
+              AND adjustment_case_code.date < ?
               AND adjustment_case.quantity < 0
               GROUP BY adjustment_case.product_id
             ) AS adjustmentCountMinus ON product.id = adjustmentCountMinus.product_id
@@ -508,8 +524,8 @@ export class ProductRepository {
               LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
               JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
               WHERE sales_invoice_code.is_delete = 0
-              AND MONTH(sales_invoice_code.date) = ${data.month} 
-              AND YEAR(sales_invoice_code.date) = ${data.year}
+              AND sales_invoice_code.date >= ?
+              AND sales_invoice_code.date < ?
               GROUP BY sales_invoice.product_id
             ) AS salesInvoiceCount ON product.id = salesInvoiceCount.product_id
             
@@ -521,15 +537,26 @@ export class ProductRepository {
               JOIN sales_invoice ON sales_return.sales_invoice_id = sales_invoice.id
               LEFT JOIN product_unit ON sales_invoice.product_unit_id = product_unit.id
               WHERE sales_return_code.is_delete = 0
-              AND MONTH(sales_return_code.date) = ${data.month} 
-              AND YEAR(sales_return_code.date) = ${data.year}
+              AND sales_return_code.date >= ?
+              AND sales_return_code.date < ?
               GROUP BY sales_invoice.product_id
             ) AS salesReturnCount ON product.id = salesReturnCount.product_id
             
             WHERE product.is_delete = 0
             ${saringanMerek}
             ${saringanTipe}
-          `
+          `,
+        /* urutan: penerimaan, penyesuaian plus, penyesuaian minus, faktur, retur */
+        mulai,
+        sebelum,
+        mulai,
+        sebelum,
+        mulai,
+        sebelum,
+        mulai,
+        sebelum,
+        mulai,
+        sebelum
       ),
       this.prisma.product_brand.findMany({
         where:

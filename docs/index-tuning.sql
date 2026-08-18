@@ -272,3 +272,32 @@ ALTER TABLE sales_deposit_payment
   LOCK = NONE;
 
 SET SESSION lock_wait_timeout = 31536000;
+
+-- ============================================================
+--  BAGIAN 6 — Indeks tanggal untuk laporan pengeluaran barang
+--  (ditambahkan 2026-08-18, sesi laporan pengeluaran barang)
+--
+--  report/output menyaring lima tabel dokumen pada satu bulan.
+--  Saringannya kini rentang tanggal sargable; supaya rentang itu
+--  langsung menunjuk baris, tabel kode yang belum berindeks tanggal
+--  diberi indeks (sales_invoice_code sudah punya dari bagian awal).
+-- ============================================================
+
+SET SESSION lock_wait_timeout = 10;
+
+ALTER TABLE good_receipt_code
+  ADD INDEX idx_good_receipt_code_tanggal (date),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
+ALTER TABLE sales_return_code
+  ADD INDEX idx_sales_return_code_tanggal (date),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
+ALTER TABLE adjustment_case_code
+  ADD INDEX idx_adjustment_case_code_tanggal (date),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
+SET SESSION lock_wait_timeout = 31536000;
