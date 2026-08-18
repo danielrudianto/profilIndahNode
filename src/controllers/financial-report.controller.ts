@@ -1,6 +1,4 @@
 import { Request, Response } from "express";
-import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
-import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseRepository } from "../repositories/expense.repository";
@@ -12,21 +10,15 @@ import { ExpenseRepository } from "../repositories/expense.repository";
  * konstruktornya padahal tiap laporan hanya memakai sebagian kecil.
  */
 export class FinancialReportController {
-  private salesInvoiceRepository: SalesInvoiceRepository;
-  private goodReceiptRepository: GoodReceiptRepository;
   private companyRepository: CompanyRepository;
   private expenseRepository: ExpenseRepository;
   private stockOutRepository: StockOutRepository;
 
   constructor(
-    salesInvoiceRepository: SalesInvoiceRepository,
-    goodReceiptRepository: GoodReceiptRepository,
     companyRepository: CompanyRepository,
     expenseRepository: ExpenseRepository,
     stockOutRepository: StockOutRepository
   ) {
-    this.salesInvoiceRepository = salesInvoiceRepository;
-    this.goodReceiptRepository = goodReceiptRepository;
     this.companyRepository = companyRepository;
     this.expenseRepository = expenseRepository;
     this.stockOutRepository = stockOutRepository;
@@ -38,23 +30,18 @@ export class FinancialReportController {
     const report = parseInt(req.body.report);
 
     try {
-      const [sales, purchase, company, expense, stockOut] = await Promise.all([
-        this.salesInvoiceRepository.fetchByDateRange(
-          month == 0 ? new Date(year, 0, 1) : new Date(year, month - 1, 1),
-          month == 0 ? new Date(year + 1, 0, 0) : new Date(year, month, 0)
-        ),
-        this.goodReceiptRepository.fetchByDateRange(
-          month == 0 ? new Date(year, 0, 1) : new Date(year, month - 1, 1),
-          month == 0 ? new Date(year + 1, 0, 0) : new Date(year, month, 0)
-        ),
+      /*
+        Dulu ikut mengangkut larik sales dan purchase (fetchByDateRange
+        sebulan penuh) — halaman keuangan baru tidak pernah membacanya,
+        jadi dua agregat itu dihitung hanya untuk dibuang browser.
+      */
+      const [company, expense, stockOut] = await Promise.all([
         this.companyRepository.fetchAll(),
         this.expenseRepository.fetchReport(month, year),
         this.stockOutRepository.calculate(month, year),
       ]);
 
       return res.status(200).send({
-        sales: sales,
-        purchase: purchase,
         company: company,
         expense: expense,
         stockOut: stockOut,

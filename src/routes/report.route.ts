@@ -74,8 +74,6 @@ const stockReportController = new StockReportController(
 );
 
 const financialReportController = new FinancialReportController(
-  new SalesInvoiceRepository(prisma),
-  new GoodReceiptRepository(prisma),
   new CompanyRepository(prisma),
   new ExpenseRepository(prisma),
   new StockOutRepository(prisma)

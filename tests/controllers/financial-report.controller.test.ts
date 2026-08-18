@@ -41,11 +41,9 @@ jest.mock("../../src/utils/socket.helper", () => ({
 
 import FinancialReportController from "../../src/controllers/financial-report.controller";
 
-/** Lima repository tiruan, satu per ketergantungan konstruktor. */
+/** Tiga repository tiruan, satu per ketergantungan konstruktor. */
 function repositoryTiruan() {
   return {
-    salesInvoice: { fetchByDateRange: jest.fn() },
-    goodReceipt: { fetchByDateRange: jest.fn() },
     company: { fetchAll: jest.fn() },
     expense: { fetchReport: jest.fn() },
     stockOut: { calculate: jest.fn(), fetchDailySalesReport: jest.fn() },
@@ -57,8 +55,6 @@ type Repo = ReturnType<typeof repositoryTiruan>;
 /** Nilai bawaan supaya tiap tes hanya perlu mengatur yang diperiksanya. */
 function repoSiapPakai(): Repo {
   const repo = repositoryTiruan();
-  repo.salesInvoice.fetchByDateRange.mockResolvedValue([]);
-  repo.goodReceipt.fetchByDateRange.mockResolvedValue([]);
   repo.company.fetchAll.mockResolvedValue([]);
   repo.expense.fetchReport.mockResolvedValue([]);
   repo.stockOut.calculate.mockResolvedValue({ hpp: 0, sales: 0 });
@@ -68,8 +64,6 @@ function repoSiapPakai(): Repo {
 
 function controller(repo: Repo) {
   return new FinancialReportController(
-    repo.salesInvoice as never,
-    repo.goodReceipt as never,
     repo.company as never,
     repo.expense as never,
     repo.stockOut as never
@@ -96,10 +90,8 @@ beforeEach(() => {
 });
 
 describe("POST /profit-loss — laba rugi", () => {
-  it("membalas 200 berisi kelima bagian laporan", async () => {
+  it("membalas 200 berisi ketiga bagian laporan", async () => {
     const repo = repoSiapPakai();
-    repo.salesInvoice.fetchByDateRange.mockResolvedValue([{ value: 5000 }]);
-    repo.goodReceipt.fetchByDateRange.mockResolvedValue([{ value: 3000 }]);
     repo.company.fetchAll.mockResolvedValue([{ id: 1, name: "PT Indah" }]);
     repo.expense.fetchReport.mockResolvedValue([{ value: 250 }]);
     repo.stockOut.calculate.mockResolvedValue({ hpp: 2000, sales: 5000 });
@@ -111,74 +103,13 @@ describe("POST /profit-loss — laba rugi", () => {
     expect(res.status).toBe(200);
     // Controller TIDAK menghitung labanya sendiri: ia hanya mengumpulkan bahan
     // mentah. Penjumlahan laba rugi terjadi di frontend.
+    // Larik sales dan purchase warisan sudah dibuang: halaman keuangan
+    // baru tidak pernah membacanya.
     expect(res.body).toEqual({
-      sales: [{ value: 5000 }],
-      purchase: [{ value: 3000 }],
       company: [{ id: 1, name: "PT Indah" }],
       expense: [{ value: 250 }],
       stockOut: { hpp: 2000, sales: 5000 },
     });
-  });
-
-  /**
-   * Mode satu bulan. Bulan dikirim 1..12 oleh frontend sementara konstruktor
-   * Date memakai 0..11, karena itu ada `- 1`. Batas akhirnya `new Date(year,
-   * month, 0)` yaitu "hari ke-0 bulan berikutnya" = hari terakhir bulan ini.
-   */
-  it("bulan 1..12 menjadi rentang satu bulan penuh untuk penjualan dan pembelian", async () => {
-    const repo = repoSiapPakai();
-
-    await request(app(repo))
-      .post("/profit-loss")
-      .send({ month: 3, year: 2024 });
-
-    expect(repo.salesInvoice.fetchByDateRange).toHaveBeenCalledWith(
-      new Date(2024, 2, 1),
-      new Date(2024, 2, 31)
-    );
-    expect(repo.goodReceipt.fetchByDateRange).toHaveBeenCalledWith(
-      new Date(2024, 2, 1),
-      new Date(2024, 2, 31)
-    );
-  });
-
-  it.each([
-    ["Februari kabisat sampai tanggal 29", 2, 2024, 29],
-    ["Februari biasa sampai tanggal 28", 2, 2023, 28],
-    ["April sampai tanggal 30", 4, 2024, 30],
-    ["Desember sampai tanggal 31", 12, 2024, 31],
-  ])("%s", async (_nama, month, year, tanggalAkhir) => {
-    const repo = repoSiapPakai();
-
-    await request(app(repo)).post("/profit-loss").send({ month, year });
-
-    expect(repo.salesInvoice.fetchByDateRange).toHaveBeenCalledWith(
-      new Date(year, month - 1, 1),
-      new Date(year, month - 1, tanggalAkhir)
-    );
-  });
-
-  /**
-   * Mode setahun penuh: month 0. Batas akhirnya `new Date(year + 1, 0, 0)`,
-   * yaitu hari ke-0 Januari tahun berikutnya = 31 Desember tahun yang diminta.
-   * Bentuk yang mudah salah baca; diuji supaya laporan tahunan tidak diam-diam
-   * berhenti di 30 Desember atau justru menyerempet 1 Januari tahun depan.
-   */
-  it("bulan 0 berarti setahun penuh, 1 Januari sampai 31 Desember", async () => {
-    const repo = repoSiapPakai();
-
-    await request(app(repo))
-      .post("/profit-loss")
-      .send({ month: 0, year: 2024 });
-
-    expect(repo.salesInvoice.fetchByDateRange).toHaveBeenCalledWith(
-      new Date(2024, 0, 1),
-      new Date(2024, 11, 31)
-    );
-    expect(repo.goodReceipt.fetchByDateRange).toHaveBeenCalledWith(
-      new Date(2024, 0, 1),
-      new Date(2024, 11, 31)
-    );
   });
 
   /**
@@ -217,10 +148,7 @@ describe("POST /profit-loss — laba rugi", () => {
       .send({ month: "7", year: "2023" });
 
     expect(repo.expense.fetchReport).toHaveBeenCalledWith(7, 2023);
-    expect(repo.salesInvoice.fetchByDateRange).toHaveBeenCalledWith(
-      new Date(2023, 6, 1),
-      new Date(2023, 6, 31)
-    );
+    expect(repo.stockOut.calculate).toHaveBeenCalledWith(7, 2023);
   });
 
   it("membalas 500 bila salah satu repository gagal", async () => {
@@ -258,20 +186,20 @@ describe("POST /profit-loss — laba rugi", () => {
   });
 
   /**
-   * Kelima kueri dijalankan lewat Promise.all, jadi satu kegagalan membatalkan
+   * Ketiga kueri dijalankan lewat Promise.all, jadi satu kegagalan membatalkan
    * seluruh laporan — tidak ada laporan setengah jadi yang terkirim.
    */
   it("tidak mengirim laporan sebagian saat satu bagian gagal", async () => {
     const repo = repoSiapPakai();
     repo.company.fetchAll.mockRejectedValue(new Error("gagal"));
-    repo.salesInvoice.fetchByDateRange.mockResolvedValue([{ value: 5000 }]);
+    repo.expense.fetchReport.mockResolvedValue([{ value: 250 }]);
 
     const res = await request(app(repo))
       .post("/profit-loss")
       .send({ month: 3, year: 2024 });
 
     expect(res.status).toBe(500);
-    expect(res.body).not.toHaveProperty("sales");
+    expect(res.body).not.toHaveProperty("expense");
   });
 });
 
