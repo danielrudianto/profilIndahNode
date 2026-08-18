@@ -68,6 +68,22 @@ export const invoiceArchiveSchema = z.object({
   sortDirection: z.enum(["asc", "desc"], {
     error: ErrorList["Sort direction only supports ascending or descending"],
   }),
+  /*
+    Aturan BARU, bukan migrasi: rantai lama tidak pernah memeriksa kedua
+    tanggal ini padahal controller selalu membacanya — absen atau tak
+    terbaca meledak jadi 500 lewat Invalid Date ke Prisma. Pesannya
+    memakai key yang sudah bertranslasi di kedua bahasa.
+  */
+  startDate: z
+    .any()
+    .refine((nilai) => !Number.isNaN(new Date(String(nilai)).getTime()), {
+      message: ErrorList["Date required"],
+    }),
+  endDate: z
+    .any()
+    .refine((nilai) => !Number.isNaN(new Date(String(nilai)).getTime()), {
+      message: ErrorList["Date required"],
+    }),
 });
 
 /**

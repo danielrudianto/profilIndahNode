@@ -141,6 +141,8 @@ const arsipLengkap = {
   isDelete: false,
   sortBy: "date",
   sortDirection: "asc",
+  startDate: "2026-05-01",
+  endDate: "2026-05-31",
 };
 
 describe("POST /archives — perilaku harus identik", () => {
@@ -322,6 +324,15 @@ describe("Perbedaan yang disengaja: angka berupa teks ditolak", () => {
     ["tahun berupa teks", { ...arsipLengkap, year: "2026" }],
     ["halaman berupa teks", { ...arsipLengkap, page: "1" }],
     ["isPaid berupa teks", { ...arsipLengkap, isPaid: "true" }],
+    /*
+      Aturan BARU pada rentang tanggal: rantai lama tidak memeriksanya
+      sama sekali dan controller meledak 500 lewat Invalid Date ke
+      Prisma. Kini absen atau tak terbaca ditolak 400.
+    */
+    ["tanpa startDate", { ...arsipLengkap, startDate: undefined }],
+    ["startDate tak terbaca", { ...arsipLengkap, startDate: "bukan-tanggal" }],
+    ["tanpa endDate", { ...arsipLengkap, endDate: undefined }],
+    ["endDate tak terbaca", { ...arsipLengkap, endDate: "31-31-2026x" }],
   ];
 
   for (const [nama, badan] of kasus) {
