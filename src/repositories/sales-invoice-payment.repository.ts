@@ -53,6 +53,30 @@ export class SalesInvoicePaymentRepository {
     });
   }
 
+  /*
+    Total pembayaran faktur per hari pada satu jendela tanggal — jalur
+    grafik laporan uang masuk. DOR (payment_method_id 0) ikut terhitung:
+    uangnya memang diterima hari itu, hanya masih di tangan sales.
+  */
+  async sumHarian(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ date: Date; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT sales_invoice_payment.date AS tanggal, SUM(sales_invoice_payment.value) AS nilai
+        FROM sales_invoice_payment
+        JOIN sales_invoice_code ON sales_invoice_payment.sales_invoice_code_id = sales_invoice_code.id
+        WHERE sales_invoice_payment.date >= ${mulai}
+        AND sales_invoice_payment.date < ${sebelum}
+        AND sales_invoice_code.is_delete = 0
+        GROUP BY sales_invoice_payment.date
+      `;
+
+    return result.map((x) => {
+      return { date: x.tanggal, value: Number(x.nilai) };
+    });
+  }
+
   async fetchPaymentsByDate(
     date: Date
   ): Promise<{ payment_method_id: number | null; value: number }[]> {

@@ -63,6 +63,25 @@ export class SalesInvoiceRebateRepository {
    * Inilah yang membuat rekonsiliasi sore hari cocok: kas dan bank berkurang
    * sebanyak ini tanpa ada satu pun faktur yang nilainya turun.
    */
+  /*
+    Pengembalian diskon per hari (uang keluar) — jalur grafik laporan
+    uang masuk.
+  */
+  async sumHarian(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ date: Date; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT date AS tanggal, SUM(value) AS nilai
+        FROM sales_invoice_rebate
+        WHERE date >= ${mulai} AND date < ${sebelum}
+        GROUP BY date
+      `;
+    return result.map((x) => {
+      return { date: x.tanggal, value: Number(x.nilai) };
+    });
+  }
+
   async sumByDate(
     date: Date
   ): Promise<{ payment_method_id: number | null; value: number }[]> {

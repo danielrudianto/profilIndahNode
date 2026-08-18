@@ -247,3 +247,28 @@ ALTER TABLE stock_out
   LOCK = NONE;
 
 SET SESSION lock_wait_timeout = 31536000;
+
+-- ============================================================
+--  BAGIAN 5 — Indeks tanggal untuk laporan uang masuk
+--  (ditambahkan 2026-08-18, sesi laporan uang masuk)
+--
+--  report/money-receipt menyaring pembayaran pada SATU tanggal:
+--  sales_invoice_payment (±390.000 baris) dan sales_deposit_payment
+--  dipindai penuh dua kali per buka halaman karena indeksnya hanya
+--  foreign key. Indeks tanggal membuat kedua saringan itu langsung
+--  menunjuk barisnya.
+-- ============================================================
+
+SET SESSION lock_wait_timeout = 10;
+
+ALTER TABLE sales_invoice_payment
+  ADD INDEX idx_sales_invoice_payment_tanggal (date),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
+ALTER TABLE sales_deposit_payment
+  ADD INDEX idx_sales_deposit_payment_tanggal (date),
+  ALGORITHM = INPLACE,
+  LOCK = NONE;
+
+SET SESSION lock_wait_timeout = 31536000;

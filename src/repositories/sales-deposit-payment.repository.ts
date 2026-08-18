@@ -6,6 +6,29 @@ export class SalesDepositPaymentRepository {
     this.prisma = prisma;
   }
 
+  /*
+    Total pembayaran deposit per hari — pasangan sumHarian pembayaran
+    faktur untuk grafik laporan uang masuk; DOR ikut terhitung.
+  */
+  async sumHarian(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ date: Date; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT sales_deposit_payment.date AS tanggal, SUM(sales_deposit_payment.value) AS nilai
+        FROM sales_deposit_payment
+        JOIN sales_deposit_code ON sales_deposit_payment.sales_deposit_code_id = sales_deposit_code.id
+        WHERE sales_deposit_payment.date >= ${mulai}
+        AND sales_deposit_payment.date < ${sebelum}
+        AND sales_deposit_code.is_delete = 0
+        GROUP BY sales_deposit_payment.date
+      `;
+
+    return result.map((x) => {
+      return { date: x.tanggal, value: Number(x.nilai) };
+    });
+  }
+
   async fetchPaymentsByDate(
     date: Date
   ): Promise<{ payment_method_id: number | null; value: number }[]> {

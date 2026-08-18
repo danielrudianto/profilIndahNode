@@ -280,6 +280,40 @@ export class OverpaymentRepository {
     });
   }
 
+  /*
+    Kelebihan bayar per hari untuk grafik laporan uang masuk — dua arah:
+    diterima (date) dan dikembalikan (return_payment_date).
+  */
+  async sumHarianMasuk(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ date: Date; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT date AS tanggal, SUM(value) AS nilai
+        FROM overpayment
+        WHERE date >= ${mulai} AND date < ${sebelum}
+        GROUP BY date
+      `;
+    return result.map((x) => {
+      return { date: x.tanggal, value: Number(x.nilai) };
+    });
+  }
+
+  async sumHarianKeluar(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ date: Date; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT return_payment_date AS tanggal, SUM(value) AS nilai
+        FROM overpayment
+        WHERE return_payment_date >= ${mulai} AND return_payment_date < ${sebelum}
+        GROUP BY return_payment_date
+      `;
+    return result.map((x) => {
+      return { date: x.tanggal, value: Number(x.nilai) };
+    });
+  }
+
   async fetchReportByReceiveDate(date: Date): Promise<
     {
       payment_method_id: number | null;

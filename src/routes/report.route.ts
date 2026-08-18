@@ -101,6 +101,13 @@ router.post(
   moneyReceiptController.fetchMoneyReceipt
 );
 
+router.get(
+  "/money-receipt/trend",
+  requireRole(PERAN_UMUM),
+  validate(inventoryQuerySchema, "query"),
+  moneyReceiptController.fetchMoneyReceiptTrend
+);
+
 router.post(
   "/money-receipt/download",
   requireRole(PERAN_UMUM),

@@ -176,6 +176,32 @@ export class SalesReturnRepository {
     return result > 0;
   };
 
+  /*
+    Total retur (uang keluar) per hari — jalur grafik laporan uang masuk.
+    Nilainya harga jual bersih baris faktur yang diretur, sama dengan
+    fetchPaymentsByDate di bawah.
+  */
+  async sumHarian(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ date: Date; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT sales_return_code.date AS tanggal,
+        SUM(sales_return.quantity * (sales_invoice.price - sales_invoice.discount)) AS nilai
+        FROM sales_return
+        JOIN sales_return_code ON sales_return.sales_return_code_id = sales_return_code.id
+        JOIN sales_invoice ON sales_return.sales_invoice_id = sales_invoice.id
+        WHERE sales_return_code.date >= ${mulai}
+        AND sales_return_code.date < ${sebelum}
+        AND sales_return_code.is_delete = 0
+        GROUP BY sales_return_code.date
+      `;
+
+    return result.map((x) => {
+      return { date: x.tanggal, value: Number(x.nilai) };
+    });
+  }
+
   async fetchPaymentsByDate(
     date: Date
   ): Promise<{ payment_method_id: number | null; value: number }[]> {

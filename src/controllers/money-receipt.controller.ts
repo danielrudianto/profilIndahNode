@@ -36,38 +36,114 @@ export class MoneyReceiptController {
     this.salesInvoiceRebateRepository = salesInvoiceRebateRepository;
   }
 
+  /**
+   * Tren 30 hari untuk grafik laporan uang masuk, berakhir di tanggal
+   * diminta. Per hari: masuk (pembayaran faktur + deposit + kelebihan
+   * bayar diterima) dan keluar (retur + pengembalian diskon + kelebihan
+   * bayar dikembalikan). Hari tanpa pergerakan diisi nol di sini supaya
+   * frontend selalu menerima 30 baris berurutan.
+   */
+  fetchMoneyReceiptTrend = async (req: Request, res: Response) => {
+    const akhir = req.query.date
+      ? new Date(String(req.query.date))
+      : new Date();
+
+    try {
+      const sebelum = new Date(
+        akhir.getFullYear(),
+        akhir.getMonth(),
+        akhir.getDate() + 1
+      );
+      const mulai = new Date(
+        akhir.getFullYear(),
+        akhir.getMonth(),
+        akhir.getDate() - 29
+      );
+
+      const [faktur, deposit, retur, lebihMasuk, lebihKeluar, rebate] =
+        await Promise.all([
+          this.salesInvoicePaymentRepository.sumHarian(mulai, sebelum),
+          this.salesDepositPaymentRepository.sumHarian(mulai, sebelum),
+          this.salesReturnRepository.sumHarian(mulai, sebelum),
+          this.overpaymentRepository.sumHarianMasuk(mulai, sebelum),
+          this.overpaymentRepository.sumHarianKeluar(mulai, sebelum),
+          this.salesInvoiceRebateRepository.sumHarian(mulai, sebelum),
+        ]);
+
+      const kunci = (tanggal: Date) => tanggal.toISOString().slice(0, 10);
+      const masuk = new Map<string, number>();
+      const keluar = new Map<string, number>();
+      const tambah = (
+        peta: Map<string, number>,
+        baris: { date: Date; value: number }[]
+      ) => {
+        for (const x of baris) {
+          const k = kunci(new Date(x.date));
+          peta.set(k, (peta.get(k) ?? 0) + x.value);
+        }
+      };
+      tambah(masuk, faktur);
+      tambah(masuk, deposit);
+      tambah(masuk, lebihMasuk);
+      tambah(keluar, retur);
+      tambah(keluar, lebihKeluar);
+      tambah(keluar, rebate);
+
+      const data = [];
+      for (let mundur = 29; mundur >= 0; mundur--) {
+        const d = new Date(
+          akhir.getFullYear(),
+          akhir.getMonth(),
+          akhir.getDate() - mundur
+        );
+        const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        data.push({
+          date: k,
+          masuk: masuk.get(k) ?? 0,
+          keluar: keluar.get(k) ?? 0,
+        });
+      }
+
+      return res.status(200).send({ data: data });
+    } catch (error) {
+      console.error(`[error]: Error on fetching money receipt trend ${error}`);
+      return res.status(500).send(error);
+    }
+  };
+
   fetchMoneyReceipt = async (req: Request, res: Response) => {
     try {
       const date = new Date(req.body.date);
-      const paymentMethods = await this.paymentMethodRepository.fetchAll();
-
-      const salesInvoicePayments =
-        await this.salesInvoicePaymentRepository.fetchPaymentsByDate(date);
-
-      const salesInvoiceDORPayments =
-        await this.salesInvoicePaymentRepository.fetchDORPaymentsByDate(date);
-
-      const salesDepositPayments =
-        await this.salesDepositPaymentRepository.fetchPaymentsByDate(date);
-
-      const salesDepositDORPayments =
-        await this.salesDepositPaymentRepository.fetchDORPaymentsByDate(date);
-
-      const salesReturnPayments =
-        await this.salesReturnRepository.fetchPaymentsByDate(date);
-
-      const overpayment =
-        await this.overpaymentRepository.fetchReportByReceiveDate(date);
-
-      const overpaymentReturn =
-        await this.overpaymentRepository.fetchReportByReturnDate(date);
 
       /*
-        Pengembalian diskon faktur: uang KELUAR lewat metode pilihannya.
-        Pembayaran tunai 5.000 dengan diskon 1.000 yang dikembalikan via
-        transfer berarti +5.000 di kas dan -1.000 di transfer.
+        Sembilan sumber yang saling bebas — dulu ditunggu berurutan,
+        sehingga lama halamannya adalah JUMLAH seluruh query, bukan yang
+        terlama. Catatan rebate: pengembalian diskon faktur adalah uang
+        KELUAR lewat metode pilihannya — bayar tunai 5.000 dengan diskon
+        1.000 yang dikembalikan via transfer berarti +5.000 di kas dan
+        -1.000 di transfer.
       */
-      const rebates = await this.salesInvoiceRebateRepository.sumByDate(date);
+      const [
+        paymentMethods,
+        salesInvoicePayments,
+        salesInvoiceDORPayments,
+        salesDepositPayments,
+        salesDepositDORPayments,
+        salesReturnPayments,
+        overpayment,
+        overpaymentReturn,
+        rebates,
+      ] = await Promise.all([
+        this.paymentMethodRepository.fetchAll(),
+        this.salesInvoicePaymentRepository.fetchPaymentsByDate(date),
+        this.salesInvoicePaymentRepository.fetchDORPaymentsByDate(date),
+        this.salesDepositPaymentRepository.fetchPaymentsByDate(date),
+        this.salesDepositPaymentRepository.fetchDORPaymentsByDate(date),
+        this.salesReturnRepository.fetchPaymentsByDate(date),
+        this.overpaymentRepository.fetchReportByReceiveDate(date),
+        this.overpaymentRepository.fetchReportByReturnDate(date),
+        this.salesInvoiceRebateRepository.sumByDate(date),
+      ]);
 
       const salesInvoicePaymentIndex = salesInvoicePayments.findIndex(
         (x) => x.payment_method_id == null

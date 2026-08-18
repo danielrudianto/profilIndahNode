@@ -77,8 +77,9 @@ export const dateSchema = z.object({
 });
 
 /**
- * GET /report/inventory — `date` opsional; tanpa tanggal berarti hari
- * ini. Nilainya teks (query string) dan harus terbaca sebagai tanggal.
+ * GET /report/inventory, /inventory/trend, /money-receipt/trend —
+ * `date` opsional; tanpa tanggal berarti hari ini. Nilainya teks
+ * (query string) dan harus terbaca sebagai tanggal.
  */
 export const inventoryQuerySchema = z.object({
   date: z
