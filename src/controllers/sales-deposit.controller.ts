@@ -64,7 +64,7 @@ export class SalesDepositController {
 
     try {
       const billResult = await this.salesDepositRepository.create({
-        name: this.salesDepositRepository.generateName(date),
+        name: await this.salesDepositRepository.generateAvailableName(date),
         uuid: uuid,
         customerID: customerID,
         discount: discount,
@@ -252,6 +252,11 @@ export class SalesDepositController {
         barang, dan kehabisan waktu di tengah justru menciptakan kegagalan baru
         pada dokumen yang paling besar.
       */
+      /* Nomor diundi dan dicek DI LUAR transaksi — tabrakan tidak perlu
+         membatalkan seluruh pekerjaan besar di dalamnya. */
+      const namaFaktur =
+        await this.salesInvoiceRepository.generateAvailableName(date);
+
       const result = await this.prisma.$transaction(
         async (tx) => {
           const faktur = await this.salesInvoiceRepository.create(
@@ -266,7 +271,7 @@ export class SalesDepositController {
           Asal-usulnya tetap terlacak — tapi lewat kolom sales_invoice_code_id
           pada sales_deposit_code yang ditulis di bawah, bukan lewat awalan nomor.
         */
-              name: this.salesInvoiceRepository.generateName(date),
+              name: namaFaktur,
               date: new Date(date),
               customerID: customerID,
               sales: deposit.sales,

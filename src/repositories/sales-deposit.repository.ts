@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { randomInt } from "crypto";
 import {
   IFetchAnnualArchives,
   IFetchCommon,
@@ -75,15 +76,25 @@ export class SalesDepositRepository {
   }
 
   generateName(date: Date = new Date()) {
-    return `DPS-${date.getFullYear()}-${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}`;
+    return `DPS-${date.getFullYear()}-${randomInt(0, 100000000)
+      .toString()
+      .padStart(8, "0")}`;
+  }
+
+  /* Alasan yang sama dengan generateAvailableName milik faktur. */
+  async generateAvailableName(date: Date = new Date()): Promise<string> {
+    let kandidat = this.generateName(date);
+    for (let percobaan = 0; percobaan < 5; percobaan++) {
+      const sudahAda = await this.prisma.sales_deposit_code.findUnique({
+        where: { name: kandidat },
+        select: { id: true },
+      });
+      if (!sudahAda) {
+        return kandidat;
+      }
+      kandidat = this.generateName(date);
+    }
+    return kandidat;
   }
 
   /*

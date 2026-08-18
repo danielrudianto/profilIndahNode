@@ -81,7 +81,7 @@ class SalesInvoiceController {
       }
 
       const billResult = await this.salesInvoiceRepository.create({
-        name: this.salesInvoiceRepository.generateName(date),
+        name: await this.salesInvoiceRepository.generateAvailableName(date),
         uuid: uuid,
         customerID: customerID,
         discount: discount,

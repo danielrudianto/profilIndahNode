@@ -50,6 +50,7 @@ function repositoriTiruan() {
     salesInvoice: {
       create: jest.fn(),
       generateName: jest.fn().mockReturnValue("INV-2024-11112222"),
+      generateAvailableName: jest.fn().mockResolvedValue("INV-2024-11112222"),
       deleteByID: jest.fn(),
       fetchByID: jest.fn(),
       fetchAnnualArchives: jest.fn(),

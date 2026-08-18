@@ -51,6 +51,7 @@ function repositoriTiruan() {
     salesDeposit: {
       create: jest.fn(),
       generateName: jest.fn().mockReturnValue("DPS-2024-33334444"),
+      generateAvailableName: jest.fn().mockResolvedValue("DPS-2024-33334444"),
       fetch: jest.fn(),
       fetchByID: jest.fn(),
       fetchAnnualArchives: jest.fn(),
@@ -61,6 +62,7 @@ function repositoriTiruan() {
     salesInvoice: {
       create: jest.fn(),
       generateName: jest.fn().mockReturnValue("INV-2024-55556666"),
+      generateAvailableName: jest.fn().mockResolvedValue("INV-2024-55556666"),
     },
     stockCard: {
       createMany: jest.fn().mockResolvedValue([]),
@@ -720,8 +722,8 @@ describe("POST /confirm — setoran menjadi faktur", () => {
     expect(r.salesInvoice.create.mock.calls[0][0].name).toBe(
       "INV-2024-55556666"
     );
-    expect(r.salesInvoice.generateName).toHaveBeenCalled();
-    expect(r.salesDeposit.generateName).not.toHaveBeenCalled();
+    expect(r.salesInvoice.generateAvailableName).toHaveBeenCalled();
+    expect(r.salesDeposit.generateAvailableName).not.toHaveBeenCalled();
   });
 
   /**

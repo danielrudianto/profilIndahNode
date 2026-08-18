@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { randomInt } from "crypto";
 import { SalesInvoiceModel } from "../models/sales-invoice.model";
 import { ISalesInvoiceCode } from "../interfaces/sales-invoice.interface";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
@@ -107,15 +108,33 @@ export class SalesInvoiceRepository {
   }
 
   generateName(date: Date): string {
-    return `INV-${date.getFullYear()}-${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}${Math.floor(
-      Math.random() * 10
-    )}${Math.floor(Math.random() * 10)}`;
+    return `INV-${date.getFullYear()}-${randomInt(0, 100000000)
+      .toString()
+      .padStart(8, "0")}`;
+  }
+
+  /*
+    Nomor acak WAJIB dicek dulu: kolom name UNIQUE, ruang undiannya hanya
+    10^8 per tahun, dan pada volume ribuan faktur setahun peluang mengundi
+    nomor yang sudah terpakai menumpuk sampai puluhan persen (birthday
+    problem) — wujudnya "kadang bikin faktur error, dicoba lagi bisa".
+    Setelah dicek, sisa risikonya hanya dua pembuatan serentak yang mengundi
+    angka sama pada saat yang sama; constraint UNIQUE tetap jadi jaring
+    terakhirnya.
+  */
+  async generateAvailableName(date: Date): Promise<string> {
+    let kandidat = this.generateName(date);
+    for (let percobaan = 0; percobaan < 5; percobaan++) {
+      const sudahAda = await this.prisma.sales_invoice_code.findUnique({
+        where: { name: kandidat },
+        select: { id: true },
+      });
+      if (!sudahAda) {
+        return kandidat;
+      }
+      kandidat = this.generateName(date);
+    }
+    return kandidat;
   }
 
   async deleteByID(id: number, userID: number): Promise<SalesInvoiceModel> {
