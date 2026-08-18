@@ -130,6 +130,35 @@ class CustomerController {
     }
   };
 
+  /**
+   * Laporan penjualan pada satu pelanggan. Rutenya dikunci super administrator
+   * — nilai penjualan per pelanggan adalah angka yang sensitif.
+   */
+  fetchReport = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const year = Number(req.query.year) || 0;
+
+      const customer = await this.customerRepository.fetchByID(id);
+      if (!customer) {
+        return res.status(404).send(ErrorList["Not found"]);
+      }
+
+      const report = await this.customerRepository.fetchReport(id, year);
+
+      return res.status(200).send({
+        customer: {
+          id: customer.id,
+          name: customer.name,
+        },
+        ...report,
+      });
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer report ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetch = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
     const keyword = translateKeyword(req.query.keyword);

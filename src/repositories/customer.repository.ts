@@ -349,4 +349,104 @@ export class CustomerRepository {
       throw error;
     }
   }
+
+  /*
+    Laporan penjualan pada satu pelanggan — cermin fetchReport milik
+    SupplierRepository. Nilai memakai baris faktur (harga - diskon) * kuantitas,
+    sama dengan peringkat pelanggan di laporan penjualan; diskon/ongkos level
+    dokumen sengaja tidak dihitung supaya kedua angka itu selalu cocok.
+    Tahun 0 berarti sepanjang waktu.
+  */
+  async fetchReport(customerID: number, year: number) {
+    try {
+      const [ringkasan, merek, barang, tahunTersedia] = await Promise.all([
+        this.prisma.$queryRaw<any[]>`
+          SELECT
+            COALESCE(SUM((si.price - si.discount) * si.quantity), 0) AS total_nilai,
+            COUNT(DISTINCT sic.id) AS jumlah_dokumen,
+            COUNT(DISTINCT si.product_id) AS produk_unik,
+            MIN(sic.date) AS pertama,
+            MAX(sic.date) AS terakhir
+          FROM sales_invoice si
+          JOIN sales_invoice_code sic ON si.sales_invoice_code_id = sic.id
+          WHERE sic.customer_id = ${customerID}
+            AND sic.is_delete = 0
+            AND (${year} = 0 OR YEAR(sic.date) = ${year})
+        `,
+        this.prisma.$queryRaw<any[]>`
+          SELECT
+            pb.name AS merek,
+            COUNT(DISTINCT si.product_id) AS produk_unik,
+            COALESCE(SUM(si.quantity * COALESCE(pu.conversion, 1)), 0) AS kuantitas,
+            COALESCE(SUM((si.price - si.discount) * si.quantity), 0) AS nilai
+          FROM sales_invoice si
+          JOIN sales_invoice_code sic ON si.sales_invoice_code_id = sic.id
+          JOIN product p ON si.product_id = p.id
+          JOIN product_brand pb ON p.product_brand_id = pb.id
+          LEFT JOIN product_unit pu ON si.product_unit_id = pu.id
+          WHERE sic.customer_id = ${customerID}
+            AND sic.is_delete = 0
+            AND (${year} = 0 OR YEAR(sic.date) = ${year})
+          GROUP BY pb.id, pb.name
+          ORDER BY nilai DESC
+        `,
+        this.prisma.$queryRaw<any[]>`
+          SELECT
+            p.reference AS referensi,
+            p.description AS deskripsi,
+            p.unit AS satuan,
+            COUNT(DISTINCT sic.id) AS jumlah_dokumen,
+            COALESCE(SUM(si.quantity * COALESCE(pu.conversion, 1)), 0) AS kuantitas,
+            COALESCE(SUM((si.price - si.discount) * si.quantity), 0) AS nilai
+          FROM sales_invoice si
+          JOIN sales_invoice_code sic ON si.sales_invoice_code_id = sic.id
+          JOIN product p ON si.product_id = p.id
+          LEFT JOIN product_unit pu ON si.product_unit_id = pu.id
+          WHERE sic.customer_id = ${customerID}
+            AND sic.is_delete = 0
+            AND (${year} = 0 OR YEAR(sic.date) = ${year})
+          GROUP BY p.id, p.reference, p.description, p.unit
+          ORDER BY jumlah_dokumen DESC, nilai DESC
+          LIMIT 15
+        `,
+        this.prisma.$queryRaw<any[]>`
+          SELECT DISTINCT YEAR(sic.date) AS tahun
+          FROM sales_invoice_code sic
+          WHERE sic.customer_id = ${customerID}
+            AND sic.is_delete = 0
+            AND sic.date IS NOT NULL
+          ORDER BY tahun DESC
+        `,
+      ]);
+
+      const r = ringkasan[0] ?? {};
+      return {
+        summary: {
+          totalValue: Number(r.total_nilai ?? 0),
+          documentCount: Number(r.jumlah_dokumen ?? 0),
+          uniqueProducts: Number(r.produk_unik ?? 0),
+          firstDate: r.pertama ?? null,
+          lastDate: r.terakhir ?? null,
+        },
+        brands: merek.map((x) => ({
+          name: x.merek,
+          uniqueProducts: Number(x.produk_unik),
+          quantity: Number(x.kuantitas),
+          value: Number(x.nilai),
+        })),
+        topProducts: barang.map((x) => ({
+          reference: x.referensi,
+          description: x.deskripsi,
+          unit: x.satuan,
+          documentCount: Number(x.jumlah_dokumen),
+          quantity: Number(x.kuantitas),
+          value: Number(x.nilai),
+        })),
+        availableYears: tahunTersedia.map((x) => Number(x.tahun)),
+      };
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer report ${error}`);
+      throw new Error("Internal server error");
+    }
+  }
 }

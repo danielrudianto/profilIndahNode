@@ -1,5 +1,6 @@
 import { Router } from "express";
 import CustomerController from "../controllers/customer.controller";
+import { superadministratorMiddleware } from "../utils/auth.helper";
 import { prisma } from "../utils/database.helper";
 import { validate } from "../utils/validate.helper";
 import { CustomerRepository } from "../repositories/customer.repository";
@@ -26,6 +27,18 @@ router.delete(
 );
 
 router.get("/autocomplete", customerController.fetchAutocomplete);
+
+/*
+  Laporan penjualan per pelanggan — SEBELUM "/:id" supaya "report" tidak
+  tertangkap sebagai id, dan dikunci super administrator: nilai penjualan
+  per pelanggan adalah angka yang sensitif.
+*/
+router.get(
+  "/:id/report",
+  superadministratorMiddleware,
+  validate(paramCustomerSchema, "params"),
+  customerController.fetchReport
+);
 
 router.get(
   "/:id",
