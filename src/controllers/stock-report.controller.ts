@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import { UMUR_CACHE_LAPORAN } from "../constants/cache.constant";
+import { redisClient } from "../utils/redis.helper";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { StockInRepository } from "../repositories/stock-in.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
@@ -36,15 +38,43 @@ export class StockReportController {
     this.adjustmentCaseRepository = adjustmentCaseRepository;
   }
 
+  /*
+    Kedua endpoint persediaan menyisir seluruh sejarah stock_out (jutaan
+    baris) — hasilnya dipegang Redis sebentar supaya klik bolak-balik
+    tanggal instan. Redis mati bukan alasan gagal: cache dilewati saja.
+  */
+  private dariCache = async (kunci: string): Promise<string | null> => {
+    try {
+      return await redisClient.get(kunci);
+    } catch {
+      return null;
+    }
+  };
+
+  private keCache = async (kunci: string, nilai: unknown): Promise<void> => {
+    try {
+      await redisClient.setEx(kunci, UMUR_CACHE_LAPORAN, JSON.stringify(nilai));
+    } catch {
+      /* cache gagal ditulis — biarkan; permintaan berikut menghitung ulang */
+    }
+  };
+
   fetchInventoryReport = async (req: Request, res: Response) => {
     // Tanpa tanggal berarti hari ini — bentuk lama laporan ini memang
     // hanya bisa menjawab "sekarang".
     const tanggal = req.query.date
       ? new Date(String(req.query.date))
       : new Date();
+    const kunci = `laporan-persediaan:${tanggal.toISOString().slice(0, 10)}`;
 
     try {
+      const simpanan = await this.dariCache(kunci);
+      if (simpanan) {
+        return res.status(200).send(JSON.parse(simpanan));
+      }
+
       const result = await this.stockInRepository.calculateAsOf(tanggal);
+      await this.keCache(kunci, result);
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching inventory report ${error}`);
@@ -61,13 +91,21 @@ export class StockReportController {
     const tanggal = req.query.date
       ? new Date(String(req.query.date))
       : new Date();
+    const kunci = `laporan-persediaan-tren:${tanggal.toISOString().slice(0, 10)}`;
 
     try {
+      const simpanan = await this.dariCache(kunci);
+      if (simpanan) {
+        return res.status(200).send(JSON.parse(simpanan));
+      }
+
       const [trend, brands] = await Promise.all([
         this.stockInRepository.trendAsOf(tanggal),
         this.stockInRepository.nilaiPerMerekAsOf(tanggal),
       ]);
-      return res.status(200).send({ trend: trend, brands: brands });
+      const result = { trend: trend, brands: brands };
+      await this.keCache(kunci, result);
+      return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching inventory trend ${error}`);
       return res.status(500).send(error);
