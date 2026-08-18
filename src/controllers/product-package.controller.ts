@@ -140,7 +140,7 @@ class ProductPackageController {
     });
 
     return res.status(200).send({
-      data: result.hits.map((x) => {
+      data: result.hits.map((x: any) => {
         return new PackageCodeModel({
           id: x.id,
           name: x.name,

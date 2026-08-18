@@ -45,7 +45,7 @@ async function setupDatabase() {
 
       console.info("[info]: Product index created successfully");
 
-      await meili.waitForTask(createProduct.taskUid);
+      await meili.tasks.waitForTask(createProduct.taskUid);
       const productSettingTask = await meili.index("product").updateSettings({
         filterableAttributes: [
           "product_brand_id",
@@ -55,7 +55,7 @@ async function setupDatabase() {
         ],
         sortableAttributes: ["created_at", "reference", "description"],
       });
-      await meili.waitForTask(productSettingTask.taskUid);
+      await meili.tasks.waitForTask(productSettingTask.taskUid);
       console.info("Product database initialized");
     }
   }
@@ -69,14 +69,14 @@ async function setupDatabase() {
         primaryKey: "id",
       });
 
-      await meili.waitForTask(createProductPackage.taskUid);
+      await meili.tasks.waitForTask(createProductPackage.taskUid);
       const productPackageSettingTask = await meili
         .index("package")
         .updateSettings({
           filterableAttributes: ["is_delete"],
           sortableAttributes: ["name", "description"],
         });
-      await meili.waitForTask(productPackageSettingTask.taskUid);
+      await meili.tasks.waitForTask(productPackageSettingTask.taskUid);
       console.info("Package database initialized");
     }
   }
@@ -97,8 +97,8 @@ async function syncProduct() {
   const chunkSize = 1000; // Define your chunk size
   for (let i = 0; i < products.length; i += chunkSize) {
     const chunk = products.slice(i, i + chunkSize);
-    const productInsertTask = await meili.index("product").addDocuments(chunk);
-    await meili.waitForTask(productInsertTask.taskUid);
+    const productInsertTask = await meili.index("product").addDocuments(chunk, { primaryKey: "id" });
+    await meili.tasks.waitForTask(productInsertTask.taskUid);
     console.info(`[info]: Inserted chunk ${Math.floor(i / chunkSize) + 1}`);
   }
 
@@ -119,8 +119,8 @@ async function syncProductPackage() {
 
   const productPackageInsertTask = await meili
     .index("package")
-    .addDocuments([productPackages]);
-  await meili.waitForTask(productPackageInsertTask.taskUid);
+    .addDocuments([productPackages], { primaryKey: "id" });
+  await meili.tasks.waitForTask(productPackageInsertTask.taskUid);
   console.info(`[info]: Product package database successfully inserted`);
 }
 

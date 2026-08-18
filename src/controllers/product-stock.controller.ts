@@ -140,13 +140,13 @@ class ProductStockController {
       });
 
       const productStock = await this.productStockRepository.fetchStock(
-        result.hits.map((x) => {
+        result.hits.map((x: any) => {
           return x.id;
         })
       );
 
       return res.status(200).send({
-        data: result.hits.map((x) => {
+        data: result.hits.map((x: any) => {
           const index = productStock.findIndex((y) => {
             return y.id == x.id;
           });
@@ -191,20 +191,20 @@ class ProductStockController {
 
         const productStocks =
           await this.productStockRepository.fetchStockByProductID(
-            result.hits.map((x) => {
+            result.hits.map((x: any) => {
               return x.id;
             })
           );
 
         const depositProductStock =
           await this.salesDepositRepository.calculatePendingStock(
-            result.hits.map((x) => {
+            result.hits.map((x: any) => {
               return x.id;
             })
           );
 
         return res.status(200).send({
-          data: result.hits.map((x) => {
+          data: result.hits.map((x: any) => {
             const index = productStocks.findIndex(
               (stock) => stock.product_id == x.id
             );
@@ -238,13 +238,13 @@ class ProductStockController {
 
         const productStocks =
           await this.productStockRepository.fetchStockByProductID(
-            result.hits.map((x) => {
+            result.hits.map((x: any) => {
               return x.id;
             })
           );
 
         return res.status(200).send({
-          data: result.hits.map((x) => {
+          data: result.hits.map((x: any) => {
             const index = productStocks.findIndex(
               (stock) => stock.product_id == x.id
             );

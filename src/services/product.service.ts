@@ -28,7 +28,7 @@ export class ProductService {
           ...product,
           product_unit: productUnits,
         },
-      ]);
+      ], { primaryKey: "id" });
 
       return result;
     } catch (error) {
@@ -45,7 +45,7 @@ export class ProductService {
         throw new Error("No products found");
       }
 
-      const result = await meili.index("product").addDocuments(products);
+      const result = await meili.index("product").addDocuments(products, { primaryKey: "id" });
       return result;
       return result;
     } catch (error) {

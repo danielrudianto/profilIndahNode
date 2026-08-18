@@ -21,12 +21,12 @@ export const main = async () => {
   const products = await productService.fetchAll();
 
   // add all products to meili
-  await meili.index("product").addDocuments(products);
+  await meili.index("product").addDocuments(products, { primaryKey: "id" });
 
   await meili.index("package").deleteAllDocuments();
   const packages = await packageService.fetchAll();
 
-  await meili.index("package").addDocuments(packages);
+  await meili.index("package").addDocuments(packages, { primaryKey: "id" });
 };
 
 main();

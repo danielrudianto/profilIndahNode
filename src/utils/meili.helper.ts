@@ -1,10 +1,18 @@
-import MeiliSearch from "meilisearch";
+import { Meilisearch } from "meilisearch";
 import dotenv from "dotenv";
 dotenv.config(); // Load environment variables from .env file
 
-export const meili = new MeiliSearch({
+/*
+  apiKey hanya dikirim bila benar-benar terisi. Klien 0.60 mengirim header
+  Authorization untuk nilai kosong sekalipun, dan server tanpa master key
+  menjawab 401 pada header yang tidak dikenalnya — pengembangan lokal
+  tanpa kunci jadi tidak bisa memakai apa pun.
+*/
+const kunciMeili = process.env.MEILISEARCH_MASTER_KEY;
+
+export const meili = new Meilisearch({
   host: process.env.MEILISEARCH_HOST || "http://localhost:7700",
-  apiKey: process.env.MEILISEARCH_MASTER_KEY!,
+  ...(kunciMeili ? { apiKey: kunciMeili } : {}),
 });
 
 const INDEX_UID = "product"; // Change this to your desired index UID
@@ -29,7 +37,7 @@ export const initializeMeiliSearch = async () => {
         primaryKey: "id",
       });
 
-      await meili.waitForTask(createProduct.taskUid);
+      await meili.tasks.waitForTask(createProduct.taskUid);
       const productSettingTask = await meili.index("product").updateSettings({
         filterableAttributes: [
           "product_brand_id",
@@ -39,7 +47,7 @@ export const initializeMeiliSearch = async () => {
         ],
         sortableAttributes: ["created_at", "reference", "description"],
       });
-      await meili.waitForTask(productSettingTask.taskUid);
+      await meili.tasks.waitForTask(productSettingTask.taskUid);
       console.info("Product database initialized");
     } else {
       console.error(`[error]: Error initializing product index: ${error}`);
@@ -58,14 +66,14 @@ export const initializeMeiliSearch = async () => {
         primaryKey: "id",
       });
 
-      await meili.waitForTask(createProductPackage.taskUid);
+      await meili.tasks.waitForTask(createProductPackage.taskUid);
       const productPackageSettingTask = await meili
         .index("package")
         .updateSettings({
           filterableAttributes: ["is_delete"],
           sortableAttributes: ["name", "description"],
         });
-      await meili.waitForTask(productPackageSettingTask.taskUid);
+      await meili.tasks.waitForTask(productPackageSettingTask.taskUid);
       console.info("Package database initialized");
     } else {
       console.error(`[error]: Error initializing package index: ${error}`);
