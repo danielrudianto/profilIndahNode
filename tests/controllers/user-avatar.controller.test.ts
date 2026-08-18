@@ -29,7 +29,7 @@ jest.mock("../../src/utils/socket.helper", () => ({
 import UserAvatarController from "../../src/controllers/user-avatar.controller";
 
 function repositoryTiruan() {
-  return { create: jest.fn() };
+  return { save: jest.fn() };
 }
 
 type Repo = ReturnType<typeof repositoryTiruan>;
@@ -66,7 +66,7 @@ beforeEach(() => {
 describe("POST / — menyimpan avatar", () => {
   it("membalas 201 dan mengirim hasil repository", async () => {
     const repo = repositoryTiruan();
-    repo.create.mockResolvedValue({ id: 1, user_id: 99, ...avatar });
+    repo.save.mockResolvedValue({ id: 1, user_id: 99, ...avatar });
 
     const res = await request(app(repo)).post("/").send(avatar);
 
@@ -76,7 +76,7 @@ describe("POST / — menyimpan avatar", () => {
 
   it("menempelkan avatar pada pemilik token, bukan pada id kiriman klien", async () => {
     const repo = repositoryTiruan();
-    repo.create.mockResolvedValue({});
+    repo.save.mockResolvedValue({});
 
     // user_id di badan permintaan sengaja diisi milik orang lain; controller
     // membaca userId dari middleware, jadi nilai itu tidak terpakai.
@@ -84,7 +84,7 @@ describe("POST / — menyimpan avatar", () => {
       .post("/")
       .send({ ...avatar, user_id: 1 });
 
-    expect(repo.create).toHaveBeenCalledWith({
+    expect(repo.save).toHaveBeenCalledWith({
       user_id: 99,
       top: 3,
       accessories: 1,
@@ -99,13 +99,13 @@ describe("POST / — menyimpan avatar", () => {
 
   it("meneruskan hanya kesembilan bidang yang dikenal", async () => {
     const repo = repositoryTiruan();
-    repo.create.mockResolvedValue({});
+    repo.save.mockResolvedValue({});
 
     await request(app(repo))
       .post("/")
       .send({ ...avatar, is_admin: true, catatan: "titipan" });
 
-    const dikirim = repo.create.mock.calls[0][0] as Record<string, unknown>;
+    const dikirim = repo.save.mock.calls[0][0] as Record<string, unknown>;
     expect(Object.keys(dikirim).sort()).toEqual([
       "accessories",
       "circle",
@@ -121,49 +121,37 @@ describe("POST / — menyimpan avatar", () => {
 
   it("bidang yang tidak dikirim diteruskan sebagai undefined, bukan ditolak", async () => {
     const repo = repositoryTiruan();
-    repo.create.mockResolvedValue({});
+    repo.save.mockResolvedValue({});
 
     // Controller tidak memvalidasi apa pun sendiri; penjagaannya ada di
     // validate(updateAvatarSchema) pada route, bukan di sini.
     const res = await request(app(repo)).post("/").send({ top: 3 });
 
     expect(res.status).toBe(201);
-    expect(repo.create).toHaveBeenCalledWith(
+    expect(repo.save).toHaveBeenCalledWith(
       expect.objectContaining({ top: 3, mouth: undefined, color: undefined })
     );
   });
 
-  /**
-   * CACAT: kegagalan penyimpanan dibalas dengan objek galat, bukan key i18n.
-   *
-   * Penangkapnya berbunyi `res.status(500).send(error)`. Dua akibatnya:
-   *
-   *   1. `message` milik Error bersifat non-enumerable, jadi Express
-   *      menyerialkannya menjadi JSON tanpa pesan apa pun. Pengguna melihat
-   *      galat kosong, dan frontend tidak punya key untuk diterjemahkan —
-   *      berbeda dari controller lain yang mengirim "error.internalServer".
-   *   2. untuk galat yang properti-propertinya MEMANG enumerable — galat
-   *      Prisma membawa `code`, `meta`, dan `clientVersion` — isinya justru
-   *      terkirim utuh ke peramban, termasuk nama kolom dan constraint yang
-   *      gagal. Rincian skema basis data bocor ke klien.
-   */
-  it("CACAT: galat repository dikirim apa adanya ke pemanggil", async () => {
+  /*
+    Dulu CACAT: `res.status(500).send(error)` mengirim galat Prisma utuh —
+    kode, meta, sampai nama constraint — ke peramban, sementara pesannya
+    sendiri hilang karena non-enumerable. Kini key i18n seperti galat lain.
+  */
+  it("membalas key i18n saat penyimpanan gagal, tanpa membocorkan galatnya", async () => {
     const repo = repositoryTiruan();
     const galatPrisma = Object.assign(new Error("Unique constraint failed"), {
       code: "P2002",
       meta: { target: ["user_avatar_user_id_key"] },
     });
-    repo.create.mockRejectedValue(galatPrisma);
+    repo.save.mockRejectedValue(galatPrisma);
 
     const res = await request(app(repo)).post("/").send(avatar);
 
     expect(res.status).toBe(500);
-    // Pesannya hilang...
-    expect(res.body.message).toBeUndefined();
-    expect(res.text).not.toContain("error.internalServer");
-    // ...tetapi rincian basis datanya justru sampai ke peramban.
-    expect(res.body.code).toBe("P2002");
-    expect(res.body.meta).toEqual({ target: ["user_avatar_user_id_key"] });
+    expect(res.text).toBe("error.internalServer");
+    expect(res.text).not.toContain("P2002");
+    expect(res.text).not.toContain("user_avatar_user_id_key");
   });
 });
 
@@ -225,7 +213,7 @@ describe("validateCreate — pemeriksa bidang wajib", () => {
    */
   it("CACAT: updateAvatar tidak pernah memanggil validateCreate", async () => {
     const repo = repositoryTiruan();
-    repo.create.mockResolvedValue({});
+    repo.save.mockResolvedValue({});
     const c = new UserAvatarController(repo as never);
     const intip = jest.spyOn(c, "validateCreate");
 
@@ -242,6 +230,6 @@ describe("validateCreate — pemeriksa bidang wajib", () => {
 
     expect(intip).not.toHaveBeenCalled();
     expect(res.status).toBe(201);
-    expect(repo.create).toHaveBeenCalled();
+    expect(repo.save).toHaveBeenCalled();
   });
 });

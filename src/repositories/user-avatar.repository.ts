@@ -8,19 +8,27 @@ export class UserAvatarRepository {
     this.prisma = prisma;
   }
 
-  create(data: IUserAvatar) {
-    return this.prisma.user_avatar.create({
-      data: {
-        top: data.top,
-        accessories: data.accessories,
-        clothes: data.clothes,
-        eyes: data.eyes,
-        eyebrows: data.eyebrows,
-        mouth: data.mouth,
-        color: data.color,
-        circle: data.circle,
-        user_id: data.user_id!,
-      },
+  /*
+    Upsert, bukan create: user_id UNIK di user_avatar, jadi create polos
+    hanya berhasil pada penyimpanan PERTAMA — mengganti avatar meledak
+    kena unique constraint dan pengguna membacanya sebagai 500.
+  */
+  save(data: IUserAvatar) {
+    const isi = {
+      top: data.top,
+      accessories: data.accessories,
+      clothes: data.clothes,
+      eyes: data.eyes,
+      eyebrows: data.eyebrows,
+      mouth: data.mouth,
+      color: data.color,
+      circle: data.circle,
+    };
+
+    return this.prisma.user_avatar.upsert({
+      where: { user_id: data.user_id! },
+      create: { ...isi, user_id: data.user_id! },
+      update: isi,
     });
   }
 }
