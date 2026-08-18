@@ -158,6 +158,13 @@ router.post(
 );
 
 router.get(
+  "/profit-loss/trend",
+  requireRole(PERAN_SUPERADMIN),
+  validate(queryPeriodSchema, "query"),
+  financialReportController.fetchProfitLossTrend
+);
+
+router.get(
   "/sales/brand",
   requireRole(PERAN_PENJUALAN),
   validate(queryPeriodSchema, "query"),

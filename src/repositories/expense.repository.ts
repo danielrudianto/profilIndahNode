@@ -200,6 +200,37 @@ export class ExpenseRepository {
     }
   }
 
+  /*
+    Total beban per bulan pada satu jendela tanggal — pasangan
+    StockOutRepository.trendBulanan untuk grafik laporan keuangan.
+    Bulan tanpa beban tidak menghasilkan baris; pengisi nolnya di
+    controller.
+  */
+  async trendBulanan(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ year: number; month: number; value: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT
+          YEAR(expense.date) AS tahun,
+          MONTH(expense.date) AS bulan,
+          SUM(expense.value) AS nilai
+        FROM expense
+        WHERE expense.date >= ${mulai}
+        AND expense.date < ${sebelum}
+        AND expense.is_delete = 0
+        GROUP BY tahun, bulan
+      `;
+
+    return result.map((x) => {
+      return {
+        year: Number(x.tahun),
+        month: Number(x.bulan),
+        value: Number(x.nilai ?? 0),
+      };
+    });
+  }
+
   async fetchByID(id: number) {
     const result = await this.prisma.expense.findUnique({
       where: { id },

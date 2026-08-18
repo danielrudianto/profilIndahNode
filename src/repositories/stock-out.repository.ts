@@ -463,6 +463,40 @@ export class StockOutRepository {
     }
   }
 
+  /*
+    Tren bulanan untuk grafik laporan keuangan: pendapatan dan HPP per
+    bulan pada satu jendela tanggal. Definisi angkanya sama persis dengan
+    calculate() di atas — penjualan tanpa lapisan stok tetap terhitung di
+    sales (LEFT JOIN) walau HPP-nya belum ada. Bulan tanpa pergerakan
+    tidak menghasilkan baris; pengisi nolnya di controller.
+  */
+  async trendBulanan(
+    mulai: Date,
+    sebelum: Date
+  ): Promise<{ year: number; month: number; hpp: number; sales: number }[]> {
+    const result = await this.prisma.$queryRaw<any[]>`
+        SELECT
+          YEAR(stock_out.date) AS tahun,
+          MONTH(stock_out.date) AS bulan,
+          SUM(stock_in.price * stock_out.quantity) AS hpp,
+          SUM(stock_out.price * stock_out.quantity) AS sales
+        FROM stock_out
+        LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+        WHERE stock_out.date >= ${mulai}
+        AND stock_out.date < ${sebelum}
+        GROUP BY tahun, bulan
+      `;
+
+    return result.map((x) => {
+      return {
+        year: Number(x.tahun),
+        month: Number(x.bulan),
+        hpp: Number(x.hpp ?? 0),
+        sales: Number(x.sales ?? 0),
+      };
+    });
+  }
+
   async insertFromSalesInvoices() {
     await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_out (product_id, quantity, date, stock_in_id, price, sales_invoice_id, sales_invoice_code_id, adjustment_case_id, adjustment_case_code_id)
