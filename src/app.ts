@@ -1,9 +1,8 @@
-// HARUS berada di urutan impor paling atas. Modul ini menambal express.Router
-// agar penolakan promise dari handler async diteruskan ke penanganan galat,
-// dan tambalannya berjalan saat modul diimpor. Pemanggilan router.get(...) di
-// berkas route juga berjalan saat impor, jadi baris ini harus mendahului
-// seluruh impor route di bawahnya.
-import "./utils/async-error.helper";
+/*
+  Tambalan async-error.helper yang dulu wajib berada di impor paling atas
+  sudah pensiun: Express 5 meneruskan penolakan promise dari handler async
+  ke penanganan galat secara bawaan, persis yang dilakukan tambalannya.
+*/
 import { allowedOrigins } from "./constants/allowed-origin.constant";
 import dotenv from "dotenv"; // If you load .env here for testing this file directly
 dotenv.config(); // If you load .env here
@@ -120,6 +119,17 @@ async function main() {
 
   app.use(express.urlencoded({ extended: true, limit: "100mb" }));
   app.use(express.json({ limit: "50mb" }));
+
+  /*
+    Express 5 membiarkan req.body undefined pada permintaan tanpa badan —
+    GET dan DELETE, yakni sebagian besar lalu lintas. authMiddleware
+    menulis userId ke req.body dan puluhan handler membacanya, jadi tanpa
+    baris ini setiap permintaan tanpa badan meledak sebagai TypeError.
+  */
+  app.use((req, _res, next) => {
+    req.body ??= {};
+    next();
+  });
 
   /*
     Membuka konteks per permintaan sebelum satu pun route berjalan.

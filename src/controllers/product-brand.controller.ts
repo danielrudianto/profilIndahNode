@@ -69,7 +69,7 @@ export class ProductBrandController {
   };
 
   delete = async (req: Request, res: Response) => {
-    const id = parseInt(req.params.id);
+    const id = Number(req.params.id);
     const userID = req.body.userId;
 
     try {

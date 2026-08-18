@@ -62,7 +62,8 @@ function app(
   a.use(express.json());
   // userId biasanya ditulis authMiddleware ke req.body sebelum handler jalan.
   a.use((req, _res, next) => {
-    if (req.body && typeof req.body === "object") req.body.userId ??= 99;
+    req.body ??= {};
+    req.body.userId ??= 99;
     next();
   });
   a.get("/", c.fetch);

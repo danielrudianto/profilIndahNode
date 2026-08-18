@@ -14,10 +14,12 @@ import { join } from "path";
  *   translateKeyword dulu melempar untuk kata kunci berisi "%" dan dipanggil
  *   di luar blok try pada dua puluh empat handler.
  *
- * Keduanya kini tertutup: utils/async-error.helper.ts menangkap penolakan
- * promise di tingkat router, dan translateKeyword tidak lagi melempar. Berkas
- * ini menjaga kedua tambalan itu tetap terpasang, karena bila salah satunya
- * lepas, gejalanya bukan tes yang gagal melainkan server yang mati di produksi.
+ * Keduanya kini tertutup: Express 5 meneruskan penolakan promise dari
+ * handler async ke penanganan galat secara BAWAAN (tambalan
+ * async-error.helper yang dulu melakukannya sudah pensiun), dan
+ * translateKeyword tidak lagi melempar. Berkas ini menjaga sisanya yang
+ * masih bisa lepas: penangkap galat terakhir di app.ts dan versi Express
+ * yang membawa jaminan itu.
  */
 
 const AKAR = join(__dirname, "..", "..", "src");
@@ -26,26 +28,17 @@ function baca(jalur: string): string {
   return readFileSync(jalur, "utf8");
 }
 
-describe("Tambalan penangkap galat async terpasang", () => {
+describe("Penanganan galat async tetap terjamin", () => {
   const app = baca(join(AKAR, "app.ts"));
 
-  it("app.ts mengimpor async-error.helper", () => {
-    expect(app).toContain("./utils/async-error.helper");
-  });
-
   /**
-   * Urutannya menentukan berhasil tidaknya. Pemanggilan router.get(...) di
-   * berkas route berjalan ketika modulnya diimpor, jadi tambalan yang diimpor
-   * belakangan akan selalu terlambat — seluruh route sudah telanjur terdaftar
-   * dengan handler yang belum terbungkus.
+   * Jaminannya kini datang dari Express 5 sendiri. Turun ke Express 4
+   * mengembalikan cerita lama: promise yang ditolak tidak pernah sampai
+   * ke penanganan galat, dan Node menghentikan seluruh proses.
    */
-  it("impornya berada sebelum impor route mana pun", () => {
-    const posisiTambalan = app.indexOf("./utils/async-error.helper");
-    const posisiRoutePertama = app.indexOf('from "./routes/');
-
-    expect(posisiTambalan).toBeGreaterThanOrEqual(0);
-    expect(posisiRoutePertama).toBeGreaterThanOrEqual(0);
-    expect(posisiTambalan).toBeLessThan(posisiRoutePertama);
+  it("versi Express yang terpasang minimal 5", () => {
+    const versi: string = require("express/package.json").version;
+    expect(Number(versi.split(".")[0])).toBeGreaterThanOrEqual(5);
   });
 
   it("app.ts tetap punya penangkap galat empat argumen di paling akhir", () => {
