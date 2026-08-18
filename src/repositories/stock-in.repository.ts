@@ -162,16 +162,35 @@ export class StockInRepository {
     await this.prisma.stock_in.deleteMany({});
   }
 
+  /*
+    Pembangunan ulang lapisan dari sejarah penerimaan — definisi harganya
+    sama persis dengan jalur hidup HPP #4: nilai bersih baris dikali
+    faktor diskon faktur dokumennya (1 - diskon/total baris), per satuan
+    dasar. Alokasinya proporsional murni tanpa pelemparan sisa sen; untuk
+    pembangunan ulang massal selisih sen itu diterima. Baris terhapus
+    (dokumen yang pernah diedit menyimpan baris lamanya) ikut disaring —
+    dulu ikut terangkat jadi lapisan dobel.
+  */
   async insertFromGoodReceipts() {
     await this.prisma.$queryRawUnsafe(`
         INSERT INTO stock_in (product_id, quantity, price, residue, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id, company_id, date)
-        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), 
-        (good_receipt.price - good_receipt.discount) / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion), good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        SELECT good_receipt.product_id, good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        (good_receipt.price - good_receipt.discount)
+          * COALESCE(1 - good_receipt_code.discount / NULLIF(tot.total, 0), 1)
+          / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
+        good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
         NULL, NULL, good_receipt.id, good_receipt.good_receipt_code_id, good_receipt_code.company_id, good_receipt_code.date
         FROM good_receipt
         LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
         JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+        JOIN (
+          SELECT good_receipt_code_id, SUM((price - discount) * quantity) AS total
+          FROM good_receipt
+          WHERE is_delete = 0
+          GROUP BY good_receipt_code_id
+        ) AS tot ON tot.good_receipt_code_id = good_receipt_code.id
         WHERE good_receipt_code.is_delete = 0
+        AND good_receipt.is_delete = 0
         ORDER BY good_receipt_code.date ASC, good_receipt_code.id ASC
       `);
   }

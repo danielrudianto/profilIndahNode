@@ -224,6 +224,45 @@ async function calculateStockOutBulk() {
 }
 
 /**
+ * Bangun ulang seluruh lapisan stok dari dokumen, lalu tetapkan ulang
+ * HPP borongan — dipakai SETELAH aturan harga lapisan berubah (mis.
+ * HPP #4: alokasi diskon faktur), supaya sejarah mengikuti definisi
+ * yang sama dengan jalur hidup.
+ *
+ * PERINGATAN: selama proses, stock_in dan stock_out dikosongkan lalu
+ * disusun ulang — jalankan saat aplikasi tidak melayani traffic.
+ * Angka sebelum/sesudah dicetak supaya dampaknya terlihat; selisih
+ * nilai masuknya kira-kira total diskon faktur yang baru teralokasi.
+ */
+async function rebuildStockIn() {
+  const nilaiMasuk = async () => {
+    const baris = await prisma.$queryRaw<any[]>`
+      SELECT COUNT(*) AS lapisan, COALESCE(SUM(price * quantity), 0) AS nilai
+      FROM stock_in`;
+    return {
+      lapisan: Number(baris[0].lapisan),
+      nilai: Number(baris[0].nilai),
+    };
+  };
+
+  const sebelum = await nilaiMasuk();
+  console.info(
+    `[info]: Sebelum — ${sebelum.lapisan} lapisan, total nilai masuk Rp ${Math.round(sebelum.nilai).toLocaleString("id-ID")}`
+  );
+
+  await insertStockInOut();
+  await calculateStockOutBulk();
+
+  const sesudah = await nilaiMasuk();
+  console.info(
+    `[info]: Sesudah — ${sesudah.lapisan} lapisan, total nilai masuk Rp ${Math.round(sesudah.nilai).toLocaleString("id-ID")}`
+  );
+  console.info(
+    `[info]: Selisih nilai masuk Rp ${Math.round(sebelum.nilai - sesudah.nilai).toLocaleString("id-ID")} — kira-kira total diskon faktur yang teralokasi`
+  );
+}
+
+/**
  * Penyapu piutang receh: menandai lunas dokumen yang sisanya <=
  * toleransi pembulatan (Rp 5). Idempoten, aman dijalankan kapan pun.
  */
@@ -336,6 +375,9 @@ async function runFunction(funcName: string) {
       process.exit(0);
     case "calculateStockOutBulk":
       await calculateStockOutBulk();
+      process.exit(0);
+    case "rebuildStockIn":
+      await rebuildStockIn();
       process.exit(0);
     case "settleRoundedReceivables":
       await settleRoundedReceivables();

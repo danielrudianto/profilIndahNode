@@ -914,41 +914,4 @@ export class GoodReceiptRepository {
 
     return GoodReceiptModel.fromMap(result);
   }
-
-  /*
-    Job CLI pembangunan ulang lapisan stok dari sejarah penerimaan.
-
-    Tiga perbaikan yang menyamakannya dengan jalur hidup:
-    - Harga dibagi konversi — kuantitasnya satuan dasar, harga per satuan
-      DOKUMEN membuat HPP meledak seratus kali pada barang berkonversi.
-    - Diskon faktur dialokasikan pro-rata lewat faktor per dokumen
-      (1 - diskon/total baris); pembulatannya per baris, tanpa pelemparan
-      sisa sen seperti di jalur hidup — untuk pembangunan ulang massal
-      selisih sen itu diterima.
-    - Baris terhapus (good_receipt.is_delete) tidak lagi ikut terangkat.
-  */
-  async createStockIn() {
-    return this.prisma.$queryRawUnsafe(`
-      INSERT INTO stock_in (product_id, quantity, price, date, residue, company_id, adjustment_case_id, adjustment_case_code_id, good_receipt_id, good_receipt_code_id)
-        SELECT good_receipt.product_id,
-        good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
-        (good_receipt.price - good_receipt.discount)
-          * COALESCE(1 - good_receipt_code.discount / NULLIF(tot.total, 0), 1)
-          / IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
-        good_receipt_code.date,
-        good_receipt.quantity * IF(good_receipt.product_unit_id IS NULL, 1, product_unit.conversion),
-        good_receipt_code.company_id, NULL, NULL, good_receipt.id, good_receipt_code.id
-        FROM good_receipt
-        JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
-        LEFT JOIN product_unit ON good_receipt.product_unit_id = product_unit.id
-        JOIN (
-          SELECT good_receipt_code_id, SUM((price - discount) * quantity) AS total
-          FROM good_receipt
-          WHERE is_delete = 0
-          GROUP BY good_receipt_code_id
-        ) AS tot ON tot.good_receipt_code_id = good_receipt_code.id
-        WHERE good_receipt_code.is_delete = 0
-        AND good_receipt.is_delete = 0
-    `);
-  }
 }
