@@ -10,6 +10,7 @@ export const allowedOrigins = [
   "https://stock.profilindah.id",
   "https://v16.profilindah.id",
   "https://v19.profilindah.id",
+  "https://v20.profilindah.id",
   "https://warehouse.profilindah.id",
   "http://localhost:2100",
 ];

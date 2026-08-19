@@ -19,37 +19,28 @@ Hanya nginx yang menghadap internet. Sisanya mendengar di `127.0.0.1`.
 
 ---
 
-## Bagian 0 — Dikerjakan di repo DULU, sebelum menyentuh server
+## Bagian 0 — Keadaan repo sebelum menyentuh server
 
-Dua hal ini bukan langkah server, tapi kalau terlewat aplikasinya naik dalam
-keadaan rusak dan gejalanya membingungkan.
+Alamat yang dipakai V20:
 
-**0.1 — Domain frontend harus masuk daftar CORS.**
-`src/constants/allowed-origin.constant.ts` memuat daftar asal yang diizinkan.
-Domain V20 belum ada di sana. Tanpa ini, seluruh permintaan dari peramban
-ditolak dan yang terlihat pengguna hanyalah halaman yang gagal memuat tanpa
-sebab jelas.
+| Bagian | Domain |
+|---|---|
+| Frontend | `https://v20.profilindah.id` |
+| API | `https://v20.service.profilindah.id` |
 
-```
-export const allowedOrigins = [
-  ...
-  "https://v20.profilindah.id",   // <- tambahkan
-];
-```
+**0.1 — CORS: sudah disetel.** `src/constants/allowed-origin.constant.ts`
+kini memuat `https://v20.profilindah.id`. Kalau suatu saat domainnya berubah,
+daftar ini yang harus ikut berubah — tanpa itu seluruh permintaan dari
+peramban ditolak, dan yang terlihat pengguna hanyalah halaman gagal memuat
+tanpa sebab jelas.
 
-**0.2 — Alamat API di frontend masih menunjuk sandbox.**
-`src/environments/environment.ts` (repo frontend) berisi
-`url: 'https://sandbox.profilindah.id/'`. Ganti ke alamat API produksi
-**sebelum** `ng build`, kalau tidak aplikasi produksi menembak sandbox.
+**0.2 — Alamat API frontend: sudah disetel.**
+`src/environments/environment.ts` (repo frontend) kini berisi
+`url: 'https://v20.service.profilindah.id/'` — dulu menunjuk sandbox.
+**Garis miring di ujung wajib**: `ApiService` merangkai alamat dengan
+`environment.url + rute`, jadi tanpa itu jadinya `...idproduct-stock`.
 
-```
-export const environment = {
-  url: 'https://api-v20.profilindah.id/',
-};
-```
-
-Ganti kedua nama domain di atas dengan yang benar-benar dipakai, lalu commit
-keduanya.
+Pastikan `ng build` dijalankan dari commit yang sudah memuat keduanya.
 
 **0.3 — Node 22, bukan 20.**
 Mesin pengembangan memakai Node 20.19.5, tetapi Node 20 sudah tidak menerima
@@ -374,7 +365,7 @@ server {
 # API
 server {
     listen 80;
-    server_name api-v20.profilindah.id;
+    server_name v20.service.profilindah.id;
     client_max_body_size 10m;
 
     location / {
@@ -401,7 +392,7 @@ Sertifikat (arahkan DNS kedua domain ke server ini lebih dulu):
 
 ```bash
 sudo apt install -y certbot python3-certbot-nginx
-sudo certbot --nginx -d v20.profilindah.id -d api-v20.profilindah.id
+sudo certbot --nginx -d v20.profilindah.id -d v20.service.profilindah.id
 ```
 
 ---
@@ -469,7 +460,7 @@ dipertahankan, lalu tandai baris kosongnya terhapus.
 ```bash
 systemctl is-active profil-indah-api profil-indah-worker mysql redis-server meilisearch nginx
 curl -I https://v20.profilindah.id
-curl -i https://api-v20.profilindah.id/     # 404 pun tak apa: artinya hidup
+curl -i https://v20.service.profilindah.id/     # 404 pun tak apa: artinya hidup
 sudo journalctl -u profil-indah-api -n 50 --no-pager
 sudo journalctl -u profil-indah-worker -n 50 --no-pager
 ```
@@ -478,7 +469,7 @@ Uji asap resmi, dijalankan dari laptop dengan akun uji (**jangan** akun
 pemilik):
 
 ```bash
-node scripts/smoke-test.js --url https://api-v20.profilindah.id --user AKUN_UJI --pass SANDI
+node scripts/smoke-test.js --url https://v20.service.profilindah.id --user AKUN_UJI --pass SANDI
 ```
 
 Lalu periksa dengan mata di peramban: masuk, buka **Barang** (membuktikan
@@ -522,8 +513,9 @@ dari MySQL lewat langkah 9.4.
 
 ## Lampiran — Yang paling sering terlupa
 
-1. Domain frontend belum masuk `allowed-origin.constant.ts` (Bagian 0.1).
-2. `environment.ts` frontend masih menunjuk sandbox (Bagian 0.2).
+1. `ng build` dijalankan dari commit lama — frontend jadinya masih menembak
+   sandbox, atau domainnya belum ada di daftar CORS (Bagian 0).
+2. Garis miring di ujung `environment.url` terhapus (Bagian 0.2).
 3. Zona waktu server bukan `Asia/Makassar` (Bagian 1).
 4. `maxmemory-policy` Redis bukan `noeviction` (Bagian 4).
 5. Worker tidak dinyalakan — semuanya tampak baik sampai antrean menumpuk
