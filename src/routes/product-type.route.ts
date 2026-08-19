@@ -17,6 +17,11 @@ const productTypeController = new ProductTypeController(
 
 router.get("/autocomplete", productTypeController.fetchAutocomplete);
 router.get(
+  "/:id/products",
+  validate(paramProductTypeSchema, "params"),
+  productTypeController.fetchProducts
+);
+router.get(
   "/:id",
   validate(paramProductTypeSchema, "params"),
   productTypeController.fetchByID

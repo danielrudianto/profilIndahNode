@@ -51,6 +51,12 @@ export class ProductBrandController {
         return res.status(400).send(ErrorList["Not found"]);
       }
 
+      /* Ganti nama pun tidak boleh menabrak merek lain yang masih hidup. */
+      const kembar = await this.productBrandRepository.fetchByName(name);
+      if (kembar != null && kembar.id !== id) {
+        return res.status(400).send(ErrorList["Brand unique constraint"]);
+      }
+
       const result = await this.productBrandRepository.update({
         name: name,
         id: id,
@@ -137,6 +143,28 @@ export class ProductBrandController {
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error while fetching brands: ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  /* Barang dalam satu merek — bahan dialog rincian di halaman master. */
+  fetchProducts = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const page = translatePage(req.query.page);
+      const keyword = translateKeyword(req.query.keyword);
+      const mentah = Number(req.query.pageSize);
+      /* Hanya ukuran yang ditawarkan UI; selain itu jatuh ke 10. */
+      const pageSize = [10, 25, 50].includes(mentah) ? mentah : 10;
+
+      const result = await this.productBrandRepository.fetchProducts(id, {
+        page,
+        pageSize,
+        keyword,
+      });
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching brand products: ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
     }
   };

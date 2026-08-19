@@ -15,6 +15,7 @@ export class ProductTypeModel {
   deleted_at?: Date;
   deleted_by?: number;
   can_delete?: boolean | string;
+  product_count?: number;
   user_item_type_created_byTouser?: UserViewModel;
 
   constructor(data: IProductType) {
@@ -28,6 +29,7 @@ export class ProductTypeModel {
     this.deleted_at = data.deleted_at;
     this.deleted_by = data.deleted_by;
     this.can_delete = data.can_delete;
+    this.product_count = data.product_count;
 
     if (data.user_item_type_created_byTouser) {
       this.user_item_type_created_byTouser = UserViewModel.fromMap(

@@ -37,6 +37,8 @@ function repositoryTiruan() {
     fetch: jest.fn(),
     fetchAll: jest.fn(),
     fetchByID: jest.fn(),
+    fetchByName: jest.fn().mockResolvedValue(null),
+    fetchProducts: jest.fn(),
     fetchAutocomplete: jest.fn(),
   };
 }
@@ -111,24 +113,21 @@ describe("POST / — membuat jenis barang", () => {
     expect(kirimSocket).not.toHaveBeenCalled();
   });
 
-  /**
-   * CACAT: create tidak memeriksa nama ganda.
-   *
-   * ProductBrandController memanggil fetchByName lebih dulu dan menolak nama
-   * merek yang sudah dipakai. Jenis barang tidak punya penjagaan apa pun,
-   * sehingga daftar jenis barang bisa memuat beberapa baris bernama sama.
-   * Pengguna yang memilih jenis pada produk tidak punya cara membedakannya,
-   * dan laporan stok per jenis terpecah menjadi beberapa baris identik.
-   */
-  it("CACAT: create menyimpan nama ganda tanpa pemeriksaan", async () => {
+  /*
+    Nama ganda kini ditolak — dulu tanpa penjagaan, dan daftar jenis barang
+    sempat memuat beberapa baris bernama sama (LIGHTING dua kali di data
+    nyata) yang memecah laporan stok per jenis jadi baris-baris identik.
+  */
+  it("menolak 400 bila nama sudah dipakai jenis lain yang masih hidup", async () => {
     const repo = repositoryTiruan();
-    repo.create.mockResolvedValue(jenis);
+    repo.fetchByName.mockResolvedValue({ ...jenis, id: 41 });
 
     const res = await request(app(repo)).post("/").send({ name: "Besi Beton" });
 
-    expect(res.status).toBe(201);
-    expect(repo.fetchByID).not.toHaveBeenCalled();
-    expect(repo.create).toHaveBeenCalledTimes(1);
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Product type unique constraint"]);
+    expect(repo.create).not.toHaveBeenCalled();
+    expect(kirimSocket).not.toHaveBeenCalled();
   });
 });
 
@@ -194,6 +193,33 @@ describe("PUT / — mengubah jenis barang", () => {
       "updateItemType",
       expect.anything()
     );
+  });
+
+  it("menolak 400 bila nama baru menabrak jenis lain yang masih hidup", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByName.mockResolvedValue({ ...jenis, id: 41 });
+
+    const res = await request(app(repo))
+      .put("/")
+      .send({ id: 6, name: "Besi Beton" });
+
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Product type unique constraint"]);
+    expect(repo.update).not.toHaveBeenCalled();
+  });
+
+  it("membiarkan update memakai namanya sendiri", async () => {
+    const repo = repositoryTiruan();
+    /* fetchByName menemukan dirinya sendiri — bukan tabrakan. */
+    repo.fetchByName.mockResolvedValue(jenis);
+    repo.update.mockResolvedValue(jenis);
+
+    const res = await request(app(repo))
+      .put("/")
+      .send({ id: 6, name: "Besi Beton" });
+
+    expect(res.status).toBe(201);
+    expect(repo.update).toHaveBeenCalledTimes(1);
   });
 
   /**

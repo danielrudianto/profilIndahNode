@@ -231,22 +231,31 @@ describe("PUT / — mengubah merek", () => {
     }
   );
 
-  /**
-   * CACAT: update tidak memeriksa nama ganda.
-   *
-   * create menolak nama yang sudah dipakai dengan 400 dan
-   * ErrorList["Brand unique constraint"], tetapi update tidak memanggil
-   * fetchByName sama sekali. Aturan "nama merek harus unik" karena itu bisa
-   * ditembus lewat jalur belakang: buat merek dengan nama lain, lalu ubah
-   * namanya menjadi nama yang sudah ada.
-   *
-   * Akibatnya daftar merek memuat dua baris bernama sama, dan pengguna yang
-   * memilih merek pada produk tidak punya cara membedakan keduanya — laporan
-   * penjualan per merek ikut terpecah menjadi dua baris identik.
-   */
-  it("CACAT: update membiarkan nama merek menjadi ganda", async () => {
+  /*
+    Jalur belakang nama ganda kini tertutup: dulu update tidak memanggil
+    fetchByName, jadi aturan "nama merek harus unik" bisa ditembus dengan
+    membuat merek lain lalu mengganti namanya menjadi nama yang sudah ada.
+  */
+  it("menolak 400 bila nama baru menabrak merek lain yang masih hidup", async () => {
     const repo = repositoryTiruan();
     repo.fetchByID.mockResolvedValue({ ...merek, id: 9, name: "Lama" });
+    repo.fetchByName.mockResolvedValue({ ...merek, id: 3, name: "Indah" });
+
+    const res = await request(app(repo))
+      .put("/")
+      .send({ id: 9, name: "Indah" });
+
+    expect(res.status).toBe(400);
+    expect(res.text).toBe(ErrorList["Brand unique constraint"]);
+    expect(repo.update).not.toHaveBeenCalled();
+    expect(kirimSocket).not.toHaveBeenCalled();
+  });
+
+  it("membiarkan update memakai namanya sendiri", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue({ ...merek, id: 9, name: "Indah" });
+    /* fetchByName menemukan dirinya sendiri — bukan tabrakan. */
+    repo.fetchByName.mockResolvedValue({ ...merek, id: 9, name: "Indah" });
     repo.update.mockResolvedValue({ ...merek, id: 9, name: "Indah" });
 
     const res = await request(app(repo))
@@ -254,7 +263,6 @@ describe("PUT / — mengubah merek", () => {
       .send({ id: 9, name: "Indah" });
 
     expect(res.status).toBe(201);
-    expect(repo.fetchByName).not.toHaveBeenCalled();
     expect(repo.update).toHaveBeenCalledWith(
       expect.objectContaining({ name: "Indah" })
     );

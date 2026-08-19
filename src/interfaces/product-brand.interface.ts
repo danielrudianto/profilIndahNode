@@ -9,6 +9,7 @@ export interface IProductBrand {
   deleted_by?: number;
   deleted_at?: Date;
   can_delete?: boolean | string;
+  product_count?: number;
 
   user?: UserViewModel;
 }

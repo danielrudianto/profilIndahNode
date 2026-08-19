@@ -75,6 +75,7 @@ export class ProductBrandRepository {
                 user.username AS user_username, user.role AS user_role, 
                 product_brand.created_at, product_brand.created_by, 
                 IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, 
+                COALESCE(itemCount.count, 0) AS product_count,
                 product_brand.is_delete
         FROM product_brand
         LEFT JOIN (
@@ -126,6 +127,7 @@ export class ProductBrandRepository {
           created_by: x.created_by,
           created_at: x.created_at,
           can_delete: x.can_delete,
+          product_count: Number(x.product_count),
           user: UserViewModel.fromMap({
             id: x.created_by,
             name: x.user_name,
@@ -219,5 +221,60 @@ export class ProductBrandRepository {
         role: brandData.user_role,
       }),
     });
+  }
+
+  /**
+   * Barang hidup dalam satu merek — berhalaman, bisa dicari.
+   * Dipakai dialog rincian di halaman master merek barang.
+   */
+  async fetchProducts(
+    brandID: number,
+    data: IFetchCommon
+  ): Promise<IFetchCommonResult<any>> {
+    const kondisi = {
+      is_delete: false,
+      product_brand_id: brandID,
+      ...(data.keyword
+        ? {
+            OR: [
+              { reference: { contains: data.keyword } },
+              { description: { contains: data.keyword } },
+            ],
+          }
+        : {}),
+    };
+
+    const ambil = toPositiveInt(data.pageSize, 10);
+    const lompat = toPositiveInt(data.page, 1) * ambil - ambil;
+
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where: kondisi,
+        select: {
+          id: true,
+          reference: true,
+          description: true,
+          unit: true,
+          product_type: { select: { name: true } },
+          product_stock: { select: { stock: true } },
+        },
+        orderBy: { description: "asc" },
+        take: ambil,
+        skip: lompat,
+      }),
+      this.prisma.product.count({ where: kondisi }),
+    ]);
+
+    return {
+      data: result.map((x) => ({
+        id: x.id,
+        reference: x.reference,
+        description: x.description,
+        unit: x.unit,
+        category: x.product_type.name,
+        stock: Number(x.product_stock?.stock ?? 0),
+      })),
+      count: count,
+    };
   }
 }

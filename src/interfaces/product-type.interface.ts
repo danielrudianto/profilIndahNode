@@ -11,6 +11,7 @@ export interface IProductType {
   deleted_at?: Date;
   deleted_by?: number;
   can_delete?: boolean;
+  product_count?: number;
 
   user_item_type_created_byTouser?: UserViewModel;
 }

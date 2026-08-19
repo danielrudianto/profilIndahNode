@@ -277,6 +277,9 @@
   "brand": {
     "duplicate": "Nama merek sudah ada sebelumnya."
   },
+  "productType": {
+    "duplicate": "Nama tipe barang sudah ada sebelumnya."
+  },
   "invoice": {
     "alreadyConfirmed": "Invoice sudah dikonfirmasi.",
     "alreadyDeleted": "Invoice sudah dihapus.",

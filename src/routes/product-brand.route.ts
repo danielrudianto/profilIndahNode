@@ -20,6 +20,12 @@ const productBrandController = new ProductBrandController(
 router.get("/autocomplete", productBrandController.fetchAutocomplete);
 
 router.get(
+  "/:id/products",
+  validate(paramBrandSchema, "params"),
+  productBrandController.fetchProducts
+);
+
+router.get(
   "/:id",
   validate(paramBrandSchema, "params"),
   productBrandController.fetchByID

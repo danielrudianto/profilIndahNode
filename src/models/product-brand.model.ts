@@ -13,6 +13,7 @@ export class ProductBrandModel {
   deleted_by?: number | null;
   deleted_at?: Date | null;
   can_delete?: boolean;
+  product_count?: number;
 
   user?: UserViewModel;
 
@@ -25,6 +26,7 @@ export class ProductBrandModel {
     this.deleted_by = data.deleted_by || null;
     this.deleted_at = data.deleted_at || null;
     this.user = data.user; // user information if available
+    this.product_count = data.product_count;
 
     // if can_delete is provided
     if (data.can_delete !== undefined) {

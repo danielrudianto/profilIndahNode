@@ -130,6 +130,7 @@ enum ErrorList {
   "Reference unique constraint" = "product.referenceDuplicate",
 
   "Brand unique constraint" = "brand.duplicate",
+  "Product type unique constraint" = "productType.duplicate",
   "Brand is required" = "validation.brand.required",
   "Brand must be an array" = "validation.brand.array",
   "Brand must be an integer" = "validation.brand.integer",

@@ -82,7 +82,8 @@ export class ProductTypeRepository {
                 SELECT product_type.id, product_type.name, product_type.created_at, 
                 product_type.created_by, user.name AS user_name, user.username AS user_username,
                 user.role AS user_role, 
-                IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, product_type.is_delete
+                IF(COALESCE(itemCount.count, 0) = 0, "1", "0") AS can_delete, product_type.is_delete,
+                COALESCE(itemCount.count, 0) AS product_count
                 FROM product_type
                 LEFT JOIN (
                   SELECT COUNT(id) AS count, product_type_id
@@ -129,6 +130,7 @@ export class ProductTypeRepository {
           }),
           is_delete: x.is_delete,
           can_delete: x.can_delete,
+          product_count: Number(x.product_count),
         });
       }),
       count: count,
@@ -216,5 +218,76 @@ export class ProductTypeRepository {
       is_delete: productType.is_delete,
       can_delete: productType.can_delete,
     });
+  }
+
+  /** Padanan fetchByName merek — penjaga nama tipe kembar. */
+  async fetchByName(name: string): Promise<ProductTypeModel | null> {
+    const result = await this.prisma.product_type.findFirst({
+      where: {
+        name: name,
+        is_delete: false,
+      },
+    });
+
+    if (result == null) {
+      return null;
+    }
+
+    return ProductTypeModel.fromMap(result);
+  }
+
+  /**
+   * Barang hidup dalam satu tipe — berhalaman, bisa dicari.
+   * Dipakai dialog rincian di halaman master tipe barang.
+   */
+  async fetchProducts(
+    typeID: number,
+    data: IFetchCommon
+  ): Promise<IFetchCommonResult<any>> {
+    const kondisi = {
+      is_delete: false,
+      product_type_id: typeID,
+      ...(data.keyword
+        ? {
+            OR: [
+              { reference: { contains: data.keyword } },
+              { description: { contains: data.keyword } },
+            ],
+          }
+        : {}),
+    };
+
+    const ambil = toPositiveInt(data.pageSize, 10);
+    const lompat = toPositiveInt(data.page, 1) * ambil - ambil;
+
+    const [result, count] = await this.prisma.$transaction([
+      this.prisma.product.findMany({
+        where: kondisi,
+        select: {
+          id: true,
+          reference: true,
+          description: true,
+          unit: true,
+          product_brand: { select: { name: true } },
+          product_stock: { select: { stock: true } },
+        },
+        orderBy: { description: "asc" },
+        take: ambil,
+        skip: lompat,
+      }),
+      this.prisma.product.count({ where: kondisi }),
+    ]);
+
+    return {
+      data: result.map((x) => ({
+        id: x.id,
+        reference: x.reference,
+        description: x.description,
+        unit: x.unit,
+        category: x.product_brand.name,
+        stock: Number(x.product_stock?.stock ?? 0),
+      })),
+      count: count,
+    };
   }
 }
