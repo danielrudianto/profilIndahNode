@@ -1,4 +1,6 @@
 import { PrismaClient } from "@prisma/client";
+import { redisClient } from "../utils/redis.helper";
+import { MINIMUM_STOCK_LAST_CALCULATED } from "../constants/minimum-stock.constant";
 
 /*
   Rekomendasi stok minimum — rumus reorder point:
@@ -85,6 +87,12 @@ export class MinimumStockService {
         console.info(`[info]: ${terisi} produk terisi...`);
       }
     }
+
+    /* Cap waktu selesai — banner di laporan membacanya dari sini. */
+    await redisClient.set(
+      MINIMUM_STOCK_LAST_CALCULATED,
+      new Date().toISOString()
+    );
 
     console.info(
       `[info]: Selesai — ${terisi} produk diberi rekomendasi dari ${agregat.length} produk yang terjual di jendela.`

@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import { redisClient } from "../utils/redis.helper";
+import { MINIMUM_STOCK_LAST_CALCULATED } from "../constants/minimum-stock.constant";
 import ErrorList from "../constants/error-list.constant";
 import { meili } from "../utils/meili.helper";
 import { translateKeyword, translatePage } from "../utils/escape.helper";
@@ -47,7 +49,24 @@ class ProductStockController {
           types: types,
         });
 
-      return res.status(200).send(problematicResult);
+      /*
+        Meta perhitungan rekomendasi ikut dikirim: kapan terakhir dihitung
+        (cap dari service) dan parameter yang dipakainya — banner di
+        laporan membacanya, supaya angkanya tidak jadi kotak hitam.
+      */
+      const lastCalculated = await redisClient.get(
+        MINIMUM_STOCK_LAST_CALCULATED
+      );
+
+      return res.status(200).send({
+        ...problematicResult,
+        recommendationMeta: {
+          lastCalculated,
+          windowDays: Number(process.env.MIN_STOCK_WINDOW_DAYS ?? 90),
+          leadDays: Number(process.env.MIN_STOCK_LEAD_DAYS ?? 7),
+          serviceLevel: Number(process.env.MIN_STOCK_SERVICE_Z ?? 1.65),
+        },
+      });
     } catch (error) {
       console.error(
         `[error]: Error on fetching problematic product stock ${error}`
@@ -77,7 +96,24 @@ class ProductStockController {
           types: types,
         });
 
-      return res.status(200).send(problematicResult);
+      /*
+        Meta perhitungan rekomendasi ikut dikirim: kapan terakhir dihitung
+        (cap dari service) dan parameter yang dipakainya — banner di
+        laporan membacanya, supaya angkanya tidak jadi kotak hitam.
+      */
+      const lastCalculated = await redisClient.get(
+        MINIMUM_STOCK_LAST_CALCULATED
+      );
+
+      return res.status(200).send({
+        ...problematicResult,
+        recommendationMeta: {
+          lastCalculated,
+          windowDays: Number(process.env.MIN_STOCK_WINDOW_DAYS ?? 90),
+          leadDays: Number(process.env.MIN_STOCK_LEAD_DAYS ?? 7),
+          serviceLevel: Number(process.env.MIN_STOCK_SERVICE_Z ?? 1.65),
+        },
+      });
     } catch (error) {
       console.error(
         `[error]: Error on fetching problematic product stock ${error}`

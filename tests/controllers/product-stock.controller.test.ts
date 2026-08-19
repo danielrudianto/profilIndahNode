@@ -29,6 +29,14 @@ import ErrorList from "../../src/constants/error-list.constant";
  */
 
 const kirimSocket = jest.fn();
+/* Meta perhitungan minimum membaca cap waktu dari Redis. */
+jest.mock("../../src/utils/redis.helper", () => ({
+  redisClient: {
+    get: jest.fn().mockResolvedValue("2026-08-18T16:00:00.000Z"),
+    set: jest.fn(),
+  },
+}));
+
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
   default: class {
@@ -208,7 +216,7 @@ describe("POST /problematic dan POST /inadequate", () => {
       .send({ page: 2, keyword: "pvc", brands: [], types: [] });
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: [], count: 5 });
+    expect(res.body).toMatchObject({ data: [], count: 5 });
     expect(r.stok.fetchInadequateStock).toHaveBeenCalledWith({
       keyword: "pvc",
       page: 2,
