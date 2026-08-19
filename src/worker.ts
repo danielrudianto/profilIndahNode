@@ -2,6 +2,8 @@ import dotenv from "dotenv"; // If you load .env here for testing this file dire
 dotenv.config(); // If you load .env here
 
 import { Job, Worker } from "bullmq";
+import { MinimumStockService } from "./services/minimum-stock.service";
+import { queue } from "./utils/queue.helper";
 import { ProductService } from "./services/product.service";
 import { ProductRepository } from "./repositories/product.repository";
 import { ProductUnitRepository } from "./repositories/product-unit.repository";
@@ -45,6 +47,8 @@ const productPackageService = new ProductPackageService(
 );
 
 const stockCardService = new StockCardService(new StockCardRepository(prisma));
+
+const minimumStockService = new MinimumStockService(prisma);
 
 const stockOutService = new StockOutService(
   new StockOutRepository(prisma),
@@ -107,6 +111,9 @@ const workerHandler = async (job: Job<any>) => {
       // Dipasang lagi supaya case berikutnya yang ditambahkan orang tidak
       // diam-diam ikut terpanggil.
       break;
+    case "minimum-stock-weekly":
+      await minimumStockService.calculate();
+      break;
   }
 };
 
@@ -122,5 +129,24 @@ worker.on("completed", (job, _) => {
 worker.on("error", async (err) => {
   console.error(`[error]: ${err.message}`);
 });
+
+/*
+  Jadwal mingguan: Senin 00.00 WITA (toko di Bali). upsert supaya restart
+  worker tidak menumpuk jadwal kembar — id-nya tetap satu.
+*/
+queue
+  .upsertJobScheduler(
+    "minimum-stock-weekly",
+    { pattern: "0 0 * * 1", tz: "Asia/Makassar" },
+    { name: "minimum-stock-weekly" }
+  )
+  .then(() =>
+    console.info(
+      "[info]: Jadwal mingguan rekomendasi stok minimum terpasang (Senin 00.00 WITA)."
+    )
+  )
+  .catch((err) =>
+    console.error(`[error]: Gagal memasang jadwal stok minimum ${err}`)
+  );
 
 console.info("[info]: Worker started!");
