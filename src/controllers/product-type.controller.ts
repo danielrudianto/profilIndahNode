@@ -16,7 +16,8 @@ export class ProductTypeController {
   }
 
   create = async (req: Request, res: Response) => {
-    const name = req.body.name;
+    /* Spasi pinggir dibuang — "jasa " dan "jasa" adalah satu nama. */
+    const name = String(req.body.name).trim();
     const userID = req.body.userId;
 
     try {
@@ -45,7 +46,8 @@ export class ProductTypeController {
   };
 
   update = async (req: Request, res: Response) => {
-    const name = req.body.name;
+    /* Spasi pinggir dibuang — "jasa " dan "jasa" adalah satu nama. */
+    const name = String(req.body.name).trim();
     const id = req.body.id;
     const userID = req.body.userId;
 

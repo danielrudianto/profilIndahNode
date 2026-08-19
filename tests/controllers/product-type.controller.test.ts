@@ -118,6 +118,18 @@ describe("POST / — membuat jenis barang", () => {
     sempat memuat beberapa baris bernama sama (LIGHTING dua kali di data
     nyata) yang memecah laporan stok per jenis jadi baris-baris identik.
   */
+  it("membuang spasi pinggir nama sebelum dicek dan disimpan", async () => {
+    const repo = repositoryTiruan();
+    repo.create.mockResolvedValue(jenis);
+
+    await request(app(repo)).post("/").send({ name: "  Besi Beton " });
+
+    expect(repo.fetchByName).toHaveBeenCalledWith("Besi Beton");
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Besi Beton" })
+    );
+  });
+
   it("menolak 400 bila nama sudah dipakai jenis lain yang masih hidup", async () => {
     const repo = repositoryTiruan();
     repo.fetchByName.mockResolvedValue({ ...jenis, id: 41 });

@@ -16,7 +16,8 @@ export class ProductBrandController {
   }
 
   create = async (req: Request, res: Response) => {
-    const name = req.body.name;
+    /* Spasi pinggir dibuang — "jasa " dan "jasa" adalah satu nama. */
+    const name = String(req.body.name).trim();
     const userID = req.body.userId;
 
     const validation = await this.productBrandRepository.fetchByName(name);
@@ -38,7 +39,8 @@ export class ProductBrandController {
 
   update = async (req: Request, res: Response) => {
     const id = req.body.id;
-    const name = req.body.name;
+    /* Spasi pinggir dibuang — "jasa " dan "jasa" adalah satu nama. */
+    const name = String(req.body.name).trim();
     const userID = req.body.userId;
 
     try {

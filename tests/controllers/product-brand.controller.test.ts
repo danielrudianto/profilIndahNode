@@ -109,6 +109,19 @@ describe("POST / — membuat merek", () => {
     });
   });
 
+  it("membuang spasi pinggir nama sebelum dicek dan disimpan", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByName.mockResolvedValue(null);
+    repo.create.mockResolvedValue(merek);
+
+    await request(app(repo)).post("/").send({ name: "  Indah " });
+
+    expect(repo.fetchByName).toHaveBeenCalledWith("Indah");
+    expect(repo.create).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "Indah" })
+    );
+  });
+
   it("membalas 400 bila nama merek sudah dipakai", async () => {
     const repo = repositoryTiruan();
     repo.fetchByName.mockResolvedValue(merek);
