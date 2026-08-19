@@ -65,13 +65,37 @@ adduser deploy
 usermod -aG sudo deploy
 ```
 
-Salin kunci SSH dari mesin lokal (jalankan **di laptop**, bukan di server):
+Salin kunci SSH dari mesin lokal. **Semua perintah blok ini dijalankan di
+laptop**, bukan di server.
+
+Kalau `~/.ssh` belum berisi `id_ed25519.pub`, kuncinya memang belum pernah
+dibuat — `ssh-copy-id` akan menjawab `ERROR: No identities found`. Buat dulu:
+
+```bash
+ssh-keygen -t ed25519 -C "daniel@jarvis"
+```
+
+Terima lokasi bawaannya, dan **isi passphrase**: kunci ini satu-satunya jalan
+masuk ke server produksi, jadi jangan sampai berguna begitu saja bagi siapa
+pun yang memegang laptopnya. Supaya tidak mengetiknya berulang kali:
+
+```bash
+ssh-add ~/.ssh/id_ed25519
+```
+
+Baru salin ke server:
 
 ```bash
 ssh-copy-id deploy@ALAMAT_SERVER
 ```
 
-Setelah memastikan bisa masuk sebagai `deploy`, matikan login root dan sandi:
+> Pengguna `deploy` harus sudah ada di server (dua perintah `adduser` di atas).
+> Kalau belum, `ssh-copy-id` menjawab `Permission denied` — masuk sebagai root
+> dulu, buat penggunanya, baru ulangi.
+
+**Pastikan `ssh deploy@ALAMAT_SERVER` benar-benar berhasil tanpa sandi**
+sebelum melanjutkan. Langkah berikutnya mematikan login bersandi; menjalankannya
+sebelum kunci terbukti bekerja akan mengunci lu di luar server sendiri.
 
 ```bash
 sudo sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config
