@@ -16,6 +16,7 @@ export interface IProduct {
   deleted_by?: number | null;
   deleted_at?: Date | null;
   minimum_stock?: number;
+  minimum_stock_recommendation?: number | null;
   unit: string;
   sales_price?: number;
   sales_discount?: number;

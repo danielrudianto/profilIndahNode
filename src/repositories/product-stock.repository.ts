@@ -57,7 +57,7 @@ export class ProductStockRepository {
         SUM(
           CASE
             WHEN COALESCE(product_stock.stock, 0) >= 0
-             AND COALESCE(product_stock.stock, 0) < product.minimum_stock
+             AND COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
             THEN 1 ELSE 0
           END
         ) AS low,
@@ -205,7 +205,7 @@ export class ProductStockRepository {
         SELECT product.id, COALESCE(product_stock.stock) AS stock 
         FROM product
         LEFT JOIN product_stock ON product.id = product_stock.id
-        WHERE COALESCE(product_stock.stock, 0) < product.minimum_stock
+        WHERE COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
         AND COALESCE(product_stock.stock, 0) >= 0
         LIMIT ${data.pageSize}
         OFFSET ${(data.page - 1) * data.pageSize}
@@ -214,7 +214,7 @@ export class ProductStockRepository {
         SELECT COUNT(product.id) AS count 
         FROM product
         LEFT JOIN product_stock ON product.id = product_stock.id
-        WHERE COALESCE(product_stock.stock, 0) < product.minimum_stock
+        WHERE COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
         AND COALESCE(product_stock.stock, 0) >= 0
         LIMIT ${data.pageSize}
         OFFSET ${(data.page - 1) * data.pageSize}
@@ -271,7 +271,7 @@ export class ProductStockRepository {
           JOIN product_brand ON product.product_brand_id = product_brand.id
           JOIN product_type ON product.product_type_id = product_type.id
           WHERE product.is_delete = 0
-          AND COALESCE(product_stock.stock,0) < product.minimum_stock
+          AND COALESCE(product_stock.stock,0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
           AND COALESCE(product_stock.stock, 0) >= 0
           ${saringanMerek}
           ${saringanTipe}
@@ -299,7 +299,7 @@ export class ProductStockRepository {
           FROM product
           LEFT JOIN product_stock ON product_stock.id = product.id
           WHERE product.is_delete = 0
-          AND COALESCE(product_stock.stock, 0) < product.minimum_stock
+          AND COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
           AND COALESCE(product_stock.stock, 0) >= 0
           ${saringanMerek}
           ${saringanTipe}
@@ -331,6 +331,10 @@ export class ProductStockRepository {
           created_at: new Date(x.created_at),
           created_by: x.created_by,
           minimum_stock: Number(x.minimum_stock),
+          minimum_stock_recommendation:
+            x.minimum_stock_recommendation == null
+              ? null
+              : Number(x.minimum_stock_recommendation),
           unit: x.unit,
           product_brand: new ProductBrandModel({
             id: x.product_brand_id,

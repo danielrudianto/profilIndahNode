@@ -20,6 +20,7 @@ export class ProductModel {
   is_active?: boolean = true;
   is_delete?: boolean = false;
   minimum_stock?: number;
+  minimum_stock_recommendation?: number | null;
   unit: string;
   sales_price?: number;
   sales_discount?: number;
@@ -46,6 +47,7 @@ export class ProductModel {
     this.is_active = data.is_active;
     this.is_delete = data.is_delete;
     this.minimum_stock = data.minimum_stock;
+    this.minimum_stock_recommendation = data.minimum_stock_recommendation;
     this.unit = data.unit;
     this.product_brand = data.product_brand;
     this.product_type = data.product_type;
@@ -72,6 +74,10 @@ export class ProductModel {
       updated_by: data.updated_by,
       updated_at: data.updated_at,
       minimum_stock: Number(data.minimum_stock),
+      minimum_stock_recommendation:
+        data.minimum_stock_recommendation == null
+          ? null
+          : Number(data.minimum_stock_recommendation),
       sales_discount: Number(data.sales_discount),
       sales_price: Number(data.sales_price),
       purchase_discount: Number(data.purchase_discount),

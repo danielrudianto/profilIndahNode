@@ -433,6 +433,8 @@ model product {
   reference         String    @db.VarChar(50)
   description       String    @db.VarChar(191)
   minimum_stock     Decimal   @default(0.0000) @db.Decimal(50, 4)
+  // Rekomendasi hasil hitungan reorder point; NULL = belum/tak bisa dihitung.
+  minimum_stock_recommendation Decimal? @db.Decimal(50, 4)
   created_by        Int
   created_at        DateTime  @default(now()) @db.DateTime(0)
   is_delete         Boolean?  @default(false)

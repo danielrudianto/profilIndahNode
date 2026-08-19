@@ -20,6 +20,7 @@
     "start:calculate-hpp-bulk": "npx ts-node src/startup.ts calculateStockOutBulk",
     "start:rebuild-stock-in": "npx ts-node src/startup.ts rebuildStockIn",
     "start:settle-receivables": "npx ts-node src/startup.ts settleRoundedReceivables",
+    "start:calculate-minimum-stock": "npx ts-node src/startup.ts calculateMinimumStock",
     "start:calculate-card": "npx ts-node src/startup.ts insertStockCard",
     "start:order-card": "npx ts-node src/startup.ts orderStockCard",
     "start:update-product-stock": "npx ts-node src/startup.ts updateProductStock",

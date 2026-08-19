@@ -490,7 +490,8 @@ export class CustomerRepository {
           AND sales_invoice_code.customer_id = ${customerID}
       ) AS sub`;
 
-    const sisa = Number(result[0]?.value ?? 0) - Number(result[0]?.payment ?? 0);
+    const sisa =
+      Number(result[0]?.value ?? 0) - Number(result[0]?.payment ?? 0);
     return sisa > PAYMENT_ROUNDING_TOLERANCE ? sisa : 0;
   }
 
@@ -535,5 +536,4 @@ export class CustomerRepository {
       count: hitung,
     };
   }
-
 }
