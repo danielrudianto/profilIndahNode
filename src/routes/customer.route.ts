@@ -41,6 +41,20 @@ router.get(
 );
 
 router.get(
+  "/:id/receivable",
+  superadministratorMiddleware,
+  validate(paramCustomerSchema, "params"),
+  customerController.fetchReceivable
+);
+
+router.get(
+  "/:id/invoices",
+  superadministratorMiddleware,
+  validate(paramCustomerSchema, "params"),
+  customerController.fetchInvoices
+);
+
+router.get(
   "/:id",
   validate(paramCustomerSchema, "params"),
   customerController.fetchByID

@@ -134,6 +134,40 @@ class CustomerController {
    * Laporan penjualan pada satu pelanggan. Rutenya dikunci super administrator
    * — nilai penjualan per pelanggan adalah angka yang sensitif.
    */
+  /* Piutang berjalan pelanggan — potret sekarang, bukan ikut tahun laporan. */
+  fetchReceivable = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const value =
+        await this.customerRepository.fetchOutstandingReceivable(id);
+      return res.status(200).send({ value });
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer receivable ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
+  /* Faktur pelanggan berhalaman — kartu daftar faktur di laporannya. */
+  fetchInvoices = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const page = translatePage(req.query.page);
+      const mentah = Number(req.query.pageSize);
+      /* Hanya ukuran yang ditawarkan UI; selain itu jatuh ke 10. */
+      const pageSize = [10, 25, 50].includes(mentah) ? mentah : 10;
+
+      const result = await this.customerRepository.fetchInvoices({
+        customerID: id,
+        page,
+        pageSize,
+      });
+      return res.status(200).send(result);
+    } catch (error) {
+      console.error(`[error]: Error on fetching customer invoices ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetchReport = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);

@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { PAYMENT_ROUNDING_TOLERANCE } from "../constants/receivable.constant";
 import { CustomerModel } from "../models/customer.model";
 import { ICustomer } from "../interfaces/customer.interface";
 import { UserViewModel } from "../models/user.model";
@@ -449,4 +450,90 @@ export class CustomerRepository {
       throw new Error("Internal server error");
     }
   }
+  /*
+    Piutang BERJALAN pelanggan ini — potret sekarang, sengaja tidak ikut
+    saringan tahun laporan. Rumus dan toleransi pembulatannya menyalin
+    daftar piutang: sisa <= Rp 5 bukan piutang.
+  */
+  async fetchOutstandingReceivable(customerID: number): Promise<number> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT SUM(sub.value) AS value, SUM(sub.payment) AS payment
+      FROM (
+        SELECT
+          (si.value + sales_invoice_code.delivery + sales_invoice_code.service - sales_invoice_code.discount) AS value,
+          COALESCE(sip.value, 0) AS payment
+        FROM sales_invoice_code
+        JOIN (
+          SELECT
+            SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+            sales_invoice.sales_invoice_code_id
+          FROM sales_invoice
+          JOIN sales_invoice_code AS kode ON kode.id = sales_invoice.sales_invoice_code_id
+          WHERE kode.is_paid = false AND kode.is_delete = false
+            AND kode.customer_id = ${customerID}
+          GROUP BY sales_invoice.sales_invoice_code_id
+        ) AS si
+        ON sales_invoice_code.id = si.sales_invoice_code_id
+        LEFT JOIN (
+          SELECT
+            SUM(sales_invoice_payment.value) AS value,
+            sales_invoice_payment.sales_invoice_code_id
+          FROM sales_invoice_payment
+          JOIN sales_invoice_code AS kode ON kode.id = sales_invoice_payment.sales_invoice_code_id
+          WHERE kode.is_paid = false AND kode.is_delete = false
+            AND kode.customer_id = ${customerID}
+          GROUP BY sales_invoice_payment.sales_invoice_code_id
+        ) AS sip
+        ON sales_invoice_code.id = sip.sales_invoice_code_id
+        WHERE sales_invoice_code.is_paid = false
+          AND sales_invoice_code.is_delete = false
+          AND sales_invoice_code.customer_id = ${customerID}
+      ) AS sub`;
+
+    const sisa = Number(result[0]?.value ?? 0) - Number(result[0]?.payment ?? 0);
+    return sisa > PAYMENT_ROUNDING_TOLERANCE ? sisa : 0;
+  }
+
+  /*
+    Faktur pelanggan ini, terbaru dulu, berhalaman — untuk kartu daftar
+    faktur di laporan pelanggan. Totalnya dihitung di SQL supaya tidak
+    menarik ribuan baris item ke Node.
+  */
+  async fetchInvoices(data: {
+    customerID: number;
+    page: number;
+    pageSize: number;
+  }): Promise<{ data: any[]; count: number }> {
+    const limit = data.pageSize;
+    const offset = (data.page - 1) * data.pageSize;
+
+    const [baris, hitung] = await Promise.all([
+      this.prisma.$queryRaw<any[]>`
+        SELECT sic.id, sic.name, sic.date, sic.is_paid,
+          SUM(si.quantity * (si.price - si.discount))
+            + sic.delivery + sic.service - sic.discount AS total
+        FROM sales_invoice_code sic
+        JOIN sales_invoice si ON si.sales_invoice_code_id = sic.id
+        WHERE sic.customer_id = ${data.customerID} AND sic.is_delete = false
+        GROUP BY sic.id, sic.name, sic.date, sic.is_paid,
+          sic.delivery, sic.service, sic.discount
+        ORDER BY sic.date DESC, sic.id DESC
+        LIMIT ${limit} OFFSET ${offset}`,
+      this.prisma.sales_invoice_code.count({
+        where: { customer_id: data.customerID, is_delete: false },
+      }),
+    ]);
+
+    return {
+      data: baris.map((x) => ({
+        id: Number(x.id),
+        name: x.name,
+        date: x.date,
+        isPaid: Boolean(x.is_paid),
+        total: Number(x.total),
+      })),
+      count: hitung,
+    };
+  }
+
 }
