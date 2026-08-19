@@ -243,7 +243,12 @@ export class UserRepository {
         return null;
       }
 
-      return UserModel.fromMap(result);
+      /* roleText ikut diisi — jalur login-lah yang membawa nama jabatan
+         ke topbar dan popover profil. */
+      return UserModel.fromMap({
+        ...result,
+        roleText: UserRoleModel.fromRoleID(result.role),
+      });
     } catch (error) {
       console.error(`[error]: Error fetching user by username ${error}`);
       throw new Error("Internal server error");

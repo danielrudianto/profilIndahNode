@@ -214,6 +214,15 @@ class ProductStockController {
     try {
       if (role === 6) {
         const user_sales = req.body.user_sales as { product_type_id: number }[];
+
+        /*
+          Gudang tanpa penugasan tidak boleh melihat apa pun — dan filter
+          kosong akan dikirim ke Meilisearch sebagai string kosong yang galat.
+        */
+        if (user_sales.length === 0) {
+          return res.status(200).send({ data: [], count: 0 });
+        }
+
         const typeFilter = user_sales
           .map((x) => {
             return `product_type_id = ${x.product_type_id}`;
@@ -224,6 +233,11 @@ class ProductStockController {
           offset: (page - 1) * pageSize,
           limit: pageSize,
         });
+
+        /* Tanpa hasil, Prisma.join([]) di bawah melempar — jawab kosong saja. */
+        if (result.hits.length === 0) {
+          return res.status(200).send({ data: [], count: 0 });
+        }
 
         const productStocks =
           await this.productStockRepository.fetchStockByProductID(
@@ -238,6 +252,16 @@ class ProductStockController {
               return x.id;
             })
           );
+
+        /*
+          Minimum manual & rekomendasinya dibaca dari DB, bukan indeks —
+          indeks meili bisa basi dan tidak menyimpan rekomendasi sama sekali.
+        */
+        const produkDb = await this.productRepository.fetchByIDs(
+          result.hits.map((x: any) => {
+            return x.id;
+          })
+        );
 
         return res.status(200).send({
           data: result.hits.map((x: any) => {
@@ -256,8 +280,17 @@ class ProductStockController {
                 : depositProductStock[depositIndex].quantity;
 
             const product = ProductModel.fromMeilisearch(x);
+            const dbIndex = produkDb.findIndex((p) => p.id == x.id);
             return {
               ...product,
+              minimum_stock:
+                dbIndex == -1
+                  ? product.minimum_stock
+                  : Number(produkDb[dbIndex].minimum_stock ?? 0),
+              minimum_stock_recommendation:
+                dbIndex == -1
+                  ? null
+                  : (produkDb[dbIndex].minimum_stock_recommendation ?? null),
               product_stock: {
                 stock: stock - deposit,
               },
@@ -272,6 +305,11 @@ class ProductStockController {
           limit: pageSize,
         });
 
+        /* Tanpa hasil, Prisma.join([]) di bawah melempar — jawab kosong saja. */
+        if (result.hits.length === 0) {
+          return res.status(200).send({ data: [], count: 0 });
+        }
+
         const productStocks =
           await this.productStockRepository.fetchStockByProductID(
             result.hits.map((x: any) => {
@@ -279,14 +317,29 @@ class ProductStockController {
             })
           );
 
+        const produkDb = await this.productRepository.fetchByIDs(
+          result.hits.map((x: any) => {
+            return x.id;
+          })
+        );
+
         return res.status(200).send({
           data: result.hits.map((x: any) => {
             const index = productStocks.findIndex(
               (stock) => stock.product_id == x.id
             );
             const product = ProductModel.fromMeilisearch(x);
+            const dbIndex = produkDb.findIndex((p) => p.id == x.id);
             return {
               ...product,
+              minimum_stock:
+                dbIndex == -1
+                  ? product.minimum_stock
+                  : Number(produkDb[dbIndex].minimum_stock ?? 0),
+              minimum_stock_recommendation:
+                dbIndex == -1
+                  ? null
+                  : (produkDb[dbIndex].minimum_stock_recommendation ?? null),
               product_stock: {
                 stock: index == -1 ? 0 : productStocks[index].stock,
               },

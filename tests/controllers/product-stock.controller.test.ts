@@ -84,7 +84,7 @@ function packageRepositoryTiruan() {
 }
 
 function productRepositoryTiruan() {
-  return { fetchByID: jest.fn(), fetchByIDs: jest.fn() };
+  return { fetchByID: jest.fn(), fetchByIDs: jest.fn().mockResolvedValue([]) };
 }
 
 function depositRepositoryTiruan() {
@@ -476,33 +476,34 @@ describe("POST /warehouse — daftar stok gudang", () => {
     expect(res.text).toBe(ErrorList["Internal server error"]);
   });
 
-  /**
-   * CACAT: salesman tanpa satu pun tipe produk mengirim saringan kosong.
-   *
-   * typeFilter dirakit dengan `user_sales.map(...).join(" OR ")`. Untuk larik
-   * kosong hasilnya adalah teks kosong, yang tetap dimasukkan ke dalam daftar
-   * filter Meilisearch.
-   *
-   * Akibat bagi pengguna: salesman yang belum diberi tipe produk apa pun tidak
-   * menerima daftar kosong yang wajar, melainkan galat 500 berbadan kosong
-   * dari Meilisearch — dan karena badannya kosong, tidak ada yang bisa
-   * ditunjukkan ke pengguna maupun ditelusuri operator.
-   */
-  it("CACAT: user_sales kosong menghasilkan saringan bertekst kosong", async () => {
+  /*
+    Gudang/salesman tanpa satu pun tipe produk dijawab daftar kosong.
+    Dulu typeFilter kosong ("") tetap dikirim ke Meilisearch dan meledak
+    jadi 500 berbadan kosong.
+  */
+  it("user_sales kosong dijawab daftar kosong tanpa menyentuh Meilisearch", async () => {
     const r = repos();
-    cariMeili.mockResolvedValue({ hits: [], estimatedTotalHits: 0 });
-    r.stok.fetchStockByProductID.mockResolvedValue([]);
-    r.deposit.calculatePendingStock.mockResolvedValue([]);
 
-    await request(app(r))
+    const res = await request(app(r))
       .post("/warehouse")
       .send({ ...badan, role: 6, user_sales: [] });
 
-    expect(cariMeili).toHaveBeenCalledWith("product", "pipa", {
-      filter: ["is_delete = false", "is_active = true", ""],
-      offset: 5,
-      limit: 5,
-    });
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ data: [], count: 0 });
+    expect(cariMeili).not.toHaveBeenCalled();
+  });
+
+  it("pencarian tanpa hasil dijawab kosong, bukan 500 dari Prisma.join", async () => {
+    const r = repos();
+    cariMeili.mockResolvedValue({ hits: [], estimatedTotalHits: 0 });
+
+    const res = await request(app(r))
+      .post("/warehouse")
+      .send({ ...badan, role: 6, user_sales: [{ product_type_id: 3 }] });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ data: [], count: 0 });
+    expect(r.stok.fetchStockByProductID).not.toHaveBeenCalled();
   });
 
   /**
