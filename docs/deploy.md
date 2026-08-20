@@ -415,9 +415,14 @@ npm run build          # menghasilkan dist/
 
 ## Bagian 7 — Dua layanan systemd
 
-API — `/etc/systemd/system/profil-indah-api.service`:
+Ditulis langsung, bukan disalin ke dalam penyunting: nama berkas dan nama
+yang dipanggil `systemctl` harus sama persis, dan satu kata meleset —
+`profil-indah-api-worker` alih-alih `profil-indah-worker` — membuat
+`enable --now` membatalkan **kedua** unit sekaligus, termasuk yang sudah
+benar. Gejalanya membingungkan: API ikut mati dan jurnalnya kosong.
 
-```ini
+```bash
+sudo tee /etc/systemd/system/profil-indah-api.service > /dev/null <<'EOF'
 [Unit]
 Description=Profil Indah API
 After=network.target mysql.service redis-server.service meilisearch.service
@@ -435,21 +440,40 @@ StandardError=journal
 
 [Install]
 WantedBy=multi-user.target
+EOF
 ```
 
-Worker — `/etc/systemd/system/profil-indah-worker.service`: **sama persis**,
-kecuali `Description=Profil Indah Worker` dan
-`ExecStart=/usr/bin/node dist/worker.js`.
+```bash
+sudo tee /etc/systemd/system/profil-indah-worker.service > /dev/null <<'EOF'
+[Unit]
+Description=Profil Indah Worker
+After=network.target mysql.service redis-server.service meilisearch.service
 
-`NODE_ENV=production` tetap disetel meski berkasnya cuma satu: Express
-memakainya untuk mematikan keluaran galat yang bertele-tele, dan pustaka lain
-ikut membacanya. Menyuruh systemd memuat berkasnya lewat `EnvironmentFile`
-justru menambah satu pengurai lagi yang aturan tanda kutipnya berbeda dari
-dotenv — aplikasi sudah membacanya sendiri.
+[Service]
+Type=simple
+User=deploy
+WorkingDirectory=/var/www/profilindah.id/backend
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node dist/worker.js
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
 
 Worker bukan pelengkap: dialah yang memproses antrean HPP, kartu stok, dan
 menjalankan perhitungan stok minimum tiap Senin dini hari. Tanpa worker,
 pekerjaan menumpuk di Redis tanpa ada yang mengerjakan.
+
+`NODE_ENV=production` tetap disetel meski berkas lingkungannya cuma satu:
+Express memakainya untuk mematikan keluaran galat yang bertele-tele, dan
+pustaka lain ikut membacanya. Menyuruh systemd memuat berkasnya lewat
+`EnvironmentFile` justru menambah satu pengurai lagi yang aturan tanda
+kutipnya berbeda dari dotenv — aplikasi sudah membacanya sendiri.
 
 **Bila langkah-langkah tadi dikerjakan sebagai root, kembalikan dulu
 kepemilikannya.** Layanan ini berjalan sebagai `deploy`; berkas milik root —
@@ -463,7 +487,7 @@ sudo chown -R deploy:deploy /var/www/profilindah.id
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now profil-indah-api profil-indah-worker
-sudo systemctl status profil-indah-api --no-pager
+sleep 3 && systemctl is-active profil-indah-api profil-indah-worker
 ```
 
 Bila salah satunya tidak menyala, bacalah sebabnya:
@@ -472,11 +496,13 @@ Bila salah satunya tidak menyala, bacalah sebabnya:
 sudo journalctl -u profil-indah-api -n 30 --no-pager
 ```
 
-| Gejala di log | Sebab |
+| Gejala | Sebab |
 |---|---|
+| `Unit file ... does not exist` | nama berkas tidak sama dengan yang dipanggil |
+| jurnal kosong, status `inactive (dead)` | unitnya belum pernah benar-benar dinyalakan |
 | `EACCES` atau `permission denied` pada `.env` | berkas masih milik root (perintah `chown` di atas) |
 | `Environment variable not found: DATABASE_URL` | `.env` tidak terbaca, atau berada di folder lain |
-| `Cannot find module '/var/www/.../dist/app.js'` | `npm run build` belum dijalankan |
+| `Cannot find module '.../dist/app.js'` | `npm run build` belum dijalankan |
 
 ---
 
