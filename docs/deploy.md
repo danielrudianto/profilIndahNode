@@ -309,8 +309,9 @@ git clone GIT_REPO_BACKEND api && cd api
 npm ci
 ```
 
-Buat `/srv/profil-indah/api/.env` (rujuk `.env.example` untuk keterangan tiap
-baris):
+Buat `/srv/profil-indah/api/.env.production` (rujuk `.env.example` untuk
+keterangan tiap baris). Namanya **bukan** `.env`: aplikasi memilih berkas
+menurut `NODE_ENV` lewat `src/utils/env.helper.ts`.
 
 ```bash
 DATABASE_URL="mysql://profilindah:SANDI_YANG_KUAT@localhost:3306/profil_indah"
@@ -333,7 +334,16 @@ PORT="5000"
 > ulang berarti token lama tetap sah di sistem baru.
 
 ```bash
-chmod 600 .env
+chmod 600 .env.production
+ln -s .env.production .env
+```
+
+Tautan `.env` itu bukan hiasan: Prisma CLI hanya mengenal nama `.env`, jadi
+tanpanya `prisma migrate deploy` di Bagian 9 akan menembak basis data yang
+berbeda dari yang dipakai aplikasi — atau berhenti karena `DATABASE_URL`
+tidak ditemukan.
+
+```bash
 npx prisma generate
 npm run build          # menghasilkan dist/
 ```
@@ -353,7 +363,7 @@ After=network.target mysql.service redis-server.service meilisearch.service
 Type=simple
 User=deploy
 WorkingDirectory=/srv/profil-indah/api
-EnvironmentFile=/srv/profil-indah/api/.env
+Environment=NODE_ENV=production
 ExecStart=/usr/bin/node dist/app.js
 Restart=always
 RestartSec=5
@@ -367,6 +377,11 @@ WantedBy=multi-user.target
 Worker — `/etc/systemd/system/profil-indah-worker.service`: **sama persis**,
 kecuali `Description=Profil Indah Worker` dan
 `ExecStart=/usr/bin/node dist/worker.js`.
+
+`Environment=NODE_ENV=production` sudah cukup — aplikasi membaca
+`.env.production` sendiri. Menyuruh systemd ikut memuat berkasnya lewat
+`EnvironmentFile` justru menambah satu pengurai lagi yang aturan tanda
+kutipnya berbeda dari dotenv.
 
 Worker bukan pelengkap: dialah yang memproses antrean HPP, kartu stok, dan
 menjalankan perhitungan stok minimum tiap Senin dini hari. Tanpa worker,

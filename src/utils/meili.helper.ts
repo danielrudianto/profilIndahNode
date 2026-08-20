@@ -1,6 +1,5 @@
 import { Meilisearch } from "meilisearch";
-import dotenv from "dotenv";
-dotenv.config(); // Load environment variables from .env file
+import "./env.helper";
 
 /*
   apiKey hanya dikirim bila benar-benar terisi. Klien 0.60 mengirim header

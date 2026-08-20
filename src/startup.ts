@@ -1,5 +1,5 @@
-import dotenv from "dotenv"; // If you load .env here for testing this file directly
-dotenv.config(); // If you load .env here
+/* Pemuat lingkungan harus dijalankan sebelum modul mana pun membaca env. */
+import "./utils/env.helper";
 
 import { redisClient } from "./utils/redis.helper";
 import { MinimumStockService } from "./services/minimum-stock.service";

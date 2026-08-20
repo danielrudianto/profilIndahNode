@@ -17,7 +17,7 @@ import { UserRepository } from "../repositories/user.repository";
 
   Env-nya DIBACA SAAT DIPANGGIL, bukan saat modul dimuat. Versi yang
   menuang sekali di puncak modul terbukti rapuh: siapa pun yang mengimpor
-  modul ini sebelum dotenv.config() — pengujian melakukannya — mendapat
+  modul ini sebelum pemuat lingkungan — pengujian melakukannya — mendapat
   undefined yang membeku selamanya.
 */
 const masaBerlaku = (nilai: string | undefined) =>

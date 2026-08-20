@@ -156,7 +156,15 @@ soft delete — filter out deleted rows in queries.
 
 ## Environment
 
-`.env` is gitignored; `.env.example` documents the required variables:
+Environment files are gitignored; `.env.example` documents the required
+variables. There are **two** of them, chosen by `NODE_ENV` in
+`src/utils/env.helper.ts` — `.env.development` locally, `.env.production` on
+the server, with a plain `.env` read afterwards as a fallback. Prisma's CLI
+only ever looks for `.env`, so that name is a symlink to whichever file
+applies; without it `prisma migrate` would target a different database than
+the app. **The loader must stay the first import of every entry point**
+(`app.ts`, `worker.ts`, `startup.ts`) — modules that read `process.env` while
+being loaded otherwise see `undefined`.
 
 ```
 DATABASE_URL="mysql://user:sandi@localhost:3306/nama_database"
