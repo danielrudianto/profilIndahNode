@@ -237,6 +237,39 @@ ALTER USER 'profilindah'@'localhost' IDENTIFIED BY 'SANDI_BARU'; FLUSH PRIVILEGE
 Prompt MySQL menyimpan setiap baris yang diketik, termasuk sandi; setelah
 selesai, `rm -f ~/.mysql_history`.
 
+**Naikkan memori kerjanya.** Bawaan `innodb_buffer_pool_size` adalah 128 MB —
+angka dari zaman server bersama, dan jauh lebih kecil daripada basis data toko
+ini (sekitar 1 GB setelah data lama diimpor). Akibatnya setiap laporan berat
+menggusur isi singgahan, dan permintaan berikutnya harus membacanya ulang dari
+diska. Gejalanya: aplikasi terasa lambat padahal seluruh indeks sudah terpasang.
+
+```bash
+printf '[mysqld]\ninnodb_buffer_pool_size = 3G\ninnodb_io_capacity = 1000\ninnodb_io_capacity_max = 2000\ninnodb_flush_neighbors = 0\n' | sudo tee /etc/mysql/mysql.conf.d/zz-tuning.cnf
+sudo systemctl restart mysql
+```
+
+Tiga giga dipilih dari 8 GB milik mesin ini, bukan dari rumus umum: sisanya
+harus cukup untuk Node, Meilisearch, dan sesekali build Angular yang sendirian
+meminta 2 GB. `io_capacity` dinaikkan karena bawaannya mengasumsikan cakram
+berputar, sedangkan mesin ini memakai SSD.
+
+`innodb_flush_log_at_trx_commit` **sengaja dibiarkan pada 1**. Menurunkannya ke
+2 memang mempercepat penulisan, tetapi berarti transaksi satu detik terakhir
+dapat hilang ketika listrik mati — pertukaran yang tidak layak untuk data uang.
+
+> Sesudah restart, singgahannya kosong. Beri waktu memanas sebelum menilai
+> kecepatannya; `performance_schema` juga mulai menghitung dari nol lagi.
+
+**Sediakan swap.** Mesin ini datang tanpa swap sama sekali, dan itu berbahaya
+bukan karena lambat melainkan karena mematikan: ketika memori habis, kernel
+membunuh proses ber-RSS terbesar — biasanya `mysqld`. Build Angular yang
+meminta 2 GB sudah cukup untuk memicunya.
+
+```bash
+sudo fallocate -l 4G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+```
+
 Zona waktu MySQL tidak perlu disetel khusus: seluruh kueri bertanggal di
 repositori ini menerima tanggalnya dari aplikasi — `dashboard.repository.ts`
 bahkan mencatat alasannya — jadi tidak ada yang bergantung pada `CURDATE()`
