@@ -179,12 +179,22 @@ Buat sandi penggunanya lebih dulu, lalu simpan di tempat aman — ia akan
 dipakai lagi pada `DATABASE_URL` di Bagian 6:
 
 ```bash
-openssl rand -hex 24
+echo "Pi20-$(openssl rand -hex 20)"
 ```
 
-`-hex`, bukan `-base64`: hasilnya hanya angka dan huruf. Sandi ini menjadi
-bagian dari URL koneksi, dan karakter seperti `@`, `/`, atau `:` di dalamnya
-membuat Prisma salah membaca alamatnya.
+Bentuknya tampak aneh, dan itu disengaja — ia harus memuaskan dua aturan yang
+saling menarik ke arah berlawanan:
+
+- `mysql_secure_installation` menyalakan **validate_password** tingkat MEDIUM,
+  yang menuntut huruf besar, huruf kecil, angka, **dan** karakter khusus.
+  Sandi hex polos ditolak dengan `ERROR 1819 (HY000): Your password does not
+  satisfy the current policy requirements`.
+- Sandi ini menjadi bagian dari URL koneksi Prisma, sehingga `@`, `:`, `/`,
+  atau `#` di dalamnya membuat alamatnya salah dibaca — dan galatnya berbunyi
+  "can't reach database server", sama sekali tidak menyebut sandi.
+
+Awalan `Pi20-` memenuhi tuntutan pertama dengan karakter yang aman bagi
+tuntutan kedua; empat puluh digit hex di belakangnya yang membuatnya acak.
 
 Buat basis data dan penggunanya:
 
