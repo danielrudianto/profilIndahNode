@@ -210,6 +210,23 @@ FLUSH PRIVILEGES;
 EXIT;
 ```
 
+**Periksa plugin autentikasinya.** Prisma hanya memahami
+`caching_sha2_password` dan `mysql_native_password`; bila penggunanya lahir
+dengan `sha256_password`, `mysql` di terminal tetap bisa masuk sementara
+aplikasi gagal dengan `Unknown authentication plugin 'sha256_password'` —
+galat yang muncul jauh belakangan, saat layanan pertama kali dinyalakan.
+
+```bash
+sudo mysql -e "SELECT user, host, plugin FROM mysql.user WHERE user='profilindah';"
+```
+
+Bila bukan `caching_sha2_password`, pindahkan tanpa mengubah sandinya:
+
+```sql
+ALTER USER 'profilindah'@'localhost' IDENTIFIED WITH caching_sha2_password BY 'SANDI_YANG_SAMA';
+FLUSH PRIVILEGES;
+```
+
 Telanjur menyalin sandi contohnya apa adanya? Belum ada yang bergantung
 padanya sejauh ini — ganti saja:
 
@@ -551,6 +568,7 @@ sudo journalctl -u profil-indah-api -n 30 --no-pager
 | `Unit file ... does not exist` | nama berkas tidak sama dengan yang dipanggil |
 | jurnal kosong, status `inactive (dead)` | unitnya belum pernah benar-benar dinyalakan |
 | `EACCES` atau `permission denied` pada `.env` | berkas masih milik root (perintah `chown` di atas) |
+| `Unknown authentication plugin 'sha256_password'` | pengguna MySQL memakai plugin yang tidak dipahami Prisma (Bagian 3) |
 | `Environment variable not found: DATABASE_URL` | `.env` tidak terbaca, atau berada di folder lain |
 | `Cannot find module '.../dist/app.js'` | `npm run build` belum dijalankan |
 
