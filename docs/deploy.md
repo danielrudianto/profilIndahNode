@@ -52,7 +52,9 @@ tanpa sebab jelas.
 **Garis miring di ujung wajib**: `ApiService` merangkai alamat dengan
 `environment.url + rute`, jadi tanpa itu jadinya `...idproduct-stock`.
 
-Pastikan `ng build` dijalankan dari commit yang sudah memuat keduanya.
+Keduanya sudah terdorong ke branch yang akan di-`git clone` pada Bagian 8,
+jadi tidak ada langkah tambahan — cukup pastikan `git pull` di server benar
+membawa commit tersebut sebelum membangun.
 
 **0.3 — Node 22, bukan 20.**
 Mesin pengembangan memakai Node 20.19.5, tetapi Node 20 sudah tidak menerima
@@ -132,7 +134,7 @@ timedatectl   # pastikan tertulis WITA
 Tembok api dan perkakas dasar:
 
 ```bash
-sudo apt install -y ufw fail2ban curl git unattended-upgrades
+sudo apt install -y ufw fail2ban curl git rsync unattended-upgrades
 sudo ufw allow OpenSSH && sudo ufw allow 80 && sudo ufw allow 443
 sudo ufw enable
 sudo dpkg-reconfigure --priority=low unattended-upgrades
@@ -334,14 +336,29 @@ Dua penyebab yang paling sering muncul di langkah ini:
 
 ## Bagian 6 — Backend
 
+Seluruh berkas aplikasi tinggal di bawah satu akar, dinamai menurut
+domainnya:
+
+```
+/var/www/profilindah.id/
+├── backend/       repositori backend — dijalankan systemd
+├── frontend-src/  repositori frontend — tempat ng build dijalankan
+└── frontend/      hasil build — inilah yang disajikan nginx
+```
+
+`frontend-src` dan `frontend` sengaja terpisah: yang disajikan nginx hanya
+berkas jadi, sehingga kode sumber, `node_modules`, dan riwayat git tidak
+pernah berada di dalam akar dokumen web.
+
 ```bash
-sudo mkdir -p /srv/profil-indah && sudo chown deploy:deploy /srv/profil-indah
-cd /srv/profil-indah
-git clone GIT_REPO_BACKEND api && cd api
+sudo mkdir -p /var/www/profilindah.id
+sudo chown deploy:deploy /var/www/profilindah.id
+cd /var/www/profilindah.id
+git clone GIT_REPO_BACKEND backend && cd backend
 npm ci
 ```
 
-Buat `/srv/profil-indah/api/.env.production` (rujuk `.env.example` untuk
+Buat `/var/www/profilindah.id/backend/.env.production` (rujuk `.env.example` untuk
 keterangan tiap baris). Namanya **bukan** `.env`: aplikasi memilih berkas
 menurut `NODE_ENV` lewat `src/utils/env.helper.ts`.
 
@@ -394,7 +411,7 @@ After=network.target mysql.service redis-server.service meilisearch.service
 [Service]
 Type=simple
 User=deploy
-WorkingDirectory=/srv/profil-indah/api
+WorkingDirectory=/var/www/profilindah.id/backend
 Environment=NODE_ENV=production
 ExecStart=/usr/bin/node dist/app.js
 Restart=always
@@ -429,16 +446,35 @@ sudo systemctl status profil-indah-api --no-pager
 
 ## Bagian 8 — Frontend dan nginx
 
-Bangun frontend **di laptop** (server tidak perlu Angular), lalu kirim
-hasilnya. Perhatikan akhiran `browser/` — Angular 20 menaruh berkas siap
-sajinya di sana.
+Frontend dibangun **di server**, dari repositorinya sendiri:
 
 ```bash
-cd ~/Profil-Indah-16
-ng build
-rsync -avz --delete dist/profil-indah-16/browser/ \
-  deploy@ALAMAT_SERVER:/srv/profil-indah/web/
+cd /var/www/profilindah.id
+git clone GIT_REPO_FRONTEND frontend-src && cd frontend-src
+npm ci
+npm run build
 ```
+
+Hasilnya mendarat di `dist/profil-indah-16/browser/` — perhatikan akhiran
+`browser/`, Angular 20 menaruh berkas siap sajinya satu tingkat lebih dalam.
+Salin isinya ke folder yang disajikan nginx:
+
+```bash
+mkdir -p /var/www/profilindah.id/frontend
+rsync -a --delete dist/profil-indah-16/browser/ /var/www/profilindah.id/frontend/
+```
+
+`--delete` membuang berkas terbitan lama; tanpa itu, potongan JavaScript
+bernama-hash dari build sebelumnya menumpuk selamanya.
+
+> **Kalau `npm run build` mati terbunuh tanpa pesan**, itu kehabisan memori —
+> membangun Angular butuh sekitar 2 GB. Tambahkan swap sementara:
+> `sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile`
+> Atau bangun di laptop lalu kirim hasilnya:
+> `rsync -avz --delete dist/profil-indah-16/browser/ deploy@ALAMAT_SERVER:/var/www/profilindah.id/frontend/`
+
+Menerbitkan versi berikutnya kelak cukup: `git pull`, `npm ci`,
+`npm run build`, lalu `rsync` yang sama.
 
 ```bash
 sudo apt install -y nginx
@@ -451,7 +487,7 @@ sudo apt install -y nginx
 server {
     listen 80;
     server_name v20.profilindah.id;
-    root /srv/profil-indah/web;
+    root /var/www/profilindah.id/frontend;
     index index.html;
 
     # Rute Angular ditangani di peramban; tanpa baris ini, menyegarkan
@@ -519,7 +555,7 @@ gunzip < v19.sql.gz | mysql -u profilindah -p profil_indah
 `minimum_stock_recommendation`.
 
 ```bash
-cd /srv/profil-indah/api && npx prisma migrate deploy
+cd /var/www/profilindah.id/backend && npx prisma migrate deploy
 ```
 
 **9.3 — Indeks tuning.** `docs/index-tuning.sql` BAGIAN 1–6, jalankan
