@@ -4,6 +4,7 @@ import "./utils/env.helper";
 import { Job, Worker } from "bullmq";
 import { MinimumStockService } from "./services/minimum-stock.service";
 import { queue } from "./utils/queue.helper";
+import { opsiKoneksiRedis } from "./utils/redis.helper";
 import { ProductService } from "./services/product.service";
 import { ProductRepository } from "./repositories/product.repository";
 import { ProductUnitRepository } from "./repositories/product-unit.repository";
@@ -21,10 +22,7 @@ import { StockOutService } from "./services/stock-out.service";
 import { StockOutRepository } from "./repositories/stock-out.repository";
 
 const workerOptions = {
-  connection: {
-    host: process.env.REDIS_HOST || "127.0.0.1",
-    port: Number(process.env.REDIS_PORT) || 6379,
-  },
+  connection: opsiKoneksiRedis(),
   concurrency: 1,
 };
 

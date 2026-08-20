@@ -1,10 +1,9 @@
 import { Queue } from "bullmq";
 
+import { opsiKoneksiRedis } from "./redis.helper";
+
 const redisConfiguration = {
-  connection: {
-    host: process.env.REDIS_HOST || "localhost",
-    port: Number(process.env.REDIS_PORT) || 6379,
-  },
+  connection: opsiKoneksiRedis(),
 };
 
 /*

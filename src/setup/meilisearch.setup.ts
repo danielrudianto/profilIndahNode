@@ -1,5 +1,5 @@
 import { prisma } from "../utils/database.helper";
-import { meili } from "../utils/meili.helper";
+import { meili, meiliSiap } from "../utils/meili.helper";
 import { ProductPackageRepository } from "../repositories/product-package.repository";
 import { ProductUnitRepository } from "../repositories/product-unit.repository";
 import { ProductRepository } from "../repositories/product.repository";
@@ -16,6 +16,14 @@ const packageService = new ProductPackageService(
 );
 
 export const main = async () => {
+  /*
+    Inisialisasi indeks berjalan saat modul dimuat, TANPA ditunggu siapa pun.
+    Pada server yang indeksnya belum ada, baris di bawah bisa mendahuluinya
+    dan gagal dengan "Index `product` not found" — bukan karena indeksnya
+    tidak akan dibuat, melainkan karena ia belum sempat.
+  */
+  await meiliSiap;
+
   // remove all documents in the index of product
   await meili.index("product").deleteAllDocuments();
   const products = await productService.fetchAll();
