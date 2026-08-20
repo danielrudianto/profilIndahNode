@@ -12,6 +12,10 @@ Runbook dari VM kosong sampai aplikasi melayani pengguna. Ditulis untuk
 > menyediakan MySQL 8 di repositori bawaannya, jadi seluruh persoalan itu
 > hilang dengan satu perintah `apt`.
 
+**Kata bertuliskan HURUF_BESAR di seluruh dokumen ini adalah tempat isian,
+bukan nilai yang boleh disalin apa adanya** — `SANDI_YANG_KUAT`,
+`ALAMAT_SERVER`, `GIT_REPO_BACKEND`, dan sejenisnya.
+
 Yang akan berjalan di mesin ini:
 
 | Komponen | Peran | Port |
@@ -169,6 +173,17 @@ echo -e "[mysqld]\nbind-address = 127.0.0.1" | sudo tee /etc/mysql/mysql.conf.d/
 sudo systemctl restart mysql
 ```
 
+Buat sandi penggunanya lebih dulu, lalu simpan di tempat aman — ia akan
+dipakai lagi pada `DATABASE_URL` di Bagian 6:
+
+```bash
+openssl rand -hex 24
+```
+
+`-hex`, bukan `-base64`: hasilnya hanya angka dan huruf. Sandi ini menjadi
+bagian dari URL koneksi, dan karakter seperti `@`, `/`, atau `:` di dalamnya
+membuat Prisma salah membaca alamatnya.
+
 Buat basis data dan penggunanya:
 
 ```bash
@@ -177,11 +192,21 @@ sudo mysql
 
 ```sql
 CREATE DATABASE profil_indah CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'profilindah'@'localhost' IDENTIFIED BY 'SANDI_YANG_KUAT';
+CREATE USER 'profilindah'@'localhost' IDENTIFIED BY 'SANDI_HASIL_OPENSSL_TADI';
 GRANT ALL PRIVILEGES ON profil_indah.* TO 'profilindah'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
+
+Telanjur menyalin sandi contohnya apa adanya? Belum ada yang bergantung
+padanya sejauh ini — ganti saja:
+
+```sql
+ALTER USER 'profilindah'@'localhost' IDENTIFIED BY 'SANDI_BARU'; FLUSH PRIVILEGES;
+```
+
+Prompt MySQL menyimpan setiap baris yang diketik, termasuk sandi; setelah
+selesai, `rm -f ~/.mysql_history`.
 
 Zona waktu MySQL tidak perlu disetel khusus: seluruh kueri bertanggal di
 repositori ini menerima tanggalnya dari aplikasi — `dashboard.repository.ts`
