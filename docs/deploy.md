@@ -300,12 +300,35 @@ Restart=always
 WantedBy=multi-user.target
 ```
 
+Berkas konfigurasi memuat master key, jadi jangan bisa dibaca sembarang
+pengguna — tetapi **layanan ini berjalan sebagai `meilisearch`, bukan root**.
+`chmod 600` saja membuat prosesnya sendiri tidak bisa membaca konfigurasinya
+dan layanan gagal menyala. Beri kepemilikan grupnya:
+
 ```bash
-sudo chmod 600 /etc/meilisearch.toml
+sudo chown root:meilisearch /etc/meilisearch.toml
+sudo chmod 640 /etc/meilisearch.toml
+```
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now meilisearch
 curl http://127.0.0.1:7700/health   # {"status":"available"}
 ```
+
+Kalau `curl` menjawab *Couldn't connect*, prosesnya tidak hidup — lihat
+sebabnya, jangan menebak:
+
+```bash
+systemctl status meilisearch --no-pager -l; journalctl -u meilisearch -n 20 --no-pager
+```
+
+Dua penyebab yang paling sering muncul di langkah ini:
+
+| Gejala di log | Sebab |
+|---|---|
+| `status=203/EXEC` | `ExecStart` menunjuk jalur yang salah — binernya di `/usr/local/bin/meilisearch` |
+| `Permission denied` pada `/etc/meilisearch.toml` | izin berkas belum diperbaiki seperti di atas |
 
 ---
 
