@@ -451,11 +451,32 @@ Worker bukan pelengkap: dialah yang memproses antrean HPP, kartu stok, dan
 menjalankan perhitungan stok minimum tiap Senin dini hari. Tanpa worker,
 pekerjaan menumpuk di Redis tanpa ada yang mengerjakan.
 
+**Bila langkah-langkah tadi dikerjakan sebagai root, kembalikan dulu
+kepemilikannya.** Layanan ini berjalan sebagai `deploy`; berkas milik root —
+terutama `.env` yang ber-mode 600 — tidak dapat dibacanya, dan layanannya mati
+tanpa menyebut berkas mana yang ditolak.
+
+```bash
+sudo chown -R deploy:deploy /var/www/profilindah.id
+```
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now profil-indah-api profil-indah-worker
 sudo systemctl status profil-indah-api --no-pager
 ```
+
+Bila salah satunya tidak menyala, bacalah sebabnya:
+
+```bash
+sudo journalctl -u profil-indah-api -n 30 --no-pager
+```
+
+| Gejala di log | Sebab |
+|---|---|
+| `EACCES` atau `permission denied` pada `.env` | berkas masih milik root (perintah `chown` di atas) |
+| `Environment variable not found: DATABASE_URL` | `.env` tidak terbaca, atau berada di folder lain |
+| `Cannot find module '/var/www/.../dist/app.js'` | `npm run build` belum dijalankan |
 
 ---
 
