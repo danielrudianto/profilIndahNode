@@ -243,18 +243,27 @@ redis-cli -a SANDI_REDIS_YANG_KUAT ping   # harus PONG
 
 ## Bagian 5 — Meilisearch
 
+Ambil binernya langsung dari GitHub Releases. Repositori apt mereka
+(`apt.meilisearch.com`) pernah gagal diselesaikan DNS — *No address associated
+with hostname* — dan satu berkas biner tidak menambah sumber paket yang bisa
+mati diam-diam.
+
 ```bash
-curl -fsSL https://apt.meilisearch.com/meilisearch-keyring.asc \
-  | sudo tee /usr/share/keyrings/meilisearch-keyring.asc > /dev/null
-echo "deb [signed-by=/usr/share/keyrings/meilisearch-keyring.asc] https://apt.meilisearch.com/ stable main" \
-  | sudo tee /etc/apt/sources.list.d/meilisearch.list
-sudo apt update && sudo apt install -y meilisearch
+sudo curl -fsSL -o /usr/local/bin/meilisearch \
+  https://github.com/meilisearch/meilisearch/releases/download/v1.5.0/meilisearch-linux-amd64
+sudo chmod +x /usr/local/bin/meilisearch
 meilisearch --version
 ```
 
-Pengembangan memakai 1.5.0; versi 1.x mana pun seharusnya cocok dengan klien
-`meilisearch@0.60`. Setelah indeks dibuat nanti (Bagian 9), buka halaman
-Barang untuk memastikan.
+Versinya dipatok **v1.5.0**, sama persis dengan mesin pengembangan, supaya
+tidak ada kejutan terhadap klien `meilisearch@0.60`. Ia hanya mendengar di
+`127.0.0.1` dan tidak pernah menghadap internet. Untuk menaikkannya kelak,
+ganti nomor versi di perintah di atas, jalankan ulang, lalu
+`sudo systemctl restart meilisearch` — indeksnya bisa dibangun ulang kapan
+saja lewat Bagian 9.4, jadi langkah ini murah.
+
+Setelah indeks dibuat nanti (Bagian 9), buka halaman Barang untuk memastikan
+klien dan servernya benar-benar cocok.
 
 Buat pengguna sistem, folder data, dan berkas konfigurasinya:
 
@@ -284,7 +293,7 @@ After=network.target
 [Service]
 User=meilisearch
 Group=meilisearch
-ExecStart=/usr/bin/meilisearch --config-file-path /etc/meilisearch.toml
+ExecStart=/usr/local/bin/meilisearch --config-file-path /etc/meilisearch.toml
 Restart=always
 
 [Install]
