@@ -514,6 +514,16 @@ tanpa menyebut berkas mana yang ditolak.
 sudo chown -R deploy:deploy /var/www/profilindah.id
 ```
 
+Setelah kepemilikannya berpindah, perintah `git` yang dijalankan root akan
+ditolak dengan *detected dubious ownership*. Daftarkan kedua repo sebagai
+pengecualian — `scripts/deploy.sh` melakukannya sendiri, tetapi perintah git
+manual tetap memerlukannya:
+
+```bash
+sudo git config --global --add safe.directory /var/www/profilindah.id/backend
+sudo git config --global --add safe.directory /var/www/profilindah.id/frontend-src
+```
+
 ```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now profil-indah-api profil-indah-worker
@@ -537,6 +547,7 @@ sudo journalctl -u profil-indah-api -n 30 --no-pager
 | Gejala | Sebab |
 |---|---|
 | `status=217/USER`, `Failed to determine user credentials` | pengguna `deploy` belum dibuat |
+| `detected dubious ownership in repository` | git dijalankan root pada repo milik `deploy` — daftarkan pengecualiannya (di bawah) |
 | `Unit file ... does not exist` | nama berkas tidak sama dengan yang dipanggil |
 | jurnal kosong, status `inactive (dead)` | unitnya belum pernah benar-benar dinyalakan |
 | `EACCES` atau `permission denied` pada `.env` | berkas masih milik root (perintah `chown` di atas) |

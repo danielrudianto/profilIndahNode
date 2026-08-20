@@ -63,6 +63,14 @@ done
 # berikutnya gagal dengan pesan yang tidak menyebut sebabnya.
 [[ -w "$AKAR/.git" ]] || gagal ".git tidak dapat ditulis — jalankan: sudo chown -R \$USER:\$USER .git"
 
+# Git menolak bekerja pada repo milik pengguna lain — "detected dubious
+# ownership" — dan di server ini kombinasi itu justru normal: berkasnya milik
+# pengguna layanan, sementara administrasinya dikerjakan sebagai root.
+if [[ $EUID -eq 0 ]]; then
+  git config --global --get-all safe.directory 2>/dev/null | grep -qx "$AKAR" ||
+    git config --global --add safe.directory "$AKAR"
+fi
+
 git rev-parse HEAD > /dev/null 2>&1 || gagal "bukan repo git yang berisi commit"
 
 # ---------------------------------------------------------------------
