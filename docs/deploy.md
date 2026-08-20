@@ -479,8 +479,16 @@ kutipnya berbeda dari dotenv — aplikasi sudah membacanya sendiri.
 kedua unit menjalankan prosesnya sebagai pengguna itu:
 
 ```bash
-id deploy || sudo adduser --disabled-password --gecos "" deploy
+id deploy || sudo adduser --system --group --no-create-home --shell /usr/sbin/nologin deploy
 ```
+
+`--system` membuatnya **tidak bisa login sama sekali** — dan itu memang yang
+diinginkan bila administrasi server dikerjakan sebagai root lewat terminal
+panel penyedia. `deploy` di sini bukan akun untuk masuk, melainkan identitas
+yang menjalankan prosesnya, supaya aplikasi yang menghadap internet tidak
+berhak penuh atas seluruh mesin. (Bila lu memang ingin masuk SSH dengan akun
+itu, pakai `sudo adduser --disabled-password --gecos "" deploy` sebagai
+gantinya, lalu salin `authorized_keys` ke dalamnya.)
 
 Bila belum ada, systemd gagal dengan `status=217/USER` dan
 `Failed to determine user credentials` — sepasang pesan yang sama sekali tidak

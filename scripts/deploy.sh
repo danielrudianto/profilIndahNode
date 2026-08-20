@@ -24,6 +24,7 @@ cd "$AKAR"
 
 LAYANAN_API="profil-indah-api"
 LAYANAN_WORKER="profil-indah-worker"
+PENGGUNA_LAYANAN="deploy"
 
 merah()  { printf '\033[31m%s\033[0m\n' "$*"; }
 hijau()  { printf '\033[32m%s\033[0m\n' "$*"; }
@@ -169,7 +170,23 @@ echo "==> Menerapkan migrasi"
 "$PRISMA" migrate deploy || gagal "prisma migrate deploy"
 
 # ---------------------------------------------------------------------
-# 7. Nyalakan ulang
+# 7. Kepemilikan berkas
+# ---------------------------------------------------------------------
+# Administrasi server ini lazim dikerjakan sebagai root — terminal panel
+# penyedia memang masuk begitu. Akibatnya berkas hasil `git pull` dan
+# `npm ci` menjadi milik root, sementara layanannya berjalan sebagai
+# pengguna lain dan tidak dapat membaca `.env` yang ber-mode 600.
+#
+# Gejalanya menyesatkan: layanan menyala lalu mati berulang tanpa satu pun
+# pesan dari aplikasinya. Dikembalikan di sini supaya tidak terulang tiap
+# kali deploy.
+if [[ $EUID -eq 0 ]] && id "$PENGGUNA_LAYANAN" > /dev/null 2>&1; then
+  echo "==> Mengembalikan kepemilikan ke $PENGGUNA_LAYANAN"
+  chown -R "$PENGGUNA_LAYANAN:$PENGGUNA_LAYANAN" "$AKAR"
+fi
+
+# ---------------------------------------------------------------------
+# 8. Nyalakan ulang
 # ---------------------------------------------------------------------
 # KEDUANYA, selalu. Worker memuat kode yang sama dengan API; menyalakan ulang
 # API saja meninggalkan worker lama yang memproses antrean dengan aturan HPP
@@ -192,7 +209,7 @@ for layanan in "$LAYANAN_API" "$LAYANAN_WORKER"; do
 done
 
 # ---------------------------------------------------------------------
-# 8. Uji hidup
+# 9. Uji hidup
 # ---------------------------------------------------------------------
 # Layanan yang "active" belum tentu melayani. Yang menentukan adalah ia
 # menjawab permintaan.
