@@ -864,6 +864,29 @@ seperti `/Stock-check` tidak menghasilkan 404.
 
 ---
 
+## Bagian 10b — Verifikasi kecepatan
+
+Bagian 10 membuktikan aplikasinya **hidup**. Bagian ini membuktikan ia
+**cepat**, dan keduanya harus dijalankan: aplikasi yang lambat tetap menjawab
+200 pada seluruh perintah di atas, sehingga kelambatan lolos verifikasi kalau
+tidak diperiksa sendiri.
+
+```bash
+curl -sI --http2 https://v20.profilindah.id | head -1
+n=$(basename $(ls /var/www/profilindah.id/frontend/main-*.js | head -1))
+echo "mentah : $(curl -s -o /dev/null -w '%{size_download}' https://v20.profilindah.id/$n)"
+echo "digzip : $(curl -s -o /dev/null -w '%{size_download}' -H 'Accept-Encoding: gzip' https://v20.profilindah.id/$n)"
+free -h | grep -i swap
+mysql -e "SELECT ROUND(@@innodb_buffer_pool_size/1024/1024/1024,1) AS buffer_pool_gb;"
+```
+
+Angka acuan dari pemasangan pertama, sebagai pembanding: `HTTP/2 200`, bundel
+utama sekitar 183 KB mentah dan 48 KB terkompresi, swap 4 GB, buffer pool
+3 GB. Muatan awal frontend seluruhnya sekitar 866 KB mentah dan 184 KB
+terkirim.
+
+---
+
 ## Bagian 11 — Cadangan
 
 Toko ini kehilangan uang kalau datanya hilang. Pasang sebelum hari pertama,
@@ -877,10 +900,27 @@ set -euo pipefail
 TUJUAN=/var/backups/profil-indah
 mkdir -p "$TUJUAN"
 STEMPEL=$(date +%F-%H%M)
-mysqldump -u profilindah -pSANDI --single-transaction --routines profil_indah \
+mysqldump --defaults-file=/root/.my.cnf --single-transaction --routines profil_indah \
   | gzip > "$TUJUAN/db-$STEMPEL.sql.gz"
 find "$TUJUAN" -name 'db-*.sql.gz' -mtime +14 -delete
 ```
+
+Sandinya diletakkan di berkas, bukan pada baris perintah: `-pSANDI` terlihat
+oleh **setiap** pengguna mesin ini lewat `ps`, termasuk selama beberapa detik
+cron menjalankannya tiap malam.
+
+```bash
+printf '[client]\nuser=profilindah\npassword=SANDI_DARI_BAGIAN_3\n' | sudo tee /root/.my.cnf
+sudo chmod 600 /root/.my.cnf
+```
+
+> **Efek samping yang mengagetkan.** Sesudah berkas itu ada, `sudo mysql`
+> tidak lagi masuk sebagai root lewat soket — ia memakai kredensial di
+> `/root/.my.cnf`, yaitu pengguna aplikasi. Perintah yang menyentuh tabel
+> sistem lalu ditolak dengan `SELECT command denied to user
+> 'profilindah'@'localhost'`, dan penyebabnya sama sekali tidak terbaca dari
+> pesannya. Lewati berkas itu bila butuh hak root:
+> `sudo mysql --no-defaults -u root`
 
 ```bash
 sudo chmod 700 /usr/local/bin/backup-profil-indah.sh
@@ -909,3 +949,58 @@ dari MySQL lewat langkah 9.4.
    pengguna pertama menekan F5 di halaman dalam (Bagian 8).
 7. Indeks Meilisearch belum dibangun — halaman Barang dan Stok menjawab 500
    padahal basis datanya sehat (Bagian 9.4).
+8. `listen 443 ssl;` dari Certbot dibiarkan tanpa `http2` — aplikasi terasa
+   berat sejak hari pertama tanpa satu pun galat (Bagian 8).
+9. `innodb_buffer_pool_size` dibiarkan pada bawaan 128 MB, jauh di bawah
+   ukuran basis data toko (Bagian 3).
+10. Swap tidak dipasang — build frontend di server bisa membuat kernel
+    membunuh `mysqld` (Bagian 3).
+
+---
+
+## Lampiran B — Kalau aplikasi terasa lambat
+
+Urutan di bawah ini melawan naluri, dan itu disengaja. Pada pemasangan V20
+seluruh dugaan pertama tertuju ke basis data — indeks, query, tuning — padahal
+penyebabnya ada di nginx, dan baru ketahuan setelah waterfall peramban dibaca.
+Menebak lebih dulu berarti menghabiskan sore memperbaiki yang tidak rusak.
+
+**1. Buka DevTools → Network, klik satu permintaan, baca panel Timing.**
+Ini langkah pertama, bukan terakhir. Yang dicari perbandingan dua angka:
+
+- **`queue`/`stalled` besar, `waiting for response` kecil** — misalnya 1,15
+  detik lawan 140 milidetik. Servernya cepat; peramban yang menahan, karena
+  HTTP/1.1 hanya mengizinkan enam koneksi serentak per domain sementara
+  aplikasi ini memuat belasan berkas sekaligus. Perbaikannya di Bagian 8,
+  bukan di basis data.
+- **`waiting for response` besar** — barulah masalahnya di server. Lanjut ke
+  nomor 2.
+
+**2. Lihat query yang benar-benar dijalankan**, bukan yang dicurigai:
+
+```bash
+sudo mysql --no-defaults -u root -e "SELECT LEFT(DIGEST_TEXT,100) AS query_singkat, COUNT_STAR AS jumlah, ROUND(SUM_TIMER_WAIT/1e12,1) AS total_detik, ROUND(AVG_TIMER_WAIT/1e9) AS rata_ms, ROUND(SUM_ROWS_EXAMINED/GREATEST(COUNT_STAR,1)) AS baris_per_eksekusi FROM performance_schema.events_statements_summary_by_digest WHERE SCHEMA_NAME='profil_indah' ORDER BY SUM_TIMER_WAIT DESC LIMIT 10;"
+```
+
+Kolom yang menentukan adalah **`baris_per_eksekusi`**. Angka ratusan ribu
+berarti masalahnya di kode, bukan di setelan — buffer pool sebesar apa pun
+tidak menolong query yang memang memeriksa separuh tabel tiap dipanggil.
+
+Dua jebakan saat mengukur:
+
+- **`performance_schema` kosong sesudah MySQL di-restart.** Statistiknya
+  mulai dari nol, jadi pakai aplikasinya beberapa menit dulu sebelum
+  membacanya, atau yang terbaca hanya perintah lu sendiri.
+- **Buffer pool juga kosong sesudah restart.** Klik pertama tetap terasa
+  lambat sampai data panas termuat; jangan menilai kecepatan dari situ.
+
+**3. Baru periksa setelan** — buffer pool dan swap (Bagian 3), kompresi dan
+HTTP/2 (Bagian 8). Bagian 10b memuat perintah pemeriksaannya sekaligus angka
+acuannya.
+
+**4. Kalau yang berat justru sisi peramban**, curigai pustaka berat yang
+diimpor statis di komponen. `pdfmake` (2,4 MB) dan `exceljs` (0,9 MB) pernah
+ikut terunduh setiap kali halaman Laporan dibuka, walau penggunanya tidak
+pernah menekan Cetak. Keduanya kini dimuat lewat impor dinamis; pola yang sama
+akan terulang kalau nanti ada pustaka besar baru yang diimpor di kepala
+berkas komponen.

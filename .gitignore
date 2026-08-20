@@ -5,6 +5,7 @@ node_modules
 .env
 .env.*
 !.env.example
+credentials
 
 # Hasil build — dibangun ulang saat deploy, tidak perlu ikut versi
 dist
