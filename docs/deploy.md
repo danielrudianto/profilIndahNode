@@ -350,17 +350,30 @@ domainnya:
 berkas jadi, sehingga kode sumber, `node_modules`, dan riwayat git tidak
 pernah berada di dalam akar dokumen web.
 
+**Sebutkan branch-nya.** `git clone` tanpa `-b` mendarat di `main`, dan
+`main` masih memuat kode lama — Prisma 4, Express 4. Aplikasinya tetap
+terpasang dan berjalan, jadi kekeliruan ini tidak berteriak; yang terlihat
+hanyalah versi Prisma yang aneh pada keluaran `prisma generate`.
+
 ```bash
 sudo mkdir -p /var/www/profilindah.id
 sudo chown deploy:deploy /var/www/profilindah.id
 cd /var/www/profilindah.id
-git clone GIT_REPO_BACKEND backend && cd backend
+git clone -b BRANCH_BACKEND GIT_REPO_BACKEND backend && cd backend
 npm ci
 ```
 
-Buat `/var/www/profilindah.id/backend/.env.production` (rujuk `.env.example` untuk
-keterangan tiap baris). Namanya **bukan** `.env`: aplikasi memilih berkas
-menurut `NODE_ENV` lewat `src/utils/env.helper.ts`.
+Pastikan yang terpasang memang V20 sebelum melanjutkan — Prisma harus 6.x:
+
+```bash
+git branch --show-current && ./node_modules/.bin/prisma --version | head -1
+```
+
+Buat `/var/www/profilindah.id/backend/.env` (rujuk `.env.example` untuk
+keterangan tiap baris). Mesin ini hanya pernah menjalankan produksi, jadi satu
+berkas sudah cukup — `src/utils/env.helper.ts` membaca `.env` sebagai cadangan
+ketika `.env.production` tidak ada, dan Prisma CLI pun langsung menemukannya
+tanpa tautan apa pun.
 
 ```bash
 DATABASE_URL="mysql://profilindah:SANDI_YANG_KUAT@localhost:3306/profil_indah"
@@ -383,19 +396,20 @@ PORT="5000"
 > ulang berarti token lama tetap sah di sistem baru.
 
 ```bash
-chmod 600 .env.production
-ln -s .env.production .env
+chmod 600 .env
 ```
-
-Tautan `.env` itu bukan hiasan: Prisma CLI hanya mengenal nama `.env`, jadi
-tanpanya `prisma migrate deploy` di Bagian 9 akan menembak basis data yang
-berbeda dari yang dipakai aplikasi — atau berhenti karena `DATABASE_URL`
-tidak ditemukan.
 
 ```bash
-npx prisma generate
+./node_modules/.bin/prisma generate
 npm run build          # menghasilkan dist/
 ```
+
+> **Jangan `npx prisma`, dan jangan menjalankannya sebelum `npm ci`.** Bila
+> paketnya belum terpasang, `npx` tidak berhenti — ia mengunduh versi
+> **terbaru** dari internet dan menjalankan itu. Proyek ini masih di Prisma 6,
+> sedangkan Prisma 7 menolak `url = env("DATABASE_URL")` di dalam skema, dan
+> galatnya menuding skemanya: *"The datasource property `url` is no longer
+> supported"*. Skemanya benar; yang keliru versi CLI yang kebetulan terunduh.
 
 ---
 
@@ -427,10 +441,11 @@ Worker — `/etc/systemd/system/profil-indah-worker.service`: **sama persis**,
 kecuali `Description=Profil Indah Worker` dan
 `ExecStart=/usr/bin/node dist/worker.js`.
 
-`Environment=NODE_ENV=production` sudah cukup — aplikasi membaca
-`.env.production` sendiri. Menyuruh systemd ikut memuat berkasnya lewat
-`EnvironmentFile` justru menambah satu pengurai lagi yang aturan tanda
-kutipnya berbeda dari dotenv.
+`NODE_ENV=production` tetap disetel meski berkasnya cuma satu: Express
+memakainya untuk mematikan keluaran galat yang bertele-tele, dan pustaka lain
+ikut membacanya. Menyuruh systemd memuat berkasnya lewat `EnvironmentFile`
+justru menambah satu pengurai lagi yang aturan tanda kutipnya berbeda dari
+dotenv — aplikasi sudah membacanya sendiri.
 
 Worker bukan pelengkap: dialah yang memproses antrean HPP, kartu stok, dan
 menjalankan perhitungan stok minimum tiap Senin dini hari. Tanpa worker,
@@ -450,7 +465,8 @@ Frontend dibangun **di server**, dari repositorinya sendiri:
 
 ```bash
 cd /var/www/profilindah.id
-git clone GIT_REPO_FRONTEND frontend-src && cd frontend-src
+git clone -b BRANCH_FRONTEND GIT_REPO_FRONTEND frontend-src && cd frontend-src
+git branch --show-current      # pastikan bukan main
 npm ci
 npm run build
 ```
@@ -473,8 +489,12 @@ bernama-hash dari build sebelumnya menumpuk selamanya.
 > Atau bangun di laptop lalu kirim hasilnya:
 > `rsync -avz --delete dist/profil-indah-16/browser/ deploy@ALAMAT_SERVER:/var/www/profilindah.id/frontend/`
 
-Menerbitkan versi berikutnya kelak cukup: `git pull`, `npm ci`,
-`npm run build`, lalu `rsync` yang sama.
+Menerbitkan versi berikutnya kelak tidak perlu diketik ulang — ada skrip
+yang menjalankan seluruh urutan ini dan berhenti pada kegagalan pertama:
+
+```bash
+/var/www/profilindah.id/backend/scripts/deploy-fe.sh
+```
 
 ```bash
 sudo apt install -y nginx
@@ -555,7 +575,7 @@ gunzip < v19.sql.gz | mysql -u profilindah -p profil_indah
 `minimum_stock_recommendation`.
 
 ```bash
-cd /var/www/profilindah.id/backend && npx prisma migrate deploy
+cd /var/www/profilindah.id/backend && ./node_modules/.bin/prisma migrate deploy
 ```
 
 **9.3 — Indeks tuning.** `docs/index-tuning.sql` BAGIAN 1–6, jalankan
@@ -590,6 +610,37 @@ GROUP BY name HAVING COUNT(*) > 1;
 
 Untuk tiap pasangan: pindahkan `product.product_type_id` ke baris yang
 dipertahankan, lalu tandai baris kosongnya terhapus.
+
+---
+
+## Bagian 9b — Menerbitkan versi berikutnya
+
+Setelah pemasangan pertama ini selesai, deploy berikutnya cukup dua perintah.
+Keduanya berhenti pada kegagalan pertama — berbeda dari menempel serangkaian
+perintah di terminal, yang tetap melanjutkan sisanya setelah satu langkah
+gagal dan menerbitkan kode lama tanpa memberi tahu siapa pun.
+
+```bash
+/var/www/profilindah.id/backend/scripts/deploy.sh
+```
+
+```bash
+/var/www/profilindah.id/backend/scripts/deploy-fe.sh
+```
+
+`deploy.sh` menarik perubahan, menyelaraskan paket, menghasilkan klien
+Prisma, membangun, menjalankan pemeriksaan statis dan uji, menerapkan
+migrasi, lalu menyalakan ulang **kedua** layanan dan memastikan keduanya
+menjawab. `deploy-fe.sh` membangun frontend, memeriksa hasilnya memuat
+`index.html` dan berkas terjemahan, baru menyalinnya.
+
+Pilihan yang berguna:
+
+| Perintah | Kegunaan |
+|---|---|
+| `deploy.sh --periksa` | menguji kesiapan tanpa menyentuh basis data maupun layanan |
+| `deploy.sh --lewati-uji` | melewati jajaran uji ketika sedang terburu-buru |
+| `deploy-fe.sh --lewati-tarik` | membangun ulang tanpa menarik perubahan |
 
 ---
 

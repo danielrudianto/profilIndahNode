@@ -20,7 +20,4 @@ src/repositories/promotion.repository.ts  ${productID.join(",")}  #1
 src/repositories/promotion.repository.ts  ${purchaseDateFilter}  #1
 src/repositories/promotion.repository.ts  ${supplierID}  #1
 src/repositories/promotion.repository.ts  ${productID.join(",")}  #2
-src/repositories/sales-invoice-payment.repository.ts  ${date.getFullYear()}  #1
-src/repositories/sales-invoice-payment.repository.ts  ${(}  #1
-src/repositories/sales-invoice-payment.repository.ts  ${date.getDate().toString().padStart(2, "0")}  #1
 src/repositories/sales-invoice.repository.ts  ${userID}  #1
