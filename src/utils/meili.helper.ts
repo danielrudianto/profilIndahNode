@@ -1,4 +1,4 @@
-import { Meilisearch } from "meilisearch";
+import { Meilisearch, Settings } from "meilisearch";
 import "./env.helper";
 
 /*
@@ -14,7 +14,26 @@ export const meili = new Meilisearch({
   ...(kunciMeili ? { apiKey: kunciMeili } : {}),
 });
 
-const INDEX_UID = "product"; // Change this to your desired index UID
+/*
+  Setelan tiap indeks. Disimpan sebagai data, bukan ditulis dua kali di dalam
+  cabang pembuatan, supaya penerapannya tidak bergantung pada BAGAIMANA
+  indeksnya lahir.
+*/
+const SETELAN_INDEKS: Record<"product" | "package", Settings> = {
+  product: {
+    filterableAttributes: [
+      "product_brand_id",
+      "product_type_id",
+      "is_active",
+      "is_delete",
+    ],
+    sortableAttributes: ["created_at", "reference", "description"],
+  },
+  package: {
+    filterableAttributes: ["is_delete"],
+    sortableAttributes: ["name", "description"],
+  },
+};
 
 /*
   Kode galat klien 0.60 tidak lagi tergeletak di `error.code`; ia berpindah
@@ -26,69 +45,48 @@ const INDEX_UID = "product"; // Change this to your desired index UID
 const kodeGalat = (error: any): string | undefined =>
   error?.cause?.code ?? error?.code;
 
+/**
+ * Memastikan satu indeks ada DAN setelannya terpasang.
+ *
+ * Setelan diterapkan setiap kali dijalankan, bukan hanya ketika indeksnya
+ * baru dibuat. Bentuk lama memasangnya di dalam cabang "belum ada", dan itu
+ * meninggalkan lubang yang benar-benar terjadi di server: `addDocuments`
+ * membuat indeks sendiri bila belum ada — tanpa setelan apa pun — sehingga
+ * pemeriksaan berikutnya menjawab "sudah ada" dan melewati pemasangannya
+ * selamanya. Akibatnya pencarian berjalan, tetapi setiap penyaringan gagal:
+ * "Attribute `is_delete` is not filterable", dan halaman Barang serta Stok
+ * menjawab 500 padahal indeksnya penuh berisi dokumen.
+ *
+ * updateSettings bersifat idempoten, jadi memanggilnya berulang tidak
+ * merugikan.
+ */
+const siapkanIndeks = async (uid: "product" | "package") => {
+  try {
+    await meili.getIndex(uid);
+  } catch (error: any) {
+    if (kodeGalat(error) !== "index_not_found") {
+      console.error(`[error]: Gagal memeriksa indeks ${uid}: ${error}`);
+      throw error;
+    }
+    console.info(`Indeks ${uid} belum ada — membuatnya...`);
+    const dibuat = await meili.createIndex(uid, { primaryKey: "id" });
+    await meili.tasks.waitForTask(dibuat.taskUid);
+  }
+
+  const tugas = await meili.index(uid).updateSettings(SETELAN_INDEKS[uid]);
+  await meili.tasks.waitForTask(tugas.taskUid);
+  console.info(`Indeks ${uid} siap; penyaring dan pengurutnya terpasang.`);
+};
+
 export const initializeMeiliSearch = async () => {
   if (!process.env.MEILISEARCH_MASTER_KEY) {
     console.warn(
       "MEILISEARCH_MASTER_KEY is not set. MeiliSearch operations requiring an API key might fail."
     );
-    // Depending on your app's needs, you might want to throw an error here
-    // if the API key is absolutely essential for startup.
   }
   console.info("Starting MeiliSearch setup...");
-  try {
-    const product = await meili.getIndex("product");
-    console.info("Product database already exists.");
-  } catch (error: any) {
-    if (kodeGalat(error) === "index_not_found") {
-      console.info("Product index does not exist, creating it...");
-
-      const createProduct = await meili.createIndex("product", {
-        primaryKey: "id",
-      });
-
-      await meili.tasks.waitForTask(createProduct.taskUid);
-      const productSettingTask = await meili.index("product").updateSettings({
-        filterableAttributes: [
-          "product_brand_id",
-          "product_type_id",
-          "is_active",
-          "is_delete",
-        ],
-        sortableAttributes: ["created_at", "reference", "description"],
-      });
-      await meili.tasks.waitForTask(productSettingTask.taskUid);
-      console.info("Product database initialized");
-    } else {
-      console.error(`[error]: Error initializing product index: ${error}`);
-      throw error;
-    }
-  }
-
-  try {
-    const productPackage = await meili.getIndex("package");
-    console.info("Package database already exists.");
-  } catch (error: any) {
-    if (kodeGalat(error) === "index_not_found") {
-      console.info("Package index does not exist, creating it...");
-
-      const createProductPackage = await meili.createIndex("package", {
-        primaryKey: "id",
-      });
-
-      await meili.tasks.waitForTask(createProductPackage.taskUid);
-      const productPackageSettingTask = await meili
-        .index("package")
-        .updateSettings({
-          filterableAttributes: ["is_delete"],
-          sortableAttributes: ["name", "description"],
-        });
-      await meili.tasks.waitForTask(productPackageSettingTask.taskUid);
-      console.info("Package database initialized");
-    } else {
-      console.error(`[error]: Error initializing package index: ${error}`);
-      throw error;
-    }
-  }
+  await siapkanIndeks("product");
+  await siapkanIndeks("package");
 };
 
 /*
