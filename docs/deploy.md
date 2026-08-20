@@ -1,8 +1,16 @@
-# Pasang V20 di server Debian
+# Pasang V20 di server
 
-Runbook dari VM Debian kosong sampai aplikasi melayani pengguna. Ditulis untuk
-**Debian 12 (bookworm)**; Debian 13 (trixie) juga bisa, catatannya ada di
-Bagian 3.
+Runbook dari VM kosong sampai aplikasi melayani pengguna. Ditulis untuk
+**Ubuntu Server 24.04 LTS (noble)**.
+
+> **Kenapa bukan Debian.** Percobaan pertama memakai Debian 13 (trixie) dan
+> mentok di MySQL: pemasang repositori Oracle menolak trixie mentah-mentah,
+> dan repositori bawaan Debian hanya menyediakan MariaDB — yang tidak resmi
+> didukung provider `mysql` milik Prisma. Jalan keluarnya ada (container, atau
+> memaksa paket bookworm), tetapi semuanya menambah bagian yang bisa rusak
+> demi basis data toko yang justru paling tidak boleh rusak. Ubuntu
+> menyediakan MySQL 8 di repositori bawaannya, jadi seluruh persoalan itu
+> hilang dengan satu perintah `apt`.
 
 Yang akan berjalan di mesin ini:
 
@@ -89,6 +97,11 @@ Baru salin ke server:
 ssh-copy-id deploy@ALAMAT_SERVER
 ```
 
+> **Kalau sistem operasinya baru dipasang ulang di IP yang sama**, SSH akan
+> menolak dengan `REMOTE HOST IDENTIFICATION HAS CHANGED` — sidik jari mesin
+> lama masih tersimpan. Buang entri lamanya lebih dulu:
+> `ssh-keygen -R ALAMAT_SERVER`
+
 > Pengguna `deploy` harus sudah ada di server (dua perintah `adduser` di atas).
 > Kalau belum, `ssh-copy-id` menjawab `Permission denied` — masuk sebagai root
 > dulu, buat penggunanya, baru ulangi.
@@ -125,7 +138,7 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades
 
 ## Bagian 2 — Node 22
 
-Debian tidak memaketkan Node 22; pakai repositori NodeSource.
+Ubuntu 24.04 memaketkan Node 18; untuk Node 22 pakai repositori NodeSource.
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
@@ -140,28 +153,16 @@ pemasangan.
 
 ## Bagian 3 — MySQL 8
 
-Repositori bawaan Debian menyediakan MariaDB, bukan MySQL. Skema Prisma
-proyek ini memakai provider `mysql`, jadi pasang MySQL asli dari repositori
-Oracle.
+Ubuntu menyediakan MySQL 8 di repositori bawaannya — tidak perlu repositori
+pihak ketiga.
 
 ```bash
-cd /tmp
-# Periksa versi terbaru paket konfigurasinya di
-# https://dev.mysql.com/downloads/repo/apt/ lalu sesuaikan namanya:
-wget https://dev.mysql.com/get/mysql-apt-config_0.8.34-1_all.deb
-sudo dpkg -i mysql-apt-config_0.8.34-1_all.deb
-sudo apt update
 sudo apt install -y mysql-server
 sudo mysql_secure_installation
 ```
 
-> **Debian 13 (trixie):** kalau Oracle belum menyediakan paket untuk trixie,
-> pilihannya dua — pakai Debian 12, atau jalankan MySQL 8 sebagai container
-> Docker dan biarkan sisanya tetap native. Jangan diam-diam menggantinya
-> dengan MariaDB; Prisma tidak resmi mendukungnya dan masalahnya baru muncul
-> di kueri yang rumit.
-
-Kunci MySQL agar hanya mendengar dari mesin sendiri:
+Pastikan hanya mendengar dari mesin sendiri (bawaan Ubuntu sudah begitu;
+perintah ini menegaskannya):
 
 ```bash
 echo -e "[mysqld]\nbind-address = 127.0.0.1" | sudo tee /etc/mysql/mysql.conf.d/zz-local.cnf
@@ -171,7 +172,7 @@ sudo systemctl restart mysql
 Buat basis data dan penggunanya:
 
 ```bash
-sudo mysql -u root -p
+sudo mysql
 ```
 
 ```sql
@@ -181,6 +182,11 @@ GRANT ALL PRIVILEGES ON profil_indah.* TO 'profilindah'@'localhost';
 FLUSH PRIVILEGES;
 EXIT;
 ```
+
+Zona waktu MySQL tidak perlu disetel khusus: seluruh kueri bertanggal di
+repositori ini menerima tanggalnya dari aplikasi — `dashboard.repository.ts`
+bahkan mencatat alasannya — jadi tidak ada yang bergantung pada `CURDATE()`
+milik MySQL.
 
 ---
 
