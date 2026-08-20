@@ -701,6 +701,54 @@ sudo apt install -y certbot python3-certbot-nginx
 sudo certbot --nginx -d v20.profilindah.id -d v20.service.profilindah.id
 ```
 
+**Nyalakan HTTP/2 sesudah Certbot.** Baris `listen 443 ssl;` yang ditulis
+Certbot tidak memuat `http2`, sehingga peramban dibatasi enam koneksi serentak
+per domain. Aplikasi ini memuat belasan berkas sekaligus, jadi sisanya
+mengantre — gejalanya permintaan menunggu satu detik lebih di kolom "queue"
+DevTools padahal server menjawab dalam seratusan milidetik, dan itu menyesatkan
+karena terlihat persis seperti basis data yang lambat.
+
+Sunting berkasnya **di `sites-available`**, bukan di `sites-enabled`:
+`sed -i` menulis berkas sementara lalu menimpa namanya, sehingga menjalankannya
+pada symlink justru mengganti symlink itu dengan salinan lepas — dan sejak itu
+suntingan Certbot pada `sites-available` tidak pernah lagi terbaca nginx.
+
+```bash
+sudo sed -i 's/listen \(\[::\]:\)\?443 ssl;/listen \1443 ssl http2;/' /etc/nginx/sites-available/profil-indah
+sudo nginx -t && sudo systemctl reload nginx
+curl -sI --http2 https://v20.profilindah.id | head -1   # harus HTTP/2 200
+```
+
+**Naikkan tingkat kompresi gzip.** `nginx.conf` bawaan Ubuntu sudah menyalakan
+`gzip on`, dan pada mesin ini JavaScript memang sudah terkompresi sejak awal —
+jadi ini penghematan tambahan, bukan perbaikan kerusakan. Yang bawaannya rendah
+adalah tingkatnya: `gzip_comp_level` 1. Menyetelnya ke 6 memperkecil bundel
+utama dari 57.983 menjadi 48.012 byte, sekitar 17%. `gzip_types` ikut ditulis
+eksplisit supaya cakupannya tidak bergantung pada bawaan paket yang bisa
+berbeda antarversi.
+
+Jangan menyalin `gzip on;` sekali lagi ke berkas baru — `conf.d/` dimuat di
+dalam blok `http` yang sama, jadi barisnya menjadi ganda dan `nginx -t` menolak
+dengan `"gzip" directive is duplicate`.
+
+```bash
+printf 'gzip_vary on;\ngzip_proxied any;\ngzip_comp_level 6;\ngzip_min_length 1024;\ngzip_types text/plain text/css text/xml application/json application/javascript application/xml+rss text/javascript image/svg+xml;\n' | sudo tee /etc/nginx/conf.d/gzip.conf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Ukur hasilnya, jangan diterka — muatan awal frontend sekitar 866 KB mentah dan
+sekitar 184 KB setelah dikompresi:
+
+```bash
+n=$(basename $(ls /var/www/profilindah.id/frontend/main-*.js | head -1))
+echo "mentah : $(curl -s -o /dev/null -w '%{size_download}' https://v20.profilindah.id/$n)"
+echo "digzip : $(curl -s -o /dev/null -w '%{size_download}' -H 'Accept-Encoding: gzip' https://v20.profilindah.id/$n)"
+```
+
+> Frontend-nya sendiri tidak perlu dirampingkan: seluruh rutenya sudah lazy,
+> dan dua pustaka terberat — pdfmake (2,4 MB) serta exceljs (0,9 MB) — hanya
+> terunduh ketika penggunanya benar-benar mencetak atau mengekspor.
+
 ---
 
 ## Bagian 9 — Data dan pekerjaan sekali jalan
