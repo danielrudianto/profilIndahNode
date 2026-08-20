@@ -475,6 +475,18 @@ pustaka lain ikut membacanya. Menyuruh systemd memuat berkasnya lewat
 `EnvironmentFile` justru menambah satu pengurai lagi yang aturan tanda
 kutipnya berbeda dari dotenv — aplikasi sudah membacanya sendiri.
 
+**Pastikan pengguna `deploy` benar-benar ada** sebelum menyalakan apa pun —
+kedua unit menjalankan prosesnya sebagai pengguna itu:
+
+```bash
+id deploy || sudo adduser --disabled-password --gecos "" deploy
+```
+
+Bila belum ada, systemd gagal dengan `status=217/USER` dan
+`Failed to determine user credentials` — sepasang pesan yang sama sekali tidak
+menyebut bahwa penggunanya-lah yang tidak ada. Layanannya lalu dicoba ulang
+tiap lima detik tanpa henti.
+
 **Bila langkah-langkah tadi dikerjakan sebagai root, kembalikan dulu
 kepemilikannya.** Layanan ini berjalan sebagai `deploy`; berkas milik root —
 terutama `.env` yang ber-mode 600 — tidak dapat dibacanya, dan layanannya mati
@@ -490,6 +502,14 @@ sudo systemctl enable --now profil-indah-api profil-indah-worker
 sleep 3 && systemctl is-active profil-indah-api profil-indah-worker
 ```
 
+Bila layanannya sempat gagal berkali-kali sebelum sebabnya diperbaiki,
+nolkan dulu penghitungnya — tanpa itu systemd menolak mencoba lagi:
+
+```bash
+sudo systemctl reset-failed profil-indah-api profil-indah-worker
+sudo systemctl restart profil-indah-api profil-indah-worker
+```
+
 Bila salah satunya tidak menyala, bacalah sebabnya:
 
 ```bash
@@ -498,6 +518,7 @@ sudo journalctl -u profil-indah-api -n 30 --no-pager
 
 | Gejala | Sebab |
 |---|---|
+| `status=217/USER`, `Failed to determine user credentials` | pengguna `deploy` belum dibuat |
 | `Unit file ... does not exist` | nama berkas tidak sama dengan yang dipanggil |
 | jurnal kosong, status `inactive (dead)` | unitnya belum pernah benar-benar dinyalakan |
 | `EACCES` atau `permission denied` pada `.env` | berkas masih milik root (perintah `chown` di atas) |
