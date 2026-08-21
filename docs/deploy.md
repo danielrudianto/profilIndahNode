@@ -736,6 +736,27 @@ printf 'gzip_vary on;\ngzip_proxied any;\ngzip_comp_level 6;\ngzip_min_length 10
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
+**Jangan biarkan berkas terjemahan tersimpan lama di peramban.** Nama berkas
+JavaScript dan CSS Angular ber-hash, sehingga versi baru selalu berkas baru.
+`assets/i18n/id.json` dan `en.json` TIDAK — namanya tetap sama setiap rilis,
+dan tanpa header yang tegas peramban menyimpannya dengan aturan tebakannya
+sendiri. Gejalanya khas dan membingungkan: aplikasinya versi baru, tampilannya
+benar, tetapi tulisan pada fitur yang baru ditambahkan muncul sebagai kunci
+mentah seperti `settings__text-size` — karena berkas terjemahan yang dipakai
+masih yang lama.
+
+```bash
+printf 'location ^~ /assets/i18n/ {\n    add_header Cache-Control "no-cache";\n}\n' | sudo tee /etc/nginx/snippets/i18n-cache.conf
+```
+
+Sisipkan `include snippets/i18n-cache.conf;` ke dalam blok server frontend
+(sebelah `try_files`), lalu `sudo nginx -t && sudo systemctl reload nginx`.
+
+`no-cache` bukan berarti tidak disinggahkan — peramban tetap menyimpannya,
+hanya wajib bertanya dulu apakah masih mutakhir. Jawabannya 304 tanpa isi,
+jadi ongkosnya nyaris nol sementara terjemahan tidak pernah lagi tertinggal
+satu rilis.
+
 Ukur hasilnya, jangan diterka — muatan awal frontend sekitar 866 KB mentah dan
 sekitar 184 KB setelah dikompresi:
 
