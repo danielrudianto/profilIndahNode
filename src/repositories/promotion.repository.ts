@@ -116,15 +116,40 @@ export class PromotionRepository {
             ? { end: { lt: kini } }
             : {};
 
-      const syarat = {
-        ...saringanStatus,
-        name: {
-          contains: data.keyword,
-        },
-        description: {
-          contains: data.keyword,
-        },
-      };
+      /*
+        OR, bukan kunci sejajar. Bentuk sebelumnya menuliskan `name` dan
+        `description` sebagai dua kunci berdampingan, dan Prisma menggabungkan
+        kunci sejajar dengan AND — sehingga promosi baru ketemu bila kata
+        kuncinya ada di nama DAN keterangan sekaligus. Nyaris tak pernah
+        terjadi, dan itulah sebabnya pencariannya terasa kehilangan banyak.
+
+        Supplier dan merek ikut dicari karena begitulah orang mengingat
+        promosi: bukan dari judulnya, melainkan "promo dari supplier itu" atau
+        "promo merek itu".
+      */
+      const kata = (data.keyword ?? "").trim();
+      const saringanKata = kata
+        ? {
+            OR: [
+              { name: { contains: kata } },
+              { description: { contains: kata } },
+              { supplier: { name: { contains: kata } } },
+              {
+                promotion_brand: {
+                  some: { product_brand: { name: { contains: kata } } },
+                },
+              },
+            ],
+          }
+        : {};
+
+      /*
+        Digabung lewat AND, BUKAN disebar ke satu objek. Saringan status untuk
+        "active" memakai kunci `OR` miliknya sendiri; menyebarkan keduanya
+        membuat OR yang belakangan menimpa yang duluan tanpa satu pun galat,
+        dan saringan statusnya diam-diam hilang.
+      */
+      const syarat = { AND: [saringanStatus, saringanKata] };
 
       const [result, count] = await this.prisma.$transaction([
         this.prisma.promotion_code.findMany({
