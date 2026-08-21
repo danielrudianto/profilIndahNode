@@ -119,6 +119,10 @@ WAJIB=(
   "index.html"
   "assets/i18n/id.json"
   "assets/i18n/en.json"
+  # Ditulis skrip postbuild. Tanpa berkas ini nomor versi di kaki menu profil
+  # menghilang tanpa gejala lain — dan bersamanya ajakan muat ulang yang
+  # memberi tahu orang bahwa ada rilis baru.
+  "assets/version.json"
 )
 for berkas in "${WAJIB[@]}"; do
   [[ -f "$HASIL/$berkas" ]] || gagal "hasil build tidak memuat $berkas"
