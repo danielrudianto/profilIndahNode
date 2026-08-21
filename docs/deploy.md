@@ -798,13 +798,31 @@ cd /var/www/profilindah.id/backend && ./node_modules/.bin/prisma migrate deploy
 **9.3 — Indeks tuning.** `docs/index-tuning.sql` BAGIAN 1–6, jalankan
 **satu bagian demi satu bagian**, jangan sekaligus.
 
-**9.4 — Bangun indeks pencarian.**
+**9.4 — Bangun data turunan.** Bukan hanya indeks pencarian: daftar sales juga
+dibangun di sini, dan ia mudah terlewat karena tidak ada gejalanya. Melewatkan
+`syncSales` membuat autocomplete nama sales di formulir faktur DIAM — tanpa
+galat, tanpa daftar kosong yang mencurigakan, hanya tidak menyarankan apa pun.
 
 ```bash
 node dist/setup/meilisearch.setup.js   # atau: npx ts-node src/setup/meilisearch.setup.ts
 node dist/startup.js syncProduct
 node dist/startup.js syncProductPackage
+node dist/startup.js syncSales
 ```
+
+> **Daftar sales hidup HANYA di Redis**, tidak punya tabel sendiri.
+>
+> `syncSales` MENGHAPUS daftarnya lebih dulu, lalu menyusun ulang dari nama
+> sales pada faktur yang sudah ada. Karena itu ia perintah PEMASANGAN AWAL,
+> bukan perintah rutin: sales yang ditambahkan lewat aplikasi dan belum pernah
+> menjual apa pun tidak muncul di faktur mana pun, sehingga menjalankannya
+> ulang di server yang sudah dipakai akan melenyapkan mereka. Jalankan lagi
+> hanya bila daftarnya memang perlu dibangun dari nol.
+>
+> Konsekuensi lain dari "hanya di Redis": pastikan persistensinya menyala
+> (bawaan Ubuntu sudah — lihat baris `save` di `/etc/redis/redis.conf`). Tanpa
+> itu, satu kali restart Redis menghapus sales yang belum pernah berjualan
+> tanpa jejak, dan `syncSales` pun tidak bisa memulihkannya.
 
 **9.5 — Pekerjaan sekali jalan** (yang berat sebaiknya saat toko tutup):
 
@@ -878,10 +896,18 @@ pemilik):
 node scripts/smoke-test.js --url https://v20.service.profilindah.id --user AKUN_UJI --pass SANDI
 ```
 
+Daftar sales harus terisi — ini yang paling sering terlewat karena diamnya
+tidak terlihat seperti kesalahan:
+
+```bash
+redis-cli SCARD salesmanList     # harus > 0
+```
+
 Lalu periksa dengan mata di peramban: masuk, buka **Barang** (membuktikan
 Meilisearch hidup), **Laporan → Barang kurang** (membuktikan rekomendasi stok
-terisi), buat satu faktur uji, dan pastikan penyegaran halaman di rute dalam
-seperti `/Stock-check` tidak menghasilkan 404.
+terisi), buat satu faktur uji — sambil memastikan **autocomplete nama sales**
+memberi saran — dan pastikan penyegaran halaman di rute dalam seperti
+`/Stock-check` tidak menghasilkan 404.
 
 ---
 
@@ -970,6 +996,8 @@ dari MySQL lewat langkah 9.4.
    pengguna pertama menekan F5 di halaman dalam (Bagian 8).
 7. Indeks Meilisearch belum dibangun — halaman Barang dan Stok menjawab 500
    padahal basis datanya sehat (Bagian 9.4).
+7b. `syncSales` belum dijalankan — autocomplete nama sales diam tanpa satu pun
+   galat, dan tidak ada yang menyadarinya sampai kasir mengeluh (Bagian 9.4).
 8. `listen 443 ssl;` dari Certbot dibiarkan tanpa `http2` — aplikasi terasa
    berat sejak hari pertama tanpa satu pun galat (Bagian 8).
 9. `innodb_buffer_pool_size` dibiarkan pada bawaan 128 MB, jauh di bawah
