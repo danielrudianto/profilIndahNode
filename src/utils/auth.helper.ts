@@ -119,118 +119,6 @@ export const authMiddlewareRole = (
   });
 };
 
-export const administratorMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  let tokenHeader = req.headers["authorization"]?.toString();
-  if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
-    return res.status(401).json({
-      auth: false,
-      message: "Incorrect token format",
-    });
-  }
-
-  let token = tokenHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({
-      auth: false,
-      message: "No token provided",
-    });
-  }
-
-  verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
-    if (!error) {
-      const decodedData = decoded as any;
-      prisma.user
-        .findFirst({
-          where: {
-            id: decodedData.id,
-            is_active: true,
-          },
-          select: {
-            role: true,
-            id: true,
-            is_active: true,
-          },
-        })
-        .then((user) => {
-          // If user is still active, then proceed
-          if (user == null || !user.is_active) {
-            return res.status(401).send("User not authorized");
-          } else if (user?.role == 5 || user?.role == 7) {
-            next();
-          } else {
-            return res.status(400).send("Non-administrator user");
-          }
-        })
-        .catch(() => {
-          return res.status(400).send("Non-administrator user");
-        });
-    } else {
-      return res.status(400).send("Non-administrator user");
-    }
-  });
-};
-
-export const superadministratorMiddleware = (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  let tokenHeader = req.headers["authorization"]?.toString();
-  if (!tokenHeader || tokenHeader.split(" ")[0] !== "Bearer") {
-    return res.status(401).json({
-      auth: false,
-      message: "Incorrect token format",
-    });
-  }
-
-  let token = tokenHeader.split(" ")[1];
-
-  if (!token) {
-    return res.status(401).json({
-      auth: false,
-      message: "No token provided",
-    });
-  }
-
-  verify(token, process.env.TOKEN_KEY!, (error, decoded) => {
-    if (!error) {
-      const decodedData = decoded as any;
-      prisma.user
-        .findFirst({
-          where: {
-            id: decodedData.id,
-            is_active: true,
-          },
-          select: {
-            role: true,
-            id: true,
-            is_active: true,
-          },
-        })
-        .then((user) => {
-          // If user is still active, then proceed
-          if (user == null || !user.is_active) {
-            return res.status(401).send("User not authorized");
-          } else if (user?.role == 7) {
-            next();
-          } else {
-            return res.status(400).send("Non-administrator user");
-          }
-        })
-        .catch(() => {
-          return res.status(400).send("Non-administrator user");
-        });
-    } else {
-      return res.status(400).send("Non-administrator user");
-    }
-  });
-};
-
 /**
  * Membatasi akses ke daftar role tertentu.
  *
@@ -304,6 +192,27 @@ export const requireRole = (allowedRoles: number[]) => {
     });
   };
 };
+
+/**
+ * Administrator (peran 5) dan pemilik (peran 7).
+ *
+ * DITERUSKAN ke requireRole, bukan menyalin ulang rangkaian verifikasinya.
+ * Salinan sebelumnya sempat menyimpang dan menghasilkan bug yang benar-benar
+ * dilaporkan pengguna: ketika TOKEN KEDALUWARSA, cabang galat verify menjawab
+ * `400 "Non-administrator user"` — menuduh perannya, padahal yang habis hanya
+ * masa berlaku tokennya. Interceptor peramban menyegarkan token HANYA pada
+ * 401, sehingga 400 itu mendarat langsung di layar, dan seorang super
+ * administrator dituduh bukan administrator.
+ *
+ * requireRole menjawab 401 untuk token bermasalah (penyegaran jalan) dan 403
+ * untuk peran yang memang tidak berhak — dua hal berbeda, dua jawaban berbeda.
+ * Ia juga menuliskan req.body.userId dan req.body.role dari hasil verifikasi
+ * token; kedua middleware ini dulu tidak melakukannya sama sekali.
+ */
+export const administratorMiddleware = requireRole([5, 7]);
+
+/** Hanya pemilik (peran 7). Lihat catatan administratorMiddleware. */
+export const superadministratorMiddleware = requireRole([7]);
 
 export const putriForbiddenMiddleware = (
   req: Request,
