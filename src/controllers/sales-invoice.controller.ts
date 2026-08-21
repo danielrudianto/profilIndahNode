@@ -1,4 +1,9 @@
 import { NextFunction, Request, Response } from "express";
+import {
+  KUNCI_CACHE_ARSIP_FAKTUR,
+  UMUR_CACHE_ARSIP,
+} from "../constants/cache.constant";
+import { redisClient } from "../utils/redis.helper";
 import ErrorList from "../constants/error-list.constant";
 import {
   translateDate,
@@ -218,6 +223,17 @@ class SalesInvoiceController {
       /* Penetapan HPP menyusul di worker — lihat case hpp-assign. */
       await queue.add("hpp-assign", {});
 
+      /*
+        Faktur baru mengubah jumlah per bulan, jadi arsip tahunannya tidak
+        boleh menjawab dari singgahan lama — terutama pada faktur PERTAMA di
+        sebuah bulan, yang tanpa ini membuat bulannya belum muncul di pemilih.
+      */
+      try {
+        await redisClient.del(KUNCI_CACHE_ARSIP_FAKTUR);
+      } catch {
+        /* umur singgahan tetap membatasi basinya */
+      }
+
       return res.status(201).send(billResult);
     } catch (error) {
       console.error(`[error]: Error on creating bill ${error}`);
@@ -292,7 +308,33 @@ class SalesInvoiceController {
 
   fetchAnnualArchives = async (req: Request, res: Response) => {
     try {
+      /*
+        Disinggahkan karena kueri di baliknya menyapu seluruh
+        sales_invoice_code tanpa WHERE, sementara pemilih tahun/bulan dibuka
+        setiap kali orang mencari faktur lama. Redis mati BUKAN alasan gagal:
+        kegagalan singgahan diabaikan dan jawabannya dihitung seperti biasa.
+      */
+      try {
+        const tersinggah = await redisClient.get(KUNCI_CACHE_ARSIP_FAKTUR);
+        if (tersinggah) {
+          return res.status(200).send(JSON.parse(tersinggah));
+        }
+      } catch {
+        /* lewati singgahan */
+      }
+
       const result = await this.salesInvoiceRepository.fetchAnnualArchives();
+
+      try {
+        await redisClient.setEx(
+          KUNCI_CACHE_ARSIP_FAKTUR,
+          UMUR_CACHE_ARSIP,
+          JSON.stringify(result)
+        );
+      } catch {
+        /* gagal menulis singgahan — permintaan berikutnya menghitung ulang */
+      }
+
       return res.status(200).send(result);
     } catch (error) {
       console.error(`[error]: Error on fetching archives ${error}`);
