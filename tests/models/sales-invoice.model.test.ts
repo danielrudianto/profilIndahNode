@@ -149,7 +149,7 @@ describe("Penanganan kolom boolean", () => {
 
     expect(m.is_confirm).toBe(true);
     expect(m.isPaid).toBe(false);
-    expect(m.isDelete).toBe(false);
+    expect(m.is_delete).toBe(false);
   });
 
   /**
@@ -179,7 +179,7 @@ describe("Penanganan kolom boolean", () => {
     // Inilah akibatnya: pemeriksaan `if (invoice.isPaid)` bernilai benar.
     expect(Boolean(m.isPaid)).toBe(true);
     expect(Boolean(m.is_confirm)).toBe(true);
-    expect(Boolean(m.isDelete)).toBe(true);
+    expect(Boolean(m.is_delete)).toBe(true);
   });
 
   it("CACAT: angka 1 dan 0 juga tidak diubah menjadi boolean", () => {

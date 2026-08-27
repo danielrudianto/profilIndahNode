@@ -250,7 +250,7 @@ class SalesInvoiceController {
       return res.status(404).send(ErrorList["Not found"]);
     }
 
-    if (salesInvoice.isDelete) {
+    if (salesInvoice.is_delete) {
       return res.status(404).send(ErrorList["Not found"]);
     }
 

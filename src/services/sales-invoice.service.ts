@@ -31,7 +31,7 @@ export class SalesInvoiceService {
         return;
       }
 
-      if (salesInvoice.isDelete) {
+      if (salesInvoice.is_delete) {
         console.warn(`Sales invoice with ID ${id} is marked as deleted.`);
         return;
       }

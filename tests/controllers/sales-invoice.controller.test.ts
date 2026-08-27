@@ -139,7 +139,7 @@ function fakturTersimpan(ubah: Record<string, unknown> = {}) {
     delivery: 15000,
     service: 10000,
     discount: 5000,
-    isDelete: false,
+    is_delete: false,
     sales_invoice: [
       {
         id: 501,
@@ -639,7 +639,7 @@ describe("DELETE /:id — membatalkan faktur", () => {
   it("membalas 404 bila faktur sudah dihapus", async () => {
     const r = repositoriTiruan();
     r.salesInvoice.fetchByID.mockResolvedValue(
-      fakturTersimpan({ isDelete: true })
+      fakturTersimpan({ is_delete: true })
     );
 
     const res = await request(app(r)).delete("/77");
@@ -844,7 +844,7 @@ describe("GET /:id, GET /archives, POST /archives, POST /sales-return", () => {
   it("fetchByID tetap membalas 200 untuk faktur yang sudah dihapus", async () => {
     const r = repositoriTiruan();
     r.salesInvoice.fetchByID.mockResolvedValue(
-      fakturTersimpan({ isDelete: true })
+      fakturTersimpan({ is_delete: true })
     );
 
     expect((await request(app(r)).get("/77")).status).toBe(200);

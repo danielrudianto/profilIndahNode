@@ -24,7 +24,18 @@ export class SalesInvoiceModel {
   confirmedBy?: number | null;
   confirmedAt?: Date | null;
   isPaid: boolean;
-  isDelete: boolean;
+  /*
+    is_delete, BUKAN isDelete.
+
+    Model ini satu-satunya di antara saudaranya — good-receipt, sales-return,
+    adjustment-case — yang sempat memakai camelCase untuk ruas ini, padahal di
+    kelas yang SAMA ruas tetangganya bernama is_confirm. Selisih satu huruf itu
+    menghasilkan bug yang sulit dilacak: dialog lihat-faktur membaca
+    data.is_delete, mendapat undefined, lalu menggambar faktur yang sudah
+    dihapus seolah masih hidup — lengkap dengan tombol Hapus yang kemudian
+    dijawab server dengan "tidak ditemukan".
+  */
+  is_delete: boolean;
   uuid: string;
   payment_term: number | null = null;
 
@@ -55,7 +66,7 @@ export class SalesInvoiceModel {
     this.uuid = data.uuid;
     this.isPaid = data.isPaid;
     this.sales = data.sales;
-    this.isDelete = data.isDelete;
+    this.is_delete = data.isDelete;
     this.total = data.total;
     this.sales_invoice = data.sales_invoice;
     this.sales_invoice_payment = data.sales_invoice_payment;

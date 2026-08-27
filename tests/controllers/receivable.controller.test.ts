@@ -81,7 +81,7 @@ function app(recv: RecvRepo, inv: InvRepo) {
 function faktur(ubah: Record<string, unknown> = {}) {
   return {
     id: 5,
-    isDelete: false,
+    is_delete: false,
     delivery: 15000,
     service: 20000,
     discount: 5000,
@@ -226,7 +226,7 @@ describe("POST /payment — penjagaan faktur", () => {
   it("membalas 404 bila faktur sudah dihapus", async () => {
     const recv = receivableRepositoryTiruan();
     const inv = salesInvoiceRepositoryTiruan();
-    inv.fetchByID.mockResolvedValue(faktur({ isDelete: true }));
+    inv.fetchByID.mockResolvedValue(faktur({ is_delete: true }));
 
     const res = await request(app(recv, inv))
       .post("/payment")
