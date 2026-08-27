@@ -1047,6 +1047,26 @@ Dua jebakan saat mengukur:
 HTTP/2 (Bagian 8). Bagian 10b memuat perintah pemeriksaannya sekaligus angka
 acuannya.
 
+**2b. Bila belum jelas endpoint mana yang lambat**, nyalakan pencatatan waktu
+di nginx. Format bawaannya TIDAK mencatat lama permintaan, sehingga log yang
+ada tidak bisa menjawab "halaman mana yang berat" — hanya "halaman mana yang
+sering dibuka".
+
+```bash
+printf 'log_format waktu \x27$remote_addr "$request" $status ${body_bytes_sent}b ${request_time}s\x27;\naccess_log /var/log/nginx/waktu.log waktu;\n' | sudo tee /etc/nginx/conf.d/log-waktu.conf
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+Setelah aplikasinya dipakai beberapa jam, urutkan yang paling lama:
+
+```bash
+awk '{n=$NF; sub(/s$/,"",n); print n, $2, $3}' /var/log/nginx/waktu.log \
+  | sort -rn | head -20
+```
+
+Matikan lagi bila sudah tidak diperlukan — berkasnya tumbuh mengikuti lalu
+lintas, dan pertanyaannya biasanya cukup dijawab sekali.
+
 **4. Kalau yang berat justru sisi peramban**, curigai pustaka berat yang
 diimpor statis di komponen. `pdfmake` (2,4 MB) dan `exceljs` (0,9 MB) pernah
 ikut terunduh setiap kali halaman Laporan dibuka, walau penggunanya tidak
