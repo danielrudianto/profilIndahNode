@@ -8,6 +8,7 @@ import { ProductRepository } from "../repositories/product.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import { AdjustmentCaseRepository } from "../repositories/adjustment-case.repository";
 import { CompanyRepository } from "../repositories/company.repository";
+import { ExpenseRepository } from "../repositories/expense.repository";
 import ErrorList from "../constants/error-list.constant";
 import { rentangBulan } from "../utils/date.helper";
 
@@ -25,6 +26,7 @@ export class StockReportController {
   private goodReceiptRepository: GoodReceiptRepository;
   private adjustmentCaseRepository: AdjustmentCaseRepository;
   private companyRepository: CompanyRepository;
+  private expenseRepository: ExpenseRepository;
 
   constructor(
     stockInRepository: StockInRepository,
@@ -33,7 +35,8 @@ export class StockReportController {
     stockOutRepository: StockOutRepository,
     goodReceiptRepository: GoodReceiptRepository,
     adjustmentCaseRepository: AdjustmentCaseRepository,
-    companyRepository: CompanyRepository
+    companyRepository: CompanyRepository,
+    expenseRepository: ExpenseRepository
   ) {
     this.stockInRepository = stockInRepository;
     this.productRepository = productRepository;
@@ -42,6 +45,7 @@ export class StockReportController {
     this.goodReceiptRepository = goodReceiptRepository;
     this.adjustmentCaseRepository = adjustmentCaseRepository;
     this.companyRepository = companyRepository;
+    this.expenseRepository = expenseRepository;
   }
 
   /*
@@ -107,23 +111,39 @@ export class StockReportController {
       }
 
       const periode = rentangBulan(year, month);
-      const [keluar, masukGr, masukAdj] = await Promise.all([
-        this.stockOutRepository.fetchCompanyOutputSummary({
-          companyID: companyID,
-          mulai: periode.mulai,
-          sebelum: periode.sebelum,
-        }),
-        this.goodReceiptRepository.fetchCompanySummary({
-          companyID: companyID,
-          mulai: periode.mulai,
-          sebelum: periode.sebelum,
-        }),
-        this.adjustmentCaseRepository.fetchCompanySummary({
-          companyID: companyID,
-          mulai: periode.mulai,
-          sebelum: periode.sebelum,
-        }),
-      ]);
+      const [keluar, masukGr, masukAdj, omzet, pembelian, beban] =
+        await Promise.all([
+          this.stockOutRepository.fetchCompanyOutputSummary({
+            companyID: companyID,
+            mulai: periode.mulai,
+            sebelum: periode.sebelum,
+          }),
+          this.goodReceiptRepository.fetchCompanySummary({
+            companyID: companyID,
+            mulai: periode.mulai,
+            sebelum: periode.sebelum,
+          }),
+          this.adjustmentCaseRepository.fetchCompanySummary({
+            companyID: companyID,
+            mulai: periode.mulai,
+            sebelum: periode.sebelum,
+          }),
+          this.stockOutRepository.fetchCompanyRevenue({
+            companyID: companyID,
+            mulai: periode.mulai,
+            sebelum: periode.sebelum,
+          }),
+          this.goodReceiptRepository.fetchCompanyPurchaseValue({
+            companyID: companyID,
+            mulai: periode.mulai,
+            sebelum: periode.sebelum,
+          }),
+          this.expenseRepository.fetchCompanyExpenses({
+            companyID: companyID,
+            mulai: periode.mulai,
+            sebelum: periode.sebelum,
+          }),
+        ]);
 
       /* Masuk = penerimaan + penyesuaian temuan, dilebur per produk. */
       const masukPerProduk = new Map<string, (typeof masukGr)[number]>();
@@ -149,6 +169,24 @@ export class StockReportController {
           outputDocuments: keluar.reduce((a, b) => a + b.documents, 0),
           inputQuantity: masuk.reduce((a, b) => a + b.quantity, 0),
           inputDocuments: masuk.reduce((a, b) => a + b.documents, 0),
+        },
+        /*
+          Sisi uang dari bulan yang sama. Laba kotor dihitung di sini, bukan
+          di layar: omzet dan HPP berasal dari satu kueri, dan menyerahkan
+          pengurangannya ke frontend membuka peluang dua tempat menghitungnya
+          dengan cara yang sedikit berbeda.
+        */
+        finance: {
+          sales: omzet.sales,
+          hpp: omzet.hpp,
+          grossProfit: omzet.sales - omzet.hpp,
+          purchaseValue: pembelian.value,
+          purchaseDocuments: pembelian.documents,
+          expenses: beban.map((x) => ({
+            name: x.name,
+            value: x.value,
+          })),
+          expenseTotal: beban.reduce((a, b) => a + b.value, 0),
         },
       });
     } catch (error) {

@@ -257,6 +257,38 @@ export class GoodReceiptRepository {
     per produk dalam SATUAN DASAR (kuantitas dikali konversi), supaya
     sejajar dengan sisi keluar yang memang tercatat satuan dasar.
   */
+  /*
+    Nilai uang penerimaan barang perusahaan itu sebulan — pasangan uang dari
+    fetchCompanySummary yang menghitung kuantitas.
+
+    Diskon per baris ikut dikurangkan: yang dibayar ke pemasok adalah nilai
+    setelah potongan, dan angka sebelum potongan bukan pembelian siapa pun.
+  */
+  async fetchCompanyPurchaseValue(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }): Promise<{ value: number; documents: number }> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        COALESCE(SUM(good_receipt.quantity * (good_receipt.price - good_receipt.discount)), 0) AS value,
+        COUNT(DISTINCT good_receipt_code.id) AS documents
+      FROM good_receipt
+      JOIN good_receipt_code ON good_receipt.good_receipt_code_id = good_receipt_code.id
+      WHERE good_receipt_code.company_id = ${data.companyID}
+      AND good_receipt_code.is_delete = 0
+      AND good_receipt.is_delete = 0
+      AND good_receipt_code.date >= ${data.mulai}
+      AND good_receipt_code.date < ${data.sebelum}
+    `;
+
+    const baris = result[0] ?? {};
+    return {
+      value: Number(baris.value ?? 0),
+      documents: Number(baris.documents ?? 0),
+    };
+  }
+
   async fetchCompanySummary(data: {
     companyID: number;
     mulai: Date;

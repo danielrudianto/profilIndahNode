@@ -579,6 +579,36 @@ export class StockOutRepository {
     });
   }
 
+  /*
+    Nilai uang dari keluaran yang sama — omzet dan HPP perusahaan itu sebulan.
+    Atribusinya lewat pemilik lapisan, persis fetchCompanyOutputSummary di
+    atas; kalau memakai definisi lain, dua angka pada satu layar akan
+    menghitung penjualan yang berbeda.
+
+    Penyesuaian stok ikut terbawa karena ia juga menulis stock_out, tetapi
+    harganya nol — jadi ia menambah HPP tanpa menambah omzet, dan itu memang
+    yang terjadi: barangnya keluar tanpa ada yang membelinya.
+  */
+  async fetchCompanyRevenue(data: {
+    companyID: number;
+    mulai: Date;
+    sebelum: Date;
+  }): Promise<{ sales: number; hpp: number }> {
+    const result = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        COALESCE(SUM(stock_out.price * stock_out.quantity), 0) AS sales,
+        COALESCE(SUM(stock_in.price * stock_out.quantity), 0) AS hpp
+      FROM stock_out
+      JOIN stock_in ON stock_out.stock_in_id = stock_in.id
+      WHERE stock_in.company_id = ${data.companyID}
+      AND stock_out.date >= ${data.mulai}
+      AND stock_out.date < ${data.sebelum}
+    `;
+
+    const baris = result[0] ?? {};
+    return { sales: Number(baris.sales ?? 0), hpp: Number(baris.hpp ?? 0) };
+  }
+
   /** Baris rinci keluaran — bahan unduhan Excel. */
   async fetchCompanyOutputDetail(data: {
     companyID: number;

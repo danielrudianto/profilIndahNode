@@ -48,12 +48,16 @@ function stockOutTiruan() {
   return {
     fetchCompanyOutputSummary: jest.fn(),
     fetchCompanyOutputDetail: jest.fn(),
+    fetchCompanyRevenue: jest.fn().mockResolvedValue({ sales: 0, hpp: 0 }),
   };
 }
 function penerimaanTiruan() {
   return {
     fetchCompanySummary: jest.fn(),
     fetchCompanyDetail: jest.fn(),
+    fetchCompanyPurchaseValue: jest
+      .fn()
+      .mockResolvedValue({ value: 0, documents: 0 }),
   };
 }
 function penyesuaianTiruan() {
@@ -65,6 +69,9 @@ function penyesuaianTiruan() {
 function perusahaanTiruan() {
   return { fetchByID: jest.fn() };
 }
+function bebanTiruan() {
+  return { fetchCompanyExpenses: jest.fn().mockResolvedValue([]) };
+}
 
 type Semua = {
   stockIn: ReturnType<typeof stockInTiruan>;
@@ -74,6 +81,7 @@ type Semua = {
   penerimaan: ReturnType<typeof penerimaanTiruan>;
   penyesuaian: ReturnType<typeof penyesuaianTiruan>;
   perusahaan: ReturnType<typeof perusahaanTiruan>;
+  beban: ReturnType<typeof bebanTiruan>;
 };
 
 function repositoryTiruan(): Semua {
@@ -85,6 +93,7 @@ function repositoryTiruan(): Semua {
     penerimaan: penerimaanTiruan(),
     penyesuaian: penyesuaianTiruan(),
     perusahaan: perusahaanTiruan(),
+    beban: bebanTiruan(),
   };
 }
 
@@ -96,7 +105,8 @@ function buatController(r: Semua) {
     r.stockOut as never,
     r.penerimaan as never,
     r.penyesuaian as never,
-    r.perusahaan as never
+    r.perusahaan as never,
+    r.beban as never
   );
 }
 
