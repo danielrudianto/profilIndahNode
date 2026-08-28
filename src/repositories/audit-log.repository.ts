@@ -59,7 +59,13 @@ export class AuditLogRepository {
         take: filter.pageSize,
         include: {
           user: {
-            select: { id: true, name: true },
+            select: {
+              id: true,
+              name: true,
+              /* Avatar ikut supaya halaman aktivitas menampilkan wajahnya,
+                 bukan hanya lingkaran inisial. */
+              user_avatar: true,
+            },
           },
         },
       }),

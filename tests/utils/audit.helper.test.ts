@@ -156,21 +156,38 @@ describe("Identitas pemanggil", () => {
   it("mengambil pengguna dari konteks permintaan", async () => {
     const { tercatat, jalankan } = klienTiruan();
 
-    await jalankanDenganKonteks({ userId: null }, async () => {
-      tetapkanPengguna(42);
-      await jalankan(params(), { id: 1 });
-    });
+    await jalankanDenganKonteks(
+      { userId: null, ip: "203.0.113.7" },
+      async () => {
+        tetapkanPengguna(42);
+        await jalankan(params(), { id: 1 });
+      },
+    );
 
     expect(tercatat[0].user_id).toBe(42);
   });
 
-  it("user_id null di luar permintaan HTTP", async () => {
+  it("mencatat alamat asal permintaan", async () => {
+    const { tercatat, jalankan } = klienTiruan();
+
+    await jalankanDenganKonteks(
+      { userId: null, ip: "203.0.113.7" },
+      async () => {
+        await jalankan(params(), { id: 1 });
+      },
+    );
+
+    expect(tercatat[0].ip).toBe("203.0.113.7");
+  });
+
+  it("user_id dan ip null di luar permintaan HTTP", async () => {
     const { tercatat, jalankan } = klienTiruan();
     // Perintah CLI dan pekerjaan worker menulis tanpa permintaan; jejaknya
-    // tetap layak dicatat, hanya tanpa pemilik.
+    // tetap layak dicatat, hanya tanpa pemilik dan tanpa alamat.
     await jalankan(params(), { id: 1 });
 
     expect(tercatat[0].user_id).toBeNull();
+    expect(tercatat[0].ip).toBeNull();
   });
 });
 

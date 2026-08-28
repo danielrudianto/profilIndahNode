@@ -4,7 +4,7 @@ import {
   AUDITED_MODELS,
   AUDIT_REDACTED_FIELDS,
 } from "../constants/audit.constant";
-import { penggunaSaatIni } from "./request-context.helper";
+import { ipSaatIni, penggunaSaatIni } from "./request-context.helper";
 
 /**
  * Pencatat jejak audit, dipasang sebagai client extension Prisma.
@@ -122,6 +122,7 @@ export function buatHookAudit(dasar: Pick<PrismaClient, "audit_log">) {
         entity_id: ambilId(isian, hasil),
         action: aksi,
         user_id: penggunaSaatIni(),
+        ip: ipSaatIni(),
         changes: (susunPerubahan(isian?.data) ?? undefined) as
           Prisma.InputJsonValue | undefined,
         note: null,

@@ -15,6 +15,8 @@ import { AsyncLocalStorage } from "async_hooks";
 
 export interface KonteksPermintaan {
   userId: number | null;
+  /* Alamat asal permintaan; null di luar HTTP (CLI, worker). */
+  ip: string | null;
 }
 
 const penyimpanan = new AsyncLocalStorage<KonteksPermintaan>();
@@ -36,6 +38,16 @@ export function jalankanDenganKonteks<T>(
  */
 export function penggunaSaatIni(): number | null {
   return penyimpanan.getStore()?.userId ?? null;
+}
+
+/**
+ * Alamat asal permintaan saat ini, atau null.
+ *
+ * Dititipkan lewat konteks yang sama dengan userId, dan dengan alasan yang
+ * sama: pencatat jejak bekerja di lapisan Prisma, tempat `req` tidak ada.
+ */
+export function ipSaatIni(): string | null {
+  return penyimpanan.getStore()?.ip ?? null;
 }
 
 /**

@@ -7,7 +7,23 @@ export interface IAuditLog {
   userName: string | null;
   changes: Record<string, unknown> | null;
   note: string | null;
+  /** Alamat asal permintaan; null untuk jejak dari CLI atau worker. */
+  ip: string | null;
+  /** Avatar pemiliknya, bila ia pernah mengaturnya. */
+  userAvatar: IAuditLogAvatar | null;
   createdAt: Date;
+}
+
+/** Bentuk avatar yang dibaca halaman aktivitas; cerminan tabel user_avatar. */
+export interface IAuditLogAvatar {
+  top: number | null;
+  accessories: number | null;
+  clothes: number | null;
+  eyes: number | null;
+  eyebrows: number | null;
+  mouth: number | null;
+  color: string;
+  circle: boolean;
 }
 
 export interface IAuditLogFilter {

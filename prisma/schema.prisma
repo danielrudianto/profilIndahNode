@@ -900,6 +900,8 @@ model audit_log {
   user_id   Int?
   changes   Json?
   note      String?  @db.VarChar(255)
+  // 45 karakter: cukup untuk IPv6 penuh, termasuk bentuk ::ffff:1.2.3.4.
+  ip        String?  @db.VarChar(45)
   createdAt DateTime @default(now()) @map("created_at") @db.DateTime(0)
 
   user user? @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "audit_log_ibfk_1")

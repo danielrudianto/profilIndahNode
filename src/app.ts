@@ -143,8 +143,19 @@ async function main() {
     Permintaan tanpa token — login, misalnya — tetap berjalan dengan wadah yang
     userId-nya null, dan jejaknya tercatat tanpa pemilik.
   */
+  /*
+    IP ASLI, bukan alamat nginx.
+
+    Seluruh permintaan datang lewat reverse proxy di mesin yang sama, jadi
+    tanpa ini req.ip selalu 127.0.0.1 dan jejak auditnya tidak berguna.
+    Angka 1 berarti percaya SATU proxy saja — yang terdekat. Menyetel `true`
+    berarti mempercayai seluruh rantai X-Forwarded-For, dan rantai itu bisa
+    dikarang siapa pun yang memanggil API langsung.
+  */
+  app.set("trust proxy", 1);
+
   app.use((req, _res, next) => {
-    jalankanDenganKonteks({ userId: null }, () => {
+    jalankanDenganKonteks({ userId: null, ip: req.ip ?? null }, () => {
       next();
     });
   });

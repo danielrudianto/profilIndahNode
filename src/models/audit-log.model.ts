@@ -1,4 +1,7 @@
-import { IAuditLog } from "../interfaces/audit-log.interface";
+import {
+  IAuditLog,
+  IAuditLogAvatar,
+} from "../interfaces/audit-log.interface";
 
 export class AuditLogModel {
   id?: number;
@@ -9,6 +12,8 @@ export class AuditLogModel {
   userName: string | null;
   changes: Record<string, unknown> | null;
   note: string | null;
+  ip: string | null;
+  userAvatar: IAuditLogAvatar | null;
   createdAt: Date;
 
   constructor(data: IAuditLog) {
@@ -20,6 +25,8 @@ export class AuditLogModel {
     this.userName = data.userName;
     this.changes = data.changes;
     this.note = data.note;
+    this.ip = data.ip;
+    this.userAvatar = data.userAvatar;
     this.createdAt = data.createdAt;
   }
 
@@ -36,8 +43,13 @@ export class AuditLogModel {
     user_id: number | null;
     changes: unknown;
     note: string | null;
+    ip: string | null;
     createdAt: Date;
-    user?: { id: number; name: string } | null;
+    user?: {
+      id: number;
+      name: string;
+      user_avatar?: IAuditLogAvatar | null;
+    } | null;
   }): AuditLogModel {
     return new AuditLogModel({
       id: baris.id,
@@ -48,6 +60,8 @@ export class AuditLogModel {
       userName: baris.user?.name ?? null,
       changes: (baris.changes as Record<string, unknown> | null) ?? null,
       note: baris.note,
+      ip: baris.ip,
+      userAvatar: baris.user?.user_avatar ?? null,
       createdAt: baris.createdAt,
     });
   }
