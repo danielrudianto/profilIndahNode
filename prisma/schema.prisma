@@ -658,6 +658,20 @@ model sales_return_code {
   payment_method                          payment_method? @relation(fields: [payment_method_id], references: [id])
   sales_invoice_code_id                   Int
 
+  /// Berapa dari nilai retur ini yang MEMOTONG tagihan fakturnya.
+  ///
+  /// Disimpan sebagai angka, bukan disimpulkan dari sebuah penanda perlakuan:
+  /// satu retur bisa memotong tagihan SEBAGIAN dan sisanya menjadi kelebihan
+  /// bayar, dan penanda tunggal tidak bisa menyatakan itu tanpa berbohong.
+  ///
+  /// Nol pada seluruh baris lama — dan itu jujur: retur zaman dulu
+  /// mengeluarkan uang saat itu juga tanpa pernah menyentuh piutang.
+  receivable_value  Decimal @default(0.0000) @db.Decimal(15, 4)
+  /// Sisanya, yang menjadi kelebihan bayar untuk dijadwalkan pengembaliannya.
+  overpayment_value Decimal @default(0.0000) @db.Decimal(15, 4)
+
+  overpayment overpayment[]
+
   sales_invoice_code sales_invoice_code @relation(fields: [sales_invoice_code_id], references: [id])
   stock_card         stock_card[]
 
@@ -881,6 +895,8 @@ model overpayment {
   date                  DateTime
   payment_method_id     Int?
   sales_deposit_code_id Int?
+  /// Retur penjualan yang melahirkan kelebihan bayar ini, bila memang dari sana.
+  sales_return_code_id  Int?
   return_payment_method String
   return_payment_number String?
   return_payment_date   DateTime
@@ -894,6 +910,7 @@ model overpayment {
   payment_method                    payment_method?     @relation(fields: [payment_method_id], references: [id])
   customer                          customer?           @relation(fields: [customer_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk1")
   sales_deposit_code                sales_deposit_code? @relation(fields: [sales_deposit_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk3")
+  sales_return_code                 sales_return_code?  @relation(fields: [sales_return_code_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk5")
   user_overpayment_created_byTouser user                @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "overpayment_code_ibfk4")
 }
 

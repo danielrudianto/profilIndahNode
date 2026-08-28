@@ -77,7 +77,7 @@ export class ReceivableRepository {
       SELECT sub.id, sub.name, SUM(sub.value) AS value, SUM(sub.payment) AS payment
       FROM (
         SELECT
-          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount) AS value,
+          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
           COALESCE(sip.value, 0) AS payment,
           customer.id,
           customer.name
@@ -151,10 +151,71 @@ export class ReceivableRepository {
       ) AS bayar ON bayar.sales_invoice_code_id = sic.id
       SET sic.is_paid = true
       WHERE sic.is_paid = false AND sic.is_delete = false
-      AND (nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE(bayar.value, 0))
+      AND (nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) - COALESCE(bayar.value, 0))
         <= ${PAYMENT_ROUNDING_TOLERANCE}`;
 
     return hasil;
+  }
+
+  /**
+   * Sisa tagihan SATU faktur, berikut bahan penyusunnya.
+   *
+   * Dipakai layar retur untuk memberi tahu petugas bahwa fakturnya masih
+   * berutang — dan dipakai server untuk menghitung sendiri berapa dari nilai
+   * retur yang boleh memotong tagihan. Angka itu TIDAK boleh datang dari
+   * peramban: yang dikirim klien menentukan berapa utang seseorang berkurang.
+   *
+   * Retur yang sudah pernah memotong ikut dikurangkan, kalau tidak retur
+   * kedua atas faktur yang sama akan memotong tagihan yang sudah tidak ada.
+   */
+  async fetchInvoiceOutstanding(invoiceID: number): Promise<{
+    total: number;
+    paid: number;
+    returned: number;
+    outstanding: number;
+  }> {
+    const hasil = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        COALESCE((
+          SELECT SUM(si.quantity * (si.price - si.discount))
+          FROM sales_invoice si
+          WHERE si.sales_invoice_code_id = sic.id
+        ), 0)
+          -- Nilai KOTOR dokumen. Retur dikurangkan terpisah di bawah pada
+          -- kolom returned; menariknya ke sini membuatnya terhitung dua kali.
+          + sic.delivery + sic.service + sic.admin_fee - sic.discount AS total,
+        COALESCE((
+          SELECT SUM(sip.value)
+          FROM sales_invoice_payment sip
+          WHERE sip.sales_invoice_code_id = sic.id
+        ), 0) AS paid,
+        COALESCE((
+          SELECT SUM(src.receivable_value)
+          FROM sales_return_code src
+          WHERE src.sales_invoice_code_id = sic.id
+            AND src.is_confirm = 1 AND src.is_delete = 0
+        ), 0) AS returned
+      FROM sales_invoice_code sic
+      WHERE sic.id = ${invoiceID} AND sic.is_delete = 0
+    `;
+
+    const b = hasil[0];
+    if (!b) {
+      return { total: 0, paid: 0, returned: 0, outstanding: 0 };
+    }
+
+    const total = Number(b.total);
+    const paid = Number(b.paid);
+    const returned = Number(b.returned);
+
+    return {
+      total,
+      paid,
+      returned,
+      /* Tidak pernah negatif: kelebihan bayar punya jalurnya sendiri, dan
+         sisa tagihan minus di sini akan menular ke pembagian retur. */
+      outstanding: Math.max(total - paid - returned, 0),
+    };
   }
 
   async fetchByCustomerID(data: {
@@ -185,7 +246,7 @@ export class ReceivableRepository {
 
     const totalBaris = await this.prisma.$queryRaw<any[]>`
       SELECT COALESCE(SUM(
-        nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE(bayar.value, 0)
+        nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) - COALESCE(bayar.value, 0)
       ), 0) AS total
       FROM sales_invoice_code sic
       JOIN (

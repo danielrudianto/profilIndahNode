@@ -14,6 +14,7 @@ export class OverpaymentRepository {
       data: {
         date: data.date,
         sales_deposit_code_id: data.sales_deposit_code_id,
+        sales_return_code_id: data.sales_return_code_id ?? null,
         customer_id: data.customer_id,
         return_payment_date: data.return_payment_date,
         return_payment_method: data.return_payment_method,
@@ -90,6 +91,7 @@ export class OverpaymentRepository {
         data: {
           date: x.date,
           sales_deposit_code_id: x.sales_deposit_code_id,
+          sales_return_code_id: x.sales_return_code_id ?? null,
           customer_id: x.customer_id,
           return_payment_date: x.return_payment_date,
           return_payment_method: x.return_payment_method,

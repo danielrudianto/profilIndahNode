@@ -11,6 +11,29 @@ export class SalesReturnRepository {
     this.prisma = prisma;
   }
 
+  /**
+   * Menyimpan pembagian nilai retur: berapa memotong tagihan, berapa jadi
+   * kelebihan bayar.
+   *
+   * Ditulis SESUDAH returnya lahir, sebab nilainya dihitung dari baris faktur
+   * yang baru bisa dibaca setelah barisnya tersimpan. Dua angka ini yang
+   * dibaca kueri piutang, jadi keliru di sini berarti keliru pada sisa
+   * tagihan pelanggan.
+   */
+  simpanPembagian = async (
+    id: number,
+    receivableValue: number,
+    overpaymentValue: number
+  ) => {
+    return this.prisma.sales_return_code.update({
+      where: { id: id },
+      data: {
+        receivable_value: receivableValue,
+        overpayment_value: overpaymentValue,
+      },
+    });
+  };
+
   create = async (data: ISalesReturnCode) => {
     const result = await this.prisma.sales_return_code.create({
       data: {

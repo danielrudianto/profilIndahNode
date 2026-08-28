@@ -28,6 +28,28 @@ class ReceivableController {
     }
   };
 
+  /**
+   * Sisa tagihan satu faktur.
+   *
+   * Dipakai layar retur untuk memberi tahu petugas bahwa faktur yang sedang
+   * diretur MASIH berutang — supaya pilihan "potong tagihan" diambil dengan
+   * sadar, bukan ditebak.
+   *
+   * Angka ini tidak menggantikan perhitungan server saat menyimpan retur:
+   * yang di sini untuk dibaca manusia, pembagian sebenarnya tetap dihitung
+   * ulang di controller retur agar tidak bisa dikarang dari peramban.
+   */
+  fetchInvoiceOutstanding = async (req: Request, res: Response) => {
+    try {
+      const id = Number(req.params.id);
+      const hasil = await this.receivableRepository.fetchInvoiceOutstanding(id);
+      return res.status(200).send(hasil);
+    } catch (error) {
+      console.error(`[error]: Error on fetching invoice outstanding ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetchByCustomerID = async (req: Request, res: Response) => {
     const customerID = Number(req.params.id);
     const page = translatePage(req.query.page);

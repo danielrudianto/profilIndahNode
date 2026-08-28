@@ -9,6 +9,7 @@ import {
   createReceivablePaymentSchema,
   paramCustomerReceivableSchema,
 } from "../schemas/receivable.schema";
+import { paramId } from "../schemas/common.schema";
 
 const router = Router();
 
@@ -23,6 +24,13 @@ router.get("/", receivableController.fetch);
   GET /history/:id dihapus. Handler-nya hanya berisi kode yang dikomentari
   sejak model lama, jadi permintaan tidak pernah dibalas.
 */
+
+/* Sisa tagihan satu faktur — dibaca layar retur sebelum memilih perlakuan. */
+router.get(
+  "/invoice/:id",
+  validate(paramId, "params"),
+  receivableController.fetchInvoiceOutstanding
+);
 
 router.get(
   "/customer/:id",

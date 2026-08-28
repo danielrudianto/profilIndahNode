@@ -8,6 +8,8 @@ export interface IOverpaymentCode {
   customer_id: number;
   date: Date;
   sales_deposit_code_id: number | null;
+  /** Retur penjualan yang melahirkannya, bila memang dari sana. */
+  sales_return_code_id?: number | null;
   payment_method_id: number | null;
   return_payment_method: string;
   return_payment_number: string | null;

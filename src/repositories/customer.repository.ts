@@ -460,7 +460,7 @@ export class CustomerRepository {
       SELECT SUM(sub.value) AS value, SUM(sub.payment) AS payment
       FROM (
         SELECT
-          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount) AS value,
+          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
           COALESCE(sip.value, 0) AS payment
         FROM sales_invoice_code
         JOIN (
@@ -512,7 +512,7 @@ export class CustomerRepository {
       this.prisma.$queryRaw<any[]>`
         SELECT sic.id, sic.name, sic.date, sic.is_paid,
           SUM(si.quantity * (si.price - si.discount))
-            + sic.delivery + sic.service + sic.admin_fee - sic.discount AS total
+            + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) AS total
         FROM sales_invoice_code sic
         JOIN sales_invoice si ON si.sales_invoice_code_id = sic.id
         WHERE sic.customer_id = ${data.customerID} AND sic.is_delete = false

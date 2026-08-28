@@ -13,6 +13,9 @@ import { SalesReturnRepository } from "../repositories/sales-return.repository";
 import { StockOutRepository } from "../repositories/stock-out.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
+import { ReceivableRepository } from "../repositories/receivable.repository";
+import { OverpaymentRepository } from "../repositories/overpayment.repository";
+import { redisClient } from "../utils/redis.helper";
 
 const router = Router();
 
@@ -21,7 +24,9 @@ const salesReturnController = new SalesReturnController(
   new SalesInvoiceRepository(prisma),
   new ProductStockRepository(prisma),
   new StockOutRepository(prisma),
-  new StockCardRepository(prisma)
+  new StockCardRepository(prisma),
+  new ReceivableRepository(redisClient, prisma),
+  new OverpaymentRepository(prisma)
 );
 
 router.get("/archives", salesReturnController.fetchAnnualArchives);

@@ -7,6 +7,8 @@ import { StockOutRepository } from "../repositories/stock-out.repository";
 import { StockCardRepository } from "../repositories/stock-card.repository";
 import { queue } from "../utils/queue.helper";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
+import { ReceivableRepository } from "../repositories/receivable.repository";
+import { OverpaymentRepository } from "../repositories/overpayment.repository";
 
 class SalesReturnController {
   salesReturnRepository: SalesReturnRepository;
@@ -14,19 +16,25 @@ class SalesReturnController {
   productStockRepository: ProductStockRepository;
   stockOutRepository: StockOutRepository;
   stockCardRepository: StockCardRepository;
+  receivableRepository: ReceivableRepository;
+  overpaymentRepository: OverpaymentRepository;
 
   constructor(
     salesReturnRepository: SalesReturnRepository,
     salesInvoiceRepository: SalesInvoiceRepository,
     productStockRepository: ProductStockRepository,
     stockOutRepository: StockOutRepository,
-    stockCardRepository: StockCardRepository
+    stockCardRepository: StockCardRepository,
+    receivableRepository: ReceivableRepository,
+    overpaymentRepository: OverpaymentRepository
   ) {
     this.salesReturnRepository = salesReturnRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.productStockRepository = productStockRepository;
     this.stockOutRepository = stockOutRepository;
     this.stockCardRepository = stockCardRepository;
+    this.receivableRepository = receivableRepository;
+    this.overpaymentRepository = overpaymentRepository;
   }
 
   create = async (req: Request, res: Response) => {
@@ -39,6 +47,21 @@ class SalesReturnController {
       const sales_return = req.body.sales_return;
       const name = this.generateName(date);
       const sales_invoice_code_id = req.body.sales_invoice_code_id;
+      /*
+        Perlakuan yang DIMINTA petugas. Pembagian sebenarnya tetap dihitung
+        server dari sisa tagihan, bukan diterima apa adanya: angka yang
+        menentukan berapa utang seseorang berkurang tidak boleh datang dari
+        peramban.
+      */
+      const perlakuan =
+        req.body.treatment === "RECEIVABLE" ? "RECEIVABLE" : "OVERPAYMENT";
+      const jadwal = {
+        return_payment_date: req.body.return_payment_date,
+        return_payment_method: req.body.return_payment_method,
+        return_payment_name: req.body.return_payment_name,
+        return_payment_bank: req.body.return_payment_bank ?? null,
+        return_payment_number: req.body.return_payment_number ?? null,
+      };
 
       // first need to check if the quantity satisfies
       const validation =
@@ -46,6 +69,65 @@ class SalesReturnController {
 
       if (!validation) {
         return res.status(400).send(ErrorList["Sales return insufficient"]);
+      }
+
+      /*
+        Pembagian nilai retur dihitung SEBELUM returnya lahir.
+
+        Alasannya bukan kerapian: kalau jatuhnya menjadi kelebihan bayar,
+        jadwal pengembalian wajib ada — dan menolaknya setelah dokumen
+        tersimpan meninggalkan retur yang stoknya sudah kembali tetapi uangnya
+        tidak pernah dicatat ke mana pun.
+
+        Sisa tagihan dibaca dari server, tidak dari peramban. Angka yang
+        menentukan berapa utang seseorang berkurang tidak boleh datang dari
+        sisi yang bisa dikarang.
+      */
+      const faktur = await this.salesInvoiceRepository.fetchByID(
+        sales_invoice_code_id
+      );
+      if (!faktur) {
+        return res.status(404).send(ErrorList["Sales invoice not found"]);
+      }
+
+      const hargaBaris = new Map<number, number>(
+        (faktur.sales_invoice ?? []).map((x: any) => [
+          x.id,
+          Number(x.price) - Number(x.discount),
+        ])
+      );
+      const nilaiRetur = items.reduce(
+        (a, x) =>
+          a + Number(x.quantity) * (hargaBaris.get(x.sales_invoice_id) ?? 0),
+        0
+      );
+
+      const tagihan = await this.receivableRepository.fetchInvoiceOutstanding(
+        sales_invoice_code_id
+      );
+
+      /*
+        Memotong tagihan hanya sebesar tagihan yang MASIH ada; sisanya jatuh ke
+        kelebihan bayar dengan sendirinya. Retur yang melebihi utang memang
+        menghasilkan uang yang harus dikembalikan, dan memaksanya tetap
+        memotong membuat piutangnya minus — dan piutang minus adalah kelebihan
+        bayar yang menyamar.
+      */
+      const potongTagihan =
+        perlakuan === "RECEIVABLE"
+          ? Math.min(nilaiRetur, tagihan.outstanding)
+          : 0;
+      const jadiKelebihan = nilaiRetur - potongTagihan;
+
+      if (
+        jadiKelebihan > 0 &&
+        (!jadwal.return_payment_date ||
+          !jadwal.return_payment_method ||
+          !jadwal.return_payment_name)
+      ) {
+        return res
+          .status(400)
+          .send(ErrorList["Return payment method is required"]);
       }
 
       const result = await this.salesReturnRepository.create({
@@ -70,6 +152,30 @@ class SalesReturnController {
 
       if (!result) {
         return res.status(400).send(ErrorList["Sales return creation failed"]);
+      }
+
+      await this.salesReturnRepository.simpanPembagian(
+        result.id!,
+        potongTagihan,
+        jadiKelebihan
+      );
+
+      if (jadiKelebihan > 0) {
+        await this.overpaymentRepository.create({
+          customer_id: result.sales_invoice_code!.customerID!,
+          date: date,
+          sales_deposit_code_id: null,
+          sales_return_code_id: result.id!,
+          payment_method_id: payment_method_id,
+          return_payment_method: jadwal.return_payment_method,
+          return_payment_number: jadwal.return_payment_number,
+          return_payment_date: new Date(jadwal.return_payment_date),
+          return_payment_bank: jadwal.return_payment_bank,
+          return_payment_name: jadwal.return_payment_name,
+          created_by: userID,
+          created_at: new Date(),
+          value: jadiKelebihan,
+        });
       }
 
       await this.productStockRepository.updateMany(

@@ -43,6 +43,7 @@ function repositoriTiruan() {
   return {
     salesReturn: {
       create: jest.fn(),
+      simpanPembagian: jest.fn().mockResolvedValue({}),
       delete: jest.fn(),
       fetchByID: jest.fn(),
       fetchAnnualArchives: jest.fn(),
@@ -50,7 +51,13 @@ function repositoriTiruan() {
     },
     salesInvoice: {
       validateSalesReturn: jest.fn().mockResolvedValue(true),
-      fetchByID: jest.fn(),
+      /* Controller membaca faktur asalnya untuk menghitung nilai retur; tanpa
+         bawaan ini seluruh uji berhenti di 404 sebelum sampai ke yang diuji. */
+      fetchByID: jest.fn().mockResolvedValue({
+        id: 1,
+        customerID: 1,
+        sales_invoice: [],
+      }),
     },
     productStock: {
       updateMany: jest.fn(),
@@ -61,6 +68,16 @@ function repositoriTiruan() {
     },
     stockCard: {
       createMany: jest.fn().mockResolvedValue([]),
+    },
+    /* Tanpa tagihan tersisa, seluruh retur jatuh ke kelebihan bayar —
+       bentuk paling sederhana untuk uji yang tidak sedang menguji pembagian. */
+    receivable: {
+      fetchInvoiceOutstanding: jest
+        .fn()
+        .mockResolvedValue({ total: 0, paid: 0, returned: 0, outstanding: 0 }),
+    },
+    overpayment: {
+      create: jest.fn().mockResolvedValue({ id: 1 }),
     },
   };
 }
@@ -73,7 +90,9 @@ function controller(r: Repos) {
     r.salesInvoice as never,
     r.productStock as never,
     r.stockOut as never,
-    r.stockCard as never
+    r.stockCard as never,
+    r.receivable as never,
+    r.overpayment as never
   );
 }
 
@@ -348,52 +367,125 @@ describe("POST / — membuat retur penjualan", () => {
   });
 
   /**
-   * CACAT BERAT: retur tidak menurunkan piutang pelanggan sama sekali.
+   * SEMBUH: retur kini memotong tagihan faktur asalnya.
    *
-   * Barang kembali ke gudang, stok bertambah, kartu stok tercatat — tetapi
-   * TAGIHANNYA tidak berubah. Tidak ada pemanggilan ke repository piutang, dan
-   * tidak ada baris pembayaran atau nota kredit yang dibuat untuk faktur asal.
+   * Dulu barang kembali ke gudang, stok bertambah, kartu stok tercatat —
+   * tetapi TAGIHANNYA tidak berubah sama sekali. Pelanggan yang mengembalikan
+   * barang tetap ditagih harga penuh, dan selisihnya dibereskan manual di
+   * luar sistem.
    *
-   * Akibatnya bagi pengguna: pelanggan yang mengembalikan barang tetap ditagih
-   * harga penuh. Faktur asal tidak pernah menyusut, sehingga penagihan
-   * berikutnya menuntut uang untuk barang yang sudah ada kembali di gudang
-   * penjual. Selisihnya harus dibereskan manual di luar sistem.
+   * Kini nilainya dibagi: sebesar tagihan yang masih ada memotong tagihan,
+   * sisanya menjadi kelebihan bayar untuk dijadwalkan pengembaliannya.
    */
-  it("CACAT: retur tidak mengurangi tagihan faktur asal", async () => {
+  it("SEMBUH: nilai retur memotong tagihan sebesar sisa tagihannya", async () => {
     const r = repositoriTiruan();
     r.salesReturn.create.mockResolvedValue(returTersimpan());
+    r.salesInvoice.fetchByID.mockResolvedValue({
+      id: 1,
+      customerID: 1,
+      sales_invoice: [{ id: 501, price: 120000, discount: 20000 }],
+    });
+    /* Tagihan tersisa 150.000, nilai retur 2 x 100.000 = 200.000. */
+    r.receivable.fetchInvoiceOutstanding.mockResolvedValue({
+      total: 200000,
+      paid: 50000,
+      returned: 0,
+      outstanding: 150000,
+    });
 
-    const res = await request(app(r)).post("/").send(badanBuat);
+    const res = await request(app(r))
+      .post("/")
+      .send({
+        ...badanBuat,
+        treatment: "RECEIVABLE",
+        return_payment_date: "2024-03-02",
+        return_payment_method: "cash",
+        return_payment_name: "Budi",
+      });
 
     expect(res.status).toBe(200);
-    // Nilai uang retur — 2 x (120.000 - 20.000) = 200.000 — tidak dipakai di
-    // mana pun. Barang masuk gudang tanpa uang mengikutinya.
-    expect(r.salesInvoice.fetchByID).not.toHaveBeenCalled();
+    expect(r.salesReturn.simpanPembagian).toHaveBeenCalledWith(
+      expect.anything(),
+      150000,
+      50000
+    );
+    /* Sisanya jadi kelebihan bayar, bukan hilang. */
+    expect(r.overpayment.create).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 50000 })
+    );
+  });
+
+  /*
+    Tanpa tagihan tersisa, tidak ada yang bisa dipotong — seluruhnya jatuh ke
+    kelebihan bayar meski petugas memilih "potong tagihan". Piutang minus
+    adalah kelebihan bayar yang menyamar, dan sistem tidak boleh melahirkannya.
+  */
+  it("SEMBUH: retur atas faktur lunas seluruhnya jadi kelebihan bayar", async () => {
+    const r = repositoriTiruan();
+    r.salesReturn.create.mockResolvedValue(returTersimpan());
+    r.salesInvoice.fetchByID.mockResolvedValue({
+      id: 1,
+      customerID: 1,
+      sales_invoice: [{ id: 501, price: 120000, discount: 20000 }],
+    });
+
+    const res = await request(app(r))
+      .post("/")
+      .send({
+        ...badanBuat,
+        treatment: "RECEIVABLE",
+        return_payment_date: "2024-03-02",
+        return_payment_method: "cash",
+        return_payment_name: "Budi",
+      });
+
+    expect(res.status).toBe(200);
+    expect(r.salesReturn.simpanPembagian).toHaveBeenCalledWith(
+      expect.anything(),
+      0,
+      200000
+    );
+  });
+
+  /*
+    Kelebihan bayar menuntut jadwal pengembalian. Ditolak SEBELUM returnya
+    lahir: menolak sesudahnya meninggalkan dokumen yang stoknya sudah kembali
+    tetapi uangnya tidak tercatat ke mana pun.
+  */
+  it("menolak 400 bila jadi kelebihan bayar tanpa jadwal pengembalian", async () => {
+    const r = repositoriTiruan();
+    r.salesInvoice.fetchByID.mockResolvedValue({
+      id: 1,
+      customerID: 1,
+      sales_invoice: [{ id: 501, price: 120000, discount: 20000 }],
+    });
+
+    const res = await request(app(r))
+      .post("/")
+      .send({ ...badanBuat, treatment: "OVERPAYMENT" });
+
+    expect(res.status).toBe(400);
+    expect(r.salesReturn.create).not.toHaveBeenCalled();
   });
 
   /**
-   * CACAT: retur tidak memeriksa keadaan faktur asalnya.
+   * SEMBUH: faktur asal diperiksa keberadaannya.
    *
-   * `validateSalesReturn` hanya membandingkan kuantitas. Tidak ada pemeriksaan
-   * apakah faktur asal masih ada, sudah dibatalkan, atau sudah punya retur
-   * lain. Nomor faktur dari badan permintaan diteruskan apa adanya.
-   *
-   * Akibatnya bagi pengguna: barang bisa diretur terhadap faktur yang sudah
-   * dibatalkan, sehingga stok bertambah untuk penjualan yang menurut sistem
-   * tidak pernah terjadi.
+   * `validateSalesReturn` hanya membandingkan kuantitas; nomor faktur dari
+   * badan permintaan dulu diteruskan apa adanya, sehingga barang bisa diretur
+   * terhadap faktur yang sudah dibatalkan — stok bertambah untuk penjualan
+   * yang menurut sistem tidak pernah terjadi.
    */
-  it("CACAT: nomor faktur asal diteruskan tanpa diperiksa", async () => {
+  it("SEMBUH: faktur asal yang tidak ada ditolak 404", async () => {
     const r = repositoriTiruan();
-    r.salesReturn.create.mockResolvedValue(returTersimpan());
+    r.salesInvoice.fetchByID.mockResolvedValue(null);
 
-    await request(app(r))
+    const res = await request(app(r))
       .post("/")
       .send({ ...badanBuat, sales_invoice_code_id: 999999 });
 
-    expect(r.salesReturn.create.mock.calls[0][0].sales_invoice_code_id).toBe(
-      999999
-    );
-    expect(r.salesInvoice.fetchByID).not.toHaveBeenCalled();
+    expect(res.status).toBe(404);
+    expect(r.salesReturn.create).not.toHaveBeenCalled();
   });
 
   /**
