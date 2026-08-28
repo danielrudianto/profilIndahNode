@@ -3,6 +3,7 @@ import { CustomerModel } from "../models/customer.model";
 import { SalesInvoicePaymentModel } from "../models/sales-invoice-payment.model";
 import { ProductUnitModel } from "../models/product-unit.model";
 import { UserViewModel } from "../models/user.model";
+import { ServiceType } from "../constants/service-type.constant";
 
 export interface ISalesInvoiceCode {
   id?: number;
@@ -13,6 +14,13 @@ export interface ISalesInvoiceCode {
   discount: number;
   delivery: number;
   service: number;
+  /**
+   * Jenis jasa yang ditagih. WAJIB ada di antarmuka meski boleh null, supaya
+   * setiap tempat yang membangun faktur terpaksa menyatakan sikapnya —
+   * bidang opsional akan terlewat diam-diam di satu pemanggil dan jenisnya
+   * hilang tanpa gejala.
+   */
+  serviceType: ServiceType | null;
   date: Date;
   uuid: string;
   sales_invoice: ISalesInvoice[];

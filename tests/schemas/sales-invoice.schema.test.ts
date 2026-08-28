@@ -6,7 +6,7 @@ import ErrorList from "../../src/constants/error-list.constant";
 import { validate } from "../../src/utils/validate.helper";
 import {
   invoiceArchiveSchema,
-  createInvoiceSchema,
+  createInvoiceSchemaWithRules,
   searchSalesReturnSchema,
   paramInvoiceSchema,
 } from "../../src/schemas/sales-invoice.schema";
@@ -104,7 +104,7 @@ function appBaru() {
   const app = express();
   app.use(express.json());
   app.post("/archives", validate(invoiceArchiveSchema), balas);
-  app.post("/buat", validate(createInvoiceSchema), balas);
+  app.post("/buat", validate(createInvoiceSchemaWithRules), balas);
   app.get("/faktur/:id", validate(paramInvoiceSchema, "params"), balas);
   return app;
 }
@@ -343,4 +343,64 @@ describe("Perbedaan yang disengaja: angka berupa teks ditolak", () => {
       expect(b.status).toBe(400);
     });
   }
+});
+
+/**
+ * Aturan silang biaya jasa ↔ jenis jasa.
+ *
+ * PERUBAHAN PERILAKU YANG DISENGAJA: rantai lama tidak mengenal jenis jasa,
+ * sehingga tidak ada paritas yang bisa diuji — hanya perilaku barunya.
+ *
+ * Aturannya sendiri tinggal di common.schema.ts dan dipakai bersama setoran;
+ * diuji di kedua tempat karena setoran yang dikonfirmasi berubah menjadi
+ * faktur, dan aturan yang lebih longgar di salah satunya akan bocor ke
+ * yang lain.
+ */
+describe("Biaya jasa dan jenisnya harus sejalan", () => {
+  const kirim = (badan: Record<string, unknown>) =>
+    request(baru).post("/buat").send(badan);
+
+  it("biaya jasa tanpa jenis ditolak", async () => {
+    const h = await kirim({ ...fakturLengkap, service: 50000 });
+    expect(h.status).toBe(400);
+    expect(h.text).toBe("validation.serviceType.required");
+  });
+
+  it("jenis tanpa biaya jasa ditolak", async () => {
+    const h = await kirim({ ...fakturLengkap, service_type: "CNC" });
+    expect(h.status).toBe(400);
+    expect(h.text).toBe("validation.serviceType.notAllowed");
+  });
+
+  it("jenis di luar daftar ditolak", async () => {
+    const h = await kirim({
+      ...fakturLengkap,
+      service: 50000,
+      service_type: "LASER",
+    });
+    expect(h.status).toBe(400);
+  });
+
+  it("ketiga jenis yang sah diterima", async () => {
+    for (const jenis of ["CNC", "FRAME", "SOLID"]) {
+      const h = await kirim({
+        ...fakturLengkap,
+        service: 50000,
+        service_type: jenis,
+      });
+      expect(h.status).toBe(200);
+    }
+  });
+
+  it("tanpa jasa dan tanpa jenis diterima", async () => {
+    const h = await kirim(fakturLengkap);
+    expect(h.status).toBe(200);
+  });
+
+  /* Teks kosong dari kendali pilihan yang tersentuh lalu dikosongkan lagi
+     harus dibaca sebagai "tidak ada", bukan sebagai jenis tak dikenal. */
+  it("jenis berupa teks kosong dianggap tidak ada", async () => {
+    const h = await kirim({ ...fakturLengkap, service_type: "" });
+    expect(h.status).toBe(200);
+  });
 });

@@ -480,7 +480,15 @@ describe("POST / — perilaku harus identik", () => {
     ["delivery pecahan diterima", { ...setoranLengkap, delivery: 12.75 }],
     ["tanpa service", { ...setoranLengkap, service: undefined }],
     ["service negatif", { ...setoranLengkap, service: -5 }],
-    ["service pecahan diterima", { ...setoranLengkap, service: 0.5 }],
+    /*
+      Jenisnya ikut disertakan karena biayanya di atas nol. Rantai lama tidak
+      mengenal jenis jasa sama sekali, jadi tanpa ini kasus paritas berubah
+      menjadi kasus aturan baru — dan yang diuji di sini bukan itu.
+    */
+    [
+      "service pecahan diterima",
+      { ...setoranLengkap, service: 0.5, service_type: "CNC" },
+    ],
     ["tanpa is_paid", { ...setoranLengkap, is_paid: undefined }],
     ["is_paid objek", { ...setoranLengkap, is_paid: { a: 1 } }],
     ["is_paid false", { ...setoranLengkap, is_paid: false }],
@@ -863,5 +871,59 @@ describe("Perbedaan yang disengaja: method berupa larik satu anggota", () => {
     expect(h.lama.status).toBe(200);
     expect(h.baru.status).toBe(400);
     expect(h.baru.teks).toBe(ErrorList["Parameter error"]);
+  });
+});
+
+/**
+ * Aturan silang biaya jasa ↔ jenis jasa.
+ *
+ * PERUBAHAN PERILAKU YANG DISENGAJA: rantai lama tidak mengenal jenis jasa,
+ * sehingga tidak ada paritas yang bisa diuji di sini — hanya perilaku barunya.
+ */
+describe("Biaya jasa dan jenisnya harus sejalan", () => {
+  const kirim = (badan: Record<string, unknown>) =>
+    request(baru).post("/buat").send(badan);
+
+  it("biaya jasa tanpa jenis ditolak", async () => {
+    const h = await kirim({ ...setoranLengkap, service: 50000 });
+    expect(h.status).toBe(400);
+    expect(h.text).toBe("validation.serviceType.required");
+  });
+
+  it("jenis tanpa biaya jasa ditolak", async () => {
+    const h = await kirim({ ...setoranLengkap, service_type: "CNC" });
+    expect(h.status).toBe(400);
+    expect(h.text).toBe("validation.serviceType.notAllowed");
+  });
+
+  it("jenis di luar daftar ditolak", async () => {
+    const h = await kirim({
+      ...setoranLengkap,
+      service: 50000,
+      service_type: "LASER",
+    });
+    expect(h.status).toBe(400);
+  });
+
+  it("biaya jasa dengan jenis diterima", async () => {
+    const h = await kirim({
+      ...setoranLengkap,
+      service: 50000,
+      service_type: "SOLID",
+    });
+    expect(h.status).toBe(200);
+  });
+
+  /* Tanpa jasa sama sekali — bentuk yang dipakai hampir semua dokumen. */
+  it("tanpa jasa dan tanpa jenis diterima", async () => {
+    const h = await kirim(setoranLengkap);
+    expect(h.status).toBe(200);
+  });
+
+  /* Teks kosong dari kendali pilihan yang tersentuh lalu dikosongkan lagi
+     harus dibaca sebagai "tidak ada", bukan sebagai jenis tak dikenal. */
+  it("jenis berupa teks kosong dianggap tidak ada", async () => {
+    const h = await kirim({ ...setoranLengkap, service_type: "" });
+    expect(h.status).toBe(200);
   });
 });

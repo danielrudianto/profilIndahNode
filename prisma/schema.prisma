@@ -165,6 +165,9 @@ model sales_invoice_code {
   discount     Decimal   @default(0.0000) @db.Decimal(50, 4)
   delivery     Decimal   @default(0.0000) @db.Decimal(50, 4)
   service      Decimal   @default(0.0000) @db.Decimal(50, 4)
+  // Jenis jasa; NULL berarti faktur ini memang tidak menagih jasa, ATAU
+  // faktur lama yang tercatat sebelum kolomnya ada. Lihat service-type.constant.ts.
+  service_type String?   @db.VarChar(20)
   uuid         String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
   payment_term Int?
   is_paid      Boolean   @default(false)
@@ -231,6 +234,8 @@ model sales_deposit_code {
   discount    Decimal   @default(0.0000) @db.Decimal(50, 4)
   delivery    Decimal   @default(0.0000) @db.Decimal(50, 4)
   service     Decimal   @default(0.0000) @db.Decimal(50, 4)
+  // Ikut faktur yang lahir dari setoran ini; lihat service-type.constant.ts.
+  service_type String?  @db.VarChar(20)
   uuid        String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)
   type        String    @default("EXTERNAL") @db.VarChar(8) // INTERNAL, EXTERNAL
   // Sales string but optional, default NULL

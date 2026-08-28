@@ -58,6 +58,7 @@ class SalesInvoiceController {
     const discount = Number(req.body.discount);
     const delivery = Number(req.body.delivery);
     const service = Number(req.body.service);
+    const serviceType = req.body.service_type ?? null;
     const sales_invoice = req.body.sales_invoice as any[];
     const sales_invoice_payment = req.body.sales_invoice_payment as any[];
     const paymentTerm = req.body.payment_term;
@@ -92,6 +93,7 @@ class SalesInvoiceController {
         discount: discount,
         delivery: delivery,
         service: service,
+        serviceType: serviceType,
         sales: sales,
         isPaid: isPaid,
         date: date,

@@ -6,6 +6,8 @@ import {
   requiredInt,
   requiredText,
   required,
+  jenisJasa,
+  aturanJasa,
 } from "./common.schema";
 
 /**
@@ -284,26 +286,29 @@ export const rejectSalesDepositSchema = z
  * juga dibaca controller tetapi tidak pernah divalidasi rantai lama, jadi tidak
  * ditambahkan di sini.
  */
-export const createSalesDepositSchema = z.object({
-  uuid: required(ErrorList["Parameter error"]),
-  customer_id: present(ErrorList["Customer ID is required"]),
-  discount: desimalTakNegatif(
-    ErrorList["Discount required"],
-    ErrorList["Discount must be numeric"]
-  ),
-  delivery: desimalTakNegatif(
-    ErrorList["Discount required"],
-    ErrorList["Discount must be numeric"]
-  ),
-  service: desimalTakNegatif(
-    ErrorList["Discount required"],
-    ErrorList["Discount must be numeric"]
-  ),
-  is_paid: z.boolean({ error: ErrorList["Payment status is required"] }),
-  type: z.enum(["INTERNAL", "EXTERNAL"], {
-    error: ErrorList["Parameter error"],
-  }),
-});
+export const createSalesDepositSchema = z
+  .object({
+    uuid: required(ErrorList["Parameter error"]),
+    customer_id: present(ErrorList["Customer ID is required"]),
+    discount: desimalTakNegatif(
+      ErrorList["Discount required"],
+      ErrorList["Discount must be numeric"]
+    ),
+    delivery: desimalTakNegatif(
+      ErrorList["Discount required"],
+      ErrorList["Discount must be numeric"]
+    ),
+    service: desimalTakNegatif(
+      ErrorList["Discount required"],
+      ErrorList["Discount must be numeric"]
+    ),
+    service_type: jenisJasa,
+    is_paid: z.boolean({ error: ErrorList["Payment status is required"] }),
+    type: z.enum(["INTERNAL", "EXTERNAL"], {
+      error: ErrorList["Parameter error"],
+    }),
+  })
+  .superRefine(aturanJasa);
 
 /**
  * GET /sales-deposit/:id

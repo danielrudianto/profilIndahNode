@@ -8,6 +8,7 @@ import { ProductModel } from "../models/product.model";
 import { UserViewModel } from "../models/user.model";
 import { PaymentMethodViewModel } from "./payment-method.model";
 import { SalesDepositPaymentModel } from "./sales-deposit-payment.model";
+import { ServiceType } from "../constants/service-type.constant";
 
 export class SalesDepositModel {
   id?: number;
@@ -16,6 +17,7 @@ export class SalesDepositModel {
   discount: number;
   delivery: number;
   service: number;
+  serviceType: ServiceType | null;
   sales: string | null;
   customerID: number | null;
   createdBy: number;
@@ -45,6 +47,7 @@ export class SalesDepositModel {
     this.discount = data.discount;
     this.delivery = data.delivery;
     this.service = data.service;
+    this.serviceType = data.serviceType;
     this.date = data.date;
     this.isConfirm = data.isConfirm;
     this.confirmedBy = data.confirmedBy;
@@ -70,6 +73,7 @@ export class SalesDepositModel {
       discount: Number(data.discount),
       delivery: Number(data.delivery),
       service: Number(data.service),
+      serviceType: data.service_type ?? null,
       sales: data.sales,
       customerID: data.customer_id,
       createdBy: data.created_by,

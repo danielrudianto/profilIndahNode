@@ -1,5 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
+import { ServiceType } from "../constants/service-type.constant";
 
 /**
  * Potongan skema yang dipakai berulang di banyak domain.
@@ -164,3 +165,60 @@ export const listQuery = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).optional(),
   keyword: z.string().optional(),
 });
+
+/**
+ * Jenis jasa pada dokumen penjualan — faktur maupun setoran.
+ *
+ * Kosong diterima dalam tiga bentuk: tidak dikirim, null, dan teks kosong.
+ * Kendali pilihan di frontend melahirkan ketiganya tergantung apakah ia pernah
+ * disentuh, dan semuanya disamakan menjadi null supaya lapisan berikutnya
+ * hanya menghadapi satu bentuk "tidak ada".
+ *
+ * Ini BUKAN pelonggaran kebijakan ketat req.body: yang disamakan adalah
+ * ketiadaan nilai, bukan tipenya. Teks selain ketiga jenis jasa tetap ditolak.
+ */
+export const jenisJasa = z
+  .union([z.enum(ServiceType), z.literal(""), z.null()], {
+    error: ErrorList["Service type invalid"],
+  })
+  .optional()
+  .transform((nilai) => (nilai === "" || nilai === undefined ? null : nilai));
+
+/**
+ * Biaya jasa dan jenisnya harus sejalan, DUA ARAH.
+ *
+ * Menagih jasa tanpa menyebut jenisnya membuat baris Jasa di laporan keuangan
+ * berisi angka yang tidak bisa dijelaskan. Sebaliknya menyebut jenis tanpa
+ * menagih apa pun meninggalkan catatan tentang pekerjaan yang tidak pernah
+ * ditagihkan — dan kelak terbaca sebagai jasa gratis, bukan sebagai salah isi.
+ *
+ * Dijaga di sini, bukan hanya di layar: aturan yang cuma hidup di frontend
+ * berlaku sampai ada yang memanggil endpoint-nya langsung.
+ *
+ * Dipakai bersama faktur dan setoran supaya keduanya tidak bisa berbeda
+ * pendapat — setoran yang dikonfirmasi berubah menjadi faktur, jadi aturan
+ * yang lebih longgar di salah satunya akan bocor ke yang lain.
+ */
+export const aturanJasa = (
+  data: { service: unknown; service_type: unknown },
+  ctx: z.RefinementCtx
+): void => {
+  const adaBiaya = Number(data.service) > 0;
+  const adaJenis = data.service_type != null;
+
+  if (adaBiaya && !adaJenis) {
+    ctx.addIssue({
+      code: "custom",
+      message: ErrorList["Service type required"],
+      path: ["service_type"],
+    });
+  }
+
+  if (!adaBiaya && adaJenis) {
+    ctx.addIssue({
+      code: "custom",
+      message: ErrorList["Service type not allowed"],
+      path: ["service_type"],
+    });
+  }
+};

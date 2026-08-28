@@ -245,6 +245,11 @@
     "user": {
       "nameTooLong": "Nama pengguna maksimal 45 karakter.",
       "nikTooLong": "NIK maksimal 45 karakter."
+    },
+    "serviceType": {
+      "required": "Jenis jasa wajib dipilih ketika biaya jasa diisi.",
+      "invalid": "Jenis jasa tidak dikenal.",
+      "notAllowed": "Jenis jasa tidak boleh diisi ketika biaya jasa kosong."
     }
   },
   "user": {

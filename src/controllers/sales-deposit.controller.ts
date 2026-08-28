@@ -53,6 +53,7 @@ export class SalesDepositController {
     const discount = Number(req.body.discount);
     const delivery = Number(req.body.delivery);
     const service = Number(req.body.service);
+    const serviceType = req.body.service_type ?? null;
     const sales_invoice = req.body.sales_invoice as any[];
     const sales_invoice_payment = req.body.sales_invoice_payment as any[];
     const payment_term = req.body.payment_term;
@@ -70,6 +71,7 @@ export class SalesDepositController {
         discount: discount,
         delivery: delivery,
         service: service,
+        serviceType: serviceType,
         sales: sales,
         isPaid: isPaid,
         date: date,
@@ -280,6 +282,8 @@ export class SalesDepositController {
               discount: deposit.discount,
               delivery: deposit.delivery,
               service: deposit.service,
+              /* Jenisnya ikut dari setoran; faktur ini bukan tempat memilih ulang. */
+              serviceType: deposit.serviceType ?? null,
               uuid: deposit.uuid,
               sales_invoice: deposit.sales_deposit!.map((x) => {
                 return {

@@ -35,6 +35,7 @@ export class SalesInvoiceRepository {
         discount: data.discount,
         delivery: data.delivery,
         service: data.service,
+        service_type: data.serviceType,
         date: data.date,
         is_confirm: data.isConfirm,
         confirmed_by: data.confirmedBy,

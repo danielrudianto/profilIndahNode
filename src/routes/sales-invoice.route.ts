@@ -14,7 +14,7 @@ import { StockCardRepository } from "../repositories/stock-card.repository";
 import { ProductStockRepository } from "../repositories/product-stock.repository";
 import {
   invoiceArchiveSchema,
-  createInvoiceSchema,
+  createInvoiceSchemaWithRules,
   searchSalesReturnSchema,
   paramInvoiceSchema,
 } from "../schemas/sales-invoice.schema";
@@ -56,7 +56,7 @@ router.post(
 */
 router.post(
   "/",
-  validate(createInvoiceSchema),
+  validate(createInvoiceSchemaWithRules),
   salesmanController.createSalesman,
   salesInvoiceController.create
 );

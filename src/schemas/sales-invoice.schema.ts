@@ -1,5 +1,6 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
+import { jenisJasa, aturanJasa } from "./common.schema";
 import { present, requiredInt, required } from "./common.schema";
 
 /**
@@ -157,8 +158,16 @@ export const createInvoiceSchema = z.object({
     ErrorList["Service required"],
     ErrorList["Service must be numeric"]
   ),
+  service_type: jenisJasa,
   is_paid: z.boolean({ error: ErrorList["Payment status is required"] }),
 });
+
+/**
+ * Skema POST /sales-invoice berikut aturan silang biaya-jasa ↔ jenis-jasa.
+ * Aturannya tinggal di common.schema.ts karena setoran memakai yang sama.
+ */
+export const createInvoiceSchemaWithRules =
+  createInvoiceSchema.superRefine(aturanJasa);
 
 /**
  * Parameter `:id` pada GET /payment/:id, GET /:id, dan DELETE /:id.
@@ -187,5 +196,5 @@ export const paramInvoiceSchema = z.object({
 });
 
 export type InvoiceArchive = z.infer<typeof invoiceArchiveSchema>;
-export type CreateInvoice = z.infer<typeof createInvoiceSchema>;
+export type CreateInvoice = z.infer<typeof createInvoiceSchemaWithRules>;
 export type SearchSalesReturn = z.infer<typeof searchSalesReturnSchema>;

@@ -181,6 +181,9 @@ enum ErrorList {
   "Delivery must be numeric" = "validation.delivery.numeric",
   "Service required" = "validation.service.required",
   "Service must be numeric" = "validation.service.numeric",
+  "Service type required" = "validation.serviceType.required",
+  "Service type invalid" = "validation.serviceType.invalid",
+  "Service type not allowed" = "validation.serviceType.notAllowed",
 
   "Good receipt not found" = "goodReceipt.notFound",
   "Good receipt already confirmed" = "goodReceipt.alreadyConfirmed",

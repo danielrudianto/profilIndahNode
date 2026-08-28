@@ -8,6 +8,7 @@ import { SalesInvoicePaymentModel } from "./sales-invoice-payment.model";
 import { ProductUnitModel } from "./product-unit.model";
 import { UserViewModel } from "./user.model";
 import { PaymentMethodViewModel } from "./payment-method.model";
+import { ServiceType } from "../constants/service-type.constant";
 
 export class SalesInvoiceModel {
   id?: number;
@@ -16,6 +17,7 @@ export class SalesInvoiceModel {
   discount: number;
   delivery: number;
   service: number;
+  serviceType: ServiceType | null;
   sales: string | null;
   customerID: number | null;
   createdBy: number;
@@ -59,6 +61,7 @@ export class SalesInvoiceModel {
     this.discount = data.discount;
     this.delivery = data.delivery;
     this.service = data.service;
+    this.serviceType = data.serviceType;
     this.date = data.date;
     this.is_confirm = data.isConfirm;
     this.confirmedBy = data.confirmedBy;
@@ -118,6 +121,7 @@ export class SalesInvoiceModel {
       discount: Number(data.discount),
       delivery: Number(data.delivery),
       service: Number(data.service),
+      serviceType: data.service_type ?? null,
       sales: data.sales,
       customerID: data.customer_id,
       createdBy: data.created_by,

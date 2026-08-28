@@ -3,6 +3,7 @@ import { ProductUnitModel } from "../models/product-unit.model";
 import { ProductModel } from "../models/product.model";
 import { UserViewModel } from "../models/user.model";
 import { SalesDepositPaymentModel } from "../models/sales-deposit-payment.model";
+import { ServiceType } from "../constants/service-type.constant";
 
 export interface ISalesDepositCode {
   id?: number;
@@ -13,6 +14,7 @@ export interface ISalesDepositCode {
   discount: number;
   delivery: number;
   service: number;
+  serviceType: ServiceType | null;
   date: Date;
   uuid: string;
   sales_deposit: ISalesDeposit[];
