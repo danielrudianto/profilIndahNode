@@ -18,3 +18,16 @@ export const UMUR_CACHE_LAPORAN = 300;
 */
 export const UMUR_CACHE_ARSIP = 300;
 export const KUNCI_CACHE_ARSIP_FAKTUR = "arsip:sales-invoice";
+
+/*
+  Laporan laba rugi. Jauh lebih panjang daripada lima menit milik laporan lain,
+  dan itu disengaja: kueri HPP-nya menyisir seluruh stock_out sebulan, sehingga
+  dengan umur pendek pemakainya tetap menunggu lama hampir setiap kali membuka
+  halaman — persis keluhan yang membuat cache ini ada.
+
+  Angka laba rugi juga bukan angka yang dipakai memutuskan sesuatu dalam
+  hitungan menit. Yang penting pembacanya TAHU angkanya dihitung kapan, dan
+  itu ikut dikirim bersama datanya; ada pula tombol hitung ulang bagi yang
+  butuh angka terbaru saat itu juga.
+*/
+export const UMUR_CACHE_LABA_RUGI = 43200;

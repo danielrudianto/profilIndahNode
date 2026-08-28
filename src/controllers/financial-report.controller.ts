@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
 import { StockOutRepository } from "../repositories/stock-out.repository";
+import { UMUR_CACHE_LABA_RUGI } from "../constants/cache.constant";
+import { redisClient } from "../utils/redis.helper";
 import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseRepository } from "../repositories/expense.repository";
 
@@ -25,12 +27,54 @@ export class FinancialReportController {
     this.stockOutRepository = stockOutRepository;
   }
 
+  /*
+    Cache laporan keuangan.
+
+    Redis mati bukan alasan gagal: bacanya dibungkus try, dan yang gagal
+    dibaca berarti dihitung ulang seperti sebelum cache ini ada.
+
+    Nilai yang disimpan selalu membawa `computedAt`. Angka lama yang tidak
+    menyebut umurnya lebih berbahaya daripada angka lama yang menyebutnya —
+    yang pertama dikira baru.
+  */
+  private dariCache = async (kunci: string): Promise<any | null> => {
+    try {
+      const isi = await redisClient.get(kunci);
+      return isi ? JSON.parse(isi) : null;
+    } catch {
+      return null;
+    }
+  };
+
+  private keCache = async (kunci: string, nilai: unknown): Promise<void> => {
+    try {
+      await redisClient.setEx(
+        kunci,
+        UMUR_CACHE_LABA_RUGI,
+        JSON.stringify(nilai)
+      );
+    } catch {
+      /* gagal menulis cache — biarkan; permintaan berikut menghitung ulang */
+    }
+  };
+
   fetchProfitLoss = async (req: Request, res: Response) => {
     const year = parseInt(req.body.year);
     const month = parseInt(req.body.month);
     const report = parseInt(req.body.report);
+    /* Tombol "hitung ulang" di layar; tanpa ini pembaca yang butuh angka
+       terbaru terkurung sampai cache-nya kedaluwarsa. */
+    const paksa = req.body.refresh === true || req.body.refresh === "true";
+    const kunci = `laporan:laba-rugi:${year}:${month}`;
 
     try {
+      if (!paksa) {
+        const tersimpan = await this.dariCache(kunci);
+        if (tersimpan) {
+          return res.status(200).send(tersimpan);
+        }
+      }
+
       /*
         Dulu ikut mengangkut larik sales dan purchase (fetchByDateRange
         sebulan penuh) — halaman keuangan baru tidak pernah membacanya,
@@ -42,11 +86,15 @@ export class FinancialReportController {
         this.stockOutRepository.calculate(month, year),
       ]);
 
-      return res.status(200).send({
+      const hasil = {
         company: company,
         expense: expense,
         stockOut: stockOut,
-      });
+        computedAt: new Date().toISOString(),
+      };
+
+      await this.keCache(kunci, hasil);
+      return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching profit loss report ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
@@ -63,8 +111,17 @@ export class FinancialReportController {
   fetchProfitLossTrend = async (req: Request, res: Response) => {
     const year = Number(req.query.year);
     const month = Number(req.query.month) || 12;
+    const paksa = req.query.refresh === "true" || req.query.refresh === "1";
+    const kunci = `laporan:laba-rugi-tren:${year}:${month}`;
 
     try {
+      if (!paksa) {
+        const tersimpan = await this.dariCache(kunci);
+        if (tersimpan) {
+          return res.status(200).send(tersimpan);
+        }
+      }
+
       const mulai = new Date(year, month - 12, 1);
       const sebelum = new Date(year, month, 1);
 
@@ -93,7 +150,9 @@ export class FinancialReportController {
         });
       }
 
-      return res.status(200).send({ data: data });
+      const hasil = { data: data, computedAt: new Date().toISOString() };
+      await this.keCache(kunci, hasil);
+      return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching profit loss trend ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

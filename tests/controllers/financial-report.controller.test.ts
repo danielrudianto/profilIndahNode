@@ -109,7 +109,27 @@ describe("POST /profit-loss — laba rugi", () => {
       company: [{ id: 1, name: "PT Indah" }],
       expense: [{ value: 250 }],
       stockOut: { hpp: 2000, sales: 5000 },
+      computedAt: expect.any(String),
     });
+  });
+
+  /*
+    Laporan ini di-cache belasan jam, jadi yang dibaca pemakainya bisa saja
+    dihitung tadi pagi. Penanda waktunya karena itu bukan hiasan: angka lama
+    yang tidak menyebut umurnya dikira baru, dan itu justru yang berbahaya.
+  */
+  it("menyertakan waktu perhitungan yang bisa dibaca sebagai tanggal", async () => {
+    const repo = repoSiapPakai();
+    repo.company.fetchAll.mockResolvedValue([]);
+    repo.expense.fetchReport.mockResolvedValue([]);
+    repo.stockOut.calculate.mockResolvedValue({ hpp: 0, sales: 0 });
+
+    const res = await request(app(repo))
+      .post("/profit-loss")
+      .send({ month: 3, year: 2024 });
+
+    expect(res.status).toBe(200);
+    expect(Number.isNaN(Date.parse(res.body.computedAt))).toBe(false);
   });
 
   /**
