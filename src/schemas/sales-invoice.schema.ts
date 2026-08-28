@@ -160,14 +160,50 @@ export const createInvoiceSchema = z.object({
   ),
   service_type: jenisJasa,
   is_paid: z.boolean({ error: ErrorList["Payment status is required"] }),
+  /*
+    Pengembalian diskon berupa uang. Sengaja z.any(): jalur ini sebelumnya
+    tidak divalidasi sama sekali, dan memberinya bentuk ketat sekarang berarti
+    menambah penolakan-penolakan baru yang tidak diminta siapa pun. Yang
+    ditegakkan hanya satu aturan di bawah.
+  */
+  rebate: z.any().optional(),
 });
 
 /**
  * Skema POST /sales-invoice berikut aturan silang biaya-jasa ↔ jenis-jasa.
  * Aturannya tinggal di common.schema.ts karena setoran memakai yang sama.
  */
-export const createInvoiceSchemaWithRules =
-  createInvoiceSchema.superRefine(aturanJasa);
+/**
+ * Pengembalian diskon harus menyebut metode pembayarannya.
+ *
+ * Pengembalian ini TIDAK dicatat sebagai kelebihan bayar, sehingga satu-satunya
+ * laporan yang membacanya adalah uang keluar — dan laporan itu mengelompokkan
+ * per metode. Tanpa metode, uangnya keluar dari kas tanpa bisa dikatakan kas
+ * mana yang berkurang, dan rekonsiliasi sore hari selisih tanpa sebab.
+ *
+ * Frontend dulu mengirim metodenya sebagai teks `method` yang tidak dibaca
+ * siapa pun sambil menulis `payment_method_id: null` — jadi bidangnya sudah
+ * ada di basis data sejak awal dan tidak pernah terisi. Penjaga ini memastikan
+ * itu tidak bisa terulang lewat pemanggil lain.
+ */
+const aturanPengembalian = (data: { rebate?: any }, ctx: z.RefinementCtx) => {
+  const pengembalian = data.rebate;
+  if (pengembalian == null || Number(pengembalian.value) <= 0) {
+    return;
+  }
+
+  if (pengembalian.payment_method_id == null) {
+    ctx.addIssue({
+      code: "custom",
+      message: ErrorList["Rebate payment method required"],
+      path: ["rebate", "payment_method_id"],
+    });
+  }
+};
+
+export const createInvoiceSchemaWithRules = createInvoiceSchema
+  .superRefine(aturanJasa)
+  .superRefine(aturanPengembalian);
 
 /**
  * Parameter `:id` pada GET /payment/:id, GET /:id, dan DELETE /:id.

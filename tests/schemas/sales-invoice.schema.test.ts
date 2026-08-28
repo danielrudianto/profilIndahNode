@@ -404,3 +404,56 @@ describe("Biaya jasa dan jenisnya harus sejalan", () => {
     expect(h.status).toBe(200);
   });
 });
+
+/**
+ * Pengembalian diskon wajib menyebut metode pembayarannya.
+ *
+ * Bidangnya sudah lama ada di basis data dan tidak pernah terisi: frontend
+ * mengirim metodenya sebagai teks `method` yang tidak dibaca siapa pun sambil
+ * menulis `payment_method_id: null`. Uji ini mengunci agar bentuk itu ditolak.
+ */
+describe("Pengembalian diskon harus menyebut metodenya", () => {
+  const kirim = (badan: Record<string, unknown>) =>
+    request(baru).post("/buat").send(badan);
+
+  it("pengembalian tanpa metode ditolak", async () => {
+    const h = await kirim({
+      ...fakturLengkap,
+      rebate: { value: 50000, receiver_name: "Budi" },
+    });
+    expect(h.status).toBe(400);
+    expect(h.text).toBe("validation.rebate.methodRequired");
+  });
+
+  it("metode null ditolak — bentuk persis yang dulu dikirim", async () => {
+    const h = await kirim({
+      ...fakturLengkap,
+      rebate: {
+        value: 50000,
+        payment_method_id: null,
+        method: "Cash",
+        receiver_name: "Budi",
+      },
+    });
+    expect(h.status).toBe(400);
+  });
+
+  it("pengembalian dengan metode diterima", async () => {
+    const h = await kirim({
+      ...fakturLengkap,
+      rebate: { value: 50000, payment_method_id: 1, receiver_name: "Budi" },
+    });
+    expect(h.status).toBe(200);
+  });
+
+  /* Nol berarti tidak ada pengembalian; tidak ada yang perlu dijaga. */
+  it("pengembalian bernilai nol tidak menuntut metode", async () => {
+    const h = await kirim({ ...fakturLengkap, rebate: { value: 0 } });
+    expect(h.status).toBe(200);
+  });
+
+  it("tanpa pengembalian sama sekali diterima", async () => {
+    const h = await kirim(fakturLengkap);
+    expect(h.status).toBe(200);
+  });
+});

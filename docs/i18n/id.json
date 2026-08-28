@@ -250,6 +250,9 @@
       "required": "Jenis jasa wajib dipilih ketika biaya jasa diisi.",
       "invalid": "Jenis jasa tidak dikenal.",
       "notAllowed": "Jenis jasa tidak boleh diisi ketika biaya jasa kosong."
+    },
+    "rebate": {
+      "methodRequired": "Metode pembayaran pengembalian wajib dipilih."
     }
   },
   "user": {

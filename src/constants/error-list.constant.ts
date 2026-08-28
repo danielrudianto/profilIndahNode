@@ -184,6 +184,7 @@ enum ErrorList {
   "Service type required" = "validation.serviceType.required",
   "Service type invalid" = "validation.serviceType.invalid",
   "Service type not allowed" = "validation.serviceType.notAllowed",
+  "Rebate payment method required" = "validation.rebate.methodRequired",
 
   "Good receipt not found" = "goodReceipt.notFound",
   "Good receipt already confirmed" = "goodReceipt.alreadyConfirmed",
