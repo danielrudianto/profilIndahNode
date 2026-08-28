@@ -28,6 +28,8 @@ class AuditLogController {
     const pageSize = Number(req.query.page_size) || 25;
     const entity = (req.query.entity as string) || null;
     const entityID = req.query.entityID ? Number(req.query.entityID) : null;
+    const userOnly =
+      req.query.userOnly === "true" || req.query.userOnly === "1";
 
     const dariQuery = req.query.userID;
     const userID =
@@ -53,6 +55,7 @@ class AuditLogController {
         userID: userID,
         dateFrom: dateFrom,
         dateTo: dateTo,
+        userOnly: userOnly,
       });
 
       return res.status(200).send(hasil);

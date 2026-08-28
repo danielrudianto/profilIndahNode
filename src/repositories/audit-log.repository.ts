@@ -31,6 +31,9 @@ export class AuditLogRepository {
 
     if (filter.userID?.length) {
       where.user_id = { in: filter.userID };
+    } else if (filter.userOnly) {
+      /* Jejak pekerjaan latar tidak punya pemilik; itulah pembedanya. */
+      where.user_id = { not: null };
     }
 
     /*

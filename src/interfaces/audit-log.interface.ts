@@ -33,6 +33,14 @@ export interface IAuditLogFilter {
   /** Menyaring jejak SATU dokumen — dipakai riwayat perubahan di dialog view. */
   entityID: number | null;
   userID: number[] | null;
+  /**
+   * Hanya jejak yang punya pemilik.
+   *
+   * Pekerjaan latar menulis tanpa permintaan HTTP, sehingga user_id-nya null.
+   * Penjadwal stok minimum sendiri menyentuh belasan ribu baris tiap pekan,
+   * dan tanpa saringan ini yang dikerjakan orang tenggelam di antaranya.
+   */
+  userOnly: boolean;
   dateFrom: Date | null;
   dateTo: Date | null;
 }

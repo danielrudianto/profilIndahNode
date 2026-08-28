@@ -57,6 +57,15 @@ const daftarPengguna = z
     { message: ErrorList["Parameter error"] }
   );
 
+/*
+  Menyembunyikan jejak tanpa pemilik. Nilainya datang sebagai teks dari query,
+  jadi "true"/"1" diterima keduanya; apa pun selain itu berarti tidak menyaring.
+*/
+const bendera = z
+  .union([z.literal("true"), z.literal("false"), z.literal("1"), z.literal("0")])
+  .optional()
+  .transform((nilai) => nilai === "true" || nilai === "1");
+
 export const queryAuditLogSchema = z.object({
   page: halaman,
   page_size: ukuranHalaman,
@@ -68,6 +77,7 @@ export const queryAuditLogSchema = z.object({
   userID: daftarPengguna,
   dateFrom: tanggal,
   dateTo: tanggal,
+  userOnly: bendera,
 });
 
 export type QueryAuditLog = z.infer<typeof queryAuditLogSchema>;

@@ -29,6 +29,36 @@ function app(r: ReturnType<typeof repositoriTiruan>) {
   return a;
 }
 
+describe("Saringan hanya-pengguna", () => {
+  it("userOnly=true diteruskan sebagai true", async () => {
+    const r = repositoriTiruan();
+    const res = await request(app(r)).get("/?userOnly=true");
+
+    expect(res.status).toBe(200);
+    expect(r.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({ userOnly: true }),
+    );
+  });
+
+  it("userOnly=1 diperlakukan sama dengan true", async () => {
+    const r = repositoriTiruan();
+    await request(app(r)).get("/?userOnly=1");
+
+    expect(r.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({ userOnly: true }),
+    );
+  });
+
+  it("tanpa userOnly berarti seluruh jejak, termasuk pekerjaan latar", async () => {
+    const r = repositoriTiruan();
+    await request(app(r)).get("/");
+
+    expect(r.fetch).toHaveBeenCalledWith(
+      expect.objectContaining({ userOnly: false }),
+    );
+  });
+});
+
 describe("Nilai bawaan", () => {
   it("tanpa penyaring memakai halaman 1 dan 25 baris", async () => {
     const r = repositoriTiruan();
@@ -43,6 +73,7 @@ describe("Nilai bawaan", () => {
       userID: null,
       dateFrom: null,
       dateTo: null,
+      userOnly: false,
     });
   });
 
