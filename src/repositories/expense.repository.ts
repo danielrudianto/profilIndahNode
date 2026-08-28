@@ -173,6 +173,10 @@ export class ExpenseRepository {
             is_delete: false,
           },
           orderBy: { date: "desc" },
+          /* Nama jenisnya ikut supaya laporan bisa menyebut "Listrik", bukan
+             nomor jenis. Tanpa ini sorotan pengeluaran terbesar mustahil
+             ditulis dalam kalimat yang bisa dibaca pemilik. */
+          include: { expense_type: true },
         });
 
         return result.map((x) => {
@@ -188,6 +192,10 @@ export class ExpenseRepository {
             is_delete: false,
           },
           orderBy: { date: "desc" },
+          /* Nama jenisnya ikut supaya laporan bisa menyebut "Listrik", bukan
+             nomor jenis. Tanpa ini sorotan pengeluaran terbesar mustahil
+             ditulis dalam kalimat yang bisa dibaca pemilik. */
+          include: { expense_type: true },
         });
 
         return result.map((x) => {
