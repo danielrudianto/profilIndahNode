@@ -14,6 +14,8 @@ export interface ISalesInvoiceCode {
   discount: number;
   delivery: number;
   service: number;
+  /** Biaya administrasi kartu kredit beda bank; MENAMBAH tagihan pelanggan. */
+  adminFee: number;
   /**
    * Jenis jasa yang ditagih. WAJIB ada di antarmuka meski boleh null, supaya
    * setiap tempat yang membangun faktur terpaksa menyatakan sikapnya —

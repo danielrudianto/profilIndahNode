@@ -77,7 +77,7 @@ export class ReceivableRepository {
       SELECT sub.id, sub.name, SUM(sub.value) AS value, SUM(sub.payment) AS payment
       FROM (
         SELECT
-          (si.value + sales_invoice_code.delivery + sales_invoice_code.service - sales_invoice_code.discount) AS value,
+          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount) AS value,
           COALESCE(sip.value, 0) AS payment,
           customer.id,
           customer.name
@@ -151,7 +151,7 @@ export class ReceivableRepository {
       ) AS bayar ON bayar.sales_invoice_code_id = sic.id
       SET sic.is_paid = true
       WHERE sic.is_paid = false AND sic.is_delete = false
-      AND (nilai.value + sic.delivery + sic.service - sic.discount - COALESCE(bayar.value, 0))
+      AND (nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE(bayar.value, 0))
         <= ${PAYMENT_ROUNDING_TOLERANCE}`;
 
     return hasil;
@@ -185,7 +185,7 @@ export class ReceivableRepository {
 
     const totalBaris = await this.prisma.$queryRaw<any[]>`
       SELECT COALESCE(SUM(
-        nilai.value + sic.delivery + sic.service - sic.discount - COALESCE(bayar.value, 0)
+        nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE(bayar.value, 0)
       ), 0) AS total
       FROM sales_invoice_code sic
       JOIN (

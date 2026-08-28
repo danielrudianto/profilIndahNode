@@ -33,6 +33,7 @@ export class SalesDepositRepository {
           discount: data.discount,
           delivery: data.delivery,
           service: data.service,
+          admin_fee: data.adminFee,
           service_type: data.serviceType,
           sales_deposit: {
             createMany: {

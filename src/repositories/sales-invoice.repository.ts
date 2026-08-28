@@ -35,6 +35,7 @@ export class SalesInvoiceRepository {
         discount: data.discount,
         delivery: data.delivery,
         service: data.service,
+        admin_fee: data.adminFee,
         service_type: data.serviceType,
         date: data.date,
         is_confirm: data.isConfirm,
@@ -241,6 +242,7 @@ export class SalesInvoiceRepository {
     discount: number;
     delivery: number;
     service: number;
+    adminFee: number;
     salesInvoiceCount: number;
     customerCount: number;
   }> {
@@ -249,6 +251,7 @@ export class SalesInvoiceRepository {
         SUM(sales_invoice_code.discount) AS discount, 
         SUM(sales_invoice_code.service) AS service, 
         SUM(sales_invoice_code.delivery) AS delivery,
+        SUM(sales_invoice_code.admin_fee) AS adminFee,
         COUNT(sales_invoice_code.id) AS salesInvoiceCount,
         COUNT(DISTINCT(sales_invoice_code.customer_id)) AS customerCount
         FROM sales_invoice
@@ -267,6 +270,7 @@ export class SalesInvoiceRepository {
         delivery: 0,
         discount: 0,
         service: 0,
+        adminFee: 0,
         salesInvoiceCount: 0,
         customerCount: 0,
       };
@@ -278,6 +282,7 @@ export class SalesInvoiceRepository {
       delivery: Number(data.delivery),
       discount: Number(data.discount),
       service: Number(data.service),
+      adminFee: Number(data.adminFee),
       salesInvoiceCount: Number(data.salesInvoiceCount),
       customerCount: Number(data.customerCount),
     };
@@ -583,6 +588,7 @@ export class SalesInvoiceRepository {
         customer_name: x.customer == null ? "Retail" : x.customer.name,
         name: x.name,
         delivery: Number(x.delivery),
+        admin_fee: Number(x.admin_fee),
         discount: Number(x.discount),
         service: Number(x.service),
         value: x.sales_invoice.reduce((a, b) => {

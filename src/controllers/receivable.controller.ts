@@ -74,7 +74,10 @@ class ReceivableController {
           0
         ) +
         salesInvoice.delivery +
-        salesInvoice.service -
+        salesInvoice.service +
+        /* Biaya admin ditagihkan ke pelanggan, jadi ia bagian dari yang harus
+           dibayar — batas pembayaran piutang harus menyebutnya. */
+        Number(salesInvoice.adminFee ?? 0) -
         salesInvoice.discount;
 
       // Calculate the total previous payments

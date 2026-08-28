@@ -53,6 +53,14 @@ export class SalesDepositController {
     const discount = Number(req.body.discount);
     const delivery = Number(req.body.delivery);
     const service = Number(req.body.service);
+    /*
+      `?? 0` bukan kelonggaran: skema menolak permintaan yang tidak menyebut
+      biaya admin, jadi di jalur HTTP ia selalu ada. Yang dijaga di sini adalah
+      pemanggil yang melewati skema — nilai yang hilang menjadi NaN, dan NaN
+      dalam hitungan piutang merusak diam-diam sampai jauh di kemudian hari,
+      sementara nol adalah arti sebenarnya dari "tidak ada biaya admin".
+    */
+    const adminFee = Number(req.body.admin_fee ?? 0);
     const serviceType = req.body.service_type ?? null;
     const sales_invoice = req.body.sales_invoice as any[];
     const sales_invoice_payment = req.body.sales_invoice_payment as any[];
@@ -71,6 +79,7 @@ export class SalesDepositController {
         discount: discount,
         delivery: delivery,
         service: service,
+        adminFee: adminFee,
         serviceType: serviceType,
         sales: sales,
         isPaid: isPaid,
@@ -222,7 +231,8 @@ export class SalesDepositController {
           return a + b.quantity * (b.price - b.discount);
         }, 0) ?? 0) +
         deposit.delivery +
-        deposit.service -
+        deposit.service +
+        Number(deposit.adminFee ?? 0) -
         deposit.discount;
 
       const payment = sales_invoice_payment.reduce((a: any, b: any) => {
@@ -282,6 +292,7 @@ export class SalesDepositController {
               discount: deposit.discount,
               delivery: deposit.delivery,
               service: deposit.service,
+              adminFee: deposit.adminFee,
               /* Jenisnya ikut dari setoran; faktur ini bukan tempat memilih ulang. */
               serviceType: deposit.serviceType ?? null,
               uuid: deposit.uuid,

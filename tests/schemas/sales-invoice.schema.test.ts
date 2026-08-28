@@ -230,6 +230,10 @@ const fakturLengkap = {
   discount: 0,
   delivery: 0,
   service: 0,
+  /* Wajib sejak biaya administrasi kartu kredit ditambahkan; rantai lama
+     tidak mengenalnya, jadi ketiadaannya adalah perubahan perilaku yang
+     disengaja dan diuji terpisah di bawah. */
+  admin_fee: 0,
   is_paid: true,
 };
 
@@ -454,6 +458,30 @@ describe("Pengembalian diskon harus menyebut metodenya", () => {
 
   it("tanpa pengembalian sama sekali diterima", async () => {
     const h = await kirim(fakturLengkap);
+    expect(h.status).toBe(200);
+  });
+});
+
+describe("Biaya administrasi wajib disebut", () => {
+  it("tanpa admin_fee ditolak", async () => {
+    const badan: Record<string, unknown> = { ...fakturLengkap };
+    delete badan['admin_fee'];
+    const h = await request(baru).post("/buat").send(badan);
+    expect(h.status).toBe(400);
+    expect(h.text).toBe("validation.adminFee.required");
+  });
+
+  it("admin_fee negatif ditolak", async () => {
+    const h = await request(baru)
+      .post("/buat")
+      .send({ ...fakturLengkap, admin_fee: -1 });
+    expect(h.status).toBe(400);
+  });
+
+  it("admin_fee bernilai diterima", async () => {
+    const h = await request(baru)
+      .post("/buat")
+      .send({ ...fakturLengkap, admin_fee: 15000 });
     expect(h.status).toBe(200);
   });
 });

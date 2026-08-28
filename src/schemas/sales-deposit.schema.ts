@@ -302,6 +302,10 @@ export const createSalesDepositSchema = z
       ErrorList["Discount required"],
       ErrorList["Discount must be numeric"]
     ),
+    admin_fee: desimalTakNegatif(
+      ErrorList["Admin fee required"],
+      ErrorList["Admin fee must be numeric"]
+    ),
     service_type: jenisJasa,
     is_paid: z.boolean({ error: ErrorList["Payment status is required"] }),
     type: z.enum(["INTERNAL", "EXTERNAL"], {

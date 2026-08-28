@@ -253,6 +253,10 @@
     },
     "rebate": {
       "methodRequired": "Metode pembayaran pengembalian wajib dipilih."
+    },
+    "adminFee": {
+      "required": "Biaya administrasi tidak boleh kosong.",
+      "numeric": "Biaya administrasi harus berupa angka."
     }
   },
   "user": {

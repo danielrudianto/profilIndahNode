@@ -165,6 +165,9 @@ model sales_invoice_code {
   discount     Decimal   @default(0.0000) @db.Decimal(50, 4)
   delivery     Decimal   @default(0.0000) @db.Decimal(50, 4)
   service      Decimal   @default(0.0000) @db.Decimal(50, 4)
+  // Biaya administrasi kartu kredit beda bank. MENAMBAH tagihan pelanggan,
+  // sederajat dengan ongkos kirim dan jasa — bukan potongan yang ditanggung toko.
+  admin_fee    Decimal   @default(0.0000) @db.Decimal(50, 4)
   // Jenis jasa; NULL berarti faktur ini memang tidak menagih jasa, ATAU
   // faktur lama yang tercatat sebelum kolomnya ada. Lihat service-type.constant.ts.
   service_type String?   @db.VarChar(20)
@@ -234,6 +237,8 @@ model sales_deposit_code {
   discount    Decimal   @default(0.0000) @db.Decimal(50, 4)
   delivery    Decimal   @default(0.0000) @db.Decimal(50, 4)
   service     Decimal   @default(0.0000) @db.Decimal(50, 4)
+  // Ikut faktur yang lahir dari setoran ini.
+  admin_fee   Decimal   @default(0.0000) @db.Decimal(50, 4)
   // Ikut faktur yang lahir dari setoran ini; lihat service-type.constant.ts.
   service_type String?  @db.VarChar(20)
   uuid        String    @unique(map: "uuid_UNIQUE") @db.VarChar(45)

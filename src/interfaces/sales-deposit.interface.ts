@@ -14,6 +14,7 @@ export interface ISalesDepositCode {
   discount: number;
   delivery: number;
   service: number;
+  adminFee: number;
   serviceType: ServiceType | null;
   date: Date;
   uuid: string;

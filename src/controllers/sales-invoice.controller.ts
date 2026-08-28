@@ -58,6 +58,14 @@ class SalesInvoiceController {
     const discount = Number(req.body.discount);
     const delivery = Number(req.body.delivery);
     const service = Number(req.body.service);
+    /*
+      `?? 0` bukan kelonggaran: skema menolak permintaan yang tidak menyebut
+      biaya admin, jadi di jalur HTTP ia selalu ada. Yang dijaga di sini adalah
+      pemanggil yang melewati skema — nilai yang hilang menjadi NaN, dan NaN
+      dalam hitungan piutang merusak diam-diam sampai jauh di kemudian hari,
+      sementara nol adalah arti sebenarnya dari "tidak ada biaya admin".
+    */
+    const adminFee = Number(req.body.admin_fee ?? 0);
     const serviceType = req.body.service_type ?? null;
     const sales_invoice = req.body.sales_invoice as any[];
     const sales_invoice_payment = req.body.sales_invoice_payment as any[];
@@ -82,7 +90,7 @@ class SalesInvoiceController {
           a + (Number(x.price) - Number(x.discount)) * Number(x.quantity),
         0
       );
-      if (discount > totalBaris + delivery + service) {
+      if (discount > totalBaris + delivery + service + adminFee) {
         return res.status(400).send(ErrorList["Discount > total"]);
       }
 
@@ -93,6 +101,7 @@ class SalesInvoiceController {
         discount: discount,
         delivery: delivery,
         service: service,
+        adminFee: adminFee,
         serviceType: serviceType,
         sales: sales,
         isPaid: isPaid,
@@ -141,7 +150,10 @@ class SalesInvoiceController {
       if (!isPaid) {
         await this.receivableRepository.addReceivableValue(
           billResult.delivery +
-            billResult.service -
+            billResult.service +
+            /* Biaya admin ditagihkan ke pelanggan, jadi ia menambah piutang —
+               meski tidak dihitung sebagai omzet. */
+            Number(billResult.adminFee ?? 0) -
             billResult.discount +
             billResult.sales_invoice!.reduce((a, b) => {
               return a + (b.price - b.discount) * b.quantity;

@@ -29,6 +29,8 @@ export class DashboardRepository {
       this.prisma.$queryRaw<any[]>`
         SELECT COUNT(*) AS n,
           COALESCE(SUM(is_paid = 0), 0) AS belum_lunas,
+          -- Biaya admin sengaja TIDAK ikut: ini angka omzet hari ini, dan
+          -- biaya admin uang titipan untuk bank, bukan penghasilan toko.
           COALESCE(SUM(delivery + service - discount), 0) AS tambahan
         FROM sales_invoice_code
         WHERE date = ${hariIni} AND is_delete = false`,
@@ -73,10 +75,10 @@ export class DashboardRepository {
       this.prisma.$queryRaw<any[]>`
         SELECT c.id, c.name, c.is_paid, c.date, cust.name AS customer,
           COALESCE(SUM(si.quantity * (si.price - si.discount)), 0)
-            + c.delivery + c.service - c.discount AS total
+            + c.delivery + c.service + c.admin_fee - c.discount AS total
         FROM (
           SELECT id, name, is_paid, date, customer_id,
-            delivery, service, discount
+            delivery, service, admin_fee, discount
           FROM sales_invoice_code
           WHERE is_delete = false
           ORDER BY date DESC, id DESC
@@ -85,7 +87,7 @@ export class DashboardRepository {
         LEFT JOIN customer cust ON cust.id = c.customer_id
         LEFT JOIN sales_invoice si ON si.sales_invoice_code_id = c.id
         GROUP BY c.id, c.name, c.is_paid, c.date, cust.name,
-          c.delivery, c.service, c.discount
+          c.delivery, c.service, c.admin_fee, c.discount
         ORDER BY c.date DESC, c.id DESC`,
     ]);
 

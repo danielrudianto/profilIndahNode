@@ -52,6 +52,13 @@ export class SalesReportController {
       delivery: result.delivery,
       discount: result.discount,
       service: result.service,
+      adminFee: result.adminFee,
+      /*
+        Biaya admin sengaja TIDAK masuk total. Ini laporan penjualan — angka
+        omzet — sedangkan biaya admin uang titipan yang diteruskan ke bank.
+        Ia dikirim terpisah supaya tetap bisa ditampilkan sebagai barisnya
+        sendiri, bukan supaya ikut dijumlahkan.
+      */
       total: result.value + result.delivery + result.service - result.discount,
       chart: chart,
       brand: brand,

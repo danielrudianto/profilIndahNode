@@ -158,6 +158,10 @@ export const createInvoiceSchema = z.object({
     ErrorList["Service required"],
     ErrorList["Service must be numeric"]
   ),
+  admin_fee: desimalTakNegatif(
+    ErrorList["Admin fee required"],
+    ErrorList["Admin fee must be numeric"]
+  ),
   service_type: jenisJasa,
   is_paid: z.boolean({ error: ErrorList["Payment status is required"] }),
   /*

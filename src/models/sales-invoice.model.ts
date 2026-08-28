@@ -17,6 +17,7 @@ export class SalesInvoiceModel {
   discount: number;
   delivery: number;
   service: number;
+  adminFee: number;
   serviceType: ServiceType | null;
   sales: string | null;
   customerID: number | null;
@@ -61,6 +62,7 @@ export class SalesInvoiceModel {
     this.discount = data.discount;
     this.delivery = data.delivery;
     this.service = data.service;
+    this.adminFee = data.adminFee;
     this.serviceType = data.serviceType;
     this.date = data.date;
     this.is_confirm = data.isConfirm;
@@ -97,6 +99,8 @@ export class SalesInvoiceModel {
     discount: any;
     delivery: any;
     service: any;
+    /* Opsional demi pemanggil lama; ketiadaannya berarti nol. */
+    admin_fee?: any;
   }): number {
     const nilai = (data.sales_invoice ?? []).reduce(
       (jumlah, baris) =>
@@ -105,11 +109,17 @@ export class SalesInvoiceModel {
       0
     );
 
+    /*
+      Biaya admin IKUT total dokumen — pelanggan yang membayarnya. Ia tidak
+      ikut omzet, dan itu urusan laporan; total yang tertagih tetap harus
+      menyebut seluruh yang harus dibayar.
+    */
     return (
       nilai -
       Number(data.discount) +
       Number(data.service) +
-      Number(data.delivery)
+      Number(data.delivery) +
+      Number(data.admin_fee ?? 0)
     );
   }
 
@@ -121,6 +131,7 @@ export class SalesInvoiceModel {
       discount: Number(data.discount),
       delivery: Number(data.delivery),
       service: Number(data.service),
+      adminFee: Number(data.admin_fee ?? 0),
       serviceType: data.service_type ?? null,
       sales: data.sales,
       customerID: data.customer_id,

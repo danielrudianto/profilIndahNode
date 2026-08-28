@@ -17,6 +17,7 @@ export class SalesDepositModel {
   discount: number;
   delivery: number;
   service: number;
+  adminFee: number;
   serviceType: ServiceType | null;
   sales: string | null;
   customerID: number | null;
@@ -47,6 +48,7 @@ export class SalesDepositModel {
     this.discount = data.discount;
     this.delivery = data.delivery;
     this.service = data.service;
+    this.adminFee = data.adminFee;
     this.serviceType = data.serviceType;
     this.date = data.date;
     this.isConfirm = data.isConfirm;
@@ -73,6 +75,7 @@ export class SalesDepositModel {
       discount: Number(data.discount),
       delivery: Number(data.delivery),
       service: Number(data.service),
+      adminFee: Number(data.admin_fee ?? 0),
       serviceType: data.service_type ?? null,
       sales: data.sales,
       customerID: data.customer_id,
