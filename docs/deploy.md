@@ -983,6 +983,186 @@ dari MySQL lewat langkah 9.4.
 
 ---
 
+## Bagian 12 — Memindahkan server yang SUDAH HIDUP
+
+Bagian 1–11 memasang server dari nol. Bagian ini untuk keadaan yang berbeda
+dan lebih berbahaya: memindahkan sistem yang sedang dipakai orang, dengan data
+yang bertambah sampai detik terakhir.
+
+Perbedaan pokoknya satu. Pada pemasangan baru, salah berarti mengulang. Di
+sini, salah berarti kehilangan faktur yang sudah diketik kasir.
+
+Skenario yang diasumsikan: mesin tujuan MASIH KOSONG, domainnya TETAP
+`v20.profilindah.id`, dan pemindahannya dilakukan saat toko tutup.
+
+---
+
+### 12.1 — Sehari sebelumnya
+
+**Turunkan TTL DNS menjadi 300 detik.** Tanpa ini, penyedia DNS bisa menahan
+alamat lama berjam-jam sesudah dialihkan, dan sebagian pengguna tetap menulis
+ke server lama — data yang tertulis di sana sesudah dump TIDAK akan ikut
+pindah, dan tidak ada yang tahu sampai ada yang mencari fakturnya.
+
+**Pasang mesin barunya sampai selesai** — Bagian 1 sampai 8, kecuali sertifikat
+TLS. Sertifikat menuntut domainnya sudah menunjuk ke mesin itu, sementara
+domainnya masih melayani toko. Dua jalan keluar, pilih yang pertama:
+
+1. **Salin sertifikat yang sudah ada** dari mesin lama. Berkasnya portabel,
+   dan dengan begitu HTTPS langsung hidup begitu DNS dialihkan — tanpa
+   menunggu certbot dan tanpa jendela merah di peramban.
+
+   ```bash
+   # DI MESIN LAMA
+   sudo tar czf /tmp/letsencrypt.tgz -C /etc letsencrypt
+   # salin ke mesin baru, lalu DI MESIN BARU:
+   sudo tar xzf letsencrypt.tgz -C /etc
+   sudo nginx -t && sudo systemctl reload nginx
+   ```
+
+2. Atau biarkan certbot berjalan sesudah DNS dialihkan, dan terima beberapa
+   menit tanpa HTTPS.
+
+**Lakukan GLADI BERSIH.** Ini bagian yang paling sering dilewati dan paling
+mahal ketika dilewati: jalankan seluruh 12.3 dan 12.4 memakai dump hari itu,
+sementara toko masih buka dan tidak ada tekanan waktu. Yang dicari bukan
+hasilnya, melainkan kejutannya — versi MySQL yang berbeda, sandi yang salah
+ketik, job yang gagal, jumlah baris yang tidak cocok. Catat berapa lama
+impornya, karena itulah panjang jendela beku nanti.
+
+---
+
+### 12.2 — Membekukan
+
+Urutannya penting: **hentikan aplikasinya, baru dump.** Dump yang diambil
+selagi aplikasi masih menulis menghasilkan salinan yang isinya setengah
+transaksi.
+
+```bash
+# DI MESIN LAMA
+sudo systemctl stop profil-indah-api profil-indah-worker
+sudo systemctl status profil-indah-api --no-pager | head -3   # pastikan mati
+```
+
+nginx dibiarkan HIDUP. Pengguna yang masih membuka aplikasinya akan menerima
+galat sambungan, dan itu justru jelas — lebih baik daripada halaman yang
+terbuka tetapi diam-diam gagal menyimpan.
+
+---
+
+### 12.3 — Memindahkan data
+
+**Basis data.** Sertakan `_prisma_migrations`; tabel itu yang membuat
+`migrate deploy` di mesin baru tahu migrasi mana yang sudah diterapkan. Tanpa
+ia ikut, Prisma akan mencoba menjalankan ulang seluruhnya dan gagal.
+
+```bash
+# DI MESIN LAMA
+mysqldump --defaults-file=/root/.my.cnf --single-transaction --routines \
+  profil_indah | gzip > /tmp/pindah.sql.gz
+```
+
+```bash
+# DI MESIN BARU
+gunzip < pindah.sql.gz | mysql profil_indah
+mysql profil_indah -e "SELECT COUNT(*) FROM sales_invoice_code;"
+```
+
+**Daftar sales di Redis — JANGAN dibangun ulang.** Ini jebakan yang khas
+sistem ini. Daftar nama sales hidup HANYA di Redis, dan `syncSales`
+menyusunnya ulang DARI FAKTUR. Sales yang ditambahkan lewat aplikasi tetapi
+belum pernah menjual apa pun tidak ada di faktur mana pun, sehingga
+menjalankan `syncSales` di mesin baru akan MELENYAPKAN mereka tanpa jejak.
+Salin isinya, jangan bangun ulang:
+
+```bash
+# DI MESIN LAMA
+redis-cli --raw SMEMBERS salesmanList > /tmp/sales.txt
+wc -l /tmp/sales.txt
+```
+
+```bash
+# DI MESIN BARU — setelah berkasnya disalin
+while read -r nama; do
+  [ -n "$nama" ] && redis-cli SADD salesmanList "$nama" > /dev/null
+done < sales.txt
+redis-cli SCARD salesmanList     # harus sama dengan wc -l tadi
+```
+
+**Kunci token.** Salin `TOKEN_KEY` dan `REFRESH_TOKEN_KEY` dari `.env` lama ke
+`.env` baru. Menggantinya bukan kesalahan, tetapi membuat SEMUA pengguna
+terlempar keluar dan harus masuk lagi — hal yang tidak perlu ditambahkan ke
+pagi pertama di server baru. `DATABASE_URL` tentu memakai sandi mesin baru.
+
+**Meilisearch tidak perlu disalin.** Indeksnya turunan; dibangun ulang di
+12.4 dari basis data yang barusan masuk.
+
+---
+
+### 12.4 — Menyalakan mesin baru
+
+```bash
+cd /var/www/profilindah.id/backend
+npx prisma migrate deploy
+node dist/setup/meilisearch.setup.js
+node dist/startup.js syncProduct
+node dist/startup.js syncProductPackage
+sudo systemctl start profil-indah-api profil-indah-worker
+```
+
+`syncSales` TIDAK dijalankan — daftarnya sudah disalin di 12.3.
+
+Sebelum menyentuh DNS, buktikan mesin barunya benar-benar melayani, dengan
+melewati DNS memakai `--resolve`:
+
+```bash
+curl -sI --resolve v20.service.profilindah.id:443:IP_MESIN_BARU \
+  https://v20.service.profilindah.id/ | head -1
+```
+
+Lalu cocokkan jumlah baris tabel terpenting antara kedua mesin. Angkanya harus
+sama persis; kalau tidak, berhenti dan cari sebabnya sebelum melanjutkan.
+
+```bash
+for t in sales_invoice_code sales_invoice good_receipt_code stock_card product user; do
+  printf '%-22s %s\n' "$t" "$(mysql -N profil_indah -e "SELECT COUNT(*) FROM $t;")"
+done
+```
+
+---
+
+### 12.5 — Mengalihkan DNS
+
+Arahkan `v20.profilindah.id` dan `v20.service.profilindah.id` ke alamat mesin
+baru. Dengan TTL 300 detik yang sudah dipasang sehari sebelumnya, peralihannya
+selesai dalam hitungan menit.
+
+Pantau sampai benar-benar pindah:
+
+```bash
+watch -n 10 'dig +short v20.profilindah.id'
+```
+
+Sesudah itu jalankan Bagian 10 dan 10b — verifikasi hidup dan verifikasi
+cepat — plus `redis-cli SCARD salesmanList`.
+
+---
+
+### 12.6 — Sesudahnya
+
+**Jangan hapus mesin lama.** Biarkan berdiri sekurang-kurangnya satu pekan,
+dengan layanannya tetap mati. Itulah jalan mundur satu-satunya: bila esok
+ternyata ada yang salah, DNS tinggal diarahkan kembali dan layanan lamanya
+dinyalakan.
+
+**Pasang cadangan** (Bagian 11) di mesin baru pada hari yang sama. Mesin baru
+tanpa cron cadangan adalah keadaan yang paling mudah terlupakan dan paling
+mahal ketika terbukti terlupa.
+
+**Naikkan kembali TTL DNS** setelah seminggu berjalan tenang.
+
+---
+
 ## Lampiran — Yang paling sering terlupa
 
 1. `ng build` dijalankan dari commit lama — frontend jadinya masih menembak
@@ -998,6 +1178,11 @@ dari MySQL lewat langkah 9.4.
    padahal basis datanya sehat (Bagian 9.4).
 7b. `syncSales` belum dijalankan — autocomplete nama sales diam tanpa satu pun
    galat, dan tidak ada yang menyadarinya sampai kasir mengeluh (Bagian 9.4).
+11. Saat MEMINDAHKAN server: `syncSales` dijalankan alih-alih menyalin isi
+    Redis, sehingga sales yang belum pernah menjual lenyap tanpa jejak
+    (Bagian 12.3).
+12. Saat MEMINDAHKAN server: dump diambil sebelum layanan dihentikan, sehingga
+    isinya setengah transaksi (Bagian 12.2).
 8. `listen 443 ssl;` dari Certbot dibiarkan tanpa `http2` — aplikasi terasa
    berat sejak hari pertama tanpa satu pun galat (Bagian 8).
 9. `innodb_buffer_pool_size` dibiarkan pada bawaan 128 MB, jauh di bawah
