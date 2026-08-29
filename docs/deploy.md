@@ -666,6 +666,20 @@ server {
 
     gzip on;
     gzip_types text/css application/javascript application/json image/svg+xml;
+
+    # Berkas terjemahan dan penanda versi TIDAK ber-hash namanya, berbeda dari
+    # potongan JavaScript yang selalu berganti nama tiap build. Peramban
+    # karena itu menyimpannya, dan sesudah deploy ia memasangkan HTML BARU
+    # dengan terjemahan LAMA — yang terlihat pengguna adalah kunci mentah
+    # seperti "dashboard__piutang__belum-tooltip" tercetak di layar.
+    #
+    # no-cache bukan berarti tidak disimpan: berkasnya tetap disimpan, hanya
+    # selalu ditanyakan dulu apakah masih yang terbaru. Ukurannya beberapa
+    # puluh kilobyte, jadi ongkos bertanya itu tidak ada artinya dibanding
+    # halaman yang menampilkan kunci mentah kepada kasir.
+    location ~ ^/assets/(i18n|version\.json) {
+        add_header Cache-Control "no-cache";
+    }
 }
 
 # API
