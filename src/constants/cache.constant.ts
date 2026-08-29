@@ -41,12 +41,19 @@ export const KUNCI_CACHE_ARSIP_FAKTUR = "arsip:sales-invoice";
 export const UMUR_CACHE_LABA_RUGI = 43200;
 
 /*
-  Laporan bulanan — dua umur, dipilih menurut bulan yang diminta.
+  Laporan penjualan dan pembelian — dua umur, dipilih menurut bulan yang
+  diminta.
 
   Bulan yang sudah lewat tidak akan berubah lagi, jadi umurnya panjang; satu
-  halaman laporan penjualan meminta tiga bulan sekaligus, dan dua di antaranya
-  selalu bulan mati. Bulan berjalan dibuat pendek supaya faktur yang baru masuk
-  tidak lama tersembunyi.
+  halaman meminta tiga bulan sekaligus, dan dua di antaranya selalu bulan mati.
+
+  Bulan berjalan SATU JAM, naik dari lima menit. Ongkosnya hanya terjadi
+  ketika ada yang membuka halamannya — tidak ada yang membuka berarti tidak
+  ada yang dihitung — sehingga umur yang lebih panjang tidak menahan pekerjaan
+  siapa pun, ia hanya mengurangi berapa kali hal yang sama dihitung ulang.
+
+  Laporan ini juga dihangatkan tiap jam tiga pagi, jadi angkanya sudah siap
+  sebelum orang pertama datang.
 */
-export const UMUR_CACHE_LAPORAN_BERJALAN = 300;
+export const UMUR_CACHE_LAPORAN_BERJALAN = 3600;
 export const UMUR_CACHE_LAPORAN_LAMPAU = 43200;
