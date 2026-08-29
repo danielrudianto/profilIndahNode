@@ -69,3 +69,17 @@ export const UMUR_CACHE_LAPORAN_LAMPAU = 43200;
   "ada yang menunggu", bukan "ada yang menunggu detik ini".
 */
 export const UMUR_CACHE_LENCANA = 30;
+
+/*
+  Lencana stok bermasalah — DUA JAM, terpisah dari lencana lainnya.
+
+  Hitungannya memindai seluruh tabel barang: ambangnya membandingkan dua kolom
+  pada tabel berbeda, dan perbandingan seperti itu tidak bisa dibantu indeks
+  apa pun.
+
+  Umurnya panjang karena kenyataannya memang begitu — barang yang menipis pagi
+  ini masih menipis sore nanti. Menyatukannya dengan lencana dokumen berarti
+  salah satu dirugikan: yang murah ikut terkunci berjam-jam, atau yang mahal
+  dipaksa dihitung tiap menit.
+*/
+export const UMUR_CACHE_LENCANA_STOK = 7200;

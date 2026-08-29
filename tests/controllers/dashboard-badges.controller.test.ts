@@ -4,13 +4,12 @@ import request from "supertest";
 /**
  * Lencana menu — berapa pekerjaan yang masih menunggu orang.
  *
- * Yang diuji di sini bukan angkanya, melainkan BENTUKNYA: ketiga kunci selalu
- * ada dan selalu angka. Layar memakainya untuk memutuskan menampilkan lencana
- * atau tidak, dan kunci yang hilang membuatnya diam — persis kebalikan dari
- * gunanya.
+ * Yang diuji di sini bukan angkanya, melainkan BENTUK dan ONGKOSNYA: keempat
+ * kunci selalu ada, dan hitungan yang mahal tidak diulang hanya karena
+ * hitungan yang murah kedaluwarsa.
  */
 
-/* Cache lencana ditiru: uji ini menguji perilaku menghitung, bukan menyimpan. */
+/* Redis ditiru supaya uji tidak bergantung ada-tidaknya Redis di mesin ini. */
 const cacheAmbil = jest.fn().mockResolvedValue(null);
 const cacheSimpan = jest.fn().mockResolvedValue("OK");
 jest.mock("../../src/utils/redis.helper", () => ({
@@ -39,24 +38,21 @@ jest.mock("../../src/utils/socket.helper", () => ({
 
 import DashboardController from "../../src/controllers/dashboard.controller";
 
+/** Dashboard tiruan dengan kedua metode lencana; keduanya bisa diatur. */
+function dashboardTiruan(pending: unknown = {}, stok = 0) {
+  return {
+    fetchPendingCounts: jest.fn().mockResolvedValue(pending),
+    fetchProblematicStockCount: jest.fn().mockResolvedValue(stok),
+  };
+}
+
 function app(dashboard: unknown) {
   const c = new DashboardController(
     dashboard as never,
     {} as never,
     {} as never,
     {} as never,
-    {
-      fetchSummary: jest
-        .fn()
-        .mockResolvedValue({
-          total: 0,
-          invoices: 0,
-          customers: 0,
-          overdueValue: 0,
-          overdueInvoices: 0,
-          oldestDays: 0,
-        }),
-    } as never
+    {} as never
   );
   const a = express();
   a.use(express.json());
@@ -64,18 +60,17 @@ function app(dashboard: unknown) {
   return a;
 }
 
+beforeEach(() => {
+  cacheAmbil.mockReset().mockResolvedValue(null);
+  cacheSimpan.mockReset().mockResolvedValue("OK");
+});
+
 describe("GET /dashboard/badges", () => {
-  it("membalas ketiga hitungan", async () => {
-    const dashboard = {
-      fetchBadgeCounts: jest
-        .fn()
-        .mockResolvedValue({
-          overpayment: 1,
-          goodReceipt: 7,
-          adjustment: 0,
-          stock: 42,
-        }),
-    };
+  it("membalas keempat hitungan", async () => {
+    const dashboard = dashboardTiruan(
+      { overpayment: 1, goodReceipt: 7, adjustment: 0 },
+      42
+    );
 
     const res = await request(app(dashboard)).get("/badges");
 
@@ -94,16 +89,10 @@ describe("GET /dashboard/badges", () => {
     tampak sama.
   */
   it("mengirim nol, bukan menghilangkan kuncinya", async () => {
-    const dashboard = {
-      fetchBadgeCounts: jest
-        .fn()
-        .mockResolvedValue({
-          overpayment: 0,
-          goodReceipt: 0,
-          adjustment: 0,
-          stock: 0,
-        }),
-    };
+    const dashboard = dashboardTiruan(
+      { overpayment: 0, goodReceipt: 0, adjustment: 0 },
+      0
+    );
 
     const res = await request(app(dashboard)).get("/badges");
 
@@ -116,9 +105,8 @@ describe("GET /dashboard/badges", () => {
   });
 
   it("membalas 500 ketika repository gagal", async () => {
-    const dashboard = {
-      fetchBadgeCounts: jest.fn().mockRejectedValue(new Error("gagal")),
-    };
+    const dashboard = dashboardTiruan();
+    dashboard.fetchPendingCounts.mockRejectedValue(new Error("gagal"));
 
     const res = await request(app(dashboard)).get("/badges");
 
@@ -126,51 +114,73 @@ describe("GET /dashboard/badges", () => {
   });
 });
 
-/*
-  Lencana diminta ulang oleh setiap layar yang terbuka, tiap menit. Tanpa
-  cache bersama, ongkosnya berlipat mengikuti jumlah orang yang bekerja.
-*/
+/**
+ * DUA simpanan dengan umur berbeda, bukan satu.
+ *
+ * Tiga hitungan dokumen murah dan harus segera menyusul kenyataan: penerimaan
+ * yang baru di-acc mesti hilang dari lencana dalam hitungan detik, kalau tidak
+ * orang mengira klik-nya tidak jadi.
+ *
+ * Hitungan stok memindai seluruh tabel barang — ambangnya membandingkan dua
+ * kolom pada tabel berbeda, dan tidak ada indeks yang bisa menolong. Ia juga
+ * tidak berubah dari menit ke menit.
+ *
+ * Satu umur untuk keduanya pasti merugikan salah satunya.
+ */
 describe("Cache lencana", () => {
-  beforeEach(() => {
-    cacheAmbil.mockReset().mockResolvedValue(null);
-    cacheSimpan.mockReset().mockResolvedValue("OK");
-  });
-
   it("memakai simpanan tanpa menyentuh basis data", async () => {
-    const dashboard = { fetchBadgeCounts: jest.fn() };
-    cacheAmbil.mockResolvedValue(
-      JSON.stringify({
-        overpayment: 5,
-        goodReceipt: 0,
-        adjustment: 0,
-        stock: 0,
-      })
+    const dashboard = dashboardTiruan();
+    cacheAmbil.mockImplementation((kunci: string) =>
+      Promise.resolve(
+        kunci === "lencana:menu"
+          ? JSON.stringify({ overpayment: 5, goodReceipt: 0, adjustment: 0 })
+          : JSON.stringify({ stock: 3 })
+      )
     );
 
     const res = await request(app(dashboard)).get("/badges");
 
     expect(res.body.overpayment).toBe(5);
-    expect(dashboard.fetchBadgeCounts).not.toHaveBeenCalled();
+    expect(res.body.stock).toBe(3);
+    expect(dashboard.fetchPendingCounts).not.toHaveBeenCalled();
+    expect(dashboard.fetchProblematicStockCount).not.toHaveBeenCalled();
   });
 
-  it("menyimpan hasilnya sesudah dihitung", async () => {
-    const dashboard = {
-      fetchBadgeCounts: jest
-        .fn()
-        .mockResolvedValue({
-          overpayment: 1,
-          goodReceipt: 2,
-          adjustment: 3,
-          stock: 4,
-        }),
-    };
+  it("menyimpan dua kunci terpisah, dan stok berumur lebih panjang", async () => {
+    const dashboard = dashboardTiruan(
+      { overpayment: 1, goodReceipt: 2, adjustment: 3 },
+      4
+    );
 
     await request(app(dashboard)).get("/badges");
 
-    expect(cacheSimpan).toHaveBeenCalledWith(
-      "lencana:menu",
-      expect.any(Number),
-      expect.any(String)
+    const umur = Object.fromEntries(
+      cacheSimpan.mock.calls.map((c: any[]) => [c[0], c[1]])
     );
+    expect(Object.keys(umur).sort()).toEqual(["lencana:menu", "lencana:stok"]);
+    expect(umur["lencana:stok"]).toBeGreaterThan(umur["lencana:menu"]);
+  });
+
+  /*
+    Inilah gunanya dipisah: lencana dokumen yang kedaluwarsa tiap setengah
+    menit TIDAK boleh menyeret hitungan stok ikut dihitung ulang.
+  */
+  it("tidak menghitung ulang stok ketika simpanannya masih ada", async () => {
+    const dashboard = dashboardTiruan({
+      overpayment: 1,
+      goodReceipt: 2,
+      adjustment: 3,
+    });
+    cacheAmbil.mockImplementation((kunci: string) =>
+      Promise.resolve(
+        kunci === "lencana:stok" ? JSON.stringify({ stock: 9 }) : null
+      )
+    );
+
+    const res = await request(app(dashboard)).get("/badges");
+
+    expect(res.body.stock).toBe(9);
+    expect(dashboard.fetchPendingCounts).toHaveBeenCalled();
+    expect(dashboard.fetchProblematicStockCount).not.toHaveBeenCalled();
   });
 });

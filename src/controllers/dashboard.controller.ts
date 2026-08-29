@@ -5,7 +5,10 @@ import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
 import { dariCacheLaporan, keCacheLaporan } from "../utils/report-cache.helper";
-import { UMUR_CACHE_LENCANA } from "../constants/cache.constant";
+import {
+  UMUR_CACHE_LENCANA,
+  UMUR_CACHE_LENCANA_STOK,
+} from "../constants/cache.constant";
 import { ReceivableRepository } from "../repositories/receivable.repository";
 
 /**
@@ -69,6 +72,22 @@ export class DashboardController {
    * yang memang boleh dibuka orang itu. Menyaringnya dua kali di sini hanya
    * menambah tempat yang bisa tidak sepakat.
    */
+  /** Ambil dari simpanan; hitung dan simpan bila belum ada. */
+  private ambilDenganCache = async <T>(
+    kunci: string,
+    umur: number,
+    hitung: () => Promise<T>
+  ): Promise<T> => {
+    const tersimpan = await dariCacheLaporan(kunci);
+    if (tersimpan) {
+      return tersimpan as T;
+    }
+
+    const hasil = await hitung();
+    await keCacheLaporan(kunci, hasil, umur);
+    return hasil;
+  };
+
   fetchBadges = async (_req: Request, res: Response) => {
     try {
       /*
@@ -84,15 +103,33 @@ export class DashboardController {
         mengubah satu pun keputusan orang — sementara memindai enam ribu
         barang tiap menit per pengguna sangat mengubah beban servernya.
       */
-      const kunci = "lencana:menu";
-      const tersimpan = await dariCacheLaporan(kunci);
-      if (tersimpan) {
-        return res.status(200).send(tersimpan);
-      }
+      /*
+        DUA simpanan dengan umur berbeda, bukan satu.
 
-      const hasil = await this.dashboardRepository.fetchBadgeCounts();
-      await keCacheLaporan(kunci, hasil, UMUR_CACHE_LENCANA);
-      return res.status(200).send(hasil);
+        Tiga hitungan dokumen murah dan harus segera menyusul kenyataan:
+        penerimaan yang baru di-acc mesti hilang dari lencana dalam hitungan
+        detik, kalau tidak orang mengira klik-nya tidak jadi.
+
+        Hitungan stok mahal — ia memindai seluruh tabel barang karena ambangnya
+        membandingkan dua kolom pada tabel berbeda, dan tidak ada indeks yang
+        bisa menolong. Ia juga tidak berubah dari menit ke menit: barang yang
+        menipis pagi ini masih menipis sore nanti.
+
+        Disatukan dalam satu umur, salah satunya pasti dirugikan — yang murah
+        ikut terkunci berjam-jam, atau yang mahal dipaksa dihitung tiap menit.
+      */
+      const [pending, stock] = await Promise.all([
+        this.ambilDenganCache("lencana:menu", UMUR_CACHE_LENCANA, () =>
+          this.dashboardRepository.fetchPendingCounts()
+        ),
+        this.ambilDenganCache("lencana:stok", UMUR_CACHE_LENCANA_STOK, () =>
+          this.dashboardRepository
+            .fetchProblematicStockCount()
+            .then((jumlah) => ({ stock: jumlah }))
+        ),
+      ]);
+
+      return res.status(200).send({ ...pending, ...stock });
     } catch (error) {
       console.error(`[error]: Error on fetching badge counts ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
