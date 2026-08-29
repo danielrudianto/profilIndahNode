@@ -153,6 +153,24 @@ fi
 [[ -f "$TUJUAN/index.html" ]] || gagal "penyalinan tidak menghasilkan index.html"
 
 # ---------------------------------------------------------------------
+# 5b. Izin baca untuk nginx
+# ---------------------------------------------------------------------
+# nginx berjalan sebagai www-data dan hanya perlu MEMBACA. Tetapi berkas
+# hasil salinan mewarisi umask pemanggilnya — dan ketika skrip ini
+# dijalankan dengan sudo, umask root menghasilkan berkas yang hanya bisa
+# dibaca pemiliknya.
+#
+# Gejalanya bukan "403 Forbidden" yang jelas, melainkan 500: try_files
+# jatuh ke /index.html yang juga tidak terbaca, lalu berputar sampai nginx
+# menyerah dengan "rewrite or internal redirection cycle". Sebabnya sama
+# sekali tidak terbaca dari halaman yang dilihat pengguna.
+#
+# Folder induknya butuh izin telusur, bukan baca: tanpa +x di situ,
+# www-data tidak bisa masuk meski isinya sudah bisa dibaca.
+chmod -R a+rX "$TUJUAN"
+chmod o+x "$(dirname "$TUJUAN")"
+
+# ---------------------------------------------------------------------
 # 6. Uji hidup
 # ---------------------------------------------------------------------
 # Diuji dengan NAMA DOMAINnya, bukan 127.0.0.1.
