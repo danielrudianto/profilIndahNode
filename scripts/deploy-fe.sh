@@ -37,6 +37,26 @@ LEWATI_TARIK=0
 
 cd "$SUMBER" || gagal "folder sumber tidak ada: $SUMBER"
 
+# Menjalankan skrip ini dengan sudo meninggalkan berkas milik root di dalam
+# .git, dan perintah git BERIKUTNYA — yang dijalankan sebagai pengguna biasa —
+# gagal dengan "insufficient permission for adding an object", pesan yang sama
+# sekali tidak menyebut siapa pemiliknya.
+#
+# Diperiksa di depan supaya sebabnya terbaca sebelum apa pun sempat berubah.
+# deploy.sh backend sudah punya pemeriksaan yang sama; ini menyusul karena
+# kekeliruannya memang sudah kejadian.
+[[ -w "$SUMBER/.git" ]] || gagal ".git tidak dapat ditulis — jalankan: sudo chown -R \$USER:\$USER $SUMBER"
+
+# Skrip ini TIDAK boleh dijalankan dengan sudo. Yang disalinnya cuma berkas
+# statis yang dibaca nginx, dan menjalankannya sebagai root justru melahirkan
+# dua masalah sekaligus: berkas hasil build jadi milik root, dan izin salinannya
+# mengikuti umask root sehingga nginx tidak bisa membacanya.
+if [[ $EUID -eq 0 ]]; then
+  kuning "PERINGATAN: dijalankan sebagai root."
+  kuning "Berkas hasil build akan menjadi milik root, dan git berikutnya gagal."
+  kuning "Jalankan sebagai pengguna biasa: $0"
+fi
+
 # ---------------------------------------------------------------------
 # 1. Tarik perubahan
 # ---------------------------------------------------------------------
