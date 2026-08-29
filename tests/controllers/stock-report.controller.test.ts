@@ -170,7 +170,12 @@ describe("GET /inventory — nilai persediaan per perusahaan", () => {
     const res = await request(app(r)).get("/inventory");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(hasil);
+    /*
+      Cap waktu ikut sejak umur cache-nya naik ke dua puluh empat jam:
+      pembacanya harus tahu angka ini dihitung kapan. Sisanya diteruskan
+      apa adanya.
+    */
+    expect(res.body).toEqual({ ...hasil, computedAt: expect.any(String) });
     // Tanpa parameter, tanggalnya hari ini.
     const tanggal = r.stockIn.calculateAsOf.mock.calls[0][0] as Date;
     expect(tanggal).toBeInstanceOf(Date);

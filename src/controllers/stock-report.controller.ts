@@ -91,7 +91,15 @@ export class StockReportController {
         return res.status(200).send(JSON.parse(simpanan));
       }
 
-      const result = await this.stockInRepository.calculateAsOf(tanggal);
+      /*
+        Umur cache-nya dua puluh empat jam, jadi pembacanya WAJIB tahu angka
+        ini dihitung kapan. Angka lama yang tidak menyebut umurnya dikira
+        baru — dan itu yang berbahaya, bukan angka lamanya sendiri.
+      */
+      const result = {
+        ...(await this.stockInRepository.calculateAsOf(tanggal)),
+        computedAt: new Date().toISOString(),
+      };
       await this.keCache(kunci, result);
       return res.status(200).send(result);
     } catch (error) {
@@ -268,7 +276,11 @@ export class StockReportController {
         this.stockInRepository.trendAsOf(tanggal),
         this.stockInRepository.nilaiPerMerekAsOf(tanggal),
       ]);
-      const result = { trend: trend, brands: brands };
+      const result = {
+        trend: trend,
+        brands: brands,
+        computedAt: new Date().toISOString(),
+      };
       await this.keCache(kunci, result);
       return res.status(200).send(result);
     } catch (error) {
