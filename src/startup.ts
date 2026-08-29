@@ -24,6 +24,7 @@ import { ProductStockRepository } from "./repositories/product-stock.repository"
 import { ProductStockService } from "./services/product.stock.service";
 import { AdjustmentCaseRepository } from "./repositories/adjustment-case.repository";
 import { SalesReturnRepository } from "./repositories/sales-return.repository";
+import { keCacheLaporan, umurCacheLaporan } from "./utils/report-cache.helper";
 
 async function connect() {
   await prisma.$connect();
@@ -146,6 +147,78 @@ async function syncProductPackage() {
     .addDocuments(productPackages, { primaryKey: "id" });
   await meili.tasks.waitForTask(productPackageInsertTask.taskUid);
   console.info(`[info]: ${productPackages.length} paket berhasil diindeks`);
+}
+
+/**
+ * Menghangatkan cache laporan bulanan sebelum ada yang membukanya.
+ *
+ * Cache yang diisi oleh pengguna PERTAMA berarti selalu ada satu orang yang
+ * membayar ongkosnya — dan di toko, orang itu selalu yang datang paling pagi.
+ * Perintah ini memindahkan ongkosnya ke jam yang tidak ada pemiliknya.
+ *
+ * Tiga bulan, karena halaman laporan penjualan memang meminta tiga sekaligus:
+ * bulan berjalan beserta dua sebelumnya.
+ *
+ * Menulis LANGSUNG ke Redis dengan kunci dan umur yang sama persis dengan
+ * controllernya. Menembak HTTP ke diri sendiri akan menuntut token dan
+ * membuat pekerjaan latar bergantung pada autentikasi — dan kunci yang
+ * berbeda sedikit saja membuat cache ini tidak pernah terpakai, tanpa
+ * gejala apa pun selain halaman yang tetap lambat.
+ */
+async function warmReports() {
+  const salesInvoiceRepository = new SalesInvoiceRepository(prisma);
+  const kini = new Date();
+
+  for (let mundur = 0; mundur < 3; mundur++) {
+    const d = new Date(kini.getFullYear(), kini.getMonth() - mundur, 1);
+    const year = d.getFullYear();
+    const month = d.getMonth() + 1;
+    const umur = umurCacheLaporan(year, month);
+
+    const pekerjaan: [string, () => Promise<unknown>][] = [
+      [
+        `laporan:penjualan-brand:${year}:${month}`,
+        () => salesInvoiceRepository.fetchBrandSales({ month, year }),
+      ],
+      [
+        `laporan:penjualan-type:${year}:${month}`,
+        () => salesInvoiceRepository.fetchTypeSales({ month, year }),
+      ],
+      [
+        `laporan:penjualan-customer:${year}:${month}`,
+        () => salesInvoiceRepository.fetchCustomerSales({ month, year }),
+      ],
+      [
+        `laporan:penjualan-sales:${year}:${month}`,
+        () => salesInvoiceRepository.fetchSalesSales({ month, year }),
+      ],
+    ];
+
+    /*
+      Berurutan, bukan berbarengan — sengaja.
+
+      Ini pekerjaan latar; tidak ada yang menunggu hasilnya. Menembakkan
+      belasan agregat sekaligus pada mesin dua vCPU justru menghukum siapa pun
+      yang kebetulan sedang memakai aplikasinya jam segitu.
+    */
+    for (const [kunci, hitung] of pekerjaan) {
+      try {
+        const data = await hitung();
+        await keCacheLaporan(
+          kunci,
+          { data, computedAt: new Date().toISOString() },
+          umur
+        );
+        console.info(`[info]: hangat — ${kunci}`);
+      } catch (error) {
+        /* Satu laporan gagal tidak boleh menghentikan sisanya: yang lain
+           tetap berguna, dan yang gagal cuma dihitung saat dibuka. */
+        console.error(`[error]: gagal menghangatkan ${kunci}: ${error}`);
+      }
+    }
+  }
+
+  console.info(`[info]: Cache laporan selesai dihangatkan`);
 }
 
 async function syncSales() {
@@ -417,6 +490,9 @@ async function runFunction(funcName: string) {
       process.exit(0);
     case "orderStockCard":
       await orderStockCard();
+      process.exit(0);
+    case "warmReports":
+      await warmReports();
       process.exit(0);
     case "syncSales":
       await syncSales();
