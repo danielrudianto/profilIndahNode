@@ -51,6 +51,24 @@ export class DashboardController {
     }
   };
 
+  /**
+   * Lencana menu — berapa pekerjaan yang masih menunggu.
+   *
+   * Terbuka untuk semua peran yang sudah masuk, dan itu disengaja: menu di
+   * sisi kiri sudah disaring peran, jadi lencana hanya terlihat pada item
+   * yang memang boleh dibuka orang itu. Menyaringnya dua kali di sini hanya
+   * menambah tempat yang bisa tidak sepakat.
+   */
+  fetchBadges = async (_req: Request, res: Response) => {
+    try {
+      const hasil = await this.dashboardRepository.fetchBadgeCounts();
+      return res.status(200).send(hasil);
+    } catch (error) {
+      console.error(`[error]: Error on fetching badge counts ${error}`);
+      return res.status(500).send(ErrorList["Internal server error"]);
+    }
+  };
+
   fetchSalesDashboard = async (req: Request, res: Response) => {
     try {
       const date = new Date();

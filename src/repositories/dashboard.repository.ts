@@ -14,6 +14,39 @@ export class DashboardRepository {
     this.prisma = prisma;
   }
 
+  /**
+   * Jumlah pekerjaan yang masih menunggu orang, untuk lencana di menu.
+   *
+   * Satu kueri berisi tiga subkueri hitung, bukan tiga perjalanan terpisah:
+   * ini diminta berulang oleh setiap layar yang terbuka, dan tiga kali
+   * bolak-balik untuk tiga angka kecil adalah pemborosan yang mengalikan
+   * dirinya sendiri sepanjang hari.
+   *
+   * Yang dihitung SELALU keadaan sekarang, tidak pernah disimpan di cache.
+   * Lencana yang basi lebih buruk daripada tidak ada lencana: ia memberi tahu
+   * bahwa tidak ada yang menunggu, padahal ada.
+   */
+  async fetchBadgeCounts(): Promise<{
+    overpayment: number;
+    goodReceipt: number;
+    adjustment: number;
+  }> {
+    const hasil = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        (SELECT COUNT(*) FROM overpayment WHERE is_resolved = 0) AS overpayment,
+        (SELECT COUNT(*) FROM good_receipt_code
+          WHERE is_confirm = 0 AND is_delete = 0) AS goodReceipt,
+        (SELECT COUNT(*) FROM adjustment_case_code
+          WHERE is_confirm = 0 AND is_delete = 0) AS adjustment`;
+
+    const b = hasil[0] ?? {};
+    return {
+      overpayment: Number(b.overpayment ?? 0),
+      goodReceipt: Number(b.goodReceipt ?? 0),
+      adjustment: Number(b.adjustment ?? 0),
+    };
+  }
+
   async ringkasan(hariIni: Date, mingguLalu: Date) {
     const [
       fakturHariIni,

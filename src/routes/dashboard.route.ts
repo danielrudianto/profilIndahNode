@@ -32,6 +32,13 @@ router.get(
   dashboardController.fetch
 );
 
+/*
+  Lencana menu. Tanpa penjaga peran tambahan — menu di frontend sudah
+  disaring peran, dan angkanya sendiri tidak membocorkan apa pun selain
+  "ada sekian yang menunggu".
+*/
+router.get("/badges", dashboardController.fetchBadges);
+
 router.post("/sales", dashboardController.fetchSalesDashboard);
 router.post("/purchasing", dashboardController.fetchPurchaseDashboard);
 
