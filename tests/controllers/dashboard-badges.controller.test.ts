@@ -44,7 +44,19 @@ function app(dashboard: unknown) {
     dashboard as never,
     {} as never,
     {} as never,
-    {} as never
+    {} as never,
+    {
+      fetchSummary: jest
+        .fn()
+        .mockResolvedValue({
+          total: 0,
+          invoices: 0,
+          customers: 0,
+          overdueValue: 0,
+          overdueInvoices: 0,
+          oldestDays: 0,
+        }),
+    } as never
   );
   const a = express();
   a.use(express.json());
@@ -57,7 +69,12 @@ describe("GET /dashboard/badges", () => {
     const dashboard = {
       fetchBadgeCounts: jest
         .fn()
-        .mockResolvedValue({ overpayment: 1, goodReceipt: 7, adjustment: 0, stock: 42 }),
+        .mockResolvedValue({
+          overpayment: 1,
+          goodReceipt: 7,
+          adjustment: 0,
+          stock: 42,
+        }),
     };
 
     const res = await request(app(dashboard)).get("/badges");
@@ -80,7 +97,12 @@ describe("GET /dashboard/badges", () => {
     const dashboard = {
       fetchBadgeCounts: jest
         .fn()
-        .mockResolvedValue({ overpayment: 0, goodReceipt: 0, adjustment: 0, stock: 0 }),
+        .mockResolvedValue({
+          overpayment: 0,
+          goodReceipt: 0,
+          adjustment: 0,
+          stock: 0,
+        }),
     };
 
     const res = await request(app(dashboard)).get("/badges");
@@ -117,7 +139,12 @@ describe("Cache lencana", () => {
   it("memakai simpanan tanpa menyentuh basis data", async () => {
     const dashboard = { fetchBadgeCounts: jest.fn() };
     cacheAmbil.mockResolvedValue(
-      JSON.stringify({ overpayment: 5, goodReceipt: 0, adjustment: 0, stock: 0 })
+      JSON.stringify({
+        overpayment: 5,
+        goodReceipt: 0,
+        adjustment: 0,
+        stock: 0,
+      })
     );
 
     const res = await request(app(dashboard)).get("/badges");
@@ -130,7 +157,12 @@ describe("Cache lencana", () => {
     const dashboard = {
       fetchBadgeCounts: jest
         .fn()
-        .mockResolvedValue({ overpayment: 1, goodReceipt: 2, adjustment: 3, stock: 4 }),
+        .mockResolvedValue({
+          overpayment: 1,
+          goodReceipt: 2,
+          adjustment: 3,
+          stock: 4,
+        }),
     };
 
     await request(app(dashboard)).get("/badges");

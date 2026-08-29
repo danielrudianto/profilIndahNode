@@ -6,6 +6,7 @@ import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
 import { dariCacheLaporan, keCacheLaporan } from "../utils/report-cache.helper";
 import { UMUR_CACHE_LENCANA } from "../constants/cache.constant";
+import { ReceivableRepository } from "../repositories/receivable.repository";
 
 /**
  * Ringkasan angka untuk halaman dashboard.
@@ -19,17 +20,20 @@ export class DashboardController {
   private salesInvoiceRepository: SalesInvoiceRepository;
   private goodReceiptRepository: GoodReceiptRepository;
   private promotionRepository: PromotionRepository;
+  private receivableRepository: ReceivableRepository;
 
   constructor(
     dashboardRepository: DashboardRepository,
     salesInvoiceRepository: SalesInvoiceRepository,
     goodReceiptRepository: GoodReceiptRepository,
-    promotionRepository: PromotionRepository
+    promotionRepository: PromotionRepository,
+    receivableRepository: ReceivableRepository
   ) {
     this.dashboardRepository = dashboardRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.goodReceiptRepository = goodReceiptRepository;
     this.promotionRepository = promotionRepository;
+    this.receivableRepository = receivableRepository;
   }
 
   fetch = async (req: Request, res: Response) => {
@@ -42,11 +46,15 @@ export class DashboardController {
     mingguLalu.setDate(mingguLalu.getDate() - 6);
 
     try {
-      const result = await this.dashboardRepository.ringkasan(
-        hariIni,
-        mingguLalu
-      );
-      return res.status(200).send(result);
+      /*
+        Piutang diambil berbarengan, bukan sesudahnya: keduanya saling bebas,
+        dan berbaris berarti waktu dasbornya adalah jumlah keduanya.
+      */
+      const [result, piutang] = await Promise.all([
+        this.dashboardRepository.ringkasan(hariIni, mingguLalu),
+        this.receivableRepository.fetchSummary(),
+      ]);
+      return res.status(200).send({ ...result, receivable: piutang });
     } catch (error) {
       console.error(`[error]: Error on fetching dashboard ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
@@ -129,12 +137,14 @@ export class DashboardController {
         currentMonth,
         previousMonth,
         activePromotion,
+        piutang,
       ] = await Promise.all([
         this.salesInvoiceRepository.fetchByDateRange(date, date),
         this.salesInvoiceRepository.fetchByDateRange(yesterday, yesterday),
         this.salesInvoiceRepository.fetchByDateRange(thisMonth, endOfMonth),
         this.salesInvoiceRepository.fetchByDateRange(lastMonth, thisMonth),
         this.promotionRepository.countActive(),
+        this.receivableRepository.fetchSummary(),
       ]);
 
       return res.status(200).send({
@@ -147,6 +157,12 @@ export class DashboardController {
           previous: previousMonth.value,
         },
         promotion: activePromotion,
+        /*
+          Piutang ikut di dasbor penjualan, bukan cuma di administrator: yang
+          menagih adalah orang penjualan, dan angka yang hanya terlihat oleh
+          atasannya tidak menolong siapa pun menagih.
+        */
+        receivable: piutang,
       });
     } catch (error) {
       console.error(`[error]: Error on fetching sales dashboard ${error}`);

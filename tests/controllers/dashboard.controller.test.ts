@@ -59,7 +59,17 @@ function app(
     dashboard as never,
     faktur as never,
     penerimaan as never,
-    promosi as never
+    promosi as never,
+    {
+      fetchSummary: jest.fn().mockResolvedValue({
+        total: 0,
+        invoices: 0,
+        customers: 0,
+        overdueValue: 0,
+        overdueInvoices: 0,
+        oldestDays: 0,
+      }),
+    } as never
   );
   const a = express();
   a.use(express.json());
@@ -124,7 +134,11 @@ describe("GET / — dashboard administrator 9c", () => {
     ).get("/");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual(isi);
+    /*
+      Ringkasannya tetap diteruskan apa adanya; piutang DITAMBAHKAN di
+      sampingnya, bukan menggantikan atau membungkus apa pun.
+    */
+    expect(res.body).toEqual({ ...isi, receivable: expect.any(Object) });
     expect(dashboard.ringkasan).toHaveBeenCalledTimes(1);
   });
 
@@ -207,6 +221,8 @@ describe("POST /sales — ringkasan untuk divisi penjualan", () => {
       sales: { current: 100, previous: 200 },
       sales_month: { current: 300, previous: 400 },
       promotion: 2,
+      /* Piutang ikut sejak dasbor menyebutkannya; isinya diuji terpisah. */
+      receivable: expect.any(Object),
     });
   });
 

@@ -8,6 +8,8 @@ import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository
 import { administratorMiddleware } from "../utils/auth.helper";
 import { validate } from "../utils/validate.helper";
 import { inventoryQuerySchema } from "../schemas/report.schema";
+import { ReceivableRepository } from "../repositories/receivable.repository";
+import { redisClient } from "../utils/redis.helper";
 
 const router = Router();
 
@@ -15,7 +17,8 @@ const dashboardController = new DashboardController(
   new DashboardRepository(prisma),
   new SalesInvoiceRepository(prisma),
   new GoodReceiptRepository(prisma),
-  new PromotionRepository(prisma)
+  new PromotionRepository(prisma),
+  new ReceivableRepository(redisClient, prisma)
 );
 
 /*
