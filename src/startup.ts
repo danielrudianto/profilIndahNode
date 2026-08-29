@@ -120,11 +120,32 @@ async function syncProductPackage() {
     `[info]: Fetched ${productPackages.length} product packages from database`
   );
 
+  /*
+    Tidak ada paket berarti tidak ada yang dikirim.
+
+    Sebelum ini pun jalurnya tetap menembak Meilisearch, dan yang dikirim
+    ditolak sebagai payload cacat — perintahnya mati dengan tumpukan galat
+    pada basis data yang sebetulnya baik-baik saja, hanya belum punya paket.
+  */
+  if (productPackages.length === 0) {
+    console.info(`[info]: Tidak ada paket untuk diindeks`);
+    return;
+  }
+
+  /*
+    productPackages, BUKAN [productPackages].
+
+    Bentuk lamanya membungkus lariknya dengan larik lagi, sehingga yang
+    terkirim adalah daftar berisi satu daftar — bukan daftar dokumen. Meili
+    menolaknya dengan "data are neither an object nor a list of objects",
+    yang artinya perintah ini TIDAK PERNAH berhasil sekali pun sejak ditulis,
+    dan indeks paket tidak pernah terisi.
+  */
   const productPackageInsertTask = await meili
     .index("package")
-    .addDocuments([productPackages], { primaryKey: "id" });
+    .addDocuments(productPackages, { primaryKey: "id" });
   await meili.tasks.waitForTask(productPackageInsertTask.taskUid);
-  console.info(`[info]: Product package database successfully inserted`);
+  console.info(`[info]: ${productPackages.length} paket berhasil diindeks`);
 }
 
 async function syncSales() {
