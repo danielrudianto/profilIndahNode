@@ -74,11 +74,27 @@ export class ReceivableRepository {
   async fetch() {
     try {
       const result = await this.prisma.$queryRaw<any[]>`
-      SELECT sub.id, sub.name, SUM(sub.value) AS value, SUM(sub.payment) AS payment
+      SELECT
+        sub.id, sub.name,
+        SUM(sub.value) AS value,
+        SUM(sub.payment) AS payment,
+        -- Sisa yang tenggatnya SUDAH lewat, per pelanggan.
+        --
+        -- Dihitung per faktur lalu dijumlahkan, bukan ditandai per pelanggan:
+        -- satu pelanggan lazim punya faktur yang sudah lewat tempo DAN yang
+        -- belum sekaligus, dan menandai orangnya akan memaksa salah satu
+        -- kelompok itu ikut terbaca keliru.
+        SUM(CASE WHEN sub.lewat = 1 THEN sub.value - sub.payment ELSE 0 END) AS overdue
       FROM (
         SELECT
           (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
           COALESCE(sip.value, 0) AS payment,
+          CASE
+            WHEN sales_invoice_code.payment_term IS NOT NULL
+             AND DATE_ADD(sales_invoice_code.date,
+                          INTERVAL sales_invoice_code.payment_term DAY) < CURDATE()
+            THEN 1 ELSE 0
+          END AS lewat,
           customer.id,
           customer.name
         FROM sales_invoice_code
@@ -114,6 +130,13 @@ export class ReceivableRepository {
             id: x.id == null ? null : Number(x.id),
             name: x.id == null ? "Retail" : x.name,
             value: Number(x.value) - Number(x.payment),
+            /* Bagian yang sudah lewat tenggat; layar mewarnainya lebih gelap.
+               Dijepit ke sisa total supaya pembulatan tidak pernah membuat
+               bagian gelapnya melebihi batangnya sendiri. */
+            overdue: Math.min(
+              Math.max(Number(x.overdue ?? 0), 0),
+              Number(x.value) - Number(x.payment)
+            ),
           };
         })
         .sort((a, b) => {
