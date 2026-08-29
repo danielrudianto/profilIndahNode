@@ -30,6 +30,7 @@ export class DashboardRepository {
     overpayment: number;
     goodReceipt: number;
     adjustment: number;
+    stock: number;
   }> {
     const hasil = await this.prisma.$queryRaw<any[]>`
       SELECT
@@ -37,13 +38,37 @@ export class DashboardRepository {
         (SELECT COUNT(*) FROM good_receipt_code
           WHERE is_confirm = 0 AND is_delete = 0) AS goodReceipt,
         (SELECT COUNT(*) FROM adjustment_case_code
-          WHERE is_confirm = 0 AND is_delete = 0) AS adjustment`;
+          WHERE is_confirm = 0 AND is_delete = 0) AS adjustment,
+        (
+          -- Stok bermasalah: minus, ATAU di bawah ambangnya sendiri.
+          --
+          -- Satu angka, bukan dua. Lencana menjawab "ada yang perlu dilihat";
+          -- pembagian menipis-versus-minus ada di halamannya, dan menaruhnya
+          -- di menu berarti dua angka yang harus ditafsirkan sambil lewat.
+          --
+          -- Ini satu-satunya bagian yang memindai seluruh tabel barang:
+          -- ambangnya membandingkan dua kolom pada tabel BERBEDA, dan
+          -- perbandingan seperti itu tidak bisa dibantu indeks apa pun.
+          -- Itulah alasan seluruh hasil ini disimpan sebentar di cache.
+          SELECT COUNT(*)
+          FROM product
+          LEFT JOIN product_stock ON product_stock.id = product.id
+          WHERE product.is_delete = 0
+            AND (
+              COALESCE(product_stock.stock, 0) < 0
+              OR COALESCE(product_stock.stock, 0) < GREATEST(
+                   product.minimum_stock,
+                   COALESCE(product.minimum_stock_recommendation, 0)
+                 )
+            )
+        ) AS stock`;
 
     const b = hasil[0] ?? {};
     return {
       overpayment: Number(b.overpayment ?? 0),
       goodReceipt: Number(b.goodReceipt ?? 0),
       adjustment: Number(b.adjustment ?? 0),
+      stock: Number(b.stock ?? 0),
     };
   }
 

@@ -4,6 +4,8 @@ import { DashboardRepository } from "../repositories/dashboard.repository";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { GoodReceiptRepository } from "../repositories/good-receipt.repository";
 import { PromotionRepository } from "../repositories/promotion.repository";
+import { dariCacheLaporan, keCacheLaporan } from "../utils/report-cache.helper";
+import { UMUR_CACHE_LENCANA } from "../constants/cache.constant";
 
 /**
  * Ringkasan angka untuk halaman dashboard.
@@ -61,7 +63,27 @@ export class DashboardController {
    */
   fetchBadges = async (_req: Request, res: Response) => {
     try {
+      /*
+        Disimpan TIGA PULUH DETIK, dan itu yang membuat lencana ini murah.
+
+        Tanpa cache, ongkosnya berlipat mengikuti jumlah orang yang membuka
+        aplikasi: sepuluh staf berarti sepuluh kali hitung per menit untuk
+        empat angka yang sama persis. Dengan cache bersama, ongkosnya tetap
+        dua kali hitung per menit berapa pun jumlah penggunanya.
+
+        Tiga puluh detik dipilih karena lencana menjawab "ada yang menunggu",
+        bukan "ada yang menunggu detik ini". Setengah menit basi tidak
+        mengubah satu pun keputusan orang — sementara memindai enam ribu
+        barang tiap menit per pengguna sangat mengubah beban servernya.
+      */
+      const kunci = "lencana:menu";
+      const tersimpan = await dariCacheLaporan(kunci);
+      if (tersimpan) {
+        return res.status(200).send(tersimpan);
+      }
+
       const hasil = await this.dashboardRepository.fetchBadgeCounts();
+      await keCacheLaporan(kunci, hasil, UMUR_CACHE_LENCANA);
       return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching badge counts ${error}`);

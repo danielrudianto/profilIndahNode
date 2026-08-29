@@ -57,3 +57,15 @@ export const UMUR_CACHE_LABA_RUGI = 43200;
 */
 export const UMUR_CACHE_LAPORAN_BERJALAN = 3600;
 export const UMUR_CACHE_LAPORAN_LAMPAU = 43200;
+
+/*
+  Lencana menu — tiga puluh detik.
+
+  Ia diminta ulang oleh SETIAP layar yang terbuka, tiap menit. Tanpa cache,
+  ongkosnya berlipat mengikuti jumlah orang yang sedang bekerja; dengan cache
+  bersama, ongkosnya tetap sama berapa pun penggunanya.
+
+  Setengah menit basi tidak mengubah keputusan siapa pun — lencana menjawab
+  "ada yang menunggu", bukan "ada yang menunggu detik ini".
+*/
+export const UMUR_CACHE_LENCANA = 30;

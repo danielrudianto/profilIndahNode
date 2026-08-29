@@ -218,6 +218,73 @@ export class ReceivableRepository {
     };
   }
 
+  /**
+   * Ringkasan piutang untuk kartu dasbor.
+   *
+   * Yang penting bukan totalnya, melainkan berapa yang SUDAH LEWAT JATUH
+   * TEMPO. Total piutang naik-turun sepanjang hari dan itu wajar; yang lewat
+   * tempo adalah uang yang seharusnya sudah kembali, dan itulah yang mudah
+   * terlewat kalau tidak ada yang menyebutkannya.
+   *
+   * Faktur tanpa payment_term TIDAK dihitung lewat tempo — bukan karena ia
+   * pasti belum jatuh, melainkan karena tidak ada tanggal yang bisa
+   * dilanggarnya. Menganggapnya lewat tempo akan membuat angkanya menakuti
+   * orang atas kesepakatan yang memang tidak pernah bertenggat.
+   */
+  async fetchSummary(): Promise<{
+    total: number;
+    invoices: number;
+    customers: number;
+    overdueValue: number;
+    overdueInvoices: number;
+    oldestDays: number;
+  }> {
+    const hasil = await this.prisma.$queryRaw<any[]>`
+      SELECT
+        COUNT(*) AS invoices,
+        COUNT(DISTINCT customer_id) AS customers,
+        COALESCE(SUM(sisa), 0) AS total,
+        COALESCE(SUM(CASE WHEN lewat = 1 THEN sisa ELSE 0 END), 0) AS overdueValue,
+        COALESCE(SUM(lewat), 0) AS overdueInvoices,
+        COALESCE(MAX(CASE WHEN lewat = 1 THEN umur ELSE 0 END), 0) AS oldestDays
+      FROM (
+        SELECT
+          sic.customer_id,
+          (
+            COALESCE((SELECT SUM(si.quantity * (si.price - si.discount))
+                      FROM sales_invoice si
+                      WHERE si.sales_invoice_code_id = sic.id), 0)
+            + sic.delivery + sic.service + sic.admin_fee - sic.discount
+            - COALESCE((SELECT SUM(src.receivable_value)
+                        FROM sales_return_code src
+                        WHERE src.sales_invoice_code_id = sic.id
+                          AND src.is_confirm = 1 AND src.is_delete = 0), 0)
+            - COALESCE((SELECT SUM(sip.value)
+                        FROM sales_invoice_payment sip
+                        WHERE sip.sales_invoice_code_id = sic.id), 0)
+          ) AS sisa,
+          CASE
+            WHEN sic.payment_term IS NOT NULL
+             AND DATE_ADD(sic.date, INTERVAL sic.payment_term DAY) < CURDATE()
+            THEN 1 ELSE 0
+          END AS lewat,
+          DATEDIFF(CURDATE(), DATE_ADD(sic.date, INTERVAL COALESCE(sic.payment_term, 0) DAY)) AS umur
+        FROM sales_invoice_code sic
+        WHERE sic.is_paid = 0 AND sic.is_delete = 0
+      ) x
+      WHERE sisa > ${PAYMENT_ROUNDING_TOLERANCE}`;
+
+    const b = hasil[0] ?? {};
+    return {
+      total: Number(b.total ?? 0),
+      invoices: Number(b.invoices ?? 0),
+      customers: Number(b.customers ?? 0),
+      overdueValue: Number(b.overdueValue ?? 0),
+      overdueInvoices: Number(b.overdueInvoices ?? 0),
+      oldestDays: Number(b.oldestDays ?? 0),
+    };
+  }
+
   async fetchByCustomerID(data: {
     customerID: number | null;
     page: number;

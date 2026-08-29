@@ -10,6 +10,19 @@ import request from "supertest";
  * gunanya.
  */
 
+/* Cache lencana ditiru: uji ini menguji perilaku menghitung, bukan menyimpan. */
+const cacheAmbil = jest.fn().mockResolvedValue(null);
+const cacheSimpan = jest.fn().mockResolvedValue("OK");
+jest.mock("../../src/utils/redis.helper", () => ({
+  __esModule: true,
+  redisClient: {
+    get: (...a: unknown[]) => cacheAmbil(...a),
+    setEx: (...a: unknown[]) => cacheSimpan(...a),
+  },
+  connectRedis: jest.fn(),
+  REDIS_URL: "redis://tiruan",
+}));
+
 const kirimSocket = jest.fn();
 jest.mock("../../src/utils/socket.helper", () => ({
   __esModule: true,
@@ -44,7 +57,7 @@ describe("GET /dashboard/badges", () => {
     const dashboard = {
       fetchBadgeCounts: jest
         .fn()
-        .mockResolvedValue({ overpayment: 1, goodReceipt: 7, adjustment: 0 }),
+        .mockResolvedValue({ overpayment: 1, goodReceipt: 7, adjustment: 0, stock: 42 }),
     };
 
     const res = await request(app(dashboard)).get("/badges");
@@ -54,6 +67,7 @@ describe("GET /dashboard/badges", () => {
       overpayment: 1,
       goodReceipt: 7,
       adjustment: 0,
+      stock: 42,
     });
   });
 
@@ -66,7 +80,7 @@ describe("GET /dashboard/badges", () => {
     const dashboard = {
       fetchBadgeCounts: jest
         .fn()
-        .mockResolvedValue({ overpayment: 0, goodReceipt: 0, adjustment: 0 }),
+        .mockResolvedValue({ overpayment: 0, goodReceipt: 0, adjustment: 0, stock: 0 }),
     };
 
     const res = await request(app(dashboard)).get("/badges");
@@ -75,6 +89,7 @@ describe("GET /dashboard/badges", () => {
       "adjustment",
       "goodReceipt",
       "overpayment",
+      "stock",
     ]);
   });
 
@@ -86,5 +101,44 @@ describe("GET /dashboard/badges", () => {
     const res = await request(app(dashboard)).get("/badges");
 
     expect(res.status).toBe(500);
+  });
+});
+
+/*
+  Lencana diminta ulang oleh setiap layar yang terbuka, tiap menit. Tanpa
+  cache bersama, ongkosnya berlipat mengikuti jumlah orang yang bekerja.
+*/
+describe("Cache lencana", () => {
+  beforeEach(() => {
+    cacheAmbil.mockReset().mockResolvedValue(null);
+    cacheSimpan.mockReset().mockResolvedValue("OK");
+  });
+
+  it("memakai simpanan tanpa menyentuh basis data", async () => {
+    const dashboard = { fetchBadgeCounts: jest.fn() };
+    cacheAmbil.mockResolvedValue(
+      JSON.stringify({ overpayment: 5, goodReceipt: 0, adjustment: 0, stock: 0 })
+    );
+
+    const res = await request(app(dashboard)).get("/badges");
+
+    expect(res.body.overpayment).toBe(5);
+    expect(dashboard.fetchBadgeCounts).not.toHaveBeenCalled();
+  });
+
+  it("menyimpan hasilnya sesudah dihitung", async () => {
+    const dashboard = {
+      fetchBadgeCounts: jest
+        .fn()
+        .mockResolvedValue({ overpayment: 1, goodReceipt: 2, adjustment: 3, stock: 4 }),
+    };
+
+    await request(app(dashboard)).get("/badges");
+
+    expect(cacheSimpan).toHaveBeenCalledWith(
+      "lencana:menu",
+      expect.any(Number),
+      expect.any(String)
+    );
   });
 });
