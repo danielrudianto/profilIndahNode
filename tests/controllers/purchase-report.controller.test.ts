@@ -112,6 +112,8 @@ describe("POST /purchase — rekap pembelian sebulan", () => {
       brand: "Merek A",
       type: "Tipe B",
       supplier: "Pemasok C",
+      /* Cap waktu ikut sejak laporan ini disimpan di cache. */
+      computedAt: expect.any(String),
     });
   });
 

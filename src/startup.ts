@@ -167,6 +167,7 @@ async function syncProductPackage() {
  */
 async function warmReports() {
   const salesInvoiceRepository = new SalesInvoiceRepository(prisma);
+  const goodReceiptRepository = new GoodReceiptRepository(prisma);
   const kini = new Date();
 
   for (let mundur = 0; mundur < 3; mundur++) {
@@ -191,6 +192,18 @@ async function warmReports() {
       [
         `laporan:penjualan-sales:${year}:${month}`,
         () => salesInvoiceRepository.fetchSalesSales({ month, year }),
+      ],
+      [
+        `laporan:pembelian-supplier:${year}:${month}`,
+        () => goodReceiptRepository.fetchSupplierPurchases(month, year),
+      ],
+      [
+        `laporan:pembelian-brand:${year}:${month}`,
+        () => goodReceiptRepository.fetchBrandPurchases(month, year),
+      ],
+      [
+        `laporan:pembelian-type:${year}:${month}`,
+        () => goodReceiptRepository.fetchTypePurchases(month, year),
       ],
     ];
 
