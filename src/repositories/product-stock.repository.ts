@@ -369,6 +369,46 @@ export class ProductStockRepository {
     sekaligus ke dalam satu transaksi memperbesar peluang deadlock antar
     permintaan yang menyentuh produk yang sama.
   */
+  /**
+   * MENIMPA stok, bukan menambahnya.
+   *
+   * Pasangan updateMany di bawah, dan pembedanya menyangkut angka yang dilihat
+   * orang setiap hari. updateMany memakai `increment` karena pemanggilnya —
+   * faktur, penyesuaian, setoran — menyampaikan SELISIH: barang keluar lima,
+   * stok berkurang lima.
+   *
+   * Hitung ulang menyeluruh menyampaikan hal yang berbeda: bukan selisih,
+   * melainkan berapa stok itu SEHARUSNYA menurut seluruh dokumen. Menambahkan
+   * angka itu ke nilai yang sudah ada melipatduakan stok setiap barang —
+   * diam-diam, tanpa galat, dan hanya ketahuan kalau ada yang menghitung
+   * fisiknya di gudang.
+   *
+   * Karena itu keduanya dipisah namanya, bukan dibedakan lewat sebuah
+   * bendera: pemanggil yang keliru memilih tidak akan pernah tahu ia keliru.
+   */
+  replaceMany = async (
+    items: { productID: number; quantity: number }[],
+    tx?: Prisma.TransactionClient
+  ) => {
+    const argumen = (item: { productID: number; quantity: number }) => ({
+      where: { id: item.productID },
+      create: { id: item.productID, stock: item.quantity },
+      update: { stock: item.quantity },
+    });
+
+    if (tx) {
+      const hasil = [];
+      for (const item of items) {
+        hasil.push(await tx.product_stock.upsert(argumen(item)));
+      }
+      return hasil;
+    }
+
+    return this.prisma.$transaction(
+      items.map((item) => this.prisma.product_stock.upsert(argumen(item)))
+    );
+  };
+
   updateMany = async (
     items: { productID: number; quantity: number }[],
     tx?: Prisma.TransactionClient

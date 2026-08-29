@@ -77,7 +77,16 @@ export class ProductStockService {
     });
     console.info(`Updating ${updateProduct.length} data`);
 
-    await this.productStockRepository.updateMany(
+    /*
+      replaceMany, BUKAN updateMany.
+
+      Yang dihitung di atas adalah stok yang seharusnya menurut seluruh
+      dokumen — bukan selisih. Diserahkan ke updateMany, angka itu DITAMBAHKAN
+      ke nilai yang sudah ada, dan stok setiap barang jadi dua kali lipat
+      tanpa satu pun galat. Benarnya hanya pada basis data yang product_stock
+      -nya masih kosong, dan itu keadaan yang tidak pernah dijamin siapa pun.
+    */
+    await this.productStockRepository.replaceMany(
       updateProduct.map((x) => {
         return {
           productID: x.id!,
