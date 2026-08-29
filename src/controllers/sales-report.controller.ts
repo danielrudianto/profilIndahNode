@@ -2,6 +2,12 @@ import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
 import { SalesInvoiceRepository } from "../repositories/sales-invoice.repository";
 import { SalesReturnRepository } from "../repositories/sales-return.repository";
+import {
+  dariCacheLaporan,
+  keCacheLaporan,
+  mintaHitungUlang,
+  umurCacheLaporan,
+} from "../utils/report-cache.helper";
 
 /**
  * Laporan penjualan beserta unduhannya.
@@ -24,6 +30,11 @@ export class SalesReportController {
   fetchSalesReport = async (req: Request, res: Response) => {
     const month = Number(req.body.month);
     const year = Number(req.body.year);
+    /*
+      Yang paling mahal dari seluruh halaman: tujuh agregat sekaligus. Ia yang
+      paling pantas disimpan, dan bulan lampau tidak akan pernah berubah.
+    */
+    const kunci = `laporan:penjualan-utama:${year}:${month}`;
 
     /*
       Ketujuh agregat saling bebas — dijalankan BERBARENGAN, bukan
@@ -33,6 +44,13 @@ export class SalesReportController {
       Kartu retur dan pelanggan di berkas desain 9a. Bentuk lama halaman
       membaca returned_value/returns yang tidak pernah dikirim siapa pun.
     */
+    if (!mintaHitungUlang(req.body.refresh)) {
+      const tersimpan = await dariCacheLaporan(kunci);
+      if (tersimpan) {
+        return res.status(200).send(tersimpan);
+      }
+    }
+
     const [result, chart, brand, type, sales, retur, customerCount] =
       await Promise.all([
         this.salesInvoiceRepository.fetchByDateRange(
@@ -47,7 +65,7 @@ export class SalesReportController {
         this.salesInvoiceRepository.fetchCustomerCount(month, year),
       ]);
 
-    return res.status(200).send({
+    const hasil = {
       salesInvoiceCount: result.salesInvoiceCount,
       delivery: result.delivery,
       discount: result.discount,
@@ -67,21 +85,35 @@ export class SalesReportController {
       returned_value: retur.value,
       returns: retur.count,
       customerCount: customerCount,
-    });
+      computedAt: new Date().toISOString(),
+    };
+
+    await keCacheLaporan(kunci, hasil, umurCacheLaporan(year, month));
+
+    return res.status(200).send(hasil);
   };
 
   fetchBrandSalesReport = async (req: Request, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);
+    const kunci = `laporan:penjualan-brand:${year}:${month}`;
     try {
+      if (!mintaHitungUlang(req.query.refresh)) {
+        const tersimpan = await dariCacheLaporan(kunci);
+        if (tersimpan) {
+          return res.status(200).send(tersimpan);
+        }
+      }
+
       const result = await this.salesInvoiceRepository.fetchBrandSales({
         month: month,
         year: year,
       });
 
-      return res.status(200).send({
-        data: result,
-      });
+      const hasil = { data: result, computedAt: new Date().toISOString() };
+      await keCacheLaporan(kunci, hasil, umurCacheLaporan(year, month));
+
+      return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching brand report ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
@@ -91,15 +123,24 @@ export class SalesReportController {
   fetchCustomerSalesReport = async (req: Request, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);
+    const kunci = `laporan:penjualan-customer:${year}:${month}`;
     try {
+      if (!mintaHitungUlang(req.query.refresh)) {
+        const tersimpan = await dariCacheLaporan(kunci);
+        if (tersimpan) {
+          return res.status(200).send(tersimpan);
+        }
+      }
+
       const result = await this.salesInvoiceRepository.fetchCustomerSales({
         month: month,
         year: year,
       });
 
-      return res.status(200).send({
-        data: result,
-      });
+      const hasil = { data: result, computedAt: new Date().toISOString() };
+      await keCacheLaporan(kunci, hasil, umurCacheLaporan(year, month));
+
+      return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching customer report ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
@@ -109,15 +150,24 @@ export class SalesReportController {
   fetchTypeSalesreport = async (req: Request, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);
+    const kunci = `laporan:penjualan-type:${year}:${month}`;
     try {
+      if (!mintaHitungUlang(req.query.refresh)) {
+        const tersimpan = await dariCacheLaporan(kunci);
+        if (tersimpan) {
+          return res.status(200).send(tersimpan);
+        }
+      }
+
       const result = await this.salesInvoiceRepository.fetchTypeSales({
         month: month,
         year: year,
       });
 
-      return res.status(200).send({
-        data: result,
-      });
+      const hasil = { data: result, computedAt: new Date().toISOString() };
+      await keCacheLaporan(kunci, hasil, umurCacheLaporan(year, month));
+
+      return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching type report ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);
@@ -127,15 +177,24 @@ export class SalesReportController {
   fetchSalesSalesReport = async (req: Request, res: Response) => {
     const month = Number(req.query.month);
     const year = Number(req.query.year);
+    const kunci = `laporan:penjualan-sales:${year}:${month}`;
     try {
+      if (!mintaHitungUlang(req.query.refresh)) {
+        const tersimpan = await dariCacheLaporan(kunci);
+        if (tersimpan) {
+          return res.status(200).send(tersimpan);
+        }
+      }
+
       const result = await this.salesInvoiceRepository.fetchSalesSales({
         month: month,
         year: year,
       });
 
-      return res.status(200).send({
-        data: result,
-      });
+      const hasil = { data: result, computedAt: new Date().toISOString() };
+      await keCacheLaporan(kunci, hasil, umurCacheLaporan(year, month));
+
+      return res.status(200).send(hasil);
     } catch (error) {
       console.error(`[error]: Error on fetching type report ${error}`);
       return res.status(500).send(ErrorList["Internal server error"]);

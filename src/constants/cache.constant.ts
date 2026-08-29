@@ -1,10 +1,18 @@
 /*
-  Umur cache Redis untuk laporan yang mahal dihitung (menyisir jutaan
-  baris stock_out). Lima menit: cukup panjang supaya klik bolak-balik
-  tanggal terasa instan, cukup pendek supaya dokumen susulan tidak lama
-  tersembunyi.
+  Umur cache Redis untuk laporan persediaan, yang menyisir jutaan baris
+  stock_out.
+
+  DUA PULUH EMPAT JAM, naik dari lima menit. Keputusan pemiliknya, dan
+  alasannya lurus: persediaan tidak pernah dibaca sebagai angka detik ini —
+  ia dibaca untuk memutuskan pembelian, dan keputusan itu tidak berubah
+  karena satu faktur sore tadi. Lima menit berarti hampir setiap pembuka
+  halaman pertama di hari itu tetap menunggu penuh, dan yang paling sering
+  menunggu justru orang yang membukanya paling pagi.
+
+  Laporan penjualan dan pembelian punya umurnya sendiri di bawah — di sana
+  kesegaran memang lebih berarti.
 */
-export const UMUR_CACHE_LAPORAN = 300;
+export const UMUR_CACHE_LAPORAN = 86400;
 
 /*
   Arsip tahunan faktur penjualan: jumlah faktur per bulan untuk pemilih
@@ -31,3 +39,14 @@ export const KUNCI_CACHE_ARSIP_FAKTUR = "arsip:sales-invoice";
   butuh angka terbaru saat itu juga.
 */
 export const UMUR_CACHE_LABA_RUGI = 43200;
+
+/*
+  Laporan bulanan — dua umur, dipilih menurut bulan yang diminta.
+
+  Bulan yang sudah lewat tidak akan berubah lagi, jadi umurnya panjang; satu
+  halaman laporan penjualan meminta tiga bulan sekaligus, dan dua di antaranya
+  selalu bulan mati. Bulan berjalan dibuat pendek supaya faktur yang baru masuk
+  tidak lama tersembunyi.
+*/
+export const UMUR_CACHE_LAPORAN_BERJALAN = 300;
+export const UMUR_CACHE_LAPORAN_LAMPAU = 43200;

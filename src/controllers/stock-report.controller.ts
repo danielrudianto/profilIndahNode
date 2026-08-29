@@ -11,6 +11,7 @@ import { CompanyRepository } from "../repositories/company.repository";
 import { ExpenseRepository } from "../repositories/expense.repository";
 import ErrorList from "../constants/error-list.constant";
 import { rentangBulan } from "../utils/date.helper";
+import { mintaHitungUlang } from "../utils/report-cache.helper";
 
 /**
  * Laporan persediaan dan keluar-masuk barang.
@@ -77,8 +78,15 @@ export class StockReportController {
       : new Date();
     const kunci = `laporan-persediaan:${tanggal.toISOString().slice(0, 10)}`;
 
+    /*
+      Umur cache persediaan dua puluh empat jam, jadi harus ada jalan
+      keluarnya: yang baru menerima barang tidak boleh terkurung seharian
+      menunggu angkanya menyusul. `?refresh=true` melewati simpanan.
+    */
+    const paksa = mintaHitungUlang(req.query.refresh);
+
     try {
-      const simpanan = await this.dariCache(kunci);
+      const simpanan = paksa ? null : await this.dariCache(kunci);
       if (simpanan) {
         return res.status(200).send(JSON.parse(simpanan));
       }
@@ -243,8 +251,15 @@ export class StockReportController {
       : new Date();
     const kunci = `laporan-persediaan-tren:${tanggal.toISOString().slice(0, 10)}`;
 
+    /*
+      Umur cache persediaan dua puluh empat jam, jadi harus ada jalan
+      keluarnya: yang baru menerima barang tidak boleh terkurung seharian
+      menunggu angkanya menyusul. `?refresh=true` melewati simpanan.
+    */
+    const paksa = mintaHitungUlang(req.query.refresh);
+
     try {
-      const simpanan = await this.dariCache(kunci);
+      const simpanan = paksa ? null : await this.dariCache(kunci);
       if (simpanan) {
         return res.status(200).send(JSON.parse(simpanan));
       }

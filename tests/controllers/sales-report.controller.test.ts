@@ -1,3 +1,20 @@
+/*
+  Redis ditiru supaya uji tidak bergantung pada ada-tidaknya Redis di mesin
+  yang menjalankannya. Bawaannya SELALU MELESET — yang diuji di berkas ini
+  perilaku menghitung, bukan perilaku menyimpan.
+*/
+const cacheAmbil = jest.fn().mockResolvedValue(null);
+const cacheSimpan = jest.fn().mockResolvedValue("OK");
+jest.mock("../../src/utils/redis.helper", () => ({
+  __esModule: true,
+  redisClient: {
+    get: (...a: unknown[]) => cacheAmbil(...a),
+    setEx: (...a: unknown[]) => cacheSimpan(...a),
+  },
+  connectRedis: jest.fn(),
+  REDIS_URL: "redis://tiruan",
+}));
+
 import express from "express";
 import request from "supertest";
 import ErrorList from "../../src/constants/error-list.constant";
@@ -119,6 +136,7 @@ describe("POST /sales — laporan penjualan bulanan", () => {
       returned_value: 0,
       returns: 0,
       customerCount: 5,
+      computedAt: expect.any(String),
     });
   });
 
@@ -245,8 +263,15 @@ describe("POST /sales — laporan penjualan bulanan", () => {
       res as never
     );
 
-    // Beri kesempatan antrean mikrotask berjalan.
-    await Promise.resolve();
+    /*
+      Menguras antrean, bukan satu mikrotask.
+
+      Sejak laporan ini memakai cache, ada satu pembacaan Redis sebelum
+      kuerinya dimulai — dan satu `await Promise.resolve()` berhenti sebelum
+      pembacaan itu selesai. Yang diuji tetap sama: apakah kueri berikutnya
+      berjalan tanpa menunggu yang pertama.
+    */
+    await new Promise((r) => setImmediate(r));
     // Kueri lain SUDAH berjalan walau yang pertama masih menggantung —
     // itulah berbarengan. Dulu di sini tercatat sebagai CACAT: semuanya
     // berbaris menunggu yang pertama selesai.
@@ -267,7 +292,10 @@ describe("GET /sales/brand — penjualan per merek", () => {
     const res = await request(app(repo)).get("/sales/brand?month=3&year=2026");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: [{ brand: "A", value: 10 }] });
+    expect(res.body).toEqual({
+      data: [{ brand: "A", value: 10 }],
+      computedAt: expect.any(String),
+    });
     expect(repo.fetchBrandSales).toHaveBeenCalledWith({ month: 3, year: 2026 });
   });
 
@@ -297,7 +325,7 @@ describe("GET /sales/brand — penjualan per merek", () => {
     const res = await request(app(repo)).get("/sales/brand");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: [] });
+    expect(res.body).toEqual({ data: [], computedAt: expect.any(String) });
     const dikirim = repo.fetchBrandSales.mock.calls[0][0] as {
       month: number;
       year: number;
@@ -315,7 +343,10 @@ describe("GET /sales/type — penjualan per tipe produk", () => {
     const res = await request(app(repo)).get("/sales/type?month=12&year=2025");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: [{ type: "B", value: 20 }] });
+    expect(res.body).toEqual({
+      data: [{ type: "B", value: 20 }],
+      computedAt: expect.any(String),
+    });
     expect(repo.fetchTypeSales).toHaveBeenCalledWith({ month: 12, year: 2025 });
   });
 
@@ -337,7 +368,10 @@ describe("GET /sales/sales — penjualan per salesman", () => {
     const res = await request(app(repo)).get("/sales/sales?month=1&year=2026");
 
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ data: [{ sales: "AGUS", value: 30 }] });
+    expect(res.body).toEqual({
+      data: [{ sales: "AGUS", value: 30 }],
+      computedAt: expect.any(String),
+    });
     expect(repo.fetchSalesSales).toHaveBeenCalledWith({ month: 1, year: 2026 });
   });
 
@@ -401,5 +435,75 @@ describe("POST /sales/download — unduhan laporan penjualan", () => {
     expect(res.text).toBe(ErrorList["Internal server error"]);
     expect(res.text).not.toContain("P2010");
     expect(res.text).not.toContain("sales_invoice");
+  });
+});
+
+/**
+ * Cache laporan bulanan.
+ *
+ * Sebabnya bukan kueri yang lambat — masing-masing di bawah 250 ms. Yang mahal
+ * jumlahnya: satu halaman menembakkan tiga belas agregat serentak, dan
+ * ketiga belasnya berebut CPU yang sama.
+ */
+describe("Cache laporan", () => {
+  beforeEach(() => {
+    cacheAmbil.mockReset().mockResolvedValue(null);
+    cacheSimpan.mockReset().mockResolvedValue("OK");
+  });
+
+  it("menyimpan hasilnya sesudah dihitung", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchBrandSales.mockResolvedValue([{ brand: "A", value: 10 }]);
+
+    await request(app(repo)).get("/sales/brand?month=3&year=2026");
+
+    expect(cacheSimpan).toHaveBeenCalledWith(
+      "laporan:penjualan-brand:2026:3",
+      expect.any(Number),
+      expect.any(String)
+    );
+  });
+
+  it("memakai simpanan tanpa menyentuh basis data", async () => {
+    const repo = repositoryTiruan();
+    cacheAmbil.mockResolvedValue(
+      JSON.stringify({ data: [{ brand: "TERSIMPAN", value: 1 }] })
+    );
+
+    const res = await request(app(repo)).get("/sales/brand?month=3&year=2026");
+
+    expect(res.body.data[0].brand).toBe("TERSIMPAN");
+    expect(repo.fetchBrandSales).not.toHaveBeenCalled();
+  });
+
+  /* Tombol hitung ulang: simpanan dilewati, bukan dihapus. */
+  it("refresh=true melewati simpanan dan menghitung ulang", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchBrandSales.mockResolvedValue([{ brand: "BARU", value: 2 }]);
+    cacheAmbil.mockResolvedValue(
+      JSON.stringify({ data: [{ brand: "TERSIMPAN", value: 1 }] })
+    );
+
+    const res = await request(app(repo)).get(
+      "/sales/brand?month=3&year=2026&refresh=true"
+    );
+
+    expect(res.body.data[0].brand).toBe("BARU");
+    expect(repo.fetchBrandSales).toHaveBeenCalled();
+  });
+
+  /*
+    Redis mati BUKAN alasan laporan gagal. Yang tidak terbaca dihitung ulang,
+    persis seperti sebelum cache ini ada.
+  */
+  it("tetap menyajikan laporan ketika Redis gagal dibaca", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchBrandSales.mockResolvedValue([{ brand: "A", value: 10 }]);
+    cacheAmbil.mockRejectedValue(new Error("redis mati"));
+
+    const res = await request(app(repo)).get("/sales/brand?month=3&year=2026");
+
+    expect(res.status).toBe(200);
+    expect(res.body.data[0].brand).toBe("A");
   });
 });
