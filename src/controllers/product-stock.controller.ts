@@ -187,8 +187,20 @@ class ProductStockController {
             return y.id == x.id;
           });
 
+          /*
+            Ambangnya menimpa nilai dari dokumen indeks, bukan sebaliknya.
+
+            minimum_stock_recommendation ditulis pekerjaan batch lewat UPDATE
+            mentah yang tidak menyentuh Meilisearch, jadi nilai di indeks
+            selalu ketinggalan. Yang dari basis data yang benar.
+          */
           return {
             ...x,
+            minimum_stock: index == -1 ? 0 : productStock[index].minimum_stock,
+            minimum_stock_recommendation:
+              index == -1
+                ? null
+                : productStock[index].minimum_stock_recommendation,
             product_stock: {
               stock: index == -1 ? 0 : productStock[index].stock,
             },

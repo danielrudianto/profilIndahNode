@@ -79,24 +79,64 @@ export class ProductStockRepository {
     };
   }
 
+  /**
+   * Stok DAN kedua ambangnya, untuk sederet produk.
+   *
+   * Ambangnya ikut diambil dari basis data, bukan dibaca dari dokumen
+   * Meilisearch yang menyertai baris ini. Dua sebab:
+   *
+   * minimum_stock_recommendation ditulis pekerjaan batch lewat `UPDATE
+   * product SET ...` mentah, yang tidak pernah menyentuh indeks — jadi nilai
+   * di indeks selalu ketinggalan, kalau pun ada di sana.
+   *
+   * Dan keadaan sebuah baris ("menipis"/"minus") harus dihitung dari ambang
+   * yang SAMA dengan yang dipakai penyaring dan penghitung chip. Ketika
+   * lencananya dihitung dari minimum_stock saja sementara penyaringnya
+   * memakai GREATEST(minimum_stock, rekomendasi), daftar "menipis"
+   * menampilkan baris tanpa lencana menipis — persis seperti yang terjadi.
+   */
   async fetchStock(productID: number[]) {
     try {
-      const stocks = await this.prisma.product_stock.findMany({
-        where: {
-          id: {
-            in: productID,
+      const [stocks, ambang] = await Promise.all([
+        this.prisma.product_stock.findMany({
+          where: {
+            id: {
+              in: productID,
+            },
           },
-        },
-        select: {
-          id: true,
-          stock: true,
-        },
-      });
+          select: {
+            id: true,
+            stock: true,
+          },
+        }),
+        this.prisma.product.findMany({
+          where: {
+            id: {
+              in: productID,
+            },
+          },
+          select: {
+            id: true,
+            minimum_stock: true,
+            minimum_stock_recommendation: true,
+          },
+        }),
+      ]);
 
-      return stocks.map((stock) => ({
-        id: stock.id,
-        stock: stock.stock,
-      }));
+      const petaAmbang = new Map(ambang.map((x) => [x.id, x]));
+
+      return stocks.map((stock) => {
+        const a = petaAmbang.get(stock.id);
+        return {
+          id: stock.id,
+          stock: stock.stock,
+          minimum_stock: Number(a?.minimum_stock ?? 0),
+          minimum_stock_recommendation:
+            a?.minimum_stock_recommendation == null
+              ? null
+              : Number(a.minimum_stock_recommendation),
+        };
+      });
     } catch (error) {
       console.error(`[error]: Error on fetching stock: ${error}`);
       throw new Error("Internal server error");
