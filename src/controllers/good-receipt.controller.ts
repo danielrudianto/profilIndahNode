@@ -4,6 +4,7 @@ import {
   translateFaktur,
   translateKeyword,
   translatePage,
+  translatePageSize,
 } from "../utils/escape.helper";
 import { alokasiDiskonFaktur } from "../utils/hpp.helper";
 
@@ -464,11 +465,19 @@ class GoodReceiptController {
 
   fetchUnconfirmed = async (req: Request, res: Response) => {
     const page = translatePage(req.query.page);
-    const pageSize = Number(process.env.LIMIT);
+    /*
+      Kata kunci dan ukuran halaman dibaca dari permintaan, bukan dikunci.
+
+      Sebelumnya keduanya dipaku — keyword selalu kosong dan pageSize selalu
+      dari env — sehingga halaman "menunggu faktur" tidak bisa dicari maupun
+      diatur jumlah barisnya, padahal repository-nya sudah menerima keduanya.
+    */
+    const keyword = translateKeyword(req.query.keyword);
+    const pageSize = translatePageSize(req.query.pageSize);
 
     try {
       const result = await this.goodReceiptRepository.fetchUnconfirmed({
-        keyword: "",
+        keyword: keyword,
         page: page,
         pageSize: pageSize,
       });

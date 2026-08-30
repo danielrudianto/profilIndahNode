@@ -1,5 +1,5 @@
 import { IGoodReceipt } from "../interfaces/good-receipt.interface";
-import { PrismaClient } from "@prisma/client";
+import { Prisma, PrismaClient } from "@prisma/client";
 import GoodReceiptModel from "../models/good-receipt.model";
 import {
   IFetchAnnualArchives,
@@ -373,12 +373,34 @@ export class GoodReceiptRepository {
     data: IFetchCommon
   ): Promise<IFetchCommonResult<GoodReceiptModel>> {
     try {
+      /*
+        Satu klausa where, dipakai findMany DAN count.
+
+        Ditulis sekali karena dua salinan yang sedikit berbeda menghasilkan
+        daftar dan penomoran halaman yang tidak sepakat: halaman terakhir
+        kosong, atau tombol berikutnya ada padahal tidak ada isinya lagi.
+
+        Kata kunci mencari nomor dokumen dan nama pemasok — dua hal yang
+        dipegang orang ketika mencari penerimaan tertentu. Sebelumnya
+        parameternya diterima tetapi tidak pernah dipakai, sehingga kotak
+        carinya akan diam tanpa satu pun galat.
+      */
+      const where: Prisma.good_receipt_codeWhereInput = {
+        is_confirm: false,
+        is_delete: false,
+        ...(data.keyword
+          ? {
+              OR: [
+                { name: { contains: data.keyword } },
+                { supplier: { name: { contains: data.keyword } } },
+              ],
+            }
+          : {}),
+      };
+
       const [result, count] = await Promise.all([
         this.prisma.good_receipt_code.findMany({
-          where: {
-            is_confirm: false,
-            is_delete: false,
-          },
+          where: where,
           include: {
             supplier: true,
             company: true,
@@ -395,10 +417,7 @@ export class GoodReceiptRepository {
           },
         }),
         this.prisma.good_receipt_code.count({
-          where: {
-            is_confirm: false,
-            is_delete: false,
-          },
+          where: where,
         }),
       ]);
 
