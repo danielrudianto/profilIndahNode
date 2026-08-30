@@ -59,9 +59,17 @@ done
   gagal "tidak ada berkas lingkungan (.env)"
 }
 
-# `sudo git` meninggalkan berkas milik root di dalam .git, dan perintah git
-# berikutnya gagal dengan pesan yang tidak menyebut sebabnya.
-[[ -w "$AKAR/.git" ]] || gagal ".git tidak dapat ditulis — jalankan: sudo chown -R \$USER:\$USER .git"
+# Pohon kerjanya milik pengguna layanan, bukan milik yang mengetik. Skrip ini
+# menulis ke node_modules/ dan dist/ lalu mengembalikan kepemilikannya di
+# akhir, jadi ia MEMANG dijalankan sebagai root di server ini.
+#
+# Pesan lamanya menyuruh `chown -R $USER:$USER .git` — arah yang salah. Itu
+# hanya memindahkan .git ke tangan yang mengetik sementara sisa pohonnya tetap
+# milik pengguna layanan, sehingga git lolos tetapi `npm ci` gagal beberapa
+# langkah kemudian, dan pohonnya jadi belang antara dua pemilik.
+if [[ $EUID -ne 0 ]] && [[ ! -w "$AKAR/node_modules" || ! -w "$AKAR/.git" ]]; then
+  gagal "pohon ini milik $(stat -c '%U' "$AKAR"), bukan $USER — jalankan: sudo ./scripts/deploy.sh"
+fi
 
 # Git menolak bekerja pada repo milik pengguna lain — "detected dubious
 # ownership" — dan di server ini kombinasi itu justru normal: berkasnya milik
