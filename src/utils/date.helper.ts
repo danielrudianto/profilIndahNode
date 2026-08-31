@@ -107,3 +107,20 @@ export function rentangBulanUTC(year: number, month: number): RentangTanggal {
     sebelum: new Date(Date.UTC(year, month, 1)),
   };
 }
+
+/**
+ * Rentang satu tahun penuh, berlabuh pada UTC.
+ *
+ * Kembaran tahunan dari rentangBulanUTC, dengan alasan yang sama: penyaring
+ * `where` milik Prisma membandingkan kolom @db.Date yang dibaca sebagai
+ * tengah malam UTC, sehingga batas yang dibangun di zona lokal meleset
+ * sehari.
+ *
+ * @param year tahun penuh, misalnya 2026
+ */
+export function rentangTahunUTC(year: number): RentangTanggal {
+  return {
+    mulai: new Date(Date.UTC(year, 0, 1)),
+    sebelum: new Date(Date.UTC(year + 1, 0, 1)),
+  };
+}

@@ -4,7 +4,12 @@ import { CompanyModel } from "../models/company.model";
 import { ExpenseModel } from "../models/expense.model";
 import { IExpense } from "../interfaces/expense.interface";
 import ExpenseTypeModel from "../models/expense-type.model";
-import { rentangBulanUTC } from "../utils/date.helper";
+import {
+  DateHelper,
+  formatDate,
+  rentangBulanUTC,
+  rentangTahunUTC,
+} from "../utils/date.helper";
 
 export class ExpenseRepository {
   private prisma: PrismaClient;
@@ -202,9 +207,15 @@ export class ExpenseRepository {
       if (month == 0) {
         const result = await this.prisma.expense.findMany({
           where: {
+            /*
+              Dulu batas atasnya `new Date(year + 1, 0, 0)` — hari ke-0 Januari
+              tahun berikutnya, yang berarti 31 Desember tahun INI. Dengan
+              operator "lebih kecil", 31 Desember terbuang dari laporan
+              tahunan setiap tahun.
+            */
             date: {
-              gte: new Date(year, 0, 1, 0, 0, 0),
-              lt: new Date(year + 1, 0, 0, 0, 0, 0),
+              gte: rentangTahunUTC(year).mulai,
+              lt: rentangTahunUTC(year).sebelum,
             },
             is_delete: false,
           },
@@ -222,8 +233,8 @@ export class ExpenseRepository {
         const result = await this.prisma.expense.findMany({
           where: {
             date: {
-              gte: new Date(year, month - 1, 1, 0, 0, 0),
-              lt: new Date(year, month, 1, 0, 0, 0),
+              gte: rentangBulanUTC(year, month).mulai,
+              lt: rentangBulanUTC(year, month).sebelum,
             },
             is_delete: false,
           },
@@ -260,8 +271,14 @@ export class ExpenseRepository {
           MONTH(expense.date) AS bulan,
           SUM(expense.value) AS nilai
         FROM expense
-        WHERE expense.date >= ${mulai}
-        AND expense.date < ${sebelum}
+        WHERE expense.date >= ${DateHelper.convertDate(
+          mulai,
+          formatDate.YYYYMMDD
+        )}
+        AND expense.date < ${DateHelper.convertDate(
+          sebelum,
+          formatDate.YYYYMMDD
+        )}
         AND expense.is_delete = 0
         GROUP BY tahun, bulan
       `;

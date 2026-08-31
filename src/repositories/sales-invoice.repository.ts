@@ -569,12 +569,12 @@ export class SalesInvoiceRepository {
         AND: [
           {
             date: {
-              lte: new Date(year, month, 0),
+              lt: rentangBulanUTC(year, month).sebelum,
             },
           },
           {
             date: {
-              gte: new Date(year, month - 1, 1),
+              gte: rentangBulanUTC(year, month).mulai,
             },
           },
         ],

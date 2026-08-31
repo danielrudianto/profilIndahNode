@@ -54,17 +54,36 @@ export class MoneyReceiptController {
       : new Date();
 
     try {
+      /*
+        DIBANGUN DI UTC, bukan di zona mesin.
+
+        Ketiganya diteruskan apa adanya sebagai objek Date ke $queryRaw pada
+        enam repository di bawah, dan Prisma menyerialkan Date ke UTC. Kolom
+        tanggal yang dibandingkan bertipe @db.Date, yang juga dibaca sebagai
+        tengah malam UTC. Batas yang dibangun dengan konstruktor lokal karena
+        itu meleset satu hari di mesin UTC+8: grafik uang masuk kehilangan
+        hari terakhirnya dan menghitung satu hari sebelum jendelanya.
+
+        getUTC* dipakai berpasangan dengan Date.UTC — mencampur getFullYear()
+        lokal dengan Date.UTC menggeser tanggalnya lagi pada jam-jam awal hari.
+      */
       const sebelum = new Date(
-        akhir.getFullYear(),
-        akhir.getMonth(),
-        akhir.getDate() + 1
+        Date.UTC(
+          akhir.getUTCFullYear(),
+          akhir.getUTCMonth(),
+          akhir.getUTCDate() + 1
+        )
       );
       const mulai = new Date(
-        akhir.getFullYear(),
-        akhir.getMonth(),
-        akhir.getDate() - 29
+        Date.UTC(
+          akhir.getUTCFullYear(),
+          akhir.getUTCMonth(),
+          akhir.getUTCDate() - 29
+        )
       );
-      const awalBulan = new Date(akhir.getFullYear(), akhir.getMonth(), 1);
+      const awalBulan = new Date(
+        Date.UTC(akhir.getUTCFullYear(), akhir.getUTCMonth(), 1)
+      );
 
       const [
         faktur,

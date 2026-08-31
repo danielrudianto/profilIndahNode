@@ -883,12 +883,18 @@ export class GoodReceiptRepository {
         AND: [
           {
             date: {
-              gte: new Date(year, month - 1, 1),
+              gte: rentangBulanUTC(year, month).mulai,
             },
           },
           {
+            /*
+              Dulu `lt: new Date(year, month, 0)` — hari TERAKHIR bulan ini,
+              dengan operator "lebih kecil". Unduhan penerimaan barang karena
+              itu kehilangan hari terakhir bahkan tanpa persoalan zona waktu,
+              dan kehilangan dua hari terakhir setelah geseran UTC+8.
+            */
             date: {
-              lt: new Date(year, month, 0),
+              lt: rentangBulanUTC(year, month).sebelum,
             },
           },
         ],

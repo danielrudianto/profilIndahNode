@@ -482,8 +482,14 @@ export class StockOutRepository {
           SUM(stock_out.price * stock_out.quantity) AS sales
         FROM stock_out
         LEFT JOIN stock_in ON stock_out.stock_in_id = stock_in.id
-        WHERE stock_out.date >= ${mulai}
-        AND stock_out.date < ${sebelum}
+        WHERE stock_out.date >= ${DateHelper.convertDate(
+          mulai,
+          formatDate.YYYYMMDD
+        )}
+        AND stock_out.date < ${DateHelper.convertDate(
+          sebelum,
+          formatDate.YYYYMMDD
+        )}
         GROUP BY tahun, bulan
       `;
 

@@ -5,6 +5,7 @@ import { ProductBrandModel } from "../models/product-brand.model";
 import { ProductTypeModel } from "../models/product-type.model";
 import { ProductModel } from "../models/product.model";
 import { toPositiveInt } from "../utils/sql.helper";
+import { DateHelper, formatDate } from "../utils/date.helper";
 
 export class ProductStockRepository {
   private prisma: PrismaClient;
@@ -497,7 +498,7 @@ export class ProductStockRepository {
         JOIN (
           SELECT product_id, MAX(date) AS tanggal
           FROM stock_card
-          WHERE date <= ${batas}
+          WHERE date <= ${DateHelper.convertDate(batas, formatDate.YYYYMMDD)}
           GROUP BY product_id
         ) puncak ON puncak.product_id = s2.product_id
           AND puncak.tanggal = s2.date
