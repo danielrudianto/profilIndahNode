@@ -156,18 +156,19 @@ describe("GET / — daftar produk untuk pengisian harga beli", () => {
   });
 
   /**
-   * CACAT: process.env.LIMIT yang tidak diset menjadi NaN, bukan nilai
-   * bawaan.
+   * Dulu CACAT, kini tertutup: LIMIT yang tidak diset menghasilkan NaN.
    *
    * `Number(process.env.LIMIT!)` — tanda serunya hanya menenangkan pemeriksa
    * tipe. Saat berjalan, variabel yang kosong menghasilkan NaN yang
-   * diteruskan sebagai pageSize ke kueri LIMIT/OFFSET.
+   * diteruskan sebagai pageSize ke kueri LIMIT/OFFSET, dan layar pengisian
+   * harga beli tidak menampilkan satu produk pun: halaman kosong tanpa pesan
+   * galat, sehingga terlihat seperti belum ada produk sama sekali.
    *
-   * Akibat bagi pengguna: pada lingkungan yang lupa menyetel LIMIT, layar
-   * pengisian harga beli tidak menampilkan satu produk pun — halaman kosong
-   * tanpa pesan galat, sehingga terlihat seperti belum ada produk sama sekali.
+   * Pengendalinya sekarang memakai translatePageSize, yang mengembalikan 10
+   * untuk masukan kosong maupun tidak masuk akal. Tes ini menahan pintu itu
+   * tetap tertutup.
    */
-  it("CACAT: pageSize menjadi NaN bila LIMIT tidak diset", async () => {
+  it("memakai 10 bila LIMIT tidak diset — bukan NaN", async () => {
     const repo = repositoryTiruan();
     repo.fetchSales.mockResolvedValue({ data: [], count: 0 });
     delete process.env.LIMIT;
@@ -175,7 +176,44 @@ describe("GET / — daftar produk untuk pengisian harga beli", () => {
     await request(app(repo)).get("/");
 
     expect(repo.fetchSales).toHaveBeenCalledWith(
-      expect.objectContaining({ pageSize: NaN })
+      expect.objectContaining({ pageSize: 10 })
+    );
+  });
+
+  /**
+   * Ukuran halaman kini datang dari peramban, bukan dari lingkungan server.
+   *
+   * Inilah yang membuat pemilih 10/25/50 pada layar harga berfungsi. Selama
+   * pengendalinya membaca process.env.LIMIT, pemilih itu menggeser penomoran
+   * halaman tanpa mengubah banyaknya baris yang dikirim — separuh nomor
+   * halaman membuka tabel kosong — sehingga pemilihnya sengaja disembunyikan.
+   */
+  it("meneruskan pageSize dari kueri", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchSales.mockResolvedValue({ data: [], count: 0 });
+
+    await request(app(repo)).get("/?pageSize=50");
+
+    expect(repo.fetchSales).toHaveBeenCalledWith(
+      expect.objectContaining({ pageSize: 50 })
+    );
+  });
+
+  /**
+   * Angka karangan dari peramban tidak boleh menarik seluruh tabel.
+   *
+   * translatePageSize menjepitnya ke 1..100; di luar itu ia mengembalikan 10.
+   * Tanpa jepitan ini, satu permintaan `?pageSize=999999` cukup untuk memuat
+   * seluruh baris produk sekaligus.
+   */
+  it("menolak pageSize di luar 1..100 dan kembali ke 10", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchSales.mockResolvedValue({ data: [], count: 0 });
+
+    await request(app(repo)).get("/?pageSize=999999");
+
+    expect(repo.fetchSales).toHaveBeenCalledWith(
+      expect.objectContaining({ pageSize: 10 })
     );
   });
 
