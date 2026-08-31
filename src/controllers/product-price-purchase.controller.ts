@@ -1,6 +1,10 @@
 import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
-import { translateKeyword, translatePage } from "../utils/escape.helper";
+import {
+  translateKeyword,
+  translatePage,
+  translatePageSize,
+} from "../utils/escape.helper";
 import { queue } from "../utils/queue.helper";
 import { ProductRepository } from "../repositories/product.repository";
 
@@ -15,7 +19,20 @@ export class ProductPurchasePriceController {
     try {
       const keyword = translateKeyword(req.query.keyword);
       const page = translatePage(req.query.page);
-      const pageSize = Number(process.env.LIMIT!);
+      /*
+        Ukuran halaman datang dari peramban, seperti daftar barang.
+
+        Dulu dipatok process.env.LIMIT, sehingga pemilih 10/25/50 di layar
+        tidak berpengaruh apa pun: server tetap mengirim sepuluh baris
+        sementara penomoran halaman menghitung sesuai pilihan, dan separuh
+        nomor halaman membuka tabel kosong. Karena itu pemilihnya sempat
+        disembunyikan di kedua halaman harga.
+
+        translatePageSize menjepitnya ke 1..100 dan mengembalikan 10 untuk
+        masukan yang tidak masuk akal, jadi angka karangan dari peramban tidak
+        bisa meminta seluruh tabel sekaligus.
+      */
+      const pageSize = translatePageSize(req.query.pageSize);
 
       const result = await this.productRepository.fetchSales({
         keyword: keyword,
