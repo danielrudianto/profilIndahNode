@@ -7,7 +7,12 @@ import {
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
 
-import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
+import {
+  DateHelper,
+  formatDate,
+  rentangBulan,
+  rentangBulanUTC,
+} from "../utils/date.helper";
 import ErrorList from "../constants/error-list.constant";
 
 export class GoodReceiptRepository {
@@ -539,12 +544,12 @@ export class GoodReceiptRepository {
             AND: [
               {
                 date: {
-                  gte: new Date(data.year, data.month - 1, 1),
+                  gte: rentangBulanUTC(data.year, data.month).mulai,
                 },
               },
               {
                 date: {
-                  lt: new Date(data.year, data.month, 1),
+                  lt: rentangBulanUTC(data.year, data.month).sebelum,
                 },
               },
               {
@@ -596,12 +601,12 @@ export class GoodReceiptRepository {
             AND: [
               {
                 date: {
-                  gte: new Date(data.year, data.month - 1, 1),
+                  gte: rentangBulanUTC(data.year, data.month).mulai,
                 },
               },
               {
                 date: {
-                  lt: new Date(data.year, data.month, 1),
+                  lt: rentangBulanUTC(data.year, data.month).sebelum,
                 },
               },
               {

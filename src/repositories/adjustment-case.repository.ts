@@ -5,6 +5,7 @@ import {
   IFetchCommon,
   IFetchCommonResult,
 } from "../interfaces/fetch.interface";
+import { rentangBulanUTC } from "../utils/date.helper";
 
 export class AdjustmentCaseRepository {
   private prisma: PrismaClient;
@@ -459,12 +460,12 @@ export class AdjustmentCaseRepository {
             },
             {
               date: {
-                gte: new Date(data.year, data.month - 1, 1),
+                gte: rentangBulanUTC(data.year, data.month).mulai,
               },
             },
             {
               date: {
-                lte: new Date(data.year, data.month, 0),
+                lt: rentangBulanUTC(data.year, data.month).sebelum,
               },
             },
             {
@@ -513,12 +514,12 @@ export class AdjustmentCaseRepository {
           AND: [
             {
               date: {
-                gte: new Date(data.year, data.month - 1, 1),
+                gte: rentangBulanUTC(data.year, data.month).mulai,
               },
             },
             {
               date: {
-                lte: new Date(data.year, data.month, 0),
+                lt: rentangBulanUTC(data.year, data.month).sebelum,
               },
             },
             {

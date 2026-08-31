@@ -4,7 +4,12 @@ import { SalesInvoiceModel } from "../models/sales-invoice.model";
 import { ISalesInvoiceCode } from "../interfaces/sales-invoice.interface";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 
-import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
+import {
+  DateHelper,
+  formatDate,
+  rentangBulan,
+  rentangBulanUTC,
+} from "../utils/date.helper";
 import { IFetchArchiveResult } from "../interfaces/archive.interface";
 import ErrorList from "../constants/error-list.constant";
 
@@ -844,12 +849,12 @@ export class SalesInvoiceRepository {
           AND: [
             {
               date: {
-                gte: new Date(data.year, data.month - 1, 1),
+                gte: rentangBulanUTC(data.year, data.month).mulai,
               },
             },
             {
               date: {
-                lte: new Date(data.year, data.month, 0),
+                lt: rentangBulanUTC(data.year, data.month).sebelum,
               },
             },
             {
@@ -912,12 +917,12 @@ export class SalesInvoiceRepository {
           AND: [
             {
               date: {
-                gte: new Date(data.year, data.month - 1, 1),
+                gte: rentangBulanUTC(data.year, data.month).mulai,
               },
             },
             {
               date: {
-                lte: new Date(data.year, data.month, 0),
+                lt: rentangBulanUTC(data.year, data.month).sebelum,
               },
             },
             {

@@ -4,6 +4,7 @@ import { CompanyModel } from "../models/company.model";
 import { ExpenseModel } from "../models/expense.model";
 import { IExpense } from "../interfaces/expense.interface";
 import ExpenseTypeModel from "../models/expense-type.model";
+import { rentangBulanUTC } from "../utils/date.helper";
 
 export class ExpenseRepository {
   private prisma: PrismaClient;
@@ -96,8 +97,8 @@ export class ExpenseRepository {
     try {
       const where: any = {
         date: {
-          gte: new Date(data.year, data.month - 1, 1, 0, 0, 0),
-          lt: new Date(data.year, data.month, 1, 0, 0, 0),
+          gte: rentangBulanUTC(data.year, data.month).mulai,
+          lt: rentangBulanUTC(data.year, data.month).sebelum,
         },
         is_delete: false,
       };

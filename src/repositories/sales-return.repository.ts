@@ -1,5 +1,10 @@
 import { PrismaClient } from "@prisma/client";
-import { DateHelper, formatDate, rentangBulan } from "../utils/date.helper";
+import {
+  DateHelper,
+  formatDate,
+  rentangBulan,
+  rentangBulanUTC,
+} from "../utils/date.helper";
 import { IFetchAnnualArchives } from "../interfaces/fetch.interface";
 import { SalesReturnCodeModel } from "../models/sales-return.model";
 import { ISalesReturnCode } from "../interfaces/sales-return.interface";
@@ -354,12 +359,12 @@ export class SalesReturnRepository {
             AND: [
               {
                 date: {
-                  gte: new Date(data.year, data.month - 1, 1),
+                  gte: rentangBulanUTC(data.year, data.month).mulai,
                 },
               },
               {
                 date: {
-                  lt: new Date(data.year, data.month, 1),
+                  lt: rentangBulanUTC(data.year, data.month).sebelum,
                 },
               },
               {
@@ -409,12 +414,12 @@ export class SalesReturnRepository {
             AND: [
               {
                 date: {
-                  gte: new Date(data.year, data.month - 1, 1),
+                  gte: rentangBulanUTC(data.year, data.month).mulai,
                 },
               },
               {
                 date: {
-                  lt: new Date(data.year, data.month, 1),
+                  lt: rentangBulanUTC(data.year, data.month).sebelum,
                 },
               },
               {

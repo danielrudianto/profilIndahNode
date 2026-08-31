@@ -7,6 +7,7 @@ import {
 } from "../interfaces/fetch.interface";
 import { SalesDepositModel } from "../models/sales-deposit.model";
 import { ISalesDepositCode } from "../interfaces/sales-deposit.interface";
+import { rentangBulanUTC } from "../utils/date.helper";
 
 export class SalesDepositRepository {
   private prisma: PrismaClient;
@@ -365,12 +366,12 @@ export class SalesDepositRepository {
           AND: [
             {
               date: {
-                gt: new Date(data.year, data.month - 1, 1),
+                gte: rentangBulanUTC(data.year, data.month).mulai,
               },
             },
             {
               date: {
-                lte: new Date(data.year, data.month, 0),
+                lt: rentangBulanUTC(data.year, data.month).sebelum,
               },
             },
             {
@@ -419,12 +420,12 @@ export class SalesDepositRepository {
           AND: [
             {
               date: {
-                gt: new Date(data.year, data.month - 1, 1),
+                gte: rentangBulanUTC(data.year, data.month).mulai,
               },
             },
             {
               date: {
-                lte: new Date(data.year, data.month, 0),
+                lt: rentangBulanUTC(data.year, data.month).sebelum,
               },
             },
             {
