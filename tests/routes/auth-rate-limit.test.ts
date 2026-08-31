@@ -126,6 +126,51 @@ describe("pembatas laju rute masuk", () => {
     expect(res.status).toBe(400);
   });
 
+  /**
+   * IPv6: seluruh blok /64 berbagi satu pembilang.
+   *
+   * Penyedia internet membagikan blok, bukan alamat tunggal, jadi satu
+   * penyerang bisa berganti alamat pada tiap percobaan tanpa berpindah
+   * jaringan. Tanpa ipKeyGenerator, sebelas percobaan dari sebelas alamat di
+   * blok yang sama akan lolos semuanya — pembilangnya tidak pernah penuh.
+   */
+  it("menyatukan alamat IPv6 dari blok yang sama", async () => {
+    const a = app();
+
+    for (let i = 0; i < 10; i++) {
+      await request(a)
+        .post("/login")
+        .set("X-Forwarded-For", `2001:db8:1:1::${i + 1}`)
+        .send({ username: "winda", password: "salah" });
+    }
+
+    const res = await request(a)
+      .post("/login")
+      .set("X-Forwarded-For", "2001:db8:1:1::ff")
+      .send({ username: "winda", password: "salah" });
+
+    expect(res.status).toBe(429);
+  });
+
+  /** Blok IPv6 yang berbeda tetap punya pembilang sendiri. */
+  it("memisahkan blok IPv6 yang berbeda", async () => {
+    const a = app();
+
+    for (let i = 0; i < 11; i++) {
+      await request(a)
+        .post("/login")
+        .set("X-Forwarded-For", `2001:db8:1:1::${i + 1}`)
+        .send({ username: "winda", password: "salah" });
+    }
+
+    const res = await request(a)
+      .post("/login")
+      .set("X-Forwarded-For", "2001:db8:9:9::1")
+      .send({ username: "winda", password: "salah" });
+
+    expect(res.status).toBe(400);
+  });
+
   it("mengirim header RateLimit standar, bukan X-RateLimit lama", async () => {
     const a = app();
 

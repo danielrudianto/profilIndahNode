@@ -1,4 +1,4 @@
-import rateLimit, { Options } from "express-rate-limit";
+import rateLimit, { ipKeyGenerator, Options } from "express-rate-limit";
 import { Request, Response } from "express";
 import ErrorList from "../constants/error-list.constant";
 
@@ -40,9 +40,20 @@ import ErrorList from "../constants/error-list.constant";
  * `req.ip` sudah benar karena app.ts menyetel `trust proxy` ke 1 — satu
  * proxy, yang terdekat. Menyetelnya `true` akan membuat nilai ini bisa
  * dikarang lewat X-Forwarded-For, dan pembatas ini ikut bisa dilewati.
+ *
+ * IP-nya DINORMALKAN lewat ipKeyGenerator, tidak dipakai mentah. Penyedia
+ * internet membagikan blok IPv6 — lazimnya /64 — kepada satu pelanggan, jadi
+ * satu penyerang bisa berganti alamat pada setiap percobaan tanpa berpindah
+ * jaringan. Pembilang yang memakai alamat mentah tidak pernah penuh, dan
+ * pembatas ini menjadi hiasan bagi siapa pun yang memakai IPv6.
+ * ipKeyGenerator memampatkan alamat IPv6 ke awalannya sehingga seluruh blok
+ * berbagi satu pembilang; alamat IPv4 dilewatkan apa adanya.
+ *
+ * Pustakanya sendiri yang menandai ini (ERR_ERL_KEY_GEN_IPV6) — peringatan
+ * itu muncul saat tes dijalankan, dan isinya benar.
  */
 function kunciPerAkun(req: Request): string {
-  const ip = req.ip ?? "tanpa-ip";
+  const ip = req.ip ? ipKeyGenerator(req.ip) : "tanpa-ip";
   const nama = String(req.body?.username ?? "")
     .trim()
     .toLowerCase();
