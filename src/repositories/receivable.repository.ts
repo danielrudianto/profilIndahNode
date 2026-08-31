@@ -87,7 +87,7 @@ export class ReceivableRepository {
         SUM(CASE WHEN sub.lewat = 1 THEN sub.value - sub.payment ELSE 0 END) AS overdue
       FROM (
         SELECT
-          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
+          (COALESCE(si.value, 0) + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
           COALESCE(sip.value, 0) AS payment,
           CASE
             WHEN sales_invoice_code.payment_term IS NOT NULL
@@ -98,7 +98,13 @@ export class ReceivableRepository {
           customer.id,
           customer.name
         FROM sales_invoice_code
-        JOIN (
+        /*
+          LEFT, bukan INNER. Faktur jasa murni tidak punya satu pun baris di
+          sales_invoice, sehingga INNER JOIN membuangnya dari hasil — bukan
+          menilainya nol, melainkan MENGHILANGKANNYA. Tagihannya tidak pernah
+          muncul di daftar piutang dan tidak ada yang menagihnya.
+        */
+        LEFT JOIN (
           SELECT
             SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
             sales_invoice.sales_invoice_code_id
@@ -156,7 +162,8 @@ export class ReceivableRepository {
   async settleWithinTolerance(): Promise<number> {
     const hasil = await this.prisma.$executeRaw`
       UPDATE sales_invoice_code sic
-      JOIN (
+      /* LEFT: faktur jasa murni tanpa baris tetap harus bisa dilunasi. */
+      LEFT JOIN (
         SELECT sales_invoice.sales_invoice_code_id,
           SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value
         FROM sales_invoice
@@ -174,7 +181,7 @@ export class ReceivableRepository {
       ) AS bayar ON bayar.sales_invoice_code_id = sic.id
       SET sic.is_paid = true
       WHERE sic.is_paid = false AND sic.is_delete = false
-      AND (nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) - COALESCE(bayar.value, 0))
+      AND (COALESCE(nilai.value, 0) + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) - COALESCE(bayar.value, 0))
         <= ${PAYMENT_ROUNDING_TOLERANCE}`;
 
     return hasil;
@@ -336,10 +343,11 @@ export class ReceivableRepository {
 
     const totalBaris = await this.prisma.$queryRaw<any[]>`
       SELECT COALESCE(SUM(
-        nilai.value + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) - COALESCE(bayar.value, 0)
+        COALESCE(nilai.value, 0) + sic.delivery + sic.service + sic.admin_fee - sic.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sic.id AND src.is_confirm = 1 AND src.is_delete = 0), 0) - COALESCE(bayar.value, 0)
       ), 0) AS total
       FROM sales_invoice_code sic
-      JOIN (
+      /* LEFT: lihat catatan pada fetchOutstanding. */
+      LEFT JOIN (
         SELECT
           SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
           sales_invoice.sales_invoice_code_id

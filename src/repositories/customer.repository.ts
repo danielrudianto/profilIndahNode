@@ -460,10 +460,15 @@ export class CustomerRepository {
       SELECT SUM(sub.value) AS value, SUM(sub.payment) AS payment
       FROM (
         SELECT
-          (si.value + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
+          (COALESCE(si.value, 0) + sales_invoice_code.delivery + sales_invoice_code.service + sales_invoice_code.admin_fee - sales_invoice_code.discount - COALESCE((SELECT SUM(src.receivable_value) FROM sales_return_code src WHERE src.sales_invoice_code_id = sales_invoice_code.id AND src.is_confirm = 1 AND src.is_delete = 0), 0)) AS value,
           COALESCE(sip.value, 0) AS payment
         FROM sales_invoice_code
-        JOIN (
+        /*
+          LEFT, bukan INNER. Faktur jasa murni tidak punya baris di
+          sales_invoice; INNER JOIN membuangnya, sehingga sisa tagihan
+          pelanggan terbaca lebih kecil daripada yang sebenarnya.
+        */
+        LEFT JOIN (
           SELECT
             SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
             sales_invoice.sales_invoice_code_id

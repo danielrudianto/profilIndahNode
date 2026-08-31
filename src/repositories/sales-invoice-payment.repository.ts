@@ -196,11 +196,12 @@ export class SalesInvoicePaymentRepository {
 
       const result = await this.prisma.$queryRawUnsafe<any[]>(
         `
-      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer, a.value AS value,
+      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer, COALESCE(a.value, 0) AS value,
       SUM(sales_invoice_payment.value) AS payment, COALESCE(payment_method.name, "Cash") AS paymentMethod
       FROM sales_invoice_payment
       JOIN sales_invoice_code ON sales_invoice_payment.sales_invoice_code_id = sales_invoice_code.id
-      JOIN (
+      -- LEFT: pembayaran atas faktur jasa murni tetap masuk laporan harian.
+      LEFT JOIN (
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, sales_invoice.sales_invoice_code_id
           FROM sales_invoice
           JOIN sales_invoice_code sic2 ON sic2.id = sales_invoice.sales_invoice_code_id
