@@ -26,6 +26,7 @@ enum ErrorList {
   "Internal server error" = "error.internalServer",
   "Unable to delete" = "error.unableToDelete",
   "No changes" = "error.noChanges",
+  "Too many attempts" = "error.tooManyAttempts",
 
   "ID is required" = "validation.id.required",
   "ID must be numeric" = "validation.id.numeric",

@@ -8,6 +8,7 @@
     "duplicate": "Data yang anda masukkan sudah ada sebelumnya. Mohon periksa kembali.",
     "unableToDelete": "Tidak dapat menghapus data.",
     "noChanges": "Tidak ada perubahan.",
+    "tooManyAttempts": "Terlalu banyak percobaan masuk. Mohon tunggu 15 menit sebelum mencoba lagi.",
     "internalServer": "Terjadi kesalahan pada server. Mohon hubungi administrator."
   },
   "validation": {
