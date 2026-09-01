@@ -329,6 +329,8 @@ describe("POST /login — masuk", () => {
 describe("POST /refresh-token — memperbarui token", () => {
   it("membalas 200 berisi token baru bila refresh token sah", async () => {
     const repo = repositoryTiruan();
+    /* Pengguna kini ikut diperiksa, jadi repository harus menjawab. */
+    repo.fetchByID.mockResolvedValue({ id: 7, is_active: true });
     verifyTiruan.mockImplementation((_token, _kunci, cb) =>
       cb(null, { id: 7 })
     );
@@ -354,6 +356,7 @@ describe("POST /refresh-token — memperbarui token", () => {
 
   it("menghitung exp satu hari penuh di endpoint ini", async () => {
     const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue({ id: 7, is_active: true });
     verifyTiruan.mockImplementation((_token, _kunci, cb) =>
       cb(null, { id: 7 })
     );
@@ -369,6 +372,101 @@ describe("POST /refresh-token — memperbarui token", () => {
     // hanya sekitar 1.000. Dua endpoint, satu token, dua jawaban berbeda.
     expect(selisih).toBeGreaterThanOrEqual(86_400_000);
     expect(selisih).toBeLessThan(86_405_000);
+  });
+
+  /**
+   * Inti perbaikannya.
+   *
+   * Sebelum ini, jalur refresh hanya memverifikasi tanda tangan token dan
+   * langsung menerbitkan token akses baru. Pegawai yang dinonaktifkan karena
+   * itu tetap bisa memperpanjang aksesnya sendiri sampai refresh token-nya
+   * kedaluwarsa — tujuh hari. Menonaktifkan akun tidak memutus akses.
+   */
+  it("membalas 401 bila penggunanya sudah dinonaktifkan", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue({ id: 7, is_active: false });
+    verifyTiruan.mockImplementation((_token, _kunci, cb) =>
+      cb(null, { id: 7 })
+    );
+
+    const res = await request(app(repo))
+      .post("/refresh-token")
+      .set("x-access-token", "Bearer token-segar")
+      .send({});
+
+    expect(res.status).toBe(401);
+    expect(res.text).toBe(ErrorList["User not active"]);
+    /* Dan yang terpenting: tidak ada token baru yang diterbitkan. */
+    expect(signTiruan).not.toHaveBeenCalled();
+  });
+
+  it("membalas 401 bila penggunanya sudah tidak ada", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue(null);
+    verifyTiruan.mockImplementation((_token, _kunci, cb) =>
+      cb(null, { id: 7 })
+    );
+
+    const res = await request(app(repo))
+      .post("/refresh-token")
+      .set("x-access-token", "Bearer token-segar")
+      .send({});
+
+    expect(res.status).toBe(401);
+    expect(res.text).toBe(ErrorList["User not found"]);
+    expect(signTiruan).not.toHaveBeenCalled();
+  });
+
+  it("mencari pengguna memakai id dari token, bukan dari badan permintaan", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockResolvedValue({ id: 7, is_active: true });
+    verifyTiruan.mockImplementation((_token, _kunci, cb) =>
+      cb(null, { id: 7 })
+    );
+
+    await request(app(repo))
+      .post("/refresh-token")
+      .set("x-access-token", "Bearer token-segar")
+      .send({ id: 999 });
+
+    expect(repo.fetchByID).toHaveBeenCalledWith(7);
+  });
+
+  /*
+    parseInt("abc") menghasilkan NaN, bukan galat. findUnique dengan NaN
+    melempar galat Prisma yang berakhir sebagai 500 — padahal token yang
+    isinya cacat adalah masalah klien, bukan kegagalan server.
+  */
+  it("membalas 401 bila id di dalam token bukan angka", async () => {
+    const repo = repositoryTiruan();
+    verifyTiruan.mockImplementation((_token, _kunci, cb) =>
+      cb(null, { id: "bukan-angka" })
+    );
+
+    const res = await request(app(repo))
+      .post("/refresh-token")
+      .set("x-access-token", "Bearer token-segar")
+      .send({});
+
+    expect(res.status).toBe(401);
+    expect(repo.fetchByID).not.toHaveBeenCalled();
+    expect(signTiruan).not.toHaveBeenCalled();
+  });
+
+  it("membalas 500 bila repository melempar", async () => {
+    const repo = repositoryTiruan();
+    repo.fetchByID.mockRejectedValue(new Error("basis data mati"));
+    verifyTiruan.mockImplementation((_token, _kunci, cb) =>
+      cb(null, { id: 7 })
+    );
+
+    const res = await request(app(repo))
+      .post("/refresh-token")
+      .set("x-access-token", "Bearer token-segar")
+      .send({});
+
+    expect(res.status).toBe(500);
+    expect(signTiruan).not.toHaveBeenCalled();
   });
 
   it("membalas 400 bila header token tidak berawalan Bearer", async () => {
