@@ -25,6 +25,33 @@ export interface ISalesReturnCode {
 
   user_sales_return_code_created_byTouser?: UserViewModel;
   payment_method?: PaymentMethodModel | null;
+
+  /** Berapa dari nilai retur yang memotong tagihan fakturnya. */
+  receivable_value?: number;
+  /** Sisanya, yang menjadi kelebihan bayar untuk dijadwalkan. */
+  overpayment_value?: number;
+
+  /**
+   * Jadwal pengembaliannya — ke mana uangnya dikirim.
+   *
+   * Tersimpan pada baris kelebihan bayar, bukan pada dokumen retur, sehingga
+   * layar retur tidak punya apa pun untuk digambar tanpa ini: bank, nomor
+   * rekening, nama penerima, dan tanggal rencana semuanya diketik petugas di
+   * formulir retur lalu menghilang dari dokumennya sendiri.
+   */
+  overpayment?: ISalesReturnRefund[];
+}
+
+/** Satu jadwal pengembalian uang milik sebuah retur. */
+export interface ISalesReturnRefund {
+  id: number;
+  value: number;
+  return_payment_method: string;
+  return_payment_bank: string | null;
+  return_payment_number: string | null;
+  return_payment_name: string;
+  return_payment_date: Date;
+  is_resolved: boolean;
 }
 
 export interface ISalesReturn {

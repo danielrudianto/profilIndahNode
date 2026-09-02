@@ -144,6 +144,14 @@ export class SalesReturnRepository {
           },
         },
         payment_method: true,
+        /*
+          Jadwal pengembaliannya ikut. Ke mana uangnya dikirim — bank, nomor
+          rekening, nama penerima, tanggal rencana — tersimpan pada baris
+          kelebihan bayar, bukan pada dokumen retur; tanpa relasi ini layar
+          retur tidak punya apa pun untuk digambar, walaupun petugas
+          mengetiknya di formulir yang sama.
+        */
+        overpayment: true,
         user_sales_return_code_created_byTouser: {
           include: {
             user_avatar: true,

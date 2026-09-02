@@ -1,6 +1,7 @@
 import {
   ISalesReturnCode,
   ISalesReturn,
+  ISalesReturnRefund,
 } from "../interfaces/sales-return.interface";
 import { PaymentMethodModel } from "./payment-method.model";
 import {
@@ -28,6 +29,10 @@ export class SalesReturnCodeModel {
 
   user_sales_return_code_created_byTouser?: UserViewModel;
 
+  receivable_value?: number;
+  overpayment_value?: number;
+  overpayment?: ISalesReturnRefund[];
+
   constructor(data: ISalesReturnCode) {
     this.id = data.id;
     this.name = data.name;
@@ -47,6 +52,10 @@ export class SalesReturnCodeModel {
     this.user_sales_return_code_created_byTouser =
       data.user_sales_return_code_created_byTouser;
     this.payment_method = data.payment_method;
+
+    this.receivable_value = data.receivable_value;
+    this.overpayment_value = data.overpayment_value;
+    this.overpayment = data.overpayment;
   }
 
   static fromMap(data: any) {
@@ -90,6 +99,28 @@ export class SalesReturnCodeModel {
           : data.payment_method == undefined
             ? undefined
             : PaymentMethodModel.fromMap(data.payment_method),
+
+      /*
+        Pembagian dan jadwal pengembaliannya. Model ini membuang apa pun yang
+        tidak disebut di sini, jadi menambah include pada kueri saja tidak
+        cukup — relasinya sampai ke repository lalu berhenti di sini tanpa
+        satu pun galat.
+      */
+      receivable_value: Number(data.receivable_value ?? 0),
+      overpayment_value: Number(data.overpayment_value ?? 0),
+      overpayment:
+        data.overpayment == undefined
+          ? undefined
+          : data.overpayment.map((x: any) => ({
+              id: x.id,
+              value: Number(x.value),
+              return_payment_method: x.return_payment_method,
+              return_payment_bank: x.return_payment_bank,
+              return_payment_number: x.return_payment_number,
+              return_payment_name: x.return_payment_name,
+              return_payment_date: x.return_payment_date,
+              is_resolved: x.is_resolved,
+            })),
     });
   }
   /**
