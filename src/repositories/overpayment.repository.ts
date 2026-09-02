@@ -16,6 +16,17 @@ export class OverpaymentRepository {
         sales_deposit_code_id: data.sales_deposit_code_id,
         sales_return_code_id: data.sales_return_code_id ?? null,
         customer_id: data.customer_id,
+        /*
+          KAS MANA yang membayar. Diterima controller sejak lama, dideklarasikan
+          antarmukanya, dan tidak pernah ditulis ke sini — sehingga SETIAP baris
+          kelebihan bayar tersimpan tanpa metode dan jatuh ke keranjang Tunai.
+
+          Akibatnya laporan uang terbelah: sisi retur mendarat di rekening yang
+          benar karena sales_return_code menyimpannya, sisi kelebihan bayar
+          mendarat di Tunai. Satu dokumen tergambar sebagai uang masuk tunai
+          dan uang keluar bank sekaligus.
+        */
+        payment_method_id: data.payment_method_id ?? null,
         return_payment_date: data.return_payment_date,
         return_payment_method: data.return_payment_method,
         return_payment_number: data.return_payment_number,
@@ -93,6 +104,7 @@ export class OverpaymentRepository {
           sales_deposit_code_id: x.sales_deposit_code_id,
           sales_return_code_id: x.sales_return_code_id ?? null,
           customer_id: x.customer_id,
+          payment_method_id: x.payment_method_id ?? null,
           return_payment_date: x.return_payment_date,
           return_payment_method: x.return_payment_method,
           return_payment_number: x.return_payment_number,
