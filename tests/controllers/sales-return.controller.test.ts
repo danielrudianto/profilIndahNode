@@ -78,6 +78,10 @@ function repositoriTiruan() {
     },
     overpayment: {
       create: jest.fn().mockResolvedValue({ id: 1 }),
+      /* Bawaannya: retur tanpa kelebihan bayar. Uji yang memerlukan
+         kelebihan bayar menimpanya sendiri. */
+      fetchBySalesReturnCodeID: jest.fn().mockResolvedValue(null),
+      deleteBySalesReturnCodeID: jest.fn().mockResolvedValue({ count: 0 }),
     },
   };
 }
@@ -509,6 +513,48 @@ describe("POST / — membuat retur penjualan", () => {
 });
 
 describe("DELETE /:id — membatalkan retur", () => {
+  /*
+    Laporan uang membaca overpayment TANPA menyaring keadaan returnya: sisi
+    retur menyaring is_delete, sisi kelebihan bayar tidak. Baris yang
+    ditinggalkan membuat uang dari dokumen yang sudah dibatalkan mengambang di
+    laporan selamanya — persis satu baris Rp 1.020.000 yang ditemukan di
+    produksi, dari retur yang sudah dihapus berhari-hari sebelumnya.
+  */
+  it("ikut membuang kelebihan bayar milik retur yang dibatalkan", async () => {
+    const r = repositoriTiruan();
+    r.salesReturn.fetchByID.mockResolvedValue(returTersimpan());
+    r.salesReturn.delete.mockResolvedValue({ id: 33, is_delete: true });
+    r.overpayment.fetchBySalesReturnCodeID.mockResolvedValue({
+      id: 11,
+      is_resolved: false,
+    });
+
+    await request(app(r)).delete("/33");
+
+    expect(r.overpayment.deleteBySalesReturnCodeID).toHaveBeenCalledWith(33);
+  });
+
+  /*
+    Yang uangnya SUDAH keluar menolak penghapusan, bukan ikut terbuang.
+    Membuang catatan uang yang terlanjur ditransfer membuat buku kas berhenti
+    cocok dengan rekening — kesalahan yang jauh lebih mahal daripada dokumen
+    yang tidak jadi dihapus.
+  */
+  it("menolak membatalkan retur yang kelebihan bayarnya sudah dikembalikan", async () => {
+    const r = repositoriTiruan();
+    r.salesReturn.fetchByID.mockResolvedValue(returTersimpan());
+    r.overpayment.fetchBySalesReturnCodeID.mockResolvedValue({
+      id: 11,
+      is_resolved: true,
+    });
+
+    const res = await request(app(r)).delete("/33");
+
+    expect(res.status).toBe(400);
+    expect(r.salesReturn.delete).not.toHaveBeenCalled();
+    expect(r.overpayment.deleteBySalesReturnCodeID).not.toHaveBeenCalled();
+  });
+
   it("membalas 201 dan mengurangi kembali stok yang sempat dikembalikan", async () => {
     const r = repositoriTiruan();
     r.salesReturn.fetchByID.mockResolvedValue(returTersimpan());

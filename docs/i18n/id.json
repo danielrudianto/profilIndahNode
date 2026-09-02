@@ -322,7 +322,8 @@
     "alreadyExists": "Retur penjualan sudah ada sebelumnya.",
     "alreadyDeleted": "Data retur penjualan sudah dihapus.",
     "creationFailed": "Gagal membentuk retur penjualan baru.",
-    "exceedsPurchased": "Retur lebih besar daripada barang yang dibeli."
+    "exceedsPurchased": "Retur lebih besar daripada barang yang dibeli.",
+    "overpaymentResolved": "Retur ini tidak bisa dihapus karena kelebihan bayarnya sudah dikembalikan ke pelanggan. Batalkan dulu pengembaliannya."
   },
   "expenseType": {
     "notFound": "Data jenis pengeluaran tidak ditemukan.",

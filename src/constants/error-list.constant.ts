@@ -211,6 +211,7 @@ enum ErrorList {
 
   "Sales return exists" = "salesReturn.alreadyExists",
   "Sales return already deleted" = "salesReturn.alreadyDeleted",
+  "Sales return overpayment resolved" = "salesReturn.overpaymentResolved",
   "Sales return creation failed" = "salesReturn.creationFailed",
   "Sales return insufficient" = "salesReturn.exceedsPurchased",
   "Sales return items required" = "validation.salesReturn.itemsRequired",

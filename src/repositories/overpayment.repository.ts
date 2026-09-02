@@ -96,6 +96,36 @@ export class OverpaymentRepository {
     return "ok";
   }
 
+  /**
+   * Kelebihan bayar yang lahir dari satu retur, kalau ada.
+   *
+   * Dipakai jalur hapus retur: barisnya harus ikut dibereskan, karena
+   * laporan uang membaca overpayment tanpa menyaring keadaan returnya —
+   * sisi retur menyaring is_delete, sisi kelebihan bayar tidak. Baris yang
+   * ditinggalkan membuat uang dari dokumen yang sudah dibatalkan mengambang
+   * di laporan selamanya.
+   */
+  async fetchBySalesReturnCodeID(salesReturnCodeID: number) {
+    return this.prisma.overpayment.findFirst({
+      where: { sales_return_code_id: salesReturnCodeID },
+    });
+  }
+
+  /**
+   * Membuang kelebihan bayar milik satu retur.
+   *
+   * Tabelnya tidak punya penanda terhapus, jadi barisnya benar-benar
+   * dibuang. Yang uangnya SUDAH keluar tidak pernah sampai ke sini —
+   * controller menolak penghapusan returnya lebih dulu, karena membuang
+   * catatan uang yang terlanjur ditransfer membuat buku kas berhenti cocok
+   * dengan rekening.
+   */
+  async deleteBySalesReturnCodeID(salesReturnCodeID: number) {
+    return this.prisma.overpayment.deleteMany({
+      where: { sales_return_code_id: salesReturnCodeID, is_resolved: false },
+    });
+  }
+
   async createMany(data: IOverpaymentCode[]) {
     const insertQuery = data.map((x) => {
       return this.prisma.overpayment.create({

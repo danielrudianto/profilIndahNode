@@ -331,7 +331,35 @@ class SalesReturnController {
         return res.status(400).send(ErrorList["Sales return already deleted"]);
       }
 
+      /*
+        Kelebihan bayar yang lahir dari retur ini ikut dibereskan.
+
+        Laporan uang membaca overpayment TANPA menyaring keadaan returnya:
+        sisi retur menyaring is_delete, sisi kelebihan bayar tidak. Baris yang
+        ditinggalkan membuat uang dari dokumen yang sudah dibatalkan mengambang
+        di laporan selamanya — dan karena sisi "dikembalikan" hanya cocok pada
+        tanggal rencananya, selisihnya menetap sebagai uang masuk yang tidak
+        pernah ada.
+
+        Yang uangnya SUDAH keluar menolak penghapusan, bukan ikut terbuang.
+        Membuang catatan uang yang terlanjur ditransfer membuat buku kas
+        berhenti cocok dengan rekening, dan itu kesalahan yang jauh lebih mahal
+        daripada dokumen yang tidak jadi dihapus.
+      */
+      const kelebihan =
+        await this.overpaymentRepository.fetchBySalesReturnCodeID(id);
+
+      if (kelebihan && kelebihan.is_resolved) {
+        return res
+          .status(400)
+          .send(ErrorList["Sales return overpayment resolved"]);
+      }
+
       const result = await this.salesReturnRepository.delete(id, userID);
+
+      if (kelebihan) {
+        await this.overpaymentRepository.deleteBySalesReturnCodeID(id);
+      }
 
       salesReturn.sales_return?.forEach(async (x) => {
         await queue.add("stock-card-deleted", {
