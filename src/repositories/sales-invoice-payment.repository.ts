@@ -207,7 +207,18 @@ export class SalesInvoicePaymentRepository {
 
       const result = await this.prisma.$queryRawUnsafe<any[]>(
         `
-      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer, COALESCE(a.value, 0) AS value,
+      SELECT sales_invoice_code.date AS date, sales_invoice_code.name AS invoiceName, COALESCE(customer.name, "Retail") AS customer,
+      -- Nilai faktur = yang tertulis "Total harus dibayar" pada dokumennya.
+      -- Baris barang saja tidak cukup: ongkos kirim, biaya jasa, dan biaya
+      -- admin ikut ditagihkan, dan diskon dokumen ikut mengurangi. Faktur
+      -- yang memungut biaya admin karenanya tergambar lebih kecil daripada
+      -- yang harus dibayar, dan kolom pembayaran di sebelahnya terlihat
+      -- kelebihan.
+      (COALESCE(a.value, 0)
+        + sales_invoice_code.delivery
+        + sales_invoice_code.service
+        + sales_invoice_code.admin_fee
+        - sales_invoice_code.discount) AS value,
       SUM(sales_invoice_payment.value) AS payment, COALESCE(payment_method.name, "Cash") AS paymentMethod
       FROM sales_invoice_payment
       JOIN sales_invoice_code ON sales_invoice_payment.sales_invoice_code_id = sales_invoice_code.id
