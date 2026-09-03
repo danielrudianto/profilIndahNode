@@ -185,10 +185,21 @@ export class SalesInvoicePaymentRepository {
   async downloadReport(date: Date) {
     try {
       /*
-        Tabel turunan nilai faktur ikut disaring ke tanggal yang sama —
-        bentuk lamanya mengagregasi SELURUH sales_invoice (hampir sejuta
-        baris) untuk laporan satu hari, dan tanggalnya diinterpolasi
-        sebagai teks alih-alih placeholder.
+        Disaring pada TANGGAL PEMBAYARAN, bukan tanggal fakturnya.
+
+        Bentuk lamanya menyaring sales_invoice_code.date dan tidak pernah
+        menyentuh sales_invoice_payment.date sama sekali, sehingga laporannya
+        menjawab "pembayaran atas faktur yang bertanggal hari ini" — bukan
+        "uang yang diterima hari ini", yang adalah judulnya.
+
+        Dua akibatnya berlawanan arah. Pelunasan piutang hari ini atas faktur
+        kemarin HILANG dari laporan; sebaliknya, pembayaran susulan berhari-
+        hari kemudian atas faktur hari ini ikut TERHITUNG di hari ini.
+
+        Tabel turunan nilai faktur tetap dibatasi supaya tidak mengagregasi
+        seluruh sales_invoice (hampir sejuta baris) untuk laporan satu hari —
+        batasnya kini faktur yang punya pembayaran pada tanggal itu, bukan
+        faktur yang bertanggal itu.
       */
       const tanggal = `${date.getFullYear()}-${(date.getMonth() + 1)
         .toString()
@@ -205,14 +216,18 @@ export class SalesInvoicePaymentRepository {
         SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, sales_invoice.sales_invoice_code_id
           FROM sales_invoice
           JOIN sales_invoice_code sic2 ON sic2.id = sales_invoice.sales_invoice_code_id
-          WHERE sic2.date = ?
-          AND sic2.is_delete = 0
+          WHERE sic2.is_delete = 0
+          AND EXISTS (
+            SELECT 1 FROM sales_invoice_payment sip2
+            WHERE sip2.sales_invoice_code_id = sic2.id
+            AND sip2.date = ?
+          )
           GROUP BY sales_invoice_code_id
       ) AS a
       ON sales_invoice_code.id = a.sales_invoice_code_id
       LEFT JOIN customer ON sales_invoice_code.customer_id = customer.id
       LEFT JOIN payment_method ON sales_invoice_payment.payment_method_id = payment_method.id
-      WHERE sales_invoice_code.date = ?
+      WHERE sales_invoice_payment.date = ?
       AND sales_invoice_code.is_delete = 0
       GROUP BY sales_invoice_payment.payment_method_id,
       sales_invoice_payment.sales_invoice_code_id
