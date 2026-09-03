@@ -33,6 +33,16 @@ export interface IOverpaymentCode {
    */
   is_resolved?: boolean;
 
+  /**
+   * Nomor dokumen asalnya, bila lahir dari sebuah dokumen.
+   *
+   * Sumber kelebihan bayar tidak pernah disimpan sebagai keterangan — ia
+   * TERBACA dari kolom mana yang terisi. Nomornya ikut supaya layar bisa
+   * menyebut retur atau deposit yang mana, bukan sekadar "dari retur".
+   */
+  sales_return_code?: { name: string } | null;
+  sales_deposit_code?: { name: string } | null;
+
   customer?: CustomerModel | null;
   sales_invoice?: SalesInvoiceModel;
   user_overpayment_created_byTouser?: UserViewModel;

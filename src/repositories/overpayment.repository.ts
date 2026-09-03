@@ -240,6 +240,19 @@ export class OverpaymentRepository {
           include: {
             customer: true,
             payment_method: true,
+            /*
+              Dokumen asalnya, hanya nomornya. Sumber kelebihan bayar tidak
+              pernah disimpan sebagai keterangan — ia TERBACA dari kolom mana
+              yang terisi: retur mengisi sales_return_code_id, penghapusan
+              deposit mengisi sales_deposit_code_id, dan yang dicatat tangan
+              tidak mengisi keduanya.
+
+              Diturunkan begitu, bukan diketik, karena keterangan yang
+              diketik bisa berbohong: baris bertuliskan "dari retur" yang
+              tidak menunjuk retur mana pun tidak bisa ditelusuri siapa pun.
+            */
+            sales_return_code: { select: { name: true } },
+            sales_deposit_code: { select: { name: true } },
             user_overpayment_created_byTouser: {
               include: {
                 user_avatar: true,
@@ -413,6 +426,8 @@ export class OverpaymentRepository {
       },
       include: {
         customer: true,
+        sales_return_code: { select: { name: true } },
+        sales_deposit_code: { select: { name: true } },
         user_overpayment_created_byTouser: {
           include: {
             user_avatar: true,

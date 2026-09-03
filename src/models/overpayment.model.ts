@@ -11,6 +11,9 @@ export class OverpaymentCodeModel {
   customer_id: number;
   date: Date;
   sales_deposit_code_id: number | null;
+  sales_return_code_id: number | null;
+  sales_return_code?: { name: string } | null;
+  sales_deposit_code?: { name: string } | null;
   payment_method_id: number | null;
   return_payment_method: string;
   return_payment_number: string | null;
@@ -32,6 +35,9 @@ export class OverpaymentCodeModel {
     this.customer_id = data.customer_id;
     this.date = data.date;
     this.sales_deposit_code_id = data.sales_deposit_code_id;
+    this.sales_return_code_id = data.sales_return_code_id ?? null;
+    this.sales_return_code = data.sales_return_code;
+    this.sales_deposit_code = data.sales_deposit_code;
     this.payment_method_id = data.payment_method_id;
     this.return_payment_method = data.return_payment_method;
     this.return_payment_number = data.return_payment_number;
@@ -55,6 +61,15 @@ export class OverpaymentCodeModel {
       customer_id: data.customer_id,
       date: new Date(data.date),
       sales_deposit_code_id: data.sales_deposit_code_id,
+      /*
+        Sumbernya diturunkan dari kolom mana yang terisi, bukan dari
+        keterangan yang diketik. sales_return_code_id sebelumnya tidak pernah
+        ikut keluar dari model ini, sehingga yang lahir dari retur mustahil
+        dibedakan dari yang dicatat tangan.
+      */
+      sales_return_code_id: data.sales_return_code_id ?? null,
+      sales_return_code: data.sales_return_code ?? null,
+      sales_deposit_code: data.sales_deposit_code ?? null,
       payment_method_id: data.payment_method_id,
       return_payment_method: data.return_payment_method,
       return_payment_date: new Date(data.return_payment_date),
