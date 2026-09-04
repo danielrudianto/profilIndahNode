@@ -29,7 +29,25 @@ export const AUDITED_MODELS: string[] = [
   "adjustment_case_code",
   "package_code",
   "overpayment",
-  "receivable",
+
+  /*
+    Uang yang MASUK dan KELUAR, bukan hanya dokumen yang membungkusnya.
+
+    Ketiganya adalah baris uang yang bisa dibuat siapa saja yang boleh membuka
+    fakturnya, dan tidak satu pun menyimpan siapa pembuatnya di barisnya
+    sendiri — sales_invoice_payment bahkan tidak punya kolom created_by
+    maupun created_at. Tanpa jejak ini, pelunasan piutang yang muncul entah
+    dari mana tidak bisa ditelusuri kepada siapa pun.
+
+    Menggantikan "receivable" yang dulu berdiri di sini: tidak ada model
+    Prisma bernama itu, sehingga baris tersebut tidak pernah cocok dengan
+    satu operasi pun. Pembayaran piutang justru menulis ke
+    sales_invoice_payment — yang tidak terdaftar. Daftar ini tampak menjaga
+    piutang selama ini, padahal tidak menjaga apa-apa.
+  */
+  "sales_invoice_payment",
+  "sales_deposit_payment",
+  "sales_invoice_rebate",
 ];
 
 /**
