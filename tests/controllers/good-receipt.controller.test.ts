@@ -188,6 +188,52 @@ describe("POST / — membuat penerimaan barang", () => {
     expect(res.body).toEqual(penerimaan);
   });
 
+  /*
+    Layar penerimaan tidak menampilkan satu pun kolom harga — banner-nya
+    sendiri menyebut harga diinput lewat faktur pembelian. Tetapi barisnya
+    disemai purchase_price dan purchase_discount dari master barang, sehingga
+    barang yang di master punya diskon beli sementara harga belinya masih nol
+    menghasilkan total baris NEGATIF.
+
+    Diskon dokumennya nol, dan 0 > negatif bernilai benar — maka petugas
+    melihat "Diskon faktur tidak boleh melebihi total nilai barang" pada layar
+    yang tidak punya kolom harga sama sekali.
+  */
+  it("menerima dokumen tanpa diskon meski total barisnya negatif", async () => {
+    const repo = repoBuatSiap();
+
+    const res = await request(app(repo))
+      .post("/")
+      .send(
+        badanBuat({
+          discount: 0,
+          good_receipt: [
+            { product_id: 100, quantity: 1000, price: 0, discount: 500 },
+          ],
+        })
+      );
+
+    expect(res.status).toBe(201);
+  });
+
+  it("tetap menolak diskon dokumen yang melebihi total barisnya", async () => {
+    const repo = repoBuatSiap();
+
+    const res = await request(app(repo))
+      .post("/")
+      .send(
+        badanBuat({
+          discount: 500000,
+          good_receipt: [
+            { product_id: 100, quantity: 2, price: 120000, discount: 12000 },
+          ],
+        })
+      );
+
+    expect(res.status).toBe(400);
+    expect(repo.goodReceipt.create).not.toHaveBeenCalled();
+  });
+
   it("meneruskan seluruh bidang dokumen beserta userId dari middleware", async () => {
     const repo = repoBuatSiap();
 

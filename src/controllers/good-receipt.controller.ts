@@ -59,7 +59,27 @@ class GoodReceiptController {
           a + (Number(x.price) - Number(x.discount)) * Number(x.quantity),
         0
       );
-      if (Number(discount ?? 0) > totalBaris) {
+      /*
+        Diskon NOL tidak bisa melebihi apa pun, jadi tidak diperiksa.
+
+        Tanpa penjaga ini, penerimaan yang tidak memungut diskon sama sekali
+        ikut ditolak ketika total barisnya negatif — dan itu terjadi tanpa
+        seorang pun mengetik harga. Layar penerimaan tidak menampilkan harga
+        (banner-nya sendiri menyebut harga diinput lewat faktur pembelian),
+        tetapi barisnya disemai purchase_price dan purchase_discount dari
+        master barang. Barang yang di master punya diskon beli sementara harga
+        belinya masih nol menghasilkan (0 − diskon) × jumlah — negatif — dan
+        0 > negatif bernilai benar.
+
+        Petugas lalu melihat "Diskon faktur tidak boleh melebihi total nilai
+        barang" pada layar yang tidak punya satu pun kolom harga.
+      */
+      const diskonDokumen = Number(discount ?? 0);
+      if (
+        diskonDokumen > 0 &&
+        Number.isFinite(totalBaris) &&
+        diskonDokumen > totalBaris
+      ) {
         return res.status(400).send(ErrorList["Discount > total"]);
       }
 
@@ -203,7 +223,12 @@ class GoodReceiptController {
           a + (Number(x.price) - Number(x.discount)) * Number(x.quantity),
         0
       );
-      if (Number(discount ?? 0) > totalBaris) {
+      const diskonDokumen = Number(discount ?? 0);
+      if (
+        diskonDokumen > 0 &&
+        Number.isFinite(totalBaris) &&
+        diskonDokumen > totalBaris
+      ) {
         return res.status(400).send(ErrorList["Discount > total"]);
       }
 
@@ -595,7 +620,12 @@ class GoodReceiptController {
         (a, x) => a + (x.price - x.discount) * x.quantity,
         0
       );
-      if (Number(discount ?? 0) > totalBaris) {
+      const diskonDokumen = Number(discount ?? 0);
+      if (
+        diskonDokumen > 0 &&
+        Number.isFinite(totalBaris) &&
+        diskonDokumen > totalBaris
+      ) {
         return res.status(400).send(ErrorList["Discount > total"]);
       }
 
