@@ -368,6 +368,14 @@ describe("GET / — daftar stok lewat Meilisearch", () => {
   });
 });
 
+/*
+  Peran dikirim sebagai `callerRole`, bukan `role`.
+
+  Layar ini membaca peran PEMANGGIL untuk memutuskan penyaringan gudang, dan
+  nilai itu kini ditulis middleware ke kunci tersendiri. `role` dikembalikan
+  menjadi milik badan permintaan supaya formulir pengguna tidak lagi kehilangan
+  peran yang dipilihnya — lihat tests/utils/peran-pemanggil.test.ts.
+*/
 describe("POST /warehouse — daftar stok gudang", () => {
   const badan = { keyword: "pipa", page: 2, pageSize: 5 };
 
@@ -383,7 +391,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
 
     const res = await request(app(r))
       .post("/warehouse")
-      .send({ ...badan, role: 2 });
+      .send({ ...badan, callerRole: 2 });
 
     expect(res.status).toBe(200);
     expect(cariMeili).toHaveBeenCalledWith("product", "pipa", {
@@ -406,7 +414,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
 
     const res = await request(app(r))
       .post("/warehouse")
-      .send({ ...badan, role: 2 });
+      .send({ ...badan, callerRole: 2 });
 
     expect(res.body.data[0].sales_price).toBe(1500);
     expect(res.body.data[0].product_stock).toEqual({ stock: 0 });
@@ -427,7 +435,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
       .post("/warehouse")
       .send({
         ...badan,
-        role: 6,
+        callerRole: 6,
         user_sales: [{ product_type_id: 3 }, { product_type_id: 7 }],
       });
 
@@ -457,7 +465,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
 
     const res = await request(app(r))
       .post("/warehouse")
-      .send({ ...badan, role: 6, user_sales: [{ product_type_id: 3 }] });
+      .send({ ...badan, callerRole: 6, user_sales: [{ product_type_id: 3 }] });
 
     // Salesman hanya boleh menjanjikan barang yang belum dijanjikan ke orang
     // lain: 42 - 12.
@@ -470,7 +478,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
 
     const res = await request(app(r))
       .post("/warehouse")
-      .send({ ...badan, role: 2 });
+      .send({ ...badan, callerRole: 2 });
 
     expect(res.status).toBe(500);
     expect(res.text).toBe(ErrorList["Internal server error"]);
@@ -486,7 +494,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
 
     const res = await request(app(r))
       .post("/warehouse")
-      .send({ ...badan, role: 6, user_sales: [] });
+      .send({ ...badan, callerRole: 6, user_sales: [] });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ data: [], count: 0 });
@@ -499,7 +507,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
 
     const res = await request(app(r))
       .post("/warehouse")
-      .send({ ...badan, role: 6, user_sales: [{ product_type_id: 3 }] });
+      .send({ ...badan, callerRole: 6, user_sales: [{ product_type_id: 3 }] });
 
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ data: [], count: 0 });
@@ -529,7 +537,7 @@ describe("POST /warehouse — daftar stok gudang", () => {
       .post("/warehouse")
       .send({
         ...badan,
-        role: 6,
+        callerRole: 6,
         user_sales: [{ product_type_id: "3 OR is_delete = true" }],
       });
 

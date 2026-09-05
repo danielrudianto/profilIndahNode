@@ -145,8 +145,23 @@ describe("requireRole — keputusan izin", () => {
   });
 });
 
-describe("requireRole — role tidak boleh datang dari client", () => {
-  it("menimpa role dan userId kiriman client dengan hasil verifikasi token", async () => {
+describe("peran pemanggil datang dari token, bukan dari client", () => {
+  /**
+   * Aturannya BERUBAH, dan perubahannya disengaja.
+   *
+   * Dulu requireRole menimpa `req.body.role` dengan peran hasil verifikasi
+   * token. Itu menutup pengakuan palsu dari client, tetapi memakai kunci yang
+   * sama dengan yang dipakai formulir untuk mengirim peran pengguna baru —
+   * sehingga POST dan PUT /user kehilangan isinya. Setiap akun yang dibuat
+   * atau diedit tersimpan dengan peran pembuatnya, tanpa satu pun galat.
+   *
+   * Sekarang identitas pemanggil tinggal di `callerRole`, dan `role`
+   * dikembalikan menjadi milik badan permintaan. Yang menjaga keamanannya
+   * bukan lagi penimpaan itu, melainkan dua hal: keputusan izin di bawah
+   * memakai peran dari basis data, dan tidak ada satu pun controller yang
+   * membaca `req.body.role` sebagai identitas — lihat tes penyapu di bawah.
+   */
+  it("menaruh peran pemanggil di callerRole, bukan menimpa role kiriman", async () => {
     mockFindFirst.mockResolvedValue({ id: 42, role: 2, is_active: true });
     const res = buatRes();
     const next = jest.fn();
@@ -161,8 +176,32 @@ describe("requireRole — role tidak boleh datang dari client", () => {
     await tunggu();
 
     expect(next).toHaveBeenCalled();
-    expect(permintaan.body.role).toBe(2);
+    /* Peran sebenarnya, dari token — inilah yang boleh dipercaya. */
+    expect(permintaan.body.callerRole).toBe(2);
+    /* userId TETAP ditimpa: tidak ada kiriman sah yang memakainya sebagai data. */
     expect(permintaan.body.userId).toBe(42);
+  });
+
+  it("mengisi role dari token bila client tidak mengirimnya", async () => {
+    mockFindFirst.mockResolvedValue({ id: 42, role: 2, is_active: true });
+    const res = buatRes();
+    const next = jest.fn();
+
+    const permintaan: any = {
+      headers: { authorization: "Bearer ok" },
+      body: {},
+    };
+
+    requireRole([2, 3, 5, 7])(permintaan, res, next);
+    await tunggu();
+
+    /*
+      Cadangan untuk pemanggil lama. Kalau ini dilepas, controller yang masih
+      membaca req.body.role sebagai identitas akan membaca undefined dan
+      penjagaannya berhenti bekerja diam-diam — gagal terbuka.
+    */
+    expect(permintaan.body.role).toBe(2);
+    expect(permintaan.body.callerRole).toBe(2);
   });
 
   it("keputusan izin memakai role dari database, bukan dari body", async () => {
