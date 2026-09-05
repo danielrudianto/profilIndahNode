@@ -107,7 +107,13 @@ function app(repo: Repo, faktur?: RepoFaktur, pelanggan?: RepoPelanggan) {
   a.put(
     "/:id/reset-password",
     (req, _res, next) => {
-      req.body.role = Number(req.headers["x-uji-role"] ?? 5);
+      /*
+        callerRole, bukan role. Middleware sungguhan kini menulis identitas
+        pemanggil ke kunci tersendiri; `role` dikembalikan menjadi milik badan
+        permintaan, karena POST dan PUT /user memang mengirim peran TUJUAN di
+        sana dan dulu kehilangannya.
+      */
+      req.body.callerRole = Number(req.headers["x-uji-role"] ?? 5);
       next();
     },
     c.resetPassword

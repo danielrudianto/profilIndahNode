@@ -101,11 +101,51 @@ class AuthController {
       });
     }
 
-    verify(token, process.env.REFRESH_TOKEN_KEY!, (err, decoded) => {
+    /*
+      PENGGUNANYA DIPERIKSA, bukan hanya tanda tangan tokennya.
+
+      Dulu jalur ini hanya memverifikasi tanda tangan lalu langsung
+      menerbitkan token akses baru. authMiddleware memeriksa is_active pada
+      setiap permintaan, jadi jalur biasa aman — tetapi jalur INI tidak, dan
+      ia justru yang menerbitkan token.
+
+      Akibatnya pegawai yang dinonaktifkan hari ini tetap bisa memperpanjang
+      aksesnya sendiri sampai refresh token-nya kedaluwarsa, yaitu tujuh hari.
+      Ia tidak bisa masuk lagi, tetapi selama masih memegang refresh token ia
+      tidak pernah benar-benar keluar. Menonaktifkan akun karena itu tidak
+      memutus akses — padahal itulah satu-satunya hal yang diharapkan orang
+      dari tombol nonaktif.
+
+      Pemeriksaannya menyatu dengan authMiddleware: pengguna yang hilang dan
+      pengguna yang tidak aktif sama-sama ditolak.
+    */
+    verify(token, process.env.REFRESH_TOKEN_KEY!, async (err, decoded) => {
       if (err) {
         return res.status(400).send(err);
-      } else {
+      }
+
+      try {
         const id = parseInt((decoded as any).id);
+
+        /*
+          NaN dijaga terpisah. parseInt("abc") tidak melempar, ia menghasilkan
+          NaN — dan findUnique dengan NaN melempar galat Prisma yang berakhir
+          sebagai 500, bukan 401. Token yang isinya cacat adalah masalah
+          klien, bukan kegagalan server.
+        */
+        if (Number.isNaN(id)) {
+          return res.status(401).send(ErrorList["Auth error"]);
+        }
+
+        const user = await this.userRepository.fetchByID(id);
+        if (!user) {
+          return res.status(401).send(ErrorList["User not found"]);
+        }
+
+        if (!user.is_active) {
+          return res.status(401).send(ErrorList["User not active"]);
+        }
+
         const jwtToken = sign(
           {
             id: id,
@@ -126,6 +166,9 @@ class AuthController {
               60 *
               1000,
         });
+      } catch (error) {
+        console.error(`[error]: Error while refreshing token. ${error}`);
+        return res.status(500).send(ErrorList["Internal server error"]);
       }
     });
   };
