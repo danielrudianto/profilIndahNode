@@ -101,7 +101,23 @@ export const authMiddlewareRole = (
 
           req.body.userId = decodedData.id;
           tetapkanPengguna(decodedData.id);
-          req.body.role = user.role;
+          /*
+            Peran PEMANGGIL ditulis ke callerRole, bukan menimpa `role`.
+
+            Dulu keduanya memakai kunci yang sama, sehingga setiap badan
+            permintaan yang MEMBAWA `role` sebagai data kehilangan isinya di
+            sini. POST /user adalah korbannya: peran yang dipilih di formulir
+            ditimpa peran administrator yang sedang membuat akun, dan pengguna
+            baru tersimpan sebagai administrator apa pun yang dipilih. Tidak
+            ada galat — nilainya sah, tipenya benar, validasinya lolos.
+
+            `role` tetap ikut ditulis demi pemanggil lama, tetapi hanya bila
+            badan permintaan belum membawanya sendiri.
+          */
+          req.body.callerRole = user.role;
+          if (req.body.role === undefined) {
+            req.body.role = user.role;
+          }
           req.body.user_sales = user.user_sales.map((x) => {
             return {
               product_type_id: x.product_type_id,
@@ -178,12 +194,21 @@ export const requireRole = (allowedRoles: number[]) => {
             return res.status(403).send("Forbidden");
           }
 
-          // Ditulis dari hasil verifikasi token, bukan dari kiriman client.
-          // Sebagian controller membaca req.body.role; kalau nilainya dibiarkan
-          // datang dari body, client bisa mengaku punya role apa pun.
+          /*
+            Ditulis dari hasil verifikasi token, bukan dari kiriman client:
+            kalau nilainya dibiarkan datang dari body, client bisa mengaku
+            punya peran apa pun.
+
+            callerRole adalah kunci yang benar untuk itu. `role` dulu dipakai
+            untuk dua hal sekaligus — identitas pemanggil DAN data kiriman —
+            dan yang kedua kalah diam-diam. Lihat catatan di authMiddleware.
+          */
           req.body.userId = user.id;
           tetapkanPengguna(user.id);
-          req.body.role = user.role;
+          req.body.callerRole = user.role;
+          if (req.body.role === undefined) {
+            req.body.role = user.role;
+          }
           next();
         })
         .catch(() => {
@@ -206,8 +231,8 @@ export const requireRole = (allowedRoles: number[]) => {
  *
  * requireRole menjawab 401 untuk token bermasalah (penyegaran jalan) dan 403
  * untuk peran yang memang tidak berhak — dua hal berbeda, dua jawaban berbeda.
- * Ia juga menuliskan req.body.userId dan req.body.role dari hasil verifikasi
- * token; kedua middleware ini dulu tidak melakukannya sama sekali.
+ * Ia juga menuliskan req.body.userId dan req.body.callerRole dari hasil
+ * verifikasi token; kedua middleware ini dulu tidak melakukannya sama sekali.
  */
 export const administratorMiddleware = requireRole([5, 7]);
 

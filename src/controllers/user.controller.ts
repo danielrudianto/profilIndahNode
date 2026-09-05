@@ -31,6 +31,12 @@ class UserController {
       const username = req.body.username;
       const name = req.body.name;
       const nik = req.body.nik;
+      /*
+        Peran yang DIPILIH di formulir. Dulu nilai ini ditimpa oleh
+        administratorMiddleware dengan peran pembuatnya sendiri, sehingga
+        setiap pengguna baru tersimpan sebagai administrator apa pun yang
+        dipilih. Identitas pemanggil sekarang tinggal di callerRole.
+      */
       const roleID = Number(req.body.role);
 
       const checkResult = await this.userRepository.check(username, nik);
@@ -47,7 +53,7 @@ class UserController {
         username: username,
         nik: nik,
         created_by: req.body.userId,
-        role: Number(req.body.role),
+        role: roleID,
         user_sales: req.body.user_sales,
         is_active: true,
         password: hashedPassword,
@@ -182,6 +188,7 @@ class UserController {
   update = async (req: Request, res: Response) => {
     const name = req.body.name;
     const id = req.body.id;
+    /* Peran TUJUAN dari formulir, bukan peran pengedit. Lihat create di atas. */
     const role = req.body.role;
     const userID = req.body.userId;
     const userSales = req.body.user_sales;
@@ -297,7 +304,7 @@ class UserController {
   resetPassword = async (req: Request, res: Response) => {
     try {
       const id = Number(req.params.id);
-      const peranPemanggil = Number(req.body.role);
+      const peranPemanggil = Number(req.body.callerRole);
 
       const user = await this.userRepository.fetchByID(id);
       if (!user) {

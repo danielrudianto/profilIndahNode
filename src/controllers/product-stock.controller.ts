@@ -221,7 +221,8 @@ class ProductStockController {
     const keyword = req.body.keyword;
     const page = req.body.page;
     const pageSize = req.body.pageSize;
-    const role = req.body.role;
+    /* Identitas pemanggil, bukan data kiriman — lihat catatan di auth.helper. */
+    const role = req.body.callerRole;
 
     try {
       if (role === 6) {
