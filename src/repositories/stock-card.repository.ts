@@ -257,9 +257,17 @@ export class StockCardRepository {
         },
         // Lawan transaksinya ikut: supplier untuk barang masuk, pelanggan
         // untuk barang keluar. Nama saja — kartunya bukan halaman kontak.
+        //
+        // product_unit ikut karena display_quantity TIDAK berarti apa-apa
+        // tanpa satuannya. Ia mencatat jumlah dalam satuan DOKUMEN: dua roll
+        // tersimpan sebagai 2, sementara quantity di sebelahnya 120 meter.
+        // Tanpa relasi ini layar menggambar "-2" tanpa satuan, bersebelahan
+        // dengan kolom saldo yang bersatuan meter — dan pembacanya
+        // menyimpulkan stoknya berkurang dua meter.
         include: {
           supplier: { select: { id: true, name: true } },
           customer: { select: { id: true, name: true } },
+          product_unit: { select: { id: true, unit: true, conversion: true } },
         },
         orderBy: [
           {
