@@ -251,23 +251,53 @@ export class SalesInvoiceRepository {
     salesInvoiceCount: number;
     customerCount: number;
   }> {
-    const result = await this.prisma.$queryRaw<any[]>`
-        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
-        SUM(sales_invoice_code.discount) AS discount, 
-        SUM(sales_invoice_code.service) AS service, 
+    /*
+      DUA TINGKAT, DUA KUERI.
+
+      Bentuk sebelumnya menjalankan satu SELECT dari `sales_invoice` — tabel
+      BARIS — lalu menjumlahkan kolom yang dimiliki `sales_invoice_code`,
+      tabel NOTA. Pada join itu sebuah nota muncul sebanyak jumlah barisnya,
+      sehingga diskon, jasa, ongkos kirim, dan biaya admin miliknya ikut
+      terhitung berulang kali. COUNT-nya pun menghitung baris, bukan dokumen,
+      sehingga "jumlah faktur" di laporan sebenarnya jumlah baris barang.
+
+      Sebaliknya, INNER JOIN itu MEMBUANG nota yang tidak punya baris sama
+      sekali. Faktur jasa murni berbentuk begitu, dan pada September 2026 saja
+      dua belas dokumen semacam itu membawa 125 juta jasa yang tidak pernah
+      muncul di laporan mana pun.
+
+      Ketiga kesalahan itu lahir dari satu sebab: nilai baris dan nilai nota
+      dijumlahkan dalam kueri yang sama. Karena itu keduanya dipisah — nilai
+      baris dari tabel baris, nilai nota dari tabel nota — lalu hasilnya
+      disandingkan. Tidak ada join yang bisa menggandakan apa pun.
+    */
+    const mulai = DateHelper.convertDate(startDate, formatDate.YYYYMMDD);
+    const sampai = DateHelper.convertDate(endDate, formatDate.YYYYMMDD);
+
+    const [nilaiBaris, nilaiNota] = await Promise.all([
+      /* Tingkat BARIS: nilai barang yang terjual. */
+      this.prisma.$queryRaw<any[]>`
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        WHERE sales_invoice_code.is_delete = 0
+        AND sales_invoice_code.date BETWEEN ${mulai} AND ${sampai}
+      `,
+      /* Tingkat NOTA: biaya dan potongan yang melekat pada dokumennya. */
+      this.prisma.$queryRaw<any[]>`
+        SELECT SUM(sales_invoice_code.discount) AS discount,
+        SUM(sales_invoice_code.service) AS service,
         SUM(sales_invoice_code.delivery) AS delivery,
         SUM(sales_invoice_code.admin_fee) AS adminFee,
         COUNT(sales_invoice_code.id) AS salesInvoiceCount,
         COUNT(DISTINCT(sales_invoice_code.customer_id)) AS customerCount
-        FROM sales_invoice
-        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        FROM sales_invoice_code
         WHERE sales_invoice_code.is_delete = 0
-        AND sales_invoice_code.date BETWEEN ${DateHelper.convertDate(
-          startDate,
-          formatDate.YYYYMMDD
-        )}
-        AND ${DateHelper.convertDate(endDate, formatDate.YYYYMMDD)};
-    `;
+        AND sales_invoice_code.date BETWEEN ${mulai} AND ${sampai}
+      `,
+    ]);
+
+    const result = [{ ...(nilaiBaris[0] ?? {}), ...(nilaiNota[0] ?? {}) }];
 
     if (!result || result.length == 0) {
       return {
@@ -281,48 +311,92 @@ export class SalesInvoiceRepository {
       };
     }
 
+    /*
+      SUM pada himpunan kosong menghasilkan NULL, bukan nol, dan Number(null)
+      menghasilkan 0 sementara Number(undefined) menghasilkan NaN. Rentang
+      tanpa satu pun baris barang — bulan yang isinya hanya faktur jasa —
+      karena itu harus dijaga di sini, kalau tidak angka NaN merambat sampai
+      ke layar.
+    */
+    const angka = (x: unknown) => {
+      const n = Number(x ?? 0);
+      return Number.isFinite(n) ? n : 0;
+    };
+
     const data = result[0];
     return {
-      value: Number(data.value),
-      delivery: Number(data.delivery),
-      discount: Number(data.discount),
-      service: Number(data.service),
-      adminFee: Number(data.adminFee),
-      salesInvoiceCount: Number(data.salesInvoiceCount),
-      customerCount: Number(data.customerCount),
+      value: angka(data.value),
+      delivery: angka(data.delivery),
+      discount: angka(data.discount),
+      service: angka(data.service),
+      adminFee: angka(data.adminFee),
+      salesInvoiceCount: angka(data.salesInvoiceCount),
+      customerCount: angka(data.customerCount),
     };
   }
 
+  /**
+   * Nilai harian untuk grafik laporan penjualan.
+   *
+   * Terkena persoalan yang sama dengan fetchByDateRange, dan diperbaiki
+   * dengan cara yang sama: nilai baris dan nilai nota dijumlahkan terpisah
+   * lalu disatukan menurut tanggal. Lihat catatan panjang di sana.
+   *
+   * Penyatuannya memakai peta bertanggal, bukan penggabungan larik menurut
+   * urutan: sebuah hari bisa hanya punya nota tanpa punya baris — hari yang
+   * seluruh transaksinya jasa murni — dan sebaliknya tidak pernah terjadi.
+   * Menyandingkan dua larik menurut indeks akan menggeser seluruh sisanya
+   * begitu satu hari semacam itu muncul.
+   */
   async fetchChart(month: number, year: number) {
-    const result = await this.prisma.$queryRaw<any[]>`
-      SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value, 
-      SUM(sales_invoice_code.discount) AS discount, 
-      SUM(sales_invoice_code.service) AS service, 
-      SUM(sales_invoice_code.delivery) AS delivery,
-      COUNT(sales_invoice_code.id) AS salesInvoiceCount,
-      DAY(sales_invoice_code.date) AS date
-      FROM sales_invoice
-      JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
-      WHERE sales_invoice_code.is_delete = 0
-      AND sales_invoice_code.date >= ${DateHelper.convertDate(
-        rentangBulan(year, month).mulai,
-        formatDate.YYYYMMDD
-      )}
-      AND sales_invoice_code.date < ${DateHelper.convertDate(
-        rentangBulan(year, month).sebelum,
-        formatDate.YYYYMMDD
-      )}
-      GROUP BY DAY(sales_invoice_code.date)
-    `;
+    const mulai = DateHelper.convertDate(
+      rentangBulan(year, month).mulai,
+      formatDate.YYYYMMDD
+    );
+    const sebelum = DateHelper.convertDate(
+      rentangBulan(year, month).sebelum,
+      formatDate.YYYYMMDD
+    );
 
-    return result.map((x) => {
+    const [baris, nota] = await Promise.all([
+      this.prisma.$queryRaw<any[]>`
+        SELECT SUM(sales_invoice.quantity * (sales_invoice.price - sales_invoice.discount)) AS value,
+        DAY(sales_invoice_code.date) AS date
+        FROM sales_invoice
+        JOIN sales_invoice_code ON sales_invoice.sales_invoice_code_id = sales_invoice_code.id
+        WHERE sales_invoice_code.is_delete = 0
+        AND sales_invoice_code.date >= ${mulai}
+        AND sales_invoice_code.date < ${sebelum}
+        GROUP BY DAY(sales_invoice_code.date)
+      `,
+      this.prisma.$queryRaw<any[]>`
+        SELECT SUM(sales_invoice_code.discount) AS discount,
+        SUM(sales_invoice_code.service) AS service,
+        SUM(sales_invoice_code.delivery) AS delivery,
+        COUNT(sales_invoice_code.id) AS salesInvoiceCount,
+        DAY(sales_invoice_code.date) AS date
+        FROM sales_invoice_code
+        WHERE sales_invoice_code.is_delete = 0
+        AND sales_invoice_code.date >= ${mulai}
+        AND sales_invoice_code.date < ${sebelum}
+        GROUP BY DAY(sales_invoice_code.date)
+      `,
+    ]);
+
+    const nilaiBaris = new Map<number, number>();
+    for (const x of baris) {
+      nilaiBaris.set(Number(x.date), Number(x.value ?? 0));
+    }
+
+    return nota.map((x) => {
+      const hari = Number(x.date);
       return {
-        date: Number(x.date),
-        value: Number(x.value),
-        discount: Number(x.discount),
-        delivery: Number(x.delivery),
-        service: Number(x.service),
-        salesInvoiceCount: Number(x.salesInvoiceCount),
+        date: hari,
+        value: nilaiBaris.get(hari) ?? 0,
+        discount: Number(x.discount ?? 0),
+        delivery: Number(x.delivery ?? 0),
+        service: Number(x.service ?? 0),
+        salesInvoiceCount: Number(x.salesInvoiceCount ?? 0),
       };
     });
   }
