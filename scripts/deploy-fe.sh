@@ -161,13 +161,54 @@ fi
 echo "==> Menyalin ke $TUJUAN"
 mkdir -p "$TUJUAN"
 
+# Berkas di tujuan yang dimiliki pengguna LAIN tidak bisa ditimpa rsync, dan
+# kepemilikan itu lahir dari satu kali menjalankan skrip ini dengan sudo —
+# jejaknya bertahan sampai dibereskan.
+#
+# Diperiksa SEBELUM menyalin, bukan sesudah: penyalinan yang gagal di tengah
+# meninggalkan tujuan setengah jadi, dan pada keadaan itu situsnya sudah
+# terlanjur rusak.
+MILIK_LAIN="$(find "$TUJUAN" ! -user "$(id -un)" -print -quit 2> /dev/null || true)"
+if [[ -n "$MILIK_LAIN" ]]; then
+  merah "GAGAL: ada berkas di $TUJUAN yang bukan milik $(id -un)."
+  merah "Contoh: $MILIK_LAIN"
+  merah ""
+  merah "rsync tidak dapat menimpanya, dan penyalinan akan berhenti di tengah."
+  merah "Bereskan dulu:"
+  merah "  sudo chown -R $(id -un):$(id -gn) $TUJUAN"
+  exit 1
+fi
+
+# Kegagalan di sini TIDAK boleh berakhir sebagai `set -e` yang diam.
+#
+# Langkah 5b di bawah — yang memberi nginx izin baca — tidak akan pernah
+# jalan bila skrip mati di baris ini, sehingga tujuan tertinggal dengan izin
+# 700 warisan pohon sumber dan SITUSNYA MATI. Yang terbaca pengguna cuma
+# ratusan baris "Permission denied" tanpa satu pun kalimat yang menyebutkan
+# bahwa halamannya kini tidak terbuka.
+salin_gagal() {
+  merah ""
+  merah "GAGAL: penyalinan tidak selesai."
+  merah ""
+  merah "$TUJUAN kini SETENGAH TERSALIN, dan situsnya kemungkinan tidak"
+  merah "terbuka. Izin bacanya juga belum disetel karena langkah itu ada"
+  merah "sesudah penyalinan."
+  merah ""
+  merah "Pulihkan:"
+  merah "  sudo chown -R $(id -un):$(id -gn) $TUJUAN"
+  merah "  $0 --lewati-tarik"
+  merah ""
+  merah "Lalu periksa https://${DOMAIN}/ sebelum meninggalkannya."
+  exit 1
+}
+
 # `--delete` membuang berkas lama yang sudah tidak dihasilkan lagi. Tanpa
 # itu, potongan bernama-hash dari build lama menumpuk selamanya.
 if command -v rsync > /dev/null; then
-  rsync -a --delete "$HASIL/" "$TUJUAN/"
+  rsync -a --delete "$HASIL/" "$TUJUAN/" || salin_gagal
 else
-  rm -rf "${TUJUAN:?}/"*
-  cp -r "$HASIL/." "$TUJUAN/"
+  rm -rf "${TUJUAN:?}/"* || salin_gagal
+  cp -r "$HASIL/." "$TUJUAN/" || salin_gagal
 fi
 
 [[ -f "$TUJUAN/index.html" ]] || gagal "penyalinan tidak menghasilkan index.html"
