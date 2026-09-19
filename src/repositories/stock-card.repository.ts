@@ -119,55 +119,55 @@ export class StockCardRepository {
       };
     } else if (data.viewBy === "created") {
       /*
-        Stok awal = keadaan SEBELUM hari itu dimulai. Versi lama mencari
-        baris terakhir yang created_at-nya DI DALAM hari yang sama —
-        stok akhir hari dijadikan stok awal, lalu pemanggilnya
-        menambahkan mutasi hari itu sekali lagi: 99 → 87 tampil sebagai
-        87 → 75.
+        Stok awal = keadaan SEBELUM hari itu dimulai.
+
+        DIHITUNG MUNDUR DARI STOK KINI, bukan dibaca dari kolom stock milik
+        kartu. Kolom itu adalah saldo berjalan menurut TANGGAL DOKUMEN,
+        sementara jendela di sini ditentukan TANGGAL INPUT — dan dua urutan
+        itu berbeda begitu ada dokumen yang dimundurkan tanggalnya.
+
+        Contohnya persis yang ditemukan di produksi: faktur bertanggal 29
+        Agustus diinput 3 September. Di kartu ia duduk jauh di belakang
+        dengan saldo berjalan 10, sementara baris terakhir yang diinput
+        sebelum hari itu bersaldo 9 — maka laporan tanggal input 3 September
+        menutup di 9 − 15 = −6, padahal stok barangnya 8.
+
+        Mundur dari stok kini tidak bisa meleset begitu: berapa pun urutan
+        dokumennya, stok kini dikurangi segala mutasi yang diinput SESUDAH
+        hari itu adalah stok pada akhir hari itu, dan dikurangi lagi mutasi
+        hari itu sendiri adalah stok awalnya.
       */
-      const previous = await this.prisma.stock_card.findFirst({
-        where: {
-          product_id: data.productID,
-          created_at: {
-            lt: new Date(
-              data.date.getFullYear(),
-              data.date.getMonth(),
-              data.date.getDate()
-            ),
+      const awalHari = new Date(
+        data.date.getFullYear(),
+        data.date.getMonth(),
+        data.date.getDate()
+      );
+      const besok = new Date(
+        data.date.getFullYear(),
+        data.date.getMonth(),
+        data.date.getDate() + 1
+      );
+
+      const [stokKini, sesudahHariItu] = await Promise.all([
+        this.prisma.product_stock.findUnique({
+          where: { id: data.productID },
+          select: { stock: true },
+        }),
+        this.prisma.stock_card.aggregate({
+          _sum: { quantity: true },
+          where: {
+            product_id: data.productID,
+            created_at: { gte: besok },
           },
-        },
-        orderBy: [
-          {
-            created_at: "desc",
-          },
-          {
-            id: "desc",
-          },
-        ],
-      });
+        }),
+      ]);
 
       const current = await this.prisma.stock_card.findMany({
         where: {
           product_id: data.productID,
           AND: [
-            {
-              created_at: {
-                lt: new Date(
-                  data.date.getFullYear(),
-                  data.date.getMonth(),
-                  data.date.getDate() + 1
-                ),
-              },
-            },
-            {
-              created_at: {
-                gte: new Date(
-                  data.date.getFullYear(),
-                  data.date.getMonth(),
-                  data.date.getDate()
-                ),
-              },
-            },
+            { created_at: { lt: besok } },
+            { created_at: { gte: awalHari } },
           ],
         },
         orderBy: [
@@ -182,11 +182,19 @@ export class StockCardRepository {
         },
       });
 
+      const akhirHari =
+        Number(stokKini?.stock ?? 0) -
+        Number(sesudahHariItu._sum.quantity ?? 0);
+      const mutasiHariItu = current.reduce(
+        (jumlah, x) => jumlah + Number(x.quantity),
+        0
+      );
+
       return {
         data: current.map((x) => {
           return StockCardModel.fromMap(x);
         }),
-        previous: previous == null ? 0 : Number(previous.stock),
+        previous: akhirHari - mutasiHariItu,
       };
     }
   }
@@ -249,9 +257,17 @@ export class StockCardRepository {
         },
         // Lawan transaksinya ikut: supplier untuk barang masuk, pelanggan
         // untuk barang keluar. Nama saja — kartunya bukan halaman kontak.
+        //
+        // product_unit ikut karena display_quantity TIDAK berarti apa-apa
+        // tanpa satuannya. Ia mencatat jumlah dalam satuan DOKUMEN: dua roll
+        // tersimpan sebagai 2, sementara quantity di sebelahnya 120 meter.
+        // Tanpa relasi ini layar menggambar "-2" tanpa satuan, bersebelahan
+        // dengan kolom saldo yang bersatuan meter — dan pembacanya
+        // menyimpulkan stoknya berkurang dua meter.
         include: {
           supplier: { select: { id: true, name: true } },
           customer: { select: { id: true, name: true } },
+          product_unit: { select: { id: true, unit: true, conversion: true } },
         },
         orderBy: [
           {
