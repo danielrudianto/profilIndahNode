@@ -1,6 +1,7 @@
 import { Prisma, PrismaClient } from "@prisma/client";
 import { StockCardModel } from "../models/stock-card.model";
 import { IStockCard } from "../interfaces/stock-card.interface";
+import { DateHelper, formatDate } from "../utils/date.helper";
 
 export class StockCardRepository {
   private prisma: PrismaClient;
@@ -295,39 +296,56 @@ export class StockCardRepository {
     };
   }
 
+  /**
+   * Menghitung ulang saldo berjalan sejak satu titik, dalam SATU pernyataan.
+   *
+   * Bentuk sebelumnya menarik seluruh baris yang terpengaruh lalu memanggil
+   * UPDATE satu per satu, dengan `await` di dalam perulangan — jadi bukan
+   * sekadar banyak kueri, melainkan banyak kueri BERURUTAN, satu pulang-pergi
+   * jaringan per baris. Pada produk tersibuk di basis data ini kartunya
+   * berjumlah 20.087; satu faktur bertanggal mundur bisa memicu belasan ribu
+   * pulang-pergi sebelum kasirnya melihat konfirmasi.
+   *
+   * SUM(...) OVER (ORDER BY ...) menghitung saldo berjalan itu di dalam
+   * MySQL. Tersedia sejak 8.0; basis data ini 8.0.46.
+   *
+   * `initial_stock` ditambahkan sebagai konstanta, bukan disatukan ke dalam
+   * jendela: ia adalah saldo baris JANGKAR yang berada tepat sebelum rentang
+   * ini dan sengaja tidak ikut dihitung ulang. Menyertakannya ke dalam
+   * partisi akan menghitung kuantitasnya dua kali.
+   *
+   * Urutannya `date, id` — sama persis dengan bentuk lama. Kartu pada tanggal
+   * yang sama diurutkan menurut id, dan itu satu-satunya yang membuat
+   * saldonya deterministik ketika beberapa dokumen berbagi satu tanggal.
+   */
   async reorderSince(data: {
     product_id: number;
     id: number;
     date: Date;
     initial_stock: number;
   }) {
-    const unupdatedStockCards = await this.prisma.stock_card.findMany({
-      where: {
-        product_id: data.product_id,
-        OR: [
-          { date: { gt: data.date } },
-          { AND: [{ date: data.date }, { id: { gte: data.id } }] },
-        ],
-      },
-      orderBy: [{ date: "asc" }, { id: "asc" }],
-    });
+    const sejakTanggal = DateHelper.convertDate(data.date, formatDate.YYYYMMDD);
 
-    let initial_stock = data.initial_stock;
-    for (let i = 0; i < unupdatedStockCards.length; i++) {
-      const id = unupdatedStockCards[i].id;
-      const quantity = Number(unupdatedStockCards[i].quantity);
-      const final_quantity = initial_stock + quantity;
-      const result = await this.prisma.stock_card.update({
-        where: {
-          id: id,
-        },
-        data: {
-          stock: final_quantity,
-        },
-      });
-
-      initial_stock += quantity;
-    }
+    /*
+      Syarat rentangnya identik dengan findMany yang digantikan: baris
+      setelah tanggal jangkar, ditambah baris pada tanggal yang sama yang
+      id-nya tidak lebih kecil dari jangkar.
+    */
+    await this.prisma.$executeRaw`
+      UPDATE stock_card AS sc
+      JOIN (
+        SELECT id,
+          ${data.initial_stock} + SUM(quantity) OVER (
+            ORDER BY date ASC, id ASC
+            ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+          ) AS saldo
+        FROM stock_card
+        WHERE product_id = ${data.product_id}
+          AND (date > ${sejakTanggal}
+               OR (date = ${sejakTanggal} AND id >= ${data.id}))
+      ) AS hitung ON hitung.id = sc.id
+      SET sc.stock = hitung.saldo
+    `;
   }
 
   async delete(id: number) {
@@ -436,9 +454,28 @@ export class StockCardRepository {
     return result;
   }
 
+  /**
+   * Menghitung ulang saldo seluruh produk yang punya kartu ber-stock NULL.
+   *
+   * Dipanggil saat aplikasi start. Bentuk sebelumnya, untuk SETIAP produk,
+   * menarik seluruh kartunya lalu menyusun satu UPDATE per baris ke dalam
+   * satu transaksi — pada basis data ini sekitar sejuta pernyataan setiap
+   * kali proses dihidupkan, termasuk setiap deploy.
+   *
+   * Sekarang satu pernyataan per produk. Perhitungan saldonya sama persis
+   * dengan reorderSince; lihat catatan panjang di sana.
+   *
+   * SENGAJA TIDAK satu pernyataan untuk seluruh tabel. Bentuk itu memang
+   * jalan — menghitung ulang 1,13 juta baris memakan tiga setengah detik —
+   * tetapi ia memegang kunci atas seluruh tabel selama itu, sementara start
+   * aplikasi bisa terjadi kapan saja, termasuk di tengah jam toko. Per produk
+   * berarti 4.886 pernyataan pendek yang bisa diselingi pekerjaan lain, bukan
+   * satu penguncian panjang.
+   */
   async reorder() {
     const productIDs = await this.prisma.stock_card.findMany({
       distinct: ["product_id"],
+      select: { product_id: true },
       where: {
         stock: null,
       },
@@ -449,51 +486,32 @@ export class StockCardRepository {
     );
 
     for (let i = 0; i < productIDs.length; i++) {
-      console.info(
-        `[info]: Start reordering ${i + 1}/${
-          productIDs.length
-        } product stock card`
-      );
       const product_id = productIDs[i].product_id;
 
-      const stockCards = await this.prisma.stock_card.findMany({
-        where: {
-          product_id: product_id,
-        },
-        orderBy: [
-          {
-            date: "asc",
-          },
-          {
-            id: "asc",
-          },
-        ],
-      });
+      await this.prisma.$executeRaw`
+        UPDATE stock_card AS sc
+        JOIN (
+          SELECT id,
+            SUM(quantity) OVER (
+              ORDER BY date ASC, id ASC
+              ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS saldo
+          FROM stock_card
+          WHERE product_id = ${product_id}
+        ) AS hitung ON hitung.id = sc.id
+        SET sc.stock = hitung.saldo
+      `;
 
-      let initialQuantity = 0;
-      const updateQuery = [];
-
-      for (let j = 0; j < stockCards.length; j++) {
-        initialQuantity += Number(stockCards[j].quantity);
-        updateQuery.push(
-          this.prisma.stock_card.update({
-            where: {
-              id: stockCards[j].id,
-            },
-            data: {
-              stock: initialQuantity,
-            },
-          })
+      /*
+        Dicatat per seratus produk, bukan per produk. Empat ribu delapan ratus
+        baris log untuk pekerjaan yang kini berlangsung beberapa detik hanya
+        menenggelamkan pesan lain yang justru perlu dibaca saat start.
+      */
+      if ((i + 1) % 100 === 0 || i + 1 === productIDs.length) {
+        console.info(
+          `[info]: Reordered ${i + 1}/${productIDs.length} product stock card`
         );
       }
-
-      await this.prisma.$transaction(updateQuery);
-
-      console.info(
-        `[info]: Done reordering ${i + 1}/${
-          productIDs.length
-        } product stock card`
-      );
     }
 
     console.info(`[info]: Reordering completed`);
