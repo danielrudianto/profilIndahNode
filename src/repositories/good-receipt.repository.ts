@@ -907,6 +907,11 @@ export class GoodReceiptRepository {
           },
         },
         supplier: true,
+        /*
+          Perusahaan penerima. Relasinya wajib di skema — company_id bukan
+          kolom opsional — jadi tidak perlu penjagaan nilai kosong di sini.
+        */
+        company: true,
       },
     });
 
@@ -916,6 +921,7 @@ export class GoodReceiptRepository {
         name: x.name,
         invoice_name: x.invoice_name,
         faktur: x.faktur,
+        company_name: x.company.name,
         supplier_name: x.supplier.name,
         value: x.good_receipt.reduce((a, b) => {
           return (
