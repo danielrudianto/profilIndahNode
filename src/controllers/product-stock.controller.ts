@@ -144,22 +144,37 @@ class ProductStockController {
         sudah ada dan sudah dipakai halaman lain — bentuk barisnya sama persis
         dengan jalur biasa, sampai ke product_stock.stock dan product_brand.
       */
-      if (condition === "low" || condition === "negative") {
+      /*
+        Daftar tertutup, bukan nilai apa adanya dari query. Nilai ini menjadi
+        kunci ke KLAUSA_KEADAAN, dan kunci yang tidak dikenal harus jatuh ke
+        jalur biasa — bukan menyentuh pencarian tetapan sama sekali.
+      */
+      if (
+        condition === "low" ||
+        condition === "low-theory" ||
+        condition === "negative"
+      ) {
         const hasil =
-          condition === "low"
-            ? await this.productStockRepository.fetchInadequateStock({
+          condition === "negative"
+            ? await this.productStockRepository.fetchProblematicStock({
                 keyword: keyword,
                 page: page,
                 pageSize: pageSize,
                 brands: [],
                 types: [],
               })
-            : await this.productStockRepository.fetchProblematicStock({
+            : await this.productStockRepository.fetchInadequateStock({
                 keyword: keyword,
                 page: page,
                 pageSize: pageSize,
                 brands: [],
                 types: [],
+                /*
+                  Diteruskan apa adanya — dan justru karena itu daftarnya
+                  memakai definisi yang sama persis dengan chip yang baru
+                  saja ditekan pengguna.
+                */
+                keadaan: condition,
               });
 
         return res.status(200).send({

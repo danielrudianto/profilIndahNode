@@ -75,7 +75,9 @@ function stockRepositoryTiruan() {
       SEBELUM apa pun, jadi tiruannya wajib ada atau seluruh daftar membalas
       500. Nilai bawaannya nol-nol supaya tiap uji tidak perlu mengaturnya.
     */
-    countConditions: jest.fn().mockResolvedValue({ low: 0, negative: 0 }),
+    countConditions: jest
+      .fn()
+      .mockResolvedValue({ low: 0, lowTheory: 0, negative: 0 }),
   };
 }
 
@@ -365,6 +367,98 @@ describe("GET / — daftar stok lewat Meilisearch", () => {
 
     expect(res.body.data[0].sales_price).toBe("1500");
     expect(res.body.data[0].rahasia_internal).toBe("jangan dikirim");
+  });
+
+  /*
+    Penyaringan tiga keadaan.
+
+    Yang dijaga di sini BUKAN isi SQL-nya — itu urusan KLAUSA_KEADAAN — tetapi
+    perkara yang lebih mudah rusak diam-diam: apakah nilai chip yang ditekan
+    pengguna sampai ke repositori APA ADANYA. Ketika "low-theory" diam-diam
+    jatuh menjadi "low", daftarnya tetap terisi dan tidak ada galat apa pun
+    yang muncul — isinya saja yang salah, dan hanya orang yang menghitung
+    ulang sendiri yang akan tahu.
+  */
+  describe("saringan keadaan", () => {
+    for (const keadaan of ["low", "low-theory"]) {
+      it(`condition=${keadaan} diteruskan apa adanya ke repositori`, async () => {
+        const r = repos();
+        r.stok.fetchInadequateStock.mockResolvedValue({ data: [], count: 3 });
+
+        const res = await request(app(r)).get(
+          `/?page=1&pageSize=10&condition=${keadaan}`
+        );
+
+        expect(res.status).toBe(200);
+        expect(res.body.count).toBe(3);
+        expect(r.stok.fetchInadequateStock).toHaveBeenCalledWith(
+          expect.objectContaining({ keadaan })
+        );
+        expect(r.stok.fetchProblematicStock).not.toHaveBeenCalled();
+        // Disaring dari basis data, bukan dari indeks pencarian.
+        expect(cariMeili).not.toHaveBeenCalled();
+      });
+    }
+
+    it("condition=negative memakai repositori stok bermasalah", async () => {
+      const r = repos();
+      r.stok.fetchProblematicStock.mockResolvedValue({ data: [], count: 7 });
+
+      const res = await request(app(r)).get(
+        "/?page=1&pageSize=10&condition=negative"
+      );
+
+      expect(res.status).toBe(200);
+      expect(res.body.count).toBe(7);
+      expect(r.stok.fetchInadequateStock).not.toHaveBeenCalled();
+    });
+
+    /*
+      Nilai yang tidak dikenal TIDAK boleh menyentuh pencarian tetapan
+      KLAUSA_KEADAAN — ia harus jatuh ke jalur Meilisearch biasa. Inilah yang
+      membuat interpolasi di repositori aman: kuncinya tidak pernah berasal
+      dari pengguna, hanya dari daftar tertutup di controller.
+    */
+    it("condition tak dikenal jatuh ke jalur biasa, bukan ke saringan", async () => {
+      const r = repos();
+      cariMeili.mockResolvedValue({ hits: [], estimatedTotalHits: 0 });
+      r.stok.fetchStock.mockResolvedValue([]);
+
+      const res = await request(app(r)).get(
+        "/?page=1&pageSize=10&condition=low'%20OR%201=1--"
+      );
+
+      expect(res.status).toBe(200);
+      expect(r.stok.fetchInadequateStock).not.toHaveBeenCalled();
+      expect(r.stok.fetchProblematicStock).not.toHaveBeenCalled();
+      expect(cariMeili).toHaveBeenCalled();
+    });
+
+    /*
+      Penghitung chip ikut pada SETIAP balasan, juga ketika saringannya
+      menyala: angkanya menyatakan keadaan seluruh katalog, bukan halaman yang
+      sedang tampil. Ketiganya harus sampai ke klien — chip yang nilainya
+      undefined tampil sebagai kosong, bukan sebagai nol.
+    */
+    it("ketiga penghitung ikut terkirim walau saringan menyala", async () => {
+      const r = repos();
+      r.stok.countConditions.mockResolvedValue({
+        low: 420,
+        lowTheory: 920,
+        negative: 208,
+      });
+      r.stok.fetchInadequateStock.mockResolvedValue({ data: [], count: 0 });
+
+      const res = await request(app(r)).get(
+        "/?page=1&pageSize=10&condition=low-theory"
+      );
+
+      expect(res.body.summary).toEqual({
+        low: 420,
+        lowTheory: 920,
+        negative: 208,
+      });
+    });
   });
 });
 

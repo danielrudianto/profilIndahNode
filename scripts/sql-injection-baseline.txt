@@ -21,3 +21,17 @@ src/repositories/promotion.repository.ts  ${purchaseDateFilter}  #1
 src/repositories/promotion.repository.ts  ${supplierID}  #1
 src/repositories/promotion.repository.ts  ${productID.join(",")}  #2
 src/repositories/sales-invoice.repository.ts  ${userID}  #1
+
+# Daftar Stok dipecah menjadi tiga keadaan (menipis / menipis teori / minus).
+# Kelima interpolasi di bawah ini TIDAK membawa nilai dari pengguna: isinya
+# dibaca dari KLAUSA_KEADAAN di src/constants/minimum-stock.constant.ts —
+# Object.freeze dengan kunci bertipe union "low" | "low-theory" | "negative",
+# sehingga TypeScript menolak kunci lain pada waktu kompilasi. Controller
+# menyaring nilai query lewat daftar tertutup sebelum meneruskannya, jadi
+# kunci yang tidak dikenal jatuh ke jalur biasa dan tidak pernah menyentuh
+# pencarian tetapan ini.
+src/repositories/product-stock.repository.ts  ${KLAUSA_KEADAAN.low}  #1
+src/repositories/product-stock.repository.ts  ${KLAUSA_KEADAAN["low-theory"]}  #1
+src/repositories/product-stock.repository.ts  ${KLAUSA_KEADAAN.negative}  #1
+src/repositories/product-stock.repository.ts  ${klausaKeadaan}  #1
+src/repositories/product-stock.repository.ts  ${klausaKeadaan}  #2

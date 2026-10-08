@@ -6,6 +6,10 @@ import { ProductTypeModel } from "../models/product-type.model";
 import { ProductModel } from "../models/product.model";
 import { toPositiveInt } from "../utils/sql.helper";
 import { DateHelper, formatDate } from "../utils/date.helper";
+import {
+  KLAUSA_KEADAAN,
+  KeadaanStok,
+} from "../constants/minimum-stock.constant";
 
 export class ProductStockRepository {
   private prisma: PrismaClient;
@@ -38,44 +42,45 @@ export class ProductStockRepository {
   /**
    * Menghitung barang yang stoknya bermasalah, untuk chip ringkasan 15a.
    *
-   * Kedua keadaannya SALING LEPAS dan definisinya diambil dari kueri yang
-   * sudah dipakai fetchProblematicStock dan fetchInadequateStock — bukan
-   * ditulis ulang di sini. Menipis berarti di bawah ambangnya sendiri tetapi
-   * belum minus; minus berarti sudah di bawah nol. Sebuah barang tidak pernah
-   * terhitung dua kali.
+   * KETIGA keadaannya SALING LEPAS, dan definisinya TIDAK ditulis di sini:
+   * ia dibaca dari KLAUSA_KEADAAN, tetapan yang sama yang dipakai saringan
+   * daftarnya. Itulah intinya — ketika angka chip dan isi daftar punya
+   * definisi masing-masing, keduanya bisa menyimpang tanpa ketahuan.
    *
-   * Ambangnya adalah product.minimum_stock, kolom yang memang sudah ada — jadi
-   * tidak ada angka baru yang perlu ditebak atau ditanyakan.
+   * Pemecahannya dijelaskan di constants/minimum-stock.constant.ts: menipis
+   * karena ambang MANUAL, menipis karena REKOMENDASI sistem, dan minus.
    *
-   * Ditulis sebagai raw query TANPA satu pun interpolasi: Prisma tidak bisa
-   * membandingkan dua kolom pada tabel berbeda lewat findMany.
+   * Raw query karena Prisma tidak bisa membandingkan dua kolom pada tabel
+   * berbeda lewat findMany.
    */
-  async countConditions(): Promise<{ low: number; negative: number }> {
-    const hasil = await this.prisma.$queryRaw<
-      { low: bigint; negative: bigint }[]
-    >`
+  async countConditions(): Promise<{
+    low: number;
+    lowTheory: number;
+    negative: number;
+  }> {
+    /*
+      Ketiganya dihitung dalam SATU lintasan tabel, bukan tiga kueri. Tabelnya
+      4.886 baris dan angka ini ikut pada SETIAP permintaan daftar.
+    */
+    const hasil = await this.prisma.$queryRawUnsafe<
+      { low: bigint; lowTheory: bigint; negative: bigint }[]
+    >(`
       SELECT
-        SUM(
-          CASE
-            WHEN COALESCE(product_stock.stock, 0) >= 0
-             AND COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
-            THEN 1 ELSE 0
-          END
-        ) AS low,
-        SUM(
-          CASE WHEN COALESCE(product_stock.stock, 0) < 0 THEN 1 ELSE 0 END
-        ) AS negative
+        SUM(CASE WHEN ${KLAUSA_KEADAAN.low} THEN 1 ELSE 0 END) AS low,
+        SUM(CASE WHEN ${KLAUSA_KEADAAN["low-theory"]} THEN 1 ELSE 0 END) AS lowTheory,
+        SUM(CASE WHEN ${KLAUSA_KEADAAN.negative} THEN 1 ELSE 0 END) AS negative
       FROM product
       LEFT JOIN product_stock ON product_stock.id = product.id
       WHERE product.is_delete = 0
-    `;
+    `);
 
     if (hasil.length === 0) {
-      return { low: 0, negative: 0 };
+      return { low: 0, lowTheory: 0, negative: 0 };
     }
 
     return {
       low: Number(hasil[0].low ?? 0),
+      lowTheory: Number(hasil[0].lowTheory ?? 0),
       negative: Number(hasil[0].negative ?? 0),
     };
   }
@@ -282,7 +287,23 @@ export class ProductStockRepository {
     keyword: string;
     brands: number[];
     types: number[];
+    /*
+      Keadaan mana yang diambil. TANPA nilai berarti ambang GABUNGAN — itu
+      yang dipakai Laporan "Stok di bawah minimum" dan jalur gudang, dan
+      keduanya sengaja tidak ikut berubah ketika Daftar Stok dipecah tiga.
+      Hanya Daftar Stok yang mengirim nilai di sini.
+    */
+    keadaan?: KeadaanStok;
   }) {
+    /*
+      Dibaca dari tetapan beku lewat kunci bertipe union — tidak ada teks
+      dari pengguna yang bisa sampai ke sini. Lihat sql-injection-baseline.
+    */
+    const klausaKeadaan =
+      data.keadaan == null
+        ? `COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
+           AND COALESCE(product_stock.stock, 0) >= 0`
+        : KLAUSA_KEADAAN[data.keadaan];
     // Saringan merek/tipe akhirnya benar-benar dipakai: dulu controller
     // meneruskannya tetapi SQL-nya tidak pernah membaca, jadi dialog
     // saringan di halaman lama diam-diam tidak berbuat apa-apa. Kosong
@@ -312,8 +333,7 @@ export class ProductStockRepository {
           JOIN product_brand ON product.product_brand_id = product_brand.id
           JOIN product_type ON product.product_type_id = product_type.id
           WHERE product.is_delete = 0
-          AND COALESCE(product_stock.stock,0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
-          AND COALESCE(product_stock.stock, 0) >= 0
+          AND (${klausaKeadaan})
           ${saringanMerek}
           ${saringanTipe}
           AND (
@@ -340,8 +360,7 @@ export class ProductStockRepository {
           FROM product
           LEFT JOIN product_stock ON product_stock.id = product.id
           WHERE product.is_delete = 0
-          AND COALESCE(product_stock.stock, 0) < GREATEST(product.minimum_stock, COALESCE(product.minimum_stock_recommendation, 0))
-          AND COALESCE(product_stock.stock, 0) >= 0
+          AND (${klausaKeadaan})
           ${saringanMerek}
           ${saringanTipe}
           AND (
