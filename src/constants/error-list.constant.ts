@@ -35,6 +35,13 @@ enum ErrorList {
   "Name required" = "validation.name.required",
   "Address required" = "validation.address.required",
   "Date required" = "validation.date.required",
+  /*
+    Terpisah dari "Date required" dengan sengaja. Orang yang mengetik
+    "10 Februari 202" sudah MENGISI tanggalnya; diberi tahu "tanggal tidak
+    boleh kosong" ia akan mengisinya ulang sama persis. Pesannya harus
+    menunjuk ke tahunnya.
+  */
+  "Date is unreasonable" = "validation.date.unreasonable",
   "Quantity required" = "validation.quantity.required",
   "Quantity is required" = "validation.quantity.required",
   "Quantity must be numeric" = "validation.quantity.numeric",

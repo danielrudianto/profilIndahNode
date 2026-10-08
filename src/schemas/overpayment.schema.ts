@@ -1,6 +1,11 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { present, requiredIntFromText, requiredText } from "./common.schema";
+import {
+  present,
+  requiredIntFromText,
+  requiredText,
+  tanggalDokumenText,
+} from "./common.schema";
 
 /**
  * Kontrak API untuk domain kelebihan bayar (overpayment).
@@ -80,7 +85,7 @@ const kelebihanBayarBase = z.object({
     ditolak. JSON sudah membawa tipe aslinya, jadi menerima angka di bidang
     tanggal hanya menyembunyikan cacat di sisi pemanggil.
   */
-  date: requiredText(ErrorList["Date required"]),
+  date: tanggalDokumenText(ErrorList["Date required"]),
   value: uangWajib(
     ErrorList["Amount is required"],
     ErrorList["Amount must be numeric"],
@@ -88,7 +93,9 @@ const kelebihanBayarBase = z.object({
   ),
   customer_id: present(ErrorList["Customer ID is required"]),
   payment_method_id: present(ErrorList["Payment method required"]),
-  return_payment_date: requiredText(ErrorList["Return date is required"]),
+  return_payment_date: tanggalDokumenText(
+    ErrorList["Return date is required"]
+  ),
   /*
     isIn(["Cash", "Bank transfer"]) bekerja pada bentuk teks nilainya, sehingga
     daftar tertutupnya sudah menolak semua nilai bukan teks dengan sendirinya.
@@ -133,7 +140,7 @@ export const updateOverpaymentSchema = kelebihanBayarBase;
  * menyembunyikan bahwa rute ini memang hanya butuh satu bidang.
  */
 export const refundReportSchema = z.object({
-  date: requiredText(ErrorList["Date required"]),
+  date: tanggalDokumenText(ErrorList["Date required"]),
 });
 
 /**

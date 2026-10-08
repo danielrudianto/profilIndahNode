@@ -1,6 +1,9 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { requiredIntFromText } from "./common.schema";
+import {
+  requiredIntFromText,
+  tanggalDokumen,
+} from "./common.schema";
 
 /**
  * Kontrak API untuk domain piutang (receivable).
@@ -109,7 +112,7 @@ export const paramCustomerReceivableSchema = z.object({
  * kosong. Efeknya bidang ini wajib, dengan pesan "Payment status required".
  */
 export const createReceivablePaymentSchema = z.object({
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   // Dua aturan pada satu bidang: yang pertama menjelaskan nilai yang tidak
   // dikirim, yang kedua nilai yang dikirim tetapi bukan bilangan >= 0.
   amount: required(ErrorList["Amount is required"]).refine(desimalTakNegatif, {

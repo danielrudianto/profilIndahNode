@@ -149,6 +149,84 @@ export const required = (pesan: string) =>
 export const present = (pesan: string) =>
   z.any().refine((nilai) => nilai !== undefined, { message: pesan });
 
+/* ------------------------------------------------------------------ */
+/* Tanggal dokumen                                                     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * BATAS TAHUN, DAN KENAPA ADA.
+ *
+ * Sebuah nota penjualan pernah masuk bertanggal "10 Februari 202" — tahunnya
+ * kehilangan satu angka saat diketik. Tidak ada satu pun lapisan yang
+ * mencegahnya: `new Date("202-02-10")` sah menurut JavaScript, Prisma
+ * menyimpannya, lalu stock_card, stock_out, dan pelapisan FIFO ikut tersusun
+ * dari tanggal tahun 202. Memperbaikinya berarti menyentuh empat tabel dan
+ * menghitung ulang riwayat satu produk.
+ *
+ * Tahun 202 bukan tanggal yang tidak sah secara bentuk — ia tanggal yang
+ * tidak mungkin bagi toko ini. Maka yang dijaga di sini bukan formatnya,
+ * melainkan kewajarannya.
+ *
+ * Ujung bawahnya 2000: data tertua di sistem ini jauh di atasnya, dan tidak
+ * ada alasan sah memasukkan dokumen abad lalu. Ujung atasnya tahun depan,
+ * BUKAN tahun ini — nota bertanggal awal Januari yang diketik akhir Desember
+ * adalah hal biasa, dan menolaknya akan membuat penjagaan ini berubah menjadi
+ * penghalang kerja.
+ *
+ * Batas atasnya dihitung SAAT VALIDASI, tidak disimpan sebagai tetapan saat
+ * modul dimuat. Proses backend hidup berbulan-bulan tanpa restart; batas yang
+ * dibekukan saat start akan ikut basi bersamanya, dan tepat pada malam tahun
+ * baru ia menolak pekerjaan yang sah.
+ */
+const TAHUN_PALING_AWAL = 2000;
+const tahunPalingAkhir = (): number => new Date().getFullYear() + 1;
+
+/**
+ * Apakah nilainya tanggal yang WAJAR — bukan sekadar tanggal yang sah.
+ *
+ * Nilai yang tidak terbaca sebagai tanggal juga dinyatakan tidak wajar, jadi
+ * bidang yang memakai pemeriksaan ini tidak perlu memasang penjaga NaN
+ * sendiri.
+ */
+function tahunMasukAkal(nilai: unknown): boolean {
+  /*
+    Nilainya DITAFSIRKAN SAMA DENGAN CARA CONTROLLER MENAFSIRKANNYA, yaitu
+    diserahkan apa adanya ke new Date(...) tanpa diubah ke teks lebih dulu.
+
+    Bedanya nyata. `new Date(20240501)` membaca angka itu sebagai milidetik
+    epoch dan menghasilkan Agustus 1970, sedangkan `new Date("20240501")`
+    menghasilkan sesuatu yang lain lagi. Yang harus dinilai wajar atau tidak
+    adalah tanggal yang BENAR-BENAR akan tersimpan, bukan tafsiran lain yang
+    kebetulan dibuat oleh lapisan validasi.
+  */
+  const tanggal = nilai instanceof Date ? nilai : new Date(nilai as never);
+  if (Number.isNaN(tanggal.getTime())) {
+    return false;
+  }
+
+  const tahun = tanggal.getFullYear();
+  return tahun >= TAHUN_PALING_AWAL && tahun <= tahunPalingAkhir();
+}
+
+/**
+ * Tanggal dokumen, selonggar `required()` soal tipe.
+ *
+ * Dipakai pada bidang yang rantai lamanya hanya memasang notEmpty(). Ketatnya
+ * TIDAK ditambah di sini: yang berubah hanya tahunnya ikut diperiksa. Bidang
+ * yang sudah mensyaratkan teks memakai tanggalDokumenText supaya
+ * ketegasannya tidak malah turun.
+ */
+export const tanggalDokumen = (pesan: string) =>
+  required(pesan).refine(tahunMasukAkal, {
+    message: ErrorList["Date is unreasonable"],
+  });
+
+/** Tanggal dokumen yang WAJIB berupa teks — lihat tanggalDokumen. */
+export const tanggalDokumenText = (pesan: string) =>
+  requiredText(pesan).refine(tahunMasukAkal, {
+    message: ErrorList["Date is unreasonable"],
+  });
+
 /** Parameter jalur `:id`. */
 export const paramId = z.object({
   id: intFromText(ErrorList["Parameter error"]),

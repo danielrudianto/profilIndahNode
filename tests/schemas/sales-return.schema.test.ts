@@ -168,9 +168,6 @@ describe("POST / — perilaku harus identik", () => {
     ["badan kosong", {}],
     ["tanpa date", { ...returLengkap, date: undefined }],
     ["date teks kosong", { ...returLengkap, date: "" }],
-    // notEmpty() mengubah nilai menjadi teks lebih dulu, jadi angka lolos —
-    // required meniru kelonggaran itu apa adanya.
-    ["date berupa angka", { ...returLengkap, date: 20260501 }],
     [
       "tanpa payment_method_id",
       { ...returLengkap, payment_method_id: undefined },
@@ -222,6 +219,40 @@ describe("POST / — perilaku harus identik", () => {
       expect(h.baru).toEqual(h.lama);
     });
   }
+
+  /**
+   * DIVERGENSI YANG DISENGAJA — dulu diterima, sekarang ditolak.
+   *
+   * `date: 20260501` dikeluarkan dari tabel di atas karena tabel itu menguji
+   * KESAMAAN perilaku, dan di sini perilakunya memang berubah dengan sengaja.
+   *
+   * Angka di `new Date(20260501)` adalah milidetik epoch, bukan tanggal —
+   * yang tersimpan Agustus 1970. notEmpty() meloloskannya karena hanya
+   * melihat bahwa nilainya ada.
+   */
+  it("menolak date berupa angka — dulu diterima dan tersimpan sebagai 1970", async () => {
+    const h = await bandingPost("/", { ...returLengkap, date: 20260501 });
+    expect(h.lama.status).toBe(200);
+    expect(h.baru.status).toBe(400);
+    expect(h.baru.teks).toBe(ErrorList["Date is unreasonable"]);
+  });
+
+  /** Kasus yang memicu perubahan ini: tahun kehilangan satu angka. */
+  it("menolak tahun yang kehilangan satu angka", async () => {
+    const h = await bandingPost("/", { ...returLengkap, date: "202-02-10" });
+    expect(h.baru.status).toBe(400);
+    expect(h.baru.teks).toBe(ErrorList["Date is unreasonable"]);
+  });
+
+  /**
+   * Sisi sebaliknya. Tanpa kasus ini, skema yang menolak SEMUA tanggal pun
+   * membuat kedua tes di atas hijau.
+   */
+  it("tetap menerima tanggal yang wajar", async () => {
+    const h = await bandingPost("/", returLengkap);
+    expect(h.baru).toEqual(h.lama);
+    expect(h.baru.status).toBe(200);
+  });
 
   /**
    * express-validator memperlakukan bidang berisi LARIK sebagai kumpulan

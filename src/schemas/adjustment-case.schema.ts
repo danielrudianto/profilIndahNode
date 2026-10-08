@@ -1,6 +1,12 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { present, int, requiredInt, required } from "./common.schema";
+import {
+  present,
+  int,
+  requiredInt,
+  required,
+  tanggalDokumen,
+} from "./common.schema";
 
 /**
  * Kontrak API untuk domain penyesuaian stok.
@@ -143,7 +149,7 @@ export const bodyIdAdjustmentCaseSchema = z.object({
  * tests/adjustment-case.schema.test.ts.
  */
 export const createAdjustmentCaseSchema = z.object({
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   type: int(ErrorList["Adjustment case type is required"], 0),
   adjustment_case: z.array(
     z.object(

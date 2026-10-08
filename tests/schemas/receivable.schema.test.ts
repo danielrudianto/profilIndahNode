@@ -174,12 +174,67 @@ describe("POST /payment — perilaku harus identik", () => {
     expect(h.baru.teks).toBe(ErrorList["Date required"]);
   });
 
-  it("menerima tanggal berupa angka — rantai lama tidak memeriksa tipenya", async () => {
+  /**
+   * DIVERGENSI YANG DISENGAJA — dulu diterima, sekarang ditolak.
+   *
+   * `date: 20240501` terbaca seperti tanggal oleh mata manusia, tetapi
+   * controller menyerahkannya ke `new Date(20240501)`, dan angka di sana
+   * adalah MILIDETIK EPOCH: yang tersimpan adalah 23 Agustus 1970. Rantai
+   * lama meloloskannya karena notEmpty() hanya melihat bahwa nilainya ada.
+   *
+   * Jadi yang hilang di sini bukan keluwesan, melainkan satu jalan masuk
+   * yang diam-diam menyimpan tanggal yang salah lima puluh tahun.
+   */
+  it("menolak tanggal berupa angka — dulu diterima dan tersimpan sebagai 1970", async () => {
     const h = await kirim("post", "/payment", {
       ...pembayaranLengkap,
       date: 20240501,
     });
+    expect(h.lama.status).toBe(200);
+    expect(h.baru.status).toBe(400);
+    expect(h.baru.teks).toBe(ErrorList["Date is unreasonable"]);
+  });
+
+  /**
+   * DIVERGENSI YANG DISENGAJA — inilah kasus yang memicu seluruh perubahan.
+   *
+   * Satu nota pernah masuk bertanggal "10 Februari 202": tahunnya kehilangan
+   * satu angka saat diketik. Bentuknya sah, `new Date` menerimanya, dan
+   * stock_card beserta pelapisan FIFO ikut tersusun dari tahun 202.
+   */
+  it("menolak tahun yang kehilangan satu angka", async () => {
+    const h = await kirim("post", "/payment", {
+      ...pembayaranLengkap,
+      date: "202-02-10",
+    });
+    expect(h.baru.status).toBe(400);
+    expect(h.baru.teks).toBe(ErrorList["Date is unreasonable"]);
+  });
+
+  /**
+   * Dan sisi sebaliknya, yang menjaga penjagaan ini tetap berguna: tanggal
+   * yang wajar harus tetap lolos. Tanpa kasus ini, penolakan total pun
+   * membuat kedua tes di atas hijau.
+   */
+  it("tetap menerima tanggal yang wajar", async () => {
+    const h = await kirim("post", "/payment", {
+      ...pembayaranLengkap,
+      date: "2024-05-01",
+    });
     expect(h.baru).toEqual(h.lama);
+    expect(h.baru.status).toBe(200);
+  });
+
+  /**
+   * Nota awal Januari yang diketik akhir Desember adalah hal biasa, dan
+   * batas atasnya memang tahun DEPAN supaya pekerjaan itu tidak tertolak.
+   */
+  it("menerima tanggal awal tahun depan", async () => {
+    const tahunDepan = new Date().getFullYear() + 1;
+    const h = await kirim("post", "/payment", {
+      ...pembayaranLengkap,
+      date: `${tahunDepan}-01-03`,
+    });
     expect(h.baru.status).toBe(200);
   });
 

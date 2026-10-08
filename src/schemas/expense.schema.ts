@@ -1,6 +1,9 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { required } from "./common.schema";
+import {
+  required,
+  tanggalDokumen,
+} from "./common.schema";
 
 /**
  * Kontrak API untuk produk dan pengeluaran.
@@ -44,7 +47,7 @@ const bulatMin1 = (pesan: string) =>
 
 /** Urutan mengikuti expenseBody pada berkas route. */
 const pengeluaranBase = z.object({
-  date: required(ErrorList["Parameter error"]),
+  date: tanggalDokumen(ErrorList["Parameter error"]),
   description: required(ErrorList["Parameter error"]),
   value: angka(ErrorList["Parameter error"]),
   company_id: angka(ErrorList["Parameter error"]),

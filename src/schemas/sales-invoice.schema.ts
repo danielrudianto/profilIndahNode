@@ -1,6 +1,10 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { jenisJasa, aturanJasa } from "./common.schema";
+import {
+  jenisJasa,
+  aturanJasa,
+  tanggalDokumen,
+} from "./common.schema";
 import { present, requiredInt, required } from "./common.schema";
 
 /**
@@ -99,7 +103,7 @@ export const invoiceArchiveSchema = z.object({
  * tanpa .min() juga menerima larik kosong.
  */
 export const searchSalesReturnSchema = z.object({
-  date: required(ErrorList["Parameter error"]),
+  date: tanggalDokumen(ErrorList["Parameter error"]),
   sales_invoice: z.array(
     z.object({
       product_id: requiredInt(

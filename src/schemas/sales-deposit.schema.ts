@@ -8,6 +8,7 @@ import {
   required,
   jenisJasa,
   aturanJasa,
+  tanggalDokumenText,
 } from "./common.schema";
 
 /**
@@ -151,7 +152,7 @@ const pembayaranSetoranSchema = z.object(
       ErrorList["Amount must be numeric"],
       ErrorList["Amount must be numeric"]
     ),
-    date: requiredText(ErrorList["Payment date is required"]),
+    date: tanggalDokumenText(ErrorList["Payment date is required"]),
   },
   {
     error: (iss) =>
@@ -188,7 +189,7 @@ export const confirmSalesDepositSchema = z.object({
     tipenya jelas teks, kebijakan ketat berlaku penuh: angka epoch seperti
     1700000000000 dulu diterima notEmpty(), sekarang ditolak.
   */
-  date: requiredText(ErrorList["Date required"]),
+  date: tanggalDokumenText(ErrorList["Date required"]),
   sales_invoice_payment: z.array(pembayaranSetoranSchema, {
     error: (iss) =>
       iss.input === undefined || iss.input === null || iss.input === ""

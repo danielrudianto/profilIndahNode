@@ -7,6 +7,7 @@ import {
   requiredIntFromText,
   requiredText,
   required,
+  tanggalDokumen,
 } from "./common.schema";
 
 /**
@@ -259,7 +260,7 @@ export const checkGoodReceiptSchema = z.object({
  * galat baru yang belum pernah dilihat frontend.
  */
 export const createGoodReceiptSchema = z.object({
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   name: requiredText(ErrorList["Name required"]).max(
     PANJANG.name,
     ErrorList["Good receipt name too long"]
@@ -292,7 +293,7 @@ export const createGoodReceiptSchema = z.object({
  */
 export const updateGoodReceiptSchema = z.object({
   id: requiredInt(ErrorList["ID is required"], ErrorList["ID is required"], 1),
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   name: requiredText(ErrorList["Invoice name required"]).max(
     PANJANG.name,
     ErrorList["Good receipt name too long"]
@@ -345,7 +346,7 @@ export const confirmGoodReceiptSchema = z.object({
     PANJANG.invoice_name,
     ErrorList["Invoice name required"]
   ),
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   faktur: present(ErrorList["Tax invoice required"]),
   good_receipt: z.array(
     z.object({

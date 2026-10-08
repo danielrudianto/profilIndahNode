@@ -1,6 +1,10 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { requiredIntFromText, required } from "./common.schema";
+import {
+  requiredIntFromText,
+  required,
+  tanggalDokumen,
+} from "./common.schema";
 
 /**
  * Kontrak API untuk domain stok produk dan kartu stok.
@@ -175,7 +179,7 @@ export const inadequateStockSchema = saringanStokDenganUkuran;
  * tidak divalidasi pada rantai lama dan tidak ditambahkan di sini.
  */
 export const stockMutationSchema = z.object({
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   viewBy: z.any().superRefine((nilai, ctx) => {
     if (nilai === undefined || nilai === null || String(nilai) === "") {
       ctx.addIssue({

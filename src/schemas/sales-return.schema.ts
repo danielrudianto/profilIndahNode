@@ -1,6 +1,11 @@
 import { z } from "zod";
 import ErrorList from "../constants/error-list.constant";
-import { requiredInt, requiredIntFromText, required } from "./common.schema";
+import {
+  requiredInt,
+  requiredIntFromText,
+  required,
+  tanggalDokumen,
+} from "./common.schema";
 
 /**
  * Kontrak API untuk domain retur penjualan.
@@ -95,7 +100,7 @@ export const archiveSalesReturnSchema = z.object({
  * tests/sales-return.schema.test.ts.
  */
 export const createSalesReturnSchema = z.object({
-  date: required(ErrorList["Date required"]),
+  date: tanggalDokumen(ErrorList["Date required"]),
   payment_method_id: requiredInt(
     ErrorList["Payment method required"],
     ErrorList["Payment method must be numeric"],

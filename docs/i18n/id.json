@@ -137,7 +137,8 @@
       "nameTooLong": "Nama penerimaan barang maksimal 100 karakter."
     },
     "date": {
-      "required": "Tanggal tidak boleh kosong."
+      "required": "Tanggal tidak boleh kosong.",
+      "unreasonable": "Tanggal di luar rentang yang wajar. Mohon periksa kembali tahunnya."
     },
     "return": {
       "dateRequired": "Tanggal pengembalian tidak boleh kosong",
