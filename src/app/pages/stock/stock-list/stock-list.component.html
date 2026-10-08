@@ -1,0 +1,194 @@
+<!--
+  Daftar stok — bagian `15a` berkas desain.
+
+  Tidak ada tombol tambah: baris di sini tidak dibuat orang, ia muncul sendiri
+  mengikuti barang yang ada. Yang bisa dilakukan hanya melihat kartu dan
+  mutasinya — maka addLabel sengaja tidak diisi, dan app-list-page tidak
+  menggambar tombolnya sama sekali.
+-->
+<app-list-page
+  [heading]="'stock-list__title' | translate"
+  [lede]="'stock-list__lede' | translate"
+  [searchPlaceholder]="'stock-list__search' | translate"
+  [keyword]="kataKunci"
+  [page]="page"
+  [pageSize]="pageSize"
+  [total]="dataCount"
+  [loading]="isLoading"
+  (search)="cari($event)"
+  (pageChange)="bukaHalaman($event)"
+  (pageSizeChange)="gantiUkuran($event)"
+  (refresh)="fetchProducts()"
+>
+  <!--
+    Dua chip ringkasan yang sekaligus menyaring. Angkanya menyatakan keadaan
+    SELURUH katalog dan tidak ikut mengecil ketika saringannya sendiri menyala.
+  -->
+  <ng-container aksi>
+    <button
+      type="button"
+      class="chip-pintas"
+      [class.chip-pintas--on]="kondisi === 'low'"
+      (click)="toggleKondisi('low')"
+    >
+      <i class="ph-fill ph-warning" aria-hidden="true"></i>
+      {{ ringkasan.low }} {{ 'stock-list__chip__low' | translate }}
+    </button>
+
+    <button
+      type="button"
+      class="chip-pintas chip-pintas--merah"
+      [class.chip-pintas--on]="kondisi === 'negative'"
+      (click)="toggleKondisi('negative')"
+    >
+      <i class="ph-fill ph-arrow-down" aria-hidden="true"></i>
+      {{ ringkasan.negative }} {{ 'stock-list__chip__negative' | translate }}
+    </button>
+  </ng-container>
+
+  <table class="tabel">
+    <thead>
+      <tr>
+        <!--
+          Referensi dan deskripsi menempati SATU kolom. Keduanya menyebut
+          barang yang sama, dan memisahnya membuat mata berpindah dua kali
+          untuk satu jawaban.
+        -->
+        <th>{{ 'stock-list__item' | translate }}</th>
+        <th>{{ 'product__brand' | translate }}</th>
+        <th>{{ 'product__type' | translate }}</th>
+        <th class="tabel__nilai-kepala">{{ 'product__stock' | translate }}</th>
+        <!--
+          Ambangnya berdiri PERSIS di sebelah stoknya. Keduanya hanya berarti
+          bila dibandingkan, dan kolom yang terpisah membuat mata berpindah
+          jauh untuk satu pertanyaan: angka ini sudah di bawah batasnya belum.
+        -->
+        <th
+          class="tabel__nilai-kepala"
+          [attr.title]="'stock-list__minimum__hint' | translate"
+        >
+          {{ 'stock-list__minimum' | translate }}
+        </th>
+        <th>{{ 'stock-list__condition' | translate }}</th>
+        <th class="tabel__aksi-kepala">
+          <span class="sr-only">{{ 'general__actions' | translate }}</span>
+        </th>
+      </tr>
+    </thead>
+
+    <tbody *ngIf="!isLoading && dataSource.length > 0">
+      <tr *ngFor="let item of dataSource; trackBy: lacakBarang">
+        <td>
+          <!--
+            Sel dua baris berpendamping avatar: huruf pertama REFERENSI, bukan
+            deskripsi — referensi itulah yang dicari orang di daftar ini.
+          -->
+          <div class="sel-entitas">
+            <span class="avatar-inisial" aria-hidden="true">
+              {{ inisial(item.reference) }}
+            </span>
+            <span class="sel-entitas__teks">
+              <span class="sel-entitas__utama">{{ item.reference }}</span>
+              <span class="sel-entitas__sub">{{ item.description }}</span>
+            </span>
+          </div>
+        </td>
+        <td><span class="tag-netral">{{ item.product_brand?.name }}</span></td>
+        <td><span class="tag-netral">{{ item.product_type?.name }}</span></td>
+        <!--
+          Stok minus ditulis MERAH. Ia bukan sekadar angka kecil: stok di bawah
+          nol berarti catatannya sudah tidak mungkin benar, dan itu harus
+          terbaca sebelum barisnya sempat dilewati.
+        -->
+        <td class="tabel__nilai" [class.stok--minus]="stok(item) < 0">
+          {{ stok(item) | number: '0.0-2' }}
+          <span class="stok__satuan">{{ item.unit }}</span>
+        </td>
+        <!--
+          Dua angka bertumpuk: ambang manual di atas, saran sistem di
+          bawahnya. Yang BERLAKU digambar penuh, yang tidak diredupkan —
+          lihat manualBerlaku() untuk alasannya.
+        -->
+        <td class="tabel__nilai ambang">
+          <span
+            class="ambang__manual"
+            [class.ambang--berlaku]="manualBerlaku(item)"
+          >
+            <ng-container *ngIf="minimumManual(item) > 0">
+              {{ minimumManual(item) | number: '0.0-2' }}
+              <span class="stok__satuan">{{ item.unit }}</span>
+            </ng-container>
+            <ng-container *ngIf="minimumManual(item) === 0">—</ng-container>
+          </span>
+          <span
+            class="ambang__saran"
+            *ngIf="rekomendasi(item) !== null"
+            [class.ambang--berlaku]="rekomendasiBerlaku(item)"
+          >
+            {{ 'stock-list__minimum__suggested' | translate }}
+            {{ rekomendasi(item) | number: '0.0-2' }}
+            <span class="stok__satuan">{{ item.unit }}</span>
+          </span>
+        </td>
+        <td>
+          <!--
+            Barang yang stoknya cukup tidak diberi pill sama sekali. Pill
+            "aman" pada setiap baris membuat yang bermasalah justru tenggelam.
+          -->
+          <span
+            class="pill"
+            [ngClass]="kelasPill(item)"
+            *ngIf="kondisiBaris(item)"
+          >
+            <i class="ph-fill" [ngClass]="ikonPill(item)" aria-hidden="true"></i>
+            {{ kunciKondisi(item) | translate }}
+          </span>
+        </td>
+        <td class="tabel__aksi">
+          <!--
+            Dua tindakan BERTULISAN, bukan ikon telanjang: keduanya jarang
+            dipakai dan namanya tidak bisa ditebak dari gambarnya saja.
+          -->
+          <button
+            type="button"
+            class="aksi-kecil"
+            (click)="openDialog('card', item.id)"
+          >
+            <i class="ph ph-list-magnifying-glass" aria-hidden="true"></i>
+            {{ 'stock-list__card' | translate }}
+          </button>
+          <button
+            type="button"
+            class="aksi-kecil"
+            (click)="openDialog('mutation', item.id)"
+          >
+            <i class="ph ph-arrows-left-right" aria-hidden="true"></i>
+            {{ 'stock-list__mutation' | translate }}
+          </button>
+        </td>
+      </tr>
+    </tbody>
+
+    <tbody *ngIf="isLoading">
+      <tr>
+        <td colspan="7" class="tabel__pesan">
+          {{ 'general__loading' | translate }}
+        </td>
+      </tr>
+    </tbody>
+
+    <tbody *ngIf="!isLoading && dataSource.length === 0">
+      <tr>
+        <td colspan="7">
+          <app-tabel-kosong
+            ikon="ph-stack"
+            [judul]="'stock-list__empty__title' | translate"
+            [penjelasan]="'stock-list__empty__desc' | translate"
+            [kataKunci]="kataKunci"
+            (reset)="resetPencarian()"
+          />
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</app-list-page>
